@@ -12,7 +12,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Temporary, Root};
 use dom::browsercontext;
 use dom::window;
-use servo_util::str::DOMString;
 
 use libc;
 use libc::c_uint;
@@ -20,11 +19,9 @@ use std::cell::Cell;
 use std::mem;
 use std::cmp::PartialEq;
 use std::ptr;
-use std::slice;
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::glue::{UnwrapObject, GetProxyHandlerExtra};
-use js::glue::{IsWrapper, RUST_JSID_TO_STRING, RUST_JSID_IS_INT};
-use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_INT};
+use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
@@ -37,7 +34,6 @@ use js::jsapi::{JS_ValueToString, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsapi::{JSContext, JSObject, JSBool, jsid, JSClass};
 use js::jsapi::{JSFunctionSpec, JSPropertySpec};
 use js::jsapi::{JS_NewGlobalObject, JS_InitStandardClasses};
-use js::jsapi::{JSString};
 use js::jsapi::JS_DeletePropertyById2;
 use js::jsfriendapi::JS_ObjectToOuterObject;
 use js::jsfriendapi::bindgen::JS_NewObjectWithUniqueType;
@@ -159,27 +155,6 @@ pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *mut JSObject,
 /// Leak the given pointer.
 pub unsafe fn squirrel_away_unique<T>(x: Box<T>) -> *const T {
     mem::transmute(x)
-}
-
-/// Convert the given `JSString` to a `DOMString`. Fails if the string does not
-/// contain valid UTF-16.
-pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
-    unsafe {
-        let mut length = 0;
-        let chars = JS_GetStringCharsAndLength(cx, s, &mut length);
-        slice::raw::buf_as_slice(chars, length as uint, |char_vec| {
-            String::from_utf16(char_vec).unwrap()
-        })
-    }
-}
-
-/// Convert the given `jsid` to a `DOMString`. Fails if the `jsid` is not a
-/// string, or if the string does not contain valid UTF-16.
-pub fn jsid_to_str(cx: *mut JSContext, id: jsid) -> DOMString {
-    unsafe {
-        assert!(RUST_JSID_IS_STRING(id) != 0);
-        jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
-    }
 }
 
 /// The index of the slot wherein a pointer to the reflected DOM object is
