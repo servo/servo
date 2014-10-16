@@ -7,11 +7,12 @@
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::utils::jsstring_to_str;
 use dom::bindings::utils::unwrap_jsmanaged;
 use servo_util::str::DOMString;
 
-use js::jsapi::{JSBool, JSContext, JSObject};
+use js::glue::{RUST_JSID_TO_STRING, RUST_JSID_IS_STRING};
+use js::glue::RUST_JS_NumberValue;
+use js::jsapi::{JSBool, JSContext, JSObject, JSString, jsid};
 use js::jsapi::{JS_ValueToUint64, JS_ValueToInt64};
 use js::jsapi::{JS_ValueToECMAUint32, JS_ValueToECMAInt32};
 use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
@@ -21,7 +22,7 @@ use js::jsapi::{JS_WrapValue};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
 use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
-use js::glue::RUST_JS_NumberValue;
+
 use libc;
 use std::default;
 use std::slice;
@@ -249,6 +250,27 @@ pub enum StringificationBehavior {
 impl default::Default for StringificationBehavior {
     fn default() -> StringificationBehavior {
         Default
+    }
+}
+
+/// Convert the given `JSString` to a `DOMString`. Fails if the string does not
+/// contain valid UTF-16.
+pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
+    unsafe {
+        let mut length = 0;
+        let chars = JS_GetStringCharsAndLength(cx, s, &mut length);
+        slice::raw::buf_as_slice(chars, length as uint, |char_vec| {
+            String::from_utf16(char_vec).unwrap()
+        })
+    }
+}
+
+/// Convert the given `jsid` to a `DOMString`. Fails if the `jsid` is not a
+/// string, or if the string does not contain valid UTF-16.
+pub fn jsid_to_str(cx: *mut JSContext, id: jsid) -> DOMString {
+    unsafe {
+        assert!(RUST_JSID_IS_STRING(id) != 0);
+        jsstring_to_str(cx, RUST_JSID_TO_STRING(id))
     }
 }
 
