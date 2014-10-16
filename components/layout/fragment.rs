@@ -10,8 +10,10 @@ use css::node_style::StyledNode;
 use construct::FlowConstructor;
 use context::LayoutContext;
 use floats::{ClearBoth, ClearLeft, ClearRight, ClearType};
+use flow;
 use flow::Flow;
 use flow_ref::FlowRef;
+use incremental::RestyleDamage;
 use inline::{InlineFragmentContext, InlineMetrics};
 use layout_debug;
 use model::{Auto, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, Specified, specified};
@@ -88,6 +90,9 @@ pub struct Fragment {
     /// The CSS style of this fragment.
     pub style: Arc<ComputedValues>,
 
+    /// How damaged this fragment is since last reflow.
+    pub restyle_damage: RestyleDamage,
+
     /// The position of this fragment relative to its owning flow.
     /// The size includes padding and border, but not margin.
     pub border_box: LogicalRect<Au>,
@@ -146,6 +151,47 @@ pub enum SpecificFragmentInfo {
     TableRowFragment,
     TableWrapperFragment,
     UnscannedTextFragment(UnscannedTextFragmentInfo),
+}
+
+impl SpecificFragmentInfo {
+    fn restyle_damage(&self) -> RestyleDamage {
+        let flow =
+            match *self {
+                IframeFragment(_)
+                | ImageFragment(_)
+                | InputFragment
+                | ScannedTextFragment(_)
+                | TableFragment
+                | TableCellFragment
+                | TableColumnFragment(_)
+                | TableRowFragment
+                | TableWrapperFragment
+                | UnscannedTextFragment(_)
+                | GenericFragment => return RestyleDamage::empty(),
+                InlineAbsoluteHypotheticalFragment(ref info) => &info.flow_ref,
+                InlineBlockFragment(ref info) => &info.flow_ref,
+            };
+
+        flow::base(flow.deref()).restyle_damage
+    }
+
+    pub fn get_type(&self) -> &'static str {
+        match *self {
+            GenericFragment => "GenericFragment",
+            IframeFragment(_) => "IframeFragment",
+            ImageFragment(_) => "ImageFragment",
+            InlineAbsoluteHypotheticalFragment(_) => "InlineAbsoluteHypotheticalFragment",
+            InlineBlockFragment(_) => "InlineBlockFragment",
+            InputFragment => "InputFragment",
+            ScannedTextFragment(_) => "ScannedTextFragment",
+            TableFragment => "TableFragment",
+            TableCellFragment => "TableCellFragment",
+            TableColumnFragment(_) => "TableColumnFragment",
+            TableRowFragment => "TableRowFragment",
+            TableWrapperFragment => "TableWrapperFragment",
+            UnscannedTextFragment(_) => "UnscannedTextFragment",
+        }
+    }
 }
 
 /// A hypothetical box (see CSS 2.1 § 10.3.7) for an absolutely-positioned block that was declared
@@ -330,6 +376,10 @@ pub struct ScannedTextFragmentInfo {
 
     /// The range within the above text run that this represents.
     pub range: Range<CharIndex>,
+
+    /// The new_line_pos is eaten during line breaking. If we need to re-merge
+    /// fragments, it will have to be restored.
+    pub original_new_line_pos: Option<Vec<CharIndex>>,
 }
 
 impl ScannedTextFragmentInfo {
@@ -338,6 +388,7 @@ impl ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
+            original_new_line_pos: None,
         }
     }
 }
@@ -424,6 +475,7 @@ impl Fragment {
         Fragment {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: style,
+            restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
@@ -442,6 +494,7 @@ impl Fragment {
         Fragment {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: style,
+            restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
@@ -468,6 +521,7 @@ impl Fragment {
         Fragment {
             node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
             style: Arc::new(node_style),
+            restyle_damage: node.restyle_damage(),
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
@@ -481,12 +535,14 @@ impl Fragment {
     /// Constructs a new `Fragment` instance from an opaque node.
     pub fn from_opaque_node_and_style(node: OpaqueNode,
                                       style: Arc<ComputedValues>,
+                                      restyle_damage: RestyleDamage,
                                       specific: SpecificFragmentInfo)
                                       -> Fragment {
         let writing_mode = style.writing_mode;
         Fragment {
             node: node,
             style: style,
+            restyle_damage: restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
@@ -494,6 +550,32 @@ impl Fragment {
             new_line_pos: vec!(),
             inline_context: None,
             debug_id: layout_debug::generate_unique_debug_id(),
+        }
+    }
+
+    /// Saves the new_line_pos vector into a `ScannedTextFragment`. This will fail
+    /// if called on any other type of fragment.
+    pub fn save_new_line_pos(&mut self) {
+        match &mut self.specific {
+            &ScannedTextFragment(ref mut info) => {
+                if !self.new_line_pos.is_empty() {
+                    info.original_new_line_pos = Some(self.new_line_pos.clone());
+                }
+            }
+            _ => {}
+        }
+    }
+
+    pub fn restore_new_line_pos(&mut self) {
+        match &mut self.specific {
+            &ScannedTextFragment(ref mut info) => {
+                match info.original_new_line_pos.take() {
+                    None => {}
+                    Some(new_line_pos) => self.new_line_pos = new_line_pos,
+                }
+                return
+            }
+            _ => {}
         }
     }
 
@@ -509,6 +591,7 @@ impl Fragment {
         Fragment {
             node: self.node,
             style: self.style.clone(),
+            restyle_damage: RestyleDamage::all(),
             border_box: LogicalRect::from_point_size(
                 self.style.writing_mode, self.border_box.start, size),
             border_padding: self.border_padding,
@@ -518,6 +601,10 @@ impl Fragment {
             inline_context: self.inline_context.clone(),
             debug_id: self.debug_id,
         }
+    }
+
+    pub fn restyle_damage(&self) -> RestyleDamage {
+        self.restyle_damage | self.specific.restyle_damage()
     }
 
     /// Adds a style to the inline context for this fragment. If the inline
