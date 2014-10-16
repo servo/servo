@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::error::{Fallible, Syntax};
+use dom::bindings::error::{Fallible, Syntax, ErrorResult, DataClone};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::JSTraceable;
@@ -20,7 +20,7 @@ use servo_util::str::DOMString;
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::{JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot, JSTracer};
-use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
 use js::jsval::{JSVal, UndefinedValue};
 use url::UrlParser;
 
@@ -133,17 +133,22 @@ impl Worker {
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
-    fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
+    fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
-        unsafe {
-            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                            ptr::null(), ptr::null_mut()) != 0);
+        let result = unsafe {
+            JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
+                                    ptr::null(), ptr::null_mut())
+        };
+        if result == 0 {
+            unsafe { JS_ClearPendingException(cx); }
+            return Err(DataClone);
         }
 
         self.addref();
         let ScriptChan(ref sender) = self.sender;
         sender.send(DOMMessage(data, nbytes));
+        Ok(())
     }
 
     fn GetOnmessage(self) -> Option<EventHandlerNonNull> {
