@@ -949,15 +949,15 @@ pub trait RawLayoutNodeHelpers {
 impl RawLayoutNodeHelpers for Node {
     #[inline]
     unsafe fn get_hover_state_for_layout(&self) -> bool {
-        (*self.unsafe_get_flags()).contains(InHoverState)
+        self.flags.get().contains(InHoverState)
     }
     #[inline]
     unsafe fn get_disabled_state_for_layout(&self) -> bool {
-        (*self.unsafe_get_flags()).contains(InDisabledState)
+        self.flags.get().contains(InDisabledState)
     }
     #[inline]
     unsafe fn get_enabled_state_for_layout(&self) -> bool {
-        (*self.unsafe_get_flags()).contains(InEnabledState)
+        self.flags.get().contains(InEnabledState)
     }
     #[inline]
     fn type_id_for_layout(&self) -> NodeTypeId {
@@ -1610,11 +1610,6 @@ impl Node {
                 },
             }
         }
-    }
-
-    #[inline]
-    pub unsafe fn unsafe_get_flags(&self) -> *const NodeFlags {
-        mem::transmute(&self.flags)
     }
 
     pub fn collect_text_contents<'a, T: Iterator<JSRef<'a, Node>>>(mut iterator: T) -> String {
