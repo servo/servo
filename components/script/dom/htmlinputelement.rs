@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -27,7 +28,6 @@ use string_cache::Atom;
 
 use std::ascii::OwnedStrAsciiExt;
 use std::cell::{Cell, RefCell};
-use std::mem;
 
 static DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 static DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -50,7 +50,7 @@ pub struct HTMLInputElement {
     input_type: Cell<InputType>,
     checked: Cell<bool>,
     uncommitted_value: RefCell<Option<String>>,
-    value: RefCell<Option<String>>,
+    value: DOMRefCell<Option<String>>,
     size: Cell<u32>,
 }
 
@@ -69,7 +69,7 @@ impl HTMLInputElement {
             input_type: Cell::new(InputText),
             checked: Cell::new(false),
             uncommitted_value: RefCell::new(None),
-            value: RefCell::new(None),
+            value: DOMRefCell::new(None),
             size: Cell::new(DEFAULT_INPUT_SIZE),
         }
     }
@@ -89,21 +89,17 @@ pub trait LayoutHTMLInputElementHelpers {
 impl LayoutHTMLInputElementHelpers for HTMLInputElement {
     #[allow(unrooted_must_root)]
     unsafe fn get_value_for_layout(&self) -> String {
-        unsafe fn get_raw_value(input: &HTMLInputElement) -> Option<String> {
-            mem::transmute::<&RefCell<Option<String>>, &Option<String>>(&input.value).clone()
-        }
-
         match self.input_type.get() {
             InputCheckbox | InputRadio => "".to_string(),
             InputFile | InputImage => "".to_string(),
-            InputButton(ref default) => get_raw_value(self)
+            InputButton(ref default) => self.value.borrow_for_layout().clone()
                                           .or_else(|| default.map(|v| v.to_string()))
                                           .unwrap_or_else(|| "".to_string()),
             InputPassword => {
-                let raw = get_raw_value(self).unwrap_or_else(|| "".to_string());
+                let raw = self.value.borrow_for_layout().clone().unwrap_or_else(|| "".to_string());
                 String::from_char(raw.len(), '*')
             }
-            _ => get_raw_value(self).unwrap_or_else(|| "".to_string()),
+            _ => self.value.borrow_for_layout().clone().unwrap_or_else(|| "".to_string()),
         }
     }
 
