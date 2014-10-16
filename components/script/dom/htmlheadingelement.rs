@@ -23,9 +23,7 @@ pub enum HeadingLevel {
     Heading6,
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLHeadingElement {
     htmlelement: HTMLElement,
     level: HeadingLevel,

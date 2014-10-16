@@ -25,9 +25,7 @@ use string_cache::Atom;
 
 use url::Url;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLObjectElement {
     htmlelement: HTMLElement,
 }

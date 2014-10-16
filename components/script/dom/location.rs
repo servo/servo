@@ -15,9 +15,7 @@ use servo_util::str::DOMString;
 
 use std::rc::Rc;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct Location {
     reflector_: Reflector,
     page: Rc<Page>,

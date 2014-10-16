@@ -45,9 +45,7 @@ use std::mem;
 use string_cache::{Atom, Namespace};
 use url::UrlParser;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct Element {
     node: Node,
     local_name: Atom,

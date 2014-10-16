@@ -17,9 +17,7 @@ use servo_util::str::DOMString;
 
 use std::cell::Cell;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct CustomEvent {
     event: Event,
     detail: Cell<JSVal>,

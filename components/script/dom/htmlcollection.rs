@@ -29,9 +29,7 @@ pub enum CollectionTypeId {
     Live(JS<Node>, Box<CollectionFilter+'static>)
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLCollection {
     collection: CollectionTypeId,
     reflector_: Reflector,

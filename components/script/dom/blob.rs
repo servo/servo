@@ -15,9 +15,7 @@ pub enum BlobType {
     FileTypeId
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct Blob {
     reflector_: Reflector,
     type_: BlobType

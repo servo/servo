@@ -15,9 +15,7 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingInstructionNodeTypeId, NodeHelpers};
 use servo_util::str::DOMString;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct CharacterData {
     node: Node,
     data: DOMRefCell<DOMString>,

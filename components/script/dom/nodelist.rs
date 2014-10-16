@@ -17,9 +17,7 @@ pub enum NodeListType {
     Children(JS<Node>)
 }
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct NodeList {
     list_type: NodeListType,
     reflector_: Reflector,

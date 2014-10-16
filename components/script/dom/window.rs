@@ -44,9 +44,7 @@ use std::default::Default;
 use std::rc::Rc;
 use time;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct Window {
     eventtarget: EventTarget,
     script_chan: ScriptChan,

@@ -13,9 +13,7 @@ use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::node::{Node, ElementNodeTypeId};
 use servo_util::str::DOMString;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLTableHeaderCellElement {
     htmltablecellelement: HTMLTableCellElement,
 }
