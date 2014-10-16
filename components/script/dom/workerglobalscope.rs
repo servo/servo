@@ -12,12 +12,14 @@ use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use dom::window::{base64_atob, base64_btoa};
-use script_task::ScriptChan;
+use script_task::{ScriptChan, FromWorker};
+use timers::{TimerId, TimerManager};
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 use servo_util::str::DOMString;
 
 use js::jsapi::JSContext;
+use js::jsval::JSVal;
 use js::rust::Cx;
 
 use std::default::Default;
@@ -42,6 +44,7 @@ pub struct WorkerGlobalScope {
     location: MutNullableJS<WorkerLocation>,
     navigator: MutNullableJS<WorkerNavigator>,
     console: MutNullableJS<Console>,
+    timers: TimerManager,
 }
 
 impl WorkerGlobalScope {
@@ -59,6 +62,7 @@ impl WorkerGlobalScope {
             location: Default::default(),
             navigator: Default::default(),
             console: Default::default(),
+            timers: TimerManager::new()
         }
     }
 
@@ -152,6 +156,43 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     fn Atob(self, atob: DOMString) -> Fallible<DOMString> {
         base64_atob(atob)
     }
+
+    fn SetTimeout(self, _cx: *mut JSContext, handler: JSVal, timeout: i32) -> i32 {
+        self.timers.set_timeout_or_interval(handler,
+                                            timeout,
+                                            false, // is_interval
+                                            FromWorker,
+                                            self.script_chan.clone())
+    }
+
+    fn ClearTimeout(self, handle: i32) {
+        self.timers.clear_timeout_or_interval(handle);
+    }
+
+    fn SetInterval(self, _cx: *mut JSContext, handler: JSVal, timeout: i32) -> i32 {
+        self.timers.set_timeout_or_interval(handler,
+                                            timeout,
+                                            true, // is_interval
+                                            FromWorker,
+                                            self.script_chan.clone())
+    }
+
+    fn ClearInterval(self, handle: i32) {
+        self.ClearTimeout(handle);
+    }
+}
+
+pub trait WorkerGlobalScopeHelpers {
+    fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext);
+}
+
+impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
+
+    fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext) {
+        let this_value = self.reflector().get_jsobject();
+        self.timers.fire_timer(timer_id, this_value, cx);
+    }
+
 }
 
 impl Reflectable for WorkerGlobalScope {
