@@ -45,11 +45,11 @@ use js::rust::Cx;
 use layout_interface::{LayoutRPC, LayoutChan};
 use libc;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
-use net::image_cache_task::ImageCacheTask;
 use script_traits::ScriptControlChan;
 use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::ConstellationChan;
+use servo_net::image_cache_task::ImageCacheChannel;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, RefCell};
@@ -203,7 +203,7 @@ no_jsmanaged_fields!(int, i8, i16, i32, i64)
 no_jsmanaged_fields!(Sender<T>)
 no_jsmanaged_fields!(Receiver<T>)
 no_jsmanaged_fields!(Rect<T>)
-no_jsmanaged_fields!(ImageCacheTask, ScriptControlChan)
+no_jsmanaged_fields!(ImageCacheChannel, ScriptControlChan)
 no_jsmanaged_fields!(Atom, Namespace, Timer)
 no_jsmanaged_fields!(Trusted<T>)
 no_jsmanaged_fields!(PropertyDeclarationBlock)

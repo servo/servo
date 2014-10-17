@@ -57,7 +57,7 @@ use servo_msg::constellation_msg::{Failure, Msg, WindowSizeData, Key, KeyState};
 use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT};
 use servo_msg::constellation_msg::{PipelineExitType};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
-use servo_net::image_cache_task::ImageCacheTask;
+use servo_net::image_cache_task::{ImageCacheTask, ImageNotification};
 use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
 use servo_util::geometry::to_frac_px;
@@ -201,6 +201,11 @@ pub struct ScriptTask {
     /// A channel to hand out to tasks that need to respond to a message from the script task.
     control_chan: ScriptControlChan,
 
+    /// A channel to hand out to the image cache task
+    image_control_chan: Sender<ImageNotification>,
+    /// A port on which to listen for image notifications from the cache task
+    image_control_port: Receiver<ImageNotification>,
+
     /// The port on which the constellation and layout tasks can communicate with the
     /// script task.
     control_port: Receiver<ConstellationControlMsg>,
@@ -306,6 +311,7 @@ impl ScriptTaskFactory for ScriptTask {
         let ConstellationChan(const_chan) = constellation_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
+        let (image_control_chan, image_control_port) = channel();
         spawn_named_with_send_on_failure("ScriptTask", task_state::SCRIPT, proc() {
             let script_task = ScriptTask::new(id,
                                               box compositor as Box<ScriptListener>,
@@ -314,6 +320,8 @@ impl ScriptTaskFactory for ScriptTask {
                                               NonWorkerScriptChan(script_chan),
                                               control_chan,
                                               control_port,
+                                              image_control_chan,
+                                              image_control_port,
                                               constellation_chan,
                                               resource_task,
                                               storage_task,
@@ -346,6 +354,8 @@ impl ScriptTask {
                chan: NonWorkerScriptChan,
                control_chan: ScriptControlChan,
                control_port: Receiver<ConstellationControlMsg>,
+               image_control_chan: Sender<ImageNotification>,
+               image_control_port: Receiver<ImageNotification>,
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
                storage_task: StorageTask,
@@ -385,6 +395,8 @@ impl ScriptTask {
             chan: chan,
             control_chan: control_chan,
             control_port: control_port,
+            image_control_chan: image_control_chan,
+            image_control_port: image_control_port,
             constellation_chan: constellation_chan,
             compositor: DOMRefCell::new(compositor),
             devtools_chan: devtools_chan,
@@ -480,6 +492,7 @@ impl ScriptTask {
             FromConstellation(ConstellationControlMsg),
             FromScript(ScriptMsg),
             FromDevtools(DevtoolScriptControlMsg),
+            FromImageCache(ImageNotification),
         }
 
         // Store new resizes, and gather all other events.
@@ -491,12 +504,14 @@ impl ScriptTask {
             let mut port1 = sel.handle(&self.port);
             let mut port2 = sel.handle(&self.control_port);
             let mut port3 = sel.handle(&self.devtools_port);
+            let mut port4 = sel.handle(&self.image_control_port);
             unsafe {
                 port1.add();
                 port2.add();
                 if self.devtools_chan.is_some() {
                     port3.add();
                 }
+                port4.add();
             }
             let ret = sel.wait();
             if ret == port1.id() {
@@ -505,6 +520,8 @@ impl ScriptTask {
                 MixedMessage::FromConstellation(self.control_port.recv())
             } else if ret == port3.id() {
                 MixedMessage::FromDevtools(self.devtools_port.recv())
+            } else if ret == port4.id() {
+                MixedMessage::FromImageCache(self.image_control_port.recv())
             } else {
                 panic!("unexpected select result")
             }
@@ -563,10 +580,18 @@ impl ScriptTask {
                 MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                 MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                 MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
+                MixedMessage::FromImageCache(inner_msg) => self.handle_msg_from_image(inner_msg),
             }
         }
 
         true
+    }
+
+    fn handle_msg_from_image(&self, msg: ImageNotification) {
+        match msg {
+            ImageNotification::ImageLoadComplete(id, url) =>
+                self.handle_resource_loaded(id, LoadType::Image(url))
+        }
     }
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
@@ -819,6 +844,7 @@ impl ScriptTask {
                                  page.clone(),
                                  self.chan.clone(),
                                  self.control_chan.clone(),
+                                 self.image_control_chan.clone(),
                                  self.compositor.borrow_mut().dup(),
                                  self.image_cache_task.clone()).root();
         let doc_url = if is_javascript {

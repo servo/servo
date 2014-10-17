@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -10,18 +11,16 @@ use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElemen
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeTypeId, NodeHelpers, window_from_node};
+use dom::node::{Node, NodeTypeId, NodeHelpers, window_from_node, document_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use servo_net::image_cache_task;
-use servo_net::image_cache_task::ImageCacheTask;
 use servo_util::str::DOMString;
 use string_cache::Atom;
 
@@ -53,14 +52,14 @@ impl HTMLObjectElement {
 }
 
 trait ProcessDataURL {
-    fn process_data_url(&self, image_cache: ImageCacheTask);
+    fn process_data_url(self);
 }
 
 impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
     // Makes the local `data` member match the status of the `data` attribute and starts
     /// prefetching the image. This method must be called after `data` is changed.
-    fn process_data_url(&self, image_cache: ImageCacheTask) {
-        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+    fn process_data_url(self) {
+        let elem: JSRef<Element> = ElementCast::from_ref(self);
 
         // TODO: support other values
         match (elem.get_attribute(ns!(""), &atom!("type")).map(|x| x.root().r().Value()),
@@ -69,7 +68,10 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
                 if is_image_data(uri.as_slice()) {
                     let data_url = Url::parse(uri.as_slice()).unwrap();
                     // Issue #84
-                    image_cache.send(image_cache_task::Msg::Prefetch(data_url));
+                    let window = window_from_node(self).root();
+                    let document = document_from_node(self).root();
+                    let load = document.prep_async_load(LoadType::Image(data_url.clone()));
+                    window.image_cache_task().load(load);
                 }
             }
             _ => { }
@@ -108,10 +110,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
         }
 
         match attr.local_name() {
-            &atom!("data") => {
-                let window = window_from_node(*self).root();
-                self.process_data_url(window.r().image_cache_task().clone());
-            },
+            &atom!("data") => self.process_data_url(),
             _ => ()
         }
     }

@@ -32,7 +32,7 @@ use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::LoadData;
-use servo_net::image_cache_task::ImageCacheTask;
+use servo_net::image_cache_task::{ImageCacheTask, ImageCacheChannel, ImageNotification};
 use servo_net::storage_task::StorageTask;
 use servo_util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
@@ -55,10 +55,11 @@ pub struct Window {
     eventtarget: EventTarget,
     script_chan: Box<ScriptChan+Send>,
     control_chan: ScriptControlChan,
+    script_image_chan: Sender<ImageNotification>,
     console: MutNullableJS<Console>,
     location: MutNullableJS<Location>,
     navigator: MutNullableJS<Navigator>,
-    image_cache_task: ImageCacheTask,
+    image_cache_task: ImageCacheChannel,
     compositor: DOMRefCell<Box<ScriptListener+'static>>,
     browser_context: DOMRefCell<Option<BrowserContext>>,
     page: Rc<Page>,
@@ -84,7 +85,11 @@ impl Window {
         &self.control_chan
     }
 
-    pub fn image_cache_task<'a>(&'a self) -> &'a ImageCacheTask {
+    pub fn script_image_chan<'a>(&'a self) -> &'a Sender<ImageNotification> {
+        &self.script_image_chan
+    }
+
+    pub fn image_cache_task<'a>(&'a self) -> &'a ImageCacheChannel {
         &self.image_cache_task
     }
 
@@ -385,19 +390,22 @@ impl Window {
                page: Rc<Page>,
                script_chan: Box<ScriptChan+Send>,
                control_chan: ScriptControlChan,
+               script_image_chan: Sender<ImageNotification>,
                compositor: Box<ScriptListener+'static>,
                image_cache_task: ImageCacheTask)
                -> Temporary<Window> {
+        let id = page.id;
         let win = box Window {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::Window),
             script_chan: script_chan,
             control_chan: control_chan,
+            script_image_chan: script_image_chan.clone(),
             console: Default::default(),
             compositor: DOMRefCell::new(compositor),
             page: page,
             location: Default::default(),
             navigator: Default::default(),
-            image_cache_task: image_cache_task,
+            image_cache_task: ImageCacheChannel::new(image_cache_task, id, script_image_chan),
             browser_context: DOMRefCell::new(None),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
