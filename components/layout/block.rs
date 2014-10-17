@@ -811,7 +811,7 @@ impl BlockFlow {
     pub fn assign_block_size_block_base<'a>(&mut self,
                                             layout_context: &'a LayoutContext<'a>,
                                             margins_may_collapse: MarginsMayCollapseFlag) {
-        let _scope = layout_debug_scope!("assign_block_size_block_base {:s}", self.base.debug_id());
+        let _scope = layout_debug_scope!("assign_block_size_block_base {:x}", self.base.debug_id());
 
         // Our current border-box position.
         let mut cur_b = Au(0);
@@ -1513,7 +1513,7 @@ impl Flow for BlockFlow {
     /// This function must decide minimum/preferred inline-sizes based on its children's
     /// inline-sizes and the dimensions of any fragments it is responsible for flowing.
     fn bubble_inline_sizes(&mut self) {
-        let _scope = layout_debug_scope!("block::bubble_inline_sizes {:s}", self.base.debug_id());
+        let _scope = layout_debug_scope!("block::bubble_inline_sizes {:x}", self.base.debug_id());
 
         let mut flags = self.base.flags;
         flags.set_has_left_floated_descendants(false);
@@ -1583,7 +1583,7 @@ impl Flow for BlockFlow {
     /// Dual fragments consume some inline-size first, and the remainder is assigned to all child
     /// (block) contexts.
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("block::assign_inline_sizes {:s}", self.base.debug_id());
+        let _scope = layout_debug_scope!("block::assign_inline_sizes {:x}", self.base.debug_id());
 
         debug!("assign_inline_sizes({}): assigning inline_size for flow",
                if self.is_float() {
@@ -1683,7 +1683,7 @@ impl Flow for BlockFlow {
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
         if self.is_replaced_content() {
-            let _scope = layout_debug_scope!("assign_replaced_block_size_if_necessary {:s}",
+            let _scope = layout_debug_scope!("assign_replaced_block_size_if_necessary {:x}",
                                                 self.base.debug_id());
 
             // Assign block-size for fragment if it is an image fragment.
@@ -1842,15 +1842,7 @@ impl Flow for BlockFlow {
 
 impl fmt::Show for BlockFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "BlockFlow"));
-        if self.is_float() {
-            try!(write!(f, "(Float)"));
-        } else if self.is_root() {
-            try!(write!(f, "(Root)"));
-        } else if self.is_absolutely_positioned() {
-            try!(write!(f, "(Absolute)"));
-        }
-        write!(f, ": {} ({})", self.fragment, self.base)
+        write!(f, "{} - {:x}: frag={} ({})", self.class(), self.base.debug_id(), self.fragment, self.base)
     }
 }
 
@@ -2010,6 +2002,7 @@ pub trait ISizeAndMarginsComputer {
         // We also resize the block itself, to ensure that overflow is not calculated
         // as the inline-size of our parent. We might be smaller and we might be larger if we
         // overflow.
+
         flow::mut_base(block).position.size.inline = inline_size + extra_inline_size_from_margin;
     }
 
@@ -2567,4 +2560,3 @@ fn propagate_column_inline_sizes_to_child(kid: &mut Flow,
         *inline_start_margin_edge = *inline_start_margin_edge + inline_size
     }
 }
-

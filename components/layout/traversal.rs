@@ -212,9 +212,9 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
 
             if node.has_dirty_descendants() {
                 tnode.set_restyle_damage(RestyleDamage::all());
-                debug!("Constructing flow for {}", tnode.debug_id());
                 let mut flow_constructor = FlowConstructor::new(self.layout_context);
                 flow_constructor.process(&tnode);
+                debug!("Constructed flow for {:x}: {:x}", tnode.debug_id(), tnode.flow_debug_id());
             }
 
             // Reset the layout damage in this node. It's been propagated to the

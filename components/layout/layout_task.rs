@@ -159,6 +159,7 @@ impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
         let f: proc(ImageResponseMsg, UntrustedNodeAddress):Send =
             proc(_, node_address) {
                 let ScriptControlChan(chan) = script_chan;
+                debug!("Dirtying {:x}", node_address as uint);
                 let mut nodes = SmallVec1::new();
                 nodes.vec_push(node_address);
                 drop(chan.send_opt(SendEventMsg(id.clone(), ReflowEvent(nodes))))
@@ -674,6 +675,10 @@ impl LayoutTask {
                 }
             }
         });
+
+        if self.opts.dump_flow_tree {
+            layout_root.dump();
+        }
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {

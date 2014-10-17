@@ -57,7 +57,7 @@ impl Flow for TableColGroupFlow {
     }
 
     fn bubble_inline_sizes(&mut self) {
-        let _scope = layout_debug_scope!("table_colgroup::bubble_inline_sizes {:s}",
+        let _scope = layout_debug_scope!("table_colgroup::bubble_inline_sizes {:x}",
                                             self.base.debug_id());
 
         for fragment in self.cols.iter() {

@@ -205,17 +205,25 @@ impl<'ln> LayoutNode<'ln> {
         })
     }
 
+    pub fn flow_debug_id(self) -> uint {
+        let layout_data_ref = self.borrow_layout_data();
+        match *layout_data_ref {
+            None              => 0u,
+            Some(ref layout_data) => layout_data.data.flow_construction_result.debug_id()
+        }
+    }
+
     /// Iterates over this node and all its descendants, in preorder.
     ///
     /// FIXME(pcwalton): Terribly inefficient. We should use parallelism.
-    pub fn traverse_preorder(&self) -> LayoutTreeIterator<'ln> {
+    pub fn traverse_preorder(self) -> LayoutTreeIterator<'ln> {
         let mut nodes = vec!();
         gather_layout_nodes(self, &mut nodes, false);
         LayoutTreeIterator::new(nodes)
     }
 
     /// Returns an iterator over this node's children.
-    pub fn children(&self) -> LayoutNodeChildrenIterator<'ln> {
+    pub fn children(self) -> LayoutNodeChildrenIterator<'ln> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
         fn first_child<T: TLayoutNode>(this: &T) -> Option<T> {
@@ -223,7 +231,7 @@ impl<'ln> LayoutNode<'ln> {
         }
 
         LayoutNodeChildrenIterator {
-            current_node: first_child(self),
+            current_node: first_child(&self),
         }
     }
 
@@ -234,7 +242,7 @@ impl<'ln> LayoutNode<'ln> {
     /// Resets layout data and styles for the node.
     ///
     /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
-    pub fn initialize_layout_data(&self, chan: LayoutChan) {
+    pub fn initialize_layout_data(self, chan: LayoutChan) {
         let mut layout_data_ref = self.mutate_layout_data();
         match *layout_data_ref {
             None => {
@@ -248,14 +256,14 @@ impl<'ln> LayoutNode<'ln> {
         }
     }
 
-    pub fn has_children(&self) -> bool {
+    pub fn has_children(self) -> bool {
         self.first_child().is_some()
     }
 
     /// While doing a reflow, the node at the root has no parent, as far as we're
     /// concerned. This method returns `None` at the reflow root.
-    pub fn layout_parent_node(&self, shared: &SharedLayoutContext) -> Option<LayoutNode<'ln>> {
-        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(self);
+    pub fn layout_parent_node(self, shared: &SharedLayoutContext) -> Option<LayoutNode<'ln>> {
+        let opaque_node: OpaqueNode = OpaqueNodeMethods::from_layout_node(&self);
         if opaque_node == shared.reflow_root {
             None
         } else {
@@ -425,12 +433,12 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
 }
 
 /// FIXME(pcwalton): This is super inefficient.
-fn gather_layout_nodes<'a>(cur: &LayoutNode<'a>, refs: &mut Vec<LayoutNode<'a>>, postorder: bool) {
+fn gather_layout_nodes<'a>(cur: LayoutNode<'a>, refs: &mut Vec<LayoutNode<'a>>, postorder: bool) {
     if !postorder {
         refs.push(cur.clone());
     }
     for kid in cur.children() {
-        gather_layout_nodes(&kid, refs, postorder)
+        gather_layout_nodes(kid, refs, postorder)
     }
     if postorder {
         refs.push(cur.clone());
@@ -688,6 +696,10 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn debug_id(self) -> uint {
         self.node.debug_id()
+    }
+
+    pub fn flow_debug_id(self) -> uint {
+        self.node.flow_debug_id()
     }
 
     /// Returns the next sibling of this node. Unsafe and private because this can lead to races.
