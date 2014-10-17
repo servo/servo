@@ -116,19 +116,24 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#the-form-element:concept-form-submit
     fn Submit(self) {
-        self.submit(true, FormElement(self));
+        self.submit(FromFormSubmitMethod, FormElement(self));
     }
+}
+
+pub enum SubmittedFrom {
+    FromFormSubmitMethod,
+    NotFromFormSubmitMethod
 }
 
 pub trait HTMLFormElementHelpers {
     // https://html.spec.whatwg.org/multipage/forms.html#concept-form-submit
-    fn submit(self, from_submit_method: bool, submitter: FormSubmitter);
+    fn submit(self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter);
     // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
     fn get_form_dataset(self, submitter: Option<FormSubmitter>) -> Vec<FormDatum>;
 }
 
 impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
-    fn submit(self, _from_submit_method: bool, submitter: FormSubmitter) {
+    fn submit(self, _submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
         let doc = document_from_node(self).root();
         let win = window_from_node(self).root();
