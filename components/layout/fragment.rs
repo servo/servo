@@ -379,15 +379,19 @@ pub struct ScannedTextFragmentInfo {
     /// The new_line_pos is eaten during line breaking. If we need to re-merge
     /// fragments, it will have to be restored.
     pub original_new_line_pos: Option<Vec<CharIndex>>,
+
+    /// The inline-size of the text fragment.
+    pub content_inline_size: Au,
 }
 
 impl ScannedTextFragmentInfo {
     /// Creates the information specific to a scanned text fragment from a range and a text run.
-    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>) -> ScannedTextFragmentInfo {
+    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>, content_inline_size: Au) -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
             original_new_line_pos: None,
+            content_inline_size: content_inline_size,
         }
     }
 }
@@ -552,6 +556,11 @@ impl Fragment {
         }
     }
 
+    pub fn reset_inline_sizes(&mut self) {
+        self.border_padding = LogicalMargin::zero(self.style.writing_mode);
+        self.margin = LogicalMargin::zero(self.style.writing_mode);
+    }
+
     /// Saves the new_line_pos vector into a `ScannedTextFragment`. This will fail
     /// if called on any other type of fragment.
     pub fn save_new_line_pos(&mut self) {
@@ -586,16 +595,20 @@ impl Fragment {
 
     /// Transforms this fragment into another fragment of the given type, with the given size, preserving all
     /// the other data.
-    pub fn transform(&self, size: LogicalSize<Au>, specific: SpecificFragmentInfo) -> Fragment {
+    pub fn transform(&self, size: LogicalSize<Au>, mut info: ScannedTextFragmentInfo) -> Fragment {
+        let new_border_box =
+            LogicalRect::from_point_size(self.style.writing_mode, self.border_box.start, size);
+
+        info.content_inline_size = size.inline;
+
         Fragment {
             node: self.node,
             style: self.style.clone(),
             restyle_damage: RestyleDamage::all(),
-            border_box: LogicalRect::from_point_size(
-                self.style.writing_mode, self.border_box.start, size),
+            border_box: new_border_box,
             border_padding: self.border_padding,
             margin: self.margin,
-            specific: specific,
+            specific: ScannedTextFragment(info),
             new_line_pos: self.new_line_pos.clone(),
             inline_context: self.inline_context.clone(),
             debug_id: self.debug_id,
@@ -1685,10 +1698,10 @@ impl Fragment {
                     block_flow.base.intrinsic_inline_sizes.preferred_inline_size;
                 block_flow.base.block_container_inline_size = self.border_box.size.inline;
             }
-            ScannedTextFragment(_) => {
+            ScannedTextFragment(ref info) => {
                 // Scanned text fragments will have already had their content inline-sizes assigned
                 // by this point.
-                self.border_box.size.inline = self.border_box.size.inline + noncontent_inline_size
+                self.border_box.size.inline = info.content_inline_size + noncontent_inline_size
             }
             ImageFragment(ref mut image_fragment_info) => {
                 // TODO(ksh8281): compute border,margin
@@ -1960,24 +1973,8 @@ impl Fragment {
 }
 
 impl fmt::Show for Fragment {
-    /// Outputs a debugging string describing this fragment.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "({} ",
-            match self.specific {
-                GenericFragment => "GenericFragment",
-                IframeFragment(_) => "IframeFragment",
-                ImageFragment(_) => "ImageFragment",
-                InlineAbsoluteHypotheticalFragment(_) => "InlineAbsoluteHypotheticalFragment",
-                InlineBlockFragment(_) => "InlineBlockFragment",
-                InputFragment => "InputFragment",
-                ScannedTextFragment(_) => "ScannedTextFragment",
-                TableFragment => "TableFragment",
-                TableCellFragment => "TableCellFragment",
-                TableColumnFragment(_) => "TableColumnFragment",
-                TableRowFragment => "TableRowFragment",
-                TableWrapperFragment => "TableWrapperFragment",
-                UnscannedTextFragment(_) => "UnscannedTextFragment",
-        }));
+        try!(write!(f, "({} {} ", self.debug_id(), self.specific.get_type()));
         try!(write!(f, "bp {}", self.border_padding));
         try!(write!(f, " "));
         try!(write!(f, "m {}", self.margin));

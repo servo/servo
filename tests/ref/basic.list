@@ -1,3 +1,4 @@
+!= img_simple.html img_simple_ref.html
 == basic_width_px.html basic_width_em.html
 == br.html br-ref.html
 # `?` and `#` in the name is a test for https://github.com/servo/servo/issues/3340

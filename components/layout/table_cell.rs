@@ -78,7 +78,7 @@ impl Flow for TableCellFlow {
     /// Minimum/preferred inline-sizes set by this function are used in automatic table layout
     /// calculation.
     fn bubble_inline_sizes(&mut self) {
-        let _scope = layout_debug_scope!("table_cell::bubble_inline_sizes {:s}",
+        let _scope = layout_debug_scope!("table_cell::bubble_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
 
         self.block_flow.bubble_inline_sizes();
@@ -102,7 +102,7 @@ impl Flow for TableCellFlow {
     /// When called on this context, the context has had its inline-size set by the parent table
     /// row.
     fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
-        let _scope = layout_debug_scope!("table_cell::assign_inline_sizes {:s}",
+        let _scope = layout_debug_scope!("table_cell::assign_inline_sizes {:x}",
                                             self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_cell");
 

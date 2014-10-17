@@ -405,11 +405,14 @@ impl LineBreaker {
         let writing_mode = self.floats.writing_mode;
 
         let split_fragment = |split: SplitInfo| {
-            let info = ScannedTextFragmentInfo::new(run.clone(), split.range);
-            let specific = ScannedTextFragment(info);
+            let info =
+                ScannedTextFragmentInfo::new(
+                    run.clone(),
+                    split.range,
+                    in_fragment.border_box.size.inline);
             let size = LogicalSize::new(
                 writing_mode, split.inline_size, in_fragment.border_box.size.block);
-            in_fragment.transform(size, specific)
+            in_fragment.transform(size, info)
         };
 
         debug!("LineBreaker: Pushing the fragment to the inline_start of the new-line character \
@@ -493,12 +496,15 @@ impl LineBreaker {
                                                                 line_is_empty);
         match split.map(|(inline_start, inline_end, run)| {
             let split_fragment = |split: SplitInfo| {
-                let info = ScannedTextFragmentInfo::new(run.clone(), split.range);
-                let specific = ScannedTextFragment(info);
+                let info =
+                    ScannedTextFragmentInfo::new(
+                        run.clone(),
+                        split.range,
+                        in_fragment.border_box.size.inline);
                 let size = LogicalSize::new(self.floats.writing_mode,
                                             split.inline_size,
                                             in_fragment.border_box.size.block);
-                in_fragment.transform(size, specific)
+                in_fragment.transform(size, info)
             };
 
             (inline_start.map(|x| {
@@ -562,11 +568,18 @@ impl LineBreaker {
 }
 
 /// Represents a list of inline fragments, including element ranges.
-#[deriving(Encodable)]
+#[deriving(Encodable, Clone)]
 pub struct InlineFragments {
     /// The fragments themselves.
     pub fragments: Vec<Fragment>,
 }
+
+impl fmt::Show for InlineFragments {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.fragments)
+    }
+}
+
 
 impl InlineFragments {
     /// Creates an empty set of inline fragments.
@@ -584,7 +597,7 @@ impl InlineFragments {
     /// Returns true if this list contains no fragments and false if it contains at least one
     /// fragment.
     pub fn is_empty(&self) -> bool {
-        self.len() == 0
+        self.fragments.is_empty()
     }
 
     /// Pushes a new inline fragment.
@@ -989,7 +1002,7 @@ impl Flow for InlineFlow {
     fn bubble_inline_sizes(&mut self) {
         self.update_restyle_damage();
 
-        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:s}", self.base.debug_id());
+        let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:x}", self.base.debug_id());
 
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter() {
@@ -1007,7 +1020,7 @@ impl Flow for InlineFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, _: &LayoutContext) {
-        let _scope = layout_debug_scope!("inline::assign_inline_sizes {:s}", self.base.debug_id());
+        let _scope = layout_debug_scope!("inline::assign_inline_sizes {:x}", self.base.debug_id());
 
         // Initialize content fragment inline-sizes if they haven't been initialized already.
         //
@@ -1039,7 +1052,7 @@ impl Flow for InlineFlow {
 
     /// Calculate and set the block-size of this flow. See CSS 2.1 § 10.6.1.
     fn assign_block_size(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("inline::assign_block_size {:s}", self.base.debug_id());
+        let _scope = layout_debug_scope!("inline::assign_block_size {:x}", self.base.debug_id());
 
         // Collect various offsets needed by absolutely positioned inline-block or hypothetical
         // absolute descendants.
@@ -1244,15 +1257,7 @@ impl Flow for InlineFlow {
 
 impl fmt::Show for InlineFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "InlineFlow"));
-        for (i, fragment) in self.fragments.fragments.iter().enumerate() {
-            if i == 0 {
-                try!(write!(f, ": {}", fragment))
-            } else {
-                try!(write!(f, ", {}", fragment))
-            }
-        }
-        write!(f, " ({})", self.base)
+        write!(f, "{} - {:x} - {}", self.class(), self.base.debug_id(), self.fragments)
     }
 }
 
