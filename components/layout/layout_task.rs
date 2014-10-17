@@ -676,6 +676,10 @@ impl LayoutTask {
             }
         });
 
+        if self.opts.dump_flow_tree {
+            layout_root.dump();
+        }
+
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
             let writing_mode = flow::base(layout_root.deref()).writing_mode;

@@ -1842,15 +1842,7 @@ impl Flow for BlockFlow {
 
 impl fmt::Show for BlockFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "BlockFlow"));
-        if self.is_float() {
-            try!(write!(f, "(Float)"));
-        } else if self.is_root() {
-            try!(write!(f, "(Root)"));
-        } else if self.is_absolutely_positioned() {
-            try!(write!(f, "(Absolute)"));
-        }
-        write!(f, ": {} ({})", self.fragment, self.base)
+        write!(f, "{} - {:x}: frag={} ({})", self.class(), self.base.debug_id(), self.fragment, self.base)
     }
 }
 
@@ -2010,6 +2002,7 @@ pub trait ISizeAndMarginsComputer {
         // We also resize the block itself, to ensure that overflow is not calculated
         // as the inline-size of our parent. We might be smaller and we might be larger if we
         // overflow.
+
         flow::mut_base(block).position.size.inline = inline_size + extra_inline_size_from_margin;
     }
 

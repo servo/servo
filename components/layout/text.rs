@@ -7,7 +7,7 @@
 #![deny(unsafe_block)]
 
 use flow::Flow;
-use fragment::{Fragment, ScannedTextFragment, ScannedTextFragmentInfo, UnscannedTextFragment};
+use fragment::{Fragment, ScannedTextFragmentInfo, UnscannedTextFragment};
 
 use gfx::font::{FontMetrics,RunMetrics};
 use gfx::font_context::FontContext;
@@ -154,9 +154,9 @@ impl TextRunScanner {
                     let new_metrics = run.metrics_for_range(&range);
                     let bounding_box_size = bounding_box_for_run_metrics(
                         &new_metrics, old_fragment.style.writing_mode);
-                    let new_text_fragment_info = ScannedTextFragmentInfo::new(Arc::new(run), range);
-                    let mut new_fragment = old_fragment.transform(
-                        bounding_box_size, ScannedTextFragment(new_text_fragment_info));
+                    let new_text_fragment_info =
+                        ScannedTextFragmentInfo::new(Arc::new(run), range, old_fragment.border_box.size.inline);
+                    let mut new_fragment = old_fragment.transform(bounding_box_size, new_text_fragment_info);
                     new_fragment.new_line_pos = new_line_pos;
                     out_fragments.push(new_fragment)
                 }
@@ -235,13 +235,16 @@ impl TextRunScanner {
                         continue
                     }
 
-                    let new_text_fragment_info = ScannedTextFragmentInfo::new(run.as_ref().unwrap().clone(), range);
                     let old_fragment = &in_fragments[i.to_uint()];
+                    let new_text_fragment_info =
+                        ScannedTextFragmentInfo::new(
+                            run.as_ref().unwrap().clone(),
+                            range,
+                            old_fragment.border_box.size.inline);
                     let new_metrics = new_text_fragment_info.run.metrics_for_range(&range);
                     let bounding_box_size = bounding_box_for_run_metrics(
                         &new_metrics, old_fragment.style.writing_mode);
-                    let mut new_fragment = old_fragment.transform(
-                        bounding_box_size, ScannedTextFragment(new_text_fragment_info));
+                    let mut new_fragment = old_fragment.transform(bounding_box_size, new_text_fragment_info);
                     new_fragment.new_line_pos = new_line_positions[logical_offset.to_uint()].new_line_pos.clone();
                     out_fragments.push(new_fragment)
                 }

@@ -405,11 +405,14 @@ impl LineBreaker {
         let writing_mode = self.floats.writing_mode;
 
         let split_fragment = |split: SplitInfo| {
-            let info = ScannedTextFragmentInfo::new(run.clone(), split.range);
-            let specific = ScannedTextFragment(info);
+            let info =
+                ScannedTextFragmentInfo::new(
+                    run.clone(),
+                    split.range,
+                    in_fragment.border_box.size.inline);
             let size = LogicalSize::new(
                 writing_mode, split.inline_size, in_fragment.border_box.size.block);
-            in_fragment.transform(size, specific)
+            in_fragment.transform(size, info)
         };
 
         debug!("LineBreaker: Pushing the fragment to the inline_start of the new-line character \
@@ -493,12 +496,15 @@ impl LineBreaker {
                                                                 line_is_empty);
         match split.map(|(inline_start, inline_end, run)| {
             let split_fragment = |split: SplitInfo| {
-                let info = ScannedTextFragmentInfo::new(run.clone(), split.range);
-                let specific = ScannedTextFragment(info);
+                let info =
+                    ScannedTextFragmentInfo::new(
+                        run.clone(),
+                        split.range,
+                        in_fragment.border_box.size.inline);
                 let size = LogicalSize::new(self.floats.writing_mode,
                                             split.inline_size,
                                             in_fragment.border_box.size.block);
-                in_fragment.transform(size, specific)
+                in_fragment.transform(size, info)
             };
 
             (inline_start.map(|x| {
@@ -568,32 +574,19 @@ pub struct InlineFragments {
     pub fragments: Vec<Fragment>,
 }
 
+impl fmt::Show for InlineFragments {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.fragments)
+    }
+}
+
+
 impl InlineFragments {
     /// Creates an empty set of inline fragments.
     pub fn new() -> InlineFragments {
         InlineFragments {
             fragments: vec![],
         }
-    }
-
-    pub fn debug_show(&self) -> String {
-        let mut ret = String::new();
-        ret.push_str("[ ");
-        for (i, fragment) in self.fragments.iter().enumerate() {
-            if i != 0 {
-                ret.push_str(", ");
-            }
-
-            ret.push_str(fragment.debug_show().as_slice());
-        }
-
-        if self.is_empty() {
-            ret.push_str("]");
-        } else {
-            ret.push_str(" ]");
-        }
-
-        ret
     }
 
     /// Returns the number of inline fragments.
@@ -998,10 +991,6 @@ impl Flow for InlineFlow {
         InlineFlowClass
     }
 
-    fn debug_print(&self) -> String {
-        format!("{} - {:x} - {}", self.class(), self.base.debug_id(), self.fragments.debug_show())
-    }
-
     fn as_immutable_inline<'a>(&'a self) -> &'a InlineFlow {
         self
     }
@@ -1268,15 +1257,7 @@ impl Flow for InlineFlow {
 
 impl fmt::Show for InlineFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        try!(write!(f, "InlineFlow"));
-        for (i, fragment) in self.fragments.fragments.iter().enumerate() {
-            if i == 0 {
-                try!(write!(f, ": {}", fragment))
-            } else {
-                try!(write!(f, ", {}", fragment))
-            }
-        }
-        write!(f, " ({})", self.base)
+        write!(f, "{} - {:x} - {}", self.class(), self.base.debug_id(), self.fragments)
     }
 }
 
