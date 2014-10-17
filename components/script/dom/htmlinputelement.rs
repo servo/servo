@@ -19,7 +19,7 @@ use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::{InputElement, FormOwner, HTMLFormElement, HTMLFormElementHelpers};
+use dom::htmlformelement::{InputElement, FormOwner, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -397,7 +397,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 InputRadio => self.SetChecked(true),
                 InputButton(Some(DEFAULT_SUBMIT_VALUE)) => {
                     self.form_owner().map(|o| {
-                        o.root().submit(false, InputElement(self.clone()))
+                        o.root().submit(NotFromFormSubmitMethod, InputElement(self.clone()))
                     });
                 }
                 _ => {}
