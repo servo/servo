@@ -815,11 +815,6 @@ impl ScriptTask {
 
         document.set_ready_state(DocumentReadyStateValues::Interactive);
 
-        // Send style sheets over to layout.
-        //
-        // FIXME: These should be streamed to layout as they're parsed. We don't need to stop here
-        // in the script task.
-
         let mut js_scripts = None;
         loop {
             match discovery_port.recv_opt() {

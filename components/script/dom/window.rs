@@ -318,15 +318,20 @@ pub trait WindowHelpers {
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext);
     fn evaluate_js_with_result(self, code: &str) -> JSVal;
+    fn evaluate_script_with_result(self, code: &str, filename: &str) -> JSVal;
 }
 
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn evaluate_js_with_result(self, code: &str) -> JSVal {
+        self.evaluate_script_with_result(code, "")
+    }
+
+    fn evaluate_script_with_result(self, code: &str, filename: &str) -> JSVal {
         let global = self.reflector().get_jsobject();
         let code: Vec<u16> = code.as_slice().utf16_units().collect();
         let mut rval = UndefinedValue();
-        let filename = "".to_c_str();
+        let filename = filename.to_c_str();
         let cx = self.get_cx();
 
         with_compartment(cx, global, || {
