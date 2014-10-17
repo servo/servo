@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::LoadType;
 use dom::attr::{Attr, AttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeHandlers, Element};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -150,8 +152,10 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
                 let mut css_parser = CssParser::new(&mq_str);
                 let media = parse_media_query_list(&mut css_parser);
 
+                let doc = window.Document().root();
+                let pending = doc.r().prep_async_load(LoadType::Stylesheet(url.clone()));
                 let LayoutChan(ref layout_chan) = window.layout_chan();
-                layout_chan.send(Msg::LoadStylesheet(url, media)).unwrap();
+                layout_chan.send(Msg::LoadStylesheet(url, media, pending)).unwrap();
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }

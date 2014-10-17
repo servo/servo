@@ -122,6 +122,53 @@ pub enum ControlMsg {
     Exit
 }
 
+/// Initialized but unsent request. Encapsulates everything necessary to instruct
+/// the resource task to make a new request.
+pub struct PendingAsyncLoad {
+    resource_task: ResourceTask,
+    url: Url,
+    input_chan: Sender<LoadResponse>,
+    input_port: Receiver<LoadResponse>,
+    guard: PendingLoadGuard,
+}
+
+struct PendingLoadGuard {
+    loaded: bool,
+}
+
+impl PendingLoadGuard {
+    fn neuter(&mut self) {
+        self.loaded = true;
+    }
+}
+
+impl Drop for PendingLoadGuard {
+    fn drop(&mut self) {
+        assert!(self.loaded)
+    }
+}
+
+impl PendingAsyncLoad {
+    pub fn new(resource_task: ResourceTask, url: Url) -> PendingAsyncLoad {
+        let (tx, rx) = channel();
+        PendingAsyncLoad {
+            resource_task: resource_task,
+            url: url,
+            input_chan: tx,
+            input_port: rx,
+            guard: PendingLoadGuard { loaded: false, },
+        }
+    }
+
+    /// Initiate the network request associated with this pending load.
+    pub fn load(mut self) -> Receiver<LoadResponse> {
+        self.guard.neuter();
+        let load_data = LoadData::new(self.url);
+        self.resource_task.send(ControlMsg::Load(load_data, LoadConsumer::Channel(self.input_chan))).unwrap();
+        self.input_port
+    }
+}
+
 /// Message sent in response to `Load`.  Contains metadata, and a port
 /// for receiving the data.
 ///
@@ -227,10 +274,8 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
 }
 
 /// Load a URL asynchronously and iterate over chunks of bytes from the response.
-pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, ProgressMsgPortIterator) {
-    let (input_chan, input_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(input_chan))).unwrap();
-
+pub fn load_bytes_iter(pending: PendingAsyncLoad) -> (Metadata, ProgressMsgPortIterator) {
+    let input_port = pending.load();
     let response = input_port.recv().unwrap();
     let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
     (response.metadata, iter)

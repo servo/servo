@@ -68,7 +68,7 @@ use msg::constellation_msg::{ConstellationChan, FocusType, Key, KeyState, KeyMod
 use msg::constellation_msg::{SUPER, ALT, SHIFT, CONTROL};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
-use net_traits::{Metadata, LoadResponse};
+use net_traits::{Metadata, LoadResponse, PendingAsyncLoad};
 use script_task::Runnable;
 use script_traits::{MouseButton, UntrustedNodeAddress};
 use util::opts;
@@ -240,6 +240,7 @@ pub trait DocumentHelpers<'a> {
 
     fn set_current_script(self, script: Option<JSRef<HTMLScriptElement>>);
     fn trigger_mozbrowser_event(self, event: MozBrowserEvent);
+    fn prep_async_load(self, load: LoadType) -> PendingAsyncLoad;
     fn load_async(self, load: LoadType) -> Receiver<LoadResponse>;
     fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
     fn finish_load(self, load: LoadType);
@@ -776,6 +777,11 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                 chan.send(event).unwrap();
             }
         }
+    }
+
+    fn prep_async_load(self, load: LoadType) -> PendingAsyncLoad {
+        let mut loader = self.loader.borrow_mut();
+        loader.prep_async_load(load)
     }
 
     fn load_async(self, load: LoadType) -> Receiver<LoadResponse> {

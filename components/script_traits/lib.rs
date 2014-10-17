@@ -26,6 +26,7 @@ use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
+use url::Url;
 
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -75,6 +76,8 @@ pub enum ConstellationControlMsg {
     UpdateSubpageId(PipelineId, SubpageId, SubpageId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     FocusIFrameMsg(PipelineId, SubpageId),
+    /// Notifies script that a stylesheet has finished loading.
+    StylesheetLoadComplete(PipelineId, Url),
 }
 
 /// The mouse button involved in the event.

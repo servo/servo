@@ -12,6 +12,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use libc::uintptr_t;
 use msg::constellation_msg::{PipelineExitType, WindowSizeData};
+use net_traits::PendingAsyncLoad;
 use profile::mem::{Reporter, ReportsChan};
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use std::any::Any;
@@ -31,7 +32,7 @@ pub enum Msg {
     AddStylesheet(Stylesheet, MediaQueryList),
 
     /// Adds the given stylesheet to the document.
-    LoadStylesheet(Url, MediaQueryList),
+    LoadStylesheet(Url, MediaQueryList, PendingAsyncLoad),
 
     /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
     SetQuirksMode,

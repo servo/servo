@@ -19,7 +19,7 @@
 
 #![allow(unsafe_code)]
 
-use document_loader::{DocumentLoader, NotifierData};
+use document_loader::{LoadType, DocumentLoader, NotifierData};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, HTMLIFrameElementCast, NodeCast, EventCast};
@@ -730,6 +730,8 @@ impl ScriptTask {
                 self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
             ConstellationControlMsg::FocusIFrameMsg(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
+            ConstellationControlMsg::StylesheetLoadComplete(id, url) =>
+                self.handle_resource_loaded(id, LoadType::Stylesheet(url)),
         }
     }
 
@@ -826,6 +828,12 @@ impl ScriptTask {
     }
 
     /// Handle a request to load a page in a new child frame of an existing page.
+    fn handle_resource_loaded(&self, pipeline: PipelineId, load: LoadType) {
+        let page = get_page(&self.root_page(), pipeline);
+        let doc = page.document().root();
+        doc.r().finish_load(load);
+    }
+
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
         let NewLayoutInfo {
             containing_pipeline_id,
