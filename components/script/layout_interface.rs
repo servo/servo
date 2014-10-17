@@ -12,6 +12,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use servo_msg::constellation_msg::{PipelineExitType, WindowSizeData};
+use servo_net::resource_task::PendingAsyncLoad;
 use servo_util::geometry::Au;
 use std::any::{Any, AnyRefExt};
 use std::comm::{channel, Receiver, Sender};
@@ -27,7 +28,7 @@ pub enum Msg {
     AddStylesheet(Stylesheet),
 
     /// Adds the given stylesheet to the document.
-    LoadStylesheet(Url),
+    LoadStylesheet(Url, PendingAsyncLoad),
 
     /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
     SetQuirksMode,

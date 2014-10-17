@@ -56,7 +56,7 @@ use dom::range::Range;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
-use servo_net::resource_task::{LoadResponse, Metadata, LoadData};
+use servo_net::resource_task::{LoadResponse, Metadata, LoadData, PendingAsyncLoad};
 use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
@@ -194,6 +194,7 @@ pub trait DocumentHelpers<'a> {
     fn commit_focus_transaction(self);
     fn send_title_to_compositor(self);
     fn dirty_all_nodes(self);
+    fn prep_async_load(self, load: LoadType) -> PendingAsyncLoad;
     fn load_async(self, load: LoadType) -> Receiver<LoadResponse>;
     fn load_async_with(self, load: LoadType, cb: |&mut LoadData|) -> Receiver<LoadResponse>;
     fn load_sync(self, load: LoadType) -> Result<(Metadata, Vec<u8>), String>;
@@ -401,6 +402,10 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         for node in root.traverse_preorder() {
             node.dirty(NodeDamage::OtherNodeDamage)
         }
+    }
+
+    fn prep_async_load(self, load: LoadType) -> PendingAsyncLoad {
+        self.loader.borrow_mut().prep_async_load(load)
     }
 
     fn load_async(self, load: LoadType) -> Receiver<LoadResponse> {

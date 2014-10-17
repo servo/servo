@@ -587,6 +587,8 @@ impl ScriptTask {
                 panic!("should have handled ExitPipeline already"),
             ConstellationControlMsg::GetTitle(pipeline_id) =>
                 self.handle_get_title_msg(pipeline_id),
+            ConstellationControlMsg::StylesheetLoadComplete(id, url) =>
+                self.handle_resource_loaded(id, LoadType::Stylesheet(url)),
         }
     }
 
@@ -630,6 +632,13 @@ impl ScriptTask {
             ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&*self.page.borrow(), id, node_id, modifications),
         }
+    }
+
+    fn handle_resource_loaded(&self, pipeline: PipelineId, load: LoadType) {
+        let page = get_page(&*self.page.borrow(), pipeline);
+        let frame = page.frame();
+        let doc = frame.as_ref().unwrap().document.root();
+        doc.finish_load(load);
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {

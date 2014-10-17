@@ -8,7 +8,7 @@
 use script_task::{ScriptMsg, ScriptChan};
 use servo_msg::constellation_msg::{PipelineId};
 use servo_net::resource_task::{LoadResponse, Metadata, load_whole_resource, ResourceTask};
-use servo_net::resource_task::{ControlMsg, LoadData};
+use servo_net::resource_task::{LoadData, PendingAsyncLoad};
 use url::Url;
 
 #[jstraceable]
@@ -57,17 +57,19 @@ impl DocumentLoader {
         }
     }
 
-    pub fn load_async(&mut self, load: LoadType) -> Receiver<LoadResponse> {
-        self.load_async_with(load, |_| {})
+    pub fn load_async_with(&mut self, load: LoadType, cb: |load_data: &mut LoadData|) -> Receiver<LoadResponse> {
+        self.blocking_loads.push(load.clone());
+        let pending = self.prep_async_load(load);
+        pending.load_with(cb)
     }
 
-    pub fn load_async_with(&mut self, load: LoadType, cb: |load_data: &mut LoadData|) -> Receiver<LoadResponse> {
-        let (tx, rx) = channel();
+    pub fn prep_async_load(&mut self, load: LoadType) -> PendingAsyncLoad {
         self.blocking_loads.push(load.clone());
-        let mut load_data = LoadData::new(load.url().clone(), tx);
-        cb(&mut load_data);
-        self.resource_task.send(ControlMsg::Load(load_data));
-        rx
+        PendingAsyncLoad::new(self.resource_task.clone(), load.url().clone())
+    }
+
+    pub fn load_async(&mut self, load: LoadType) -> Receiver<LoadResponse> {
+        self.load_async_with(load, |_| {})
     }
 
     pub fn load_sync(&mut self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {

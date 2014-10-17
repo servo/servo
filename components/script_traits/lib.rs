@@ -31,6 +31,7 @@ use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
 use servo_util::smallvec::SmallVec1;
 use std::any::Any;
+use url::Url;
 
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -68,6 +69,8 @@ pub enum ConstellationControlMsg {
     Viewport(PipelineId, Rect<f32>),
     /// Requests that the script task immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
+    /// Notifies script that a stylesheet has finished loading.
+    StylesheetLoadComplete(PipelineId, Url),
 }
 
 /// Events from the compositor that the script task needs to know about

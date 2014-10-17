@@ -43,6 +43,8 @@ extern crate string_cache;
 #[phase(plugin)]
 extern crate string_cache_macros;
 
+pub mod layout_interface;
+
 pub mod cors;
 pub mod document_loader;
 
@@ -221,7 +223,6 @@ pub mod dom {
 
 pub mod parse;
 
-pub mod layout_interface;
 pub mod page;
 pub mod script_task;
 mod timers;
