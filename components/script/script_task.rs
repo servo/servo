@@ -127,6 +127,8 @@ pub enum ScriptMsg {
     RefcountCleanup(*const libc::c_void),
     /// Notify a document that all pending loads are complete.
     DocumentLoadsComplete(PipelineId),
+    /// Notify a document that a pending load is complete.
+    PageResourceLoaded(Option<PipelineId>, LoadType),
 }
 
 /// A cloneable interface for communicating with an event loop.
@@ -614,6 +616,8 @@ impl ScriptTask {
                 LiveDOMReferences::cleanup(self.get_cx(), addr),
             ScriptMsg::DocumentLoadsComplete(id) =>
                 self.handle_loads_complete(id),
+            ScriptMsg::PageResourceLoaded(id, load) =>
+                self.handle_resource_loaded(id.unwrap(), load),
         }
     }
 

@@ -110,8 +110,7 @@ impl Metadata {
 /// the resource task to make a new request.
 pub struct PendingAsyncLoad {
     resource_task: ResourceTask,
-    url: Url,
-    input_chan: Sender<LoadResponse>,
+    pub load_data: LoadData,
     input_port: Receiver<LoadResponse>,
 }
 
@@ -120,8 +119,7 @@ impl PendingAsyncLoad {
         let (tx, rx) = channel();
         PendingAsyncLoad {
             resource_task: resource_task,
-            url: url,
-            input_chan: tx,
+            load_data: LoadData::new(url, tx),
             input_port: rx,
         }
     }
@@ -130,11 +128,14 @@ impl PendingAsyncLoad {
         self.load_with(|_| {})
     }
 
-    pub fn load_with(self, cb: |load_data: &mut LoadData|) -> Receiver<LoadResponse> {
-        let mut load_data = LoadData::new(self.url, self.input_chan);
-        cb(&mut load_data);
-        self.resource_task.send(ControlMsg::Load(load_data));
+    pub fn load_with(mut self, cb: |load_data: &mut LoadData|) -> Receiver<LoadResponse> {
+        cb(&mut self.load_data);
+        self.resource_task.send(ControlMsg::Load(self.load_data));
         self.input_port
+    }
+
+    pub fn url(&self) -> &Url {
+        &self.load_data.url
     }
 }
 

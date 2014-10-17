@@ -19,13 +19,15 @@ pub enum LoadType {
     Subframe(Url),
     Stylesheet(Url),
     PageSource(Url),
+    XHR(Url),
 }
 
 impl LoadType {
-    fn url(&self) -> &Url {
+    pub fn url(&self) -> &Url {
         match *self {
             LoadType::Image(ref url) | LoadType::Script(ref url) | LoadType::Subframe(ref url) |
-            LoadType::Stylesheet(ref url) | LoadType::PageSource(ref url) => url,
+            LoadType::Stylesheet(ref url) | LoadType::PageSource(ref url) |
+            LoadType::XHR(ref url) => url,
         }
     }
 }
