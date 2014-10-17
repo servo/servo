@@ -18,6 +18,7 @@ use dom::servohtmlparser;
 use dom::servohtmlparser::ServoHTMLParser;
 use dom::types::*;
 use page::Page;
+use parse::Parser;
 
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecodeReplace};
@@ -486,14 +487,14 @@ pub fn parse_html(page: &Page,
 
     match input {
         InputString(s) => {
-            parser.tokenizer().borrow_mut().feed(s);
+            parser.parse_chunk(s);
         }
         InputUrl(url) => {
             let load_response = load_response.unwrap();
             match load_response.metadata.content_type {
                 Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
                     let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.as_ref().unwrap().serialize());
-                    parser.tokenizer().borrow_mut().feed(page);
+                    parser.parse_chunk(page);
                 },
                 _ => {
                     for msg in load_response.progress_port.iter() {
@@ -501,7 +502,7 @@ pub fn parse_html(page: &Page,
                             Payload(data) => {
                                 // FIXME: use Vec<u8> (html5ever #34)
                                 let data = UTF_8.decode(data.as_slice(), DecodeReplace).unwrap();
-                                parser.tokenizer().borrow_mut().feed(data);
+                                parser.parse_chunk(data);
                             }
                             Done(Err(err)) => {
                                 fail!("Failed to load page URL {:s}, error: {:s}", url.serialize(), err);
@@ -514,7 +515,7 @@ pub fn parse_html(page: &Page,
         }
     }
 
-    parser.tokenizer().borrow_mut().end();
+    parser.finish();
 
     task_state::exit(InHTMLParser);
 

@@ -211,9 +211,7 @@ pub mod dom {
     pub mod testbinding;
 }
 
-pub mod parse {
-    pub mod html;
-}
+pub mod parse;
 
 pub mod layout_interface;
 pub mod page;
