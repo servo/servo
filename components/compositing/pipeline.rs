@@ -153,7 +153,6 @@ impl Pipeline {
                                   failure,
                                   script_chan.clone(),
                                   paint_chan.clone(),
-                                  resource_task,
                                   image_cache_task,
                                   font_cache_task,
                                   time_profiler_chan,

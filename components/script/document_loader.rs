@@ -7,11 +7,10 @@
 
 use script_task::{ScriptMsg, ScriptChan};
 use msg::constellation_msg::{PipelineId};
-use net_traits::{LoadResponse, Metadata, load_whole_resource, ResourceTask};
-use net_traits::{ControlMsg, LoadData, LoadConsumer};
+use net_traits::{LoadResponse, Metadata, load_whole_resource, ResourceTask, PendingAsyncLoad};
 use url::Url;
 
-use std::sync::mpsc::{Receiver, channel};
+use std::sync::mpsc::Receiver;
 
 #[jstraceable]
 #[derive(PartialEq, Clone)]
@@ -69,15 +68,21 @@ impl DocumentLoader {
         }
     }
 
-    pub fn load_async(&mut self, load: LoadType) -> Receiver<LoadResponse> {
-        let (tx, rx) = channel();
+    /// Create a new pending network request, which can be initiated at some point in
+    /// the future.
+    pub fn prep_async_load(&mut self, load: LoadType) -> PendingAsyncLoad {
         self.blocking_loads.push(load.clone());
         let pipeline = self.notifier_data.as_ref().map(|data| data.pipeline);
-        let load_data = LoadData::new(load.url().clone(), pipeline);
-        self.resource_task.send(ControlMsg::Load(load_data, LoadConsumer::Channel(tx))).unwrap();
-        rx
+        PendingAsyncLoad::new(self.resource_task.clone(), load.url().clone(), pipeline)
     }
 
+    /// Create and initiate a new network request.
+    pub fn load_async(&mut self, load: LoadType) -> Receiver<LoadResponse> {
+        let pending = self.prep_async_load(load);
+        pending.load()
+    }
+
+    /// Create, initiate, and await the response for a new network request.
     pub fn load_sync(&mut self, load: LoadType) -> Result<(Metadata, Vec<u8>), String> {
         self.blocking_loads.push(load.clone());
         let result = load_whole_resource(&self.resource_task, load.url().clone());
@@ -85,6 +90,7 @@ impl DocumentLoader {
         result
     }
 
+    /// Mark an in-progress network request complete.
     pub fn finish_load(&mut self, load: LoadType) {
         let idx = self.blocking_loads.iter().position(|unfinished| *unfinished == load);
         self.blocking_loads.remove(idx.expect("unknown completed load"));
