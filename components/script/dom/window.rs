@@ -19,7 +19,7 @@ use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
 use dom::screen::Screen;
-use layout_interface::{ReflowGoal, ReflowForDisplay};
+use layout_interface::ReflowGoal;
 use page::Page;
 use script_task::{ExitWindowMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
 use script_task::FromWindow;
@@ -348,10 +348,6 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
     fn reflow(self) {
         self.page().damage();
-        // FIXME This should probably be ReflowForQuery, not Display. All queries currently
-        // currently rely on the display list, which means we can't destroy it by
-        // doing a query reflow.
-        self.page().reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor);
     }
 
     fn flush_layout(self, goal: ReflowGoal) {
