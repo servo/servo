@@ -55,7 +55,7 @@ pub struct Opts {
     /// sequential algorithm.
     pub layout_threads: uint,
 
-    pub incremental_layout: bool,
+    pub nonincremental_layout: bool,
 
     /// True to exit after the page load (`-x`).
     pub exit_after_load: bool,
@@ -132,7 +132,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10"),
         getopts::optflag("x", "exit", "Exit after load flag"),
         getopts::optopt("y", "layout-threads", "Number of threads to use for layout", "1"),
-        getopts::optflag("i", "incremental-layout", "Whether or not to use incremental layout."),
+        getopts::optflag("i", "nonincremental-layout", "Enable to turn off incremental layout."),
         getopts::optflag("z", "headless", "Headless mode"),
         getopts::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
         getopts::optflag("b", "bubble-widths", "Bubble intrinsic widths separately like other engines"),
@@ -196,7 +196,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
 
-    let incremental_layout = opt_match.opt_present("i");
+    let nonincremental_layout = opt_match.opt_present("i");
 
     let mut bubble_inline_sizes_separately = opt_match.opt_present("b");
 
@@ -231,7 +231,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         memory_profiler_period: memory_profiler_period,
         enable_experimental: opt_match.opt_present("e"),
         layout_threads: layout_threads,
-        incremental_layout: incremental_layout,
+        nonincremental_layout: nonincremental_layout,
         exit_after_load: opt_match.opt_present("x"),
         output_file: opt_match.opt_str("o"),
         headless: opt_match.opt_present("z"),

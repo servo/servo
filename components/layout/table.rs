@@ -252,6 +252,7 @@ impl Flow for TableFlow {
         }
 
         let inline_size_computer = InternalTable;
+
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
                                                       layout_context,
                                                       containing_block_inline_size);
@@ -260,6 +261,7 @@ impl Flow for TableFlow {
         let padding_and_borders = self.block_flow.fragment.border_padding.inline_start_end();
         let content_inline_size =
             self.block_flow.fragment.border_box.size.inline - padding_and_borders;
+
         match self.table_layout {
             FixedLayout => {
                 // In fixed table layout, we distribute extra space among the unspecified columns
@@ -346,6 +348,7 @@ impl ISizeAndMarginsComputer for InternalTable {
                                                                parent_flow_inline_size,
                                                                ctx);
         let solution = self.solve_inline_size_constraints(block, &input);
+
         self.set_inline_size_constraint_solutions(block, solution);
     }
 
