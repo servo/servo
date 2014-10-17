@@ -13,7 +13,6 @@ use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::TrustedNodeAddress;
 use dom::document::{Document, DocumentHelpers};
-use parse::html::JSMessage;
 use parse::Parser;
 
 use servo_util::task_state;
@@ -28,7 +27,6 @@ use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
 #[must_root]
 #[jstraceable]
 pub struct Sink {
-    pub js_chan: Sender<JSMessage>,
     pub base_url: Option<Url>,
     pub document: JS<Document>,
 }
@@ -55,11 +53,9 @@ impl Parser for ServoHTMLParser{
 
 impl ServoHTMLParser {
     #[allow(unrooted_must_root)]
-    pub fn new(js_chan: Sender<JSMessage>, base_url: Option<Url>, document: JSRef<Document>)
-            -> Temporary<ServoHTMLParser> {
+    pub fn new(base_url: Option<Url>, document: JSRef<Document>) -> Temporary<ServoHTMLParser> {
         let window = document.window().root();
         let sink = Sink {
-            js_chan: js_chan,
             base_url: base_url,
             document: JS::from_rooted(document),
         };

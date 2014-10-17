@@ -5,6 +5,64 @@
     page  </title>
 <base href="./"></base>
 <script src="harness.js"></script>
+</head>
+<body>
+
+<div id="first" name="test">fffff<br><br><br><br>fffffffffffffffff</div>
+<div id="second">ggg</div>
+<span id="third" name="test">hhhhhhhh</span>
+<div id="fourth">iiiiiiiiiiiiiiiiiii</div>
+<a href="http://www.mozilla.org"></a>
+<img src="test.jpg"/>
+<embed></embed>
+<form>
+  <fieldset>
+    <legend>legend</legend>
+    <label for="">label<input type="text" value="input" /></label>
+  </fieldset>
+</form>
+<hr />
+<canvas/>
+<p>pppppppppp</p>
+<q>qqqqqqqqqqqqqqqqqqqqqqqqqqq</q>
+<progress max="100" value="80">80%</progress>
+<applet></applet>
+<input type="text" value="input"/>
+<iframe></iframe>
+<ol type="1">
+  <li>li</li>
+</ol>
+<table>
+  <caption>sample table</caption>
+  <colgroup>
+    <col/>
+  </colgroup>
+  <tbody>
+    <tr><th>head</th></tr>
+    <tr><td>data</td></tr>
+  </tbody>
+</table>
+<section>section</section>
+<aside>aside</aside>
+<b>b</b>
+<i>i</i>
+<small>small</small>
+<textarea>textarea</textarea>
+<time datetime="2014-02-14">Valentines day</time>
+<area></area>
+<data></data>
+<template></template>
+<pre>pre</pre>
+<audio>
+  <source src="horse.ogg" type="audio/ogg">
+  <source src="horse.mp3" type="audio/mpeg">
+</audio>
+<video src="">
+  <track></track>
+</video>
+
+<foo-á>hi</foo-á>
+
 <script>
 function check_collection(obj, num, classes, name) {
     is_a(obj, HTMLCollection);
@@ -81,63 +139,5 @@ check_tag("foo-á", 1, [HTMLUnknownElement], "FOO-á");
 
 finish();
 </script>
-</head>
-<body>
-
-<div id="first" name="test">fffff<br><br><br><br>fffffffffffffffff</div>
-<div id="second">ggg</div>
-<span id="third" name="test">hhhhhhhh</span>
-<div id="fourth">iiiiiiiiiiiiiiiiiii</div>
-<a href="http://www.mozilla.org"></a>
-<img src="test.jpg"/>
-<embed></embed>
-<form>
-  <fieldset>
-    <legend>legend</legend>
-    <label for="">label<input type="text" value="input" /></label>
-  </fieldset>
-</form>
-<hr />
-<canvas/>
-<p>pppppppppp</p>
-<q>qqqqqqqqqqqqqqqqqqqqqqqqqqq</q>
-<progress max="100" value="80">80%</progress>
-<applet></applet>
-<input type="text" value="input"/>
-<iframe></iframe>
-<ol type="1">
-  <li>li</li>
-</ol>
-<table>
-  <caption>sample table</caption>
-  <colgroup>
-    <col/>
-  </colgroup>
-  <tbody>
-    <tr><th>head</th></tr>
-    <tr><td>data</td></tr>
-  </tbody>
-</table>
-<section>section</section>
-<aside>aside</aside>
-<b>b</b>
-<i>i</i>
-<small>small</small>
-<textarea>textarea</textarea>
-<time datetime="2014-02-14">Valentines day</time>
-<area></area>
-<data></data>
-<template></template>
-<pre>pre</pre>
-<audio>
-  <source src="horse.ogg" type="audio/ogg">
-  <source src="horse.mp3" type="audio/mpeg">
-</audio>
-<video src="">
-  <track></track>
-</video>
-
-<foo-á>hi</foo-á>
-
 </body>
 </html>

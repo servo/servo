@@ -2,6 +2,13 @@
 <html>
     <head>
         <script src="harness.js"></script>
+    </head>
+    <body>
+        <div id="parent">
+            <div id="foo" class="test"></div>
+            <div id="bar" class="test"></div>
+            <div id="baz" class="test"></div>
+        </div>
         <script>
             let foo = document.getElementById("foo");
             let bar = document.getElementById("bar");
@@ -48,12 +55,5 @@
 
             finish();
         </script>
-    </head>
-    <body>
-        <div id="parent">
-            <div id="foo" class="test"></div>
-            <div id="bar" class="test"></div>
-            <div id="baz" class="test"></div>
-        </div>
     </body>
 </html>

@@ -45,7 +45,7 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use geom::rect::Rect;
-use parse::html::build_element_from_tag;
+use parse::html::{build_element_from_tag, ScriptCreated};
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC,
                        LayoutChan, ReapLayoutDataMsg};
 use devtools_traits::NodeInfo;
@@ -1521,7 +1521,7 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = build_element_from_tag(name,
-                    Some(element.prefix().as_slice().to_string()), *document);
+                    Some(element.prefix().as_slice().to_string()), *document, ScriptCreated);
                 NodeCast::from_temporary(element)
             },
             TextNodeTypeId => {

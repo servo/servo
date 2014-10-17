@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::Attr;
+use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::HTMLScriptElementDerived;
-use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
@@ -15,10 +17,12 @@ use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecodeReplace};
+use parse::html::{ElementCreator, ParserCreated};
 use servo_net::resource_task::load_whole_resource;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::cell::Cell;
@@ -53,20 +57,20 @@ impl HTMLScriptElementDerived for EventTarget {
 
 impl HTMLScriptElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>,
-                     parser_inserted: bool) -> HTMLScriptElement {
+                     creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
             htmlelement: HTMLElement::new_inherited(HTMLScriptElementTypeId, localName, prefix, document),
             already_started: Cell::new(false),
-            parser_inserted: Cell::new(parser_inserted),
-            non_blocking: Cell::new(!parser_inserted),
+            parser_inserted: Cell::new(creator == ParserCreated),
+            non_blocking: Cell::new(creator != ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>,
-               parser_inserted: bool) -> Temporary<HTMLScriptElement> {
-        let element = HTMLScriptElement::new_inherited(localName, prefix, document, parser_inserted);
+               creator: ElementCreator) -> Temporary<HTMLScriptElement> {
+        let element = HTMLScriptElement::new_inherited(localName, prefix, document, creator);
         Node::reflect_node(box element, document, HTMLScriptElementBinding::Wrap)
     }
 }
@@ -77,6 +81,9 @@ pub trait HTMLScriptElementHelpers {
 
     /// Prepare a script, steps 6 and 7.
     fn is_javascript(self) -> bool;
+
+    /// Set the "already started" flag (<https://whatwg.org/html/#already-started>)
+    fn mark_already_started(self);
 }
 
 /// Supported script types as defined by
@@ -230,6 +237,50 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                     }
                 }
             }
+        }
+    }
+
+    fn mark_already_started(self) {
+        self.already_started.set(true);
+    }
+}
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        Some(htmlelement as &VirtualMethods)
+    }
+
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
+        match self.super_type() {
+            Some(ref s) => s.after_set_attr(attr),
+            _ => (),
+        }
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        if attr.local_name() == &atom!("src") && !self.parser_inserted.get() && node.is_in_doc() {
+            self.prepare();
+        }
+    }
+
+    fn child_inserted(&self, child: JSRef<Node>) {
+        match self.super_type() {
+            Some(ref s) => s.child_inserted(child),
+            _ => (),
+        }
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        if !self.parser_inserted.get() && node.is_in_doc() {
+            self.prepare();
+        }
+    }
+
+    fn bind_to_tree(&self, tree_in_doc: bool) {
+        match self.super_type() {
+            Some(ref s) => s.bind_to_tree(tree_in_doc),
+            _ => ()
+        }
+
+        if tree_in_doc && !self.parser_inserted.get() {
+            self.prepare();
         }
     }
 }
