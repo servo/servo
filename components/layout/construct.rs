@@ -28,7 +28,7 @@ use fragment::{InlineBlockFragmentInfo, InputFragment, SpecificFragmentInfo, Tab
 use fragment::{TableColumnFragment, TableColumnFragmentInfo, TableFragment, TableRowFragment};
 use fragment::{TableWrapperFragment, UnscannedTextFragment, UnscannedTextFragmentInfo};
 use incremental::RestyleDamage;
-use inline::{InlineFragments, InlineFlow};
+use inline::InlineFlow;
 use parallel;
 use table_wrapper::TableWrapperFlow;
 use table::TableFlow;
@@ -53,6 +53,7 @@ use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstruc
 use script::dom::node::{TextNodeTypeId};
 use script::dom::htmlobjectelement::is_image_data;
 use servo_util::opts;
+use std::collections::{DList, Deque};
 use std::mem;
 use std::sync::atomics::Relaxed;
 use style::ComputedValues;
@@ -115,7 +116,7 @@ pub struct InlineFragmentsConstructionResult {
     pub splits: Vec<InlineBlockSplit>,
 
     /// Any fragments that succeed the {ib} splits.
-    pub fragments: InlineFragments,
+    pub fragments: DList<Fragment>,
 
     /// Any absolute descendants that we're bubbling up.
     pub abs_descendants: AbsDescendants,
@@ -150,7 +151,7 @@ pub struct InlineFragmentsConstructionResult {
 #[deriving(Clone)]
 pub struct InlineBlockSplit {
     /// The inline fragments that precede the flow.
-    pub predecessors: InlineFragments,
+    pub predecessors: DList<Fragment>,
 
     /// The flow that caused this {ib} split.
     pub flow: FlowRef,
@@ -159,7 +160,7 @@ pub struct InlineBlockSplit {
 /// Holds inline fragments that we're gathering for children of an inline node.
 struct InlineFragmentsAccumulator {
     /// The list of fragments.
-    fragments: InlineFragments,
+    fragments: DList<Fragment>,
 
     /// Whether we've created a range to enclose all the fragments. This will be Some() if the outer node
     /// is an inline and None otherwise.
@@ -169,20 +170,28 @@ struct InlineFragmentsAccumulator {
 impl InlineFragmentsAccumulator {
     fn new() -> InlineFragmentsAccumulator {
         InlineFragmentsAccumulator {
-            fragments: InlineFragments::new(),
+            fragments: DList::new(),
             enclosing_style: None,
         }
     }
 
     fn from_inline_node(node: &ThreadSafeLayoutNode) -> InlineFragmentsAccumulator {
-        let fragments = InlineFragments::new();
+        let fragments = DList::new();
         InlineFragmentsAccumulator {
             fragments: fragments,
             enclosing_style: Some(node.style().clone()),
         }
     }
 
-    fn finish(self) -> InlineFragments {
+    fn push_all(&mut self, fragments: DList<Fragment>) {
+        if fragments.len() == 0 {
+            return
+        }
+
+        self.fragments.append(fragments)
+    }
+
+    fn to_dlist(self) -> DList<Fragment> {
         let InlineFragmentsAccumulator {
             fragments: mut fragments,
             enclosing_style
@@ -190,7 +199,7 @@ impl InlineFragmentsAccumulator {
 
         match enclosing_style {
             Some(enclosing_style) => {
-                for frag in fragments.fragments.iter_mut() {
+                for frag in fragments.iter_mut() {
                     frag.add_inline_context_style(enclosing_style.clone());
                 }
             }
@@ -289,7 +298,7 @@ impl<'a> FlowConstructor<'a> {
                                               flow_list: &mut Vec<FlowRef>,
                                               whitespace_stripping: WhitespaceStrippingMode,
                                               node: &ThreadSafeLayoutNode) {
-        let mut fragments = fragment_accumulator.finish();
+        let mut fragments = fragment_accumulator.to_dlist();
         if fragments.is_empty() {
             return
         };
@@ -298,14 +307,14 @@ impl<'a> FlowConstructor<'a> {
             NoWhitespaceStripping => {}
             StripWhitespaceFromStart => {
                 flow::mut_base(flow.deref_mut()).restyle_damage.insert(
-                    fragments.strip_ignorable_whitespace_from_start());
+                    strip_ignorable_whitespace_from_start(&mut fragments));
                 if fragments.is_empty() {
                     return
                 };
             }
             StripWhitespaceFromEnd => {
                 flow::mut_base(flow.deref_mut()).restyle_damage.insert(
-                    fragments.strip_ignorable_whitespace_from_end());
+                    strip_ignorable_whitespace_from_end(&mut fragments));
                 if fragments.is_empty() {
                     return
                 };
@@ -314,7 +323,7 @@ impl<'a> FlowConstructor<'a> {
 
         // Build a list of all the inline-block fragments before fragments is moved.
         let mut inline_block_flows = vec!();
-        for f in fragments.fragments.iter() {
+        for f in fragments.iter() {
             match f.specific {
                 InlineBlockFragment(ref info) => inline_block_flows.push(info.flow_ref.clone()),
                 InlineAbsoluteHypotheticalFragment(ref info) => {
@@ -323,6 +332,12 @@ impl<'a> FlowConstructor<'a> {
                 _ => {}
             }
         }
+
+        // We must scan for runs before computing minimum ascent and descent because scanning
+        // for runs might collapse so much whitespace away that only hypothetical fragments
+        // remain. In that case the inline flow will compute its ascent and descent to be zero.
+        let fragments = TextRunScanner::new().scan_for_runs(self.layout_context.font_context(),
+                                                            fragments);
 
         let mut inline_flow_ref = FlowRef::new(box InlineFlow::from_fragments((*node).clone(),
                                                                               fragments));
@@ -335,10 +350,6 @@ impl<'a> FlowConstructor<'a> {
         {
             let inline_flow = inline_flow_ref.as_inline();
 
-            // We must scan for runs before computing minimum ascent and descent because scanning
-            // for runs might collapse so much whitespace away that only hypothetical fragments
-            // remain. In that case the inline flow will compute its ascent and descent to be zero.
-            TextRunScanner::new().scan_for_runs(self.layout_context.font_context(), inline_flow);
 
             let (ascent, descent) =
                 inline_flow.compute_minimum_ascent_and_descent(self.layout_context.font_context(),
@@ -409,7 +420,7 @@ impl<'a> FlowConstructor<'a> {
                         predecessors: predecessors,
                         flow: kid_flow
                     } = split;
-                    inline_fragment_accumulator.fragments.push_all(predecessors);
+                    inline_fragment_accumulator.push_all(predecessors);
 
                     // If this is the first fragment in flow, then strip ignorable
                     // whitespace per CSS 2.1 § 9.2.1.1.
@@ -441,7 +452,7 @@ impl<'a> FlowConstructor<'a> {
                 }
 
                 // Add the fragments to the list we're maintaining.
-                inline_fragment_accumulator.fragments.push_all(successor_fragments);
+                inline_fragment_accumulator.push_all(successor_fragments);
                 abs_descendants.push_descendants(kid_abs_descendants);
             }
             ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node,
@@ -451,11 +462,11 @@ impl<'a> FlowConstructor<'a> {
                 // between block elements, and retained when between inline elements.
                 let fragment_info =
                     UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
-                let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
-                                                                        whitespace_style,
-                                                                        whitespace_damage,
-                                                                        fragment_info);
-                inline_fragment_accumulator.fragments.push(&mut fragment);
+                let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
+                                                                    whitespace_style,
+                                                                    whitespace_damage,
+                                                                    fragment_info);
+                inline_fragment_accumulator.fragments.push(fragment);
             }
             ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
                 // TODO: Implement anonymous table objects for missing parents
@@ -483,8 +494,8 @@ impl<'a> FlowConstructor<'a> {
         if node.get_pseudo_element_type() != Normal ||
            node.type_id() == Some(ElementNodeTypeId(HTMLInputElementTypeId)) {
             let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::new(node));
-            let mut fragment = Fragment::new_from_specific_info(node, fragment_info);
-            inline_fragment_accumulator.fragments.push(&mut fragment);
+            let fragment = Fragment::new_from_specific_info(node, fragment_info);
+            inline_fragment_accumulator.fragments.push(fragment);
             first_fragment = false;
         }
 
@@ -577,7 +588,7 @@ impl<'a> FlowConstructor<'a> {
                         predecessors:
                             mem::replace(
                                 &mut fragment_accumulator,
-                                InlineFragmentsAccumulator::from_inline_node(node)).finish(),
+                                InlineFragmentsAccumulator::from_inline_node(node)).to_dlist(),
                         flow: flow,
                     };
                     opt_inline_block_splits.push(split);
@@ -596,32 +607,34 @@ impl<'a> FlowConstructor<'a> {
                             predecessors: predecessors,
                             flow: kid_flow
                         } = split;
-                        fragment_accumulator.fragments.push_all(predecessors);
+                        fragment_accumulator.push_all(predecessors);
 
                         let split = InlineBlockSplit {
                             predecessors:
                                 mem::replace(&mut fragment_accumulator,
                                              InlineFragmentsAccumulator::from_inline_node(node))
-                                    .finish(),
+                                    .to_dlist(),
                             flow: kid_flow,
                         };
                         opt_inline_block_splits.push(split)
                     }
 
                     // Push residual fragments.
-                    fragment_accumulator.fragments.push_all(successors);
+                    fragment_accumulator.push_all(successors);
                     abs_descendants.push_descendants(kid_abs_descendants);
                 }
-                ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node,
-                                                                              whitespace_style,
-                                                                              whitespace_damage)) => {
+                ConstructionItemConstructionResult(WhitespaceConstructionItem(
+                        whitespace_node,
+                        whitespace_style,
+                        whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
-                    let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
-                    let mut fragment = Fragment::from_opaque_node_and_style(whitespace_node,
+                    let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(
+                            " ".to_string()));
+                    let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_style,
                                                                         whitespace_damage,
                                                                         fragment_info);
-                    fragment_accumulator.fragments.push(&mut fragment)
+                    fragment_accumulator.fragments.push(fragment)
                 }
                 ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
                     // TODO: Implement anonymous table objects for missing parents
@@ -636,7 +649,7 @@ impl<'a> FlowConstructor<'a> {
             let construction_item = InlineFragmentsConstructionItem(
                     InlineFragmentsConstructionResult {
                 splits: opt_inline_block_splits,
-                fragments: fragment_accumulator.finish(),
+                fragments: fragment_accumulator.to_dlist(),
                 abs_descendants: abs_descendants,
             });
             ConstructionItemConstructionResult(construction_item)
@@ -668,15 +681,15 @@ impl<'a> FlowConstructor<'a> {
         // If this is generated content, then we need to initialize the accumulator with the
         // fragment corresponding to that content. Otherwise, just initialize with the ordinary
         // fragment that needs to be generated for this inline node.
-        let mut fragment = if node.get_pseudo_element_type() != Normal {
+        let fragment = if node.get_pseudo_element_type() != Normal {
             let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::new(node));
             Fragment::new_from_specific_info(node, fragment_info)
         } else {
             Fragment::new(self, node)
         };
 
-        let mut fragments = InlineFragments::new();
-        fragments.push(&mut fragment);
+        let mut fragments = DList::new();
+        fragments.push(fragment);
 
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
             splits: Vec::new(),
@@ -695,14 +708,14 @@ impl<'a> FlowConstructor<'a> {
         };
 
         let fragment_info = InlineBlockFragment(InlineBlockFragmentInfo::new(block_flow));
-        let mut fragment = Fragment::new_from_specific_info(node, fragment_info);
+        let fragment = Fragment::new_from_specific_info(node, fragment_info);
 
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
-        fragment_accumulator.fragments.push(&mut fragment);
+        fragment_accumulator.fragments.push(fragment);
 
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
             splits: Vec::new(),
-            fragments: fragment_accumulator.finish(),
+            fragments: fragment_accumulator.to_dlist(),
             abs_descendants: abs_descendants,
         });
         ConstructionItemConstructionResult(construction_item)
@@ -720,14 +733,14 @@ impl<'a> FlowConstructor<'a> {
 
         let fragment_info = InlineAbsoluteHypotheticalFragment(
             InlineAbsoluteHypotheticalFragmentInfo::new(block_flow));
-        let mut fragment = Fragment::new_from_specific_info(node, fragment_info);
+        let fragment = Fragment::new_from_specific_info(node, fragment_info);
 
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
-        fragment_accumulator.fragments.push(&mut fragment);
+        fragment_accumulator.fragments.push(fragment);
 
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
             splits: Vec::new(),
-            fragments: fragment_accumulator.finish(),
+            fragments: fragment_accumulator.to_dlist(),
             abs_descendants: abs_descendants,
         });
         ConstructionItemConstructionResult(construction_item)
@@ -1217,3 +1230,38 @@ impl FlowConstructionUtils for FlowRef {
         }
     }
 }
+
+/// Strips ignorable whitespace from the start of a list of fragments.
+///
+/// Returns some damage that must be added to the `InlineFlow`.
+pub fn strip_ignorable_whitespace_from_start(this: &mut DList<Fragment>) -> RestyleDamage {
+    if this.is_empty() {
+        return RestyleDamage::empty()   // Fast path.
+    }
+
+    let mut damage = RestyleDamage::empty();
+    while !this.is_empty() && this.front().as_ref().unwrap().is_ignorable_whitespace() {
+        debug!("stripping ignorable whitespace from start");
+        damage = RestyleDamage::all();
+        drop(this.pop_front());
+    }
+    damage
+}
+
+/// Strips ignorable whitespace from the end of a list of fragments.
+///
+/// Returns some damage that must be added to the `InlineFlow`.
+pub fn strip_ignorable_whitespace_from_end(this: &mut DList<Fragment>) -> RestyleDamage {
+    if this.is_empty() {
+        return RestyleDamage::empty();
+    }
+
+    let mut damage = RestyleDamage::empty();
+    while !this.is_empty() && this.back().as_ref().unwrap().is_ignorable_whitespace() {
+        debug!("stripping ignorable whitespace from end");
+        damage = RestyleDamage::all();
+        drop(this.pop());
+    }
+    damage
+}
+

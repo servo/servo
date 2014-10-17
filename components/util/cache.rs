@@ -49,6 +49,13 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
     fn evict_all(&mut self) {
         self.entries.clear();
     }
+
+}
+
+impl<K,V> HashCache<K,V> where K: Clone + PartialEq + Eq + Hash, V: Clone {
+    pub fn find_equiv<'a,Q>(&'a self, key: &Q) -> Option<&'a V> where Q: Hash + Equiv<K> {
+        self.entries.find_equiv(key)
+    }
 }
 
 #[test]

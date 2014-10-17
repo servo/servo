@@ -386,7 +386,8 @@ pub struct ScannedTextFragmentInfo {
 
 impl ScannedTextFragmentInfo {
     /// Creates the information specific to a scanned text fragment from a range and a text run.
-    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>, content_inline_size: Au) -> ScannedTextFragmentInfo {
+    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>, content_inline_size: Au)
+               -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
@@ -509,7 +510,9 @@ impl Fragment {
     }
 
     /// Constructs a new `Fragment` instance for an anonymous table object.
-    pub fn new_anonymous_table_fragment(node: &ThreadSafeLayoutNode, specific: SpecificFragmentInfo) -> Fragment {
+    pub fn new_anonymous_table_fragment(node: &ThreadSafeLayoutNode,
+                                        specific: SpecificFragmentInfo)
+                                        -> Fragment {
         // CSS 2.1 § 17.2.1 This is for non-inherited properties on anonymous table fragments
         // example:
         //
@@ -517,7 +520,8 @@ impl Fragment {
         //         Foo
         //     </div>
         //
-        // Anonymous table fragments, TableRowFragment and TableCellFragment, are generated around `Foo`, but it shouldn't inherit the border.
+        // Anonymous table fragments, TableRowFragment and TableCellFragment, are generated around
+        // `Foo`, but they shouldn't inherit the border.
 
         let node_style = cascade_anonymous(&**node.style());
         let writing_mode = node_style.writing_mode;
@@ -587,14 +591,14 @@ impl Fragment {
         }
     }
 
-    /// Returns a debug ID of this fragment. This ID should not be considered stable across multiple
-    /// layouts or fragment manipulations.
+    /// Returns a debug ID of this fragment. This ID should not be considered stable across
+    /// multiple layouts or fragment manipulations.
     pub fn debug_id(&self) -> uint {
         self.debug_id
     }
 
-    /// Transforms this fragment into another fragment of the given type, with the given size, preserving all
-    /// the other data.
+    /// Transforms this fragment into another fragment of the given type, with the given size,
+    /// preserving all the other data.
     pub fn transform(&self, size: LogicalSize<Au>, mut info: ScannedTextFragmentInfo) -> Fragment {
         let new_border_box =
             LogicalRect::from_point_size(self.style.writing_mode, self.border_box.start, size);

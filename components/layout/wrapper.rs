@@ -36,8 +36,9 @@ use util::{LayoutDataAccess, LayoutDataWrapper, PrivateLayoutData, OpaqueNodeMet
 
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::cell::{Ref, RefMut};
-use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast, HTMLImageElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, TextCast};
+use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
+use script::dom::bindings::codegen::InheritTypes::{TextCast};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -498,6 +499,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         }
     }
 
+    #[inline]
     fn get_hover_state(self) -> bool {
         unsafe {
             self.element.node().get_hover_state_for_layout()
@@ -511,18 +513,21 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         }
     }
 
+    #[inline]
     fn get_disabled_state(self) -> bool {
         unsafe {
             self.element.node().get_disabled_state_for_layout()
         }
     }
 
+    #[inline]
     fn get_enabled_state(self) -> bool {
         unsafe {
             self.element.node().get_enabled_state_for_layout()
         }
     }
 
+    #[inline]
     fn has_class(self, name: &Atom) -> bool {
         unsafe {
             self.element.has_class_for_layout(name)
@@ -735,10 +740,12 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
+    #[inline]
     pub fn get_pseudo_element_type(&self) -> PseudoElementType {
         self.pseudo
     }
 
+    #[inline]
     pub fn get_normal_display(&self) -> display::T {
         let mut layout_data_ref = self.mutate_layout_data();
         let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
@@ -746,6 +753,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         style.get_box().display
     }
 
+    #[inline]
     pub fn get_before_display(&self) -> display::T {
         let mut layout_data_ref = self.mutate_layout_data();
         let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
@@ -753,6 +761,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         style.get_box().display
     }
 
+    #[inline]
     pub fn get_after_display(&self) -> display::T {
         let mut layout_data_ref = self.mutate_layout_data();
         let node_layout_data_wrapper = layout_data_ref.as_mut().unwrap();
@@ -760,12 +769,14 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         style.get_box().display
     }
 
+    #[inline]
     pub fn has_before_pseudo(&self) -> bool {
         let layout_data_wrapper = self.borrow_layout_data();
         let layout_data_wrapper_ref = layout_data_wrapper.as_ref().unwrap();
         layout_data_wrapper_ref.data.before_style.is_some()
     }
 
+    #[inline]
     pub fn has_after_pseudo(&self) -> bool {
         let layout_data_wrapper = self.borrow_layout_data();
         let layout_data_wrapper_ref = layout_data_wrapper.as_ref().unwrap();

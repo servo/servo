@@ -100,14 +100,19 @@ pub struct Font {
 }
 
 impl Font {
-    pub fn shape_text(&mut self, text: String, is_whitespace: bool) -> Arc<GlyphStore> {
+    pub fn shape_text(&mut self, text: &str, is_whitespace: bool) -> Arc<GlyphStore> {
         self.make_shaper();
         let shaper = &self.shaper;
-        self.shape_cache.find_or_create(&text, |txt| {
-            let mut glyphs = GlyphStore::new(text.as_slice().char_len() as int, is_whitespace);
-            shaper.as_ref().unwrap().shape_text(txt.as_slice(), &mut glyphs);
-            Arc::new(glyphs)
-        })
+        match self.shape_cache.find_equiv(&text) {
+            None => {}
+            Some(glyphs) => return (*glyphs).clone(),
+        }
+
+        let mut glyphs = GlyphStore::new(text.char_len() as int, is_whitespace);
+        shaper.as_ref().unwrap().shape_text(text, &mut glyphs);
+        let glyphs = Arc::new(glyphs);
+        self.shape_cache.insert(text.to_string(), glyphs.clone());
+        glyphs
     }
 
     fn make_shaper<'a>(&'a mut self) -> &'a Shaper {
