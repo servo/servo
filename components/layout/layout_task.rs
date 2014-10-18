@@ -655,9 +655,6 @@ impl LayoutTask {
         if self.opts.trace_layout {
             layout_debug::begin_trace(layout_root.clone());
         }
-        if self.opts.dump_flow_tree {
-            layout_root.dump();
-        }
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
@@ -777,6 +774,10 @@ impl LayoutTask {
 
         if self.opts.trace_layout {
             layout_debug::end_trace();
+        }
+
+        if self.opts.dump_flow_tree {
+            layout_root.dump();
         }
 
         rw_data.generation += 1;
