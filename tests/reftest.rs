@@ -263,7 +263,7 @@ fn check_reftest(reftest: Reftest) {
     let right_all_white = right_bytes.iter().all(|&p| p == 255);
 
     if left_all_white && right_all_white {
-        fail!("Both rendering are empty")
+        fail!("Both renderings are empty")
     }
 
     let pixels = left_bytes.iter().zip(right_bytes.iter()).map(|(&a, &b)| {
