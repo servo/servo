@@ -25,14 +25,13 @@ use servo_msg::compositor_msg::{LayerMetadata, RenderListener, RenderingRenderSt
 use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineId};
 use servo_msg::constellation_msg::{RendererReadyMsg};
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
-use servo_util::geometry::{Au, mod};
+use servo_util::geometry;
 use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use std::comm::{Receiver, Sender, channel};
-use std::i32;
 use sync::Arc;
 use font_cache_task::FontCacheTask;
 
@@ -359,9 +358,8 @@ impl<C:RenderListener + Send> RenderTask<C> {
                             None,
                             self.time_profiler_chan.clone(),
                             || {
-                        let clip_rect = Rect(Point2D(Au(i32::MIN), Au(i32::MIN)),
-                                             Size2D(Au(i32::MAX), Au(i32::MAX)));
-                        display_list.draw_into_context(&mut ctx, &matrix, &clip_rect);
+                        let mut clip_stack = Vec::new();
+                        display_list.draw_into_context(&mut ctx, &matrix, &mut clip_stack);
                         ctx.draw_target.flush();
                     });
                 }

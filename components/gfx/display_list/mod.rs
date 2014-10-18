@@ -288,10 +288,10 @@ impl DisplayList {
     pub fn draw_into_context(&self,
                              render_context: &mut RenderContext,
                              current_transform: &Matrix2D<AzFloat>,
-                             current_clip_rect: &Rect<Au>) {
+                             current_clip_stack: &mut Vec<Rect<Au>>) {
         debug!("Beginning display list.");
         for item in self.list.iter() {
-            item.draw_into_context(render_context, current_transform, current_clip_rect)
+            item.draw_into_context(render_context, current_transform, current_clip_stack)
         }
         debug!("Ending display list.");
     }
@@ -504,14 +504,19 @@ impl DisplayItem {
     fn draw_into_context(&self,
                          render_context: &mut RenderContext,
                          current_transform: &Matrix2D<AzFloat>,
-                         current_clip_rect: &Rect<Au>) {
+                         current_clip_stack: &mut Vec<Rect<Au>>) {
         // This should have been flattened to the content stacking level first.
         assert!(self.base().level == ContentStackingLevel);
 
+        // TODO(pcwalton): This will need some tweaking to deal with more complex clipping regions.
         let clip_rect = &self.base().clip_rect;
-        let need_to_clip = current_clip_rect != clip_rect;
-        if need_to_clip {
+        if current_clip_stack.len() == 0 || current_clip_stack.last().unwrap() != clip_rect {
+            while current_clip_stack.len() != 0 {
+                render_context.draw_pop_clip();
+                drop(current_clip_stack.pop());
+            }
             render_context.draw_push_clip(clip_rect);
+            current_clip_stack.push(*clip_rect);
         }
 
         match *self {
@@ -607,10 +612,6 @@ impl DisplayItem {
             }
 
             PseudoDisplayItemClass(_) => {}
-        }
-
-        if need_to_clip {
-            render_context.draw_pop_clip();
         }
     }
 
