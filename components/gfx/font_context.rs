@@ -43,7 +43,7 @@ static SMALL_CAPS_SCALE_FACTOR: f64 = 0.8;      // Matches FireFox (see gfxFont.
 
 struct LayoutFontCacheEntry {
     family: String,
-    font: Rc<RefCell<Font>>,
+    font: Option<Rc<RefCell<Font>>>,
 }
 
 struct FallbackFontCacheEntry {
@@ -132,13 +132,21 @@ impl FontContext {
             let mut cache_hit = false;
             for cached_font_entry in self.layout_font_cache.iter() {
                 if cached_font_entry.family.as_slice() == family.name() {
-                    let cached_font = cached_font_entry.font.borrow();
-                    if cached_font.descriptor == desc &&
-                       cached_font.requested_pt_size == style.font_size.to_subpx() &&
-                       cached_font.variant == style.font_variant {
-                        fonts.push(cached_font_entry.font.clone());
-                        cache_hit = true;
-                        break;
+                    match cached_font_entry.font {
+                        None => {
+                            cache_hit = true;
+                            break;
+                        }
+                        Some(ref cached_font_ref) => {
+                            let cached_font = cached_font_ref.borrow();
+                            if cached_font.descriptor == desc &&
+                               cached_font.requested_pt_size == style.font_size.to_subpx() &&
+                               cached_font.variant == style.font_variant {
+                                fonts.push((*cached_font_ref).clone());
+                                cache_hit = true;
+                                break;
+                            }
+                        }
                     }
                 }
             }
@@ -156,11 +164,16 @@ impl FontContext {
                         let layout_font = Rc::new(RefCell::new(layout_font));
                         self.layout_font_cache.push(LayoutFontCacheEntry {
                             family: family.name().to_string(),
-                            font: layout_font.clone(),
+                            font: Some(layout_font.clone()),
                         });
                         fonts.push(layout_font);
                     }
-                    None => {}
+                    None => {
+                        self.layout_font_cache.push(LayoutFontCacheEntry {
+                            family: family.name().to_string(),
+                            font: None,
+                        });
+                    }
                 }
             }
         }
