@@ -496,7 +496,6 @@ dependencies = [
 name = "util"
 version = "0.0.1"
 dependencies = [
- "azure 0.1.0 (git+https://github.com/servo/rust-azure#b357751c04a89a87e6ef1f0cebe5f20957dd112d)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache#97754929f38d93f6728d1f0acce8107648420e98)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache#97754929f38d93f6728d1f0acce8107648420e98)",

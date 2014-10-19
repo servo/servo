@@ -12,7 +12,6 @@ extern crate log;
 
 extern crate debug;
 extern crate alloc;
-extern crate azure;
 extern crate collections;
 extern crate geom;
 extern crate getopts;
