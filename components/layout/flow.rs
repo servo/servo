@@ -1022,7 +1022,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
             indent.push_str("| ")
         }
 
-        error!("{}+ {}", indent, self.to_string());
+        println!("{}+ {}", indent, self.to_string());
 
         for kid in imm_child_iter(self) {
             kid.dump_with_level(level + 1)
