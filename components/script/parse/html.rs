@@ -496,7 +496,7 @@ pub fn parse_html(page: &Page,
                         match msg {
                             Payload(data) => {
                                 // FIXME: use Vec<u8> (html5ever #34)
-                                let data = String::from_utf8(data).unwrap();
+                                let data = UTF_8.decode(data.as_slice(), DecodeReplace).unwrap();
                                 parser.tokenizer().borrow_mut().feed(data);
                             }
                             Done(Err(err)) => {
