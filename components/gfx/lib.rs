@@ -30,6 +30,7 @@ extern crate "util" as servo_util;
 extern crate "msg" as servo_msg;
 extern crate style;
 extern crate sync;
+extern crate time;
 extern crate url;
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own

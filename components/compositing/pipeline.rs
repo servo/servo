@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use CompositorChan;
+use CompositorProxy;
 use layout_traits::{LayoutTaskFactory, LayoutControlChan};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
@@ -47,7 +47,7 @@ impl Pipeline {
                       id: PipelineId,
                       subpage_id: Option<SubpageId>,
                       constellation_chan: ConstellationChan,
-                      compositor_chan: CompositorChan,
+                      compositor_proxy: Box<CompositorProxy+'static+Send>,
                       devtools_chan: Option<DevtoolsControlChan>,
                       image_cache_task: ImageCacheTask,
                       font_cache_task: FontCacheTask,
@@ -73,7 +73,7 @@ impl Pipeline {
                 let (script_chan, script_port) = channel();
                 ScriptTaskFactory::create(None::<&mut STF>,
                                           id,
-                                          box compositor_chan.clone(),
+                                          compositor_proxy.clone_compositor_proxy(),
                                           &layout_pair,
                                           ScriptControlChan(script_chan.clone()),
                                           script_port,
@@ -101,7 +101,7 @@ impl Pipeline {
 
         RenderTask::create(id,
                            render_port,
-                           compositor_chan.clone(),
+                           compositor_proxy,
                            constellation_chan.clone(),
                            font_cache_task.clone(),
                            failure.clone(),

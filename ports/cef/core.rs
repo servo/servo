@@ -9,11 +9,10 @@ use geom::size::TypedSize2D;
 use glfw_app;
 use libc::{c_int, c_void};
 use native;
-use servo;
+use servo::Browser;
 use servo_util::opts;
 use std::mem;
 use types::{cef_app_t, cef_main_args_t, cef_settings_t};
-
 
 #[no_mangle]
 pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
@@ -77,8 +76,10 @@ pub extern "C" fn cef_run_message_loop() {
         validate_display_list_geometry: false,
     });
     native::start(0, 0 as *const *const u8, proc() {
-       let window = Some(glfw_app::create_window());
-       servo::run(window);
+        let window = glfw_app::create_window();
+        let mut browser = Browser::new(Some(window.clone()));
+        while browser.handle_event(window.wait_events()) {}
+        browser.shutdown()
     });
 }
 

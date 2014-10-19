@@ -4,13 +4,13 @@
 
 //! Timing functions.
 
-use std_time::precise_time_ns;
 use collections::treemap::TreeMap;
 use std::comm::{Sender, channel, Receiver};
 use std::f64;
-use std::iter::AdditiveIterator;
 use std::io::timer::sleep;
+use std::iter::AdditiveIterator;
 use std::time::duration::Duration;
+use std_time::precise_time_ns;
 use task::{spawn_named};
 use url::Url;
 

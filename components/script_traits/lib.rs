@@ -89,18 +89,20 @@ impl<S: Encoder<E>, E> Encodable<S, E> for ScriptControlChan {
 }
 
 pub trait ScriptTaskFactory {
-    fn create<C: ScriptListener + Send>(_phantom: Option<&mut Self>,
-                                        id: PipelineId,
-                                        compositor: Box<C>,
-                                        layout_chan: &OpaqueScriptLayoutChannel,
-                                        control_chan: ScriptControlChan,
-                                        control_port: Receiver<ConstellationControlMsg>,
-                                        constellation_msg: ConstellationChan,
-                                        failure_msg: Failure,
-                                        resource_task: ResourceTask,
-                                        image_cache_task: ImageCacheTask,
-                                        devtools_chan: Option<DevtoolsControlChan>,
-                                        window_size: WindowSizeData);
+    fn create<C>(_phantom: Option<&mut Self>,
+                 id: PipelineId,
+                 compositor: C,
+                 layout_chan: &OpaqueScriptLayoutChannel,
+                 control_chan: ScriptControlChan,
+                 control_port: Receiver<ConstellationControlMsg>,
+                 constellation_msg: ConstellationChan,
+                 failure_msg: Failure,
+                 resource_task: ResourceTask,
+                 image_cache_task: ImageCacheTask,
+                 devtools_chan: Option<DevtoolsControlChan>,
+                 window_size: WindowSizeData)
+                 where C: ScriptListener + Send;
     fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;
-    fn clone_layout_channel(_phantom: Option<&mut Self>, pair: &OpaqueScriptLayoutChannel) -> Box<Any+Send>;
+    fn clone_layout_channel(_phantom: Option<&mut Self>, pair: &OpaqueScriptLayoutChannel)
+                            -> Box<Any+Send>;
 }

@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_task::{Msg, Exit, ChangeReadyState, SetIds};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
-use compositor_task::{SetLayerOrigin, Paint, ScrollFragmentPoint, LoadComplete};
-use compositor_task::{ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
+use compositor_task::{Exit, ChangeReadyState, LoadComplete, Paint, ScrollFragmentPoint, SetIds};
+use compositor_task::{SetLayerOrigin, ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
+use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout};
+use windowing::WindowEvent;
 
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
@@ -21,79 +22,97 @@ use servo_util::time;
 /// It's intended for headless testing.
 pub struct NullCompositor {
     /// The port on which we receive messages.
-    pub port: Receiver<Msg>,
+    pub port: Box<CompositorReceiver>,
+    /// A channel to the constellation.
+    constellation_chan: ConstellationChan,
+    /// A channel to the time profiler.
+    time_profiler_chan: TimeProfilerChan,
+    /// A channel to the memory profiler.
+    memory_profiler_chan: MemoryProfilerChan,
 }
 
 impl NullCompositor {
-    fn new(port: Receiver<Msg>) -> NullCompositor {
+    fn new(port: Box<CompositorReceiver>,
+           constellation_chan: ConstellationChan,
+           time_profiler_chan: TimeProfilerChan,
+           memory_profiler_chan: MemoryProfilerChan)
+           -> NullCompositor {
         NullCompositor {
             port: port,
+            constellation_chan: constellation_chan,
+            time_profiler_chan: time_profiler_chan,
+            memory_profiler_chan: memory_profiler_chan,
         }
     }
 
-    pub fn create(port: Receiver<Msg>,
+    pub fn create(port: Box<CompositorReceiver>,
                   constellation_chan: ConstellationChan,
                   time_profiler_chan: TimeProfilerChan,
-                  memory_profiler_chan: MemoryProfilerChan) {
-        let compositor = NullCompositor::new(port);
+                  memory_profiler_chan: MemoryProfilerChan)
+                  -> NullCompositor {
+        let compositor = NullCompositor::new(port,
+                                             constellation_chan,
+                                             time_profiler_chan,
+                                             memory_profiler_chan);
 
         // Tell the constellation about the initial fake size.
         {
-            let ConstellationChan(ref chan) = constellation_chan;
+            let ConstellationChan(ref chan) = compositor.constellation_chan;
             chan.send(ResizedWindowMsg(WindowSizeData {
                 initial_viewport: TypedSize2D(640_f32, 480_f32),
                 visible_viewport: TypedSize2D(640_f32, 480_f32),
                 device_pixel_ratio: ScaleFactor(1.0),
             }));
         }
-        compositor.handle_message(constellation_chan);
 
-        // Drain compositor port, sometimes messages contain channels that are blocking
-        // another task from finishing (i.e. SetIds)
-        loop {
-            match compositor.port.try_recv() {
-                Err(_) => break,
-                Ok(_) => {},
+        compositor
+    }
+}
+
+impl CompositorEventListener for NullCompositor {
+    fn handle_event(&mut self, _: WindowEvent) -> bool {
+        match self.port.recv_compositor_msg() {
+            Exit(chan) => {
+                debug!("shutting down the constellation");
+                let ConstellationChan(ref con_chan) = self.constellation_chan;
+                con_chan.send(ExitMsg);
+                chan.send(());
             }
-        }
 
-        time_profiler_chan.send(time::ExitMsg);
-        memory_profiler_chan.send(memory::ExitMsg);
+            ShutdownComplete => {
+                debug!("constellation completed shutdown");
+                return false
+            }
+
+            GetGraphicsMetadata(chan) => {
+                chan.send(None);
+            }
+
+            SetIds(_, response_chan, _) => {
+                response_chan.send(());
+            }
+
+            // Explicitly list ignored messages so that when we add a new one,
+            // we'll notice and think about whether it needs a response, like
+            // SetIds.
+
+            CreateOrUpdateRootLayer(..) |
+            CreateOrUpdateDescendantLayer(..) |
+            SetLayerOrigin(..) | Paint(..) |
+            ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
+            LoadComplete(..) | RenderMsgDiscarded(..) | ScrollTimeout(..) => ()
+        }
+        true
     }
 
-    fn handle_message(&self, constellation_chan: ConstellationChan) {
-        loop {
-            match self.port.recv() {
-                Exit(chan) => {
-                    debug!("shutting down the constellation");
-                    let ConstellationChan(ref con_chan) = constellation_chan;
-                    con_chan.send(ExitMsg);
-                    chan.send(());
-                }
+    fn repaint_synchronously(&mut self) {}
 
-                ShutdownComplete => {
-                    debug!("constellation completed shutdown");
-                    break
-                }
+    fn shutdown(&mut self) {
+        // Drain compositor port, sometimes messages contain channels that are blocking
+        // another task from finishing (i.e. SetIds)
+        while self.port.try_recv_compositor_msg().is_some() {}
 
-                GetGraphicsMetadata(chan) => {
-                    chan.send(None);
-                }
-
-                SetIds(_, response_chan, _) => {
-                    response_chan.send(());
-                }
-
-                // Explicitly list ignored messages so that when we add a new one,
-                // we'll notice and think about whether it needs a response, like
-                // SetIds.
-
-                CreateOrUpdateRootLayer(..) |
-                CreateOrUpdateDescendantLayer(..) |
-                SetLayerOrigin(..) | Paint(..) |
-                ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
-                LoadComplete(..) | RenderMsgDiscarded(..) => ()
-            }
-        }
+        self.time_profiler_chan.send(time::ExitMsg);
+        self.memory_profiler_chan.send(memory::ExitMsg);
     }
 }

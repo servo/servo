@@ -20,12 +20,17 @@ extern crate msg;
 extern crate time;
 extern crate util;
 
+use compositing::windowing::WindowEvent;
 use geom::scale_factor::ScaleFactor;
 use std::rc::Rc;
 use window::Window;
 use util::opts;
 
-mod window;
+pub mod window;
+
+pub trait NestedEventLoopListener {
+    fn handle_event_from_nested_event_loop(&mut self, event: WindowEvent) -> bool;
+}
 
 pub fn create_window() -> Rc<Window> {
     // Initialize GLFW.

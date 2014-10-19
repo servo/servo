@@ -30,10 +30,11 @@ extern crate native;
 extern crate rustrt;
 extern crate url;
 
+use compositing::CompositorEventListener;
+use compositing::windowing::{WindowEvent, WindowMethods};
+
 #[cfg(not(test))]
-use compositing::{CompositorChan, CompositorTask, Constellation};
-#[cfg(not(test))]
-use compositing::windowing::WindowMethods;
+use compositing::{CompositorProxy, CompositorTask, Constellation};
 #[cfg(not(test))]
 use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
 #[cfg(not(test))]
@@ -63,77 +64,105 @@ use std::rc::Rc;
 #[cfg(not(test))]
 use std::task::TaskBuilder;
 
-#[cfg(not(test))]
-pub fn run<Window: WindowMethods>(window: Option<Rc<Window>>) {
-    ::servo_util::opts::set_experimental_enabled(opts::get().enable_experimental);
-    let opts = opts::get();
-    RegisterBindings::RegisterProxyHandlers();
+pub struct Browser<Window> {
+    pool: green::SchedPool,
+    compositor: Box<CompositorEventListener + 'static>,
+}
 
-    let mut pool_config = green::PoolConfig::new();
-    pool_config.event_loop_factory = rustuv::event_loop;
-    let mut pool = green::SchedPool::new(pool_config);
+impl<Window> Browser<Window> where Window: WindowMethods + 'static {
+    #[cfg(not(test))]
+    pub fn new(window: Option<Rc<Window>>) -> Browser<Window> {
+        ::servo_util::opts::set_experimental_enabled(opts::get().enable_experimental);
+        let opts = opts::get();
+        RegisterBindings::RegisterProxyHandlers();
 
-    let (compositor_port, compositor_chan) = CompositorChan::new();
-    let time_profiler_chan = TimeProfiler::create(opts.time_profiler_period);
-    let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);
-    let devtools_chan = opts.devtools_port.map(|port| {
-        devtools::start_server(port)
-    });
+        let mut pool_config = green::PoolConfig::new();
+        pool_config.event_loop_factory = rustuv::event_loop;
+        let mut pool = green::SchedPool::new(pool_config);
+        let shared_task_pool = TaskPool::new(8);
 
-    let time_profiler_chan_clone = time_profiler_chan.clone();
-    let shared_task_pool = TaskPool::new(8);
+        let (compositor_proxy, compositor_receiver) =
+            WindowMethods::create_compositor_channel(&window);
+        let time_profiler_chan = TimeProfiler::create(opts.time_profiler_period);
+        let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);
+        let devtools_chan = opts.devtools_port.map(|port| {
+            devtools::start_server(port)
+        });
 
-    let (result_chan, result_port) = channel();
-    TaskBuilder::new()
-        .green(&mut pool)
-        .spawn(proc() {
-        // Create a Servo instance.
-        let resource_task = new_resource_task(opts.user_agent.clone());
-        // If we are emitting an output file, then we need to block on
-        // image load or we risk emitting an output file missing the
-        // image.
-        let image_cache_task = if opts.output_file.is_some() {
+        let opts_clone = opts.clone();
+        let time_profiler_chan_clone = time_profiler_chan.clone();
+
+        let (result_chan, result_port) = channel();
+        let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
+        TaskBuilder::new()
+            .green(&mut pool)
+            .spawn(proc() {
+            let opts = &opts_clone;
+            // Create a Servo instance.
+            let resource_task = new_resource_task(opts.user_agent.clone());
+            // If we are emitting an output file, then we need to block on
+            // image load or we risk emitting an output file missing the
+            // image.
+            let image_cache_task = if opts.output_file.is_some() {
                 ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool)
             } else {
                 ImageCacheTask::new(resource_task.clone(), shared_task_pool)
             };
-        let font_cache_task = FontCacheTask::new(resource_task.clone());
-        let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
-                                                 script::script_task::ScriptTask>::start(
-                                                      compositor_chan,
-                                                      resource_task,
-                                                      image_cache_task,
-                                                      font_cache_task,
-                                                      time_profiler_chan_clone,
-                                                      devtools_chan);
+            let font_cache_task = FontCacheTask::new(resource_task.clone());
+            let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
+                                                     script::script_task::ScriptTask>::start(
+                                                          compositor_proxy_for_constellation,
+                                                          resource_task,
+                                                          image_cache_task,
+                                                          font_cache_task,
+                                                          time_profiler_chan_clone,
+                                                          devtools_chan);
 
-        // Send the URL command to the constellation.
-        let cwd = os::getcwd();
-        for url in opts.urls.iter() {
-            let url = match url::Url::parse(url.as_slice()) {
-                Ok(url) => url,
-                Err(url::RelativeUrlWithoutBase)
-                => url::Url::from_file_path(&cwd.join(url.as_slice())).unwrap(),
-                Err(_) => fail!("URL parsing failed"),
-            };
+            // Send the URL command to the constellation.
+            let cwd = os::getcwd();
+            for url in opts.urls.iter() {
+                let url = match url::Url::parse(url.as_slice()) {
+                    Ok(url) => url,
+                    Err(url::RelativeUrlWithoutBase)
+                    => url::Url::from_file_path(&cwd.join(url.as_slice())).unwrap(),
+                    Err(_) => fail!("URL parsing failed"),
+                };
 
-            let ConstellationChan(ref chan) = constellation_chan;
-            chan.send(InitLoadUrlMsg(url));
+                let ConstellationChan(ref chan) = constellation_chan;
+                chan.send(InitLoadUrlMsg(url));
+            }
+
+            // Send the constallation Chan as the result
+            result_chan.send(constellation_chan);
+        });
+
+        let constellation_chan = result_port.recv();
+
+        debug!("preparing to enter main loop");
+        let compositor = CompositorTask::create(window,
+                                                compositor_proxy,
+                                                compositor_receiver,
+                                                constellation_chan,
+                                                time_profiler_chan,
+                                                memory_profiler_chan);
+
+        Browser {
+            pool: pool,
+            compositor: compositor,
         }
+    }
 
-        // Send the constallation Chan as the result
-        result_chan.send(constellation_chan);
-    });
+    pub fn handle_event(&mut self, event: WindowEvent) -> bool {
+        self.compositor.handle_event(event)
+    }
 
-    let constellation_chan = result_port.recv();
+    pub fn repaint_synchronously(&mut self) {
+        self.compositor.repaint_synchronously()
+    }
 
-    debug!("preparing to enter main loop");
-    CompositorTask::create(window,
-                           compositor_port,
-                           constellation_chan,
-                           time_profiler_chan,
-                           memory_profiler_chan);
-
-    pool.shutdown();
+    pub fn shutdown(mut self) {
+        self.compositor.shutdown();
+        self.pool.shutdown();
+    }
 }
 
