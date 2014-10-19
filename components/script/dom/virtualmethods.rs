@@ -24,6 +24,7 @@ use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableCellElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::js::JSRef;
+use dom::document::Document;
 use dom::element::Element;
 use dom::element::ElementTypeId_;
 use dom::element::HTMLAnchorElementTypeId;
@@ -63,7 +64,7 @@ use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId, CloneChildrenFlag};
 
 use servo_util::str::DOMString;
 
@@ -133,6 +134,15 @@ pub trait VirtualMethods {
             Some(s) => {
                 s.handle_event(event);
             }
+            _ => (),
+        }
+    }
+
+    /// https://dom.spec.whatwg.org/#concept-node-clone (step 5)
+    fn cloning_steps(&self, copy: JSRef<Node>, maybe_doc: Option<JSRef<Document>>,
+                     clone_children: CloneChildrenFlag) {
+        match self.super_type() {
+            Some(ref s) => s.cloning_steps(copy, maybe_doc, clone_children),
             _ => (),
         }
     }

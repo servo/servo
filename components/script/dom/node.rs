@@ -1572,6 +1572,7 @@ impl Node {
         }
 
         // Step 5: cloning steps.
+        vtable_for(&node).cloning_steps(*copy, maybe_doc, clone_children);
 
         // Step 6.
         if clone_children == CloneChildren {

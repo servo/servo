@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::HTMLScriptElementDerived;
+use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -16,7 +16,7 @@ use dom::document::Document;
 use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
@@ -281,6 +281,20 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
 
         if tree_in_doc && !self.parser_inserted.get() {
             self.prepare();
+        }
+    }
+
+    fn cloning_steps(&self, copy: JSRef<Node>, maybe_doc: Option<JSRef<Document>>,
+                     clone_children: CloneChildrenFlag) {
+        match self.super_type() {
+            Some(ref s) => s.cloning_steps(copy, maybe_doc, clone_children),
+            _ => (),
+        }
+
+        // https://whatwg.org/html/#already-started
+        if self.already_started.get() {
+            let copy_elem: JSRef<HTMLScriptElement> = HTMLScriptElementCast::to_ref(copy).unwrap();
+            copy_elem.mark_already_started();
         }
     }
 }
