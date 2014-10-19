@@ -7,8 +7,6 @@
 
 use geometry::ScreenPx;
 
-use azure::azure_hl::{BackendType, CairoBackend, CoreGraphicsBackend};
-use azure::azure_hl::{CoreGraphicsAcceleratedBackend, Direct2DBackend, SkiaBackend};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
@@ -24,9 +22,6 @@ use std::rt;
 pub struct Opts {
     /// The initial URLs to load.
     pub urls: Vec<String>,
-
-    /// The rendering backend to use (`-r`).
-    pub render_backend: BackendType,
 
     /// How many threads to use for CPU rendering (`-t`).
     ///
@@ -163,25 +158,6 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         opt_match.free.clone()
     };
 
-    let render_backend = match opt_match.opt_str("r") {
-        Some(backend_str) => {
-            if "direct2d" == backend_str.as_slice() {
-                Direct2DBackend
-            } else if "core-graphics" == backend_str.as_slice() {
-                CoreGraphicsBackend
-            } else if "core-graphics-accelerated" == backend_str.as_slice() {
-                CoreGraphicsAcceleratedBackend
-            } else if "cairo" == backend_str.as_slice() {
-                CairoBackend
-            } else if "skia" == backend_str.as_slice() {
-                SkiaBackend
-            } else {
-                fail!("unknown backend type")
-            }
-        }
-        None => SkiaBackend
-    };
-
     let tile_size: uint = match opt_match.opt_str("s") {
         Some(tile_size_str) => from_str(tile_size_str.as_slice()).unwrap(),
         None => 512,
@@ -238,7 +214,6 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
 
     let opts = Opts {
         urls: urls,
-        render_backend: render_backend,
         n_render_threads: n_render_threads,
         cpu_painting: cpu_painting,
         tile_size: tile_size,

@@ -51,7 +51,6 @@ pub extern "C" fn cef_run_message_loop() {
     urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".to_string());
     let opts = opts::Opts {
         urls: urls,
-        render_backend: azure::azure_hl::SkiaBackend,
         n_render_threads: 1,
         cpu_painting: false,
         tile_size: 512,
