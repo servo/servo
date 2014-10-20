@@ -599,6 +599,10 @@ impl Descendants {
         self.descendant_links.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.descendant_links.is_empty()
+    }
+
     pub fn push(&mut self, given_descendant: FlowRef) {
         self.descendant_links.push(given_descendant);
     }

@@ -8,7 +8,8 @@ use css::node_style::StyledNode;
 use css::matching::{ApplicableDeclarations, CannotShare, MatchMethods, StyleWasShared};
 use construct::FlowConstructor;
 use context::LayoutContext;
-use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
+use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils};
+use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use incremental::{RestyleDamage, BubbleISizes, Reflow};
 use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
@@ -282,6 +283,7 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.bubble_inline_sizes();
+        flow::mut_base(flow).restyle_damage.remove(BubbleISizes);
     }
 
     #[inline]
@@ -298,12 +300,18 @@ pub struct AssignISizes<'a> {
 impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.assign_inline_sizes(self.layout_context);
+        if flow::base(flow).restyle_damage.contains(Reflow) {
+            flow.assign_inline_sizes(self.layout_context);
+        } else if flow.is_block_like() {
+            let block = flow.as_block();
+            block.propagate_and_compute_used_inline_size(self.layout_context);
+        }
     }
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.contains(Reflow)
+        // TODO(cgaebel): Incremental inline size assignment.
+        flow::base(flow).restyle_damage.contains(Reflow) || true
     }
 }
 
@@ -318,18 +326,26 @@ pub struct AssignBSizesAndStoreOverflow<'a> {
 impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.assign_block_size(self.layout_context);
-        // Skip store-overflow for absolutely positioned flows. That will be
-        // done in a separate traversal.
-        if !flow.is_store_overflow_delayed() {
-            flow.store_overflow(self.layout_context);
+        if !flow::base(flow).flags.impacted_by_floats() {
+            flow.assign_block_size(self.layout_context);
+
+            // Skip store-overflow for absolutely positioned flows. That will be
+            // done in a separate traversal.
+
+            if flow::base(flow).restyle_damage.contains(Reflow) {
+                if !flow.is_store_overflow_delayed() {
+                    flow.store_overflow(self.layout_context);
+                }
+            }
         }
+
+        flow::mut_base(flow).restyle_damage.remove(Reflow);
     }
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        let base = flow::base(flow);
-        base.restyle_damage.contains(Reflow) && !base.flags.impacted_by_floats()
+        // TODO(cgaebel): Incremental block size assignment.
+        flow::base(flow).restyle_damage.contains(Reflow) || true
     }
 }
 
@@ -340,7 +356,7 @@ pub struct ComputeAbsolutePositions<'a> {
 impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.compute_absolute_position()
+        flow.compute_absolute_position();
     }
 }
 
@@ -351,6 +367,6 @@ pub struct BuildDisplayList<'a> {
 impl<'a> PostorderFlowTraversal for BuildDisplayList<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        flow.build_display_list(self.layout_context)
+        flow.build_display_list(self.layout_context);
     }
 }
