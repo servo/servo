@@ -28,6 +28,7 @@ use gfx::display_list::{ContentStackingLevel, DisplayItem, DisplayItemIterator, 
 use gfx::display_list::{OpaqueNode};
 use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
+use gfx::color::Color;
 use layout_traits;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use script::dom::bindings::js::JS;
@@ -695,27 +696,36 @@ impl LayoutTask {
 
                 // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
                 // it with extreme prejudice.
-                let mut color = color::rgba(1.0, 1.0, 1.0, 1.0);
-                for child in node.traverse_preorder() {
-                    if child.type_id() == Some(ElementNodeTypeId(HTMLHtmlElementTypeId)) ||
-                            child.type_id() == Some(ElementNodeTypeId(HTMLBodyElementTypeId)) {
-                        let element_bg_color = {
-                            let thread_safe_child = ThreadSafeLayoutNode::new(&child);
-                            thread_safe_child.style()
-                                             .resolve_color(thread_safe_child.style()
-                                                                             .get_background()
-                                                                             .background_color)
-                                             .to_gfx_color()
-                        };
-                        match element_bg_color {
-                            color::rgba(0., 0., 0., 0.) => {}
-                            _ => {
-                                color = element_bg_color;
-                                break;
-                           }
+                fn get_color(node: LayoutNode) -> Option<Color> {
+                    match node.type_id() {
+                        Some(ElementNodeTypeId(HTMLHtmlElementTypeId)) |
+                        Some(ElementNodeTypeId(HTMLBodyElementTypeId)) => {
+                            let element_bg_color = {
+                                let thread_safe_child = ThreadSafeLayoutNode::new(&node);
+                                let style = thread_safe_child.style();
+                                style.resolve_color(style.get_background().background_color)
+                                     .to_gfx_color()
+                            };
+
+                            match element_bg_color {
+                                color::rgba(0., 0., 0., 0.) => {},
+                                color => return Some(color),
+                            }
+                        }
+                        _ => {}
+                    }
+
+                    for kid in node.children() {
+                        match get_color(kid) {
+                            None => {},
+                            Some(color) => return Some(color),
                         }
                     }
+
+                    None
                 }
+
+                let background_color = get_color(*node).unwrap_or(color::rgba(1., 1., 1., 1.));
 
                 let root_size = {
                     let root_flow = flow::base(layout_root.deref());
@@ -727,7 +737,7 @@ impl LayoutTask {
                     id: layout_root.layer_id(0),
                     display_list: display_list.clone(),
                     position: Rect(Point2D(0u, 0u), root_size),
-                    background_color: color,
+                    background_color: background_color,
                     scroll_policy: Scrollable,
                 };
 
