@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
@@ -50,7 +51,7 @@ use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 
 use std::ascii::StrAsciiExt;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::comm::{Sender, Receiver, channel};
 use std::default::Default;
 use std::io::{BufReader, MemWriter, Timer};
@@ -111,16 +112,16 @@ pub struct XMLHttpRequest {
     upload: JS<XMLHttpRequestUpload>,
     response_url: DOMString,
     status: Cell<u16>,
-    status_text: RefCell<ByteString>,
-    response: RefCell<ByteString>,
+    status_text: DOMRefCell<ByteString>,
+    response: DOMRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableJS<Document>,
-    response_headers: RefCell<ResponseHeaderCollection>,
+    response_headers: DOMRefCell<ResponseHeaderCollection>,
 
     // Associated concepts
-    request_method: RefCell<Method>,
-    request_url: RefCell<Option<Url>>,
-    request_headers: RefCell<RequestHeaderCollection>,
+    request_method: DOMRefCell<Method>,
+    request_url: DOMRefCell<Option<Url>>,
+    request_headers: DOMRefCell<RequestHeaderCollection>,
     request_body_len: Cell<uint>,
     sync: Cell<bool>,
     upload_complete: Cell<bool>,
@@ -129,10 +130,10 @@ pub struct XMLHttpRequest {
 
     global: GlobalField,
     pinned_count: Cell<uint>,
-    timer: RefCell<Timer>,
+    timer: DOMRefCell<Timer>,
     fetch_time: Cell<i64>,
     timeout_pinned: Cell<bool>,
-    terminate_sender: RefCell<Option<Sender<Error>>>,
+    terminate_sender: DOMRefCell<Option<Sender<Error>>>,
 }
 
 impl XMLHttpRequest {
@@ -145,15 +146,15 @@ impl XMLHttpRequest {
             upload: JS::from_rooted(XMLHttpRequestUpload::new(global)),
             response_url: "".to_string(),
             status: Cell::new(0),
-            status_text: RefCell::new(ByteString::new(vec!())),
-            response: RefCell::new(ByteString::new(vec!())),
+            status_text: DOMRefCell::new(ByteString::new(vec!())),
+            response: DOMRefCell::new(ByteString::new(vec!())),
             response_type: Cell::new(_empty),
             response_xml: Default::default(),
-            response_headers: RefCell::new(ResponseHeaderCollection::new()),
+            response_headers: DOMRefCell::new(ResponseHeaderCollection::new()),
 
-            request_method: RefCell::new(Get),
-            request_url: RefCell::new(None),
-            request_headers: RefCell::new(RequestHeaderCollection::new()),
+            request_method: DOMRefCell::new(Get),
+            request_url: DOMRefCell::new(None),
+            request_headers: DOMRefCell::new(RequestHeaderCollection::new()),
             request_body_len: Cell::new(0),
             sync: Cell::new(false),
             send_flag: Cell::new(false),
@@ -163,10 +164,10 @@ impl XMLHttpRequest {
 
             global: GlobalField::from_rooted(global),
             pinned_count: Cell::new(0),
-            timer: RefCell::new(Timer::new().unwrap()),
+            timer: DOMRefCell::new(Timer::new().unwrap()),
             fetch_time: Cell::new(0),
             timeout_pinned: Cell::new(false),
-            terminate_sender: RefCell::new(None),
+            terminate_sender: DOMRefCell::new(None),
         }
     }
     pub fn new(global: &GlobalRef) -> Temporary<XMLHttpRequest> {
