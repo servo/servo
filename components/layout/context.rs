@@ -15,7 +15,6 @@ use script_traits::UntrustedNodeAddress;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
-use servo_util::opts::Opts;
 use sync::{Arc, Mutex};
 use std::mem;
 use style::Stylist;
@@ -74,9 +73,6 @@ pub struct SharedLayoutContext {
 
     /// The URL.
     pub url: Url,
-
-    /// The command line options.
-    pub opts: Opts,
 
     /// The dirty rectangle, used during display list building.
     pub dirty: Rect<Au>,

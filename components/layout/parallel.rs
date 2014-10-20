@@ -19,6 +19,7 @@ use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_
 use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
+use servo_util::opts;
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
@@ -427,7 +428,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
                                    time_profiler_chan: TimeProfilerChan,
                                    shared_layout_context: &SharedLayoutContext,
                                    queue: &mut WorkQueue<*const SharedLayoutContext,UnsafeFlow>) {
-    if shared_layout_context.opts.bubble_inline_sizes_separately {
+    if opts::get().bubble_inline_sizes_separately {
         let layout_context = LayoutContext::new(shared_layout_context);
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
         root.traverse_postorder(&bubble_inline_sizes);
