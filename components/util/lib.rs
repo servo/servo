@@ -50,6 +50,7 @@ pub mod str;
 pub mod task;
 pub mod tid;
 pub mod time;
+pub mod taskpool;
 pub mod vec;
 pub mod workqueue;
 
