@@ -630,15 +630,6 @@ impl LayoutTask {
             layout_root.propagate_restyle_damage();
         });
 
-        profile(time::LayoutNonIncrementalReset,
-                Some((&data.url, data.iframe, self.first_reflow.get())),
-                self.time_profiler_chan.clone(),
-                || {
-            if opts::get().incremental_layout {
-                layout_root.nonincremental_reset();
-            }
-        });
-
         // Verification of the flow tree, which ensures that all nodes were either marked as leaves
         // or as non-leaves. This becomes a no-op in release builds. (It is inconsequential to
         // memory safety but is a useful debugging tool.)
@@ -664,10 +655,6 @@ impl LayoutTask {
                 }
             }
         });
-
-        if opts::get().dump_flow_tree {
-            layout_root.dump();
-        }
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
@@ -784,7 +771,9 @@ impl LayoutTask {
     }
 
     unsafe fn dirty_all_nodes(node: &mut LayoutNode) {
-        node.set_changed(true);
+        // TODO(cgaebel): mark nodes which are sensitive to media queries as
+        // "changed":
+        // > node.set_changed(true);
         node.set_dirty(true);
         node.set_dirty_siblings(true);
         node.set_dirty_descendants(true);

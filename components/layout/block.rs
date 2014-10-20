@@ -1592,12 +1592,13 @@ impl Flow for BlockFlow {
                    "block"
                });
 
+        self.base.floats = Floats::new(self.base.writing_mode);
+
         if self.is_root() {
             debug!("Setting root position");
             self.base.position.start = LogicalPoint::zero(self.base.writing_mode);
             self.base.block_container_inline_size = LogicalSize::from_physical(
                 self.base.writing_mode, layout_context.shared.screen_size).inline;
-            self.base.floats = Floats::new(self.base.writing_mode);
 
             // The root element is never impacted by floats.
             self.base.flags.set_impacted_by_left_floats(false);
@@ -1847,6 +1848,7 @@ impl fmt::Show for BlockFlow {
 }
 
 /// The inputs for the inline-sizes-and-margins constraint equation.
+#[deriving(Show)]
 pub struct ISizeConstraintInput {
     pub computed_inline_size: MaybeAuto,
     pub inline_start_margin: MaybeAuto,

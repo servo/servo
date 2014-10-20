@@ -322,7 +322,7 @@ impl IntrinsicISizesContribution {
 }
 
 /// Useful helper data type when computing values for blocks and positioned elements.
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Show)]
 pub enum MaybeAuto {
     Auto,
     Specified(Au),
@@ -388,4 +388,3 @@ pub fn padding_from_style(style: &ComputedValues, containing_block_inline_size: 
         specified(padding_style.padding_bottom, containing_block_inline_size),
         specified(padding_style.padding_left, containing_block_inline_size)))
 }
-
