@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::{DOMRefCell, Ref};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -39,7 +40,6 @@ use url::{Url, UrlParser};
 
 use libc;
 use serialize::base64::{FromBase64, ToBase64, STANDARD};
-use std::cell::{Ref, RefCell};
 use std::default::Default;
 use std::rc::Rc;
 use time;
@@ -54,7 +54,7 @@ pub struct Window {
     navigator: MutNullableJS<Navigator>,
     image_cache_task: ImageCacheTask,
     compositor: Box<ScriptListener+'static>,
-    browser_context: RefCell<Option<BrowserContext>>,
+    browser_context: DOMRefCell<Option<BrowserContext>>,
     page: Rc<Page>,
     performance: MutNullableJS<Performance>,
     navigation_start: u64,
@@ -437,7 +437,7 @@ impl Window {
             location: Default::default(),
             navigator: Default::default(),
             image_cache_task: image_cache_task,
-            browser_context: RefCell::new(None),
+            browser_context: DOMRefCell::new(None),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
             navigation_start_precise: time::precise_time_s(),
