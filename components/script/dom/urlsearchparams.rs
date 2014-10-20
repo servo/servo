@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding;
 use dom::bindings::codegen::Bindings::URLSearchParamsBinding::URLSearchParamsMethods;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{StringOrURLSearchParams, eURLSearchParams, eString};
@@ -15,21 +16,20 @@ use servo_util::str::DOMString;
 use encoding::all::UTF_8;
 use encoding::types::{EncodingRef, EncodeReplace};
 
-use std::cell::RefCell;
 use std::collections::hashmap::HashMap;
 use std::fmt::radix;
 use std::ascii::OwnedStrAsciiExt;
 
 #[dom_struct]
 pub struct URLSearchParams {
-    data: RefCell<HashMap<DOMString, Vec<DOMString>>>,
+    data: DOMRefCell<HashMap<DOMString, Vec<DOMString>>>,
     reflector_: Reflector,
 }
 
 impl URLSearchParams {
     fn new_inherited() -> URLSearchParams {
         URLSearchParams {
-            data: RefCell::new(HashMap::new()),
+            data: DOMRefCell::new(HashMap::new()),
             reflector_: Reflector::new(),
         }
     }
