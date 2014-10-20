@@ -137,3 +137,31 @@ impl ScriptLayoutChan for OpaqueScriptLayoutChannel {
         *receiver.downcast::<Receiver<Msg>>().unwrap()
     }
 }
+
+/// A task local data to check whether a function (e.g. DOMRefCell<T>.borrow_for_layout)
+/// is called from layout task or not.
+/// This checker is enabled on debug build only by performance reason.
+#[cfg(debug)]
+local_data_key!(pub LayoutBorrowMarker: ())
+
+pub struct LayoutBorrowTLS;
+
+impl LayoutBorrowTLS {
+    #[cfg(debug)]
+    pub fn new() -> LayoutBorrowTLS {
+        LayoutBorrowMarker.replace(Some(()));
+        LayoutBorrowTLS
+    }
+
+    #[cfg(not(debug))]
+    pub fn new() -> LayoutBorrowTLS {
+        LayoutBorrowTLS
+    }
+}
+
+#[cfg(debug)]
+impl Drop for LayoutBorrowTLS {
+    fn drop(&mut self) {
+        let _ = LayoutBorrowMarker.replace(None);
+    }
+}

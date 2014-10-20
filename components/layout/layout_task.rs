@@ -39,6 +39,7 @@ use script::layout_interface::{ContentBoxResponse, HitTestResponse, MouseOverRes
 use script::layout_interface::{LayoutChan, Msg, PrepareToExitMsg};
 use script::layout_interface::{GetRPCMsg, LayoutRPC, ReapLayoutDataMsg, Reflow};
 use script::layout_interface::{ReflowForDisplay, ReflowMsg};
+use script::layout_interface::LayoutBorrowTLS;
 use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
@@ -286,6 +287,8 @@ impl LayoutTask {
 
     /// Starts listening on the port.
     fn start(self) {
+        let _layout_borrow_tls = LayoutBorrowTLS::new();
+
         let mut possibly_locked_rw_data = Some(self.rw_data.lock());
         while self.handle_request(&mut possibly_locked_rw_data) {
             // Loop indefinitely.
