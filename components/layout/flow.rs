@@ -32,7 +32,7 @@ use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
 use fragment::{Fragment, TableRowFragment, TableCellFragment};
-use incremental::{RestyleDamage, Reflow};
+use incremental::RestyleDamage;
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use parallel::FlowParallelInfo;
@@ -435,10 +435,6 @@ pub trait MutableFlowUtils {
     fn collect_static_block_offsets_from_children(self);
 
     fn propagate_restyle_damage(self);
-
-    /// At the moment, reflow isn't idempotent. This function resets this flow
-    /// (and all its descendants, recursively), and marks them as needing reflow.
-    fn nonincremental_reset(self);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -1218,34 +1214,6 @@ impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
         }
 
         doit(self, RestyleDamage::empty(), &mut DirtyFloats { left: false, right: false });
-    }
-
-    fn nonincremental_reset(self) {
-        fn reset_flow(flow: &mut Flow) {
-            let base = mut_base(flow);
-
-            if !base.restyle_damage.contains(Reflow) {
-                return
-            }
-
-            let writing_mode = base.writing_mode;
-
-            base.position               = LogicalRect::zero(writing_mode);
-            base.overflow               = LogicalRect::zero(writing_mode);
-            base.floats                 = Floats::new(writing_mode);
-            base.collapsible_margins    = CollapsibleMargins::new();
-            base.abs_position           = Zero::zero();
-            base.block_container_explicit_block_size = None;
-            base.display_list           = DisplayList::new();
-            base.layers                 = DList::new();
-            base.absolute_position_info = AbsolutePositionInfo::new(writing_mode);
-        }
-
-        reset_flow(self);
-
-        for child in child_iter(self) {
-            child.nonincremental_reset();
-        }
     }
 }
 
