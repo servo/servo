@@ -7,6 +7,7 @@ use azure::azure_hl::Color as AzColor;
 
 pub type Color = AzColor;
 
+#[inline]
 pub fn rgb(r: u8, g: u8, b: u8) -> AzColor {
     AzColor {
         r: (r as AzFloat) / (255.0 as AzFloat),
@@ -16,6 +17,7 @@ pub fn rgb(r: u8, g: u8, b: u8) -> AzColor {
     }
 }
 
+#[inline]
 pub fn rgba(r: AzFloat, g: AzFloat, b: AzFloat, a: AzFloat) -> AzColor {
     AzColor { r: r, g: g, b: b, a: a }
 }
