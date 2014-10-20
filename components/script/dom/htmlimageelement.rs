@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::AttrValue;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
@@ -22,12 +23,10 @@ use string_cache::Atom;
 
 use url::{Url, UrlParser};
 
-use std::cell::RefCell;
-
 #[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
-    image: RefCell<Option<Url>>,
+    image: DOMRefCell<Option<Url>>,
 }
 
 impl HTMLImageElementDerived for EventTarget {
@@ -73,7 +72,7 @@ impl HTMLImageElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, prefix, document),
-            image: RefCell::new(None),
+            image: DOMRefCell::new(None),
         }
     }
 
