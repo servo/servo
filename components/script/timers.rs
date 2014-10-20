@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
+
 use script_task::{FireTimerMsg, ScriptChan};
 use script_task::{TimerSource, FromWindow, FromWorker};
 
@@ -12,7 +14,7 @@ use js::jsapi::{JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};
 use js::rust::with_compartment;
 
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::cmp;
 use std::collections::hashmap::HashMap;
 use std::comm::{channel, Sender};
@@ -50,7 +52,7 @@ impl TimerHandle {
 #[jstraceable]
 #[privatize]
 pub struct TimerManager {
-    active_timers: RefCell<HashMap<TimerId, TimerHandle>>,
+    active_timers: DOMRefCell<HashMap<TimerId, TimerHandle>>,
     next_timer_handle: Cell<i32>,
 }
 
@@ -77,7 +79,7 @@ struct TimerData {
 impl TimerManager {
     pub fn new() -> TimerManager {
         TimerManager {
-            active_timers: RefCell::new(HashMap::new()),
+            active_timers: DOMRefCell::new(HashMap::new()),
             next_timer_handle: Cell::new(0)
         }
     }
