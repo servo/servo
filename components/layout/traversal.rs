@@ -16,6 +16,7 @@ use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode}
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
 use servo_util::bloom::BloomFilter;
+use servo_util::opts;
 use servo_util::tid::tid;
 use style::TNode;
 
@@ -204,7 +205,7 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
             let tnode = ThreadSafeLayoutNode::new(&node);
 
             // Always re-construct if incremental layout is turned off.
-            if !self.layout_context.shared.opts.incremental_layout {
+            if !opts::get().incremental_layout {
                 unsafe {
                     node.set_dirty_descendants(true);
                 }

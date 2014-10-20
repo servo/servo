@@ -26,7 +26,7 @@ use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, Pipel
 use servo_msg::constellation_msg::{RendererReadyMsg};
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
 use servo_util::geometry::{Au, mod};
-use servo_util::opts::Opts;
+use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::time::{TimeProfilerChan, profile};
@@ -99,7 +99,6 @@ pub struct RenderTask<C> {
     compositor: C,
     constellation_chan: ConstellationChan,
     font_ctx: Box<FontContext>,
-    opts: Opts,
 
     /// A channel to the time profiler.
     time_profiler_chan: TimeProfilerChan,
@@ -154,7 +153,6 @@ impl<C:RenderListener + Send> RenderTask<C> {
                   constellation_chan: ConstellationChan,
                   font_cache_task: FontCacheTask,
                   failure_msg: Failure,
-                  opts: Opts,
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
 
@@ -165,7 +163,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
             { // Ensures RenderTask and graphics context are destroyed before shutdown msg
                 let native_graphics_context = compositor.get_graphics_metadata().map(
                     |md| NativePaintingGraphicsContext::from_metadata(&md));
-                let cpu_painting = opts.cpu_painting;
+                let cpu_painting = opts::get().cpu_painting;
 
                 // FIXME: rust/#5967
                 let mut render_task = RenderTask {
@@ -174,7 +172,6 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     compositor: compositor,
                     constellation_chan: constellation_chan,
                     font_ctx: box FontContext::new(fc.clone()),
-                    opts: opts,
                     time_profiler_chan: time_profiler_chan,
 
                     graphics_context: if cpu_painting {
@@ -342,7 +339,6 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     let mut ctx = RenderContext {
                         draw_target: &draw_target,
                         font_ctx: &mut self.font_ctx,
-                        opts: &self.opts,
                         page_rect: tile.page_rect,
                         screen_rect: tile.screen_rect,
                     };

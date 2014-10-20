@@ -58,6 +58,7 @@ use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNo
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
 use script::dom::node::{TextNodeTypeId};
 use script::dom::htmlobjectelement::is_image_data;
+use servo_util::opts;
 use std::mem;
 use std::sync::atomics::Relaxed;
 use style::ComputedValues;
@@ -83,8 +84,8 @@ pub enum ConstructionResult {
 }
 
 impl ConstructionResult {
-    pub fn swap_out(&mut self, layout_context: &LayoutContext) -> ConstructionResult {
-        if layout_context.shared.opts.incremental_layout {
+    pub fn swap_out(&mut self) -> ConstructionResult {
+        if opts::get().incremental_layout {
             return (*self).clone();
         }
 
@@ -352,7 +353,7 @@ impl<'a> FlowConstructor<'a> {
             inline_flow.minimum_depth_below_baseline = descent;
         }
 
-        inline_flow_ref.finish(self.layout_context);
+        inline_flow_ref.finish();
 
         if flow.need_anonymous_flow(&*inline_flow_ref) {
             flow_list.push(inline_flow_ref)
@@ -370,7 +371,7 @@ impl<'a> FlowConstructor<'a> {
                                                            &mut InlineFragmentsAccumulator,
                                                            abs_descendants: &mut Descendants,
                                                            first_fragment: &mut bool) {
-        match kid.swap_out_construction_result(self.layout_context) {
+        match kid.swap_out_construction_result() {
             NoConstructionResult => {}
             FlowConstructionResult(kid_flow, kid_abs_descendants) => {
                 // If kid_flow is TableCaptionFlow, kid_flow should be added under
@@ -522,7 +523,7 @@ impl<'a> FlowConstructor<'a> {
         }
 
         // The flow is done.
-        flow.finish(self.layout_context);
+        flow.finish();
 
         // Set up the absolute descendants.
         let is_positioned = flow.as_block().is_positioned();
@@ -573,7 +574,7 @@ impl<'a> FlowConstructor<'a> {
             if kid.get_pseudo_element_type() != Normal {
                 self.process(&kid);
             }
-            match kid.swap_out_construction_result(self.layout_context) {
+            match kid.swap_out_construction_result() {
                 NoConstructionResult => {}
                 FlowConstructionResult(flow, kid_abs_descendants) => {
                     // {ib} split. Flush the accumulator to our new split and make a new
@@ -757,7 +758,7 @@ impl<'a> FlowConstructor<'a> {
                                                table_wrapper_flow: &mut FlowRef,
                                                node: &ThreadSafeLayoutNode) {
         for kid in node.children() {
-            match kid.swap_out_construction_result(self.layout_context) {
+            match kid.swap_out_construction_result() {
                 NoConstructionResult | ConstructionItemConstructionResult(_) => {}
                 FlowConstructionResult(kid_flow, _) => {
                     // Only kid flows with table-caption are matched here.
@@ -794,7 +795,7 @@ impl<'a> FlowConstructor<'a> {
             self.generate_anonymous_missing_child(consecutive_siblings, &mut anonymous_flow, node);
         }
         // The flow is done.
-        anonymous_flow.finish(self.layout_context);
+        anonymous_flow.finish();
         flow.add_new_child(anonymous_flow);
     }
 
@@ -836,7 +837,7 @@ impl<'a> FlowConstructor<'a> {
         }
 
         // The flow is done.
-        wrapper_flow.finish(self.layout_context);
+        wrapper_flow.finish();
         let is_positioned = wrapper_flow.as_block().is_positioned();
         let is_fixed_positioned = wrapper_flow.as_block().is_fixed();
         let is_absolutely_positioned = wrapper_flow.as_block().is_absolutely_positioned();
@@ -918,7 +919,7 @@ impl<'a> FlowConstructor<'a> {
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child fragments of `table-column-group`
             // as `display: none`.
-            match kid.swap_out_construction_result(self.layout_context) {
+            match kid.swap_out_construction_result() {
                 ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(
                         fragment)) => {
                     col_fragments.push(fragment);
@@ -933,7 +934,7 @@ impl<'a> FlowConstructor<'a> {
         }
         let flow = box TableColGroupFlow::from_node_and_fragments(node, fragment, col_fragments);
         let mut flow = FlowRef::new(flow as Box<Flow>);
-        flow.finish(self.layout_context);
+        flow.finish();
 
         FlowConstructionResult(flow, Descendants::new())
     }
@@ -987,7 +988,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // results of children.
             (display::none, _, _) => {
                 for child in node.children() {
-                    drop(child.swap_out_construction_result(self.layout_context))
+                    drop(child.swap_out_construction_result())
                 }
             }
 
@@ -1099,7 +1100,7 @@ trait NodeUtils {
 
     /// Replaces the flow construction result in a node with `NoConstructionResult` and returns the
     /// old value.
-    fn swap_out_construction_result(self, layout_context: &LayoutContext) -> ConstructionResult;
+    fn swap_out_construction_result(self) -> ConstructionResult;
 }
 
 impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
@@ -1137,11 +1138,11 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
     }
 
     #[inline(always)]
-    fn swap_out_construction_result(self, layout_context: &LayoutContext) -> ConstructionResult {
+    fn swap_out_construction_result(self) -> ConstructionResult {
         let mut layout_data_ref = self.mutate_layout_data();
         let layout_data = layout_data_ref.as_mut().expect("no layout data");
 
-        self.get_construction_result(layout_data).swap_out(layout_context)
+        self.get_construction_result(layout_data).swap_out()
     }
 }
 
@@ -1189,7 +1190,7 @@ pub trait FlowConstructionUtils {
     ///
     /// All flows must be finished at some point, or they will not have their intrinsic inline-sizes
     /// properly computed. (This is not, however, a memory safety problem.)
-    fn finish(&mut self, context: &LayoutContext);
+    fn finish(&mut self);
 }
 
 impl FlowConstructionUtils for FlowRef {
@@ -1216,8 +1217,8 @@ impl FlowConstructionUtils for FlowRef {
     /// properly computed. (This is not, however, a memory safety problem.)
     ///
     /// This must not be public because only the layout constructor can do this.
-    fn finish(&mut self, context: &LayoutContext) {
-        if !context.shared.opts.bubble_inline_sizes_separately {
+    fn finish(&mut self) {
+        if !opts::get().bubble_inline_sizes_separately {
             self.bubble_inline_sizes()
         }
     }

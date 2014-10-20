@@ -7,7 +7,7 @@
 
 use css::node_style::StyledNode;
 use construct::FlowConstructionResult;
-use context::{LayoutContext, SharedLayoutContext};
+use context::SharedLayoutContext;
 use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow;
 use flow_ref::FlowRef;
@@ -50,7 +50,7 @@ use servo_net::resource_task::{ResourceTask, load_bytes_iter};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use servo_util::logical_geometry::LogicalPoint;
-use servo_util::opts::Opts;
+use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::time::{TimeProfilerChan, profile};
@@ -130,9 +130,6 @@ pub struct LayoutTask {
     /// Public interface to the font cache task.
     pub font_cache_task: FontCacheTask,
 
-    /// The command-line options.
-    pub opts: Opts,
-
     /// Is this the first reflow in this LayoutTask?
     pub first_reflow: Cell<bool>,
 
@@ -181,7 +178,6 @@ impl LayoutTaskFactory for LayoutTask {
                   resource_task: ResourceTask,
                   img_cache_task: ImageCacheTask,
                   font_cache_task: FontCacheTask,
-                  opts: Opts,
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
@@ -200,7 +196,6 @@ impl LayoutTaskFactory for LayoutTask {
                         resource_task,
                         img_cache_task,
                         font_cache_task,
-                        &opts,
                         time_profiler_chan);
                 layout.start();
             }
@@ -250,14 +245,13 @@ impl LayoutTask {
            resource_task: ResourceTask,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
-           opts: &Opts,
            time_profiler_chan: TimeProfilerChan)
            -> LayoutTask {
         let local_image_cache = Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
-        let device = Device::new(Screen, opts.initial_window_size.as_f32());
-        let parallel_traversal = if opts.layout_threads != 1 {
-            Some(WorkQueue::new("LayoutWorker", opts.layout_threads, ptr::null()))
+        let device = Device::new(Screen, opts::get().initial_window_size.as_f32());
+        let parallel_traversal = if opts::get().layout_threads != 1 {
+            Some(WorkQueue::new("LayoutWorker", opts::get().layout_threads, ptr::null()))
         } else {
             None
         };
@@ -274,7 +268,6 @@ impl LayoutTask {
             resource_task: resource_task,
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
-            opts: opts.clone(),
             first_reflow: Cell::new(true),
             device: device,
             rw_data: Arc::new(Mutex::new(
@@ -315,7 +308,6 @@ impl LayoutTask {
             stylist: &*rw_data.stylist,
             url: (*url).clone(),
             reflow_root: OpaqueNodeMethods::from_layout_node(reflow_root),
-            opts: self.opts.clone(),
             dirty: Rect::zero(),
             generation: rw_data.generation,
         }
@@ -484,11 +476,11 @@ impl LayoutTask {
     }
 
     /// Retrieves the flow tree root from the root node.
-    fn get_layout_root(&self, node: LayoutNode, layout_context: &LayoutContext) -> FlowRef {
+    fn get_layout_root(&self, node: LayoutNode) -> FlowRef {
         let mut layout_data_ref = node.mutate_layout_data();
         let layout_data = layout_data_ref.as_mut().expect("no layout data for root node");
 
-        let result = layout_data.data.flow_construction_result.swap_out(layout_context);
+        let result = layout_data.data.flow_construction_result.swap_out();
 
         let mut flow = match result {
             FlowConstructionResult(mut flow, abs_descendants) => {
@@ -628,7 +620,7 @@ impl LayoutTask {
                 }
             }
 
-            self.get_layout_root((*node).clone(), &LayoutContext::new(&shared_layout_ctx))
+            self.get_layout_root((*node).clone())
         });
 
         profile(time::LayoutRestyleDamagePropagation,
@@ -642,7 +634,7 @@ impl LayoutTask {
                 Some((&data.url, data.iframe, self.first_reflow.get())),
                 self.time_profiler_chan.clone(),
                 || {
-            if shared_layout_ctx.opts.incremental_layout {
+            if opts::get().incremental_layout {
                 layout_root.nonincremental_reset();
             }
         });
@@ -652,7 +644,7 @@ impl LayoutTask {
         // memory safety but is a useful debugging tool.)
         self.verify_flow_tree(&mut layout_root);
 
-        if self.opts.trace_layout {
+        if opts::get().trace_layout {
             layout_debug::begin_trace(layout_root.clone());
         }
 
@@ -673,7 +665,7 @@ impl LayoutTask {
             }
         });
 
-        if self.opts.dump_flow_tree {
+        if opts::get().dump_flow_tree {
             layout_root.dump();
         }
 
@@ -772,11 +764,11 @@ impl LayoutTask {
 
         self.first_reflow.set(false);
 
-        if self.opts.trace_layout {
+        if opts::get().trace_layout {
             layout_debug::end_trace();
         }
 
-        if self.opts.dump_flow_tree {
+        if opts::get().dump_flow_tree {
             layout_root.dump();
         }
 
