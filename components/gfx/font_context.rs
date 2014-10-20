@@ -20,7 +20,7 @@ use std::cell::RefCell;
 use sync::Arc;
 
 use azure::AzFloat;
-use azure::azure_hl::BackendType;
+use azure::azure_hl::SkiaBackend;
 use azure::scaled_font::ScaledFont;
 
 #[cfg(target_os="linux")]
@@ -29,14 +29,14 @@ use azure::scaled_font::FontData;
 
 #[cfg(target_os="linux")]
 #[cfg(target_os="android")]
-fn create_scaled_font(backend: BackendType, template: &Arc<FontTemplateData>, pt_size: f64) -> ScaledFont {
-    ScaledFont::new(backend, FontData(&template.bytes), pt_size as AzFloat)
+fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: f64) -> ScaledFont {
+    ScaledFont::new(SkiaBackend, FontData(&template.bytes), pt_size as AzFloat)
 }
 
 #[cfg(target_os="macos")]
-fn create_scaled_font(backend: BackendType, template: &Arc<FontTemplateData>, pt_size: f64) -> ScaledFont {
+fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: f64) -> ScaledFont {
     let cgfont = template.ctfont.as_ref().unwrap().copy_to_CGFont();
-    ScaledFont::new(backend, &cgfont, pt_size as AzFloat)
+    ScaledFont::new(SkiaBackend, &cgfont, pt_size as AzFloat)
 }
 
 static SMALL_CAPS_SCALE_FACTOR: f64 = 0.8;      // Matches FireFox (see gfxFont.h)
@@ -199,7 +199,9 @@ impl FontContext {
 
     /// Create a render font for use with azure. May return a cached
     /// reference if already used by this font context.
-    pub fn get_render_font_from_template(&mut self, template: &Arc<FontTemplateData>, pt_size: f64, backend: BackendType) -> Rc<RefCell<ScaledFont>> {
+    pub fn get_render_font_from_template(&mut self,
+                                         template: &Arc<FontTemplateData>,
+                                         pt_size: f64) -> Rc<RefCell<ScaledFont>> {
         for cached_font in self.render_font_cache.iter() {
             if cached_font.pt_size == pt_size &&
                cached_font.identifier == template.identifier {
@@ -207,7 +209,7 @@ impl FontContext {
             }
         }
 
-        let render_font = Rc::new(RefCell::new(create_scaled_font(backend, template, pt_size)));
+        let render_font = Rc::new(RefCell::new(create_scaled_font(template, pt_size)));
         self.render_font_cache.push(RenderFontCacheEntry{
             font: render_font.clone(),
             pt_size: pt_size,

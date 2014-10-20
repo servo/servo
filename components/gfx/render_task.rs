@@ -10,7 +10,7 @@ use display_list::DisplayList;
 use font_context::FontContext;
 use render_context::RenderContext;
 
-use azure::azure_hl::{B8G8R8A8, Color, DrawTarget, StolenGLResources};
+use azure::azure_hl::{B8G8R8A8, Color, DrawTarget, SkiaBackend, StolenGLResources};
 use azure::AzFloat;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -317,17 +317,19 @@ impl<C:RenderListener + Send> RenderTask<C> {
                 let width = tile.screen_rect.size.width;
                 let height = tile.screen_rect.size.height;
 
+                // TODO: In the future we'll want to re-enable configuring the
+                // rendering backend - it's hardcoded to Skia below for now
+                // since none of the other backends work at all.
                 let size = Size2D(width as i32, height as i32);
                 let draw_target = match self.graphics_context {
                     CpuGraphicsContext => {
-                        DrawTarget::new(self.opts.render_backend, size, B8G8R8A8)
+                        DrawTarget::new(SkiaBackend, size, B8G8R8A8)
                     }
                     GpuGraphicsContext => {
                         // FIXME(pcwalton): Cache the components of draw targets
                         // (texture color buffer, renderbuffers) instead of recreating them.
                         let draw_target =
-                            DrawTarget::new_with_fbo(self.opts.render_backend,
-                                                     native_graphics_context!(self),
+                            DrawTarget::new_with_fbo(SkiaBackend, native_graphics_context!(self),
                                                      size,
                                                      B8G8R8A8);
                         draw_target.make_current();
