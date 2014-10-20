@@ -5,6 +5,7 @@
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -64,7 +65,6 @@ use url::Url;
 
 use libc::size_t;
 use std::any::{Any, AnyRefExt};
-use std::cell::RefCell;
 use std::collections::HashSet;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem::replace;
@@ -143,7 +143,7 @@ impl Drop for StackRootTLS {
 /// FIXME: Rename to `Page`, following WebKit?
 pub struct ScriptTask {
     /// A handle to the information pertaining to page layout
-    page: RefCell<Rc<Page>>,
+    page: DOMRefCell<Rc<Page>>,
     /// A handle to the image cache task.
     image_cache_task: ImageCacheTask,
     /// A handle to the resource task.
@@ -176,9 +176,9 @@ pub struct ScriptTask {
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
     /// The JSContext.
-    js_context: RefCell<Option<Rc<Cx>>>,
+    js_context: DOMRefCell<Option<Rc<Cx>>>,
 
-    mouse_over_targets: RefCell<Option<Vec<JS<Node>>>>
+    mouse_over_targets: DOMRefCell<Option<Vec<JS<Node>>>>
 }
 
 /// In the event of task failure, all data on the stack runs its destructor. However, there
@@ -327,7 +327,7 @@ impl ScriptTask {
         });
 
         ScriptTask {
-            page: RefCell::new(Rc::new(page)),
+            page: DOMRefCell::new(Rc::new(page)),
 
             image_cache_task: img_cache_task,
             resource_task: resource_task,
@@ -342,8 +342,8 @@ impl ScriptTask {
             devtools_port: devtools_receiver,
 
             js_runtime: js_runtime,
-            js_context: RefCell::new(Some(js_context)),
-            mouse_over_targets: RefCell::new(None)
+            js_context: DOMRefCell::new(Some(js_context)),
+            mouse_over_targets: DOMRefCell::new(None)
         }
     }
 
