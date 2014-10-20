@@ -129,7 +129,6 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     let opts = vec!(
         getopts::optflag("c", "cpu", "CPU rendering"),
         getopts::optopt("o", "output", "Output file", "output.png"),
-        getopts::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
         getopts::optopt("s", "size", "Size of tiles", "512"),
         getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
         getopts::optflag("e", "experimental", "Enable experimental web features"),
