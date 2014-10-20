@@ -42,7 +42,7 @@ use servo_msg::constellation_msg::{LoadData, PipelineId, ResizedWindowMsg, Windo
 use servo_msg::constellation_msg;
 use servo_util::geometry::{PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
-use servo_util::opts::Opts;
+use servo_util::opts;
 use servo_util::time::{profile, TimeProfilerChan};
 use servo_util::{memory, time};
 use std::io::timer::sleep;
@@ -112,9 +112,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// many times for a single page.
     got_load_complete_message: bool,
 
-    /// The command line option flags.
-    opts: Opts,
-
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: ConstellationChan,
 
@@ -137,7 +134,6 @@ enum ShutdownState {
 
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>,
-           opts: Opts,
            port: Receiver<Msg>,
            constellation_chan: ConstellationChan,
            time_profiler_chan: TimeProfilerChan,
@@ -150,11 +146,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let window_size = window.framebuffer_size();
         let hidpi_factor = window.hidpi_factor();
 
-        let show_debug_borders = opts.show_debug_borders;
+        let show_debug_borders = opts::get().show_debug_borders;
         IOCompositor {
             window: window,
             port: port,
-            opts: opts,
             context: rendergl::RenderContext::new(CompositorTask::create_graphics_context(),
                                                   show_debug_borders),
             root_pipeline: None,
@@ -183,13 +178,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     pub fn create(window: Rc<Window>,
-                  opts: Opts,
                   port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
                   time_profiler_chan: TimeProfilerChan,
                   memory_profiler_chan: MemoryProfilerChan) {
         let mut compositor = IOCompositor::new(window,
-                                               opts,
                                                port,
                                                constellation_chan,
                                                time_profiler_chan,
@@ -373,7 +366,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn has_render_msg_tracking(&self) -> bool {
         // only track RenderMsg's if the compositor outputs to a file.
-        self.opts.output_file.is_some()
+        opts::get().output_file.is_some()
     }
 
     fn has_outstanding_render_msgs(&self) -> bool {
@@ -440,7 +433,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let root_layer = CompositorData::new_layer(frame_tree.pipeline.clone(),
                                                    layer_properties,
                                                    WantsScrollEvents,
-                                                   self.opts.tile_size);
+                                                   opts::get().tile_size);
 
         match frame_rect {
             Some(ref frame_rect) => {
@@ -500,7 +493,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let first_child = CompositorData::new_layer(root_layer_pipeline.clone(),
                                                         layer_properties,
                                                         DoesntWantScrollEvents,
-                                                        self.opts.tile_size);
+                                                        opts::get().tile_size);
 
             // Add the first child / base layer to the front of the child list, so that
             // child iframe layers are rendered on top of the base layer. These iframe
@@ -671,7 +664,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             FinishedWindowEvent => {
-                let exit = self.opts.exit_after_load;
+                let exit = opts::get().exit_after_load;
                 if exit {
                     debug!("shutting down the constellation for FinishedWindowEvent");
                     let ConstellationChan(ref chan) = self.constellation_chan;
@@ -758,9 +751,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn device_pixels_per_screen_px(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
-        match self.opts.device_pixels_per_px {
+        match opts::get().device_pixels_per_px {
             Some(device_pixels_per_px) => device_pixels_per_px,
-            None => match self.opts.output_file {
+            None => match opts::get().output_file {
                 Some(_) => ScaleFactor(1.0),
                 None => self.hidpi_factor
             }
@@ -917,7 +910,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn composite(&mut self) {
-        let output_image = self.opts.output_file.is_some() &&
+        let output_image = opts::get().output_file.is_some() &&
                             self.is_ready_to_render_image_output();
 
         let mut framebuffer_ids = vec!();
@@ -959,7 +952,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
 
         if output_image {
-            let path = from_str::<Path>(self.opts.output_file.as_ref().unwrap().as_slice()).unwrap();
+            let path = from_str::<Path>(opts::get().output_file.as_ref().unwrap().as_slice()).unwrap();
             let mut pixels = gl2::read_pixels(0, 0,
                                               width as gl2::GLsizei,
                                               height as gl2::GLsizei,
@@ -998,7 +991,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         self.window.present();
 
-        let exit = self.opts.exit_after_load;
+        let exit = opts::get().exit_after_load;
         if exit {
             debug!("shutting down the constellation for exit_after_load");
             let ConstellationChan(ref chan) = self.constellation_chan;

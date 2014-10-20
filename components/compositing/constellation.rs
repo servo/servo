@@ -25,7 +25,7 @@ use gfx::font_cache_task::FontCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_util::geometry::PagePx;
-use servo_util::opts::Opts;
+use servo_util::opts;
 use servo_util::time::TimeProfilerChan;
 use servo_util::task::spawn_named;
 use std::cell::RefCell;
@@ -50,7 +50,6 @@ pub struct Constellation<LTF, STF> {
     pending_sizes: HashMap<(PipelineId, SubpageId), TypedRect<PagePx, f32>>,
     pub time_profiler_chan: TimeProfilerChan,
     pub window_size: WindowSizeData,
-    pub opts: Opts,
 }
 
 /// Stores the Id of the outermost frame's pipeline, along with a vector of children frames
@@ -241,7 +240,6 @@ impl NavigationContext {
 
 impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     pub fn start(compositor_chan: CompositorChan,
-                 opts: &Opts,
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
                  font_cache_task: FontCacheTask,
@@ -250,7 +248,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
-        let opts_clone = opts.clone();
         spawn_named("Constellation", proc() {
             let mut constellation : Constellation<LTF, STF> = Constellation {
                 chan: constellation_chan_clone,
@@ -267,11 +264,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 pending_sizes: HashMap::new(),
                 time_profiler_chan: time_profiler_chan,
                 window_size: WindowSizeData {
-                    visible_viewport: opts_clone.initial_window_size.as_f32() * ScaleFactor(1.0),
-                    initial_viewport: opts_clone.initial_window_size.as_f32() * ScaleFactor(1.0),
+                    visible_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor(1.0),
+                    initial_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor(1.0),
                     device_pixel_ratio: ScaleFactor(1.0),
                 },
-                opts: opts_clone,
             };
             constellation.run();
         });
@@ -304,7 +300,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                     self.resource_task.clone(),
                                                     self.time_profiler_chan.clone(),
                                                     self.window_size,
-                                                    self.opts.clone(),
                                                     script_pipeline,
                                                     load_data);
             pipe.load();
@@ -405,7 +400,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_failure_msg(&mut self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>) {
         debug!("handling failure message from pipeline {:?}, {:?}", pipeline_id, subpage_id);
 
-        if self.opts.hard_fail {
+        if opts::get().hard_fail {
             // It's quite difficult to make Servo exit cleanly if some tasks have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
             let mut stderr = io::stderr();

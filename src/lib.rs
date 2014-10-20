@@ -62,8 +62,9 @@ use std::rc::Rc;
 use std::task::TaskBuilder;
 
 #[cfg(not(test))]
-pub fn run<Window: WindowMethods>(opts: opts::Opts, window: Option<Rc<Window>>) {
-    ::servo_util::opts::set_experimental_enabled(opts.enable_experimental);
+pub fn run<Window: WindowMethods>(window: Option<Rc<Window>>) {
+    ::servo_util::opts::set_experimental_enabled(opts::get().enable_experimental);
+    let opts = opts::get();
     RegisterBindings::RegisterProxyHandlers();
 
     let mut pool_config = green::PoolConfig::new();
@@ -77,14 +78,12 @@ pub fn run<Window: WindowMethods>(opts: opts::Opts, window: Option<Rc<Window>>) 
         devtools::start_server(port)
     });
 
-    let opts_clone = opts.clone();
     let time_profiler_chan_clone = time_profiler_chan.clone();
 
     let (result_chan, result_port) = channel();
     TaskBuilder::new()
         .green(&mut pool)
         .spawn(proc() {
-        let opts = &opts_clone;
         // Create a Servo instance.
         let resource_task = new_resource_task(opts.user_agent.clone());
         // If we are emitting an output file, then we need to block on
@@ -99,7 +98,6 @@ pub fn run<Window: WindowMethods>(opts: opts::Opts, window: Option<Rc<Window>>) 
         let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
                                                  script::script_task::ScriptTask>::start(
                                                       compositor_chan,
-                                                      opts,
                                                       resource_task,
                                                       image_cache_task,
                                                       font_cache_task,
@@ -128,7 +126,6 @@ pub fn run<Window: WindowMethods>(opts: opts::Opts, window: Option<Rc<Window>>) 
 
     debug!("preparing to enter main loop");
     CompositorTask::create(window,
-                           opts,
                            compositor_port,
                            constellation_chan,
                            time_profiler_chan,

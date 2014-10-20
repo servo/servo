@@ -18,13 +18,11 @@ use libc::size_t;
 use png::{RGB8, RGBA8, K8, KA8};
 use servo_net::image::base::Image;
 use servo_util::geometry::Au;
-use servo_util::opts::Opts;
 use sync::Arc;
 
 pub struct RenderContext<'a> {
     pub draw_target: &'a DrawTarget,
     pub font_ctx: &'a mut Box<FontContext>,
-    pub opts: &'a Opts,
     /// The rectangle that this context encompasses in page coordinates.
     pub page_rect: Rect<f32>,
     /// The rectangle that this context encompasses in screen coordinates (pixels).

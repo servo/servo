@@ -75,8 +75,8 @@ pub extern "C" fn cef_run_message_loop() {
         dump_flow_tree: false,
     };
     native::start(0, 0 as *const *const u8, proc() {
-       let window = Some(glfw_app::create_window(&opts));
-       servo::run(opts, window);
+       let window = Some(glfw_app::create_window());
+       servo::run(window);
     });
 }
 

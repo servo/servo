@@ -25,6 +25,7 @@ use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use libc::uintptr_t;
 use servo_net::image::base::Image;
 use servo_util::geometry::Au;
+use servo_util::opts;
 use servo_util::range::Range;
 use std::fmt;
 use std::mem;
@@ -562,7 +563,7 @@ impl DisplayItem {
                     &text.range,
                     baseline_origin,
                     text.text_color,
-                    render_context.opts.enable_text_antialiasing
+                    opts::get().enable_text_antialiasing
                 );
 
                 // Undo the transform, only when we did one.

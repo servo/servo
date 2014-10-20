@@ -19,7 +19,6 @@ use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use servo_msg::compositor_msg::{RenderListener, RenderState, ScriptListener, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_util::memory::MemoryProfilerChan;
-use servo_util::opts::Opts;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
 use std::rc::Rc;
@@ -200,7 +199,6 @@ impl CompositorTask {
 
     pub fn create<Window: WindowMethods>(
                   window: Option<Rc<Window>>,
-                  opts: Opts,
                   port: Receiver<Msg>,
                   constellation_chan: ConstellationChan,
                   time_profiler_chan: TimeProfilerChan,
@@ -209,7 +207,6 @@ impl CompositorTask {
         match window {
             Some(window) => {
                 compositor::IOCompositor::create(window,
-                                                 opts,
                                                  port,
                                                  constellation_chan.clone(),
                                                  time_profiler_chan,

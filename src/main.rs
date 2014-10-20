@@ -28,14 +28,14 @@ use std::os;
 #[allow(dead_code)]
 fn start(argc: int, argv: *const *const u8) -> int {
     native::start(argc, argv, proc() {
-        opts::from_cmdline_args(os::args().as_slice()).map(|opts| {
-            let window = if opts.headless {
+        if opts::from_cmdline_args(os::args().as_slice()) {
+            let window = if opts::get().headless {
                 None
             } else {
-                Some(glfw_app::create_window(&opts))
+                Some(glfw_app::create_window())
             };
-            run(opts, window);
-        });
+            run(window);
+        }
     })
 }
 

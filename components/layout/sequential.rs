@@ -8,6 +8,7 @@ use context::{LayoutContext, SharedLayoutContext};
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
+use servo_util::opts;
 use traversal::{BubbleISizes, RecalcStyleForNode, ConstructFlows};
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
@@ -54,7 +55,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
     let root = root.deref_mut();
 
-    if layout_context.shared.opts.bubble_inline_sizes_separately {
+    if opts::get().bubble_inline_sizes_separately {
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
         root.traverse_postorder(&bubble_inline_sizes);
     }

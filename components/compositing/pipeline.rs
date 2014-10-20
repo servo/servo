@@ -15,7 +15,6 @@ use servo_msg::constellation_msg::{LoadData, WindowSizeData};
 use servo_net::image_cache_task::ImageCacheTask;
 use gfx::font_cache_task::FontCacheTask;
 use servo_net::resource_task::ResourceTask;
-use servo_util::opts::Opts;
 use servo_util::time::TimeProfilerChan;
 use std::rc::Rc;
 
@@ -55,7 +54,6 @@ impl Pipeline {
                       resource_task: ResourceTask,
                       time_profiler_chan: TimeProfilerChan,
                       window_size: WindowSizeData,
-                      opts: Opts,
                       script_pipeline: Option<Rc<Pipeline>>,
                       load_data: LoadData)
                       -> Pipeline {
@@ -107,7 +105,6 @@ impl Pipeline {
                            constellation_chan.clone(),
                            font_cache_task.clone(),
                            failure.clone(),
-                           opts.clone(),
                            time_profiler_chan.clone(),
                            render_shutdown_chan);
 
@@ -122,7 +119,6 @@ impl Pipeline {
                                   resource_task,
                                   image_cache_task,
                                   font_cache_task,
-                                  opts.clone(),
                                   time_profiler_chan,
                                   layout_shutdown_chan);
 

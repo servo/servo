@@ -15,6 +15,7 @@ use std::cmp;
 use std::io;
 use std::mem;
 use std::os;
+use std::ptr;
 use std::rt;
 
 /// Global flags for Servo, currently set on the command line.
@@ -107,7 +108,15 @@ fn args_fail(msg: &str) {
     os::set_exit_status(1);
 }
 
-pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
+// Always use CPU rendering on android.
+
+#[cfg(target_os="android")]
+static FORCE_CPU_PAINTING: bool = true;
+
+#[cfg(not(target_os="android"))]
+static FORCE_CPU_PAINTING: bool = false;
+
+pub fn from_cmdline_args(args: &[String]) -> bool {
     let app_name = args[0].to_string();
     let args = args.tail();
 
@@ -141,19 +150,19 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         Ok(m) => m,
         Err(f) => {
             args_fail(format!("{}", f).as_slice());
-            return None;
+            return false;
         }
     };
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(app_name.as_slice(), opts.as_slice());
-        return None;
+        return false;
     };
 
     let urls = if opt_match.free.is_empty() {
         print_usage(app_name.as_slice(), opts.as_slice());
         args_fail("servo asks that you provide 1 or more URLs");
-        return None;
+        return false;
     } else {
         opt_match.free.clone()
     };
@@ -180,7 +189,7 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         from_str(period.as_slice()).unwrap()
     });
 
-    let cpu_painting = opt_match.opt_present("c");
+    let cpu_painting = FORCE_CPU_PAINTING || opt_match.opt_present("c");
 
     let mut layout_threads: uint = match opt_match.opt_str("y") {
         Some(layout_threads_str) => from_str(layout_threads_str.as_slice()).unwrap(),
@@ -237,12 +246,8 @@ pub fn from_cmdline_args(args: &[String]) -> Option<Opts> {
         dump_flow_tree: opt_match.opt_present("dump-flow-tree"),
     };
 
-    unsafe {
-        let box_opts = box opts.clone();
-        OPTIONS = mem::transmute(box_opts);
-    }
-
-    Some(opts)
+    set_opts(opts);
+    true
 }
 
 static mut EXPERIMENTAL_ENABLED: bool = false;
@@ -262,10 +267,19 @@ pub fn experimental_enabled() -> bool {
 // Make Opts available globally. This saves having to clone and pass
 // opts everywhere it is used, which gets particularly cumbersome
 // when passing through the DOM structures.
-// GWTODO: Change existing code that takes copies of opts to instead
-// make use of the global copy.
 static mut OPTIONS: *mut Opts = 0 as *mut Opts;
 
-pub fn get() -> &'static Opts {
-    unsafe { mem::transmute(OPTIONS) }
+pub fn set_opts(opts: Opts) {
+    unsafe {
+        let box_opts = box opts;
+        OPTIONS = mem::transmute(box_opts);
+    }
+}
+
+#[inline]
+pub fn get<'a>() -> &'a Opts {
+    unsafe {
+        assert!(OPTIONS != ptr::null_mut());
+        mem::transmute(OPTIONS)
+    }
 }

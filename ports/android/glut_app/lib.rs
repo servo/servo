@@ -30,14 +30,14 @@ use glut::glut::{init, init_display_mode, DOUBLE};
 
 mod window;
 
-pub fn create_window(opts: &opts::Opts) -> Rc<Window> {
+pub fn create_window() -> Rc<Window> {
     // Initialize GLUT.
     init();
     init_display_mode(DOUBLE);
 
     // Read command-line options.
-    let scale_factor = opts.device_pixels_per_px.unwrap_or(ScaleFactor(1.0));
-    let size = opts.initial_window_size.as_f32() * scale_factor;
+    let scale_factor = opts::get().device_pixels_per_px.unwrap_or(ScaleFactor(1.0));
+    let size = opts::get().initial_window_size.as_f32() * scale_factor;
 
     // Open a window.
     Window::new(size.as_uint())
@@ -54,11 +54,9 @@ pub extern "C" fn android_start(argc: int, argv: *const *const u8) -> int {
             }
         }
 
-        opts::from_cmdline_args(args.as_slice()).map(|mut opts| {
-            // Always use CPU rendering on android.
-            opts.cpu_painting = true;
-            let window = Some(create_window(&opts));
-            servo::run(opts, window);
-        });
+        if opts::from_cmdline_args(args.as_slice()) {
+            let window = Some(create_window());
+            servo::run(window);
+        }
     })
 }
