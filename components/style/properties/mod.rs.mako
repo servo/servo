@@ -467,6 +467,7 @@ pub mod longhands {
         pub type SpecifiedValue = computed_value::T;
         pub mod computed_value {
 	    use std::fmt;
+
             #[deriving(PartialEq, Clone)]
             pub enum T {
                 Auto,
