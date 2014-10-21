@@ -42,6 +42,7 @@ use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::{Au, ZERO_RECT};
 use servo_util::geometry;
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin, WritingMode};
+use servo_util::opts;
 use servo_util::range::*;
 use servo_util::smallvec::SmallVec;
 use servo_util::str::is_whitespace;
@@ -1339,24 +1340,21 @@ impl Fragment {
                     });
                 }
 
-                // Draw debug frames for text bounds.
-                //
-                // FIXME(#2263, pcwalton): This is a bit of an abuse of the logging infrastructure.
-                // We should have a real `SERVO_DEBUG` system.
-                debug!("{:?}", self.build_debug_borders_around_text_fragments(display_list,
-                                                                              flow_origin,
-                                                                              text_fragment,
-                                                                              clip_rect))
+                if opts::get().show_debug_fragment_borders {
+                    self.build_debug_borders_around_text_fragments(display_list,
+                                                                   flow_origin,
+                                                                   text_fragment,
+                                                                   clip_rect);
+                }
             }
             GenericFragment | IframeFragment(..) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) | InputFragment |
             InlineAbsoluteHypotheticalFragment(_) => {
-                // FIXME(pcwalton): This is a bit of an abuse of the logging infrastructure. We
-                // should have a real `SERVO_DEBUG` system.
-                debug!("{:?}",
-                       self.build_debug_borders_around_fragment(display_list,
-                                                                flow_origin,
-                                                                clip_rect))
+                if opts::get().show_debug_fragment_borders {
+                    self.build_debug_borders_around_fragment(display_list,
+                                                             flow_origin,
+                                                             clip_rect);
+                }
             }
             ImageFragment(ref mut image_fragment) => {
                 let image_ref = &mut image_fragment.image;

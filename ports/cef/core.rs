@@ -67,6 +67,7 @@ pub extern "C" fn cef_run_message_loop() {
         hard_fail: false,
         bubble_inline_sizes_separately: false,
         show_debug_borders: false,
+        show_debug_fragment_borders: false,
         enable_text_antialiasing: true,
         trace_layout: false,
         devtools_port: None,
