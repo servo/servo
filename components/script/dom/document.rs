@@ -5,8 +5,10 @@
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::{DOMRefCell, Ref};
 use dom::bindings::codegen::Bindings::DocumentBinding;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyStateValues;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -34,7 +36,7 @@ use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, AttributeHandlers, get_attribute_parts};
 use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
-use dom::event::Event;
+use dom::event::{Event, DoesNotBubble, NotCancelable};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
@@ -93,6 +95,7 @@ pub struct Document {
     scripts: MutNullableJS<HTMLCollection>,
     anchors: MutNullableJS<HTMLCollection>,
     applets: MutNullableJS<HTMLCollection>,
+    ready_state: Cell<DocumentReadyState>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -171,6 +174,7 @@ pub trait DocumentHelpers<'a> {
     fn register_named_element(self, element: JSRef<Element>, id: Atom);
     fn load_anchor_href(self, href: DOMString);
     fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>>;
+    fn set_ready_state(self, state: DocumentReadyState);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -288,14 +292,38 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                     .map(|node| Temporary::from_rooted(ElementCast::from_ref(node)))
         })
     }
+
+    // https://html.spec.whatwg.org/multipage/dom.html#current-document-readiness
+    fn set_ready_state(self, state: DocumentReadyState) {
+        self.ready_state.set(state);
+
+        let window = self.window.root();
+        let event = Event::new(&global::Window(*window), "readystatechange".to_string(),
+                               DoesNotBubble, NotCancelable).root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        let _ = target.DispatchEvent(*event);
+    }
+}
+
+#[deriving(PartialEq)]
+pub enum DocumentSource {
+    FromParser,
+    NotFromParser,
 }
 
 impl Document {
     fn new_inherited(window: JSRef<Window>,
-                         url: Option<Url>,
-                         is_html_document: IsHTMLDocument,
-                         content_type: Option<DOMString>) -> Document {
+                     url: Option<Url>,
+                     is_html_document: IsHTMLDocument,
+                     content_type: Option<DOMString>,
+                     source: DocumentSource) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
+
+        let ready_state = if source == FromParser {
+            DocumentReadyStateValues::Loading
+        } else {
+            DocumentReadyStateValues::Complete
+        };
 
         Document {
             node: Node::new_without_doc(DocumentNodeTypeId),
@@ -325,16 +353,22 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
+            ready_state: Cell::new(ready_state),
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Document>> {
-        Ok(Document::new(global.as_window(), None, NonHTMLDocument, None))
+        Ok(Document::new(global.as_window(), None, NonHTMLDocument, None, NotFromParser))
     }
 
-    pub fn new(window: JSRef<Window>, url: Option<Url>, doctype: IsHTMLDocument, content_type: Option<DOMString>) -> Temporary<Document> {
-        let document = reflect_dom_object(box Document::new_inherited(window, url, doctype, content_type),
+    pub fn new(window: JSRef<Window>,
+               url: Option<Url>,
+               doctype: IsHTMLDocument,
+               content_type: Option<DOMString>,
+               source: DocumentSource) -> Temporary<Document> {
+        let document = reflect_dom_object(box Document::new_inherited(window, url, doctype,
+                                                                      content_type, source),
                                           &global::Window(window),
                                           DocumentBinding::Wrap).root();
 
@@ -888,6 +922,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         root.query_selector_all(selectors)
     }
 
+    // https://html.spec.whatwg.org/multipage/dom.html#dom-document-readystate
+    fn ReadyState(self) -> DocumentReadyState {
+        self.ready_state.get()
+    }
+
     event_handler!(click, GetOnclick, SetOnclick)
     event_handler!(load, GetOnload, SetOnload)
+    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange)
 }

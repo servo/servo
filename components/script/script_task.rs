@@ -6,9 +6,10 @@
 //! and layout tasks.
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyStateValues};
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast, ElementCast};
 use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
@@ -17,7 +18,7 @@ use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
-use dom::document::{Document, HTMLDocument, DocumentHelpers};
+use dom::document::{Document, HTMLDocument, DocumentHelpers, FromParser};
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
 use dom::event::{Event, Bubbles, DoesNotBubble, Cancelable, NotCancelable};
@@ -762,7 +763,7 @@ impl ScriptTask {
             url.clone()
         };
         let document = Document::new(*window, Some(doc_url), HTMLDocument,
-                                     None).root();
+                                     None, FromParser).root();
 
         window.init_browser_context(*document);
 
@@ -792,6 +793,8 @@ impl ScriptTask {
                 window: JS::from_rooted(*window),
             });
         }
+
+        document.set_ready_state(DocumentReadyStateValues::Interactive);
 
         // Send style sheets over to layout.
         //
@@ -849,11 +852,20 @@ impl ScriptTask {
             }
         });
 
+        // https://html.spec.whatwg.org/multipage/#the-end step 4
+        let event = Event::new(&global::Window(*window), "DOMContentLoaded".to_string(),
+                               DoesNotBubble, NotCancelable).root();
+        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(*document);
+        let _ = doctarget.DispatchEvent(*event);
+
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
+
+        // https://html.spec.whatwg.org/multipage/#the-end step 7
+        document.set_ready_state(DocumentReadyStateValues::Complete);
+
         let event = Event::new(&global::Window(*window), "load".to_string(), DoesNotBubble, NotCancelable).root();
-        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(*document);
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
         let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
 
