@@ -381,6 +381,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
 pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator<'a>;
     fn children(self) -> AbstractNodeChildrenIterator<'a>;
+    fn rev_children(self) -> ReverseChildrenIterator<'a>;
     fn child_elements(self) -> ChildElementIterator<'a>;
     fn following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
     fn is_in_doc(self) -> bool;
@@ -441,7 +442,6 @@ pub trait NodeHelpers<'a> {
     fn debug_str(self) -> String;
 
     fn traverse_preorder(self) -> TreeIterator<'a>;
-    fn sequential_traverse_postorder(self) -> TreeIterator<'a>;
     fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress;
@@ -658,21 +658,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     /// Iterates over this node and all its descendants, in preorder.
     fn traverse_preorder(self) -> TreeIterator<'a> {
-        let mut nodes = vec!();
-        gather_abstract_nodes(self, &mut nodes, false);
-        TreeIterator::new(nodes)
-    }
-
-    /// Iterates over this node and all its descendants, in postorder.
-    fn sequential_traverse_postorder(self) -> TreeIterator<'a> {
-        let mut nodes = vec!();
-        gather_abstract_nodes(self, &mut nodes, true);
-        TreeIterator::new(nodes)
+        TreeIterator::new(self)
     }
 
     fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'a> {
         AbstractNodeChildrenIterator {
-            current_node: Some(self.clone()),
+            current: Some(self.clone()),
         }
     }
 
@@ -682,7 +673,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn following_siblings(self) -> AbstractNodeChildrenIterator<'a> {
         AbstractNodeChildrenIterator {
-            current_node: self.next_sibling().root().map(|next| next.clone()),
+            current: self.next_sibling().root().map(|next| next.clone()),
         }
     }
 
@@ -774,7 +765,13 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn children(self) -> AbstractNodeChildrenIterator<'a> {
         AbstractNodeChildrenIterator {
-            current_node: self.first_child.get().map(|node| (*node.root()).clone()),
+            current: self.first_child.get().map(|node| (*node.root()).clone()),
+        }
+    }
+
+    fn rev_children(self) -> ReverseChildrenIterator<'a> {
+        ReverseChildrenIterator {
+            current: self.last_child.get().map(|node| *node.root().deref()),
         }
     }
 
@@ -974,15 +971,25 @@ pub type ChildElementIterator<'a> = Map<'a, JSRef<'a, Node>,
                                         Filter<'a, JSRef<'a, Node>, AbstractNodeChildrenIterator<'a>>>;
 
 pub struct AbstractNodeChildrenIterator<'a> {
-    current_node: Option<JSRef<'a, Node>>,
+    current: Option<JSRef<'a, Node>>,
 }
 
 impl<'a> Iterator<JSRef<'a, Node>> for AbstractNodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
-        let node = self.current_node.clone();
-        self.current_node = node.clone().and_then(|node| {
-            node.next_sibling().map(|node| (*node.root()).clone())
-        });
+        let node = self.current;
+        self.current = node.and_then(|node| node.next_sibling().map(|node| *node.root().deref()));
+        node
+    }
+}
+
+pub struct ReverseChildrenIterator<'a> {
+    current: Option<JSRef<'a, Node>>,
+}
+
+impl<'a> Iterator<JSRef<'a, Node>> for ReverseChildrenIterator<'a> {
+    fn next(&mut self) -> Option<JSRef<'a, Node>> {
+        let node = self.current;
+        self.current = node.and_then(|node| node.prev_sibling().map(|node| *node.root().deref()));
         node
     }
 }
@@ -993,43 +1000,32 @@ pub struct AncestorIterator<'a> {
 
 impl<'a> Iterator<JSRef<'a, Node>> for AncestorIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
-        if self.current.is_none() {
-            return None;
-        }
-
-        // FIXME: Do we need two clones here?
-        let x = self.current.as_ref().unwrap().clone();
-        self.current = x.parent_node().map(|node| (*node.root()).clone());
-        Some(x)
+        let node = self.current;
+        self.current = node.and_then(|node| node.parent_node().map(|node| *node.root().deref()));
+        node
     }
 }
 
-// FIXME: Do this without precomputing a vector of refs.
-// Easy for preorder; harder for postorder.
 pub struct TreeIterator<'a> {
-    nodes: Vec<JSRef<'a, Node>>,
-    index: uint,
+    stack: Vec<JSRef<'a, Node>>,
 }
 
 impl<'a> TreeIterator<'a> {
-    fn new(nodes: Vec<JSRef<'a, Node>>) -> TreeIterator<'a> {
+    fn new(root: JSRef<'a, Node>) -> TreeIterator<'a> {
+        let mut stack = vec!();
+        stack.push(root);
+
         TreeIterator {
-            nodes: nodes,
-            index: 0,
+            stack: stack,
         }
     }
 }
 
 impl<'a> Iterator<JSRef<'a, Node>> for TreeIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
-        if self.index >= self.nodes.len() {
-            None
-        } else {
-            let v = self.nodes[self.index];
-            let v = v.clone();
-            self.index += 1;
-            Some(v)
-        }
+        let ret = self.stack.pop();
+        ret.map(|node| self.stack.extend(node.rev_children()));
+        ret
     }
 }
 
@@ -1113,18 +1109,6 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
             }
         };
         self.current_node.map(|node| (*node.root()).clone())
-    }
-}
-
-fn gather_abstract_nodes<'a>(cur: JSRef<'a, Node>, refs: &mut Vec<JSRef<'a, Node>>, postorder: bool) {
-    if !postorder {
-        refs.push(cur.clone());
-    }
-    for kid in cur.children() {
-        gather_abstract_nodes(kid, refs, postorder)
-    }
-    if postorder {
-        refs.push(cur.clone());
     }
 }
 
@@ -2207,6 +2191,16 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
         }
 
         first_child(self).map(|node| *node.root())
+    }
+
+    fn last_child(self) -> Option<JSRef<'a, Node>> {
+        // FIXME(zwarich): Remove this when UFCS lands and there is a better way
+        // of disambiguating methods.
+        fn last_child<'a, T: NodeHelpers<'a>>(this: T) -> Option<Temporary<Node>> {
+            this.last_child()
+        }
+
+        last_child(self).map(|node| *node.root())
     }
 
     fn prev_sibling(self) -> Option<JSRef<'a, Node>> {

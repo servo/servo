@@ -214,26 +214,34 @@ impl<'ln> LayoutNode<'ln> {
         }
     }
 
-    /// Iterates over this node and all its descendants, in preorder.
-    ///
-    /// FIXME(pcwalton): Terribly inefficient. We should use parallelism.
     pub fn traverse_preorder(self) -> LayoutTreeIterator<'ln> {
-        let mut nodes = vec!();
-        gather_layout_nodes(self, &mut nodes, false);
-        LayoutTreeIterator::new(nodes)
+        LayoutTreeIterator::new(self)
+    }
+
+    fn last_child(self) -> Option<LayoutNode<'ln>> {
+        unsafe {
+            self.get_jsmanaged().last_child_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
     }
 
     /// Returns an iterator over this node's children.
     pub fn children(self) -> LayoutNodeChildrenIterator<'ln> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
-        fn first_child<T: TLayoutNode>(this: &T) -> Option<T> {
+        fn first_child<T: TLayoutNode>(this: T) -> Option<T> {
             this.first_child()
         }
 
         LayoutNodeChildrenIterator {
-            current_node: first_child(&self),
+            current: first_child(self),
         }
+    }
+
+    pub fn rev_children(self) -> LayoutNodeReverseChildrenIterator<'ln> {
+        LayoutNodeReverseChildrenIterator {
+            current: self.last_child()
+        }
+
     }
 
     pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
@@ -288,6 +296,12 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
     fn first_child(self) -> Option<LayoutNode<'ln>> {
         unsafe {
             self.node.first_child_ref().map(|node| self.new_with_this_lifetime(&node))
+        }
+    }
+
+    fn last_child(self) -> Option<LayoutNode<'ln>> {
+        unsafe {
+            self.node.last_child_ref().map(|node| self.new_with_this_lifetime(&node))
         }
     }
 
@@ -390,59 +404,48 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
 }
 
 pub struct LayoutNodeChildrenIterator<'a> {
-    current_node: Option<LayoutNode<'a>>,
+    current: Option<LayoutNode<'a>>,
 }
 
 impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<LayoutNode<'a>> {
-        let node = self.current_node.clone();
-        self.current_node = node.clone().and_then(|node| {
-            node.next_sibling()
-        });
+        let node = self.current;
+        self.current = node.and_then(|node| node.next_sibling());
         node
     }
 }
 
-// FIXME: Do this without precomputing a vector of refs.
-// Easy for preorder; harder for postorder.
-//
-// FIXME(pcwalton): Parallelism! Eventually this should just be nuked.
+pub struct LayoutNodeReverseChildrenIterator<'a> {
+    current: Option<LayoutNode<'a>>,
+}
+
+impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeReverseChildrenIterator<'a> {
+    fn next(&mut self) -> Option<LayoutNode<'a>> {
+        let node = self.current;
+        self.current = node.and_then(|node| node.prev_sibling());
+        node
+    }
+}
+
 pub struct LayoutTreeIterator<'a> {
-    nodes: Vec<LayoutNode<'a>>,
-    index: uint,
+    stack: Vec<LayoutNode<'a>>,
 }
 
 impl<'a> LayoutTreeIterator<'a> {
-    fn new(nodes: Vec<LayoutNode<'a>>) -> LayoutTreeIterator<'a> {
+    fn new(root: LayoutNode<'a>) -> LayoutTreeIterator<'a> {
+        let mut stack = vec!();
+        stack.push(root);
         LayoutTreeIterator {
-            nodes: nodes,
-            index: 0,
+            stack: stack
         }
     }
 }
 
 impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
     fn next(&mut self) -> Option<LayoutNode<'a>> {
-        if self.index >= self.nodes.len() {
-            None
-        } else {
-            let v = self.nodes[self.index].clone();
-            self.index += 1;
-            Some(v)
-        }
-    }
-}
-
-/// FIXME(pcwalton): This is super inefficient.
-fn gather_layout_nodes<'a>(cur: LayoutNode<'a>, refs: &mut Vec<LayoutNode<'a>>, postorder: bool) {
-    if !postorder {
-        refs.push(cur.clone());
-    }
-    for kid in cur.children() {
-        gather_layout_nodes(kid, refs, postorder)
-    }
-    if postorder {
-        refs.push(cur.clone());
+        let ret = self.stack.pop();
+        ret.map(|node| self.stack.extend(node.rev_children()));
+        ret
     }
 }
 
