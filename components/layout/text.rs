@@ -159,9 +159,9 @@ impl TextRunScanner {
                 continue
             }
 
-            let text_inline_size = old_fragment.border_box.size.inline;
+            let text_size = old_fragment.border_box.size;
             let new_text_fragment_info =
-                ScannedTextFragmentInfo::new(run.clone(), range, text_inline_size);
+                ScannedTextFragmentInfo::new(run.clone(), range, text_size);
             let new_metrics = new_text_fragment_info.run.metrics_for_range(&range);
             let bounding_box_size = bounding_box_for_run_metrics(&new_metrics,
                                                                  old_fragment.style.writing_mode);
@@ -223,5 +223,3 @@ pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> 
         line_height::Length(l) => l
     }
 }
-
-
