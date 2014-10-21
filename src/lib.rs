@@ -51,6 +51,8 @@ use servo_util::time::TimeProfiler;
 use servo_util::memory::MemoryProfiler;
 #[cfg(not(test))]
 use servo_util::opts;
+#[cfg(not(test))]
+use servo_util::taskpool::TaskPool;
 
 #[cfg(not(test))]
 use green::GreenTaskBuilder;
@@ -79,6 +81,7 @@ pub fn run<Window: WindowMethods>(window: Option<Rc<Window>>) {
     });
 
     let time_profiler_chan_clone = time_profiler_chan.clone();
+    let shared_task_pool = TaskPool::new(8);
 
     let (result_chan, result_port) = channel();
     TaskBuilder::new()
@@ -90,9 +93,9 @@ pub fn run<Window: WindowMethods>(window: Option<Rc<Window>>) {
         // image load or we risk emitting an output file missing the
         // image.
         let image_cache_task = if opts.output_file.is_some() {
-                ImageCacheTask::new_sync(resource_task.clone())
+                ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool)
             } else {
-                ImageCacheTask::new(resource_task.clone())
+                ImageCacheTask::new(resource_task.clone(), shared_task_pool)
             };
         let font_cache_task = FontCacheTask::new(resource_task.clone());
         let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
