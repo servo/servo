@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl::{DrawTarget, Color, B8G8R8A8, SkiaBackend, StrokeOptions, DrawOptions};
-use azure::azure_hl::ColorPattern;
+use azure::azure_hl::{ColorPattern, ColorPatternRef};
 use geom::rect::Rect;
 use geom::size::Size2D;
 
@@ -56,7 +56,7 @@ impl CanvasRenderTask {
 
     fn fill_rect(&self, rect: &Rect<f32>) {
         let drawopts = DrawOptions::new(1.0, 0);
-        self.drawtarget.fill_rect(rect, &self.fill_color, Some(&drawopts));
+        self.drawtarget.fill_rect(rect, ColorPatternRef(&self.fill_color), Some(&drawopts));
     }
 
     fn clear_rect(&self, rect: &Rect<f32>) {
