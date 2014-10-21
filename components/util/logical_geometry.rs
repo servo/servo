@@ -143,7 +143,7 @@ pub struct LogicalSize<T> {
 
 impl<T: Show> Show for LogicalSize<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
-        write!(formatter, "LogicalSize[{}, {}, {}]",
+        write!(formatter, "LogicalSize({}, i{}×b{})",
                self.debug_writing_mode, self.inline, self.block)
     }
 }
@@ -280,7 +280,7 @@ pub struct LogicalPoint<T> {
 
 impl<T: Show> Show for LogicalPoint<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
-        write!(formatter, "LogicalPoint[{}, {}, {}]",
+        write!(formatter, "LogicalPoint({} (i{}, b{}))",
                self.debug_writing_mode, self.i, self.b)
     }
 }
@@ -456,10 +456,12 @@ pub struct LogicalMargin<T> {
 impl<T: Show> Show for LogicalMargin<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
         write!(formatter,
-               "LogicalMargin[{}, block_start: {}, inline_end: {}, \
-                              block_end: {}, inline_start: {}]",
-               self.debug_writing_mode, self.block_start,
-               self.inline_end, self.block_end, self.inline_start)
+               "LogicalMargin({}, inline: {}..{} block: {}..{})",
+               self.debug_writing_mode,
+               self.inline_start,
+               self.inline_end,
+               self.block_start,
+               self.block_end)
     }
 }
 
@@ -736,10 +738,12 @@ pub struct LogicalRect<T> {
 impl<T: Show> Show for LogicalRect<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
         write!(formatter,
-               "LogicalRect[{}, inline_start: {}, block_start: {}, \
-                            inline: {}, block: {}]",
-               self.debug_writing_mode, self.start.i, self.start.b,
-               self.size.inline, self.size.block)
+               "LogicalRect({}, i{}×b{}, @ (i{},b{}))",
+               self.debug_writing_mode,
+               self.size.inline,
+               self.size.block,
+               self.start.i,
+               self.start.b)
     }
 }
 
