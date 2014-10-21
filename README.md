@@ -16,14 +16,14 @@ script](etc/ci/travis.install.sh).
 On OS X (homebrew):
 
 ``` sh
-brew install automake pkg-config python glfw3
+brew install automake pkg-config python glfw3 cmake
 pip install virtualenv
 ```
 
 On OS X (MacPorts):
 
 ``` sh
-sudo port install python27 py27-virtualenv
+sudo port install python27 py27-virtualenv cmake
 ```
 
 On Debian-based Linuxes:
@@ -41,7 +41,7 @@ On Fedora:
 sudo yum install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel \
-    rpm-build openssl-devel glfw-devel
+    rpm-build openssl-devel glfw-devel cmake
 pushd .
 cd /tmp
 wget http://corefonts.sourceforge.net/msttcorefonts-2.5-1.spec
@@ -53,7 +53,7 @@ popd
 On Arch Linux:
 
 ``` sh
-sudo pacman -S base-devel git python2 python2-virtualenv mesa glfw ttf-font
+sudo pacman -S base-devel git python2 python2-virtualenv mesa glfw ttf-font cmake
 ```
 
 Cross-compilation for Android:
