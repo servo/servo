@@ -13,6 +13,7 @@ use string_cache::{Atom, Namespace};
 pub trait TNode<'a, E: TElement<'a>> : Clone + Copy {
     fn parent_node(self) -> Option<Self>;
     fn first_child(self) -> Option<Self>;
+    fn last_child(self) -> Option<Self>;
     fn prev_sibling(self) -> Option<Self>;
     fn next_sibling(self) -> Option<Self>;
     fn is_document(self) -> bool;
@@ -57,4 +58,3 @@ pub trait TElementAttributes : Copy {
     fn get_length_attribute(self, attribute: LengthAttribute) -> LengthOrPercentageOrAuto;
     fn get_integer_attribute(self, attribute: IntegerAttribute) -> Option<i32>;
 }
-
