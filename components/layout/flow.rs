@@ -54,6 +54,7 @@ use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::WritingMode;
 use servo_util::logical_geometry::{LogicalRect, LogicalSize};
+use servo_util::opts;
 use std::mem;
 use std::num::Zero;
 use std::fmt;
@@ -405,6 +406,9 @@ pub trait ImmutableFlowUtils {
 
     /// Dumps the flow tree for debugging, with a prefix to indicate that we're at the given level.
     fn dump_with_level(self, level: uint);
+
+    /// Print an error when this Flow's display list items are not within its boundaries.
+    fn validate_display_list_geometry(self);
 }
 
 pub trait MutableFlowUtils {
@@ -1024,6 +1028,28 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
             kid.dump_with_level(level + 1)
         }
     }
+
+    fn validate_display_list_geometry(self) {
+        let position_with_overflow = base(self).position.union(&base(self).overflow);
+        let bounds = Rect(base(self).abs_position,
+                          Size2D(position_with_overflow.size.inline,
+                                 position_with_overflow.size.block));
+
+        for item in base(self).display_list.iter() {
+            let paint_bounds = match item.base().bounds.intersection(&item.base().clip_rect) {
+                None => continue,
+                Some(rect) => rect,
+            };
+
+            if paint_bounds.is_empty() {
+                continue;
+            }
+
+            if bounds.union(&paint_bounds) != bounds {
+                error!("DisplayList item {} outside of Flow overflow ({})", item, paint_bounds);
+            }
+        }
+    }
 }
 
 impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
@@ -1115,6 +1141,10 @@ impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
             TableColGroupFlowClass => {
                 // Nothing to do here, as column groups don't render.
             }
+        }
+
+        if opts::get().validate_display_list_geometry {
+            self.validate_display_list_geometry();
         }
     }
 
