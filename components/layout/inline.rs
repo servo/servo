@@ -11,7 +11,6 @@ use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
 use flow;
 use fragment::{Fragment, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
 use fragment::{ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
-use incremental::RestyleDamage;
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
@@ -618,57 +617,6 @@ impl InlineFragments {
     /// A convenience function to return a mutable reference to the fragment at a given index.
     pub fn get_mut<'a>(&'a mut self, index: uint) -> &'a mut Fragment {
         self.fragments.get_mut(index)
-    }
-
-    /// Strips ignorable whitespace from the start of a list of fragments.
-    ///
-    /// Returns some damage that must be added to the `InlineFlow`.
-    pub fn strip_ignorable_whitespace_from_start(&mut self) -> RestyleDamage {
-        if self.is_empty() { return RestyleDamage::empty() } // Fast path
-
-        // FIXME (rust#16151): This can be reverted back to using skip_while once
-        // the upstream bug is fixed.
-        let mut fragments = mem::replace(&mut self.fragments, vec![]).into_iter();
-        let mut new_fragments = Vec::new();
-        let mut skipping = true;
-        let mut damage = RestyleDamage::empty();
-
-        for fragment in fragments {
-            if skipping && fragment.is_ignorable_whitespace() {
-                damage = RestyleDamage::all();
-                debug!("stripping ignorable whitespace from start");
-                continue
-            }
-
-            skipping = false;
-            new_fragments.push(fragment);
-        }
-
-        self.fragments = new_fragments;
-        damage
-    }
-
-    /// Strips ignorable whitespace from the end of a list of fragments.
-    ///
-    /// Returns some damage that must be added to the `InlineFlow`.
-    pub fn strip_ignorable_whitespace_from_end(&mut self) -> RestyleDamage {
-        if self.is_empty() {
-            return RestyleDamage::empty();
-        }
-
-        let mut damage = RestyleDamage::empty();
-
-        let mut new_fragments = self.fragments.clone();
-        while new_fragments.len() > 0 &&
-                new_fragments.as_slice().last().as_ref().unwrap().is_ignorable_whitespace() {
-            debug!("stripping ignorable whitespace from end");
-            damage = RestyleDamage::all();
-            drop(new_fragments.pop());
-        }
-
-
-        self.fragments = new_fragments;
-        damage
     }
 
     /// This function merges previously-line-broken fragments back into their

@@ -580,7 +580,7 @@ impl LayoutTask {
 
         let current_screen_size = Size2D(Au::from_frac32_px(viewport_size.width.get()),
                                          Au::from_frac32_px(viewport_size.height.get()));
-        let old_screen_size = mem::replace(&mut rw_data.screen_size, current_screen_size);
+        rw_data.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_ctx =
@@ -591,8 +591,6 @@ impl LayoutTask {
 
         // Handle conditions where the entire flow tree is invalid.
         let mut needs_dirtying = false;
-
-        needs_dirtying |= current_screen_size != old_screen_size;
         needs_dirtying |= rw_data.stylesheet_dirty;
 
         unsafe {

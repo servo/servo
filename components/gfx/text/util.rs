@@ -17,15 +17,17 @@ pub enum CompressionMode {
 // High level TODOs:
 //
 // * Issue #113: consider incoming text state (arabic, etc)
-//               and propogate outgoing text state (dual of above)
+//               and propagate outgoing text state (dual of above)
 //
 // * Issue #114: record skipped and kept chars for mapping original to new text
 //
 // * Untracked: various edge cases for bidi, CJK, etc.
-pub fn transform_text(text: &str, mode: CompressionMode,
+pub fn transform_text(text: &str,
+                      mode: CompressionMode,
                       incoming_whitespace: bool,
-                      new_line_pos: &mut Vec<CharIndex>) -> (String, bool) {
-    let mut out_str = String::new();
+                      output_text: &mut String,
+                      new_line_pos: &mut Vec<CharIndex>)
+                      -> bool {
     let out_whitespace = match mode {
         CompressNone | DiscardNewline => {
             let mut new_line_index = CharIndex(0);
@@ -46,7 +48,7 @@ pub fn transform_text(text: &str, mode: CompressionMode,
                     if ch != '\n' {
                         new_line_index = new_line_index + CharIndex(1);
                     }
-                    out_str.push_char(ch);
+                    output_text.push_char(ch);
                 }
             }
             text.len() > 0 && is_in_whitespace(text.char_at_reverse(0), mode)
@@ -65,14 +67,14 @@ pub fn transform_text(text: &str, mode: CompressionMode,
                         // TODO: record skipped char
                     } else {
                         // TODO: record kept char
-                        out_str.push_char(ch);
+                        output_text.push_char(ch);
                     }
                 } else { /* next_in_whitespace; possibly add a space char */
                     if in_whitespace {
                         // TODO: record skipped char
                     } else {
                         // TODO: record kept char
-                        out_str.push_char(' ');
+                        output_text.push_char(' ');
                     }
                 }
                 // save whitespace context for next char
@@ -82,7 +84,7 @@ pub fn transform_text(text: &str, mode: CompressionMode,
         }
     };
 
-    return (out_str, out_whitespace);
+    return out_whitespace;
 
     fn is_in_whitespace(ch: char, mode: CompressionMode) -> bool {
         match (ch, mode) {
@@ -155,7 +157,8 @@ fn test_transform_compress_none() {
 
     for test in test_strs.iter() {
         let mut new_line_pos = vec!();
-        let (trimmed_str, _out) = transform_text(*test, mode, true, &mut new_line_pos);
+        let mut trimmed_str = String::new();
+        transform_text(*test, mode, true, &mut trimmed_str, &mut new_line_pos);
         assert_eq!(trimmed_str.as_slice(), *test)
     }
 }
@@ -187,7 +190,8 @@ fn test_transform_discard_newline() {
 
     for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
         let mut new_line_pos = vec!();
-        let (trimmed_str, _out) = transform_text(*test, mode, true, &mut new_line_pos);
+        let mut trimmed_str = String::new();
+        transform_text(*test, mode, true, &mut trimmed_str, &mut new_line_pos);
         assert_eq!(trimmed_str.as_slice(), *oracle)
     }
 }
@@ -279,7 +283,8 @@ fn test_transform_compress_whitespace_newline_no_incoming() {
 
     for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
         let mut new_line_pos = vec!();
-        let (trimmed_str, _out) = transform_text(*test, mode, false, &mut new_line_pos);
+        let mut trimmed_str = String::new();
+        transform_text(*test, mode, false, &mut trimmed_str, &mut new_line_pos);
         assert_eq!(trimmed_str.as_slice(), *oracle)
     }
 }
