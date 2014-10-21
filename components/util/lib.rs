@@ -36,6 +36,7 @@ use std::sync::Arc;
 pub mod bloom;
 pub mod cache;
 pub mod debug_utils;
+pub mod dlist;
 pub mod fnv;
 pub mod geometry;
 pub mod logical_geometry;

@@ -162,7 +162,7 @@ impl<'a> TextRun {
 
             // Create a glyph store for this slice if it's nonempty.
             if can_break_before && byte_i > byte_last_boundary {
-                let slice = text.slice(byte_last_boundary, byte_i).to_string();
+                let slice = text.slice(byte_last_boundary, byte_i);
                 debug!("creating glyph store for slice {} (ws? {}), {} - {} in run {}",
                         slice, !cur_slice_is_whitespace, byte_last_boundary, byte_i, text);
                 glyphs.push(GlyphRun {
@@ -179,7 +179,7 @@ impl<'a> TextRun {
 
         // Create a glyph store for the final slice if it's nonempty.
         if byte_i > byte_last_boundary {
-            let slice = text.slice_from(byte_last_boundary).to_string();
+            let slice = text.slice_from(byte_last_boundary);
             debug!("creating glyph store for final slice {} (ws? {}), {} - {} in run {}",
                 slice, cur_slice_is_whitespace, byte_last_boundary, text.len(), text);
             glyphs.push(GlyphRun {
