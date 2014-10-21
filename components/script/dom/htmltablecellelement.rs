@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::Attr;
+use dom::attr::AttrHelpers;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -16,7 +18,6 @@ use dom::virtualmethods::VirtualMethods;
 use servo_util::str::{AutoLpa, DOMString, LengthOrPercentageOrAuto};
 use servo_util::str;
 use std::cell::Cell;
-use string_cache::Atom;
 
 #[dom_struct]
 pub struct HTMLTableCellElement {
@@ -64,27 +65,27 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
-            _ => {}
+            Some(ref s) => s.after_set_attr(attr),
+            _ => ()
         }
 
-        match name.as_slice() {
-            "width" => self.width.set(str::parse_length(value.as_slice())),
-            _ => {}
+        match attr.local_name() {
+            &atom!("width") => self.width.set(str::parse_length(attr.value().as_slice())),
+            _ => ()
         }
     }
 
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value),
-            _ => {}
+            Some(ref s) => s.before_remove_attr(attr),
+            _ => ()
         }
 
-        match name.as_slice() {
-            "width" => self.width.set(AutoLpa),
-            _ => {}
+        match attr.local_name() {
+            &atom!("width") => self.width.set(AutoLpa),
+            _ => ()
         }
     }
 }

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::Attr;
+use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
@@ -18,7 +20,6 @@ use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::DOMString;
-use string_cache::Atom;
 
 #[dom_struct]
 pub struct HTMLElement {
@@ -99,21 +100,22 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
         Some(element as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
-            _ => (),
+            Some(ref s) => s.after_set_attr(attr),
+            _ => ()
         }
 
-        if name.as_slice().starts_with("on") {
+        let name = attr.local_name().as_slice();
+        if name.starts_with("on") {
             let window = window_from_node(*self).root();
             let (cx, url, reflector) = (window.get_cx(),
                                         window.get_url(),
                                         window.reflector().get_jsobject());
             let evtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
-                                                  name.as_slice().slice_from(2),
-                                                  value);
+                                                  name.slice_from(2),
+                                                  attr.value().as_slice().to_string());
         }
     }
 }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
@@ -67,19 +68,19 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
-            _ => (),
+            Some(ref s) => s.after_set_attr(attr),
+            _ => ()
         }
 
         let element: JSRef<Element> = ElementCast::from_ref(*self);
         let rel = get_attr(element, &atom!("rel"));
 
-        match (rel, name.as_slice()) {
-            (ref rel, "href") => {
+        match (rel, attr.local_name()) {
+            (ref rel, &atom!("href")) => {
                 if is_stylesheet(rel) {
-                    self.handle_stylesheet_url(value.as_slice());
+                    self.handle_stylesheet_url(attr.value().as_slice());
                 }
             }
             (_, _) => ()
