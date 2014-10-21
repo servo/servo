@@ -74,6 +74,7 @@ pub extern "C" fn cef_run_message_loop() {
         initial_window_size: TypedSize2D(800, 600),
         user_agent: None,
         dump_flow_tree: false,
+        validate_display_list_geometry: false,
     };
     native::start(0, 0 as *const *const u8, proc() {
        let window = Some(glfw_app::create_window());
