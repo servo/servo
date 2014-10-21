@@ -23,12 +23,17 @@ pub fn get_variations_for_family(family_name: &str, callback: |String|) {
 
     let family_collection =
         core_text::font_collection::create_for_family(family_name.as_slice());
-    let family_descriptors = family_collection.get_descriptors();
-    for descref in family_descriptors.iter() {
-        let descref: CTFontDescriptorRef = unsafe { mem::transmute(descref) };
-        let desc: CTFontDescriptor = unsafe { TCFType::wrap_under_get_rule(descref) };
-        let postscript_name = desc.font_name();
-        callback(postscript_name);
+    match family_collection {
+        Some(family_collection) => {
+            let family_descriptors = family_collection.get_descriptors();
+            for descref in family_descriptors.iter() {
+                let descref: CTFontDescriptorRef = unsafe { mem::transmute(descref) };
+                let desc: CTFontDescriptor = unsafe { TCFType::wrap_under_get_rule(descref) };
+                let postscript_name = desc.font_name();
+                callback(postscript_name);
+            }
+        }
+        None => {}
     }
 }
 
