@@ -100,7 +100,7 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-cssparser#22146ce095cb62df39d459c3a79d1486041f96f6"
+source = "git+https://github.com/servo/rust-cssparser#7b0549a5d122135848b8813ec401112ab588063c"
 dependencies = [
  "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#28eafb604a92c7786685b46c0fc02682ba3ab265)",
 ]
@@ -382,7 +382,7 @@ name = "script"
 version = "0.0.1"
 dependencies = [
  "canvas 0.0.1",
- "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser#22146ce095cb62df39d459c3a79d1486041f96f6)",
+ "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser#7b0549a5d122135848b8813ec401112ab588063c)",
  "devtools_traits 0.0.1",
  "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#28eafb604a92c7786685b46c0fc02682ba3ab265)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
@@ -469,7 +469,7 @@ dependencies = [
 name = "style"
 version = "0.0.1"
 dependencies = [
- "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser#22146ce095cb62df39d459c3a79d1486041f96f6)",
+ "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser#7b0549a5d122135848b8813ec401112ab588063c)",
  "encoding 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding#28eafb604a92c7786685b46c0fc02682ba3ab265)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#90add8d65273c8a46aa16d73959e29a51d0c282d)",
  "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs#e62a65372f1dd9019e37eb9381d819edff80e360)",
