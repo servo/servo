@@ -85,6 +85,9 @@ impl Flow for TableColGroupFlow {
     fn update_late_computed_inline_position_if_necessary(&mut self, _: Au) {}
 
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
+
+    // Table columns are invisible.
+    fn build_display_list(&mut self, _: &LayoutContext) {}
 }
 
 impl fmt::Show for TableColGroupFlow {

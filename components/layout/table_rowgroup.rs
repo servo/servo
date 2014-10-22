@@ -86,11 +86,6 @@ impl TableRowGroupFlow {
         self.block_flow.fragment.border_box = position;
         self.block_flow.base.position.size.block = block_size;
     }
-
-    pub fn build_display_list_table_rowgroup(&mut self, layout_context: &LayoutContext) {
-        debug!("build_display_list_table_rowgroup: same process as block flow");
-        self.block_flow.build_display_list_block(layout_context)
-    }
 }
 
 impl Flow for TableRowGroupFlow {
@@ -204,6 +199,11 @@ impl Flow for TableRowGroupFlow {
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+    }
+
+    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+        debug!("build_display_list_table_rowgroup: same process as block flow");
+        self.block_flow.build_display_list(layout_context)
     }
 }
 

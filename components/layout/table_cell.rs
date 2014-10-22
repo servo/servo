@@ -51,11 +51,6 @@ impl TableCellFlow {
     fn assign_block_size_table_cell_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         self.block_flow.assign_block_size_block_base(layout_context, MarginsMayNotCollapse)
     }
-
-    pub fn build_display_list_table_cell(&mut self, layout_context: &LayoutContext) {
-        debug!("build_display_list_table: same process as block flow");
-        self.block_flow.build_display_list_block(layout_context)
-    }
 }
 
 impl Flow for TableCellFlow {
@@ -142,6 +137,10 @@ impl Flow for TableCellFlow {
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+    }
+
+    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.build_display_list(layout_context)
     }
 }
 

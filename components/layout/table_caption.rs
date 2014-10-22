@@ -28,11 +28,6 @@ impl TableCaptionFlow {
             block_flow: BlockFlow::from_node(constructor, node)
         }
     }
-
-    pub fn build_display_list_table_caption(&mut self, layout_context: &LayoutContext) {
-        debug!("build_display_list_table_caption: same process as block flow");
-        self.block_flow.build_display_list_block(layout_context)
-    }
 }
 
 impl Flow for TableCaptionFlow {
@@ -72,6 +67,11 @@ impl Flow for TableCaptionFlow {
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+    }
+
+    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+        debug!("build_display_list_table_caption: same process as block flow");
+        self.block_flow.build_display_list(layout_context)
     }
 }
 

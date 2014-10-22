@@ -126,11 +126,6 @@ impl TableRowFlow {
             child_node.position.size.block = block_size;
         }
     }
-
-    pub fn build_display_list_table_row(&mut self, layout_context: &LayoutContext) {
-        debug!("build_display_list_table_row: same process as block flow");
-        self.block_flow.build_display_list_block(layout_context)
-    }
 }
 
 impl Flow for TableRowFlow {
@@ -245,6 +240,10 @@ impl Flow for TableRowFlow {
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+    }
+
+    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.build_display_list(layout_context)
     }
 }
 
