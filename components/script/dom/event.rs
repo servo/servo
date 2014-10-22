@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding;
 use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethods};
 use dom::bindings::error::Fallible;
@@ -10,7 +11,7 @@ use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use servo_util::str::DOMString;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 use std::default::Default;
 
 use time;
@@ -53,7 +54,7 @@ pub struct Event {
     reflector_: Reflector,
     current_target: MutNullableJS<EventTarget>,
     target: MutNullableJS<EventTarget>,
-    type_: RefCell<DOMString>,
+    type_: DOMRefCell<DOMString>,
     phase: Cell<EventPhase>,
     canceled: Cell<bool>,
     stop_propagation: Cell<bool>,
@@ -74,7 +75,7 @@ impl Event {
             current_target: Default::default(),
             target: Default::default(),
             phase: Cell::new(PhaseNone),
-            type_: RefCell::new("".to_string()),
+            type_: DOMRefCell::new("".to_string()),
             canceled: Cell::new(false),
             cancelable: Cell::new(true),
             bubbles: Cell::new(false),

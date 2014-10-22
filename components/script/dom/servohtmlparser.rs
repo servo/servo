@@ -5,6 +5,7 @@
 //! The bulk of the HTML parser integration is in `script::parse::html`.
 //! This module is mostly about its interaction with DOM memory management.
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
 use dom::bindings::global;
 use dom::bindings::trace::JSTraceable;
@@ -15,7 +16,6 @@ use dom::document::Document;
 use parse::html::JSMessage;
 
 use std::default::Default;
-use std::cell::RefCell;
 use url::Url;
 use js::jsapi::JSTracer;
 use html5ever::tokenizer;
@@ -38,7 +38,7 @@ pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<TrustedNodeAddress, Sink>>
 #[privatize]
 pub struct ServoHTMLParser {
     reflector_: Reflector,
-    tokenizer: RefCell<Tokenizer>,
+    tokenizer: DOMRefCell<Tokenizer>,
 }
 
 impl ServoHTMLParser {
@@ -61,14 +61,14 @@ impl ServoHTMLParser {
 
         let parser = ServoHTMLParser {
             reflector_: Reflector::new(),
-            tokenizer: RefCell::new(tok),
+            tokenizer: DOMRefCell::new(tok),
         };
 
         reflect_dom_object(box parser, &global::Window(*window), ServoHTMLParserBinding::Wrap)
     }
 
     #[inline]
-    pub fn tokenizer<'a>(&'a self) -> &'a RefCell<Tokenizer> {
+    pub fn tokenizer<'a>(&'a self) -> &'a DOMRefCell<Tokenizer> {
         &self.tokenizer
     }
 }

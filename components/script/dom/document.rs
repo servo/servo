@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::AttrHelpers;
+use dom::bindings::cell::{DOMRefCell, Ref};
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -62,7 +63,7 @@ use url::Url;
 
 use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::Cell;
 use std::default::Default;
 use time;
 
@@ -77,11 +78,11 @@ pub enum IsHTMLDocument {
 pub struct Document {
     node: Node,
     window: JS<Window>,
-    idmap: RefCell<HashMap<Atom, Vec<JS<Element>>>>,
+    idmap: DOMRefCell<HashMap<Atom, Vec<JS<Element>>>>,
     implementation: MutNullableJS<DOMImplementation>,
     content_type: DOMString,
-    last_modified: RefCell<Option<DOMString>>,
-    encoding_name: RefCell<DOMString>,
+    last_modified: DOMRefCell<Option<DOMString>>,
+    encoding_name: DOMRefCell<DOMString>,
     is_html_document: bool,
     url: Url,
     quirks_mode: Cell<QuirksMode>,
@@ -299,7 +300,7 @@ impl Document {
         Document {
             node: Node::new_without_doc(DocumentNodeTypeId),
             window: JS::from_rooted(window),
-            idmap: RefCell::new(HashMap::new()),
+            idmap: DOMRefCell::new(HashMap::new()),
             implementation: Default::default(),
             content_type: match content_type {
                 Some(string) => string.clone(),
@@ -310,12 +311,12 @@ impl Document {
                     NonHTMLDocument => "application/xml".to_string()
                 }
             },
-            last_modified: RefCell::new(None),
+            last_modified: DOMRefCell::new(None),
             url: url,
             // http://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(NoQuirks),
             // http://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: RefCell::new("utf-8".to_string()),
+            encoding_name: DOMRefCell::new("utf-8".to_string()),
             is_html_document: is_html_document == HTMLDocument,
             images: Default::default(),
             embeds: Default::default(),

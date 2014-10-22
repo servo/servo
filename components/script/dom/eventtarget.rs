@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::callback::CallbackContainer;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
@@ -19,7 +20,6 @@ use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObje
 use js::jsapi::{JSContext, JSObject};
 use servo_util::str::DOMString;
 use libc::{c_char, size_t};
-use std::cell::RefCell;
 use std::ptr;
 use url::Url;
 
@@ -69,7 +69,7 @@ pub struct EventListenerEntry {
 pub struct EventTarget {
     type_id: EventTargetTypeId,
     reflector_: Reflector,
-    handlers: RefCell<HashMap<DOMString, Vec<EventListenerEntry>>>,
+    handlers: DOMRefCell<HashMap<DOMString, Vec<EventListenerEntry>>>,
 }
 
 impl EventTarget {
@@ -77,7 +77,7 @@ impl EventTarget {
         EventTarget {
             type_id: type_id,
             reflector_: Reflector::new(),
-            handlers: RefCell::new(HashMap::new()),
+            handlers: DOMRefCell::new(HashMap::new()),
         }
     }
 
