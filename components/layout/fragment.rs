@@ -381,19 +381,19 @@ pub struct ScannedTextFragmentInfo {
     /// fragments, it will have to be restored.
     pub original_new_line_pos: Option<Vec<CharIndex>>,
 
-    /// The inline-size of the text fragment.
-    pub content_inline_size: Au,
+    /// The intrinsic size of the text fragment.
+    pub content_size: LogicalSize<Au>,
 }
 
 impl ScannedTextFragmentInfo {
     /// Creates the information specific to a scanned text fragment from a range and a text run.
-    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>, content_inline_size: Au)
+    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>, content_size: LogicalSize<Au>)
                -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
             original_new_line_pos: None,
-            content_inline_size: content_inline_size,
+            content_size: content_size,
         }
     }
 }
@@ -604,7 +604,7 @@ impl Fragment {
         let new_border_box =
             LogicalRect::from_point_size(self.style.writing_mode, self.border_box.start, size);
 
-        info.content_inline_size = size.inline;
+        info.content_size = size.clone();
 
         Fragment {
             node: self.node,
@@ -822,7 +822,7 @@ impl Fragment {
             }
         };
 
-        self.border_padding = border + padding
+        self.border_padding = border + padding;
     }
 
     // Return offset from original position because of `position: relative`.
@@ -1703,7 +1703,7 @@ impl Fragment {
             ScannedTextFragment(ref info) => {
                 // Scanned text fragments will have already had their content inline-sizes assigned
                 // by this point.
-                self.border_box.size.inline = info.content_inline_size + noncontent_inline_size
+                self.border_box.size.inline = info.content_size.inline + noncontent_inline_size
             }
             ImageFragment(ref mut image_fragment_info) => {
                 // TODO(ksh8281): compute border,margin
@@ -1803,10 +1803,10 @@ impl Fragment {
                 image_fragment_info.computed_block_size = Some(block_size);
                 self.border_box.size.block = block_size + noncontent_block_size
             }
-            ScannedTextFragment(_) => {
+            ScannedTextFragment(ref info) => {
                 // Scanned text fragments' content block-sizes are calculated by the text run
                 // scanner during flow construction.
-                self.border_box.size.block = self.border_box.size.block + noncontent_block_size
+                self.border_box.size.block = info.content_size.block + noncontent_block_size
             }
             InlineBlockFragment(ref mut info) => {
                 // Not the primary fragment, so we do not take the noncontent size into account.
