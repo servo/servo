@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::codegen::InheritTypes::FileCast;
@@ -14,7 +15,6 @@ use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
 use servo_util::str::DOMString;
-use std::cell::RefCell;
 use std::collections::hashmap::HashMap;
 
 #[deriving(Clone)]
@@ -27,7 +27,7 @@ pub enum FormDatum {
 
 #[dom_struct]
 pub struct FormData {
-    data: RefCell<HashMap<DOMString, Vec<FormDatum>>>,
+    data: DOMRefCell<HashMap<DOMString, Vec<FormDatum>>>,
     reflector_: Reflector,
     global: GlobalField,
     form: Option<JS<HTMLFormElement>>
@@ -36,7 +36,7 @@ pub struct FormData {
 impl FormData {
     fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> FormData {
         FormData {
-            data: RefCell::new(HashMap::new()),
+            data: DOMRefCell::new(HashMap::new()),
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(global),
             form: form.map(|f| JS::from_rooted(f)),

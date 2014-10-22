@@ -5,6 +5,7 @@
 //! The core DOM types. Defines the basic DOM hierarchy as well as all the HTML elements.
 
 use dom::attr::{Attr, AttrHelpers};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -110,7 +111,7 @@ pub struct Node {
     /// node is finalized.
     layout_data: LayoutDataRef,
 
-    unique_id: RefCell<String>,
+    unique_id: DOMRefCell<String>,
 }
 
 impl NodeDerived for EventTarget {
@@ -1155,7 +1156,7 @@ impl Node {
 
             layout_data: LayoutDataRef::new(),
 
-            unique_id: RefCell::new("".to_string()),
+            unique_id: DOMRefCell::new("".to_string()),
         }
     }
 

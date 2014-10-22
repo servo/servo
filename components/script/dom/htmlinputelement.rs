@@ -27,7 +27,7 @@ use servo_util::str::{DOMString, parse_unsigned_integer};
 use string_cache::Atom;
 
 use std::ascii::OwnedStrAsciiExt;
-use std::cell::{Cell, RefCell};
+use std::cell::Cell;
 
 static DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 static DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -49,7 +49,7 @@ pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
     checked: Cell<bool>,
-    uncommitted_value: RefCell<Option<String>>,
+    uncommitted_value: DOMRefCell<Option<String>>,
     value: DOMRefCell<Option<String>>,
     size: Cell<u32>,
 }
@@ -68,7 +68,7 @@ impl HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, prefix, document),
             input_type: Cell::new(InputText),
             checked: Cell::new(false),
-            uncommitted_value: RefCell::new(None),
+            uncommitted_value: DOMRefCell::new(None),
             value: DOMRefCell::new(None),
             size: Cell::new(DEFAULT_INPUT_SIZE),
         }

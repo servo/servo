@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::{DOMRefCell, Ref, RefMut};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
@@ -25,7 +26,7 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
 use servo_util::str::DOMString;
 use servo_util::smallvec::{SmallVec1, SmallVec};
-use std::cell::{Cell, RefCell, Ref, RefMut};
+use std::cell::Cell;
 use std::comm::{channel, Receiver, Empty, Disconnected};
 use std::mem::replace;
 use std::rc::Rc;
@@ -44,7 +45,7 @@ pub struct Page {
     pub last_reflow_id: Cell<uint>,
 
     /// The outermost frame containing the document, window, and page URL.
-    pub frame: RefCell<Option<Frame>>,
+    pub frame: DOMRefCell<Option<Frame>>,
 
     /// A handle for communicating messages to the layout task.
     pub layout_chan: LayoutChan,
@@ -53,18 +54,18 @@ pub struct Page {
     layout_rpc: Box<LayoutRPC+'static>,
 
     /// The port that we will use to join layout. If this is `None`, then layout is not running.
-    pub layout_join_port: RefCell<Option<Receiver<()>>>,
+    pub layout_join_port: DOMRefCell<Option<Receiver<()>>>,
 
     /// The current size of the window, in pixels.
     pub window_size: Cell<WindowSizeData>,
 
-    js_info: RefCell<Option<JSPageInfo>>,
+    js_info: DOMRefCell<Option<JSPageInfo>>,
 
     /// Cached copy of the most recent url loaded by the script
     /// TODO(tkuehn): this currently does not follow any particular caching policy
     /// and simply caches pages forever (!). The bool indicates if reflow is required
     /// when reloading.
-    url: RefCell<Option<(Url, bool)>>,
+    url: DOMRefCell<Option<(Url, bool)>>,
 
     next_subpage_id: Cell<SubpageId>,
 
@@ -72,10 +73,10 @@ pub struct Page {
     pub resize_event: Cell<Option<WindowSizeData>>,
 
     /// Any nodes that need to be dirtied before the next reflow.
-    pub pending_dirty_nodes: RefCell<SmallVec1<UntrustedNodeAddress>>,
+    pub pending_dirty_nodes: DOMRefCell<SmallVec1<UntrustedNodeAddress>>,
 
     /// Pending scroll to fragment event, if any
-    pub fragment_name: RefCell<Option<String>>,
+    pub fragment_name: DOMRefCell<Option<String>>,
 
     /// Associated resource task for use by DOM objects like XMLHttpRequest
     pub resource_task: ResourceTask,
@@ -84,7 +85,7 @@ pub struct Page {
     pub constellation_chan: ConstellationChan,
 
     // Child Pages.
-    pub children: RefCell<Vec<Rc<Page>>>,
+    pub children: DOMRefCell<Vec<Rc<Page>>>,
 
     /// Whether layout needs to be run at all.
     pub damaged: Cell<bool>,
@@ -142,21 +143,21 @@ impl Page {
         Page {
             id: id,
             subpage_id: subpage_id,
-            frame: RefCell::new(None),
+            frame: DOMRefCell::new(None),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,
-            layout_join_port: RefCell::new(None),
+            layout_join_port: DOMRefCell::new(None),
             window_size: Cell::new(window_size),
-            js_info: RefCell::new(Some(js_info)),
-            url: RefCell::new(None),
+            js_info: DOMRefCell::new(Some(js_info)),
+            url: DOMRefCell::new(None),
             next_subpage_id: Cell::new(SubpageId(0)),
             resize_event: Cell::new(None),
-            pending_dirty_nodes: RefCell::new(SmallVec1::new()),
-            fragment_name: RefCell::new(None),
+            pending_dirty_nodes: DOMRefCell::new(SmallVec1::new()),
+            fragment_name: DOMRefCell::new(None),
             last_reflow_id: Cell::new(0),
             resource_task: resource_task,
             constellation_chan: constellation_chan,
-            children: RefCell::new(vec!()),
+            children: DOMRefCell::new(vec!()),
             damaged: Cell::new(false),
             pending_reflows: Cell::new(0),
             avoided_reflows: Cell::new(0),
