@@ -1,4 +1,4 @@
-import datetime, decimal
+import datetime, decimal, re
 
 try:
     _range = xrange
@@ -42,7 +42,7 @@ def loads(s):
         sl = list(s)
         openarr = 0
         openstring = False
-        arrayoftables = True
+        arrayoftables = False
         beginline = True
         keygroup = False
         delnum = 1
@@ -79,7 +79,7 @@ def loads(s):
                         keygroup = True
                 else:
                     openarr += 1
-            if sl[i] == ']' and not openstring and not keygroup and not arrayoftables:
+            if sl[i] == ']' and not openstring:
                 if keygroup:
                     keygroup = False
                 elif arrayoftables:
@@ -251,10 +251,10 @@ def load_value(v):
                 newv += unicode(hx[len(hxb):])
             v = newv
         for i in range(len(escapes)):
-            v = v.replace("\\"+escapes[i], escapedchars[i])
-            # (where (n) signifies a member of escapes:
-            # undo (\\)(\\)(n) -> (\\)(\n)
-            v = v.replace("\\"+escapedchars[i], "\\\\"+escapes[i])
+            if escapes[i] == '\\':
+                v = v.replace("\\"+escapes[i], escapedchars[i])
+            else:
+                v = re.sub("([^\\\\](\\\\\\\\)*)\\\\"+escapes[i], "\\1"+escapedchars[i], v)
         return (v[1:-1], "str")
     elif v[0] == '[':
         return (load_array(v), "array")
