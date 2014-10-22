@@ -344,8 +344,8 @@ impl Document {
     }
 
     #[inline]
-    pub fn window<'a>(&'a self) -> &'a JS<Window> {
-        &self.window
+    pub fn window(&self) -> Temporary<Window> {
+        Temporary::new(self.window)
     }
 
     #[inline]

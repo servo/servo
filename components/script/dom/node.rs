@@ -2163,7 +2163,7 @@ pub fn document_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Tempora
 
 pub fn window_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Window> {
     let document = document_from_node(derived).root();
-    Temporary::new(document.window().clone())
+    document.window()
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Node> {
