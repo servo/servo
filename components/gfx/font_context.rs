@@ -14,6 +14,7 @@ use font::FontHandleMethods;
 use platform::font::FontHandle;
 use servo_util::cache::HashCache;
 use servo_util::smallvec::{SmallVec, SmallVec1};
+use servo_util::geometry::Au;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -29,14 +30,14 @@ use azure::scaled_font::FontData;
 
 #[cfg(target_os="linux")]
 #[cfg(target_os="android")]
-fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: f64) -> ScaledFont {
-    ScaledFont::new(SkiaBackend, FontData(&template.bytes), pt_size as AzFloat)
+fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
+    ScaledFont::new(SkiaBackend, FontData(&template.bytes), pt_size.to_subpx() as AzFloat)
 }
 
 #[cfg(target_os="macos")]
-fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: f64) -> ScaledFont {
+fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
     let cgfont = template.ctfont.as_ref().unwrap().copy_to_CGFont();
-    ScaledFont::new(SkiaBackend, &cgfont, pt_size as AzFloat)
+    ScaledFont::new(SkiaBackend, &cgfont, pt_size.to_subpx() as AzFloat)
 }
 
 static SMALL_CAPS_SCALE_FACTOR: f64 = 0.8;      // Matches FireFox (see gfxFont.h)
@@ -53,7 +54,7 @@ struct FallbackFontCacheEntry {
 /// A cached azure font (per render task) that
 /// can be shared by multiple text runs.
 struct RenderFontCacheEntry {
-    pt_size: f64,
+    pt_size: Au,
     identifier: String,
     font: Rc<RefCell<ScaledFont>>,
 }
@@ -89,13 +90,13 @@ impl FontContext {
 
     /// Create a font for use in layout calculations.
     fn create_layout_font(&self, template: Arc<FontTemplateData>,
-                            descriptor: FontTemplateDescriptor, pt_size: f64,
+                            descriptor: FontTemplateDescriptor, pt_size: Au,
                             variant: font_variant::T) -> Font {
         // TODO: (Bug #3463): Currently we only support fake small-caps
         // rendering. We should also support true small-caps (where the
         // font supports it) in the future.
         let actual_pt_size = match variant {
-            font_variant::small_caps => pt_size * SMALL_CAPS_SCALE_FACTOR,
+            font_variant::small_caps => pt_size.scale_by(SMALL_CAPS_SCALE_FACTOR),
             font_variant::normal => pt_size,
         };
 
@@ -140,7 +141,7 @@ impl FontContext {
                         Some(ref cached_font_ref) => {
                             let cached_font = cached_font_ref.borrow();
                             if cached_font.descriptor == desc &&
-                               cached_font.requested_pt_size == style.font_size.to_subpx() &&
+                               cached_font.requested_pt_size == style.font_size &&
                                cached_font.variant == style.font_variant {
                                 fonts.push((*cached_font_ref).clone());
                                 cache_hit = true;
@@ -159,7 +160,7 @@ impl FontContext {
                     Some(font_template) => {
                         let layout_font = self.create_layout_font(font_template,
                                                                   desc.clone(),
-                                                                  style.font_size.to_subpx(),
+                                                                  style.font_size,
                                                                   style.font_variant);
                         let layout_font = Rc::new(RefCell::new(layout_font));
                         self.layout_font_cache.push(LayoutFontCacheEntry {
@@ -185,7 +186,7 @@ impl FontContext {
             for cached_font_entry in self.fallback_font_cache.iter() {
                 let cached_font = cached_font_entry.font.borrow();
                 if cached_font.descriptor == desc &&
-                            cached_font.requested_pt_size == style.font_size.to_subpx() &&
+                            cached_font.requested_pt_size == style.font_size &&
                             cached_font.variant == style.font_variant {
                     fonts.push(cached_font_entry.font.clone());
                     cache_hit = true;
@@ -197,7 +198,7 @@ impl FontContext {
                 let font_template = self.font_cache_task.get_last_resort_font_template(desc.clone());
                 let layout_font = self.create_layout_font(font_template,
                                                           desc.clone(),
-                                                          style.font_size.to_subpx(),
+                                                          style.font_size,
                                                           style.font_variant);
                 let layout_font = Rc::new(RefCell::new(layout_font));
                 self.fallback_font_cache.push(FallbackFontCacheEntry {
@@ -214,7 +215,7 @@ impl FontContext {
     /// reference if already used by this font context.
     pub fn get_render_font_from_template(&mut self,
                                          template: &Arc<FontTemplateData>,
-                                         pt_size: f64) -> Rc<RefCell<ScaledFont>> {
+                                         pt_size: Au) -> Rc<RefCell<ScaledFont>> {
         for cached_font in self.render_font_cache.iter() {
             if cached_font.pt_size == pt_size &&
                cached_font.identifier == template.identifier {
