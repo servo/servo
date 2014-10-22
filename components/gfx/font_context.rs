@@ -231,4 +231,9 @@ impl FontContext {
         });
         render_font
     }
+
+    /// Returns a reference to the font cache task.
+    pub fn font_cache_task(&self) -> FontCacheTask {
+        self.font_cache_task.clone()
+    }
 }
