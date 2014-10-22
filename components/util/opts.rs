@@ -130,7 +130,6 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optflag("c", "cpu", "CPU painting (default)"),
         getopts::optflag("g", "gpu", "GPU painting"),
         getopts::optopt("o", "output", "Output file", "output.png"),
-        getopts::optopt("r", "rendering", "Rendering backend", "direct2d|core-graphics|core-graphics-accelerated|cairo|skia."),
         getopts::optopt("s", "size", "Size of tiles", "512"),
         getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
         getopts::optflag("e", "experimental", "Enable experimental web features"),
