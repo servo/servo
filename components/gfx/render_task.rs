@@ -33,6 +33,7 @@ use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use std::comm::{Receiver, Sender, channel};
+use std::fmt;
 use std::mem;
 use std::task::TaskBuilder;
 use sync::Arc;
@@ -51,6 +52,12 @@ pub struct RenderLayer {
     pub background_color: Color,
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
+}
+
+impl fmt::Show for RenderLayer {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} @ {} [{}]", self.id, self.position, self.scroll_policy)
+    }
 }
 
 pub struct RenderRequest {
@@ -566,4 +573,3 @@ enum MsgToWorkerThread {
 enum MsgFromWorkerThread {
     PaintedTileMsgFromWorkerThread(Box<LayerBuffer>),
 }
-

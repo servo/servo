@@ -35,6 +35,7 @@ use flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
 use flow;
 use fragment::{Fragment, ImageFragment, InlineBlockFragment, ScannedTextFragment};
+use incremental::Reflow;
 use layout_debug;
 use model::{Auto, IntrinsicISizes, MarginCollapseInfo, MarginsCollapse, MarginsCollapseThrough};
 use model::{MaybeAuto, NoCollapsibleMargins, Specified, specified, specified_or_none};
@@ -462,7 +463,7 @@ impl<'a> PostorderFlowTraversal for AbsoluteStoreOverflowTraversal<'a> {
     }
 }
 
-enum BlockType {
+pub enum BlockType {
     BlockReplacedType,
     BlockNonReplacedType,
     AbsoluteReplacedType,
@@ -609,7 +610,7 @@ impl BlockFlow {
     ///
     /// This determines the algorithm used to calculate inline-size, block-size, and the
     /// relevant margins for this Block.
-    fn block_type(&self) -> BlockType {
+    pub fn block_type(&self) -> BlockType {
         if self.is_absolutely_positioned() {
             if self.is_replaced_content() {
                 AbsoluteReplacedType
@@ -1062,6 +1063,7 @@ impl BlockFlow {
         let margin_offset = LogicalPoint::new(writing_mode,
                                               Au(0),
                                               self.fragment.margin.block_start);
+
         self.base.position = self.base.position.translate(&float_offset).translate(&margin_offset);
     }
 
@@ -1241,6 +1243,8 @@ impl BlockFlow {
         };
 
         for (i, kid) in self.base.child_iter().enumerate() {
+            if !flow::base(kid).restyle_damage.contains(Reflow) { continue }
+
             {
                 let kid_base = flow::mut_base(kid);
                 kid_base.block_container_explicit_block_size = explicit_content_size;
@@ -1262,6 +1266,7 @@ impl BlockFlow {
 
             // The inline-start margin edge of the child flow is at our inline-start content edge,
             // and its inline-size is our content inline-size.
+
             flow::mut_base(kid).position.start.i = inline_start_content_edge;
             flow::mut_base(kid).block_container_inline_size = content_inline_size;
 
@@ -1613,17 +1618,16 @@ impl Flow for BlockFlow {
         if self.is_absolutely_positioned() {
             let position_start = self.base.position.start.to_physical(
                 self.base.writing_mode, container_size);
-            self.base
-                .absolute_position_info
-                .absolute_containing_block_position = if self.is_fixed() {
-                // The viewport is initially at (0, 0).
-                position_start
-            } else {
-                // Absolute position of the containing block + position of absolute flow w/r/t the
-                // containing block.
-                self.base.absolute_position_info.absolute_containing_block_position
-                    + position_start
-            };
+            self.base.absolute_position_info.absolute_containing_block_position =
+                if self.is_fixed() {
+                    // The viewport is initially at (0, 0).
+                    position_start
+                } else {
+                    // Absolute position of the containing block + position of absolute
+                    // flow w.r.t. the containing block.
+                    self.base.absolute_position_info.absolute_containing_block_position
+                        + position_start
+                };
 
             // Set the absolute position, which will be passed down later as part
             // of containing block details for absolute descendants.
@@ -1664,7 +1668,7 @@ impl Flow for BlockFlow {
                     this_position +
                     (kid_base.position.start + relative_offset).to_physical(writing_mode,
                                                                             container_size);
-                kid_base.absolute_position_info = absolute_position_info
+                kid_base.absolute_position_info = absolute_position_info;
             }
 
             flow::mut_base(kid).clip_rect = clip_rect
@@ -2224,6 +2228,7 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
                                      block: &mut BlockFlow,
                                      solution: ISizeConstraintSolution) {
         // Set the x-coordinate of the absolute flow wrt to its containing block.
+
         block.base.position.start.i = solution.inline_start;
     }
 }
@@ -2470,6 +2475,7 @@ fn propagate_column_inline_sizes_to_child(kid: &mut Flow,
 
     {
         let kid_base = flow::mut_base(kid);
+
         kid_base.position.start.i = *inline_start_margin_edge;
         kid_base.block_container_inline_size = inline_size;
     }

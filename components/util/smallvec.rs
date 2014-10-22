@@ -7,6 +7,7 @@
 
 use std::mem::init as i;
 use std::cmp;
+use std::fmt;
 use std::intrinsics;
 use std::kinds::marker::ContravariantLifetime;
 use std::mem;
@@ -405,6 +406,12 @@ macro_rules! def_small_vector(
             }
         }
 
+        impl<T: fmt::Show + 'static> fmt::Show for $name<T> {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "{}", self.as_slice())
+            }
+        }
+
         impl<T: 'static> $name<T> {
             #[inline]
             pub fn new() -> $name<T> {
@@ -527,4 +534,3 @@ pub mod tests {
         ].as_slice());
     }
 }
-
