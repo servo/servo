@@ -52,7 +52,7 @@ pub extern "C" fn cef_run_message_loop() {
     let opts = opts::Opts {
         urls: urls,
         n_render_threads: 1,
-        cpu_painting: false,
+        gpu_painting: false,
         tile_size: 512,
         device_pixels_per_px: None,
         time_profiler_period: None,

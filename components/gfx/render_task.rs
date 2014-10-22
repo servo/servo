@@ -162,7 +162,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
             { // Ensures RenderTask and graphics context are destroyed before shutdown msg
                 let native_graphics_context = compositor.get_graphics_metadata().map(
                     |md| NativePaintingGraphicsContext::from_metadata(&md));
-                let cpu_painting = opts::get().cpu_painting;
+                let gpu_painting = opts::get().gpu_painting;
 
                 // FIXME: rust/#5967
                 let mut render_task = RenderTask {
@@ -173,10 +173,10 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     font_ctx: box FontContext::new(fc.clone()),
                     time_profiler_chan: time_profiler_chan,
 
-                    graphics_context: if cpu_painting {
-                        CpuGraphicsContext
-                    } else {
+                    graphics_context: if gpu_painting {
                         GpuGraphicsContext
+                    } else {
+                        CpuGraphicsContext
                     },
 
                     native_graphics_context: native_graphics_context,
