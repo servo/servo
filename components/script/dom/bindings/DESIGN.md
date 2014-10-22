@@ -17,7 +17,7 @@ The outline is:
      This is typically derived via a #[jstraceable] annotation.
 3. For all fields, `Foo::trace()`
    calls `trace()` on the field. For example, for fields of type `JS<T>`, `JS<T>::trace()` calls
-   `trace_reflector()`. Non-JS-managed types have an empty inline `trace()` method, achieved via `untraceable!` or similar.
+   `trace_reflector()`. Non-JS-managed types have an empty inline `trace()` method, achieved via `no_jsmanaged_fields!` or similar.
 4. `trace_reflector()` fetches the reflector that is reachable from a Rust object and notifies it to the GC using JSTracer.
 5. This operation continues for the rest of the graph.
 6. Finally, the GC checks whether the Rust object lives or not from `JSObject`s which are held by Rust object.

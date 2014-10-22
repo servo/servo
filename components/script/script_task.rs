@@ -113,7 +113,7 @@ pub enum ScriptMsg {
 #[deriving(Clone)]
 pub struct ScriptChan(pub Sender<ScriptMsg>);
 
-untraceable!(ScriptChan)
+no_jsmanaged_fields!(ScriptChan)
 
 impl ScriptChan {
     /// Creates a new script chan.
