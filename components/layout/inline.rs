@@ -6,6 +6,7 @@
 
 use css::node_style::StyledNode;
 use context::LayoutContext;
+use display_list_builder::FragmentDisplayListBuilding;
 use floats::{FloatLeft, Floats, PlacementInfo};
 use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
 use flow;
@@ -24,6 +25,7 @@ use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::{LogicalRect, LogicalSize};
+use servo_util::opts;
 use servo_util::range::{IntRangeIndex, Range, RangeIndex};
 use servo_util::arc_ptr_eq;
 use std::cmp::max;
@@ -706,44 +708,6 @@ impl InlineFlow {
         }
     }
 
-    pub fn build_display_list_inline(&mut self, layout_context: &LayoutContext) {
-        let size = self.base.position.size.to_physical(self.base.writing_mode);
-        if !Rect(self.base.abs_position, size).intersects(&layout_context.shared.dirty) {
-            debug!("inline block (abs pos {}, size {}) didn't intersect \
-                    dirty rect two",
-                     self.base.abs_position,
-                     size);
-            return
-        }
-
-        // TODO(#228): Once we form lines and have their cached bounds, we can be smarter and
-        // not recurse on a line if nothing in it can intersect the dirty region.
-        debug!("Flow: building display list for {:u} inline fragments", self.fragments.len());
-
-        for fragment in self.fragments.fragments.iter_mut() {
-            let rel_offset = fragment.relative_position(&self.base
-                                                             .absolute_position_info
-                                                             .relative_containing_block_size);
-            let fragment_position = self.base
-                                        .abs_position
-                                        .add_size(&rel_offset.to_physical(self.base.writing_mode));
-            fragment.build_display_list(&mut self.base.display_list,
-                                        layout_context,
-                                        fragment_position,
-                                        ContentLevel,
-                                        &self.base.clip_rect);
-            match fragment.specific {
-                InlineBlockFragment(ref mut block_flow) => {
-                    let block_flow = block_flow.flow_ref.deref_mut();
-                    self.base.display_list.push_all_move(
-                        mem::replace(&mut flow::mut_base(block_flow).display_list,
-                                     DisplayList::new()));
-                }
-                _ => {}
-            }
-        }
-    }
-
     /// Returns the distance from the baseline for the logical block-start inline-start corner of
     /// this fragment, taking into account the value of the CSS `vertical-align` property.
     /// Negative values mean "toward the logical block-start" and positive values mean "toward the
@@ -1201,6 +1165,48 @@ impl Flow for InlineFlow {
     fn update_late_computed_inline_position_if_necessary(&mut self, _: Au) {}
 
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
+
+    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+        let size = self.base.position.size.to_physical(self.base.writing_mode);
+        if !Rect(self.base.abs_position, size).intersects(&layout_context.shared.dirty) {
+            debug!("inline block (abs pos {}, size {}) didn't intersect \
+                    dirty rect two",
+                     self.base.abs_position,
+                     size);
+            return
+        }
+
+        // TODO(#228): Once we form lines and have their cached bounds, we can be smarter and
+        // not recurse on a line if nothing in it can intersect the dirty region.
+        debug!("Flow: building display list for {:u} inline fragments", self.fragments.len());
+
+        for fragment in self.fragments.fragments.iter_mut() {
+            let rel_offset = fragment.relative_position(&self.base
+                                                             .absolute_position_info
+                                                             .relative_containing_block_size);
+            let fragment_position = self.base
+                                        .abs_position
+                                        .add_size(&rel_offset.to_physical(self.base.writing_mode));
+            fragment.build_display_list(&mut self.base.display_list,
+                                        layout_context,
+                                        fragment_position,
+                                        ContentLevel,
+                                        &self.base.clip_rect);
+            match fragment.specific {
+                InlineBlockFragment(ref mut block_flow) => {
+                    let block_flow = block_flow.flow_ref.deref_mut();
+                    self.base.display_list.push_all_move(
+                        mem::replace(&mut flow::mut_base(block_flow).display_list,
+                                     DisplayList::new()));
+                }
+                _ => {}
+            }
+        }
+
+        if opts::get().validate_display_list_geometry {
+            self.base.validate_display_list_geometry();
+        }
+    }
 }
 
 impl fmt::Show for InlineFlow {
