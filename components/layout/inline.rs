@@ -408,7 +408,7 @@ impl LineBreaker {
                 ScannedTextFragmentInfo::new(
                     run.clone(),
                     split.range,
-                    in_fragment.border_box.size.inline);
+                    in_fragment.border_box.size);
             let size = LogicalSize::new(
                 writing_mode, split.inline_size, in_fragment.border_box.size.block);
             in_fragment.transform(size, info)
@@ -499,7 +499,7 @@ impl LineBreaker {
                     ScannedTextFragmentInfo::new(
                         run.clone(),
                         split.range,
-                        in_fragment.border_box.size.inline);
+                        in_fragment.border_box.size);
                 let size = LogicalSize::new(self.floats.writing_mode,
                                             split.inline_size,
                                             in_fragment.border_box.size.block);
