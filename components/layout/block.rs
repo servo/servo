@@ -48,7 +48,7 @@ use geom::Size2D;
 use gfx::display_list::BlockLevel;
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
-use servo_util::geometry::{Au, MAX_AU, MAX_RECT};
+use servo_util::geometry::{Au, MAX_AU};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::cmp::{max, min};
@@ -1664,10 +1664,6 @@ impl Flow for BlockFlow {
     fn compute_absolute_position(&mut self) {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
-
-        if self.is_root() {
-            self.base.clip_rect = MAX_RECT;
-        }
 
         if self.base.flags.is_absolutely_positioned() {
             let position_start = self.base.position.start.to_physical(self.base.writing_mode,

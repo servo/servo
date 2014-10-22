@@ -499,6 +499,10 @@ impl FragmentDisplayListBuilding for Fragment {
             return
         }
 
+        if !absolute_fragment_bounds.intersects(clip_rect) {
+            return;
+        }
+
         debug!("Fragment::build_display_list: intersected. Adding display item...");
 
         if self.is_primary_fragment() {
