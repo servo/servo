@@ -29,6 +29,7 @@
 
 use construct::FlowConstructor;
 use context::LayoutContext;
+use display_list_builder::{BlockFlowDisplayListBuilding, FragmentDisplayListBuilding};
 use floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, FloatLeft, Floats, PlacementInfo};
 use flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
@@ -40,24 +41,18 @@ use model::{MaybeAuto, NoCollapsibleMargins, Specified, specified, specified_or_
 use table::ColumnInlineSize;
 use wrapper::ThreadSafeLayoutNode;
 
-use collections::dlist::DList;
-use geom::{Size2D, Point2D, Rect};
-use gfx::color;
-use gfx::display_list::{BackgroundAndBorderLevel, BlockLevel, ContentStackingLevel, DisplayList};
-use gfx::display_list::{FloatStackingLevel, PositionedDescendantStackingLevel};
-use gfx::display_list::{RootOfStackingContextLevel};
-use gfx::render_task::RenderLayer;
+use geom::Size2D;
+use gfx::display_list::BlockLevel;
 use serialize::{Encoder, Encodable};
-use servo_msg::compositor_msg::{FixedPosition, LayerId, Scrollable};
+use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::{Au, MAX_AU, MAX_RECT};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
+use servo_util::opts;
 use std::cmp::{max, min};
 use std::fmt;
-use std::mem;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
 use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage, box_sizing, clear};
 use style::computed_values::{display, float, overflow, position};
-use sync::Arc;
 
 /// Information specific to floated blocks.
 #[deriving(Clone, Encodable)]
@@ -1070,70 +1065,6 @@ impl BlockFlow {
         self.base.position = self.base.position.translate(&float_offset).translate(&margin_offset);
     }
 
-    fn build_display_list_block_common(&mut self,
-                                       layout_context: &LayoutContext,
-                                       background_border_level: BackgroundAndBorderLevel) {
-        let relative_offset =
-            self.fragment.relative_position(&self.base
-                                                 .absolute_position_info
-                                                 .relative_containing_block_size);
-
-        // Add the box that starts the block context.
-        let mut display_list = DisplayList::new();
-        self.fragment.build_display_list(&mut display_list,
-                                         layout_context,
-                                         self.base.abs_position.add_size(
-                                             &relative_offset.to_physical(self.base.writing_mode)),
-                                         background_border_level,
-                                         &self.base.clip_rect);
-
-        let mut child_layers = DList::new();
-        for kid in self.base.child_iter() {
-            if kid.is_absolutely_positioned() {
-                // All absolute flows will be handled by their containing block.
-                continue
-            }
-
-            display_list.push_all_move(mem::replace(&mut flow::mut_base(kid).display_list,
-                                                    DisplayList::new()));
-            child_layers.append(mem::replace(&mut flow::mut_base(kid).layers, DList::new()))
-        }
-
-        // Process absolute descendant links.
-        for abs_descendant_link in self.base.abs_descendants.iter() {
-            // TODO(pradeep): Send in our absolute position directly.
-            display_list.push_all_move(mem::replace(
-                    &mut flow::mut_base(abs_descendant_link).display_list,
-                    DisplayList::new()));
-            child_layers.append(mem::replace(&mut flow::mut_base(abs_descendant_link).layers,
-                                             DList::new()));
-        }
-
-        self.base.display_list = display_list;
-        self.base.layers = child_layers
-    }
-
-    /// Add display items for current block.
-    ///
-    /// Set the absolute position for children after doing any offsetting for
-    /// position: relative.
-    pub fn build_display_list_block(&mut self, layout_context: &LayoutContext) {
-        if self.is_float() {
-            // TODO(#2009, pcwalton): This is a pseudo-stacking context. We need to merge `z-index:
-            // auto` kids into the parent stacking context, when that is supported.
-            self.build_display_list_float(layout_context)
-        } else if self.is_absolutely_positioned() {
-            self.build_display_list_abs(layout_context)
-        } else {
-            self.build_display_list_block_common(layout_context, BlockLevel)
-        }
-    }
-
-    pub fn build_display_list_float(&mut self, layout_context: &LayoutContext) {
-        self.build_display_list_block_common(layout_context, RootOfStackingContextLevel);
-        self.base.display_list = mem::replace(&mut self.base.display_list,
-                                              DisplayList::new()).flatten(FloatStackingLevel)
-    }
 
     /// Calculate and set the block-size, offsets, etc. for absolutely positioned flow.
     ///
@@ -1230,43 +1161,6 @@ impl BlockFlow {
         let block_size = solution.block_size + self.fragment.border_padding.block_start_end();
         self.fragment.border_box.size.block = block_size;
         self.base.position.size.block = block_size;
-    }
-
-    /// Add display items for Absolutely Positioned flow.
-    fn build_display_list_abs(&mut self, layout_context: &LayoutContext) {
-        self.build_display_list_block_common(layout_context, RootOfStackingContextLevel);
-
-        if !self.base.absolute_position_info.layers_needed_for_positioned_flows &&
-                !self.base.flags.needs_layer() {
-            // We didn't need a layer.
-            let z_index = self.fragment.style().get_box().z_index.number_or_zero();
-            let level = PositionedDescendantStackingLevel(z_index);
-            self.base.display_list = mem::replace(&mut self.base.display_list,
-                                                  DisplayList::new()).flatten(level);
-            return
-        }
-
-        // If we got here, then we need a new layer.
-        let layer_rect = self.base.position.union(&self.base.overflow);
-        let size = Size2D(layer_rect.size.inline.to_nearest_px() as uint,
-                          layer_rect.size.block.to_nearest_px() as uint);
-        let origin = Point2D(self.base.abs_position.x.to_nearest_px() as uint,
-                             self.base.abs_position.y.to_nearest_px() as uint);
-
-        let scroll_policy = if self.is_fixed() {
-            FixedPosition
-        } else {
-            Scrollable
-        };
-        let display_list = mem::replace(&mut self.base.display_list, DisplayList::new());
-        let new_layer = RenderLayer {
-            id: self.layer_id(0),
-            display_list: Arc::new(display_list.flatten(ContentStackingLevel)),
-            position: Rect(origin, size),
-            background_color: color::rgba(1.0, 1.0, 1.0, 0.0),
-            scroll_policy: scroll_policy,
-        };
-        self.base.layers.push(new_layer)
     }
 
     /// Return the block-start outer edge of the hypothetical box for an absolute flow.
@@ -1837,6 +1731,22 @@ impl Flow for BlockFlow {
                 self.fragment.style().logical_position().block_start == LPA_Auto &&
                 self.fragment.style().logical_position().block_end == LPA_Auto {
             self.base.position.start.b = block_position
+        }
+    }
+
+    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+        if self.is_float() {
+            // TODO(#2009, pcwalton): This is a pseudo-stacking context. We need to merge `z-index:
+            // auto` kids into the parent stacking context, when that is supported.
+            self.build_display_list_for_floating_block(layout_context)
+        } else if self.is_absolutely_positioned() {
+            self.build_display_list_for_absolutely_positioned_block(layout_context)
+        } else {
+            self.build_display_list_for_block(layout_context, BlockLevel)
+        }
+
+        if opts::get().validate_display_list_geometry {
+            self.base.validate_display_list_geometry();
         }
     }
 }
@@ -2562,3 +2472,4 @@ fn propagate_column_inline_sizes_to_child(kid: &mut Flow,
         *inline_start_margin_edge = *inline_start_margin_edge + inline_size
     }
 }
+

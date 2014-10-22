@@ -109,11 +109,6 @@ impl TableWrapperFlow {
         }
     }
 
-    pub fn build_display_list_table_wrapper(&mut self, layout_context: &LayoutContext) {
-        debug!("build_display_list_table_wrapper: same process as block flow");
-        self.block_flow.build_display_list_block(layout_context);
-    }
-
     /// Calculates table column sizes for automatic layout per INTRINSIC § 4.3.
     fn calculate_table_column_sizes_for_automatic_layout(&mut self) {
         // Find the padding and border of our first child, which is the table itself.
@@ -337,6 +332,10 @@ impl Flow for TableWrapperFlow {
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
         self.block_flow.update_late_computed_block_position_if_necessary(block_position)
+    }
+
+    fn build_display_list(&mut self, layout_context: &LayoutContext) {
+        self.block_flow.build_display_list(layout_context)
     }
 }
 
