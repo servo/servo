@@ -522,10 +522,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 }
 
                 if namespace == ns!("") {
-                    let removed_raw_value = (*self.attrs.borrow())[idx].root().Value();
-                    vtable_for(&NodeCast::from_ref(self))
-                        .before_remove_attr(&local_name,
-                                            removed_raw_value);
+                    let attr = (*self.attrs.borrow())[idx].root();
+                    vtable_for(&NodeCast::from_ref(self)).before_remove_attr(*attr);
                 }
 
                 self.attrs.borrow_mut().remove(idx);
@@ -981,22 +979,24 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         Some(node as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
-            _ => (),
+            Some(ref s) => s.after_set_attr(attr),
+            _ => ()
         }
 
-        match name.as_slice() {
-            "style" => {
+        match attr.local_name() {
+            &atom!("style") => {
                 let doc = document_from_node(*self).root();
                 let base_url = doc.url().clone();
+                let value = attr.value();
                 let style = Some(style::parse_style_attribute(value.as_slice(), &base_url));
                 *self.style_attribute.borrow_mut() = style;
             }
-            "id" => {
+            &atom!("id") => {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
-                if node.is_in_doc() && !value.is_empty() {
+                let value = attr.value();
+                if node.is_in_doc() && !value.as_slice().is_empty() {
                     let doc = document_from_node(*self).root();
                     let value = Atom::from_slice(value.as_slice());
                     doc.register_named_element(*self, value);
@@ -1005,22 +1005,23 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             _ => ()
         }
 
-        self.notify_attribute_changed(name);
+        self.notify_attribute_changed(attr.local_name());
     }
 
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value.clone()),
-            _ => (),
+            Some(ref s) => s.before_remove_attr(attr),
+            _ => ()
         }
 
-        match name.as_slice() {
-            "style" => {
+        match attr.local_name() {
+            &atom!("style") => {
                 *self.style_attribute.borrow_mut() = None;
             }
-            "id" => {
+            &atom!("id") => {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
-                if node.is_in_doc() && !value.is_empty() {
+                let value = attr.value();
+                if node.is_in_doc() && !value.as_slice().is_empty() {
                     let doc = document_from_node(*self).root();
                     let value = Atom::from_slice(value.as_slice());
                     doc.unregister_named_element(*self, value);
@@ -1029,7 +1030,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             _ => ()
         }
 
-        self.notify_attribute_changed(name);
+        self.notify_attribute_changed(attr.local_name());
     }
 
     fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {

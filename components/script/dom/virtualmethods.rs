@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::Attr;
 use dom::attr::{AttrValue, StringAttrValue};
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
@@ -62,7 +63,6 @@ use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 
 use servo_util::str::DOMString;
-use string_cache::Atom;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.
@@ -73,18 +73,18 @@ pub trait VirtualMethods {
 
     /// Called when changing or adding attributes, after the attribute's value
     /// has been updated.
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value),
+            Some(ref s) => s.after_set_attr(attr),
             _ => (),
         }
     }
 
     /// Called when changing or removing attributes, before any modification
     /// has taken place.
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value),
+            Some(ref s) => s.before_remove_attr(attr),
             _ => (),
         }
     }
