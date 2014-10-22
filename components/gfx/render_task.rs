@@ -16,10 +16,11 @@ use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use layers::platform::surface::{NativePaintingGraphicsContext, NativeSurface};
-use layers::platform::surface::{NativeSurfaceMethods};
+use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsContext};
+use layers::platform::surface::{NativeSurface, NativeSurfaceMethods};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
+use native::task::NativeTaskBuilder;
 use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerId};
 use servo_msg::compositor_msg::{LayerMetadata, RenderListener, RenderingRenderState, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineId};
@@ -32,10 +33,13 @@ use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use std::comm::{Receiver, Sender, channel};
+use std::mem;
+use std::task::TaskBuilder;
 use sync::Arc;
 use font_cache_task::FontCacheTask;
 
 /// Information about a layer that layout sends to the painting task.
+#[deriving(Clone)]
 pub struct RenderLayer {
     /// A per-pipeline ID describing this layer that should be stable across reflows.
     pub id: LayerId,
@@ -85,25 +89,14 @@ impl RenderChan {
     }
 }
 
-/// If we're using GPU rendering, this provides the metadata needed to create a GL context that
-/// is compatible with that of the main thread.
-pub enum GraphicsContext {
-    CpuGraphicsContext,
-    GpuGraphicsContext,
-}
-
 pub struct RenderTask<C> {
     id: PipelineId,
     port: Receiver<Msg>,
     compositor: C,
     constellation_chan: ConstellationChan,
-    font_ctx: Box<FontContext>,
 
     /// A channel to the time profiler.
     time_profiler_chan: TimeProfilerChan,
-
-    /// The graphics context to use.
-    graphics_context: GraphicsContext,
 
     /// The native graphics context.
     native_graphics_context: Option<NativePaintingGraphicsContext>,
@@ -119,6 +112,9 @@ pub struct RenderTask<C> {
 
     /// A data structure to store unused LayerBuffers
     buffer_map: BufferMap,
+
+    /// Communication handles to each of the worker threads.
+    worker_threads: Vec<WorkerThreadProxy>,
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing
@@ -129,11 +125,11 @@ macro_rules! native_graphics_context(
     )
 )
 
-fn initialize_layers<C:RenderListener>(
-                     compositor: &mut C,
-                     pipeline_id: PipelineId,
-                     epoch: Epoch,
-                     render_layers: &[RenderLayer]) {
+fn initialize_layers<C>(compositor: &mut C,
+                        pipeline_id: PipelineId,
+                        epoch: Epoch,
+                        render_layers: &[RenderLayer])
+                        where C: RenderListener {
     let metadata = render_layers.iter().map(|render_layer| {
         LayerMetadata {
             id: render_layer.id,
@@ -145,7 +141,7 @@ fn initialize_layers<C:RenderListener>(
     compositor.initialize_layers_for_pipeline(pipeline_id, metadata, epoch);
 }
 
-impl<C:RenderListener + Send> RenderTask<C> {
+impl<C> RenderTask<C> where C: RenderListener + Send {
     pub fn create(id: PipelineId,
                   port: Receiver<Msg>,
                   compositor: C,
@@ -154,15 +150,14 @@ impl<C:RenderListener + Send> RenderTask<C> {
                   failure_msg: Failure,
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
-
         let ConstellationChan(c) = constellation_chan.clone();
-        let fc = font_cache_task.clone();
-
         spawn_named_with_send_on_failure("RenderTask", proc() {
             { // Ensures RenderTask and graphics context are destroyed before shutdown msg
                 let native_graphics_context = compositor.get_graphics_metadata().map(
                     |md| NativePaintingGraphicsContext::from_metadata(&md));
-                let gpu_painting = opts::get().gpu_painting;
+                let worker_threads = WorkerThreadProxy::spawn(compositor.get_graphics_metadata(),
+                                                              font_cache_task,
+                                                              time_profiler_chan.clone());
 
                 // FIXME: rust/#5967
                 let mut render_task = RenderTask {
@@ -170,14 +165,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     port: port,
                     compositor: compositor,
                     constellation_chan: constellation_chan,
-                    font_ctx: box FontContext::new(fc.clone()),
                     time_profiler_chan: time_profiler_chan,
-
-                    graphics_context: if gpu_painting {
-                        GpuGraphicsContext
-                    } else {
-                        CpuGraphicsContext
-                    },
 
                     native_graphics_context: native_graphics_context,
 
@@ -186,6 +174,7 @@ impl<C:RenderListener + Send> RenderTask<C> {
                     paint_permission: false,
                     epoch: Epoch(0),
                     buffer_map: BufferMap::new(10000000),
+                    worker_threads: worker_threads,
                 };
 
                 render_task.start();
@@ -194,6 +183,11 @@ impl<C:RenderListener + Send> RenderTask<C> {
                 match render_task.native_graphics_context.as_ref() {
                     Some(ctx) => render_task.buffer_map.clear(ctx),
                     None => (),
+                }
+
+                // Tell all the worker threads to shut down.
+                for worker_thread in render_task.worker_threads.iter_mut() {
+                    worker_thread.exit()
                 }
             }
 
@@ -279,171 +273,297 @@ impl<C:RenderListener + Send> RenderTask<C> {
         }
     }
 
+    /// Retrieves an appropriately-sized layer buffer from the cache to match the requirements of
+    /// the given tile, or creates one if a suitable one cannot be found.
+    fn find_or_create_layer_buffer_for_tile(&mut self, tile: &BufferRequest, scale: f32)
+                                            -> Option<Box<LayerBuffer>> {
+        let width = tile.screen_rect.size.width;
+        let height = tile.screen_rect.size.height;
+        if opts::get().gpu_painting {
+            return None
+        }
+
+        match self.buffer_map.find(tile.screen_rect.size) {
+            Some(mut buffer) => {
+                buffer.rect = tile.page_rect;
+                buffer.screen_pos = tile.screen_rect;
+                buffer.resolution = scale;
+                buffer.native_surface.mark_wont_leak();
+                buffer.painted_with_cpu = true;
+                buffer.content_age = tile.content_age;
+                return Some(buffer)
+            }
+            None => {}
+        }
+
+        // Create an empty native surface. We mark it as not leaking
+        // in case it dies in transit to the compositor task.
+        let mut native_surface: NativeSurface =
+            layers::platform::surface::NativeSurfaceMethods::new(native_graphics_context!(self),
+                                                                 Size2D(width as i32,
+                                                                        height as i32),
+                                                                 width as i32 * 4);
+        native_surface.mark_wont_leak();
+
+        Some(box LayerBuffer {
+            native_surface: native_surface,
+            rect: tile.page_rect,
+            screen_pos: tile.screen_rect,
+            resolution: scale,
+            stride: (width * 4) as uint,
+            painted_with_cpu: true,
+            content_age: tile.content_age,
+        })
+    }
+
     /// Renders one layer and sends the tiles back to the layer.
     fn render(&mut self,
               replies: &mut Vec<(LayerId, Box<LayerBufferSet>)>,
-              tiles: Vec<BufferRequest>,
+              mut tiles: Vec<BufferRequest>,
               scale: f32,
               layer_id: LayerId) {
-        time::profile(time::RenderingCategory, None, self.time_profiler_chan.clone(), || {
-            // FIXME: Try not to create a new array here.
-            let mut new_buffers = vec!();
-
-            // Find the appropriate render layer.
+        time::profile(time::PaintingCategory, None, self.time_profiler_chan.clone(), || {
+            // Bail out if there is no appropriate render layer.
             let render_layer = match self.render_layers.iter().find(|layer| layer.id == layer_id) {
-                Some(render_layer) => render_layer,
+                Some(render_layer) => (*render_layer).clone(),
                 None => return,
             };
 
-            // Divide up the layer into tiles.
-            for tile in tiles.iter() {
-                // page_rect is in coordinates relative to the layer origin, but all display list
-                // components are relative to the page origin. We make page_rect relative to
-                // the page origin before passing it to the optimizer.
-                let page_rect =
-                     tile.page_rect.translate(&Point2D(render_layer.position.origin.x as f32,
-                                                       render_layer.position.origin.y as f32));
-                let page_rect_au = geometry::f32_rect_to_au_rect(page_rect);
-
-                // Optimize the display list for this tile.
-                let optimizer = DisplayListOptimizer::new(render_layer.display_list.clone(),
-                                                          page_rect_au);
-                let display_list = optimizer.optimize();
-
-                let width = tile.screen_rect.size.width;
-                let height = tile.screen_rect.size.height;
-
-                // TODO: In the future we'll want to re-enable configuring the
-                // rendering backend - it's hardcoded to Skia below for now
-                // since none of the other backends work at all.
-                let size = Size2D(width as i32, height as i32);
-                let draw_target = match self.graphics_context {
-                    CpuGraphicsContext => {
-                        DrawTarget::new(SkiaBackend, size, B8G8R8A8)
-                    }
-                    GpuGraphicsContext => {
-                        // FIXME(pcwalton): Cache the components of draw targets
-                        // (texture color buffer, renderbuffers) instead of recreating them.
-                        let draw_target =
-                            DrawTarget::new_with_fbo(SkiaBackend, native_graphics_context!(self),
-                                                     size,
-                                                     B8G8R8A8);
-                        draw_target.make_current();
-                        draw_target
-                    }
-                };
-
-                {
-                    // Build the render context.
-                    let mut ctx = RenderContext {
-                        draw_target: &draw_target,
-                        font_ctx: &mut self.font_ctx,
-                        page_rect: tile.page_rect,
-                        screen_rect: tile.screen_rect,
-                    };
-
-                    // Apply the translation to render the tile we want.
-                    let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
-                    let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
-                    let matrix = matrix.translate(-page_rect.origin.x as AzFloat,
-                                                  -page_rect.origin.y as AzFloat);
-
-                    ctx.draw_target.set_transform(&matrix);
-
-                    // Clear the buffer.
-                    ctx.clear();
-
-                    // Draw the display list.
-                    profile(time::RenderingDrawingCategory,
-                            None,
-                            self.time_profiler_chan.clone(),
-                            || {
-                        let mut clip_stack = Vec::new();
-                        display_list.draw_into_context(&mut ctx, &matrix, &mut clip_stack);
-                        ctx.draw_target.flush();
-                    });
-                }
-
-                // Extract the texture from the draw target and place it into its slot in the
-                // buffer. If using CPU rendering, upload it first.
-                //
-                // FIXME(pcwalton): We should supply the texture and native surface *to* the
-                // draw target in GPU rendering mode, so that it doesn't have to recreate it.
-                let buffer = match self.graphics_context {
-                    CpuGraphicsContext => {
-                        let mut buffer = match self.buffer_map.find(tile.screen_rect.size) {
-                            Some(buffer) => {
-                                let mut buffer = buffer;
-                                buffer.rect = tile.page_rect;
-                                buffer.screen_pos = tile.screen_rect;
-                                buffer.resolution = scale;
-                                buffer.native_surface.mark_wont_leak();
-                                buffer.painted_with_cpu = true;
-                                buffer.content_age = tile.content_age;
-                                buffer
-                            }
-                            None => {
-                                // Create an empty native surface. We mark it as not leaking
-                                // in case it dies in transit to the compositor task.
-                                let mut native_surface: NativeSurface =
-                                    layers::platform::surface::NativeSurfaceMethods::new(
-                                        native_graphics_context!(self),
-                                        Size2D(width as i32, height as i32),
-                                        width as i32 * 4);
-                                native_surface.mark_wont_leak();
-
-                                box LayerBuffer {
-                                    native_surface: native_surface,
-                                    rect: tile.page_rect,
-                                    screen_pos: tile.screen_rect,
-                                    resolution: scale,
-                                    stride: (width * 4) as uint,
-                                    painted_with_cpu: true,
-                                    content_age: tile.content_age,
-                                }
-                            }
-                        };
-
-                        draw_target.snapshot().get_data_surface().with_data(|data| {
-                            buffer.native_surface.upload(native_graphics_context!(self), data);
-                            debug!("RENDERER uploading to native surface {:d}",
-                                   buffer.native_surface.get_id() as int);
-                        });
-
-                        buffer
-                    }
-                    GpuGraphicsContext => {
-                        draw_target.make_current();
-                        let StolenGLResources {
-                            surface: native_surface
-                        } = draw_target.steal_gl_resources().unwrap();
-
-                        // We mark the native surface as not leaking in case the surfaces
-                        // die on their way to the compositor task.
-                        let mut native_surface: NativeSurface =
-                            NativeSurfaceAzureMethods::from_azure_surface(native_surface);
-                        native_surface.mark_wont_leak();
-
-                        box LayerBuffer {
-                            native_surface: native_surface,
-                            rect: tile.page_rect,
-                            screen_pos: tile.screen_rect,
-                            resolution: scale,
-                            stride: (width * 4) as uint,
-                            painted_with_cpu: false,
-                            content_age: tile.content_age,
-                        }
-                    }
-                };
-
-                new_buffers.push(buffer);
+            // Divide up the layer into tiles and distribute them to workers via a simple round-
+            // robin strategy.
+            let tiles = mem::replace(&mut tiles, Vec::new());
+            let tile_count = tiles.len();
+            for (i, tile) in tiles.into_iter().enumerate() {
+                let thread_id = i % self.worker_threads.len();
+                let layer_buffer = self.find_or_create_layer_buffer_for_tile(&tile, scale);
+                self.worker_threads.get_mut(thread_id).paint_tile(tile,
+                                                                  layer_buffer,
+                                                                  render_layer.clone(),
+                                                                  scale);
             }
+            let new_buffers = Vec::from_fn(tile_count, |i| {
+                let thread_id = i % self.worker_threads.len();
+                self.worker_threads.get_mut(thread_id).get_painted_tile_buffer()
+            });
 
             let layer_buffer_set = box LayerBufferSet {
                 buffers: new_buffers,
             };
-
-            replies.push((render_layer.id, layer_buffer_set));
+            replies.push((layer_id, layer_buffer_set));
         })
     }
 }
+
+struct WorkerThreadProxy {
+    sender: Sender<MsgToWorkerThread>,
+    receiver: Receiver<MsgFromWorkerThread>,
+}
+
+impl WorkerThreadProxy {
+    fn spawn(native_graphics_metadata: Option<NativeGraphicsMetadata>,
+             font_cache_task: FontCacheTask,
+             time_profiler_chan: TimeProfilerChan)
+             -> Vec<WorkerThreadProxy> {
+        let thread_count = if opts::get().gpu_painting {
+            1
+        } else {
+            opts::get().layout_threads
+        };
+        Vec::from_fn(thread_count, |_| {
+            let (from_worker_sender, from_worker_receiver) = channel();
+            let (to_worker_sender, to_worker_receiver) = channel();
+            let native_graphics_metadata = native_graphics_metadata.clone();
+            let font_cache_task = font_cache_task.clone();
+            let time_profiler_chan = time_profiler_chan.clone();
+            TaskBuilder::new().native().spawn(proc() {
+                let mut worker_thread = WorkerThread::new(from_worker_sender,
+                                                          to_worker_receiver,
+                                                          native_graphics_metadata,
+                                                          font_cache_task,
+                                                          time_profiler_chan);
+                worker_thread.main();
+            });
+            WorkerThreadProxy {
+                receiver: from_worker_receiver,
+                sender: to_worker_sender,
+            }
+        })
+    }
+
+    fn paint_tile(&mut self,
+                  tile: BufferRequest,
+                  layer_buffer: Option<Box<LayerBuffer>>,
+                  render_layer: RenderLayer,
+                  scale: f32) {
+        self.sender.send(PaintTileMsgToWorkerThread(tile, layer_buffer, render_layer, scale))
+    }
+
+    fn get_painted_tile_buffer(&mut self) -> Box<LayerBuffer> {
+        match self.receiver.recv() {
+            PaintedTileMsgFromWorkerThread(layer_buffer) => layer_buffer,
+        }
+    }
+
+    fn exit(&mut self) {
+        self.sender.send(ExitMsgToWorkerThread)
+    }
+}
+
+struct WorkerThread {
+    sender: Sender<MsgFromWorkerThread>,
+    receiver: Receiver<MsgToWorkerThread>,
+    native_graphics_context: Option<NativePaintingGraphicsContext>,
+    font_context: Box<FontContext>,
+    time_profiler_sender: TimeProfilerChan,
+}
+
+impl WorkerThread {
+    fn new(sender: Sender<MsgFromWorkerThread>,
+           receiver: Receiver<MsgToWorkerThread>,
+           native_graphics_metadata: Option<NativeGraphicsMetadata>,
+           font_cache_task: FontCacheTask,
+           time_profiler_sender: TimeProfilerChan)
+           -> WorkerThread {
+        WorkerThread {
+            sender: sender,
+            receiver: receiver,
+            native_graphics_context: native_graphics_metadata.map(|metadata| {
+                NativePaintingGraphicsContext::from_metadata(&metadata)
+            }),
+            font_context: box FontContext::new(font_cache_task.clone()),
+            time_profiler_sender: time_profiler_sender,
+        }
+    }
+
+    fn main(&mut self) {
+        loop {
+            match self.receiver.recv() {
+                ExitMsgToWorkerThread => break,
+                PaintTileMsgToWorkerThread(tile, layer_buffer, render_layer, scale) => {
+                    let draw_target = self.optimize_and_paint_tile(&tile, render_layer, scale);
+                    let buffer = self.create_layer_buffer_for_painted_tile(&tile,
+                                                                           layer_buffer,
+                                                                           draw_target,
+                                                                           scale);
+                    self.sender.send(PaintedTileMsgFromWorkerThread(buffer))
+                }
+            }
+        }
+    }
+
+    fn optimize_and_paint_tile(&mut self,
+                               tile: &BufferRequest,
+                               render_layer: RenderLayer,
+                               scale: f32)
+                               -> DrawTarget {
+        // page_rect is in coordinates relative to the layer origin, but all display list
+        // components are relative to the page origin. We make page_rect relative to
+        // the page origin before passing it to the optimizer.
+        let page_rect = tile.page_rect.translate(&Point2D(render_layer.position.origin.x as f32,
+                                                          render_layer.position.origin.y as f32));
+        let page_rect_au = geometry::f32_rect_to_au_rect(page_rect);
+
+        // Optimize the display list for this tile.
+        let optimizer = DisplayListOptimizer::new(render_layer.display_list.clone(),
+                                                  page_rect_au);
+        let display_list = optimizer.optimize();
+
+        let size = Size2D(tile.screen_rect.size.width as i32, tile.screen_rect.size.height as i32);
+        let draw_target = if !opts::get().gpu_painting {
+            DrawTarget::new(SkiaBackend, size, B8G8R8A8)
+        } else {
+            // FIXME(pcwalton): Cache the components of draw targets (texture color buffer,
+            // renderbuffers) instead of recreating them.
+            let draw_target = DrawTarget::new_with_fbo(SkiaBackend,
+                                                       native_graphics_context!(self),
+                                                       size,
+                                                       B8G8R8A8);
+            draw_target.make_current();
+            draw_target
+        };
+
+        {
+            // Build the render context.
+            let mut render_context = RenderContext {
+                draw_target: &draw_target,
+                font_ctx: &mut self.font_context,
+                page_rect: tile.page_rect,
+                screen_rect: tile.screen_rect,
+            };
+
+            // Apply the translation to render the tile we want.
+            let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
+            let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
+            let matrix = matrix.translate(-page_rect.origin.x as AzFloat,
+                                          -page_rect.origin.y as AzFloat);
+
+            render_context.draw_target.set_transform(&matrix);
+
+            // Clear the buffer.
+            render_context.clear();
+
+            // Draw the display list.
+            profile(time::PaintingPerTileCategory, None, self.time_profiler_sender.clone(), || {
+                let mut clip_stack = Vec::new();
+                display_list.draw_into_context(&mut render_context, &matrix, &mut clip_stack);
+                render_context.draw_target.flush();
+            });
+        }
+
+        draw_target
+    }
+
+    fn create_layer_buffer_for_painted_tile(&mut self,
+                                            tile: &BufferRequest,
+                                            layer_buffer: Option<Box<LayerBuffer>>,
+                                            draw_target: DrawTarget,
+                                            scale: f32)
+                                            -> Box<LayerBuffer> {
+        // Extract the texture from the draw target and place it into its slot in the buffer. If
+        // using CPU rendering, upload it first.
+        //
+        // FIXME(pcwalton): We should supply the texture and native surface *to* the draw target in
+        // GPU rendering mode, so that it doesn't have to recreate it.
+        if !opts::get().gpu_painting {
+            let mut buffer = layer_buffer.unwrap();
+            draw_target.snapshot().get_data_surface().with_data(|data| {
+                buffer.native_surface.upload(native_graphics_context!(self), data);
+                debug!("painting worker thread uploading to native surface {:d}",
+                       buffer.native_surface.get_id() as int);
+            });
+            return buffer
+        }
+
+        // GPU painting path:
+        draw_target.make_current();
+        let StolenGLResources {
+            surface: native_surface
+        } = draw_target.steal_gl_resources().unwrap();
+
+        // We mark the native surface as not leaking in case the surfaces
+        // die on their way to the compositor task.
+        let mut native_surface: NativeSurface =
+            NativeSurfaceAzureMethods::from_azure_surface(native_surface);
+        native_surface.mark_wont_leak();
+
+        box LayerBuffer {
+            native_surface: native_surface,
+            rect: tile.page_rect,
+            screen_pos: tile.screen_rect,
+            resolution: scale,
+            stride: (tile.screen_rect.size.width * 4) as uint,
+            painted_with_cpu: false,
+            content_age: tile.content_age,
+        }
+    }
+}
+
+enum MsgToWorkerThread {
+    ExitMsgToWorkerThread,
+    PaintTileMsgToWorkerThread(BufferRequest, Option<Box<LayerBuffer>>, RenderLayer, f32),
+}
+
+enum MsgFromWorkerThread {
+    PaintedTileMsgFromWorkerThread(Box<LayerBuffer>),
+}
+

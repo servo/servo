@@ -77,9 +77,9 @@ pub enum TimeProfilerCategory {
     LayoutParallelWarmupCategory,
     LayoutShapingCategory,
     LayoutDispListBuildCategory,
-    RenderingDrawingCategory,
-    RenderingPrepBuffCategory,
-    RenderingCategory,
+    PaintingPerTileCategory,
+    PaintingPrepBuffCategory,
+    PaintingCategory,
 }
 
 impl Formatable for TimeProfilerCategory {
@@ -93,7 +93,9 @@ impl Formatable for TimeProfilerCategory {
             LayoutMainCategory |
             LayoutDispListBuildCategory |
             LayoutShapingCategory |
-            LayoutDamagePropagateCategory => "+ ",
+            LayoutDamagePropagateCategory |
+            PaintingPerTileCategory |
+            PaintingPrepBuffCategory => "+ ",
             LayoutParallelWarmupCategory |
             LayoutSelectorMatchCategory |
             LayoutTreeBuilderCategory => "| + ",
@@ -112,9 +114,9 @@ impl Formatable for TimeProfilerCategory {
             LayoutParallelWarmupCategory => "Parallel Warmup",
             LayoutShapingCategory => "Shaping",
             LayoutDispListBuildCategory => "Display List Construction",
-            RenderingDrawingCategory => "Draw",
-            RenderingPrepBuffCategory => "Buffer Prep",
-            RenderingCategory => "Rendering",
+            PaintingPerTileCategory => "Painting Per Tile",
+            PaintingPrepBuffCategory => "Buffer Prep",
+            PaintingCategory => "Painting",
         };
         format!("{:s}{}", padding, name)
     }
