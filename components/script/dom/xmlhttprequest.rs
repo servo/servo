@@ -264,15 +264,7 @@ impl XMLHttpRequest {
 }
 
 impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
-    fn GetOnreadystatechange(self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.get_event_handler_common("readystatechange")
-    }
-
-    fn SetOnreadystatechange(self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.set_event_handler_common("readystatechange", listener)
-    }
+    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange)
 
     fn ReadyState(self) -> u16 {
         self.ready_state.get() as u16

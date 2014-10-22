@@ -170,15 +170,7 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
         Ok(())
     }
 
-    fn GetOnmessage(self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.get_event_handler_common("message")
-    }
-
-    fn SetOnmessage(self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.set_event_handler_common("message", listener)
-    }
+    event_handler!(message, GetOnmessage, SetOnmessage)
 }
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
