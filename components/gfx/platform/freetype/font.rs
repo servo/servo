@@ -70,7 +70,7 @@ impl Drop for FontHandle {
 impl FontHandleMethods for FontHandle {
     fn new_from_template(fctx: &FontContextHandle,
                        template: Arc<FontTemplateData>,
-                       pt_size: Option<f64>)
+                       pt_size: Option<Au>)
                         -> Result<FontHandle, ()> {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
@@ -93,7 +93,7 @@ impl FontHandleMethods for FontHandle {
             Err(()) => Err(())
         };
 
-        fn create_face_from_buffer(lib: FT_Library, cbuf: *const u8, cbuflen: uint, pt_size: Option<f64>)
+        fn create_face_from_buffer(lib: FT_Library, cbuf: *const u8, cbuflen: uint, pt_size: Option<Au>)
                                    -> Result<FT_Face, ()> {
             unsafe {
                 let mut face: FT_Face = ptr::null_mut();
@@ -265,8 +265,8 @@ impl FontHandleMethods for FontHandle {
 }
 
 impl<'a> FontHandle {
-    fn set_char_size(face: FT_Face, pt_size: f64) -> Result<(), ()>{
-        let char_width = float_to_fixed_ft((0.5f64 + pt_size).floor()) as FT_F26Dot6;
+    fn set_char_size(face: FT_Face, pt_size: Au) -> Result<(), ()>{
+        let char_width = float_to_fixed_ft((0.5f64 + pt_size.to_subpx()).floor()) as FT_F26Dot6;
 
         unsafe {
             let result = FT_Set_Char_Size(face, char_width, 0, 0, 0);

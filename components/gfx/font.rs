@@ -28,7 +28,7 @@ use platform::font_template::FontTemplateData;
 // resources needed by the graphics layer to draw glyphs.
 
 pub trait FontHandleMethods {
-    fn new_from_template(fctx: &FontContextHandle, template: Arc<FontTemplateData>, pt_size: Option<f64>)
+    fn new_from_template(fctx: &FontContextHandle, template: Arc<FontTemplateData>, pt_size: Option<Au>)
                     -> Result<Self,()>;
     fn get_template(&self) -> Arc<FontTemplateData>;
     fn family_name(&self) -> String;
@@ -92,8 +92,8 @@ pub struct Font {
     pub metrics: FontMetrics,
     pub variant: font_variant::T,
     pub descriptor: FontTemplateDescriptor,
-    pub requested_pt_size: f64,
-    pub actual_pt_size: f64,
+    pub requested_pt_size: Au,
+    pub actual_pt_size: Au,
     pub shaper: Option<Shaper>,
     pub shape_cache: HashCache<String, Arc<GlyphStore>>,
     pub glyph_advance_cache: HashCache<u32, FractionalPixel>,
