@@ -4,64 +4,27 @@
 
 //! A windowing implementation using GLFW.
 
-use compositing::windowing::{WindowEvent, WindowMethods};
-use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass,  MouseWindowMoveEventClass};
-use compositing::windowing::{ScrollWindowEvent, ZoomWindowEvent, PinchZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
-use compositing::windowing::{QuitWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
-use compositing::windowing::RefreshWindowEvent;
-use compositing::windowing::{Forward, Back};
-
 use alert::{Alert, AlertMethods};
-use libc::c_int;
-use time;
-use time::Timespec;
-use std::cell::{Cell, RefCell};
-use std::comm::Receiver;
-use std::rc::Rc;
-
+use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent};
+use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass, ScrollWindowEvent};
+use compositing::windowing::{ZoomWindowEvent, PinchZoomWindowEvent, NavigationWindowEvent};
+use compositing::windowing::{FinishedWindowEvent, QuitWindowEvent, MouseWindowClickEvent};
+use compositing::windowing::{MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
+use compositing::windowing::{RefreshWindowEvent, Forward, Back};
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
+use glfw::{mod, Context};
 use layers::geometry::DevicePixel;
+use libc::c_int;
 use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
 use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
+use std::cell::{Cell, RefCell};
+use std::comm::Receiver;
+use std::rc::Rc;
+use time::{mod, Timespec};
 use util::geometry::ScreenPx;
-
-use glfw;
-use glfw::Context;
-
-/// A structure responsible for setting up and tearing down the entire windowing system.
-macro_rules! glfw_callback(
-    (
-        $callback:path ($($arg:ident: $arg_ty:ty),*) $block:expr
-    ) => ({
-        struct GlfwCallback;
-        impl $callback for GlfwCallback {
-            fn call(&self $(, $arg: $arg_ty)*) {
-                $block
-            }
-        }
-        ~GlfwCallback
-    });
-
-    (
-        [$($state:ident: $state_ty:ty),*],
-        $callback:path ($($arg:ident: $arg_ty:ty),*) $block:expr
-    ) => ({
-        struct GlfwCallback {
-            $($state: $state_ty,)*
-        }
-        impl $callback for GlfwCallback {
-            fn call(&self $(, $arg: $arg_ty)*) {
-                $block
-            }
-        }
-        ~GlfwCallback {
-            $($state: $state,)*
-        }
-    });
-)
-
 
 /// The type of a window.
 pub struct Window {
@@ -337,7 +300,8 @@ impl Window {
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
                             let click_event = MouseWindowClickEvent(button as uint,
-                                                                    TypedPoint2D(x as f32, y as f32));
+                                                                    TypedPoint2D(x as f32,
+                                                                                 y as f32));
                             self.event_queue.borrow_mut().push(MouseWindowEventClass(click_event));
                         }
                     }
@@ -363,3 +327,4 @@ impl Window {
         }
     }
 }
+

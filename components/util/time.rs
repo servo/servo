@@ -27,9 +27,9 @@ impl TimeProfilerChan {
 
 #[deriving(PartialEq, Clone, PartialOrd, Eq, Ord)]
 pub struct TimerMetadata {
-    url:          String,
-    iframe:       bool,
-    first_reflow: bool,
+    url:         String,
+    iframe:      bool,
+    incremental: bool,
 }
 
 pub trait Formatable {
@@ -42,9 +42,14 @@ impl Formatable for Option<TimerMetadata> {
             // TODO(cgaebel): Center-align in the format strings as soon as rustc supports it.
             &Some(ref meta) => {
                 let url = meta.url.as_slice();
-                let first_reflow = if meta.first_reflow { "    yes" } else { "    no " };
+                let url = if url.len() > 30 {
+                    url.slice_to(30)
+                } else {
+                    url
+                };
+                let incremental = if meta.incremental { "    yes" } else { "    no " };
                 let iframe = if meta.iframe { "  yes" } else { "  no " };
-                format!(" {:14} {:9} {:30}", first_reflow, iframe, url)
+                format!(" {:14} {:9} {:30}", incremental, iframe, url)
             },
             &None =>
                 format!(" {:14} {:9} {:30}", "    N/A", "  N/A", "             N/A")
@@ -256,7 +261,7 @@ pub fn profile<T>(category: TimeProfilerCategory,
         TimerMetadata {
             url: url.serialize(),
             iframe: iframe,
-            first_reflow: first_reflow,
+            incremental: !first_reflow,
         });
     time_profiler_chan.send(TimeMsg((category, meta), ms));
     return val;
