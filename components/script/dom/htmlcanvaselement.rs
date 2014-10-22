@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::Attr;
+use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
@@ -18,7 +20,6 @@ use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::{DOMString, parse_unsigned_integer};
-use string_cache::Atom;
 
 use geom::size::Size2D;
 
@@ -99,18 +100,18 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         Some(element as &VirtualMethods)
     }
 
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value.clone()),
-            _ => (),
+            Some(ref s) => s.before_remove_attr(attr),
+            _ => ()
         }
 
-        let recreate = match name.as_slice() {
-            "width" => {
+        let recreate = match attr.local_name() {
+            &atom!("width") => {
                 self.width.set(DefaultWidth);
                 true
             }
-            "height" => {
+            &atom!("height") => {
                 self.height.set(DefaultHeight);
                 true
             }
@@ -126,18 +127,19 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         }
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
-            _ => (),
+            Some(ref s) => s.after_set_attr(attr),
+            _ => ()
         }
 
-        let recreate = match name.as_slice() {
-            "width" => {
+        let value = attr.value();
+        let recreate = match attr.local_name() {
+            &atom!("width") => {
                 self.width.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DefaultWidth));
                 true
             }
-            "height" => {
+            &atom!("height") => {
                 self.height.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DefaultHeight));
                 true
             }

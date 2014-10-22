@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrValue;
+use dom::attr::Attr;
+use dom::attr::{AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
@@ -166,27 +167,31 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
-            _ => (),
+            Some(ref s) => s.after_set_attr(attr),
+            _ => ()
         }
 
-        if "src" == name.as_slice() {
-            let window = window_from_node(*self).root();
-            let url = window.get_url();
-            self.update_image(Some((value, &url)));
+        match attr.local_name() {
+            &atom!("src") => {
+                let window = window_from_node(*self).root();
+                let url = window.get_url();
+                self.update_image(Some((attr.value().as_slice().to_string(), &url)));
+            },
+            _ => ()
         }
     }
 
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value.clone()),
-            _ => (),
+            Some(ref s) => s.before_remove_attr(attr),
+            _ => ()
         }
 
-        if atom!("src") == *name {
-            self.update_image(None);
+        match attr.local_name() {
+            &atom!("src") => self.update_image(None),
+            _ => ()
         }
     }
 

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::Attr;
+use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
@@ -79,15 +81,15 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
         Some(htmlelement as &VirtualMethods)
     }
 
-    fn after_set_attr(&self, name: &Atom, value: DOMString) {
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.after_set_attr(name, value.clone()),
-            _ => (),
+            Some(ref s) => s.after_set_attr(attr),
+            _ => ()
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
-        match name.as_slice() {
-            "disabled" => {
+        match attr.local_name() {
+            &atom!("disabled") => {
+                let node: JSRef<Node> = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
@@ -95,15 +97,15 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
         }
     }
 
-    fn before_remove_attr(&self, name: &Atom, value: DOMString) {
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
         match self.super_type() {
-            Some(ref s) => s.before_remove_attr(name, value),
-            _ => (),
+            Some(ref s) => s.before_remove_attr(attr),
+            _ => ()
         }
 
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
-        match name.as_slice() {
-            "disabled" => {
+        match attr.local_name() {
+            &atom!("disabled") => {
+                let node: JSRef<Node> = NodeCast::from_ref(*self);
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
