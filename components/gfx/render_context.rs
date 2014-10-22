@@ -5,8 +5,8 @@
 use font_context::FontContext;
 use style::computed_values::border_style;
 
-use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, DrawOptions, DrawSurfaceOptions, DrawTarget};
-use azure::azure_hl::{Linear, SourceOp, StrokeOptions};
+use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
+use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, Linear, SourceOp, StrokeOptions};
 use azure::AZ_CAP_BUTT;
 use azure::AzFloat;
 use geom::point::Point2D;
@@ -48,7 +48,9 @@ impl<'a> RenderContext<'a>  {
 
     pub fn draw_solid_color(&self, bounds: &Rect<Au>, color: Color) {
         self.draw_target.make_current();
-        self.draw_target.fill_rect(&bounds.to_azure_rect(), &ColorPattern::new(color), None);
+        self.draw_target.fill_rect(&bounds.to_azure_rect(),
+                                   ColorPatternRef(&ColorPattern::new(color)),
+                                   None);
     }
 
     pub fn draw_border(&self,
@@ -133,7 +135,7 @@ impl<'a> RenderContext<'a>  {
         let mut draw_options = DrawOptions::new(1.0, 0);
         draw_options.set_composition_op(SourceOp);
         self.draw_target.make_current();
-        self.draw_target.fill_rect(&rect, &pattern, Some(&draw_options));
+        self.draw_target.fill_rect(&rect, ColorPatternRef(&pattern), Some(&draw_options));
     }
 
     fn draw_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: SideOffsets2D<Color>, style: SideOffsets2D<border_style::T>) {
