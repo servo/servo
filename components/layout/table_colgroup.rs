@@ -13,6 +13,7 @@ use layout_debug;
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
+use std::cmp::max;
 use std::fmt;
 use style::computed_values::LengthOrPercentageOrAuto;
 
@@ -64,7 +65,7 @@ impl Flow for TableColGroupFlow {
             // Retrieve the specified value from the appropriate CSS property.
             let inline_size = fragment.style().content_inline_size();
             let span: int = match fragment.specific {
-                TableColumnFragment(col_fragment) => col_fragment.span.unwrap_or(1),
+                TableColumnFragment(col_fragment) => max(col_fragment.span, 1),
                 _ => fail!("non-table-column fragment inside table column?!"),
             };
             for _ in range(0, span) {

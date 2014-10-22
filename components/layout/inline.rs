@@ -391,7 +391,11 @@ impl LineBreaker {
     }
 
     fn try_append_to_line_by_new_line(&mut self, in_fragment: Fragment) -> bool {
-        if in_fragment.new_line_pos.len() == 0 {
+        let no_newline_positions = match in_fragment.newline_positions() {
+            None => true,
+            Some(ref positions) => positions.is_empty(),
+        };
+        if no_newline_positions {
             debug!("LineBreaker: Did not find a new-line character, so pushing the fragment to \
                    the line without splitting.");
             self.push_fragment_to_line(in_fragment);
@@ -406,13 +410,14 @@ impl LineBreaker {
         let writing_mode = self.floats.writing_mode;
 
         let split_fragment = |split: SplitInfo| {
-            let info =
-                ScannedTextFragmentInfo::new(
-                    run.clone(),
-                    split.range,
-                    in_fragment.border_box.size);
-            let size = LogicalSize::new(
-                writing_mode, split.inline_size, in_fragment.border_box.size.block);
+            let info = box ScannedTextFragmentInfo::new(run.clone(),
+                                                        split.range,
+                                                        (*in_fragment.newline_positions()
+                                                                     .unwrap()).clone(),
+                                                        in_fragment.border_box.size);
+            let size = LogicalSize::new(writing_mode,
+                                        split.inline_size,
+                                        in_fragment.border_box.size.block);
             in_fragment.transform(size, info)
         };
 
@@ -420,14 +425,14 @@ impl LineBreaker {
                 to the line.");
         let mut inline_start = split_fragment(inline_start);
         inline_start.save_new_line_pos();
-        inline_start.new_line_pos = vec![];
+        *inline_start.newline_positions_mut().unwrap() = vec![];
         self.push_fragment_to_line(inline_start);
 
         for inline_end in inline_end.into_iter() {
             debug!("LineBreaker: Deferring the fragment to the inline_end of the new-line \
                    character to the line.");
             let mut inline_end = split_fragment(inline_end);
-            inline_end.new_line_pos.remove(0);
+            inline_end.newline_positions_mut().unwrap().remove(0);
             self.work_list.push_front(inline_end);
         }
 
@@ -497,11 +502,10 @@ impl LineBreaker {
                                                                 line_is_empty);
         match split.map(|(inline_start, inline_end, run)| {
             let split_fragment = |split: SplitInfo| {
-                let info =
-                    ScannedTextFragmentInfo::new(
-                        run.clone(),
-                        split.range,
-                        in_fragment.border_box.size);
+                let info = box ScannedTextFragmentInfo::new(run.clone(),
+                                                            split.range,
+                                                            Vec::new(),
+                                                            in_fragment.border_box.size);
                 let size = LogicalSize::new(self.floats.writing_mode,
                                             split.inline_size,
                                             in_fragment.border_box.size.block);
