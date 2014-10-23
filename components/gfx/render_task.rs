@@ -30,6 +30,7 @@ use servo_util::geometry;
 use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1};
 use servo_util::task::spawn_named_with_send_on_failure;
+use servo_util::task_state;
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use std::comm::{Receiver, Sender, channel};
@@ -151,7 +152,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("RenderTask", proc() {
+        spawn_named_with_send_on_failure("RenderTask", task_state::Render, proc() {
             { // Ensures RenderTask and graphics context are destroyed before shutdown msg
                 let native_graphics_context = compositor.get_graphics_metadata().map(
                     |md| NativePaintingGraphicsContext::from_metadata(&md));

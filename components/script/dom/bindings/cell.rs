@@ -5,13 +5,15 @@
 use dom::bindings::trace::JSTraceable;
 use js::jsapi::{JSTracer};
 
+use servo_util::task_state;
+
 use std::cell::{Cell, UnsafeCell};
 use std::kinds::marker;
 
 /// A mutable field in the DOM.
 ///
 /// This extends the API of `core::cell::RefCell` to allow unsafe access in
-/// certain situations.
+/// certain situations, with dynamic checking in debug builds.
 pub struct DOMRefCell<T> {
     value: UnsafeCell<T>,
     borrow: Cell<BorrowFlag>,
@@ -27,7 +29,30 @@ impl<T> DOMRefCell<T> {
     ///
     /// For use in the layout task only.
     pub unsafe fn borrow_for_layout<'a>(&'a self) -> &'a T {
+        debug_assert!(task_state::get().is_layout());
         &*self.value.get()
+    }
+
+    pub fn try_borrow<'a>(&'a self) -> Option<Ref<'a, T>> {
+        debug_assert!(task_state::get().is_script());
+        match self.borrow.get() {
+            WRITING => None,
+            borrow => {
+                self.borrow.set(borrow + 1);
+                Some(Ref { _parent: self })
+            }
+        }
+    }
+
+    pub fn try_borrow_mut<'a>(&'a self) -> Option<RefMut<'a, T>> {
+        debug_assert!(task_state::get().is_script());
+        match self.borrow.get() {
+            UNUSED => {
+                self.borrow.set(WRITING);
+                Some(RefMut { _parent: self })
+            },
+            _ => None
+        }
     }
 }
 
@@ -63,30 +88,10 @@ impl<T> DOMRefCell<T> {
         unsafe{self.value.unwrap()}
     }
 
-    pub fn try_borrow<'a>(&'a self) -> Option<Ref<'a, T>> {
-        match self.borrow.get() {
-            WRITING => None,
-            borrow => {
-                self.borrow.set(borrow + 1);
-                Some(Ref { _parent: self })
-            }
-        }
-    }
-
     pub fn borrow<'a>(&'a self) -> Ref<'a, T> {
         match self.try_borrow() {
             Some(ptr) => ptr,
             None => fail!("DOMRefCell<T> already mutably borrowed")
-        }
-    }
-
-    pub fn try_borrow_mut<'a>(&'a self) -> Option<RefMut<'a, T>> {
-        match self.borrow.get() {
-            UNUSED => {
-                self.borrow.set(WRITING);
-                Some(RefMut { _parent: self })
-            },
-            _ => None
         }
     }
 

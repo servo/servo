@@ -24,6 +24,8 @@ use script_task::WorkerPostMessage;
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
+use servo_util::task_state;
+use servo_util::task_state::{Script, InWorker};
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
@@ -90,6 +92,9 @@ impl DedicatedWorkerGlobalScope {
             .native()
             .named(format!("Web Worker at {}", worker_url.serialize()))
             .spawn(proc() {
+
+            task_state::initialize(Script | InWorker);
+
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
