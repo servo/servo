@@ -12,7 +12,7 @@ use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
-use dom::document::{Document, HTMLDocument, NonHTMLDocument};
+use dom::document::{Document, HTMLDocument, NonHTMLDocument, NotFromParser};
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -74,7 +74,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         let win = doc.window().root();
 
         // Step 1.
-        let doc = Document::new(*win, None, NonHTMLDocument, None).root();
+        let doc = Document::new(*win, None, NonHTMLDocument, None, NotFromParser).root();
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
             None
@@ -119,7 +119,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         let win = document.window().root();
 
         // Step 1-2.
-        let doc = Document::new(*win, None, HTMLDocument, None).root();
+        let doc = Document::new(*win, None, HTMLDocument, None, NotFromParser).root();
         let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
 
         {

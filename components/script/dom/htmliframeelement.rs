@@ -4,6 +4,7 @@
 
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
+use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyStateValues};
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
@@ -15,7 +16,7 @@ use dom::element::{HTMLIFrameElementTypeId, Element};
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use page::IterablePage;
@@ -119,8 +120,13 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
             subpage_id: subpage_id,
         }));
 
-        let ConstellationChan(ref chan) = page.constellation_chan;
-        chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
+        let doc = document_from_node(self).root();
+        if doc.ReadyState() != DocumentReadyStateValues::Complete {
+            // https://github.com/servo/servo/issues/3738
+            // We can't handle dynamic frame tree changes in the compositor right now.
+            let ConstellationChan(ref chan) = page.constellation_chan;
+            chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
+        }
     }
 }
 
