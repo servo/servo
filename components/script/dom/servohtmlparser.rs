@@ -12,7 +12,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::TrustedNodeAddress;
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use parse::html::JSMessage;
 
 use std::default::Default;

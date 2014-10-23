@@ -21,7 +21,7 @@ use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharact
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
-use dom::document::{Document, DocumentHelpers};
+use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
@@ -335,8 +335,7 @@ impl LayoutElementHelpers for JS<Element> {
             return false
         }
         let node: JS<Node> = self.transmute_copy();
-        let owner_doc = node.owner_doc_for_layout().unsafe_get();
-        (*owner_doc).is_html_document()
+        node.owner_doc_for_layout().is_html_document_for_layout()
     }
 }
 
