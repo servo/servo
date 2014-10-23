@@ -13,8 +13,9 @@ use platform::font_template::FontTemplateData;
 use font::FontHandleMethods;
 use platform::font::FontHandle;
 use servo_util::cache::HashCache;
-use servo_util::smallvec::{SmallVec, SmallVec1};
+use servo_util::smallvec::{SmallVec, SmallVec8};
 use servo_util::geometry::Au;
+use servo_util::arc_ptr_eq;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -74,6 +75,9 @@ pub struct FontContext {
     /// Strong reference as the render FontContext is (for now) recycled
     /// per frame. TODO: Make this weak when incremental redraw is done.
     render_font_cache: Vec<RenderFontCacheEntry>,
+
+    last_style: Option<Arc<SpecifiedFontStyle>>,
+    last_fontgroup: Option<Rc<FontGroup>>,
 }
 
 impl FontContext {
@@ -85,6 +89,8 @@ impl FontContext {
             layout_font_cache: vec!(),
             fallback_font_cache: vec!(),
             render_font_cache: vec!(),
+            last_style: None,
+            last_fontgroup: None,
         }
     }
 
@@ -120,13 +126,22 @@ impl FontContext {
     /// Create a group of fonts for use in layout calculations. May return
     /// a cached font if this font instance has already been used by
     /// this context.
-    pub fn get_layout_font_group_for_style(&mut self, style: &SpecifiedFontStyle) -> FontGroup {
+    pub fn get_layout_font_group_for_style(&mut self, style: Arc<SpecifiedFontStyle>)
+                                            -> Rc<FontGroup> {
+        let matches = match self.last_style {
+            Some(ref last_style) => arc_ptr_eq(&style, last_style),
+            None => false,
+        };
+        if matches {
+            return self.last_fontgroup.as_ref().unwrap().clone();
+        }
+
         // TODO: The font context holds a strong ref to the cached fonts
         // so they will never be released. Find out a good time to drop them.
 
         let desc = FontTemplateDescriptor::new(style.font_weight,
                                                style.font_style == font_style::italic);
-        let mut fonts: SmallVec1<Rc<RefCell<Font>>> = SmallVec1::new();
+        let mut fonts = SmallVec8::new();
 
         for family in style.font_family.iter() {
             // GWTODO: Check on real pages if this is faster as Vec() or HashMap().
@@ -208,7 +223,10 @@ impl FontContext {
             }
         }
 
-        FontGroup::new(fonts)
+        let font_group = Rc::new(FontGroup::new(fonts));
+        self.last_style = Some(style);
+        self.last_fontgroup = Some(font_group.clone());
+        font_group
     }
 
     /// Create a render font for use with azure. May return a cached
