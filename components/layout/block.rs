@@ -1163,6 +1163,16 @@ impl BlockFlow {
         self.base.position.size.block = block_size;
     }
 
+    // Our inline-size was set to the inline-size of the containing block by the flow's parent.
+    // This computes the real value, and is run in the `AssignISizes` traversal.
+    pub fn propagate_and_compute_used_inline_size(&mut self, layout_context: &LayoutContext) {
+        let containing_block_inline_size = self.base.block_container_inline_size;
+        self.compute_used_inline_size(layout_context, containing_block_inline_size);
+        if self.is_float() {
+            self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size;
+        }
+    }
+
     /// Return the block-start outer edge of the hypothetical box for an absolute flow.
     ///
     /// This is wrt its parent flow box.
@@ -1501,11 +1511,7 @@ impl Flow for BlockFlow {
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
-        let containing_block_inline_size = self.base.block_container_inline_size;
-        self.compute_used_inline_size(layout_context, containing_block_inline_size);
-        if self.is_float() {
-            self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size;
-        }
+        self.propagate_and_compute_used_inline_size(layout_context);
 
         // Formatting contexts are never impacted by floats.
         match self.formatting_context_type() {
@@ -2472,4 +2478,3 @@ fn propagate_column_inline_sizes_to_child(kid: &mut Flow,
         *inline_start_margin_edge = *inline_start_margin_edge + inline_size
     }
 }
-
