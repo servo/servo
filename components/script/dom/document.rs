@@ -311,6 +311,18 @@ pub enum DocumentSource {
     NotFromParser,
 }
 
+pub trait LayoutDocumentHelpers {
+    unsafe fn is_html_document_for_layout(&self) -> bool;
+}
+
+impl LayoutDocumentHelpers for JS<Document> {
+    #[allow(unrooted_must_root)]
+    #[inline]
+    unsafe fn is_html_document_for_layout(&self) -> bool {
+        (*self.unsafe_get()).is_html_document
+    }
+}
+
 impl Document {
     fn new_inherited(window: JSRef<Window>,
                      url: Option<Url>,
