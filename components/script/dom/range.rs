@@ -9,7 +9,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::{GlobalRef, Window};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 
 #[dom_struct]
 pub struct Range {

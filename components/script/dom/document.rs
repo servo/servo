@@ -162,6 +162,9 @@ impl CollectionFilter for AppletsFilter {
 }
 
 pub trait DocumentHelpers<'a> {
+    fn window(self) -> Temporary<Window>;
+    fn encoding_name(self) -> Ref<'a, DOMString>;
+    fn is_html_document(self) -> bool;
     fn url(self) -> &'a Url;
     fn quirks_mode(self) -> QuirksMode;
     fn set_quirks_mode(self, mode: QuirksMode);
@@ -178,6 +181,21 @@ pub trait DocumentHelpers<'a> {
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
+    #[inline]
+    fn window(self) -> Temporary<Window> {
+        Temporary::new(self.window)
+    }
+
+    #[inline]
+    fn encoding_name(self) -> Ref<'a, DOMString> {
+        self.extended_deref().encoding_name.borrow()
+    }
+
+    #[inline]
+    fn is_html_document(self) -> bool {
+        self.is_html_document
+    }
+
     fn url(self) -> &'a Url {
         &self.extended_deref().url
     }
@@ -387,21 +405,6 @@ impl Document {
         let node: JSRef<Node> = NodeCast::from_ref(*document);
         node.set_owner_doc(*document);
         Temporary::from_rooted(*document)
-    }
-
-    #[inline]
-    pub fn window(&self) -> Temporary<Window> {
-        Temporary::new(self.window)
-    }
-
-    #[inline]
-    pub fn encoding_name(&self) -> Ref<DOMString> {
-        self.encoding_name.borrow()
-    }
-
-    #[inline]
-    pub fn is_html_document(&self) -> bool {
-        self.is_html_document
     }
 }
 
