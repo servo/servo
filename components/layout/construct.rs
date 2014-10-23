@@ -238,12 +238,12 @@ impl<'a> FlowConstructor<'a> {
             Some(url) => {
                 // FIXME(pcwalton): The fact that image fragments store the cache within them makes
                 // little sense to me.
-                ImageFragment(ImageFragmentInfo::new(node,
-                                                     url,
-                                                     self.layout_context
-                                                         .shared
-                                                         .image_cache
-                                                         .clone()))
+                ImageFragment(box ImageFragmentInfo::new(node,
+                                                         url,
+                                                         self.layout_context
+                                                             .shared
+                                                             .image_cache
+                                                             .clone()))
             }
         }
     }
@@ -258,7 +258,7 @@ impl<'a> FlowConstructor<'a> {
                                                  -> SpecificFragmentInfo {
         match node.type_id() {
             Some(ElementNodeTypeId(HTMLIFrameElementTypeId)) => {
-                IframeFragment(IframeFragmentInfo::new(node))
+                IframeFragment(box IframeFragmentInfo::new(node))
             }
             Some(ElementNodeTypeId(HTMLImageElementTypeId)) => {
                 self.build_fragment_info_for_image(node, node.image_url())

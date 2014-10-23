@@ -502,7 +502,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_text_fragments(display_list,
                                                                    flow_origin,
-                                                                   text_fragment,
+                                                                   &**text_fragment,
                                                                    clip_rect);
                 }
             }
@@ -559,7 +559,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // the iframe is actually going to be displayed.
         match self.specific {
             IframeFragment(ref iframe_fragment) => {
-                self.finalize_position_and_size_of_iframe(iframe_fragment,
+                self.finalize_position_and_size_of_iframe(&**iframe_fragment,
                                                           absolute_fragment_bounds.origin,
                                                           layout_context)
             }

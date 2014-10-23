@@ -92,8 +92,8 @@ impl Drop for Scope {
 /// Generate a unique ID. This is used for items such as Fragment
 /// which are often reallocated but represent essentially the
 /// same data.
-pub fn generate_unique_debug_id() -> uint {
-    unsafe { DEBUG_ID_COUNTER.fetch_add(1, SeqCst) }
+pub fn generate_unique_debug_id() -> u16 {
+    unsafe { DEBUG_ID_COUNTER.fetch_add(1, SeqCst) as u16 }
 }
 
 /// Begin a layout debug trace. If this has not been called,
