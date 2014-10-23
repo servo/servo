@@ -34,7 +34,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, AttributeHandlers, get_attribute_parts};
-use dom::element::{HTMLHtmlElementTypeId, HTMLHeadElementTypeId, HTMLTitleElementTypeId};
+use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
 use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
 use dom::event::{Event, DoesNotBubble, NotCancelable};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
@@ -407,34 +407,20 @@ trait PrivateDocumentHelpers {
 impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
     fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList> {
         let window = self.window.root();
-
-        match self.GetDocumentElement().root() {
-            None => {
-                NodeList::new_simple_list(*window, vec!())
-            },
+        let nodes = match self.GetDocumentElement().root() {
+            None => vec!(),
             Some(root) => {
-                let mut nodes = vec!();
                 let root: JSRef<Node> = NodeCast::from_ref(*root);
-                for child in root.traverse_preorder() {
-                    if callback(child) {
-                        nodes.push(child);
-                    }
-                }
-                NodeList::new_simple_list(*window, nodes)
+                root.traverse_preorder().filter(|&node| callback(node)).collect()
             }
-        }
-
+        };
+        NodeList::new_simple_list(*window, nodes)
     }
 
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>> {
-        match self.GetDocumentElement().root() {
-            Some(ref root) if {
-                let root: JSRef<Node> = NodeCast::from_ref(**root);
-                root.type_id() == ElementNodeTypeId(HTMLHtmlElementTypeId)
-            } => Some(Temporary::from_rooted(HTMLHtmlElementCast::to_ref(**root).unwrap())),
-
-            _ => None,
-        }
+        self.GetDocumentElement().root().and_then(|element| {
+            HTMLHtmlElementCast::to_ref(*element)
+        }).map(Temporary::from_rooted)
     }
 }
 
@@ -742,11 +728,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
             let node: JSRef<Node> = NodeCast::from_ref(*root);
-            node.children().find(|child| {
-                child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
-            }).map(|node| {
-                Temporary::from_rooted(HTMLHeadElementCast::to_ref(node).unwrap())
-            })
+            node.children().filter_map(HTMLHeadElementCast::to_ref).next().map(Temporary::from_rooted)
         })
     }
 
