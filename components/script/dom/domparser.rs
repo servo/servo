@@ -10,7 +10,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
-use dom::document::{Document, HTMLDocument, NonHTMLDocument};
+use dom::document::{Document, HTMLDocument, NonHTMLDocument, NotFromParser};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -44,12 +44,15 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Temporary<Document>> {
         let window = self.window.root();
+        //FIXME: these should probably be FromParser when we actually parse the string (#3756).
         match ty {
             Text_html => {
-                Ok(Document::new(*window, None, HTMLDocument, Some("text/html".to_string())))
+                Ok(Document::new(*window, None, HTMLDocument, Some("text/html".to_string()),
+                                 NotFromParser))
             }
             Text_xml => {
-                Ok(Document::new(*window, None, NonHTMLDocument, Some("text/xml".to_string())))
+                Ok(Document::new(*window, None, NonHTMLDocument, Some("text/xml".to_string()),
+                                 NotFromParser))
             }
             _ => {
                 Err(FailureUnknown)

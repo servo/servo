@@ -17,7 +17,6 @@ interface Document : Node {
   readonly attribute DOMString compatMode;
   readonly attribute DOMString characterSet;
   readonly attribute DOMString contentType;
-  readonly attribute Location location;
 
   readonly attribute DocumentType? doctype;
   readonly attribute Element? documentElement;
@@ -52,17 +51,23 @@ interface Document : Node {
   [NewObject]
   TreeWalker createTreeWalker(Node root, optional unsigned long whatToShow = 0xFFFFFFFF, optional NodeFilter? filter = null);
 };
+Document implements ParentNode;
+
+enum DocumentReadyState { "loading", "interactive", "complete" };
 
 /* http://www.whatwg.org/specs/web-apps/current-work/#the-document-object */
 partial interface Document {
+  // resource metadata management
+  readonly attribute DocumentReadyState readyState;
   readonly attribute DOMString lastModified;
+  readonly attribute Location location;
+
+  // DOM tree accessors
            [SetterThrows]
            attribute DOMString title;
            [SetterThrows]
            attribute HTMLElement? body;
   readonly attribute HTMLHeadElement? head;
-  NodeList getElementsByName(DOMString elementName);
-
   readonly attribute HTMLCollection images;
   readonly attribute HTMLCollection embeds;
   readonly attribute HTMLCollection plugins;
@@ -71,7 +76,9 @@ partial interface Document {
   readonly attribute HTMLCollection scripts;
   readonly attribute HTMLCollection anchors;
   readonly attribute HTMLCollection applets;
-};
+  NodeList getElementsByName(DOMString elementName);
 
-Document implements ParentNode;
+  // special event handler IDL attributes that only apply to Document objects
+  /*[LenientThis]*/ attribute EventHandler onreadystatechange;
+};
 Document implements GlobalEventHandlers;
