@@ -888,23 +888,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         root.query_selector_all(selectors)
     }
 
-    fn GetOnclick(self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.get_event_handler_common("click")
-    }
-
-    fn SetOnclick(self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.set_event_handler_common("click", listener)
-    }
-
-    fn GetOnload(self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.get_event_handler_common("load")
-    }
-
-    fn SetOnload(self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.set_event_handler_common("load", listener)
-    }
+    event_handler!(click, GetOnclick, SetOnclick)
+    event_handler!(load, GetOnload, SetOnload)
 }
