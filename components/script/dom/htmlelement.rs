@@ -67,15 +67,7 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
 }
 
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
-    fn GetOnclick(self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.get_event_handler_common("click")
-    }
-
-    fn SetOnclick(self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.set_event_handler_common("click", listener)
-    }
+    event_handler!(click, GetOnclick, SetOnclick)
 
     fn GetOnload(self) -> Option<EventHandlerNonNull> {
         if self.is_body_or_frameset() {

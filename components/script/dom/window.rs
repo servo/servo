@@ -272,45 +272,10 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.performance.get().unwrap()
     }
 
-    fn GetOnclick(self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.get_event_handler_common("click")
-    }
-
-    fn SetOnclick(self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.set_event_handler_common("click", listener)
-    }
-
-    fn GetOnload(self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.get_event_handler_common("load")
-    }
-
-    fn SetOnload(self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.set_event_handler_common("load", listener)
-    }
-
-    fn GetOnunload(self) -> Option<EventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.get_event_handler_common("unload")
-    }
-
-    fn SetOnunload(self, listener: Option<EventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.set_event_handler_common("unload", listener)
-    }
-
-    fn GetOnerror(self) -> Option<OnErrorEventHandlerNonNull> {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.get_event_handler_common("error")
-    }
-
-    fn SetOnerror(self, listener: Option<OnErrorEventHandlerNonNull>) {
-        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        eventtarget.set_event_handler_common("error", listener)
-    }
+    event_handler!(click, GetOnclick, SetOnclick)
+    event_handler!(load, GetOnload, SetOnload)
+    event_handler!(unload, GetOnunload, SetOnunload)
+    error_event_handler!(error, GetOnerror, SetOnerror)
 
     fn Screen(self) -> Temporary<Screen> {
         if self.screen.get().is_none() {
