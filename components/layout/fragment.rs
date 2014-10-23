@@ -70,7 +70,11 @@ use url::Url;
 /// Different types of fragments may also contain custom data; for example, text fragments contain
 /// text.
 ///
-/// FIXME(#2260, pcwalton): This can be slimmed down some.
+/// Do not add fields to this structure unless they're really really mega necessary! Fragments get
+/// moved around a lot and thus their size impacts performance of layout quite a bit.
+///
+/// FIXME(#2260, pcwalton): This can be slimmed down some by (at least) moving `inline_context`
+/// to be on `InlineFlow` only.
 #[deriving(Clone)]
 pub struct Fragment {
     /// An opaque reference to the DOM node that this `Fragment` originates from.
@@ -78,9 +82,6 @@ pub struct Fragment {
 
     /// The CSS style of this fragment.
     pub style: Arc<ComputedValues>,
-
-    /// How damaged this fragment is since last reflow.
-    pub restyle_damage: RestyleDamage,
 
     /// The position of this fragment relative to its owning flow.
     /// The size includes padding and border, but not margin.
@@ -96,18 +97,16 @@ pub struct Fragment {
     /// Info specific to the kind of fragment. Keep this enum small.
     pub specific: SpecificFragmentInfo,
 
-    /// New-line chracter(\n)'s positions(relative, not absolute)
-    ///
-    /// FIXME(#2260, pcwalton): This is very inefficient; remove.
-    pub new_line_pos: Vec<CharIndex>,
-
     /// Holds the style context information for fragments
     /// that are part of an inline formatting context.
     pub inline_context: Option<InlineFragmentContext>,
 
     /// A debug ID that is consistent for the life of
     /// this fragment (via transform etc).
-    pub debug_id: uint,
+    pub debug_id: u16,
+
+    /// How damaged this fragment is since last reflow.
+    pub restyle_damage: RestyleDamage,
 }
 
 impl<E, S: Encoder<E>> Encodable<S, E> for Fragment {
@@ -120,14 +119,14 @@ impl<E, S: Encoder<E>> Encodable<S, E> for Fragment {
     }
 }
 
-/// Info specific to the kind of fragment. Keep this enum small.
+/// Info specific to the kind of fragment.
 ///
-/// FIXME(pcwalton): We have completely failed at keeping this enum small.
+/// Keep this enum small. As in, no more than one word. Or pcwalton will yell at you.
 #[deriving(Clone)]
 pub enum SpecificFragmentInfo {
     GenericFragment,
-    IframeFragment(IframeFragmentInfo),
-    ImageFragment(ImageFragmentInfo),
+    IframeFragment(Box<IframeFragmentInfo>),
+    ImageFragment(Box<ImageFragmentInfo>),
 
     /// A hypothetical box (see CSS 2.1 § 10.3.7) for an absolutely-positioned block that was
     /// declared with `display: inline;`.
@@ -135,7 +134,7 @@ pub enum SpecificFragmentInfo {
 
     InlineBlockFragment(InlineBlockFragmentInfo),
     InputFragment,
-    ScannedTextFragment(ScannedTextFragmentInfo),
+    ScannedTextFragment(Box<ScannedTextFragmentInfo>),
     TableFragment,
     TableCellFragment,
     TableColumnFragment(TableColumnFragmentInfo),
@@ -368,6 +367,12 @@ pub struct ScannedTextFragmentInfo {
     /// The range within the above text run that this represents.
     pub range: Range<CharIndex>,
 
+    /// The positions of newlines within this scanned text fragment.
+    ///
+    /// FIXME(#2260, pcwalton): Can't this go somewhere else, like in the text run or something?
+    /// Or can we just remove it?
+    pub new_line_pos: Vec<CharIndex>,
+
     /// The new_line_pos is eaten during line breaking. If we need to re-merge
     /// fragments, it will have to be restored.
     pub original_new_line_pos: Option<Vec<CharIndex>>,
@@ -378,11 +383,15 @@ pub struct ScannedTextFragmentInfo {
 
 impl ScannedTextFragmentInfo {
     /// Creates the information specific to a scanned text fragment from a range and a text run.
-    pub fn new(run: Arc<Box<TextRun>>, range: Range<CharIndex>, content_size: LogicalSize<Au>)
+    pub fn new(run: Arc<Box<TextRun>>,
+               range: Range<CharIndex>,
+               new_line_positions: Vec<CharIndex>,
+               content_size: LogicalSize<Au>)
                -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
+            new_line_pos: new_line_positions,
             original_new_line_pos: None,
             content_size: content_size,
         }
@@ -406,12 +415,15 @@ impl SplitInfo {
     }
 }
 
-/// Data for an unscanned text fragment. Unscanned text fragments are the results of flow construction that
-/// have not yet had their inline-size determined.
+/// Data for an unscanned text fragment. Unscanned text fragments are the results of flow
+/// construction that have not yet had their inline-size determined.
 #[deriving(Clone)]
 pub struct UnscannedTextFragmentInfo {
     /// The text inside the fragment.
-    pub text: String,
+    ///
+    /// FIXME(pcwalton): Is there something more clever we can do here that avoids the double
+    /// indirection while not penalizing all fragments?
+    pub text: Box<String>,
 }
 
 impl UnscannedTextFragmentInfo {
@@ -419,7 +431,7 @@ impl UnscannedTextFragmentInfo {
     pub fn new(node: &ThreadSafeLayoutNode) -> UnscannedTextFragmentInfo {
         // FIXME(pcwalton): Don't copy text; atomically reference count it instead.
         UnscannedTextFragmentInfo {
-            text: node.text(),
+            text: box node.text(),
         }
     }
 
@@ -427,7 +439,7 @@ impl UnscannedTextFragmentInfo {
     #[inline]
     pub fn from_text(text: String) -> UnscannedTextFragmentInfo {
         UnscannedTextFragmentInfo {
-            text: text,
+            text: box text,
         }
     }
 }
@@ -436,7 +448,7 @@ impl UnscannedTextFragmentInfo {
 #[deriving(Clone)]
 pub struct TableColumnFragmentInfo {
     /// the number of columns a <col> element should span
-    pub span: Option<int>,
+    pub span: int,
 }
 
 impl TableColumnFragmentInfo {
@@ -447,7 +459,7 @@ impl TableColumnFragmentInfo {
             element.get_attr(&ns!(""), &atom!("span")).and_then(|string| {
                 let n: Option<int> = FromStr::from_str(string);
                 n
-            })
+            }).unwrap_or(0)
         };
         TableColumnFragmentInfo {
             span: span,
@@ -476,7 +488,6 @@ impl Fragment {
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
             specific: constructor.build_specific_fragment_info_for_node(node),
-            new_line_pos: vec!(),
             inline_context: None,
             debug_id: layout_debug::generate_unique_debug_id(),
         }
@@ -495,7 +506,6 @@ impl Fragment {
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
-            new_line_pos: vec!(),
             inline_context: None,
             debug_id: layout_debug::generate_unique_debug_id(),
         }
@@ -525,7 +535,6 @@ impl Fragment {
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
-            new_line_pos: vec!(),
             inline_context: None,
             debug_id: layout_debug::generate_unique_debug_id(),
         }
@@ -546,7 +555,6 @@ impl Fragment {
             border_padding: LogicalMargin::zero(writing_mode),
             margin: LogicalMargin::zero(writing_mode),
             specific: specific,
-            new_line_pos: vec!(),
             inline_context: None,
             debug_id: layout_debug::generate_unique_debug_id(),
         }
@@ -562,8 +570,8 @@ impl Fragment {
     pub fn save_new_line_pos(&mut self) {
         match &mut self.specific {
             &ScannedTextFragment(ref mut info) => {
-                if !self.new_line_pos.is_empty() {
-                    info.original_new_line_pos = Some(self.new_line_pos.clone());
+                if !info.new_line_pos.is_empty() {
+                    info.original_new_line_pos = Some(info.new_line_pos.clone());
                 }
             }
             _ => {}
@@ -575,7 +583,7 @@ impl Fragment {
             &ScannedTextFragment(ref mut info) => {
                 match info.original_new_line_pos.take() {
                     None => {}
-                    Some(new_line_pos) => self.new_line_pos = new_line_pos,
+                    Some(new_line_pos) => info.new_line_pos = new_line_pos,
                 }
                 return
             }
@@ -585,15 +593,17 @@ impl Fragment {
 
     /// Returns a debug ID of this fragment. This ID should not be considered stable across
     /// multiple layouts or fragment manipulations.
-    pub fn debug_id(&self) -> uint {
+    pub fn debug_id(&self) -> u16 {
         self.debug_id
     }
 
     /// Transforms this fragment into another fragment of the given type, with the given size,
     /// preserving all the other data.
-    pub fn transform(&self, size: LogicalSize<Au>, mut info: ScannedTextFragmentInfo) -> Fragment {
-        let new_border_box =
-            LogicalRect::from_point_size(self.style.writing_mode, self.border_box.start, size);
+    pub fn transform(&self, size: LogicalSize<Au>, mut info: Box<ScannedTextFragmentInfo>)
+                     -> Fragment {
+        let new_border_box = LogicalRect::from_point_size(self.style.writing_mode,
+                                                          self.border_box.start,
+                                                          size);
 
         info.content_size = size.clone();
 
@@ -605,7 +615,6 @@ impl Fragment {
             border_padding: self.border_padding,
             margin: self.margin,
             specific: ScannedTextFragment(info),
-            new_line_pos: self.new_line_pos.clone(),
             inline_context: self.inline_context.clone(),
             debug_id: self.debug_id,
         }
@@ -918,6 +927,22 @@ impl Fragment {
         self.is_scanned_text_fragment()
     }
 
+    /// Returns the newline positions of this fragment, if it's a scanned text fragment.
+    pub fn newline_positions(&self) -> Option<&Vec<CharIndex>> {
+        match self.specific {
+            ScannedTextFragment(ref info) => Some(&info.new_line_pos),
+            _ => None,
+        }
+    }
+
+    /// Returns the newline positions of this fragment, if it's a scanned text fragment.
+    pub fn newline_positions_mut(&mut self) -> Option<&mut Vec<CharIndex>> {
+        match self.specific {
+            ScannedTextFragment(ref mut info) => Some(&mut info.new_line_pos),
+            _ => None,
+        }
+    }
+
     /// Returns true if and only if this is a scanned text fragment.
     fn is_scanned_text_fragment(&self) -> bool {
         match self.specific {
@@ -1049,19 +1074,22 @@ impl Fragment {
                 fail!("Inline blocks or inline absolute hypothetical fragments do not get split")
             }
             ScannedTextFragment(ref text_fragment_info) => {
-                let mut new_line_pos = self.new_line_pos.clone();
+                let mut new_line_pos = text_fragment_info.new_line_pos.clone();
                 let cur_new_line_pos = new_line_pos.remove(0).unwrap();
 
-                let inline_start_range = Range::new(text_fragment_info.range.begin(), cur_new_line_pos);
-                let inline_end_range = Range::new(text_fragment_info.range.begin() + cur_new_line_pos + CharIndex(1),
-                                             text_fragment_info.range.length() - (cur_new_line_pos + CharIndex(1)));
+                let inline_start_range = Range::new(text_fragment_info.range.begin(),
+                                                    cur_new_line_pos);
+                let inline_end_range = Range::new(
+                    text_fragment_info.range.begin() + cur_new_line_pos + CharIndex(1),
+                    text_fragment_info.range.length() - (cur_new_line_pos + CharIndex(1)));
 
                 // Left fragment is for inline-start text of first founded new-line character.
-                let inline_start_fragment = SplitInfo::new(inline_start_range, text_fragment_info);
+                let inline_start_fragment = SplitInfo::new(inline_start_range,
+                                                           &**text_fragment_info);
 
                 // Right fragment is for inline-end text of first founded new-line character.
                 let inline_end_fragment = if inline_end_range.length() > CharIndex(0) {
-                    Some(SplitInfo::new(inline_end_range, text_fragment_info))
+                    Some(SplitInfo::new(inline_end_range, &**text_fragment_info))
                 } else {
                     None
                 };
@@ -1078,24 +1106,30 @@ impl Fragment {
     /// Otherwise the information pertaining to the split is returned. The inline-start
     /// and inline-end split information are both optional due to the possibility of
     /// them being whitespace.
-    //
-    // TODO(bjz): The text run should be removed in the future, but it is currently needed for
-    // the current method of fragment splitting in the `inline::try_append_*` functions.
-    pub fn find_split_info_for_inline_size(&self, start: CharIndex, max_inline_size: Au, starts_line: bool)
-            -> Option<(Option<SplitInfo>, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
+    pub fn find_split_info_for_inline_size(&self,
+                                           start: CharIndex,
+                                           max_inline_size: Au,
+                                           starts_line: bool)
+                                           -> Option<(Option<SplitInfo>,
+                                                      Option<SplitInfo>,
+                                                      Arc<Box<TextRun>>)> {
         match self.specific {
-            GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) | InputFragment |
-            InlineAbsoluteHypotheticalFragment(_) => None,
+            GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment |
+            TableCellFragment | TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
+            InputFragment | InlineAbsoluteHypotheticalFragment(_) => None,
             TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
-            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            UnscannedTextFragment(_) => {
+                fail!("Unscanned text fragments should have been scanned by now!")
+            }
             ScannedTextFragment(ref text_fragment_info) => {
                 let mut pieces_processed_count: uint = 0;
                 let mut remaining_inline_size: Au = max_inline_size;
-                let mut inline_start_range = Range::new(text_fragment_info.range.begin() + start, CharIndex(0));
+                let mut inline_start_range = Range::new(text_fragment_info.range.begin() + start,
+                                                        CharIndex(0));
                 let mut inline_end_range: Option<Range<CharIndex>> = None;
 
-                debug!("split_to_inline_size: splitting text fragment (strlen={}, range={}, avail_inline_size={})",
+                debug!("split_to_inline_size: splitting text fragment \
+                        (strlen={}, range={}, avail_inline_size={})",
                        text_fragment_info.run.text.len(),
                        text_fragment_info.range,
                        max_inline_size);
@@ -1151,12 +1185,12 @@ impl Fragment {
                     None
                 } else {
                     let inline_start = if inline_start_is_some {
-                        Some(SplitInfo::new(inline_start_range, text_fragment_info))
+                        Some(SplitInfo::new(inline_start_range, &**text_fragment_info))
                     } else {
                          None
                     };
                     let inline_end = inline_end_range.map(|inline_end_range| {
-                        SplitInfo::new(inline_end_range, text_fragment_info)
+                        SplitInfo::new(inline_end_range, &**text_fragment_info)
                     });
 
                     Some((inline_start, inline_end, text_fragment_info.run.clone()))

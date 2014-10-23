@@ -160,16 +160,17 @@ impl TextRunScanner {
             }
 
             let text_size = old_fragment.border_box.size;
+            let &NewLinePositions(ref mut new_line_positions) =
+                new_line_positions.get_mut(logical_offset);
             let new_text_fragment_info =
-                ScannedTextFragmentInfo::new(run.clone(), range, text_size);
+                box ScannedTextFragmentInfo::new(run.clone(),
+                                                 range,
+                                                 mem::replace(new_line_positions, Vec::new()),
+                                                 text_size);
             let new_metrics = new_text_fragment_info.run.metrics_for_range(&range);
             let bounding_box_size = bounding_box_for_run_metrics(&new_metrics,
                                                                  old_fragment.style.writing_mode);
-            let mut new_fragment = old_fragment.transform(bounding_box_size,
-                                                          new_text_fragment_info);
-            let &NewLinePositions(ref mut new_line_positions) =
-                new_line_positions.get_mut(logical_offset);
-            new_fragment.new_line_pos = mem::replace(new_line_positions, Vec::new());
+            let new_fragment = old_fragment.transform(bounding_box_size, new_text_fragment_info);
             out_fragments.push(new_fragment)
         }
 
