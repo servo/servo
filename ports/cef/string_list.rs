@@ -49,8 +49,8 @@ pub extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int
         if index < 0 || fptr_is_null(mem::transmute(lt)) { return 0; }
         let v = string_map_to_vec(lt);
         if index as uint > (*v).len() - 1 { return 0; }
-        let cs = (*v).get(index as uint);
-        cef_string_utf8_set(mem::transmute((**cs).str), (**cs).length, value, 1)
+        let cs = (*v)[index as uint];
+        cef_string_utf8_set(mem::transmute((*cs).str), (*cs).length, value, 1)
     }
 }
 
