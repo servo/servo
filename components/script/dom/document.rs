@@ -688,11 +688,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             root.traverse_preorder()
                 .find(|node| node.type_id() == ElementNodeTypeId(HTMLTitleElementTypeId))
                 .map(|title_elem| {
-                    for child in title_elem.children() {
-                        if child.is_text() {
-                            let text: JSRef<Text> = TextCast::to_ref(child).unwrap();
-                            title.push_str(text.characterdata().data().as_slice());
-                        }
+                    for text in title_elem.children().filter_map::<JSRef<Text>>(TextCast::to_ref) {
+                        title.push_str(text.characterdata().data().as_slice());
                     }
                 });
         });
