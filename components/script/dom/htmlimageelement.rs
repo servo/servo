@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementM
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, HTMLImageElementTypeId};
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};

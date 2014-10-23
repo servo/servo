@@ -15,7 +15,7 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
 
 use std::cell::Cell;

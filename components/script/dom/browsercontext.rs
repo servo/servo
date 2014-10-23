@@ -4,7 +4,7 @@
 
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, WindowProxyHandler};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::window::Window;
 
 use js::jsapi::JSObject;
