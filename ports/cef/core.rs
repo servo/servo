@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use azure;
 use command_line::command_line_init;
 use eutil::fptr_is_null;
 use geom::size::TypedSize2D;
@@ -49,7 +48,7 @@ pub extern "C" fn cef_shutdown() {
 pub extern "C" fn cef_run_message_loop() {
     let mut urls = Vec::new();
     urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".to_string());
-    let opts = opts::Opts {
+    opts::set_opts(opts::Opts {
         urls: urls,
         n_render_threads: 1,
         gpu_painting: false,
@@ -75,7 +74,7 @@ pub extern "C" fn cef_run_message_loop() {
         user_agent: None,
         dump_flow_tree: false,
         validate_display_list_geometry: false,
-    };
+    });
     native::start(0, 0 as *const *const u8, proc() {
        let window = Some(glfw_app::create_window());
        servo::run(window);
