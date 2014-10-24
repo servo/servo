@@ -22,7 +22,7 @@
 //! 5. `trace_object()` calls `JS_CallTracer()` to notify the GC, which will
 //!    add the object to the graph, and will trace that object as well.
 //!
-//! The untraceable!() macro adds an empty implementation of JSTraceable to
+//! The no_jsmanaged_fields!() macro adds an empty implementation of JSTraceable to
 //! a datatype.
 
 use dom::bindings::js::JS;
@@ -64,7 +64,7 @@ impl<T: Reflectable> JSTraceable for JS<T> {
     }
 }
 
-untraceable!(Reflector)
+no_jsmanaged_fields!(Reflector)
 
 /// A trait to allow tracing (only) DOM objects.
 pub trait JSTraceable {
@@ -142,7 +142,7 @@ impl JSTraceable for JSVal {
 }
 
 // XXXManishearth Check if the following three are optimized to no-ops
-// if e.trace() is a no-op (e.g it is an untraceable type)
+// if e.trace() is a no-op (e.g it is an no_jsmanaged_fields type)
 impl<T: JSTraceable> JSTraceable for Vec<T> {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
@@ -153,7 +153,7 @@ impl<T: JSTraceable> JSTraceable for Vec<T> {
 }
 
 // XXXManishearth Check if the following three are optimized to no-ops
-// if e.trace() is a no-op (e.g it is an untraceable type)
+// if e.trace() is a no-op (e.g it is an no_jsmanaged_fields type)
 impl<T: JSTraceable + 'static> JSTraceable for SmallVec1<T> {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
@@ -190,25 +190,25 @@ impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
 }
 
 
-untraceable!(bool, f32, f64, String, Url)
-untraceable!(uint, u8, u16, u32, u64)
-untraceable!(int, i8, i16, i32, i64)
-untraceable!(Sender<T>)
-untraceable!(Receiver<T>)
-untraceable!(ImageCacheTask, ScriptControlChan)
-untraceable!(Atom, Namespace, Timer)
-untraceable!(PropertyDeclarationBlock)
+no_jsmanaged_fields!(bool, f32, f64, String, Url)
+no_jsmanaged_fields!(uint, u8, u16, u32, u64)
+no_jsmanaged_fields!(int, i8, i16, i32, i64)
+no_jsmanaged_fields!(Sender<T>)
+no_jsmanaged_fields!(Receiver<T>)
+no_jsmanaged_fields!(ImageCacheTask, ScriptControlChan)
+no_jsmanaged_fields!(Atom, Namespace, Timer)
+no_jsmanaged_fields!(PropertyDeclarationBlock)
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-untraceable!(SubpageId, WindowSizeData, PipelineId)
-untraceable!(QuirksMode)
-untraceable!(Cx)
-untraceable!(ResponseHeaderCollection, RequestHeaderCollection, Method)
-untraceable!(ConstellationChan)
-untraceable!(LayoutChan)
-untraceable!(WindowProxyHandler)
-untraceable!(UntrustedNodeAddress)
-untraceable!(LengthOrPercentageOrAuto)
+no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId)
+no_jsmanaged_fields!(QuirksMode)
+no_jsmanaged_fields!(Cx)
+no_jsmanaged_fields!(ResponseHeaderCollection, RequestHeaderCollection, Method)
+no_jsmanaged_fields!(ConstellationChan)
+no_jsmanaged_fields!(LayoutChan)
+no_jsmanaged_fields!(WindowProxyHandler)
+no_jsmanaged_fields!(UntrustedNodeAddress)
+no_jsmanaged_fields!(LengthOrPercentageOrAuto)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]

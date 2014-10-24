@@ -29,7 +29,7 @@ use std::cell::Cell;
 use std::ptr;
 
 pub struct TrustedWorkerAddress(pub *const c_void);
-untraceable!(TrustedWorkerAddress)
+no_jsmanaged_fields!(TrustedWorkerAddress)
 
 #[dom_struct]
 pub struct Worker {
