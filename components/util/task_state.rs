@@ -27,21 +27,21 @@ bitflags! {
     }
 }
 
-// Exactly one of these should be set.
-static task_types: &'static [TaskState]
-    = &[Script, Layout, Render];
-
-macro_rules! predicates ( ( $( $f:ident = $c:ident ; )* ) => (
+macro_rules! task_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
     impl TaskState {
         $(
-            pub fn $f(self) -> bool {
-                self.contains($c)
+            pub fn $fun(self) -> bool {
+                self.contains($flag)
             }
         )*
     }
+
+    #[cfg(not(ndebug))]
+    static TYPES: &'static [TaskState]
+        = &[ $( $flag ),* ];
 ))
 
-predicates! {
+task_types! {
     is_script = Script;
     is_layout = Layout;
     is_render = Render;
@@ -49,7 +49,7 @@ predicates! {
 
 #[cfg(not(ndebug))]
 mod imp {
-    use super::{TaskState, task_types};
+    use super::{TaskState, TYPES};
 
     local_data_key!(STATE: TaskState)
 
@@ -68,7 +68,7 @@ mod imp {
         };
 
         // Exactly one of the task type flags should be set.
-        assert_eq!(1, task_types.iter().filter(|&&ty| state.contains(ty)).count());
+        assert_eq!(1, TYPES.iter().filter(|&&ty| state.contains(ty)).count());
         state
     }
 
