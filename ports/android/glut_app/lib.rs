@@ -10,6 +10,7 @@
 
 extern crate alert;
 extern crate compositing;
+extern crate egl;
 extern crate geom;
 extern crate glut;
 extern crate layers;

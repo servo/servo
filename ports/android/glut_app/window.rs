@@ -18,6 +18,7 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
+use layers::platform::surface::NativeGraphicsMetadata;
 use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
 use msg::compositor_msg::{FinishedLoading, Blank, ReadyState};
 use util::geometry::ScreenPx;
@@ -186,6 +187,13 @@ impl WindowMethods for Window {
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         //FIXME: Do nothing in GLUT now.
         ScaleFactor(1.0)
+    }
+
+    fn native_metadata(&self) -> NativeGraphicsMetadata {
+        use egl::egl::GetCurrentDisplay;
+        NativeGraphicsMetadata {
+            display: GetCurrentDisplay(),
+        }
     }
 }
 

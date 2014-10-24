@@ -215,6 +215,7 @@ dependencies = [
  "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#eac91e00db9af155f3004b408a18cb6d9f462a25)",
  "msg 0.0.1",
+ "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#6776e9c07feb149d34b087039ecf6b2c143e3afc)",
  "util 0.0.1",
 ]
 
