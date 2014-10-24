@@ -17,6 +17,7 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use glfw::{mod, Context};
 use layers::geometry::DevicePixel;
+use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
 use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
 use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
@@ -150,6 +151,23 @@ impl WindowMethods for Window {
         let backing_size = self.framebuffer_size().width.get();
         let window_size = self.size().width.get();
         ScaleFactor((backing_size as f32) / window_size)
+    }
+
+    #[cfg(target_os="linux")]
+    fn native_metadata(&self) -> NativeGraphicsMetadata {
+        NativeGraphicsMetadata {
+            display: unsafe { glfw::ffi::glfwGetX11Display() },
+        }
+    }
+
+    #[cfg(target_os="macos")]
+    fn native_metadata(&self) -> NativeGraphicsMetadata {
+        use opengles::cgl::{CGLGetCurrentContext, CGLGetPixelFormat};
+        unsafe {
+            NativeGraphicsMetadata {
+                pixel_format: CGLGetPixelFormat(CGLGetCurrentContext()),
+            }
+        }
     }
 }
 

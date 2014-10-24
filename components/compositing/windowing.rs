@@ -8,6 +8,7 @@ use geom::point::TypedPoint2D;
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
+use layers::platform::surface::NativeGraphicsMetadata;
 use servo_msg::compositor_msg::{ReadyState, RenderState};
 use servo_util::geometry::ScreenPx;
 
@@ -71,5 +72,8 @@ pub trait WindowMethods {
 
     /// Returns the hidpi factor of the monitor.
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;
+
+    /// Gets the OS native graphics information for this window.
+    fn native_metadata(&self) -> NativeGraphicsMetadata;
 }
 

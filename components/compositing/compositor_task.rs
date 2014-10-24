@@ -25,9 +25,6 @@ use std::rc::Rc;
 
 use url::Url;
 
-#[cfg(target_os="linux")]
-use azure::azure_hl;
-
 /// The implementation of the layers-based compositor.
 #[deriving(Clone)]
 pub struct CompositorChan {
@@ -189,11 +186,13 @@ impl CompositorTask {
     ///
     /// FIXME(pcwalton): Probably could be less platform-specific, using the metadata abstraction.
     #[cfg(target_os="linux")]
-    pub fn create_graphics_context() -> NativeCompositingGraphicsContext {
-        NativeCompositingGraphicsContext::from_display(azure_hl::current_display())
+    pub fn create_graphics_context(native_metadata: &NativeGraphicsMetadata)
+                                    -> NativeCompositingGraphicsContext {
+        NativeCompositingGraphicsContext::from_display(native_metadata.display)
     }
     #[cfg(not(target_os="linux"))]
-    pub fn create_graphics_context() -> NativeCompositingGraphicsContext {
+    pub fn create_graphics_context(_: &NativeGraphicsMetadata)
+                                    -> NativeCompositingGraphicsContext {
         NativeCompositingGraphicsContext::new()
     }
 

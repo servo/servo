@@ -145,13 +145,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // display list. This is only here because we don't have that logic in the renderer yet.
         let window_size = window.framebuffer_size();
         let hidpi_factor = window.hidpi_factor();
+        let context = CompositorTask::create_graphics_context(&window.native_metadata());
 
         let show_debug_borders = opts::get().show_debug_borders;
         IOCompositor {
             window: window,
             port: port,
-            context: rendergl::RenderContext::new(CompositorTask::create_graphics_context(),
-                                                  show_debug_borders),
+            context: rendergl::RenderContext::new(context, show_debug_borders),
             root_pipeline: None,
             scene: Scene::new(Rect {
                 origin: Zero::zero(),
@@ -294,7 +294,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
 
                 (Ok(GetGraphicsMetadata(chan)), NotShuttingDown) => {
-                    chan.send(Some(azure_hl::current_graphics_metadata()));
+                    chan.send(Some(self.window.native_metadata()));
                 }
 
                 (Ok(CreateOrUpdateRootLayer(layer_properties)), NotShuttingDown) => {
