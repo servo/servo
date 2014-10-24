@@ -5,6 +5,9 @@
 use dom::bindings::trace::JSTraceable;
 use js::jsapi::{JSTracer};
 
+#[cfg(debug)]
+use layout_interface::LayoutBorrowMarker;
+
 use std::cell;
 use std::cell::RefCell;
 use std::mem;
@@ -36,6 +39,7 @@ impl<T> DOMRefCell<T> {
 
     #[inline(always)]
     pub fn try_borrow<'a>(&'a self) -> Option<Ref<'a, T>> {
+        check_not_called_from_layout();
         self.base.try_borrow()
     }
 
@@ -46,6 +50,7 @@ impl<T> DOMRefCell<T> {
 
     #[inline(always)]
     pub fn try_borrow_mut<'a>(&'a self) -> Option<RefMut<'a, T>> {
+        check_not_called_from_layout();
         self.base.try_borrow_mut()
     }
 
@@ -56,6 +61,8 @@ impl<T> DOMRefCell<T> {
 
     /// This returns the pointer which refers T in `RefCell<T>` directly.
     pub unsafe fn borrow_for_layout<'a>(&'a self) -> &'a T {
+        check_called_in_layout();
+
         let val = mem::transmute::<&RefCell<T>, &T>(&self.base);
         val
     }
@@ -65,4 +72,26 @@ impl<T: JSTraceable> JSTraceable for DOMRefCell<T> {
     fn trace(&self, trc: *mut JSTracer) {
         (*self).base.borrow().trace(trc)
     }
+}
+
+#[cfg(debug)]
+fn check_called_in_layout() {
+    if LayoutBorrowMarker.get().is_none() {
+        fail!("you must not call this method in non layout task.");
+    }
+}
+
+#[cfg(not(debug))]
+fn check_called_in_layout() {
+}
+
+#[cfg(debug)]
+fn check_not_called_from_layout() {
+    if LayoutBorrowMarker.get().is_some() {
+        fail!("you must not call this method in layout task.");
+    }
+}
+
+#[cfg(not(debug))]
+fn check_not_called_from_layout() {
 }
