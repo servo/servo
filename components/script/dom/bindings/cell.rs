@@ -46,7 +46,6 @@ impl<T> DOMRefCell<T> {
     /// Is the cell mutably borrowed?
     ///
     /// For safety checks in debug builds only.
-    #[cfg(not(ndebug))]
     pub fn is_mutably_borrowed(&self) -> bool {
         self.borrow.get() == WRITING
     }

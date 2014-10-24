@@ -5,14 +5,10 @@
 //! Supports dynamic assertions in debug builds about what sort of task is
 //! running and what state it's in.
 //!
-//! In release builds, `get` is not available; calls must be inside
-//! `debug_assert!` or similar.  All of the other functions inline away to
-//! nothing.
+//! In release builds, `get` returns 0.  All of the other functions inline
+//! away to nothing.
 
-pub use self::imp::{initialize, enter, exit};
-
-#[cfg(not(ndebug))]
-pub use self::imp::get;
+pub use self::imp::{initialize, get, enter, exit};
 
 bitflags! {
     #[deriving(Show)]
@@ -89,6 +85,7 @@ mod imp {
 mod imp {
     use super::TaskState;
     #[inline(always)] pub fn initialize(_: TaskState) { }
+    #[inline(always)] pub fn get() -> TaskState { TaskState::empty() }
     #[inline(always)] pub fn enter(_: TaskState) { }
     #[inline(always)] pub fn exit(_: TaskState) { }
 }
