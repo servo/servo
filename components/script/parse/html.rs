@@ -25,6 +25,8 @@ use encoding::types::{Encoding, DecodeReplace};
 use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask, load_whole_resource};
 use servo_msg::constellation_msg::LoadData as MsgLoadData;
 use servo_util::task::spawn_named;
+use servo_util::task_state;
+use servo_util::task_state::InHTMLParser;
 use servo_util::str::DOMString;
 use std::ascii::StrAsciiExt;
 use std::comm::{channel, Sender, Receiver};
@@ -480,6 +482,8 @@ pub fn parse_html(page: &Page,
     let parser = ServoHTMLParser::new(js_chan.clone(), base_url.clone(), document).root();
     let parser: JSRef<ServoHTMLParser> = *parser;
 
+    task_state::enter(InHTMLParser);
+
     match input {
         InputString(s) => {
             parser.tokenizer().borrow_mut().feed(s);
@@ -511,6 +515,8 @@ pub fn parse_html(page: &Page,
     }
 
     parser.tokenizer().borrow_mut().end();
+
+    task_state::exit(InHTMLParser);
 
     debug!("finished parsing");
     js_chan.send(JSTaskExit);

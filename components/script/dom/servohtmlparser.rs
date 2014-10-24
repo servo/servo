@@ -15,6 +15,8 @@ use dom::node::TrustedNodeAddress;
 use dom::document::{Document, DocumentHelpers};
 use parse::html::JSMessage;
 
+use servo_util::task_state;
+
 use std::default::Default;
 use url::Url;
 use js::jsapi::JSTracer;
@@ -91,15 +93,23 @@ impl tree_builder::Tracer<TrustedNodeAddress> for Tracer {
 
 impl JSTraceable for ServoHTMLParser {
     fn trace(&self, trc: *mut JSTracer) {
+        self.reflector_.trace(trc);
+
         let tracer = Tracer {
             trc: trc,
         };
         let tracer = &tracer as &tree_builder::Tracer<TrustedNodeAddress>;
 
-        self.reflector_.trace(trc);
-        let tokenizer = self.tokenizer.borrow();
-        let tree_builder = tokenizer.sink();
-        tree_builder.trace_handles(tracer);
-        tree_builder.sink().trace(trc);
+        unsafe {
+            // Assertion: If the parser is mutably borrowed, we're in the
+            // parsing code paths.
+            debug_assert!(task_state::get().contains(task_state::InHTMLParser)
+                || !self.tokenizer.is_mutably_borrowed());
+
+            let tokenizer = self.tokenizer.borrow_for_gc_trace();
+            let tree_builder = tokenizer.sink();
+            tree_builder.trace_handles(tracer);
+            tree_builder.sink().trace(trc);
+        }
     }
 }

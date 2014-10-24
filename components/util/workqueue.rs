@@ -7,6 +7,8 @@
 //! Data associated with queues is simply a pair of unsigned integers. It is expected that a
 //! higher-level API on top of this could allow safe fork-join parallelism.
 
+use task_state;
+
 use native::task::NativeTaskBuilder;
 use rand::{Rng, XorShiftRng};
 use std::mem;
@@ -196,7 +198,10 @@ pub struct WorkQueue<QueueData, WorkData> {
 impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     /// Creates a new work queue and spawns all the threads associated with
     /// it.
-    pub fn new(task_name: &'static str, thread_count: uint, user_data: QueueData) -> WorkQueue<QueueData, WorkData> {
+    pub fn new(task_name: &'static str,
+               state: task_state::TaskState,
+               thread_count: uint,
+               user_data: QueueData) -> WorkQueue<QueueData, WorkData> {
         // Set up data structures.
         let (supervisor_chan, supervisor_port) = channel();
         let (mut infos, mut threads) = (vec!(), vec!());
@@ -231,6 +236,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         // Spawn threads.
         for thread in threads.into_iter() {
             TaskBuilder::new().named(task_name).native().spawn(proc() {
+                task_state::initialize(state | task_state::InWorker);
                 let mut thread = thread;
                 thread.start()
             })

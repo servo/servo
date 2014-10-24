@@ -53,6 +53,7 @@ use servo_util::logical_geometry::LogicalPoint;
 use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
+use servo_util::task_state;
 use servo_util::time::{TimeProfilerChan, profile};
 use servo_util::time;
 use servo_util::workqueue::WorkQueue;
@@ -181,7 +182,7 @@ impl LayoutTaskFactory for LayoutTask {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("LayoutTask", proc() {
+        spawn_named_with_send_on_failure("LayoutTask", task_state::Layout, proc() {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
                 let layout =
@@ -251,7 +252,8 @@ impl LayoutTask {
         let screen_size = Size2D(Au(0), Au(0));
         let device = Device::new(Screen, opts::get().initial_window_size.as_f32());
         let parallel_traversal = if opts::get().layout_threads != 1 {
-            Some(WorkQueue::new("LayoutWorker", opts::get().layout_threads, ptr::null()))
+            Some(WorkQueue::new("LayoutWorker", task_state::Layout,
+                                opts::get().layout_threads, ptr::null()))
         } else {
             None
         };

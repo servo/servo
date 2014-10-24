@@ -54,11 +54,13 @@ use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::task::spawn_named_with_send_on_failure;
+use servo_util::task_state;
 
 use geom::point::Point2D;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
+use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
 use js;
@@ -262,7 +264,7 @@ impl ScriptTaskFactory for ScriptTask {
         let ConstellationChan(const_chan) = constellation_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
-        spawn_named_with_send_on_failure("ScriptTask", proc() {
+        spawn_named_with_send_on_failure("ScriptTask", task_state::Script, proc() {
             let script_task = ScriptTask::new(id,
                                               compositor as Box<ScriptListener>,
                                               layout_chan,
@@ -281,6 +283,16 @@ impl ScriptTaskFactory for ScriptTask {
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
         }, FailureMsg(failure_msg), const_chan, false);
+    }
+}
+
+unsafe extern "C" fn debug_gc_callback(rt: *mut JSRuntime, status: JSGCStatus) {
+    js::rust::gc_callback(rt, status);
+
+    match status {
+        JSGC_BEGIN => task_state::enter(task_state::InGC),
+        JSGC_END   => task_state::exit(task_state::InGC),
+        _ => (),
     }
 }
 
@@ -373,6 +385,13 @@ impl ScriptTask {
         js_context.set_logging_error_reporter();
         unsafe {
             JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
+        }
+
+        // Needed for debug assertions about whether GC is running.
+        if !cfg!(ndebug) {
+            unsafe {
+                JS_SetGCCallback(js_runtime.ptr, Some(debug_gc_callback));
+            }
         }
 
         (js_runtime, js_context)
