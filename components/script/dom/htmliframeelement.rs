@@ -121,7 +121,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         }));
 
         let doc = document_from_node(self).root();
-        if doc.ReadyState() != DocumentReadyStateValues::Complete {
+        if doc.ReadyState() == DocumentReadyStateValues::Loading {
             // https://github.com/servo/servo/issues/3738
             // We can't handle dynamic frame tree changes in the compositor right now.
             let ConstellationChan(ref chan) = page.constellation_chan;
