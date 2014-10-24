@@ -31,11 +31,15 @@ class MachCommands(CommandBase):
                      default=None,
                      action='store_true',
                      help='Build for Android')
+    @CommandArgument('--debug-mozjs',
+                     default=None,
+                     action='store_true',
+                     help='Enable debug assertions in mozjs')
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
     def build(self, target=None, release=False, jobs=None, android=None,
-              verbose=False):
+              verbose=False, debug_mozjs=False):
         self.ensure_bootstrapped()
 
         if android is None:
@@ -50,6 +54,13 @@ class MachCommands(CommandBase):
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
+
+        features = []
+        if debug_mozjs:
+            features += ["script/debugmozjs"]
+
+        if features:
+            opts += ["--features", "%s" % ' '.join(features)]
 
         build_start = time()
         if android:

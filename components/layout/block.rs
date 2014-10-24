@@ -13,17 +13,17 @@
 //! "CSS 2.1" or "CSS 2.2" refers to the editor's draft of the W3C "Cascading Style Sheets Level 2
 //! Revision 2 (CSS 2.2) Specification" available here:
 //!
-//!     http://dev.w3.org/csswg/css2/
+//!   http://dev.w3.org/csswg/css2/
 //!
 //! "INTRINSIC" refers to L. David Baron's "More Precise Definitions of Inline Layout and Table
 //! Layout" available here:
 //!
-//!     http://dbaron.org/css/intrinsic/
+//!   http://dbaron.org/css/intrinsic/
 //!
 //! "CSS-SIZING" refers to the W3C "CSS Intrinsic & Extrinsic Sizing Module Level 3" document
 //! available here:
 //!
-//!     http://dev.w3.org/csswg/css-sizing/
+//!   http://dev.w3.org/csswg/css-sizing/
 
 #![deny(unsafe_block)]
 

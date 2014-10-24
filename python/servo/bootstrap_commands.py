@@ -108,7 +108,7 @@ class MachCommands(CommandBase):
 
         tgz_file = "cargo-nightly-%s.tar.gz" % host_triple()
         # FIXME(#3582): use https.
-        nightly_url = "http://static.rust-lang.org/cargo-dist/2014-10-02/%s" % tgz_file
+        nightly_url = "http://static.rust-lang.org/cargo-dist/2014-10-21/%s" % tgz_file
 
         download("Cargo nightly", nightly_url, tgz_file)
 
