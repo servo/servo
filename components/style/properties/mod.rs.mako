@@ -1809,6 +1809,11 @@ impl ComputedValues {
         ))
     }
 
+    #[inline]
+    pub fn get_font_arc(&self) -> Arc<style_structs::Font> {
+        self.font.clone()
+    }
+
     % for style_struct in STYLE_STRUCTS:
         #[inline]
         pub fn get_${style_struct.name.lower()}

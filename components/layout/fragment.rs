@@ -724,7 +724,7 @@ impl Fragment {
     }
 
     pub fn calculate_line_height(&self, layout_context: &LayoutContext) -> Au {
-        let font_style = self.style.get_font();
+        let font_style = self.style.get_font_arc();
         let font_metrics = text::font_metrics_for_style(layout_context.font_context(), font_style);
         text::line_height_from_style(&*self.style, &font_metrics)
     }
@@ -1394,7 +1394,7 @@ impl Fragment {
             InlineBlockFragment(ref info) => {
                 // See CSS 2.1 § 10.8.1.
                 let block_flow = info.flow_ref.deref().as_immutable_block();
-                let font_style = self.style.get_font();
+                let font_style = self.style.get_font_arc();
                 let font_metrics = text::font_metrics_for_style(layout_context.font_context(),
                                                                 font_style);
                 InlineMetrics::from_block_height(&font_metrics,

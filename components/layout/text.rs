@@ -106,7 +106,7 @@ impl TextRunScanner {
             let compression;
             {
                 let in_fragment = self.clump.front().unwrap();
-                let font_style = in_fragment.style().get_font();
+                let font_style = in_fragment.style().get_font_arc();
                 fontgroup = font_context.get_layout_font_group_for_style(font_style);
                 compression = match in_fragment.white_space() {
                     white_space::normal | white_space::nowrap => CompressWhitespaceNewline,
@@ -209,7 +209,7 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
 ///
 /// `#[inline]` because often the caller only needs a few fields from the font metrics.
 #[inline]
-pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: &FontStyle)
+pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: Arc<FontStyle>)
                               -> FontMetrics {
     let fontgroup = font_context.get_layout_font_group_for_style(font_style);
     fontgroup.fonts.get(0).borrow().metrics.clone()
