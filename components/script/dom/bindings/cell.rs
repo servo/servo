@@ -6,6 +6,7 @@ use dom::bindings::trace::JSTraceable;
 use js::jsapi::{JSTracer};
 
 use servo_util::task_state;
+use servo_util::task_state::{Script, InGC};
 
 use std::cell::{Cell, UnsafeCell};
 use std::kinds::marker;
@@ -31,6 +32,23 @@ impl<T> DOMRefCell<T> {
     pub unsafe fn borrow_for_layout<'a>(&'a self) -> &'a T {
         debug_assert!(task_state::get().is_layout());
         &*self.value.get()
+    }
+
+    /// Borrow the contents for the purpose of GC tracing.
+    ///
+    /// This succeeds even if the object is mutably borrowed,
+    /// so you have to be careful in trace code!
+    pub unsafe fn borrow_for_gc_trace<'a>(&'a self) -> &'a T {
+        debug_assert!(task_state::get().contains(Script | InGC));
+        &*self.value.get()
+    }
+
+    /// Is the cell mutably borrowed?
+    ///
+    /// For safety checks in debug builds only.
+    #[cfg(not(ndebug))]
+    pub fn is_mutably_borrowed(&self) -> bool {
+        self.borrow.get() == WRITING
     }
 
     pub fn try_borrow<'a>(&'a self) -> Option<Ref<'a, T>> {

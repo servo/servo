@@ -60,6 +60,7 @@ use geom::point::Point2D;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
+use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
 use js;
@@ -285,6 +286,16 @@ impl ScriptTaskFactory for ScriptTask {
     }
 }
 
+unsafe extern "C" fn debug_gc_callback(rt: *mut JSRuntime, status: JSGCStatus) {
+    js::rust::gc_callback(rt, status);
+
+    match status {
+        JSGC_BEGIN => task_state::enter(task_state::InGC),
+        JSGC_END   => task_state::exit(task_state::InGC),
+        _ => (),
+    }
+}
+
 impl ScriptTask {
     /// Creates a new script task.
     pub fn new(id: PipelineId,
@@ -374,6 +385,13 @@ impl ScriptTask {
         js_context.set_logging_error_reporter();
         unsafe {
             JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
+        }
+
+        // Needed for debug assertions about whether GC is running.
+        if !cfg!(ndebug) {
+            unsafe {
+                JS_SetGCCallback(js_runtime.ptr, Some(debug_gc_callback));
+            }
         }
 
         (js_runtime, js_context)

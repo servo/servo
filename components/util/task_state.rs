@@ -22,6 +22,8 @@ bitflags! {
         static Render        = 0x04,
 
         static InWorker      = 0x0100,
+        static InGC          = 0x0200,
+        static InHTMLParser  = 0x0400,
     }
 }
 
