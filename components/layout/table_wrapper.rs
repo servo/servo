@@ -7,7 +7,7 @@
 //! This follows the "More Precise Definitions of Inline Layout and Table Layout" proposal written
 //! by L. David Baron (Mozilla) here:
 //!
-//!     http://dbaron.org/css/intrinsic/
+//!   http://dbaron.org/css/intrinsic/
 //!
 //! Hereafter this document is referred to as INTRINSIC.
 

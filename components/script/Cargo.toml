@@ -9,6 +9,9 @@ build = "make -f makefile.cargo"
 name = "script"
 path = "lib.rs"
 
+[features]
+debugmozjs = ['js/debugmozjs']
+
 [dependencies.plugins]
 path = "../plugins"
 
