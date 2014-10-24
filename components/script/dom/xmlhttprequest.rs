@@ -57,7 +57,6 @@ use std::default::Default;
 use std::io::{BufReader, MemWriter, Timer};
 use std::from_str::FromStr;
 use std::path::BytesContainer;
-use std::task::TaskBuilder;
 use std::time::duration::Duration;
 use std::num::Zero;
 use time;
@@ -549,10 +548,9 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             return XMLHttpRequest::fetch(&mut Sync(self), resource_task, load_data,
                                          terminate_receiver, cors_request);
         } else {
-            let builder = TaskBuilder::new().named("XHRTask");
             self.fetch_time.set(time::now().to_timespec().sec);
             let script_chan = global.root_ref().script_chan().clone();
-            builder.spawn(proc() {
+            spawn_named("XHRTask", proc() {
                 let _ = XMLHttpRequest::fetch(&mut Async(addr.unwrap(), script_chan),
                                               resource_task, load_data, terminate_receiver, cors_request);
             });

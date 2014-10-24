@@ -73,7 +73,7 @@ impl Reflectable for Element {
     }
 }
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Show)]
 #[jstraceable]
 pub enum ElementTypeId {
     HTMLElementTypeId,
@@ -534,6 +534,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn notify_attribute_changed(self, _local_name: &Atom) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         if node.is_in_doc() {
+            debug!("Attribute changed. Dispatching content_changed.");
             let document = node.owner_doc().root();
             document.content_changed(node);
         }
@@ -1172,4 +1173,3 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         }
     }
 }
-

@@ -26,6 +26,7 @@ use script_task::StackRootTLS;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 use servo_util::task_state;
 use servo_util::task_state::{Script, InWorker};
+use servo_util::task::spawn_named;
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
@@ -34,8 +35,6 @@ use js::rust::Cx;
 
 use std::rc::Rc;
 use std::ptr;
-use std::task::TaskBuilder;
-use native::task::NativeTaskBuilder;
 use url::Url;
 
 #[dom_struct]
@@ -88,11 +87,7 @@ impl DedicatedWorkerGlobalScope {
                             parent_sender: ScriptChan,
                             own_sender: ScriptChan,
                             receiver: Receiver<ScriptMsg>) {
-        TaskBuilder::new()
-            .native()
-            .named(format!("Web Worker at {}", worker_url.serialize()))
-            .spawn(proc() {
-
+        spawn_named(format!("Web Worker at {}", worker_url.serialize()), proc() {
             task_state::initialize(Script | InWorker);
 
             let roots = RootCollection::new();

@@ -16,10 +16,11 @@ use dom::console::Console;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, WindowTypeId, EventTargetHelpers};
 use dom::location::Location;
+use dom::node::Node;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
 use dom::screen::Screen;
-use layout_interface::{ReflowGoal, ReflowForDisplay};
+use layout_interface::ReflowGoal;
 use page::Page;
 use script_task::{ExitWindowMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
 use script_task::FromWindow;
@@ -311,8 +312,9 @@ impl Reflectable for Window {
 }
 
 pub trait WindowHelpers {
-    fn reflow(self);
-    fn flush_layout(self, goal: ReflowGoal);
+    fn queue_dirty_nodes(self, dirty: &[JSRef<Node>]);
+    fn try_reflow(self, goal: ReflowGoal);
+    fn force_reflow(self, goal: ReflowGoal);
     fn wait_until_safe_to_modify_dom(self);
     fn init_browser_context(self, doc: JSRef<Document>);
     fn load_url(self, href: DOMString);
@@ -341,16 +343,16 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         })
     }
 
-    fn reflow(self) {
-        self.page().damage();
-        // FIXME This should probably be ReflowForQuery, not Display. All queries currently
-        // currently rely on the display list, which means we can't destroy it by
-        // doing a query reflow.
-        self.page().reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor);
+    fn queue_dirty_nodes(self, dirty: &[JSRef<Node>]) {
+        self.page().queue_dirty_nodes(dirty);
     }
 
-    fn flush_layout(self, goal: ReflowGoal) {
-        self.page().flush_layout(goal);
+    fn try_reflow(self, goal: ReflowGoal) {
+        self.page().try_reflow(goal);
+    }
+
+    fn force_reflow(self, goal: ReflowGoal) {
+        self.page().force_reflow(goal);
     }
 
     fn wait_until_safe_to_modify_dom(self) {

@@ -13,6 +13,7 @@ use sync::Arc;
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use platform::font_template::FontTemplateData;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
+use servo_util::task::spawn_named;
 use style::{Source, LocalSource, UrlSource_};
 
 /// A list of font templates that make up a given font family.
@@ -245,7 +246,7 @@ impl FontCacheTask {
     pub fn new(resource_task: ResourceTask) -> FontCacheTask {
         let (chan, port) = channel();
 
-        spawn(proc() {
+        spawn_named("FontCacheTask", proc() {
             // TODO: Allow users to specify these.
             let mut generic_fonts = HashMap::with_capacity(5);
             add_generic_font(&mut generic_fonts, "serif", "Times New Roman");

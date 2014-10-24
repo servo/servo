@@ -18,21 +18,21 @@ use media_queries::{Device, MediaRule, parse_media_rule};
 use media_queries;
 use font_face::{FontFaceRule, Source, parse_font_face_rule, iter_font_face_rules_inner};
 
-
+#[deriving(Show)]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
     rules: Vec<CSSRule>,
 }
 
-
+#[deriving(Show)]
 pub enum CSSRule {
     CSSStyleRule(StyleRule),
     CSSMediaRule(MediaRule),
     CSSFontFaceRule(FontFaceRule),
 }
 
-
+#[deriving(Show)]
 pub struct StyleRule {
     pub selectors: Vec<selectors::Selector>,
     pub declarations: properties::PropertyDeclarationBlock,

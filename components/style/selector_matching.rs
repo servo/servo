@@ -4,6 +4,7 @@
 
 use std::ascii::AsciiExt;
 use std::collections::hashmap::HashMap;
+use std::fmt;
 use std::hash::Hash;
 use std::num::div_rem;
 use sync::Arc;
@@ -54,6 +55,7 @@ pub static SELECTOR_WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\x0C
 /// Hence, the union of the rules keyed on each of node's classes, ID,
 /// element name, etc. will contain the Rules that actually match that
 /// node.
+#[deriving(Show)]
 struct SelectorMap {
     // TODO: Tune the initial capacity of the HashMap
     id_hash: HashMap<Atom, Vec<Rule>>,
@@ -263,6 +265,7 @@ impl SelectorMap {
 // rapidly increase.
 pub static RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE: uint = 4096;
 
+#[deriving(Show)]
 pub struct Stylist {
     element_map: PerPseudoElementSelectorMap,
     before_map: PerPseudoElementSelectorMap,
@@ -485,6 +488,7 @@ impl Stylist {
     }
 }
 
+#[deriving(Show)]
 struct PerOriginSelectorMap {
     normal: SelectorMap,
     important: SelectorMap,
@@ -500,6 +504,7 @@ impl PerOriginSelectorMap {
     }
 }
 
+#[deriving(Show)]
 struct PerPseudoElementSelectorMap {
     user_agent: PerOriginSelectorMap,
     author: PerOriginSelectorMap,
@@ -526,6 +531,13 @@ struct Rule {
     declarations: DeclarationBlock,
 }
 
+impl fmt::Show for Rule {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Rule {{ selector: {}, declarations: {} }}",
+               self.selector.deref(), self.declarations)
+    }
+}
+
 /// A property declaration together with its precedence among rules of equal specificity so that
 /// we can sort them.
 #[deriving(Clone)]
@@ -533,6 +545,13 @@ pub struct DeclarationBlock {
     pub declarations: Arc<Vec<PropertyDeclaration>>,
     source_order: uint,
     specificity: u32,
+}
+
+impl fmt::Show for DeclarationBlock {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "DeclarationBlock {{ declarations: {}, source_order: {}, specificity: {} }}",
+               self.declarations.deref(), self.source_order, self.specificity)
+    }
 }
 
 impl DeclarationBlock {
@@ -1154,4 +1173,3 @@ mod tests {
         assert!(selector_map.class_hash.find(&Atom::from_slice("foo")).is_none());
     }
 }
-

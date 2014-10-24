@@ -11,6 +11,7 @@ use context::SharedLayoutContext;
 use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow;
 use flow_ref::FlowRef;
+use incremental::{Reflow, Repaint};
 use layout_debug;
 use parallel::UnsafeFlow;
 use parallel;
@@ -30,6 +31,7 @@ use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use layout_traits;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
+use log;
 use script::dom::bindings::js::JS;
 use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
@@ -478,9 +480,13 @@ impl LayoutTask {
     }
 
     /// Retrieves the flow tree root from the root node.
-    fn get_layout_root(&self, node: LayoutNode) -> FlowRef {
+    fn try_get_layout_root(&self, node: LayoutNode) -> Option<FlowRef> {
         let mut layout_data_ref = node.mutate_layout_data();
-        let layout_data = layout_data_ref.as_mut().expect("no layout data for root node");
+        let layout_data =
+            match layout_data_ref.as_mut() {
+                None              => return None,
+                Some(layout_data) => layout_data,
+            };
 
         let result = layout_data.data.flow_construction_result.swap_out();
 
@@ -494,11 +500,15 @@ impl LayoutTask {
                 flow.set_absolute_descendants(abs_descendants);
                 flow
             }
-            _ => fail!("Flow construction didn't result in a flow at the root of the tree!"),
+            _ => return None,
         };
 
         flow.mark_as_root();
-        flow
+        Some(flow)
+    }
+
+    fn get_layout_root(&self, node: LayoutNode) -> FlowRef {
+        self.try_get_layout_root(node).expect("no flow for root node")
     }
 
     /// Performs layout constraint solving.
@@ -566,7 +576,9 @@ impl LayoutTask {
 
         debug!("layout: received layout request for: {:s}", data.url.serialize());
         debug!("layout: parsed Node tree");
-        debug!("{:?}", node.dump());
+        if log_enabled!(log::DEBUG) {
+            node.dump();
+        }
 
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
@@ -580,6 +592,7 @@ impl LayoutTask {
         // http://www.w3.org/TR/css-device-adapt/#actual-viewport
         let viewport_size = data.window_size.initial_viewport;
 
+        let old_screen_size = rw_data.screen_size;
         let current_screen_size = Size2D(Au::from_frac32_px(viewport_size.width.get()),
                                          Au::from_frac32_px(viewport_size.height.get()));
         rw_data.screen_size = current_screen_size;
@@ -595,9 +608,18 @@ impl LayoutTask {
         let mut needs_dirtying = false;
         needs_dirtying |= rw_data.stylesheet_dirty;
 
+        // dirtying => reflow
+        let mut needs_reflow = false;
+        needs_reflow |= current_screen_size != old_screen_size;
+
         unsafe {
             if needs_dirtying {
                 LayoutTask::dirty_all_nodes(node);
+            }
+
+            if needs_reflow {
+                self.try_get_layout_root(*node).map(
+                    |mut flow| LayoutTask::reflow_all_nodes(flow.deref_mut()));
             }
         }
 
@@ -774,12 +796,18 @@ impl LayoutTask {
         // TODO(cgaebel): mark nodes which are sensitive to media queries as
         // "changed":
         // > node.set_changed(true);
-        node.set_dirty(true);
-        node.set_dirty_siblings(true);
-        node.set_dirty_descendants(true);
+        for node in node.traverse_preorder() {
+            node.set_dirty(true);
+            node.set_dirty_siblings(true);
+            node.set_dirty_descendants(true);
+        }
+    }
 
-        for mut kid in node.children() {
-            LayoutTask::dirty_all_nodes(&mut kid);
+    unsafe fn reflow_all_nodes(flow: &mut Flow) {
+        flow::mut_base(flow).restyle_damage.insert(Reflow | Repaint);
+
+        for child in flow::child_iter(flow) {
+            LayoutTask::reflow_all_nodes(child);
         }
     }
 

@@ -31,18 +31,19 @@ pub fn iter_font_face_rules_inner(rules: &[CSSRule], device: &Device,
     }
 }
 
-#[deriving(Clone)]
+#[deriving(Clone, Show)]
 pub enum Source {
     UrlSource_(UrlSource),
     LocalSource(String),
 }
 
-#[deriving(Clone)]
+#[deriving(Clone, Show)]
 pub struct UrlSource {
     pub url: Url,
     pub format_hints: Vec<String>,
 }
 
+#[deriving(Show)]
 pub struct FontFaceRule {
     pub family: String,
     pub sources: Vec<Source>,

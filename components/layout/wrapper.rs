@@ -128,7 +128,7 @@ pub trait TLayoutNode {
     fn first_child(&self) -> Option<Self>;
 
     /// Dumps this node tree, for debugging.
-    fn dump(&self) {
+    fn dump(self) {
         // TODO(pcwalton): Reimplement this in a way that's safe for layout to call.
     }
 }
@@ -165,6 +165,11 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
             node: node.transmute_copy(),
             chain: self.chain,
         }
+    }
+
+    /// Dumps the subtree rooted at this node, for debugging.
+    fn dump(self) {
+        self.dump_indent(0);
     }
 
     fn type_id(&self) -> Option<NodeTypeId> {
@@ -204,6 +209,28 @@ impl<'ln> LayoutNode<'ln> {
             node: node,
             chain: ContravariantLifetime,
         })
+    }
+
+
+    /// Dumps the node tree, for debugging, with indentation.
+    fn dump_indent(self, indent: uint) {
+        let mut s = String::new();
+        for _ in range(0, indent) {
+            s.push_str("    ");
+        }
+
+        s.push_str(self.debug_str().as_slice());
+        error!("{:s}", s);
+
+        // FIXME: this should have a pure version?
+        for kid in self.children() {
+            kid.dump_indent(indent + 1u)
+        }
+    }
+
+    /// Returns a string that describes this node.
+    fn debug_str(self) -> String {
+        format!("{}: dirty={}", self.type_id(), self.is_dirty())
     }
 
     pub fn flow_debug_id(self) -> uint {
