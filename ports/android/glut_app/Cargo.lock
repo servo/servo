@@ -4,6 +4,7 @@ version = "0.0.1"
 dependencies = [
  "alert 0.1.0 (git+https://github.com/servo/rust-alert#fdc24f13be8d8a2d15214ec228d166b3221b809e)",
  "compositing 0.0.1",
+ "egl 0.1.0 (git+https://github.com/servo/rust-egl#88f2a13812ddbce2bf2317221663a61c31b3e220)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "glut 0.0.1 (git+https://github.com/servo/rust-glut#01af0162ea0322ad1a40d6adb023a39813605949)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#eac91e00db9af155f3004b408a18cb6d9f462a25)",

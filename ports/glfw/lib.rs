@@ -17,6 +17,7 @@ extern crate libc;
 extern crate msg;
 extern crate time;
 extern crate util;
+extern crate opengles;
 
 use geom::scale_factor::ScaleFactor;
 use std::rc::Rc;
