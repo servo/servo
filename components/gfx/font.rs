@@ -8,7 +8,7 @@ use std::string;
 use std::rc::Rc;
 use std::cell::RefCell;
 use servo_util::cache::{Cache, HashCache};
-use servo_util::smallvec::{SmallVec, SmallVec1};
+use servo_util::smallvec::{SmallVec, SmallVec8};
 use style::computed_values::{font_variant, font_weight};
 use style::style_structs::Font as FontStyle;
 use sync::Arc;
@@ -165,11 +165,11 @@ impl Font {
 }
 
 pub struct FontGroup {
-    pub fonts: SmallVec1<Rc<RefCell<Font>>>,
+    pub fonts: SmallVec8<Rc<RefCell<Font>>>,
 }
 
 impl FontGroup {
-    pub fn new(fonts: SmallVec1<Rc<RefCell<Font>>>) -> FontGroup {
+    pub fn new(fonts: SmallVec8<Rc<RefCell<Font>>>) -> FontGroup {
         FontGroup {
             fonts: fonts,
         }
