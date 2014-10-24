@@ -11,7 +11,7 @@ dependencies = [
  "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
  "glfw_app 0.0.1",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs#0d1700b4bb5981f75a4c75b7df75d8f28e499479)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers#12bfe675d9759a8b7fee21898eac92da3b5a5224)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers#eac91e00db9af155f3004b408a18cb6d9f462a25)",
  "msg 0.0.1",
  "net 0.0.1",
  "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#6776e9c07feb149d34b087039ecf6b2c143e3afc)",
@@ -30,7 +30,7 @@ version = "0.1.0"
 source = "git+https://github.com/servo/rust-alert#fdc24f13be8d8a2d15214ec228d166b3221b809e"
 dependencies = [
  "cocoa 0.1.0 (git+https://github.com/servo/rust-cocoa#acb9b4efc70c3f285057c2aee774f38f81a1b98d)",
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#166a601ff3e0fc3a64ca1a9090d02c8d4f22b61a)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
 ]
 
 [[package]]
@@ -38,14 +38,14 @@ name = "azure"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-azure#e151fa23f5cb3c1ef62b4d41bad9abdd1f4f3471"
 dependencies = [
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#166a601ff3e0fc3a64ca1a9090d02c8d4f22b61a)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics#6a9919f8a912cc67571b891ba198d5325964a104)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text#967a97fa7e9ae47f96aee5e48f5fb0be1345d89e)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl#88f2a13812ddbce2bf2317221663a61c31b3e220)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype#0b03da276e4bdeae2300596dabc4ccb16733ad70)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers#12bfe675d9759a8b7fee21898eac92da3b5a5224)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers#eac91e00db9af155f3004b408a18cb6d9f462a25)",
  "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#6776e9c07feb149d34b087039ecf6b2c143e3afc)",
  "skia-sys 0.0.20130412 (git+https://github.com/servo/skia#6d696712962fd0d41120b7a414a48417da8e6a92)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib#581d4faddec5188d3c3ae5307dbea28aab90644c)",
@@ -76,7 +76,7 @@ dependencies = [
  "devtools_traits 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "gfx 0.0.1",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers#12bfe675d9759a8b7fee21898eac92da3b5a5224)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers#eac91e00db9af155f3004b408a18cb6d9f462a25)",
  "layout_traits 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
@@ -90,14 +90,14 @@ dependencies = [
 [[package]]
 name = "core_foundation"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-core-foundation#166a601ff3e0fc3a64ca1a9090d02c8d4f22b61a"
+source = "git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8"
 
 [[package]]
 name = "core_graphics"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-core-graphics#6a9919f8a912cc67571b891ba198d5325964a104"
 dependencies = [
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#166a601ff3e0fc3a64ca1a9090d02c8d4f22b61a)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
 ]
 
 [[package]]
@@ -105,7 +105,7 @@ name = "core_text"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-core-text#967a97fa7e9ae47f96aee5e48f5fb0be1345d89e"
 dependencies = [
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#166a601ff3e0fc3a64ca1a9090d02c8d4f22b61a)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics#6a9919f8a912cc67571b891ba198d5325964a104)",
 ]
 
@@ -184,14 +184,14 @@ name = "gfx"
 version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure#e151fa23f5cb3c1ef62b4d41bad9abdd1f4f3471)",
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#166a601ff3e0fc3a64ca1a9090d02c8d4f22b61a)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics#6a9919f8a912cc67571b891ba198d5325964a104)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text#967a97fa7e9ae47f96aee5e48f5fb0be1345d89e)",
  "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig#b16c1e12ecb74b1e4e9a9b23c2b98580a34cf201)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype#0b03da276e4bdeae2300596dabc4ccb16733ad70)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "harfbuzz 0.1.0 (git+https://github.com/servo/rust-harfbuzz#ad520942cc17232e1a40cdd8a99c2905623d35f6)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers#12bfe675d9759a8b7fee21898eac92da3b5a5224)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers#eac91e00db9af155f3004b408a18cb6d9f462a25)",
  "msg 0.0.1",
  "net 0.0.1",
  "plugins 0.0.1",
@@ -224,7 +224,7 @@ dependencies = [
  "compositing 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers#12bfe675d9759a8b7fee21898eac92da3b5a5224)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers#eac91e00db9af155f3004b408a18cb6d9f462a25)",
  "msg 0.0.1",
  "util 0.0.1",
 ]
@@ -265,7 +265,7 @@ name = "io_surface"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-io-surface#7038341220bd7e86e21118fac2cbc6bd50890e47"
 dependencies = [
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#166a601ff3e0fc3a64ca1a9090d02c8d4f22b61a)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#6776e9c07feb149d34b087039ecf6b2c143e3afc)",
 ]
@@ -281,9 +281,9 @@ dependencies = [
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#12bfe675d9759a8b7fee21898eac92da3b5a5224"
+source = "git+https://github.com/servo/rust-layers#eac91e00db9af155f3004b408a18cb6d9f462a25"
 dependencies = [
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#166a601ff3e0fc3a64ca1a9090d02c8d4f22b61a)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl#88f2a13812ddbce2bf2317221663a61c31b3e220)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface#7038341220bd7e86e21118fac2cbc6bd50890e47)",
@@ -336,11 +336,11 @@ name = "msg"
 version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure#e151fa23f5cb3c1ef62b4d41bad9abdd1f4f3471)",
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#166a601ff3e0fc3a64ca1a9090d02c8d4f22b61a)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo#5e9b063b36028a5b40a417c661ee5c628b594be9)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface#7038341220bd7e86e21118fac2cbc6bd50890e47)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers#12bfe675d9759a8b7fee21898eac92da3b5a5224)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers#eac91e00db9af155f3004b408a18cb6d9f462a25)",
  "url 0.1.0 (git+https://github.com/servo/rust-url#29f70a47230c2aa736e263977247c786e0b2c243)",
  "util 0.0.1",
 ]
