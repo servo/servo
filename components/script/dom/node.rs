@@ -201,7 +201,7 @@ pub struct LayoutDataRef {
     pub data_cell: RefCell<Option<LayoutData>>,
 }
 
-untraceable!(LayoutDataRef)
+no_jsmanaged_fields!(LayoutDataRef)
 
 impl LayoutDataRef {
     pub fn new() -> LayoutDataRef {

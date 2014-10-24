@@ -164,7 +164,7 @@ macro_rules! make_uint_setter(
 
 /// For use on non-jsmanaged types
 /// Use #[jstraceable] on JS managed types
-macro_rules! untraceable(
+macro_rules! no_jsmanaged_fields(
     ($($ty:ident),+) => (
         $(
             impl JSTraceable for $ty {
