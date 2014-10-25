@@ -103,6 +103,7 @@ pub mod dom {
     pub mod domparser;
     pub mod domtokenlist;
     pub mod element;
+    pub mod errorevent;
     pub mod event;
     pub mod eventdispatcher;
     pub mod eventtarget;
