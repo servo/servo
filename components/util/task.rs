@@ -8,22 +8,29 @@ use std::comm::Sender;
 use std::task::TaskBuilder;
 use native::task::NativeTaskBuilder;
 
+use task_state;
+
 pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
     let builder = task::TaskBuilder::new().named(name);
     builder.spawn(f);
 }
 
-/// Arrange to send a particular message to a channel if the task built by
-/// this `TaskBuilder` fails.
+/// Arrange to send a particular message to a channel if the task fails.
 pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
+                                                 state: task_state::TaskState,
                                                  f: proc(): Send,
                                                  msg: T,
                                                  dest: Sender<T>,
                                                  native: bool) {
+    let with_state = proc() {
+        task_state::initialize(state);
+        f()
+    };
+
     let future_result = if native {
-        TaskBuilder::new().named(name).native().try_future(f)
+        TaskBuilder::new().named(name).native().try_future(with_state)
     } else {
-        TaskBuilder::new().named(name).try_future(f)
+        TaskBuilder::new().named(name).try_future(with_state)
     };
 
     let watched_name = name.to_string();
