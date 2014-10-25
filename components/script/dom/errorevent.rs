@@ -126,6 +126,10 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
         self.error.get()
     }
 
+    #[inline]
+    pub fn event<'a>(&'a self) -> &'a Event {
+        &self.event
+    }
 }
 
 impl Reflectable for ErrorEvent {
