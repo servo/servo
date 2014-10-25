@@ -14,7 +14,7 @@ use servo_util::str::DOMString;
 
 use std::cell::Cell;
 use std::default::Default;
-use std::any::{Any, AnyRefExt};
+use js::jsval::JSVal;
 
 #[dom_struct]
 pub struct ErrorEvent {		
@@ -23,7 +23,7 @@ pub struct ErrorEvent {
 	filename: Cell<DOMString>,
 	lineno: Cell<u64>,
 	colno: Cell<u64>,
-	any: Cell<Any>
+	error: Cell<JSVal>
 }
 
 impl ErrorEventDerived for Event {
@@ -40,7 +40,7 @@ impl ErrorEvent {
 			filename: Cell::new("".to_string()),
 			lineno: Cell::new(0),
 			colno: Cell::new(0),
-			error: Cell::new()
+			error: Cell::new(JSVal)
         }
     }
 
@@ -58,7 +58,7 @@ impl ErrorEvent {
 			   filename: DOMString,
 			   lineno: u64,
 			   colno: u64,
-               error: Any) -> Temporary<ErrorEvent> {	
+               error: JSVal) -> Temporary<ErrorEvent> {	
         let ev = ErrorEvent::new_uninitialized(window).root();
         ev.InitErrorEvent(type_, can_bubble, cancelable, message, filename, lineno, colno, error);
         Temporary::from_rooted(*ev)
@@ -89,7 +89,7 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
 				   filename: DOMString,
 				   lineno: u64,
 				   colno: u64,
-                   error: Any) {
+                   error: JSVal) {
         let event: JSRef<Event> = EventCast::from_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
 		self.message.set(message);
