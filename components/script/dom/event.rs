@@ -32,7 +32,8 @@ pub enum EventTypeId {
     MessageEventTypeId,
     MouseEventTypeId,
     ProgressEventTypeId,
-    UIEventTypeId
+    UIEventTypeId,
+    ErrorEventTypeId
 }
 
 #[deriving(PartialEq)]
