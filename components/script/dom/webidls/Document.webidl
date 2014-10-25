@@ -79,6 +79,6 @@ partial interface Document {
   NodeList getElementsByName(DOMString elementName);
 
   // special event handler IDL attributes that only apply to Document objects
-  /*[LenientThis]*/ attribute EventHandler onreadystatechange;
+  [LenientThis] attribute EventHandler onreadystatechange;
 };
 Document implements GlobalEventHandlers;
