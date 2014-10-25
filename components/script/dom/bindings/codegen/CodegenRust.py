@@ -2526,9 +2526,9 @@ class CGGenericGetter(CGAbstractBindingMethod):
         if lenientThis:
             name = "genericLenientGetter"
             unwrapFailureCode = (
-                "MOZ_ASSERT(!JS_IsExceptionPending(cx));\n"
-                "JS_SET_RVAL(cx, vp, JS::UndefinedValue());\n"
-                "return true;")
+                "assert!(JS_IsExceptionPending(cx) == 0);\n"
+                "*vp = UndefinedValue();\n"
+                "return 1;")
         else:
             name = "genericGetter"
             unwrapFailureCode = None
@@ -2600,8 +2600,8 @@ class CGGenericSetter(CGAbstractBindingMethod):
         if lenientThis:
             name = "genericLenientSetter"
             unwrapFailureCode = (
-                "MOZ_ASSERT(!JS_IsExceptionPending(cx));\n"
-                "return true;")
+                "assert!(JS_IsExceptionPending(cx) == 0);\n"
+                "return 1;")
         else:
             name = "genericSetter"
             unwrapFailureCode = None
@@ -4136,11 +4136,11 @@ class CGDescriptor(CGThing):
         if hasGetter:
             cgThings.append(CGGenericGetter(descriptor))
         if hasLenientGetter:
-            pass
+            cgThings.append(CGGenericGetter(descriptor, lenientThis=True))
         if hasSetter:
             cgThings.append(CGGenericSetter(descriptor))
         if hasLenientSetter:
-            pass
+            cgThings.append(CGGenericSetter(descriptor, lenientThis=True))
 
         if descriptor.concrete:
             cgThings.append(CGClassFinalizeHook(descriptor))
