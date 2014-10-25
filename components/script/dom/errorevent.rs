@@ -8,12 +8,20 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+<<<<<<< HEAD
 use dom::bindings::js::{JSRef, Temporary, MutHeap};
+=======
+use dom::bindings::js::{JSRef, Temporary};
+>>>>>>> added ErrorEvent WebIDL and errorevent.rs
 use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+<<<<<<< HEAD
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
+=======
+use dom::event::{Event, EventTypeId, ErrorEventTypeId};
+>>>>>>> added ErrorEvent WebIDL and errorevent.rs
 use servo_util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
@@ -27,12 +35,20 @@ pub struct ErrorEvent {
     filename: DOMRefCell<DOMString>,
     lineno: Cell<u32>,
     colno: Cell<u32>,
+<<<<<<< HEAD
     error: MutHeap<JSVal>,
+=======
+    error: Cell<JSVal>
+>>>>>>> added ErrorEvent WebIDL and errorevent.rs
 }
 
 impl ErrorEventDerived for Event {
     fn is_errorevent(&self) -> bool {
+<<<<<<< HEAD
         *self.type_id() == EventTypeId::ErrorEvent
+=======
+        *self.type_id() == ErrorEventTypeId
+>>>>>>> added ErrorEvent WebIDL and errorevent.rs
     }
 }
 
@@ -44,20 +60,34 @@ impl ErrorEvent {
             filename: DOMRefCell::new("".to_string()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
+<<<<<<< HEAD
             error: MutHeap::new(NullValue())
+=======
+            error: Cell::new(NullValue())
+>>>>>>> added ErrorEvent WebIDL and errorevent.rs
         }
     }
 
     pub fn new_uninitialized(global: &GlobalRef) -> Temporary<ErrorEvent> {
+<<<<<<< HEAD
         reflect_dom_object(box ErrorEvent::new_inherited(EventTypeId::ErrorEvent),
                            *global,
+=======
+        reflect_dom_object(box ErrorEvent::new_inherited(ErrorEventTypeId),
+                           global,
+>>>>>>> added ErrorEvent WebIDL and errorevent.rs
                            ErrorEventBinding::Wrap)
     }
 
     pub fn new(global: &GlobalRef,
                type_: DOMString,
+<<<<<<< HEAD
                bubbles: EventBubbles,
                cancelable: EventCancelable,
+=======
+               can_bubble: bool,
+               cancelable: bool,
+>>>>>>> added ErrorEvent WebIDL and errorevent.rs
                message: DOMString,
                filename: DOMString,
                lineno: u32,
@@ -65,8 +95,12 @@ impl ErrorEvent {
                error: JSVal) -> Temporary<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global).root();
         let event: JSRef<Event> = EventCast::from_ref(*ev);
+<<<<<<< HEAD
         event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
                         cancelable == EventCancelable::Cancelable);
+=======
+        event.InitEvent(type_, can_bubble, cancelable);
+>>>>>>> added ErrorEvent WebIDL and errorevent.rs
         *ev.message.borrow_mut() = message;
         *ev.filename.borrow_mut() = filename;
         ev.lineno.set(lineno);
