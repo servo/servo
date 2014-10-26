@@ -36,6 +36,7 @@ pub enum ListenerPhase {
 #[jstraceable]
 pub enum EventTargetTypeId {
     NodeTargetTypeId(NodeTypeId),
+    WebSocketTypeId,
     WindowTypeId,
     WorkerTypeId,
     WorkerGlobalScopeTypeId(WorkerGlobalScopeId),
