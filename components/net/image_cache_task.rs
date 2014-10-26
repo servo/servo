@@ -253,13 +253,7 @@ impl ImageCache {
                     debug!("image_cache_task: started fetch for {:s}", url.serialize());
 
                     let image = load_image_data(url.clone(), resource_task.clone());
-
-                    let result = if image.is_ok() {
-                        Ok(image.unwrap())
-                    } else {
-                        Err(())
-                    };
-                    to_cache.send(StorePrefetchedImageData(url.clone(), result));
+                    to_cache.send(StorePrefetchedImageData(url.clone(), image));
                     debug!("image_cache_task: ended fetch for {:s}", url.serialize());
                 });
 
@@ -321,11 +315,7 @@ impl ImageCache {
                     let url = url_clone;
                     debug!("image_cache_task: started image decode for {:s}", url.serialize());
                     let image = load_from_memory(data.as_slice());
-                    let image = if image.is_some() {
-                        Some(Arc::new(box image.unwrap()))
-                    } else {
-                        None
-                    };
+                    let image = image.map(|image| Arc::new(box image));
                     to_cache.send(StoreImage(url.clone(), image));
                     debug!("image_cache_task: ended image decode for {:s}", url.serialize());
                 });
@@ -384,7 +374,7 @@ impl ImageCache {
             Prefetching(DoDecode) => response.send(ImageNotReady),
             Prefetching(DoNotDecode) | Prefetched(..) => fail!("request for image before decode"),
             Decoding => response.send(ImageNotReady),
-            Decoded(image) => response.send(ImageReady(image.clone())),
+            Decoded(image) => response.send(ImageReady(image)),
             Failed => response.send(ImageFailed),
         }
     }
@@ -397,20 +387,13 @@ impl ImageCache {
 
             Prefetching(DoDecode) | Decoding => {
                 // We don't have this image yet
-                if self.wait_map.contains_key(&url) {
-                    let waiters = self.wait_map.find_mut(&url).unwrap();
-                    let mut response = Some(response);
-                    let mut items = waiters.lock();
-                    items.push(response.take().unwrap());
-                } else {
-                    let response = vec!(response);
-                    let wrapped = Arc::new(Mutex::new(response));
-                    self.wait_map.insert(url, wrapped);
-                }
+                self.wait_map.find_with_or_insert_with(url, response,
+                    |_, waiters, response| waiters.lock().push(response),
+                    |_, response| Arc::new(Mutex::new(vec!(response))));
             }
 
             Decoded(image) => {
-                response.send(ImageReady(image.clone()));
+                response.send(ImageReady(image));
             }
 
             Failed => {
@@ -467,7 +450,7 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()>
                 image_data.push_all(data.as_slice());
             }
             resource_task::Done(result::Ok(..)) => {
-                return Ok(image_data.into_iter().collect());
+                return Ok(image_data);
             }
             resource_task::Done(result::Err(..)) => {
                 return Err(());
