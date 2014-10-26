@@ -516,6 +516,7 @@ name = "util"
 version = "0.0.1"
 dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers#eac91e00db9af155f3004b408a18cb6d9f462a25)",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache#97754929f38d93f6728d1f0acce8107648420e98)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache#97754929f38d93f6728d1f0acce8107648420e98)",
  "task_info 0.0.1",
