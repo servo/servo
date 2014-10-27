@@ -8,8 +8,7 @@ use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpda
 use compositor_task::{SetLayerOrigin, Paint, ScrollFragmentPoint, LoadComplete};
 use compositor_task::{ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
 use constellation::SendableFrameTree;
-use events;
-use events::ScrollPositionChanged;
+use events::{LayerEventHandling, ScrollPositionChanged};
 use pipeline::CompositionPipeline;
 use windowing;
 use windowing::{FinishedWindowEvent, IdleWindowEvent, LoadUrlWindowEvent, MouseWindowClickEvent};
@@ -130,6 +129,11 @@ enum ShutdownState {
     NotShuttingDown,
     ShuttingDown,
     FinishedShuttingDown,
+}
+
+struct HitTestResult {
+    layer: Rc<Layer<CompositorData>>,
+    point: TypedPoint2D<LayerPixel, f32>,
 }
 
 impl<Window: WindowMethods> IOCompositor<Window> {
@@ -548,8 +552,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
                 if layer.extra_data.borrow().wants_scroll_events == WantsScrollEvents {
-                    events::clamp_scroll_offset_and_scroll_layer(layer.clone(),
-                                                                 TypedPoint2D(0f32, 0f32) - origin);
+                    layer.clamp_scroll_offset_and_scroll_layer(TypedPoint2D(0f32, 0f32) - origin);
                 }
                 true
             }
@@ -720,14 +723,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             MouseWindowMouseDownEvent(_, p) => p,
             MouseWindowMouseUpEvent(_, p) => p,
         };
-        for layer in self.scene.root.iter() {
-            events::send_mouse_event(layer.clone(), mouse_window_event, point / self.scene.scale);
+        match self.find_topmost_layer_at_point(point / self.scene.scale) {
+            Some(result) => result.layer.send_mouse_event(mouse_window_event, result.point),
+            None => {},
         }
     }
 
     fn on_mouse_window_move_event_class(&self, cursor: TypedPoint2D<DevicePixel, f32>) {
-        for layer in self.scene.root.iter() {
-            events::send_mouse_move_event(layer.clone(), cursor / self.scene.scale);
+        match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
+            Some(result) => result.layer.send_mouse_move_event(result.point),
+            None => {},
         }
     }
 
@@ -740,9 +745,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut scroll = false;
         match self.scene.root {
             Some(ref mut layer) => {
-                scroll = events::handle_scroll_event(layer.clone(),
-                                                     delta,
-                                                     cursor) == ScrollPositionChanged;
+                scroll = layer.handle_scroll_event(delta, cursor) == ScrollPositionChanged;
             }
             None => { }
         }
@@ -798,9 +801,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let cursor = TypedPoint2D(-1f32, -1f32);  // Make sure this hits the base layer.
         match self.scene.root {
             Some(ref mut layer) => {
-                events::handle_scroll_event(layer.clone(),
-                                            page_delta,
-                                            cursor);
+                layer.handle_scroll_event(page_delta, cursor);
             }
             None => { }
         }
@@ -1001,5 +1002,34 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn recomposite_if(&mut self, result: bool) {
         self.recomposite = result || self.recomposite;
+    }
+
+    fn find_topmost_layer_at_point_for_layer(&self,
+                                             layer: Rc<Layer<CompositorData>>,
+                                             point: TypedPoint2D<LayerPixel, f32>)
+                                             -> Option<HitTestResult> {
+        let child_point = point - layer.bounds.borrow().origin;
+        for child in layer.children().iter().rev() {
+            let result = self.find_topmost_layer_at_point_for_layer(child.clone(), child_point);
+            if result.is_some() {
+                return result;
+            }
+        }
+
+        let point = point - *layer.content_offset.borrow();
+        if !layer.bounds.borrow().contains(&point) {
+            return None;
+        }
+
+        return Some(HitTestResult { layer: layer, point: point });
+    }
+
+    fn find_topmost_layer_at_point(&self,
+                                   point: TypedPoint2D<LayerPixel, f32>)
+                                   -> Option<HitTestResult> {
+        match self.scene.root {
+            Some(ref layer) => self.find_topmost_layer_at_point_for_layer(layer.clone(), point),
+            None => None,
+        }
     }
 }

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositor_task::LayerProperties;
-use events;
+use events::LayerEventHandling;
 use pipeline::CompositionPipeline;
 
 use azure::azure_hl;
@@ -88,9 +88,7 @@ impl CompositorData {
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
         // cursor position to make sure the scroll isn't propagated downwards.
-        events::handle_scroll_event(layer.clone(),
-                                    TypedPoint2D(0f32, 0f32),
-                                    TypedPoint2D(-1f32, -1f32));
+        layer.handle_scroll_event(TypedPoint2D(0f32, 0f32), TypedPoint2D(-1f32, -1f32));
         CompositorData::update_layer_except_size(layer, layer_properties);
     }
 
