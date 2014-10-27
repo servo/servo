@@ -71,7 +71,9 @@ struct WorkerThread<QueueData, WorkData> {
     rng: XorShiftRng,
 }
 
-static SPIN_COUNT: uint = 128;
+static SPIN_COUNT: u32 = 128;
+static SPINS_UNTIL_BACKOFF: u32 = 100;
+static BACKOFF_INCREMENT_IN_US: u32 = 5;
 
 impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
     /// The main logic. This function starts up the worker and listens for
@@ -85,10 +87,11 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                 ExitMsg => return,
             };
 
+            let mut back_off_sleep = 0 as u32;
+
             // We're off!
             //
             // FIXME(pcwalton): Can't use labeled break or continue cross-crate due to a Rust bug.
-            let mut back_off_sleep = 0 as u32;
             loop {
                 // FIXME(pcwalton): Nasty workaround for the lack of labeled break/continue
                 // cross-crate.
@@ -114,10 +117,13 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                                 }
                             }
 
-                            if (i>100) {
-                                unsafe {usleep(back_off_sleep as u32)};
-                                back_off_sleep = back_off_sleep + 5;
+                            if i > SPINS_UNTIL_BACKOFF {
+                                unsafe {
+                                    usleep(back_off_sleep as u32);
+                                }
+                                back_off_sleep += BACKOFF_INCREMENT_IN_US;
                             }
+
                             if i == SPIN_COUNT {
                                 match self.port.try_recv() {
                                     Ok(StopMsg) => {
