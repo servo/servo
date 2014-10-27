@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_data::{CompositorData, CompositorLayer, DoesntWantScrollEvents};
-use compositor_data::{ScrollPositionChanged, WantsScrollEvents};
+use compositor_layer::{CompositorData, CompositorLayer, DoesntWantScrollEvents};
+use compositor_layer::{ScrollPositionChanged, WantsScrollEvents};
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{SetLayerOrigin, Paint, ScrollFragmentPoint, LoadComplete};
