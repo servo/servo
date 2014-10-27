@@ -13,15 +13,19 @@ use dom::event::{Event, EventTypeId, ErrorEventTypeId	};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::default::Default;
 use js::jsval::{JSVal, NullValue};
+use std::u32;
 
-#[dom_struct]
+#[jstraceable]
+#[must_root]
+//#[dom_struct]
+#[privatize]
 pub struct ErrorEvent {		
     event: Event,
-		message: Cell<DOMString>,
-		filename: Cell<DOMString>,
+		message: RefCell<DOMString>,
+		filename: RefCell<DOMString>,
 		lineno: Cell<u32>,	
 		colno: Cell<u32>,
 		error: Cell<JSVal>
@@ -37,8 +41,8 @@ impl ErrorEvent {
     pub fn new_inherited(type_id: EventTypeId) -> ErrorEvent {
         ErrorEvent {	 
             event: Event::new_inherited(type_id),
-			message: Cell::new(""),
-			filename: Cell::new("".to_string()),
+			message: RefCell::new("".to_string()),
+			filename: RefCell::new("".to_string()),
 			lineno: Cell::new(0),
 			colno: Cell::new(0),
 			error: Cell::new(NullValue())
@@ -69,10 +73,28 @@ impl ErrorEvent {
     pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Temporary<ErrorEvent>> {
+				//let input_num: Option<u32> = from_str(init.lineno);
+				let msg = match init.message {
+        Some(msg) => msg
+    };
+			
+				let file_name = match init.filename {
+        Some(file_name) => file_name
+    };
+
+
+				let line_num = match init.lineno {
+        Some(line_num) => line_num
+    };
+
+				let col_num = match init.colno {
+        Some(col_num) => col_num
+    };
+
         let event = ErrorEvent::new(global.as_window(), global, type_,
                                  init.parent.bubbles, init.parent.cancelable,
-                                 init.message, init.filename,
-				 init.lineno, init.colno, init.error);
+                                 msg, file_name,
+				 line_num, col_num, init.error);
         Ok(event)
     }
 
@@ -84,10 +106,7 @@ impl ErrorEvent {
 
 impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
 
-	//TODO: add methods
-
-		
-
+	
 		fn Lineno(self) -> u32 {
 				self.lineno.get()
 		}
@@ -97,16 +116,24 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
 		}
     
 		fn Message(self) -> DOMString {
-				self.message.get()
+				//let mut r = self.message.borrow_mut();
+				//let data = (&mut r).get();
+				self.message.borrow().clone();
 		}
 
+		/*fn SetMessage(self, m: DOMString ) {
+				//self.message.get()
+		} */
+
 		fn Filename(self) -> DOMString {
-				self.filename.get()
+				self.filename.borrow().clone();
 		}
 
 		fn Error(self) -> JSVal {
 				self.error.get()
 		}
+
+
 
     fn InitErrorEvent(self,
 									 _cx: *mut JSContext,
@@ -120,8 +147,9 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
                    error: JSVal) {
         let event: JSRef<Event> = EventCast::from_ref(self);
         event.InitEvent(type_, can_bubble, cancelable);
-		self.message.set(message);
-		self.filename.set(filename);
+		*self.message.borrow_mut() = message;
+		
+		*self.filename.borrow_mut() = filename;
 		self.lineno.set(lineno);
 		self.colno.set(colno);
 		self.error.set(error);
