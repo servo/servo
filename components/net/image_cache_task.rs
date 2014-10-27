@@ -14,6 +14,7 @@ use std::task::spawn;
 use std::result;
 use sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
+use time::precise_time_ns;
 use url::Url;
 
 pub enum Msg {
@@ -301,9 +302,9 @@ impl ImageCache {
     }
 
     fn decode(&mut self, url: Url) {
+
         match self.get_state(&url) {
             Init => fail!("decoding image before prefetch"),
-
             Prefetching(DoNotDecode) => {
                 // We don't have the data yet, queue up the decode
                 self.set_state(url, Prefetching(DoDecode))
@@ -320,7 +321,11 @@ impl ImageCache {
                 self.task_pool.execute(proc() {
                     let url = url_clone;
                     debug!("image_cache_task: started image decode for {:s}", url.serialize());
+                    let start_time = precise_time_ns();
                     let image = load_from_memory(data.as_slice());
+                    let end_time = precise_time_ns();
+                    let required_time=(end_time-start_time) as f64/1000000f64;
+                    debug!("Time taken to decode url: {:s} in is {:?} ms", url.serialize(),required_time);
                     let image = if image.is_some() {
                         Some(Arc::new(box image.unwrap()))
                     } else {

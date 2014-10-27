@@ -5,7 +5,6 @@
 use std::iter::range_step;
 use stb_image::image as stb_image;
 use png;
-
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 pub type Image = png::Image;
