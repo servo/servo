@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_data::{CompositorData, DoesntWantScrollEvents, WantsScrollEvents};
+use compositor_data::{CompositorData, CompositorLayer, DoesntWantScrollEvents};
+use compositor_data::{ScrollPositionChanged, WantsScrollEvents};
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{SetLayerOrigin, Paint, ScrollFragmentPoint, LoadComplete};
 use compositor_task::{ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
 use constellation::SendableFrameTree;
-use events::{LayerEventHandling, ScrollPositionChanged};
 use pipeline::CompositionPipeline;
 use windowing;
 use windowing::{FinishedWindowEvent, IdleWindowEvent, LoadUrlWindowEvent, MouseWindowClickEvent};
@@ -237,7 +237,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Clear out the compositor layers so that painting tasks can destroy the buffers.
         match self.scene.root {
             None => {}
-            Some(ref layer) => CompositorData::forget_all_tiles(layer.clone()),
+            Some(ref layer) => layer.forget_all_tiles(),
         }
 
         // Drain compositor port, sometimes messages contain channels that are blocking
@@ -407,7 +407,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         // If we have an old root layer, release all old tiles before replacing it.
         match self.scene.root {
-            Some(ref mut layer) => CompositorData::clear_all_tiles(layer.clone()),
+            Some(ref mut layer) => layer.clear_all_tiles(),
             None => { }
         }
         self.scene.root = Some(self.create_frame_tree_root_layers(frame_tree, None));
@@ -455,21 +455,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         return root_layer;
     }
 
-    fn find_layer_with_pipeline_and_layer_id(&self,
-                                             pipeline_id: PipelineId,
-                                             layer_id: LayerId)
-                                             -> Option<Rc<Layer<CompositorData>>> {
-        match self.scene.root {
-            Some(ref root_layer) => {
-                CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
-                                                                      pipeline_id,
-                                                                      layer_id)
-            }
-            None => None,
-        }
-
-    }
-
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Rc<Layer<CompositorData>> {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null()) {
             Some(ref layer) => layer.clone(),
@@ -480,7 +465,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn update_layer_if_exists(&mut self, properties: LayerProperties) -> bool {
         match self.find_layer_with_pipeline_and_layer_id(properties.pipeline_id, properties.id) {
             Some(existing_layer) => {
-                CompositorData::update_layer(existing_layer.clone(), properties);
+                existing_layer.update_layer(properties);
                 true
             }
             None => false,
@@ -491,7 +476,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
         if need_new_root_layer {
             let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
-            CompositorData::update_layer_except_size(root_layer.clone(), layer_properties);
+            root_layer.update_layer_except_size(layer_properties);
 
             let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
             let first_child = CompositorData::new_layer(root_layer_pipeline.clone(),
@@ -602,7 +587,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
-                assert!(CompositorData::add_buffers(layer.clone(), new_layer_buffer_set, epoch));
+                assert!(layer.add_buffers(new_layer_buffer_set, epoch));
                 self.recomposite = true;
             }
             None => {
@@ -1032,4 +1017,39 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => None,
         }
     }
+
+    fn find_layer_with_pipeline_and_layer_id(&self,
+                                             pipeline_id: PipelineId,
+                                             layer_id: LayerId)
+                                             -> Option<Rc<Layer<CompositorData>>> {
+        match self.scene.root {
+            Some(ref layer) =>
+                find_layer_with_pipeline_and_layer_id_for_layer(layer.clone(),
+                                                                pipeline_id,
+                                                                layer_id),
+
+            None => None,
+        }
+    }
+}
+
+fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorData>>,
+                                                   pipeline_id: PipelineId,
+                                                   layer_id: LayerId)
+                                                   -> Option<Rc<Layer<CompositorData>>> {
+    if layer.extra_data.borrow().pipeline.id == pipeline_id &&
+       layer.extra_data.borrow().id == layer_id {
+        return Some(layer);
+    }
+
+    for kid in layer.children().iter() {
+        let result = find_layer_with_pipeline_and_layer_id_for_layer(kid.clone(),
+                                                                     pipeline_id,
+                                                                     layer_id);
+        if result.is_some() {
+            return result;
+        }
+    }
+
+    return None;
 }

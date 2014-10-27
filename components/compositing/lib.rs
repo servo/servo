@@ -44,7 +44,6 @@ pub use constellation::Constellation;
 pub mod compositor_task;
 
 mod compositor_data;
-mod events;
 
 mod compositor;
 mod headless;
