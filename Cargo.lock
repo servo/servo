@@ -46,6 +46,7 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure#e151fa23f5cb3c1ef62b4d41bad9abdd1f4f3471)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
+ "util 0.0.1",
 ]
 
 [[package]]
@@ -112,6 +113,7 @@ version = "0.0.1"
 dependencies = [
  "devtools_traits 0.0.1",
  "msg 0.0.1",
+ "util 0.0.1",
 ]
 
 [[package]]

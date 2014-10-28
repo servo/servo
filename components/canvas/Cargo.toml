@@ -12,3 +12,6 @@ git = "https://github.com/servo/rust-azure"
 
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
+
+[dependencies.util]
+path = "../util"
