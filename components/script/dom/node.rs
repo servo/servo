@@ -622,6 +622,10 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         // 1. Dirty self.
         self.set_has_changed(true);
 
+        if self.get_is_dirty() {
+            return
+        }
+
         // 2. Dirty descendants.
         fn dirty_subtree(node: JSRef<Node>) {
             // Stop if this subtree is already dirty.
