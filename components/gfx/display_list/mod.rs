@@ -159,6 +159,7 @@ pub enum StackingLevel {
 }
 
 impl StackingLevel {
+    #[inline]
     pub fn from_background_and_border_level(level: BackgroundAndBorderLevel) -> StackingLevel {
         match level {
             RootOfStackingContextLevel => BackgroundAndBordersStackingLevel,
@@ -258,6 +259,7 @@ impl<'a> Iterator<&'a DisplayList> for DisplayListIterator<'a> {
 
 impl DisplayList {
     /// Creates a new display list.
+    #[inline]
     pub fn new() -> DisplayList {
         DisplayList {
             list: DList::new(),
@@ -265,6 +267,7 @@ impl DisplayList {
     }
 
     /// Appends the given item to the display list.
+    #[inline]
     pub fn push(&mut self, item: DisplayItem) {
         self.list.push(item)
     }
@@ -297,6 +300,7 @@ impl DisplayList {
     }
 
     /// Returns a preorder iterator over the given display list.
+    #[inline]
     pub fn iter<'a>(&'a self) -> DisplayItemIterator<'a> {
         ParentDisplayItemIterator(self.list.iter())
     }
@@ -401,6 +405,7 @@ pub struct BaseDisplayItem {
 }
 
 impl BaseDisplayItem {
+    #[inline(always)]
     pub fn new(bounds: Rect<Au>, node: OpaqueNode, level: StackingLevel, clip_rect: Rect<Au>)
                -> BaseDisplayItem {
         BaseDisplayItem {
