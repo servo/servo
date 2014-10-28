@@ -743,11 +743,10 @@ impl LayoutTask {
                 debug!("Done building display list. Display List = {}",
                        flow::base(layout_root.deref()).display_list);
 
-                let root_display_list =
-                    mem::replace(&mut flow::mut_base(layout_root.deref_mut()).display_list,
-                                 DisplayList::new());
-                root_display_list.debug();
-                let display_list = Arc::new(root_display_list.flatten(ContentStackingLevel));
+                flow::mut_base(&mut *layout_root).display_list.flatten(ContentStackingLevel);
+                let display_list =
+                    Arc::new(mem::replace(&mut flow::mut_base(&mut *layout_root).display_list,
+                                          DisplayList::new()));
 
                 // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
                 // it with extreme prejudice.
@@ -787,7 +786,7 @@ impl LayoutTask {
                     scroll_policy: Scrollable,
                 };
 
-                rw_data.display_list = Some(display_list.clone());
+                rw_data.display_list = Some(display_list);
 
                 // TODO(pcwalton): Eventually, when we have incremental reflow, this will have to
                 // be smarter in order to handle retained layer contents properly from reflow to
