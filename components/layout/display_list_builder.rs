@@ -36,6 +36,7 @@ use gfx::render_task::RenderLayer;
 use servo_msg::compositor_msg::{FixedPosition, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg};
 use servo_net::image::holder::ImageHolder;
+use servo_util::dlist;
 use servo_util::geometry::{mod, Au, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, WritingMode};
 use servo_util::opts;
@@ -117,12 +118,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // doesn't have a fragment".
         let background_color = style.resolve_color(style.get_background().background_color);
         if !background_color.alpha.approx_eq(&0.0) {
-            let display_item = box SolidColorDisplayItem {
+            list.push(SolidColorDisplayItemClass(box SolidColorDisplayItem {
                 base: BaseDisplayItem::new(*absolute_bounds, self.node, level, *clip_rect),
                 color: background_color.to_gfx_color(),
-            };
-
-            list.push(SolidColorDisplayItemClass(display_item))
+            }));
         }
 
         // The background image is painted on top of the background color.
@@ -205,13 +204,12 @@ impl FragmentDisplayListBuilding for Fragment {
         };
 
         // Create the image display item.
-        let image_display_item = ImageDisplayItemClass(box ImageDisplayItem {
+        list.push(ImageDisplayItemClass(box ImageDisplayItem {
             base: BaseDisplayItem::new(bounds, self.node, level, clip_rect),
             image: image.clone(),
             stretch_size: Size2D(Au::from_px(image.width as int),
                                  Au::from_px(image.height as int)),
-        });
-        list.push(image_display_item)
+        }));
     }
 
     /// Adds the display items necessary to paint the borders of this fragment to a display list if
@@ -233,7 +231,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let left_color = style.resolve_color(style.get_border().border_left_color);
 
         // Append the border to the display list.
-        let border_display_item = box BorderDisplayItem {
+        list.push(BorderDisplayItemClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(*abs_bounds, self.node, level, *clip_rect),
             border: border.to_physical(style.writing_mode),
             color: SideOffsets2D::new(top_color.to_gfx_color(),
@@ -244,9 +242,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                       style.get_border().border_right_style,
                                       style.get_border().border_bottom_style,
                                       style.get_border().border_left_style)
-        };
-
-        list.push(BorderDisplayItemClass(border_display_item))
+        }));
     }
 
     fn build_debug_borders_around_text_fragments(&self,
@@ -263,7 +259,7 @@ impl FragmentDisplayListBuilding for Fragment {
             fragment_bounds.size);
 
         // Compute the text fragment bounds and draw a border surrounding them.
-        let border_display_item = box BorderDisplayItem {
+        display_list.push(BorderDisplayItemClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(absolute_fragment_bounds,
                                        self.node,
                                        ContentStackingLevel,
@@ -271,8 +267,7 @@ impl FragmentDisplayListBuilding for Fragment {
             border: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::solid)
-        };
-        display_list.push(BorderDisplayItemClass(border_display_item));
+        }));
 
         // Draw a rectangle representing the baselines.
         let ascent = text_fragment.run.ascent();
@@ -303,7 +298,7 @@ impl FragmentDisplayListBuilding for Fragment {
             fragment_bounds.size);
 
         // This prints a debug border around the border of this fragment.
-        let border_display_item = box BorderDisplayItem {
+        display_list.push(BorderDisplayItemClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(absolute_fragment_bounds,
                                        self.node,
                                        ContentStackingLevel,
@@ -311,8 +306,7 @@ impl FragmentDisplayListBuilding for Fragment {
             border: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::solid)
-        };
-        display_list.push(BorderDisplayItemClass(border_display_item))
+        }));
     }
 
     fn build_display_list(&mut self,
@@ -442,7 +436,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     tmp.to_physical(self.style.writing_mode, container_size) + flow_origin
                 };
 
-                let text_display_item = box TextDisplayItem {
+                display_list.push(TextDisplayItemClass(box TextDisplayItem {
                     base: BaseDisplayItem::new(absolute_content_box,
                                                self.node,
                                                ContentStackingLevel,
@@ -452,8 +446,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     text_color: self.style().get_color().color.to_gfx_color(),
                     orientation: orientation,
                     baseline_origin: baseline_origin,
-                };
-                display_list.push(TextDisplayItemClass(text_display_item));
+                }));
 
                 // Create display items for text decoration
                 {
@@ -522,16 +515,14 @@ impl FragmentDisplayListBuilding for Fragment {
                         debug!("(building display list) building image fragment");
 
                         // Place the image into the display list.
-                        let image_display_item = box ImageDisplayItem {
+                        display_list.push(ImageDisplayItemClass(box ImageDisplayItem {
                             base: BaseDisplayItem::new(absolute_content_box,
                                                        self.node,
                                                        ContentStackingLevel,
                                                        *clip_rect),
                             image: image.clone(),
                             stretch_size: absolute_content_box.size,
-                        };
-
-                        display_list.push(ImageDisplayItemClass(image_display_item))
+                        }));
                     }
                     None => {
                         // No image data at all? Do nothing.
@@ -630,38 +621,35 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                  .relative_containing_block_size);
 
         // Add the box that starts the block context.
-        let mut display_list = DisplayList::new();
-        self.fragment.build_display_list(&mut display_list,
+        self.base.display_list = DisplayList::new();
+        let absolute_position =
+            self.base.abs_position.add_size(&relative_offset.to_physical(self.base.writing_mode));
+        self.fragment.build_display_list(&mut self.base.display_list,
                                          layout_context,
-                                         self.base.abs_position.add_size(
-                                             &relative_offset.to_physical(self.base.writing_mode)),
+                                         absolute_position,
                                          background_border_level,
                                          &self.base.clip_rect);
 
-        let mut child_layers = DList::new();
-        for kid in self.base.child_iter() {
+        self.base.layers = DList::new();
+        for kid in self.base.children.iter_mut() {
             if kid.is_absolutely_positioned() {
                 // All absolute flows will be handled by their containing block.
                 continue
             }
 
-            display_list.push_all_move(mem::replace(&mut flow::mut_base(kid).display_list,
-                                                    DisplayList::new()));
-            child_layers.append(mem::replace(&mut flow::mut_base(kid).layers, DList::new()))
+            self.base.display_list.append_from(&mut flow::mut_base(kid).display_list);
+            dlist::append_from(&mut self.base.layers, &mut flow::mut_base(kid).layers)
         }
 
         // Process absolute descendant links.
         for abs_descendant_link in self.base.abs_descendants.iter() {
             // TODO(pradeep): Send in our absolute position directly.
-            display_list.push_all_move(mem::replace(
-                    &mut flow::mut_base(abs_descendant_link).display_list,
-                    DisplayList::new()));
-            child_layers.append(mem::replace(&mut flow::mut_base(abs_descendant_link).layers,
-                                             DList::new()));
+            self.base
+                .display_list
+                .append_from(&mut flow::mut_base(abs_descendant_link).display_list);
+            dlist::append_from(&mut self.base.layers,
+                               &mut flow::mut_base(abs_descendant_link).layers)
         }
-
-        self.base.display_list = display_list;
-        self.base.layers = child_layers
     }
 
     fn build_display_list_for_absolutely_positioned_block(&mut self,
@@ -672,9 +660,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 !self.base.flags.needs_layer() {
             // We didn't need a layer.
             let z_index = self.fragment.style().get_box().z_index.number_or_zero();
-            let level = PositionedDescendantStackingLevel(z_index);
-            self.base.display_list = mem::replace(&mut self.base.display_list,
-                                                  DisplayList::new()).flatten(level);
+            self.base.display_list.flatten(PositionedDescendantStackingLevel(z_index));
             return
         }
 
@@ -690,10 +676,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         } else {
             Scrollable
         };
-        let display_list = mem::replace(&mut self.base.display_list, DisplayList::new());
+        self.base.display_list.flatten(ContentStackingLevel);
         let new_layer = RenderLayer {
             id: self.layer_id(0),
-            display_list: Arc::new(display_list.flatten(ContentStackingLevel)),
+            display_list: Arc::new(mem::replace(&mut self.base.display_list, DisplayList::new())),
             position: Rect(origin, size),
             background_color: color::rgba(1.0, 1.0, 1.0, 0.0),
             scroll_policy: scroll_policy,
@@ -703,8 +689,6 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
     fn build_display_list_for_floating_block(&mut self, layout_context: &LayoutContext) {
         self.build_display_list_for_block(layout_context, RootOfStackingContextLevel);
-        self.base.display_list = mem::replace(&mut self.base.display_list,
-                                              DisplayList::new()).flatten(FloatStackingLevel)
+        self.base.display_list.flatten(FloatStackingLevel)
     }
 }
-

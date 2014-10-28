@@ -19,7 +19,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use collections::{Deque, RingBuf};
 use geom::{Rect, Size2D};
-use gfx::display_list::{ContentLevel, DisplayList};
+use gfx::display_list::ContentLevel;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
@@ -1199,9 +1199,9 @@ impl Flow for InlineFlow {
             match fragment.specific {
                 InlineBlockFragment(ref mut block_flow) => {
                     let block_flow = block_flow.flow_ref.deref_mut();
-                    self.base.display_list.push_all_move(
-                        mem::replace(&mut flow::mut_base(block_flow).display_list,
-                                     DisplayList::new()));
+                    self.base
+                        .display_list
+                        .append_from(&mut flow::mut_base(block_flow).display_list)
                 }
                 _ => {}
             }
