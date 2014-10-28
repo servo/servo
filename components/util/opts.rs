@@ -122,6 +122,35 @@ static FORCE_CPU_PAINTING: bool = true;
 #[cfg(not(target_os="android"))]
 static FORCE_CPU_PAINTING: bool = false;
 
+fn default_opts() -> Opts {
+    Opts {
+        urls: vec!(),
+        n_render_threads: 1,
+        gpu_painting: false,
+        tile_size: 512,
+        device_pixels_per_px: None,
+        time_profiler_period: None,
+        memory_profiler_period: None,
+        enable_experimental: false,
+        layout_threads: 1,
+        nonincremental_layout: false,
+        exit_after_load: false,
+        output_file: None,
+        headless: true,
+        hard_fail: true,
+        bubble_inline_sizes_separately: false,
+        show_debug_borders: false,
+        show_debug_fragment_borders: false,
+        enable_text_antialiasing: false,
+        trace_layout: false,
+        devtools_port: None,
+        initial_window_size: TypedSize2D(800, 600),
+        user_agent: None,
+        dump_flow_tree: false,
+        validate_display_list_geometry: false,
+    }
+}
+
 pub fn from_cmdline_args(args: &[String]) -> bool {
     let app_name = args[0].to_string();
     let args = args.tail();
@@ -289,7 +318,13 @@ pub fn set_opts(opts: Opts) {
 #[inline]
 pub fn get<'a>() -> &'a Opts {
     unsafe {
-        assert!(OPTIONS != ptr::null_mut());
+        // If code attempts to retrieve the options and they haven't
+        // been set by the platform init code, just return a default
+        // set of options. This is mostly useful for unit tests that
+        // run through a code path which queries the cmd line options.
+        if OPTIONS == ptr::null_mut() {
+            set_opts(default_opts());
+        }
         mem::transmute(OPTIONS)
     }
 }
