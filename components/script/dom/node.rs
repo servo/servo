@@ -1156,7 +1156,7 @@ impl Node {
 
             layout_data: LayoutDataRef::new(),
 
-            unique_id: DOMRefCell::new("".to_string()),
+            unique_id: DOMRefCell::new(String::new()),
         }
     }
 
