@@ -126,11 +126,6 @@ pub trait TLayoutNode {
 
     /// Returns the first child of this node.
     fn first_child(&self) -> Option<Self>;
-
-    /// Dumps this node tree, for debugging.
-    fn dump(&self) {
-        // TODO(pcwalton): Reimplement this in a way that's safe for layout to call.
-    }
 }
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
@@ -204,6 +199,28 @@ impl<'ln> LayoutNode<'ln> {
             node: node,
             chain: ContravariantLifetime,
         })
+    }
+
+    pub fn dump(self) {
+        self.dump_indent(0);
+    }
+
+    fn dump_indent(self, indent: uint) {
+        let mut s = String::new();
+        for _ in range(0, indent) {
+            s.push_str("  ");
+        }
+
+        s.push_str(self.debug_str().as_slice());
+        println!("{:s}", s);
+
+        for kid in self.children() {
+            kid.dump_indent(indent + 1);
+        }
+    }
+
+    fn debug_str(self) -> String {
+        format!("{}: dirty={}", self.type_id(), self.is_dirty())
     }
 
     pub fn flow_debug_id(self) -> uint {

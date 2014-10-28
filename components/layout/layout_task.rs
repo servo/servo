@@ -31,6 +31,7 @@ use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use layout_traits;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
+use log;
 use script::dom::bindings::js::JS;
 use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
@@ -576,7 +577,9 @@ impl LayoutTask {
 
         debug!("layout: received layout request for: {:s}", data.url.serialize());
         debug!("layout: parsed Node tree");
-        debug!("{:?}", node.dump());
+        if log_enabled!(log::DEBUG) {
+            node.dump();
+        }
 
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
 
