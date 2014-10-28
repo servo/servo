@@ -707,4 +707,3 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                               DisplayList::new()).flatten(FloatStackingLevel)
     }
 }
-

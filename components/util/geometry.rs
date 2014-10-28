@@ -95,8 +95,9 @@ pub static MAX_RECT: Rect<Au> = Rect {
     }
 };
 
-pub static MIN_AU: Au = Au(i32::MIN);
-pub static MAX_AU: Au = Au(i32::MAX);
+pub static ZERO_AU: Au = Au(0);
+pub static MIN_AU:  Au = Au(i32::MIN);
+pub static MAX_AU:  Au = Au(i32::MAX);
 
 impl<E, S: Encoder<E>> Encodable<S, E> for Au {
     fn encode(&self, e: &mut S) -> Result<(), E> {
@@ -319,4 +320,3 @@ pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
     Rect(Point2D(Au::from_frac32_px(rect.origin.x), Au::from_frac32_px(rect.origin.y)),
          Size2D(Au::from_frac32_px(rect.size.width), Au::from_frac32_px(rect.size.height)))
 }
-

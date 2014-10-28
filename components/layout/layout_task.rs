@@ -670,11 +670,11 @@ impl LayoutTask {
             match rw_data.parallel_traversal {
                 None => {
                     // Sequential mode.
-                    self.solve_constraints(&mut layout_root, &shared_layout_ctx)
+                    self.solve_constraints(&mut layout_root, &shared_layout_ctx);
                 }
                 Some(_) => {
                     // Parallel mode.
-                    self.solve_constraints_parallel(data, rw_data, &mut layout_root, &mut shared_layout_ctx)
+                    self.solve_constraints_parallel(data, rw_data, &mut layout_root, &mut shared_layout_ctx);
                 }
             }
         });
@@ -765,6 +765,8 @@ impl LayoutTask {
                                           DList::new()).into_iter() {
                     layers.push(layer)
                 }
+
+                debug!("Layers: {}", layers);
 
                 debug!("Layout done!");
 

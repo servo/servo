@@ -61,7 +61,7 @@ impl LayerId {
 }
 
 /// The scrolling policy of a layer.
-#[deriving(Clone, PartialEq)]
+#[deriving(Clone, PartialEq, Show)]
 pub enum ScrollPolicy {
     /// These layers scroll when the parent receives a scrolling message.
     Scrollable,
