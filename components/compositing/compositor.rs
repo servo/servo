@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_data::{CompositorData, DoesntWantScrollEvents, WantsScrollEvents};
+use compositor_layer::{CompositorData, CompositorLayer, DoesntWantScrollEvents};
+use compositor_layer::{ScrollPositionChanged, WantsScrollEvents};
 use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{SetLayerOrigin, Paint, ScrollFragmentPoint, LoadComplete};
 use compositor_task::{ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
 use constellation::SendableFrameTree;
-use events;
-use events::ScrollPositionChanged;
 use pipeline::CompositionPipeline;
 use windowing;
 use windowing::{FinishedWindowEvent, IdleWindowEvent, LoadUrlWindowEvent, MouseWindowClickEvent};
@@ -132,6 +131,11 @@ enum ShutdownState {
     FinishedShuttingDown,
 }
 
+struct HitTestResult {
+    layer: Rc<Layer<CompositorData>>,
+    point: TypedPoint2D<LayerPixel, f32>,
+}
+
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>,
            port: Receiver<Msg>,
@@ -233,7 +237,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Clear out the compositor layers so that painting tasks can destroy the buffers.
         match self.scene.root {
             None => {}
-            Some(ref layer) => CompositorData::forget_all_tiles(layer.clone()),
+            Some(ref layer) => layer.forget_all_tiles(),
         }
 
         // Drain compositor port, sometimes messages contain channels that are blocking
@@ -403,7 +407,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         // If we have an old root layer, release all old tiles before replacing it.
         match self.scene.root {
-            Some(ref mut layer) => CompositorData::clear_all_tiles(layer.clone()),
+            Some(ref mut layer) => layer.clear_all_tiles(),
             None => { }
         }
         self.scene.root = Some(self.create_frame_tree_root_layers(frame_tree, None));
@@ -451,21 +455,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         return root_layer;
     }
 
-    fn find_layer_with_pipeline_and_layer_id(&self,
-                                             pipeline_id: PipelineId,
-                                             layer_id: LayerId)
-                                             -> Option<Rc<Layer<CompositorData>>> {
-        match self.scene.root {
-            Some(ref root_layer) => {
-                CompositorData::find_layer_with_pipeline_and_layer_id(root_layer.clone(),
-                                                                      pipeline_id,
-                                                                      layer_id)
-            }
-            None => None,
-        }
-
-    }
-
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Rc<Layer<CompositorData>> {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null()) {
             Some(ref layer) => layer.clone(),
@@ -476,7 +465,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn update_layer_if_exists(&mut self, properties: LayerProperties) -> bool {
         match self.find_layer_with_pipeline_and_layer_id(properties.pipeline_id, properties.id) {
             Some(existing_layer) => {
-                CompositorData::update_layer(existing_layer.clone(), properties);
+                existing_layer.update_layer(properties);
                 true
             }
             None => false,
@@ -487,7 +476,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
         if need_new_root_layer {
             let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
-            CompositorData::update_layer_except_size(root_layer.clone(), layer_properties);
+            root_layer.update_layer_except_size(layer_properties);
 
             let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
             let first_child = CompositorData::new_layer(root_layer_pipeline.clone(),
@@ -548,8 +537,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
                 if layer.extra_data.borrow().wants_scroll_events == WantsScrollEvents {
-                    events::clamp_scroll_offset_and_scroll_layer(layer.clone(),
-                                                                 TypedPoint2D(0f32, 0f32) - origin);
+                    layer.clamp_scroll_offset_and_scroll_layer(TypedPoint2D(0f32, 0f32) - origin);
                 }
                 true
             }
@@ -599,7 +587,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
-                assert!(CompositorData::add_buffers(layer.clone(), new_layer_buffer_set, epoch));
+                assert!(layer.add_buffers(new_layer_buffer_set, epoch));
                 self.recomposite = true;
             }
             None => {
@@ -720,14 +708,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             MouseWindowMouseDownEvent(_, p) => p,
             MouseWindowMouseUpEvent(_, p) => p,
         };
-        for layer in self.scene.root.iter() {
-            events::send_mouse_event(layer.clone(), mouse_window_event, point / self.scene.scale);
+        match self.find_topmost_layer_at_point(point / self.scene.scale) {
+            Some(result) => result.layer.send_mouse_event(mouse_window_event, result.point),
+            None => {},
         }
     }
 
     fn on_mouse_window_move_event_class(&self, cursor: TypedPoint2D<DevicePixel, f32>) {
-        for layer in self.scene.root.iter() {
-            events::send_mouse_move_event(layer.clone(), cursor / self.scene.scale);
+        match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
+            Some(result) => result.layer.send_mouse_move_event(result.point),
+            None => {},
         }
     }
 
@@ -740,9 +730,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut scroll = false;
         match self.scene.root {
             Some(ref mut layer) => {
-                scroll = events::handle_scroll_event(layer.clone(),
-                                                     delta,
-                                                     cursor) == ScrollPositionChanged;
+                scroll = layer.handle_scroll_event(delta, cursor) == ScrollPositionChanged;
             }
             None => { }
         }
@@ -798,9 +786,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let cursor = TypedPoint2D(-1f32, -1f32);  // Make sure this hits the base layer.
         match self.scene.root {
             Some(ref mut layer) => {
-                events::handle_scroll_event(layer.clone(),
-                                            page_delta,
-                                            cursor);
+                layer.handle_scroll_event(page_delta, cursor);
             }
             None => { }
         }
@@ -1002,4 +988,68 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn recomposite_if(&mut self, result: bool) {
         self.recomposite = result || self.recomposite;
     }
+
+    fn find_topmost_layer_at_point_for_layer(&self,
+                                             layer: Rc<Layer<CompositorData>>,
+                                             point: TypedPoint2D<LayerPixel, f32>)
+                                             -> Option<HitTestResult> {
+        let child_point = point - layer.bounds.borrow().origin;
+        for child in layer.children().iter().rev() {
+            let result = self.find_topmost_layer_at_point_for_layer(child.clone(), child_point);
+            if result.is_some() {
+                return result;
+            }
+        }
+
+        let point = point - *layer.content_offset.borrow();
+        if !layer.bounds.borrow().contains(&point) {
+            return None;
+        }
+
+        return Some(HitTestResult { layer: layer, point: point });
+    }
+
+    fn find_topmost_layer_at_point(&self,
+                                   point: TypedPoint2D<LayerPixel, f32>)
+                                   -> Option<HitTestResult> {
+        match self.scene.root {
+            Some(ref layer) => self.find_topmost_layer_at_point_for_layer(layer.clone(), point),
+            None => None,
+        }
+    }
+
+    fn find_layer_with_pipeline_and_layer_id(&self,
+                                             pipeline_id: PipelineId,
+                                             layer_id: LayerId)
+                                             -> Option<Rc<Layer<CompositorData>>> {
+        match self.scene.root {
+            Some(ref layer) =>
+                find_layer_with_pipeline_and_layer_id_for_layer(layer.clone(),
+                                                                pipeline_id,
+                                                                layer_id),
+
+            None => None,
+        }
+    }
+}
+
+fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorData>>,
+                                                   pipeline_id: PipelineId,
+                                                   layer_id: LayerId)
+                                                   -> Option<Rc<Layer<CompositorData>>> {
+    if layer.extra_data.borrow().pipeline.id == pipeline_id &&
+       layer.extra_data.borrow().id == layer_id {
+        return Some(layer);
+    }
+
+    for kid in layer.children().iter() {
+        let result = find_layer_with_pipeline_and_layer_id_for_layer(kid.clone(),
+                                                                     pipeline_id,
+                                                                     layer_id);
+        if result.is_some() {
+            return result;
+        }
+    }
+
+    return None;
 }
