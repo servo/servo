@@ -73,7 +73,7 @@ impl Reflectable for Element {
     }
 }
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Show)]
 #[jstraceable]
 pub enum ElementTypeId {
     HTMLElementTypeId,
@@ -1172,4 +1172,3 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         }
     }
 }
-
