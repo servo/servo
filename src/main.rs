@@ -18,6 +18,9 @@ extern crate glfw_app;
 use servo_util::opts;
 
 #[cfg(not(test),not(target_os="android"))]
+use servo_util::rtinstrument;
+
+#[cfg(not(test),not(target_os="android"))]
 use servo::run;
 
 #[cfg(not(test),not(target_os="android"))]
@@ -35,6 +38,8 @@ fn start(argc: int, argv: *const *const u8) -> int {
                 Some(glfw_app::create_window())
             };
             run(window);
+
+            rtinstrument::teardown();
         }
     })
 }
