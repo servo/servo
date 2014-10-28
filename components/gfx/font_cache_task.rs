@@ -246,7 +246,7 @@ impl FontCacheTask {
     pub fn new(resource_task: ResourceTask) -> FontCacheTask {
         let (chan, port) = channel();
 
-        spawn_named("font-cache-task", proc() {
+        spawn_named("FontCacheTask", proc() {
             // TODO: Allow users to specify these.
             let mut generic_fonts = HashMap::with_capacity(5);
             add_generic_font(&mut generic_fonts, "serif", "Times New Roman");

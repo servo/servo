@@ -87,7 +87,7 @@ impl DedicatedWorkerGlobalScope {
                             parent_sender: ScriptChan,
                             own_sender: ScriptChan,
                             receiver: Receiver<ScriptMsg>) {
-        spawn_named_native(format!("Web worker for {}", worker_url.serialize()), proc() {
+        spawn_named_native(format!("WebWorker for {}", worker_url.serialize()), proc() {
 
             task_state::initialize(Script | InWorker);
 
