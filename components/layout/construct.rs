@@ -113,7 +113,7 @@ pub enum ConstructionItem {
 #[deriving(Clone)]
 pub struct InlineFragmentsConstructionResult {
     /// Any {ib} splits that we're bubbling up.
-    pub splits: Vec<InlineBlockSplit>,
+    pub splits: DList<InlineBlockSplit>,
 
     /// Any fragments that succeed the {ib} splits.
     pub fragments: DList<Fragment>,
@@ -570,7 +570,7 @@ impl<'a> FlowConstructor<'a> {
     /// whitespace.
     fn build_fragments_for_nonreplaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
                                                   -> ConstructionResult {
-        let mut opt_inline_block_splits: Vec<InlineBlockSplit> = Vec::new();
+        let mut opt_inline_block_splits: DList<InlineBlockSplit> = DList::new();
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         let mut abs_descendants = Descendants::new();
 
@@ -692,7 +692,7 @@ impl<'a> FlowConstructor<'a> {
         fragments.push(fragment);
 
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
-            splits: Vec::new(),
+            splits: DList::new(),
             fragments: fragments,
             abs_descendants: Descendants::new(),
         });
@@ -714,7 +714,7 @@ impl<'a> FlowConstructor<'a> {
         fragment_accumulator.fragments.push(fragment);
 
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
-            splits: Vec::new(),
+            splits: DList::new(),
             fragments: fragment_accumulator.to_dlist(),
             abs_descendants: abs_descendants,
         });
@@ -739,7 +739,7 @@ impl<'a> FlowConstructor<'a> {
         fragment_accumulator.fragments.push(fragment);
 
         let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
-            splits: Vec::new(),
+            splits: DList::new(),
             fragments: fragment_accumulator.to_dlist(),
             abs_descendants: abs_descendants,
         });
