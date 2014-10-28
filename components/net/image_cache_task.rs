@@ -6,11 +6,11 @@ use image::base::{Image, load_from_memory};
 use resource_task;
 use resource_task::{LoadData, ResourceTask};
 
+use servo_util::task::spawn_named;
 use servo_util::taskpool::TaskPool;
 use std::comm::{channel, Receiver, Sender};
 use std::collections::hashmap::HashMap;
 use std::mem::replace;
-use std::task::spawn;
 use std::result;
 use sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
@@ -84,7 +84,7 @@ impl ImageCacheTask {
         let (chan, port) = channel();
         let chan_clone = chan.clone();
 
-        spawn(proc() {
+        spawn_named("ImageCacheTask", proc() {
             let mut cache = ImageCache {
                 resource_task: resource_task,
                 port: port,
@@ -105,7 +105,7 @@ impl ImageCacheTask {
     pub fn new_sync(resource_task: ResourceTask, task_pool: TaskPool) -> ImageCacheTask {
         let (chan, port) = channel();
 
-        spawn(proc() {
+        spawn_named("ImageCacheTask (sync)", proc() {
             let inner_cache = ImageCacheTask::new(resource_task, task_pool);
 
             loop {
@@ -248,7 +248,7 @@ impl ImageCache {
                 let resource_task = self.resource_task.clone();
                 let url_clone = url.clone();
 
-                spawn(proc() {
+                spawn_named("ImageCacheTask (prefetch)", proc() {
                     let url = url_clone;
                     debug!("image_cache_task: started fetch for {:s}", url.serialize());
 
@@ -463,7 +463,7 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()>
 pub fn spawn_listener<A: Send>(f: proc(Receiver<A>):Send) -> Sender<A> {
     let (setup_chan, setup_port) = channel();
 
-    spawn(proc() {
+    spawn_named("ImageCacheTask (listener)", proc() {
         let (chan, port) = channel();
         setup_chan.send(chan);
         f(port);
