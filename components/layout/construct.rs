@@ -336,9 +336,8 @@ impl<'a> FlowConstructor<'a> {
         // remain. In that case the inline flow will compute its ascent and descent to be zero.
         let fragments = TextRunScanner::new().scan_for_runs(self.layout_context.font_context(),
                                                             fragments);
-
-        let mut inline_flow_ref = FlowRef::new(box InlineFlow::from_fragments((*node).clone(),
-                                                                              fragments));
+        let mut inline_flow_ref =
+            FlowRef::new(box InlineFlow::from_fragments(fragments, node.style().writing_mode));
 
         // Add all the inline-block fragments as children of the inline flow.
         for inline_block_flow in inline_block_flows.iter() {
@@ -530,7 +529,7 @@ impl<'a> FlowConstructor<'a> {
 
         // Set up the absolute descendants.
         let is_positioned = flow.as_block().is_positioned();
-        let is_absolutely_positioned = flow.as_block().is_absolutely_positioned();
+        let is_absolutely_positioned = flow::base(&*flow).flags.is_absolutely_positioned();
         if is_positioned {
             // This is the containing block for all the absolute descendants.
             flow.set_absolute_descendants(abs_descendants);
@@ -845,7 +844,7 @@ impl<'a> FlowConstructor<'a> {
         wrapper_flow.finish();
         let is_positioned = wrapper_flow.as_block().is_positioned();
         let is_fixed_positioned = wrapper_flow.as_block().is_fixed();
-        let is_absolutely_positioned = wrapper_flow.as_block().is_absolutely_positioned();
+        let is_absolutely_positioned = flow::base(&*wrapper_flow).flags.is_absolutely_positioned();
         if is_positioned {
             // This is the containing block for all the absolute descendants.
             wrapper_flow.set_absolute_descendants(abs_descendants);

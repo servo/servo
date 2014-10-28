@@ -27,7 +27,7 @@ use servo_util::geometry::Au;
 use std::cmp::{max, min};
 use std::fmt;
 use style::CSSFloat;
-use style::computed_values::{clear, float, table_layout};
+use style::computed_values::table_layout;
 
 #[deriving(Encodable)]
 pub enum TableLayout {
@@ -233,14 +233,6 @@ impl Flow for TableWrapperFlow {
 
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         &mut self.block_flow
-    }
-
-    fn float_clearance(&self) -> clear::T {
-        self.block_flow.float_clearance()
-    }
-
-    fn float_kind(&self) -> float::T {
-        self.block_flow.float_kind()
     }
 
     fn bubble_inline_sizes(&mut self) {

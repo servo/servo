@@ -632,7 +632,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         self.base.layers = DList::new();
         for kid in self.base.children.iter_mut() {
-            if kid.is_absolutely_positioned() {
+            if flow::base(kid).flags.is_absolutely_positioned() {
                 // All absolute flows will be handled by their containing block.
                 continue
             }
