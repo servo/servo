@@ -212,7 +212,7 @@ impl<'ln> LayoutNode<'ln> {
         }
 
         s.push_str(self.debug_str().as_slice());
-        error!("{:s}", s);
+        println!("{:s}", s);
 
         for kid in self.children() {
             kid.dump_indent(indent + 1);
