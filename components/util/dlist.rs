@@ -66,3 +66,29 @@ pub fn split<T>(list: &mut DList<T>) -> DList<T> {
     }
 }
 
+/// Appends the items in the other list to this one, leaving the other list empty.
+#[inline]
+pub fn append_from<T>(this: &mut DList<T>, other: &mut DList<T>) {
+    unsafe {
+        let this = mem::transmute::<&mut DList<T>,&mut RawDList<T>>(this);
+        let other = mem::transmute::<&mut DList<T>,&mut RawDList<T>>(other);
+        if this.length == 0 {
+            this.head = mem::replace(&mut other.head, None);
+            this.tail = mem::replace(&mut other.tail, ptr::null_mut());
+            this.length = mem::replace(&mut other.length, 0);
+            return
+        }
+
+        (*this.tail).next = match mem::replace(&mut other.head, None) {
+            None => return,
+            Some(mut head) => {
+                head.prev = this.tail;
+                Some(head)
+            }
+        };
+        this.tail = mem::replace(&mut other.tail, ptr::null_mut());
+        this.length += other.length;
+        other.length = 0;
+    }
+}
+
