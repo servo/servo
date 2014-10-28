@@ -37,7 +37,9 @@ pub fn traverse_dom_preorder(root: LayoutNode,
 
 pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
                                    shared_layout_context: &SharedLayoutContext) {
-    fn doit(flow: &mut Flow, assign_inline_sizes: AssignISizes, assign_block_sizes: AssignBSizesAndStoreOverflow) {
+    fn doit(flow: &mut Flow,
+            assign_inline_sizes: AssignISizes,
+            assign_block_sizes: AssignBSizesAndStoreOverflow) {
         if assign_inline_sizes.should_process(flow) {
             assign_inline_sizes.process(flow);
         }
@@ -68,7 +70,9 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                       shared_layout_context: &SharedLayoutContext) {
-    fn doit(flow: &mut Flow, compute_absolute_positions: ComputeAbsolutePositions, build_display_list: BuildDisplayList) {
+    fn doit(flow: &mut Flow,
+            compute_absolute_positions: ComputeAbsolutePositions,
+            build_display_list: BuildDisplayList) {
         if compute_absolute_positions.should_process(flow) {
             compute_absolute_positions.process(flow);
         }

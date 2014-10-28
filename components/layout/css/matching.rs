@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// High-level interface to CSS selector matching.
+//! High-level interface to CSS selector matching.
 
 use css::node_style::StyledNode;
 use util::{LayoutDataAccess, LayoutDataWrapper};
@@ -550,20 +550,20 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
                             applicable_declarations_cache,
                             applicable_declarations.normal_shareable);
                         if applicable_declarations.before.len() > 0 {
-                               self.cascade_node_pseudo_element(
-                                   Some(layout_data.shared_data.style.as_ref().unwrap()),
-                                   applicable_declarations.before.as_slice(),
-                                   &mut layout_data.data.before_style,
-                                   applicable_declarations_cache,
-                                   false);
+                           self.cascade_node_pseudo_element(
+                               Some(layout_data.shared_data.style.as_ref().unwrap()),
+                               applicable_declarations.before.as_slice(),
+                               &mut layout_data.data.before_style,
+                               applicable_declarations_cache,
+                               false);
                         }
                         if applicable_declarations.after.len() > 0 {
-                               self.cascade_node_pseudo_element(
-                                   Some(layout_data.shared_data.style.as_ref().unwrap()),
-                                   applicable_declarations.after.as_slice(),
-                                   &mut layout_data.data.after_style,
-                                   applicable_declarations_cache,
-                                   false);
+                           self.cascade_node_pseudo_element(
+                               Some(layout_data.shared_data.style.as_ref().unwrap()),
+                               applicable_declarations.after.as_slice(),
+                               &mut layout_data.data.after_style,
+                               applicable_declarations_cache,
+                               false);
                         }
                     }
                 }
