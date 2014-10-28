@@ -426,7 +426,7 @@ macro_rules! def_small_vector(
                 let target_len = self.len() + lower_size_bound;
 
                 if target_len > self.cap() {
-                   v.grow(target_len);
+                   self.grow(target_len);
                 }
 
                 for elem in iter {
