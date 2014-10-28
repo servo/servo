@@ -30,6 +30,8 @@ extern crate url;
 
 #[phase(plugin)]
 extern crate string_cache_macros;
+#[phase(plugin)]
+extern crate lazy_static;
 
 use std::sync::Arc;
 
@@ -45,6 +47,7 @@ pub mod namespace;
 pub mod opts;
 pub mod range;
 pub mod resource_files;
+pub mod rtinstrument;
 pub mod smallvec;
 pub mod sort;
 pub mod str;

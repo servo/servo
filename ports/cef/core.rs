@@ -71,6 +71,7 @@ pub extern "C" fn cef_run_message_loop() {
         trace_layout: false,
         devtools_port: None,
         initial_window_size: TypedSize2D(800, 600),
+        profile_tasks: false,
         user_agent: None,
         dump_flow_tree: false,
         validate_display_list_geometry: false,
