@@ -250,7 +250,8 @@ impl LayoutTask {
            font_cache_task: FontCacheTask,
            time_profiler_chan: TimeProfilerChan)
            -> LayoutTask {
-        let local_image_cache = Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
+        let local_image_cache =
+            Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
         let device = Device::new(Screen, opts::get().initial_window_size.as_f32());
         let parallel_traversal = if opts::get().layout_threads != 1 {
@@ -297,12 +298,11 @@ impl LayoutTask {
     }
 
     // Create a layout context for use in building display lists, hit testing, &c.
-    fn build_shared_layout_context(
-      &self,
-      rw_data: &LayoutTaskData,
-      reflow_root: &LayoutNode,
-      url: &Url)
-          -> SharedLayoutContext {
+    fn build_shared_layout_context(&self,
+                                   rw_data: &LayoutTaskData,
+                                   reflow_root: &LayoutNode,
+                                   url: &Url)
+                                   -> SharedLayoutContext {
         SharedLayoutContext {
             image_cache: rw_data.local_image_cache.clone(),
             screen_size: rw_data.screen_size.clone(),
@@ -318,7 +318,9 @@ impl LayoutTask {
     }
 
     /// Receives and dispatches messages from the script and constellation tasks
-    fn handle_request<'a>(&'a self, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) -> bool {
+    fn handle_request<'a>(&'a self,
+                          possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
+                          -> bool {
         enum PortToRead {
             Pipeline,
             Script,
@@ -343,8 +345,12 @@ impl LayoutTask {
         };
 
         match port_to_read {
-            Pipeline => match self.pipeline_port.recv() {
-                layout_traits::ExitNowMsg => self.handle_script_request(ExitNowMsg, possibly_locked_rw_data),
+            Pipeline => {
+                match self.pipeline_port.recv() {
+                    layout_traits::ExitNowMsg => {
+                        self.handle_script_request(ExitNowMsg, possibly_locked_rw_data)
+                    }
+                }
             },
             Script => {
                 let msg = self.port.recv();
@@ -359,17 +365,20 @@ impl LayoutTask {
     /// If you do not wish RPCs to remain blocked, just drop the `RWGuard`
     /// returned from this function. If you _do_ wish for them to remain blocked,
     /// use `return_rw_data`.
-    fn lock_rw_data<'a>(&'a self, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) -> RWGuard<'a> {
+    fn lock_rw_data<'a>(&'a self,
+                        possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
+                        -> RWGuard<'a> {
         match possibly_locked_rw_data.take() {
             None    => Used(self.rw_data.lock()),
             Some(x) => Held(x),
         }
     }
 
-    /// If no reflow has ever been trigger, this will keep the lock, locked
+    /// If no reflow has ever been triggered, this will keep the lock, locked
     /// (and saved in `possibly_locked_rw_data`). If it has been, the lock will
     /// be unlocked.
-    fn return_rw_data<'a>(possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>, rw_data: RWGuard<'a>) {
+    fn return_rw_data<'a>(possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>,
+                          rw_data: RWGuard<'a>) {
         match rw_data {
             Used(x) => drop(x),
             Held(x) => *possibly_locked_rw_data = Some(x),
@@ -377,20 +386,23 @@ impl LayoutTask {
     }
 
     /// Receives and dispatches messages from the script task.
-    fn handle_script_request<'a>(&'a self, request: Msg, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) -> bool {
+    fn handle_script_request<'a>(&'a self,
+                                 request: Msg,
+                                 possibly_locked_rw_data: &mut Option<MutexGuard<'a,
+                                                                                 LayoutTaskData>>)
+                                 -> bool {
         match request {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet, possibly_locked_rw_data),
             LoadStylesheetMsg(url) => self.handle_load_stylesheet(url, possibly_locked_rw_data),
             GetRPCMsg(response_chan) => {
-                response_chan.send(
-                    box LayoutRPCImpl(
-                        self.rw_data.clone()) as Box<LayoutRPC + Send>);
+                response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
+                                   Box<LayoutRPC + Send>);
             },
             ReflowMsg(data) => {
-                profile(time::LayoutPerformCategory, Some((&data.url, data.iframe, self.first_reflow.get())),
-                self.time_profiler_chan.clone(), || {
-                    self.handle_reflow(&*data, possibly_locked_rw_data);
-                });
+                profile(time::LayoutPerformCategory,
+                        Some((&data.url, data.iframe, self.first_reflow.get())),
+                        self.time_profiler_chan.clone(),
+                        || self.handle_reflow(&*data, possibly_locked_rw_data));
             },
             ReapLayoutDataMsg(dead_layout_data) => {
                 unsafe {
@@ -415,7 +427,9 @@ impl LayoutTask {
     /// Enters a quiescent state in which no new messages except for `ReapLayoutDataMsg` will be
     /// processed until an `ExitNowMsg` is received. A pong is immediately sent on the given
     /// response channel.
-    fn prepare_to_exit<'a>(&'a self, response_chan: Sender<()>, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn prepare_to_exit<'a>(&'a self,
+                           response_chan: Sender<()>,
+                           possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         response_chan.send(());
         loop {
             match self.port.recv() {
@@ -455,7 +469,10 @@ impl LayoutTask {
         response_port.recv()
     }
 
-    fn handle_load_stylesheet<'a>(&'a self, url: Url, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn handle_load_stylesheet<'a>(&'a self,
+                                  url: Url,
+                                  possibly_locked_rw_data:
+                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // TODO: Get the actual value. http://dev.w3.org/csswg/css-syntax/#environment-encoding
         let environment_encoding = UTF_8 as EncodingRef;
 
@@ -463,11 +480,17 @@ impl LayoutTask {
         let protocol_encoding_label = metadata.charset.as_ref().map(|s| s.as_slice());
         let final_url = metadata.final_url;
 
-        let sheet = Stylesheet::from_bytes_iter(iter, final_url, protocol_encoding_label, Some(environment_encoding));
+        let sheet = Stylesheet::from_bytes_iter(iter,
+                                                final_url,
+                                                protocol_encoding_label,
+                                                Some(environment_encoding));
         self.handle_add_stylesheet(sheet, possibly_locked_rw_data);
     }
 
-    fn handle_add_stylesheet<'a>(&'a self, sheet: Stylesheet, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn handle_add_stylesheet<'a>(&'a self,
+                                 sheet: Stylesheet,
+                                 possibly_locked_rw_data:
+                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
         iter_font_face_rules(&sheet, &self.device, |family, src| {
@@ -566,11 +589,15 @@ impl LayoutTask {
     }
 
     /// The high-level routine that performs layout tasks.
-    fn handle_reflow<'a>(&'a self, data: &Reflow, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn handle_reflow<'a>(&'a self,
+                         data: &Reflow,
+                         possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // FIXME: Isolate this transmutation into a "bridge" module.
         // FIXME(rust#16366): The following line had to be moved because of a
         // rustc bug. It should be in the next unsafe block.
-        let mut node: JS<Node> = unsafe { JS::from_trusted_node_address(data.document_root) };
+        let mut node: JS<Node> = unsafe {
+            JS::from_trusted_node_address(data.document_root)
+        };
         let node: &mut LayoutNode = unsafe {
             mem::transmute(&mut node)
         };
@@ -599,11 +626,9 @@ impl LayoutTask {
         rw_data.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
-        let mut shared_layout_ctx =
-            self.build_shared_layout_context(
-                rw_data.deref(),
-                node,
-                &data.url);
+        let mut shared_layout_ctx = self.build_shared_layout_context(rw_data.deref(),
+                                                                     node,
+                                                                     &data.url);
 
         // Handle conditions where the entire flow tree is invalid.
         let needs_dirtying = rw_data.stylesheet_dirty;
@@ -664,8 +689,10 @@ impl LayoutTask {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        profile(time::LayoutMainCategory, Some((&data.url, data.iframe, self.first_reflow.get())),
-                self.time_profiler_chan.clone(), || {
+        profile(time::LayoutMainCategory,
+                Some((&data.url, data.iframe, self.first_reflow.get())),
+                self.time_profiler_chan.clone(),
+                || {
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
                 None => {
@@ -674,7 +701,10 @@ impl LayoutTask {
                 }
                 Some(_) => {
                     // Parallel mode.
-                    self.solve_constraints_parallel(data, rw_data, &mut layout_root, &mut shared_layout_ctx)
+                    self.solve_constraints_parallel(data,
+                                                    rw_data,
+                                                    &mut layout_root,
+                                                    &mut shared_layout_ctx);
                 }
             }
         });
@@ -682,28 +712,31 @@ impl LayoutTask {
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
             let writing_mode = flow::base(layout_root.deref()).writing_mode;
-            profile(time::LayoutDispListBuildCategory, Some((&data.url, data.iframe, self.first_reflow.get())), self.time_profiler_chan.clone(), || {
-                shared_layout_ctx.dirty = flow::base(layout_root.deref()).position.to_physical(
-                    writing_mode, rw_data.screen_size);
+            profile(time::LayoutDispListBuildCategory,
+                    Some((&data.url, data.iframe, self.first_reflow.get())),
+                         self.time_profiler_chan.clone(),
+                         || {
+                shared_layout_ctx.dirty =
+                    flow::base(layout_root.deref()).position.to_physical(writing_mode,
+                                                                         rw_data.screen_size);
                 flow::mut_base(layout_root.deref_mut()).abs_position =
-                    LogicalPoint::zero(writing_mode).to_physical(writing_mode, rw_data.screen_size);
+                    LogicalPoint::zero(writing_mode).to_physical(writing_mode,
+                                                                 rw_data.screen_size);
 
                 let rw_data = rw_data.deref_mut();
                 match rw_data.parallel_traversal {
                     None => {
-                        sequential::build_display_list_for_subtree(
-                            &mut layout_root,
-                            &shared_layout_ctx);
+                        sequential::build_display_list_for_subtree(&mut layout_root,
+                                                                   &shared_layout_ctx);
                     }
                     Some(ref mut traversal) => {
-                        parallel::build_display_list_for_subtree(
-                            &mut layout_root,
-                            &data.url,
-                            data.iframe,
-                            self.first_reflow.get(),
-                            self.time_profiler_chan.clone(),
-                            &shared_layout_ctx,
-                            traversal);
+                        parallel::build_display_list_for_subtree(&mut layout_root,
+                                                                 &data.url,
+                                                                 data.iframe,
+                                                                 self.first_reflow.get(),
+                                                                 self.time_profiler_chan.clone(),
+                                                                 &shared_layout_ctx,
+                                                                 traversal);
                     }
                 }
 

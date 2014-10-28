@@ -765,10 +765,11 @@ pub struct BaseFlow {
     /// Any layers that we're bubbling up, in a linked list.
     pub layers: DList<RenderLayer>,
 
+    /// The writing mode for this flow.
+    pub writing_mode: WritingMode,
+
     /// Various flags for flows, tightly packed to save space.
     pub flags: FlowFlags,
-
-    pub writing_mode: WritingMode,
 }
 
 impl fmt::Show for BaseFlow {
@@ -824,9 +825,7 @@ impl BaseFlow {
             intrinsic_inline_sizes: IntrinsicISizes::new(),
             position: LogicalRect::zero(writing_mode),
             overflow: LogicalRect::zero(writing_mode),
-
             parallel: FlowParallelInfo::new(),
-
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
             abs_position: Zero::zero(),

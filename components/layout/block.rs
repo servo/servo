@@ -436,7 +436,7 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
         }
 
         let AbsoluteAssignBSizesTraversal(ref ctx) = *self;
-        block_flow.calculate_abs_block_size_and_margins(*ctx);
+        block_flow.calculate_absolute_block_size_and_margins(*ctx);
     }
 }
 
@@ -631,7 +631,7 @@ impl BlockFlow {
         }
     }
 
-    /// Compute the used value of inline-size for this Block.
+    /// Compute the actual inline size and position for this block.
     pub fn compute_used_inline_size(&mut self,
                                     ctx: &LayoutContext,
                                     containing_block_inline_size: Au) {
@@ -686,7 +686,7 @@ impl BlockFlow {
     /// reference the CB.
     #[inline]
     pub fn containing_block_size(&mut self, viewport_size: Size2D<Au>) -> LogicalSize<Au> {
-        assert!(self.is_absolutely_positioned());
+        debug_assert!(self.is_absolutely_positioned());
         if self.is_fixed() {
             // Initial containing block is the CB for the root
             LogicalSize::from_physical(self.base.writing_mode, viewport_size)
@@ -1062,6 +1062,7 @@ impl BlockFlow {
         let margin_offset = LogicalPoint::new(writing_mode,
                                               Au(0),
                                               self.fragment.margin.block_start);
+
         self.base.position = self.base.position.translate(&float_offset).translate(&margin_offset);
     }
 
@@ -1071,9 +1072,9 @@ impl BlockFlow {
     /// The layout for its in-flow children has been done during normal layout.
     /// This is just the calculation of:
     /// + block-size for the flow
-    /// + y-coordinate of the flow wrt its Containing Block.
+    /// + position in the block direction of the flow with respect to its Containing Block.
     /// + block-size, vertical margins, and y-coordinate for the flow's box.
-    fn calculate_abs_block_size_and_margins(&mut self, ctx: &LayoutContext) {
+    fn calculate_absolute_block_size_and_margins(&mut self, ctx: &LayoutContext) {
         let containing_block_block_size = self.containing_block_size(ctx.shared.screen_size).block;
         let static_b_offset = self.static_b_offset;
 
@@ -1098,11 +1099,13 @@ impl BlockFlow {
             let block_end;
             {
                 let position = self.fragment.style().logical_position();
-                block_start = MaybeAuto::from_style(position.block_start, containing_block_block_size);
+                block_start = MaybeAuto::from_style(position.block_start,
+                                                    containing_block_block_size);
                 block_end = MaybeAuto::from_style(position.block_end, containing_block_block_size);
             }
 
-            let available_block_size = containing_block_block_size - self.fragment.border_padding.block_start_end();
+            let available_block_size = containing_block_block_size -
+                self.fragment.border_padding.block_start_end();
             if self.is_replaced_content() {
                 // Calculate used value of block-size just like we do for inline replaced elements.
                 // TODO: Pass in the containing block block-size when Fragment's
@@ -1348,6 +1351,8 @@ impl BlockFlow {
     /// on the floats we could see at the time of inline-size assignment. The job of this function,
     /// therefore, is not only to assign the final size but also to perform the layout again for
     /// this block formatting context if our speculation was wrong.
+    ///
+    /// FIXME(pcwalton): This code is not incremental-reflow-safe (i.e. not idempotent).
     fn assign_inline_position_for_formatting_context(&mut self) {
         debug_assert!(self.formatting_context_type() != NonformattingContext);
 
@@ -1611,19 +1616,18 @@ impl Flow for BlockFlow {
         }
 
         if self.is_absolutely_positioned() {
-            let position_start = self.base.position.start.to_physical(
-                self.base.writing_mode, container_size);
-            self.base
-                .absolute_position_info
-                .absolute_containing_block_position = if self.is_fixed() {
-                // The viewport is initially at (0, 0).
-                position_start
-            } else {
-                // Absolute position of the containing block + position of absolute flow w/r/t the
-                // containing block.
-                self.base.absolute_position_info.absolute_containing_block_position
-                    + position_start
-            };
+            let position_start = self.base.position.start.to_physical(self.base.writing_mode,
+                                                                      container_size);
+            self.base.absolute_position_info.absolute_containing_block_position =
+                if self.is_fixed() {
+                    // The viewport is initially at (0, 0).
+                    position_start
+                } else {
+                    // Absolute position of the containing block + position of absolute
+                    // flow w.r.t. the containing block.
+                    self.base.absolute_position_info.absolute_containing_block_position
+                        + position_start
+                };
 
             // Set the absolute position, which will be passed down later as part
             // of containing block details for absolute descendants.
@@ -1929,9 +1933,9 @@ pub trait ISizeAndMarginsComputer {
 
     /// Solve the inline-size and margins constraints for this block flow.
     fn solve_inline_size_constraints(&self,
-                               block: &mut BlockFlow,
-                               input: &ISizeConstraintInput)
-                               -> ISizeConstraintSolution;
+                                     block: &mut BlockFlow,
+                                     input: &ISizeConstraintInput)
+                                     -> ISizeConstraintSolution;
 
     fn initial_computed_inline_size(&self,
                                     block: &mut BlockFlow,
@@ -1957,16 +1961,14 @@ pub trait ISizeAndMarginsComputer {
     /// CSS Section 10.4: Minimum and Maximum inline-sizes
     fn compute_used_inline_size(&self,
                                 block: &mut BlockFlow,
-                                ctx: &LayoutContext,
+                                layout_context: &LayoutContext,
                                 parent_flow_inline_size: Au) {
         let mut input = self.compute_inline_size_constraint_inputs(block,
                                                                    parent_flow_inline_size,
-                                                                   ctx);
+                                                                   layout_context);
 
-        let containing_block_inline_size = self.containing_block_inline_size(
-            block,
-            parent_flow_inline_size,
-            ctx);
+        let containing_block_inline_size =
+            self.containing_block_inline_size(block, parent_flow_inline_size, layout_context);
 
         let mut solution = self.solve_inline_size_constraints(block, &input);
 
@@ -2005,9 +2007,9 @@ pub trait ISizeAndMarginsComputer {
     /// available_inline-size
     /// where available_inline-size = CB inline-size - (horizontal border + padding)
     fn solve_block_inline_size_constraints(&self,
-                                     _: &mut BlockFlow,
-                                     input: &ISizeConstraintInput)
-                                     -> ISizeConstraintSolution {
+                                           _: &mut BlockFlow,
+                                           input: &ISizeConstraintInput)
+                                           -> ISizeConstraintSolution {
         let (computed_inline_size, inline_start_margin, inline_end_margin, available_inline_size) =
             (input.computed_inline_size,
              input.inline_start_margin,
