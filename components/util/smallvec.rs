@@ -405,6 +405,12 @@ macro_rules! def_small_vector(
             fn from_iter<I: Iterator<T>>(mut iter: I) -> $name<T> {
                 let mut v = $name::new();
 
+                let (lower_size_bound, _) = iter.size_hint();
+
+                if lower_size_bound > v.cap() {
+                    v.grow(lower_size_bound);
+                }
+
                 for elem in iter {
                     v.push(elem);
                 }
@@ -415,6 +421,14 @@ macro_rules! def_small_vector(
 
         impl<T: 'static> Extendable<T> for $name<T> {
             fn extend<I: Iterator<T>>(&mut self, mut iter: I) {
+                let (lower_size_bound, _) = iter.size_hint();
+
+                let target_len = self.len() + lower_size_bound;
+
+                if target_len > self.cap() {
+                   v.grow(target_len);
+                }
+
                 for elem in iter {
                     self.push(elem);
                 }
