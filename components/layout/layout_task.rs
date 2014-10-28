@@ -603,7 +603,7 @@ impl LayoutTask {
                 &data.url);
 
         // Handle conditions where the entire flow tree is invalid.
-        let mut needs_dirtying = rw_data.stylesheet_dirty;
+        let needs_dirtying = rw_data.stylesheet_dirty;
 
         let mut needs_reflow = current_screen_size != old_screen_size;
 
