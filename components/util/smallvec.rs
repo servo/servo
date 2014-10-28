@@ -12,7 +12,6 @@ use std::kinds::marker::ContravariantLifetime;
 use std::mem;
 use std::ptr;
 use std::raw::Slice;
-use rustrt::local_heap;
 use alloc::heap;
 
 // Generic code for all small vectors
@@ -60,6 +59,7 @@ pub trait SmallVecPrivate<T> {
 pub trait SmallVec<T> : SmallVecPrivate<T> where T: 'static {
     fn inline_size(&self) -> uint;
     fn len(&self) -> uint;
+    fn is_empty(&self) -> bool;
     fn cap(&self) -> uint;
 
     fn spilled(&self) -> bool {
@@ -110,12 +110,13 @@ pub trait SmallVec<T> : SmallVecPrivate<T> where T: 'static {
             } else {
                 None
             };
+            let cap = self.cap();
             let inline_size = self.inline_size();
             self.set_cap(inline_size);
             self.set_len(0);
             SmallVecMoveIterator {
                 allocation: ptr_opt,
-                cap: inline_size,
+                cap: cap,
                 iter: iter,
                 lifetime: ContravariantLifetime::<'a>,
             }
@@ -169,13 +170,9 @@ pub trait SmallVec<T> : SmallVecPrivate<T> where T: 'static {
             ptr::copy_nonoverlapping_memory(new_alloc, self.begin(), self.len());
 
             if self.spilled() {
-                if intrinsics::owns_managed::<T>() {
-                    local_heap::local_free(self.ptr() as *mut u8)
-                } else {
-                    heap::deallocate(self.mut_ptr() as *mut u8,
-                                     mem::size_of::<T>() * self.cap(),
-                                     mem::min_align_of::<T>())
-                }
+                heap::deallocate(self.mut_ptr() as *mut u8,
+                                 mem::size_of::<T>() * self.cap(),
+                                 mem::min_align_of::<T>())
             } else {
                 let mut_begin: *mut T = mem::transmute(self.begin());
                 intrinsics::set_memory(mut_begin, 0, self.len())
@@ -326,13 +323,9 @@ impl<'a, T: 'static> Drop for SmallVecMoveIterator<'a,T> {
             None => {}
             Some(allocation) => {
                 unsafe {
-                    if intrinsics::owns_managed::<T>() {
-                        local_heap::local_free(allocation as *mut u8)
-                    } else {
-                        heap::deallocate(allocation as *mut u8,
-                                         mem::size_of::<T>() * self.cap,
-                                         mem::min_align_of::<T>())
-                    }
+                    heap::deallocate(allocation as *mut u8,
+                                     mem::size_of::<T>() * self.cap,
+                                     mem::min_align_of::<T>())
                 }
             }
         }
@@ -383,6 +376,9 @@ macro_rules! def_small_vector(
             fn len(&self) -> uint {
                 self.len
             }
+            fn is_empty(&self) -> bool {
+                self.len == 0
+            }
             fn cap(&self) -> uint {
                 self.cap
             }
@@ -402,6 +398,40 @@ macro_rules! def_small_vector(
             #[inline]
             fn vec_slice_mut<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
                 self.slice_mut(start, end)
+            }
+        }
+
+        impl<T: 'static> FromIterator<T> for $name<T> {
+            fn from_iter<I: Iterator<T>>(mut iter: I) -> $name<T> {
+                let mut v = $name::new();
+
+                let (lower_size_bound, _) = iter.size_hint();
+
+                if lower_size_bound > v.cap() {
+                    v.grow(lower_size_bound);
+                }
+
+                for elem in iter {
+                    v.push(elem);
+                }
+
+                v
+            }
+        }
+
+        impl<T: 'static> Extendable<T> for $name<T> {
+            fn extend<I: Iterator<T>>(&mut self, mut iter: I) {
+                let (lower_size_bound, _) = iter.size_hint();
+
+                let target_len = self.len() + lower_size_bound;
+
+                if target_len > self.cap() {
+                   self.grow(target_len);
+                }
+
+                for elem in iter {
+                    self.push(elem);
+                }
             }
         }
 
@@ -444,13 +474,9 @@ macro_rules! def_small_vector_drop_impl(
                         *ptr.offset(i as int) = mem::uninitialized();
                     }
 
-                    if intrinsics::owns_managed::<T>() {
-                        local_heap::local_free(self.ptr() as *mut u8)
-                    } else {
-                        heap::deallocate(self.mut_ptr() as *mut u8,
-                                         mem::size_of::<T>() * self.cap(),
-                                         mem::min_align_of::<T>())
-                    }
+                    heap::deallocate(self.mut_ptr() as *mut u8,
+                                     mem::size_of::<T>() * self.cap(),
+                                     mem::min_align_of::<T>())
                 }
             }
         }
@@ -527,4 +553,3 @@ pub mod tests {
         ].as_slice());
     }
 }
-
