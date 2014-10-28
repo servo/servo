@@ -1192,11 +1192,11 @@ pub trait FlowConstructionUtils {
     fn add_new_child(&mut self, new_child: FlowRef);
 
     /// Finishes a flow. Once a flow is finished, no more child flows or boxes may be added to it.
-    /// This will normally run the bubble-inline-sizes (minimum and preferred -- i.e. intrinsic -- inline-size)
-    /// calculation, unless the global `bubble_inline-sizes_separately` flag is on.
+    /// This will normally run the bubble-inline-sizes (minimum and preferred -- i.e. intrinsic --
+    /// inline-size) calculation, unless the global `bubble_inline-sizes_separately` flag is on.
     ///
-    /// All flows must be finished at some point, or they will not have their intrinsic inline-sizes
-    /// properly computed. (This is not, however, a memory safety problem.)
+    /// All flows must be finished at some point, or they will not have their intrinsic inline-
+    /// sizes properly computed. (This is not, however, a memory safety problem.)
     fn finish(&mut self);
 }
 
@@ -1217,8 +1217,8 @@ impl FlowConstructionUtils for FlowRef {
     }
 
     /// Finishes a flow. Once a flow is finished, no more child flows or fragments may be added to
-    /// it. This will normally run the bubble-inline-sizes (minimum and preferred -- i.e. intrinsic --
-    /// inline-size) calculation, unless the global `bubble_inline-sizes_separately` flag is on.
+    /// it. This will normally run the bubble-inline-sizes (minimum and preferred -- i.e. intrinsic
+    /// -- inline-size) calculation, unless the global `bubble_inline-sizes_separately` flag is on.
     ///
     /// All flows must be finished at some point, or they will not have their intrinsic inline-sizes
     /// properly computed. (This is not, however, a memory safety problem.)

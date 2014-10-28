@@ -216,7 +216,7 @@ impl Floats {
         let mut r_block_start = None;
         let mut r_block_end = None;
 
-        // Find the float collisions for the given vertical range.
+        // Find the float collisions for the given range in the block direction.
         for float in list.floats.iter() {
             debug!("available_rect: Checking for collision against float");
             let float_pos = float.bounds.start;

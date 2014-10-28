@@ -6,6 +6,7 @@ use incremental::RestyleDamage;
 use util::LayoutDataAccess;
 use wrapper::ThreadSafeLayoutNode;
 use wrapper::{After, Before, Normal};
+
 use std::mem;
 use style::ComputedValues;
 use sync::Arc;
