@@ -306,15 +306,13 @@ impl<'a> FlowConstructor<'a> {
         match whitespace_stripping {
             NoWhitespaceStripping => {}
             StripWhitespaceFromStart => {
-                flow::mut_base(flow.deref_mut()).restyle_damage.insert(
-                    strip_ignorable_whitespace_from_start(&mut fragments));
+                strip_ignorable_whitespace_from_start(&mut fragments);
                 if fragments.is_empty() {
                     return
                 };
             }
             StripWhitespaceFromEnd => {
-                flow::mut_base(flow.deref_mut()).restyle_damage.insert(
-                    strip_ignorable_whitespace_from_end(&mut fragments));
+                strip_ignorable_whitespace_from_end(&mut fragments);
                 if fragments.is_empty() {
                     return
                 };
@@ -1232,36 +1230,26 @@ impl FlowConstructionUtils for FlowRef {
 }
 
 /// Strips ignorable whitespace from the start of a list of fragments.
-///
-/// Returns some damage that must be added to the `InlineFlow`.
-pub fn strip_ignorable_whitespace_from_start(this: &mut DList<Fragment>) -> RestyleDamage {
+pub fn strip_ignorable_whitespace_from_start(this: &mut DList<Fragment>) {
     if this.is_empty() {
-        return RestyleDamage::empty()   // Fast path.
+        return   // Fast path.
     }
 
-    let mut damage = RestyleDamage::empty();
     while !this.is_empty() && this.front().as_ref().unwrap().is_ignorable_whitespace() {
         debug!("stripping ignorable whitespace from start");
-        damage = RestyleDamage::all();
         drop(this.pop_front());
     }
-    damage
 }
 
 /// Strips ignorable whitespace from the end of a list of fragments.
-///
-/// Returns some damage that must be added to the `InlineFlow`.
-pub fn strip_ignorable_whitespace_from_end(this: &mut DList<Fragment>) -> RestyleDamage {
+pub fn strip_ignorable_whitespace_from_end(this: &mut DList<Fragment>) {
     if this.is_empty() {
-        return RestyleDamage::empty();
+        return
     }
 
-    let mut damage = RestyleDamage::empty();
     while !this.is_empty() && this.back().as_ref().unwrap().is_ignorable_whitespace() {
         debug!("stripping ignorable whitespace from end");
-        damage = RestyleDamage::all();
         drop(this.pop());
     }
-    damage
 }
 
