@@ -266,7 +266,7 @@ impl PreorderFlow for FlowTreeVerification {
     fn process(&mut self, flow: &mut Flow) {
         let base = flow::base(flow);
         if !base.flags.is_leaf() && !base.flags.is_nonleaf() {
-            println("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
+            println!("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
             flow.dump();
             fail!("flow tree verification failed")
         }
