@@ -5,6 +5,7 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 pub use std::ascii::StrAsciiExt;
+use std::fmt;
 
 use servo_util::logical_geometry::{WritingMode, LogicalMargin};
 use sync::Arc;
@@ -158,7 +159,7 @@ pub mod longhands {
             ${caller.body()}
             pub mod computed_value {
                 #[allow(non_camel_case_types)]
-                #[deriving(PartialEq, Clone, FromPrimitive)]
+                #[deriving(PartialEq, Clone, FromPrimitive, Show)]
                 pub enum T {
                     % for value in values.split():
                         ${to_rust_ident(value)},
@@ -349,7 +350,7 @@ pub mod longhands {
         pub use super::computed_as_specified as to_computed_value;
         pub type SpecifiedValue = computed_value::T;
         pub mod computed_value {
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Clone, Show)]
             pub enum T {
                 Auto,
                 Number(i32),
@@ -432,7 +433,7 @@ pub mod longhands {
     ${switch_to_style_struct("InheritedBox")}
 
     <%self:single_component_value name="line-height">
-        #[deriving(Clone)]
+        #[deriving(Clone, Show)]
         pub enum SpecifiedValue {
             SpecifiedNormal,
             SpecifiedLength(specified::Length),
@@ -457,7 +458,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Clone, Show)]
             pub enum T {
                 Normal,
                 Length(Au),
@@ -483,7 +484,7 @@ pub mod longhands {
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
         #[allow(non_camel_case_types)]
-        #[deriving(Clone)]
+        #[deriving(Clone, Show)]
         pub enum SpecifiedValue {
             % for keyword in vertical_align_keywords:
                 Specified_${to_rust_ident(keyword)},
@@ -510,7 +511,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
             #[allow(non_camel_case_types)]
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Clone, Show)]
             pub enum T {
                 % for keyword in vertical_align_keywords:
                     ${to_rust_ident(keyword)},
@@ -554,12 +555,12 @@ pub mod longhands {
     <%self:longhand name="content">
             pub use super::computed_as_specified as to_computed_value;
             pub mod computed_value {
-                #[deriving(PartialEq, Clone)]
+                #[deriving(PartialEq, Clone, Show)]
                 pub enum ContentItem {
                     StringContent(String),
                 }
                 #[allow(non_camel_case_types)]
-                #[deriving(PartialEq, Clone)]
+                #[deriving(PartialEq, Clone, Show)]
                 pub enum T {
                     normal,
                     none,
@@ -630,14 +631,14 @@ pub mod longhands {
             pub mod computed_value {
                 use super::super::super::common_types::computed::LengthOrPercentage;
 
-                #[deriving(PartialEq, Clone)]
+                #[deriving(PartialEq, Clone, Show)]
                 pub struct T {
                     pub horizontal: LengthOrPercentage,
                     pub vertical: LengthOrPercentage,
                 }
             }
 
-            #[deriving(Clone)]
+            #[deriving(Clone, Show)]
             pub struct SpecifiedValue {
                 pub horizontal: specified::LengthOrPercentage,
                 pub vertical: specified::LengthOrPercentage,
@@ -764,7 +765,7 @@ pub mod longhands {
     <%self:longhand name="font-family">
         pub use super::computed_as_specified as to_computed_value;
         pub mod computed_value {
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Clone, Show)]
             pub enum FontFamily {
                 FamilyName(String),
                 // Generic
@@ -835,7 +836,7 @@ pub mod longhands {
     ${single_keyword("font-variant", "normal small-caps")}
 
     <%self:single_component_value name="font-weight">
-        #[deriving(Clone)]
+        #[deriving(Clone, Show)]
         pub enum SpecifiedValue {
             Bolder,
             Lighter,
@@ -872,7 +873,7 @@ pub mod longhands {
             }
         }
         pub mod computed_value {
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Clone, Show)]
             pub enum T {
                 % for weight in range(100, 901, 100):
                     Weight${weight},
@@ -975,7 +976,7 @@ pub mod longhands {
 
     <%self:longhand name="text-decoration">
         pub use super::computed_as_specified as to_computed_value;
-        #[deriving(PartialEq, Clone)]
+        #[deriving(PartialEq, Clone, Show)]
         pub struct SpecifiedValue {
             pub underline: bool,
             pub overline: bool,
@@ -1028,7 +1029,7 @@ pub mod longhands {
                     derived_from="display text-decoration">
         pub use super::computed_as_specified as to_computed_value;
 
-        #[deriving(Clone, PartialEq)]
+        #[deriving(Clone, PartialEq, Show)]
         pub struct SpecifiedValue {
             pub underline: Option<RGBA>,
             pub overline: Option<RGBA>,
@@ -1504,6 +1505,12 @@ pub struct PropertyDeclarationBlock {
     pub normal: Arc<Vec<PropertyDeclaration>>,
 }
 
+impl fmt::Show for PropertyDeclarationBlock {
+     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "PropertyDeclarationBlock {{ important: {}, normal: {} }}",
+               self.important.deref(), self.normal.deref())
+     }
+}
 
 pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclarationBlock {
     parse_property_declaration_list(tokenize(input), base_url)
@@ -1548,7 +1555,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
     }
 }
 
-
+#[deriving(Show)]
 pub enum CSSWideKeyword {
     InitialKeyword,
     InheritKeyword,
@@ -1569,7 +1576,7 @@ impl CSSWideKeyword {
 }
 
 
-#[deriving(Clone)]
+#[deriving(Clone, Show)]
 pub enum DeclaredValue<T> {
     SpecifiedValue(T),
     Initial,
@@ -1579,7 +1586,7 @@ pub enum DeclaredValue<T> {
     // depending on whether the property is inherited.
 }
 
-#[deriving(Clone)]
+#[deriving(Clone, Show)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}Declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
@@ -1587,6 +1594,7 @@ pub enum PropertyDeclaration {
 }
 
 
+#[deriving(Show)]
 pub enum PropertyDeclarationParseResult {
     UnknownProperty,
     ExperimentalProperty,
@@ -1695,7 +1703,7 @@ pub mod style_structs {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
-        #[deriving(PartialEq, Clone)]
+        #[deriving(PartialEq, Clone, Show)]
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:
                 pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,

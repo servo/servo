@@ -16,15 +16,18 @@ use properties::longhands;
 use servo_util::geometry::ScreenPx;
 use url::Url;
 
+#[deriving(Show)]
 pub struct MediaRule {
     pub media_queries: MediaQueryList,
     pub rules: Vec<CSSRule>,
 }
 
+#[deriving(Show)]
 pub struct MediaQueryList {
     media_queries: Vec<MediaQuery>
 }
 
+#[deriving(Show)]
 pub enum Range<T> {
     Min(T),
     Max(T),
@@ -41,16 +44,18 @@ impl<T: Ord> Range<T> {
     }
 }
 
+#[deriving(Show)]
 pub enum Expression {
     Width(Range<Au>),
 }
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Show)]
 pub enum Qualifier {
     Only,
     Not,
 }
 
+#[deriving(Show)]
 pub struct MediaQuery {
     qualifier: Option<Qualifier>,
     media_type: MediaQueryType,
@@ -68,19 +73,20 @@ impl MediaQuery {
     }
 }
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Show)]
 pub enum MediaQueryType {
     All,  // Always true
     MediaType_(MediaType),
 }
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Show)]
 pub enum MediaType {
     Screen,
     Print,
     Unknown,
 }
 
+#[deriving(Show)]
 pub struct Device {
     pub media_type: MediaType,
     pub viewport_size: TypedSize2D<ScreenPx, f32>,

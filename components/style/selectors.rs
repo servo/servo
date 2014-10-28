@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::{cmp, iter};
+use std::{cmp, fmt, iter};
 use std::ascii::{StrAsciiExt, OwnedStrAsciiExt};
 use sync::Arc;
 
@@ -29,7 +29,14 @@ pub struct Selector {
     pub specificity: u32,
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+impl fmt::Show for Selector {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Selector {{ compound_selectors: {}, pseudo_element: {}, specificity: {} }}",
+               self.compound_selectors.deref(), self.pseudo_element, self.specificity)
+    }
+}
+
+#[deriving(Eq, PartialEq, Clone, Hash, Show)]
 pub enum PseudoElement {
     Before,
     After,
@@ -38,13 +45,13 @@ pub enum PseudoElement {
 }
 
 
-#[deriving(PartialEq, Clone)]
+#[deriving(PartialEq, Clone, Show)]
 pub struct CompoundSelector {
     pub simple_selectors: Vec<SimpleSelector>,
     pub next: Option<(Box<CompoundSelector>, Combinator)>,  // c.next is left of c
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(PartialEq, Clone, Show)]
 pub enum Combinator {
     Child,  //  >
     Descendant,  // space
@@ -52,7 +59,7 @@ pub enum Combinator {
     LaterSibling,  // ~
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Show)]
 pub enum SimpleSelector {
     IDSelector(Atom),
     ClassSelector(Atom),
@@ -91,27 +98,27 @@ pub enum SimpleSelector {
 }
 
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Show)]
 pub enum CaseSensitivity {
     CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
     CaseInsensitive,
 }
 
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Show)]
 pub struct LocalName {
     pub name: Atom,
     pub lower_name: Atom,
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Show)]
 pub struct AttrSelector {
     pub name: Atom,
     pub lower_name: Atom,
     pub namespace: NamespaceConstraint,
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Show)]
 pub enum NamespaceConstraint {
     AnyNamespace,
     SpecificNamespace(Namespace),
@@ -125,6 +132,7 @@ pub fn parse_selector_list_from_str(input: &str) -> Result<SelectorList, ()> {
 }
 
 /// Re-exported to script, but opaque.
+#[deriving(Show)]
 pub struct SelectorList {
     selectors: Vec<Selector>
 }

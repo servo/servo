@@ -6,9 +6,9 @@ use azure::azure_hl::{DrawTarget, Color, B8G8R8A8, SkiaBackend, StrokeOptions, D
 use azure::azure_hl::{ColorPattern, ColorPatternRef};
 use geom::rect::Rect;
 use geom::size::Size2D;
+use servo_util::task::spawn_named;
 
 use std::comm;
-use std::task::TaskBuilder;
 
 pub enum CanvasMsg {
     FillRect(Rect<f32>),
@@ -37,8 +37,7 @@ impl CanvasRenderTask {
 
     pub fn start(size: Size2D<i32>) -> Sender<CanvasMsg> {
         let (chan, port) = comm::channel::<CanvasMsg>();
-        let builder = TaskBuilder::new().named("CanvasTask");
-        builder.spawn(proc() {
+        spawn_named("CanvasTask", proc() {
             let mut renderer = CanvasRenderTask::new(size);
 
             loop {

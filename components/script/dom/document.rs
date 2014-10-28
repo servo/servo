@@ -63,10 +63,11 @@ use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use string_cache::{Atom, QualName};
 use url::Url;
 
-use std::collections::hashmap::HashMap;
 use std::ascii::StrAsciiExt;
+use std::collections::hashmap::HashMap;
 use std::cell::Cell;
 use std::default::Default;
+use std::slice;
 use time;
 
 #[deriving(PartialEq)]
@@ -171,7 +172,7 @@ pub trait DocumentHelpers<'a> {
     fn set_last_modified(self, value: DOMString);
     fn set_encoding_name(self, name: DOMString);
     fn content_changed(self, node: JSRef<Node>);
-    fn reflow(self);
+    fn queue_dirty_nodes(self, to_dirty: &[JSRef<Node>]);
     fn wait_until_safe_to_modify_dom(self);
     fn unregister_named_element(self, to_unregister: JSRef<Element>, id: Atom);
     fn register_named_element(self, element: JSRef<Element>, id: Atom);
@@ -217,12 +218,11 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     }
 
     fn content_changed(self, node: JSRef<Node>) {
-        node.dirty();
-        self.reflow();
+        self.queue_dirty_nodes(slice::ref_slice(&node));
     }
 
-    fn reflow(self) {
-        self.window.root().reflow();
+    fn queue_dirty_nodes(self, to_dirty: &[JSRef<Node>]) {
+        self.window.root().queue_dirty_nodes(to_dirty)
     }
 
     fn wait_until_safe_to_modify_dom(self) {

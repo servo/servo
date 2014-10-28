@@ -1,3 +1,4 @@
+== restyle_bg.html restyle_bg_ref.html
 != img_simple.html img_simple_ref.html
 == basic_width_px.html basic_width_em.html
 == br.html br-ref.html
@@ -39,7 +40,7 @@
 == block_image.html 500x300_green.html
 != block_image.html noteq_500x300_white.html
 == object_element_a.html object_element_b.html
-flaky_cpu == append_style_a.html append_style_b.html
+== append_style_a.html append_style_b.html
 == height_compute_reset.html height_compute.html
 == width_nonreplaced_block_simple_a.html width_nonreplaced_block_simple_b.html
 == max_width_float_simple_a.html max_width_float_simple_b.html

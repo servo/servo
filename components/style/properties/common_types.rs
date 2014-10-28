@@ -19,7 +19,7 @@ pub mod specified {
     use super::{Au, CSSFloat};
     pub use cssparser::Color as CSSColor;
 
-    #[deriving(Clone)]
+    #[deriving(Clone, Show)]
     pub enum Length {
         Au_(Au),  // application units
         Em(CSSFloat),
@@ -81,7 +81,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Clone, Show)]
     pub enum LengthOrPercentage {
         LP_Length(Length),
         LP_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -109,7 +109,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Clone, Show)]
     pub enum LengthOrPercentageOrAuto {
         LPA_Length(Length),
         LPA_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -138,7 +138,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Clone, Show)]
     pub enum LengthOrPercentageOrNone {
         LPN_Length(Length),
         LPN_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -169,7 +169,7 @@ pub mod specified {
     }
 
     // http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
-    #[deriving(Clone)]
+    #[deriving(Clone, Show)]
     pub enum PositionComponent {
         Pos_Length(Length),
         Pos_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -264,7 +264,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Show)]
     pub enum LengthOrPercentage {
         LP_Length(Au),
         LP_Percentage(CSSFloat),
@@ -278,7 +278,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Show)]
     pub enum LengthOrPercentageOrAuto {
         LPA_Length(Au),
         LPA_Percentage(CSSFloat),
@@ -294,7 +294,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Show)]
     pub enum LengthOrPercentageOrNone {
         LPN_Length(Au),
         LPN_Percentage(CSSFloat),

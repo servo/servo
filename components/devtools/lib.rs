@@ -27,6 +27,7 @@ extern crate debug;
 extern crate serialize;
 extern crate sync;
 extern crate "msg" as servo_msg;
+extern crate "util" as servo_util;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
@@ -37,6 +38,7 @@ use protocol::JsonPacketSender;
 
 use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg};
 use servo_msg::constellation_msg::PipelineId;
+use servo_util::task::spawn_named;
 
 use std::cell::RefCell;
 use std::comm;
@@ -44,7 +46,6 @@ use std::comm::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
 use std::io::{Acceptor, Listener, EndOfFile, TimedOut};
 use std::num;
-use std::task::TaskBuilder;
 use serialize::json;
 use sync::{Arc, Mutex};
 
@@ -61,7 +62,7 @@ mod protocol;
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
     let (sender, receiver) = comm::channel();
-    TaskBuilder::new().named("devtools").spawn(proc() {
+    spawn_named("devtools", proc() {
         run_server(receiver, port)
     });
     sender
@@ -193,7 +194,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Err(_e) => { /* connection failed */ }
             Ok(stream) => {
                 let actors = actors.clone();
-                spawn(proc() {
+                spawn_named("devtools-client-handler", proc() {
                     // connection succeeded
                     handle_client(actors, stream.clone())
                 })

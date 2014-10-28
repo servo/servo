@@ -251,7 +251,7 @@ impl LayoutDataRef {
 }
 
 /// The different types of nodes.
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Show)]
 #[jstraceable]
 pub enum NodeTypeId {
     DoctypeNodeTypeId,
@@ -446,6 +446,7 @@ pub trait NodeHelpers<'a> {
     fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress;
+    fn to_untrusted_node_address(self) -> UntrustedNodeAddress;
 
     fn get_bounding_content_box(self) -> Rect<Au>;
     fn get_content_boxes(self) -> Vec<Rect<Au>>;
@@ -484,7 +485,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     /// Returns a string that describes this node.
     fn debug_str(self) -> String {
-        format!("{:?}", self.type_id)
+        format!("{}: dirty={}", self.type_id(), self.get_is_dirty())
     }
 
     fn is_in_doc(self) -> bool {
@@ -619,33 +620,26 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn dirty(self) {
+        debug!("Dirtying {}", self.debug_str());
         // 1. Dirty self.
         self.set_has_changed(true);
 
         // 2. Dirty descendants.
-        fn dirty_subtree(node: JSRef<Node>) {
-            // Stop if this subtree is already dirty.
-            if node.get_is_dirty() { return }
-
-            node.set_flag(IsDirty | HasDirtySiblings | HasDirtyDescendants, true);
-
-            for kid in node.children() {
-                dirty_subtree(kid);
-            }
+        for descendant in self.traverse_preorder() {
+            if descendant.get_is_dirty() { break }
+            descendant.set_flag(IsDirty | HasDirtySiblings | HasDirtyDescendants, true);
         }
 
-        dirty_subtree(self);
-
-        // 3. Dirty siblings.
-        //
-        // TODO(cgaebel): This is a very conservative way to account for sibling
-        // selectors. Maybe we can do something smarter in the future.
         let parent =
             match self.parent_node() {
                 None         => return,
                 Some(parent) => parent,
             };
 
+        // 3. Dirty siblings.
+        //
+        // TODO(cgaebel): This is a very conservative way to account for sibling
+        // selectors. Maybe we can do something smarter in the future.
         for sibling in parent.root().children() {
             sibling.set_has_dirty_siblings(true);
         }
@@ -687,6 +681,10 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress {
         TrustedNodeAddress(self.deref() as *const Node as *const libc::c_void)
+    }
+
+    fn to_untrusted_node_address(self) -> UntrustedNodeAddress {
+        self.reflector().get_jsobject() as *mut c_void as *const c_void
     }
 
     fn get_bounding_content_box(self) -> Rect<Au> {
