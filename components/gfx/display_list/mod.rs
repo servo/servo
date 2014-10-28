@@ -19,16 +19,16 @@ use render_context::RenderContext;
 use text::glyph::CharIndex;
 use text::TextRun;
 
-use collections::dlist::DList;
-use collections::dlist;
+use collections::Deque;
+use collections::dlist::{mod, DList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use libc::uintptr_t;
 use servo_net::image::base::Image;
+use servo_util::dlist as servo_dlist;
 use servo_util::geometry::Au;
 use servo_util::opts;
 use servo_util::range::Range;
 use std::fmt;
-use std::mem;
 use std::slice::Items;
 use style::computed_values::border_style;
 use sync::Arc;
@@ -183,12 +183,8 @@ struct StackingContext {
 }
 
 impl StackingContext {
-    /// Creates a stacking context from a display list.
-    fn new(list: DisplayList) -> StackingContext {
-        let DisplayList {
-            list: list
-        } = list;
-
+    /// Creates a stacking context from a display list, consuming that display list in the process.
+    fn new(list: &mut DisplayList) -> StackingContext {
         let mut stacking_context = StackingContext {
             background_and_borders: DisplayList::new(),
             block_backgrounds_and_borders: DisplayList::new(),
@@ -197,30 +193,29 @@ impl StackingContext {
             positioned_descendants: Vec::new(),
         };
 
-        for item in list.into_iter() {
-            match item.base().level {
+        while !list.list.is_empty() {
+            let mut head = DisplayList::from_list(servo_dlist::split(&mut list.list));
+            match head.front().unwrap().base().level {
                 BackgroundAndBordersStackingLevel => {
-                    stacking_context.background_and_borders.push(item)
+                    stacking_context.background_and_borders.append_from(&mut head)
                 }
                 BlockBackgroundsAndBordersStackingLevel => {
-                    stacking_context.block_backgrounds_and_borders.push(item)
+                    stacking_context.block_backgrounds_and_borders.append_from(&mut head)
                 }
-                FloatStackingLevel => stacking_context.floats.push(item),
-                ContentStackingLevel => stacking_context.content.push(item),
+                FloatStackingLevel => stacking_context.floats.append_from(&mut head),
+                ContentStackingLevel => stacking_context.content.append_from(&mut head),
                 PositionedDescendantStackingLevel(z_index) => {
                     match stacking_context.positioned_descendants
                                           .iter_mut()
                                           .find(|& &(z, _)| z_index == z) {
                         Some(&(_, ref mut my_list)) => {
-                            my_list.push(item);
+                            my_list.append_from(&mut head);
                             continue
                         }
                         None => {}
                     }
 
-                    let mut new_list = DisplayList::new();
-                    new_list.list.push(item);
-                    stacking_context.positioned_descendants.push((z_index, new_list))
+                    stacking_context.positioned_descendants.push((z_index, head))
                 }
             }
         }
@@ -266,16 +261,29 @@ impl DisplayList {
         }
     }
 
+    /// Creates a new display list from the given list of display items.
+    fn from_list(list: DList<DisplayItem>) -> DisplayList {
+        DisplayList {
+            list: list,
+        }
+    }
+
     /// Appends the given item to the display list.
     #[inline]
     pub fn push(&mut self, item: DisplayItem) {
-        self.list.push(item)
+        self.list.push(item);
     }
 
-    /// Appends the given display list to this display list, consuming the other display list in
-    /// the process.
-    pub fn push_all_move(&mut self, other: DisplayList) {
-        self.list.append(other.list)
+    /// Appends the items in the given display list to this one, removing them in the process.
+    #[inline]
+    pub fn append_from(&mut self, other: &mut DisplayList) {
+        servo_dlist::append_from(&mut self.list, &mut other.list)
+    }
+
+    /// Returns the first display item in this list.
+    #[inline]
+    fn front(&self) -> Option<&DisplayItem> {
+        self.list.front()
     }
 
     pub fn debug(&self) {
@@ -309,20 +317,27 @@ impl DisplayList {
     /// steps in CSS 2.1 § E.2.
     ///
     /// This must be called before `draw_into_context()` is for correct results.
-    pub fn flatten(self, resulting_level: StackingLevel) -> DisplayList {
-        // TODO(pcwalton): Sort positioned children according to z-index.
+    pub fn flatten(&mut self, resulting_level: StackingLevel) {
+        // Fast paths:
+        if self.list.len() == 0 {
+            return
+        }
+        if self.list.len() == 1 {
+            self.set_stacking_level(resulting_level);
+            return
+        }
 
-        let mut result = DisplayList::new();
         let StackingContext {
-            background_and_borders,
-            block_backgrounds_and_borders,
-            floats,
-            content,
-            positioned_descendants: mut positioned_descendants
+            mut background_and_borders,
+            mut block_backgrounds_and_borders,
+            mut floats,
+            mut content,
+            mut positioned_descendants
         } = StackingContext::new(self);
+        debug_assert!(self.list.is_empty());
 
         // Steps 1 and 2: Borders and background for the root.
-        result.push_all_move(background_and_borders);
+        self.append_from(&mut background_and_borders);
 
         // Sort positioned children according to z-index.
         positioned_descendants.sort_by(|&(z_index_a, _), &(z_index_b, _)| {
@@ -332,32 +347,31 @@ impl DisplayList {
         // Step 3: Positioned descendants with negative z-indices.
         for &(ref mut z_index, ref mut list) in positioned_descendants.iter_mut() {
             if *z_index < 0 {
-                result.push_all_move(mem::replace(list, DisplayList::new()))
+                self.append_from(list)
             }
         }
 
         // Step 4: Block backgrounds and borders.
-        result.push_all_move(block_backgrounds_and_borders);
+        self.append_from(&mut block_backgrounds_and_borders);
 
         // Step 5: Floats.
-        result.push_all_move(floats);
+        self.append_from(&mut floats);
 
         // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
 
         // Step 7: Content.
-        result.push_all_move(content);
+        self.append_from(&mut content);
 
         // Steps 8 and 9: Positioned descendants with nonnegative z-indices.
         for &(ref mut z_index, ref mut list) in positioned_descendants.iter_mut() {
             if *z_index >= 0 {
-                result.push_all_move(mem::replace(list, DisplayList::new()))
+                self.append_from(list)
             }
         }
 
         // TODO(pcwalton): Step 10: Outlines.
 
-        result.set_stacking_level(resulting_level);
-        result
+        self.set_stacking_level(resulting_level);
     }
 
     /// Sets the stacking level for this display list and all its subitems.
