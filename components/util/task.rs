@@ -15,6 +15,11 @@ pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
     builder.spawn(f);
 }
 
+pub fn spawn_named_native<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
+    let builder = task::TaskBuilder::new().named(name).native();
+    builder.spawn(f);
+}
+
 /// Arrange to send a particular message to a channel if the task fails.
 pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
                                                  state: task_state::TaskState,

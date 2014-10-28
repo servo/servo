@@ -15,6 +15,7 @@
 // The only difference is that a normal channel is used instead of a sync_channel.
 //
 
+use task::spawn_named;
 use std::sync::{Arc, Mutex};
 
 pub struct TaskPool {
@@ -28,9 +29,11 @@ impl TaskPool {
 
         let state = Arc::new(Mutex::new(rx));
 
-        for _ in range(0, tasks) {
+        for i in range(0, tasks) {
             let state = state.clone();
-            spawn(proc() worker(&*state));
+            spawn_named(
+                format!("TaskPoolWorker {}/{}", i+1, tasks),
+                proc() worker(&*state));
         }
 
         return TaskPool { tx: tx };
@@ -50,4 +53,3 @@ impl TaskPool {
         self.tx.send(job);
     }
 }
-

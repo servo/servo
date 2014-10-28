@@ -10,7 +10,6 @@ use file_loader;
 use http_loader;
 
 use std::comm::{channel, Receiver, Sender};
-use std::task::TaskBuilder;
 use http::headers::content_type::MediaType;
 use http::headers::response::HeaderCollection as ResponseHeaderCollection;
 use http::headers::request::HeaderCollection as RequestHeaderCollection;
@@ -20,6 +19,7 @@ use url::Url;
 use http::status::Ok as StatusOk;
 use http::status::Status;
 
+use servo_util::task::spawn_named;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
@@ -166,8 +166,7 @@ pub type ResourceTask = Sender<ControlMsg>;
 /// Create a ResourceTask
 pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
-    let builder = TaskBuilder::new().named("ResourceManager");
-    builder.spawn(proc() {
+    spawn_named("ResourceManager", proc() {
         ResourceManager::new(setup_port, user_agent).start();
     });
     setup_chan
