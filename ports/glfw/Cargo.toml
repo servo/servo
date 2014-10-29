@@ -29,5 +29,5 @@ path = "../../components/msg"
 [dependencies.util]
 path = "../../components/util"
 
-[dependencies.opengles]
-git = "https://github.com/servo/rust-opengles"
+[dependencies.cgl]
+git = "https://github.com/servo/rust-cgl"

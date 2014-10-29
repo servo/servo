@@ -9,6 +9,8 @@
 #![deny(unused_imports, unused_variable)]
 
 extern crate alert;
+#[cfg(target_os="macos")]
+extern crate cgl;
 extern crate compositing;
 extern crate geom;
 extern crate glfw;
@@ -17,7 +19,6 @@ extern crate libc;
 extern crate msg;
 extern crate time;
 extern crate util;
-extern crate opengles;
 
 use geom::scale_factor::ScaleFactor;
 use std::rc::Rc;
