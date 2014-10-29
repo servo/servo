@@ -18,11 +18,13 @@ use dom::bindings::codegen::InheritTypes::HTMLLinkElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLOptionElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLScriptElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLSelectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableCellElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
 use dom::bindings::js::JSRef;
+use dom::document::Document;
 use dom::element::Element;
 use dom::element::ElementTypeId_;
 use dom::element::HTMLAnchorElementTypeId;
@@ -37,6 +39,7 @@ use dom::element::HTMLLinkElementTypeId;
 use dom::element::HTMLObjectElementTypeId;
 use dom::element::HTMLOptGroupElementTypeId;
 use dom::element::HTMLOptionElementTypeId;
+use dom::element::HTMLScriptElementTypeId;
 use dom::element::HTMLSelectElementTypeId;
 use dom::element::HTMLStyleElementTypeId;
 use dom::element::HTMLTableDataCellElementTypeId;
@@ -56,11 +59,12 @@ use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmloptionelement::HTMLOptionElement;
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
+use dom::node::{Node, NodeHelpers, ElementNodeTypeId, CloneChildrenFlag};
 
 use servo_util::str::DOMString;
 
@@ -133,6 +137,15 @@ pub trait VirtualMethods {
             _ => (),
         }
     }
+
+    /// https://dom.spec.whatwg.org/#concept-node-clone (step 5)
+    fn cloning_steps(&self, copy: JSRef<Node>, maybe_doc: Option<JSRef<Document>>,
+                     clone_children: CloneChildrenFlag) {
+        match self.super_type() {
+            Some(ref s) => s.cloning_steps(copy, maybe_doc, clone_children),
+            _ => (),
+        }
+    }
 }
 
 /// Obtain a VirtualMethods instance for a given Node-derived object. Any
@@ -187,6 +200,10 @@ pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a VirtualMethods + 'a {
         }
         ElementNodeTypeId(HTMLOptionElementTypeId) => {
             let element: &'a JSRef<'a, HTMLOptionElement> = HTMLOptionElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
+        }
+        ElementNodeTypeId(HTMLScriptElementTypeId) => {
+            let element: &'a JSRef<'a, HTMLScriptElement> = HTMLScriptElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLSelectElementTypeId) => {

@@ -2,6 +2,9 @@
 <html>
     <head>
         <script src="harness.js"></script>
+    </head>
+    <body>
+        <div id="foo"><div id="bar"></div></div>
         <script>
             let foo = document.getElementById("foo");
             let doc = document.implementation.createHTMLDocument("title");
@@ -18,8 +21,5 @@
 
             finish();
         </script>
-    </head>
-    <body>
-        <div id="foo"><div id="bar"></div></div>
     </body>
 </html>

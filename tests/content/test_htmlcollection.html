@@ -2,6 +2,17 @@
 <html>
     <head>
         <script src="harness.js"></script>
+    </head>
+    <body>
+        <div id="foo-1" class="foo"></div>
+        <div id="foo-2" class="foo"></div>
+        <div id="bar" class="bar"></div>
+        <div id="live" class="live"></div>
+        <div id="class-example">
+            <p id="p1" class="aaa bbb"/>
+            <p id="p2" class="aaa ccc"/>
+            <p id="p3" class="bbb ccc"/>
+        </div>
         <script>
             let foo1 = document.getElementById("foo-1");
             let foo2 = document.getElementById("foo-2");
@@ -104,16 +115,5 @@
 
             finish();
         </script>
-    </head>
-    <body>
-        <div id="foo-1" class="foo"></div>
-        <div id="foo-2" class="foo"></div>
-        <div id="bar" class="bar"></div>
-        <div id="live" class="live"></div>
-        <div id="class-example">
-            <p id="p1" class="aaa bbb"/>
-            <p id="p2" class="aaa ccc"/>
-            <p id="p3" class="bbb ccc"/>
-        </div>
     </body>
 </html>
