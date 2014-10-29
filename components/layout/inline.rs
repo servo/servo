@@ -15,7 +15,6 @@ use fragment::{ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
-use wrapper::ThreadSafeLayoutNode;
 
 use collections::{Deque, RingBuf};
 use geom::{Rect, Size2D};
@@ -24,7 +23,7 @@ use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use servo_util::geometry::Au;
-use servo_util::logical_geometry::{LogicalRect, LogicalSize};
+use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use servo_util::opts;
 use servo_util::range::{IntRangeIndex, Range, RangeIndex};
 use servo_util::arc_ptr_eq;
@@ -702,9 +701,9 @@ pub struct InlineFlow {
 }
 
 impl InlineFlow {
-    pub fn from_fragments(node: ThreadSafeLayoutNode, fragments: InlineFragments) -> InlineFlow {
+    pub fn from_fragments(fragments: InlineFragments, writing_mode: WritingMode) -> InlineFlow {
         InlineFlow {
-            base: BaseFlow::new(node),
+            base: BaseFlow::new(None, writing_mode),
             fragments: fragments,
             lines: Vec::new(),
             minimum_block_size_above_baseline: Au(0),
