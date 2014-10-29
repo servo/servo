@@ -14,6 +14,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::node::TrustedNodeAddress;
 use dom::document::{Document, DocumentHelpers};
 use parse::html::JSMessage;
+use parse::Parser;
 
 use servo_util::task_state;
 
@@ -41,6 +42,15 @@ pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<TrustedNodeAddress, Sink>>
 pub struct ServoHTMLParser {
     reflector_: Reflector,
     tokenizer: DOMRefCell<Tokenizer>,
+}
+
+impl Parser for ServoHTMLParser{
+    fn parse_chunk(&self, input: String) {
+        self.tokenizer().borrow_mut().feed(input);
+    }
+    fn finish(&self){
+        self.tokenizer().borrow_mut().end();
+    }
 }
 
 impl ServoHTMLParser {
