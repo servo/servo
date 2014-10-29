@@ -162,7 +162,7 @@ impl WindowMethods for Window {
 
     #[cfg(target_os="macos")]
     fn native_metadata(&self) -> NativeGraphicsMetadata {
-        use opengles::cgl::{CGLGetCurrentContext, CGLGetPixelFormat};
+        use cgl::{CGLGetCurrentContext, CGLGetPixelFormat};
         unsafe {
             NativeGraphicsMetadata {
                 pixel_format: CGLGetPixelFormat(CGLGetCurrentContext()),

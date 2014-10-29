@@ -60,6 +60,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cgl"
+version = "0.0.1"
+source = "git+https://github.com/servo/rust-cgl#0a8d726e57b4cd55bee9f7c743d29ae1cf8f3fc2"
+dependencies = [
+ "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#e308a8672f7d953f6484932b6a4aaae8a0cc2a50)",
+]
+
+[[package]]
 name = "cocoa"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-cocoa#acb9b4efc70c3f285057c2aee774f38f81a1b98d"
@@ -231,12 +239,12 @@ name = "glfw_app"
 version = "0.0.1"
 dependencies = [
  "alert 0.1.0 (git+https://github.com/servo/rust-alert#fdc24f13be8d8a2d15214ec228d166b3221b809e)",
+ "cgl 0.0.1 (git+https://github.com/servo/rust-cgl#0a8d726e57b4cd55bee9f7c743d29ae1cf8f3fc2)",
  "compositing 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#4282ee4203a2e706007b723f4fd3f5eca9541461)",
  "msg 0.0.1",
- "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#e308a8672f7d953f6484932b6a4aaae8a0cc2a50)",
  "util 0.0.1",
 ]
 
