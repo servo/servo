@@ -55,7 +55,7 @@ use dom::range::Range;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
-use parse::html::build_element_from_tag;
+use parse::html::{build_element_from_tag, ScriptCreated};
 use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
@@ -529,7 +529,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
         let local_name = local_name.as_slice().to_ascii_lower();
         let name = QualName::new(ns!(HTML), Atom::from_slice(local_name.as_slice()));
-        Ok(build_element_from_tag(name, None, self))
+        Ok(build_element_from_tag(name, None, self, ScriptCreated))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
@@ -574,7 +574,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
         if ns == ns!(HTML) {
             let name = QualName::new(ns!(HTML), Atom::from_slice(local_name_from_qname));
-            Ok(build_element_from_tag(name, prefix_from_qname.map(|s| s.to_string()), self))
+            Ok(build_element_from_tag(name, prefix_from_qname.map(|s| s.to_string()), self,
+                                      ScriptCreated))
         } else {
             Ok(Element::new(local_name_from_qname.to_string(), ns,
                             prefix_from_qname.map(|s| s.to_string()), self))

@@ -16,7 +16,6 @@ use dom::bindings::conversions::{FromJSValConvertible, Empty};
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentHelpers, FromParser};
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
@@ -29,7 +28,7 @@ use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
-use parse::html::{InputString, InputUrl, HtmlParserResult, HtmlDiscoveredScript, parse_html};
+use parse::html::{InputString, InputUrl, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowForDisplay};
 use layout_interface;
 use page::{Page, IterablePage, Frame};
@@ -62,7 +61,6 @@ use js::jsapi::{JSContext, JSRuntime, JSTracer};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
 use js::rust::{Cx, RtUtils};
-use js::rust::with_compartment;
 use js;
 use url::Url;
 
@@ -797,13 +795,6 @@ impl ScriptTask {
             InputString(strval.unwrap_or("".to_string()))
         };
 
-        // Parse HTML.
-        //
-        // Note: We can parse the next document in parallel with any previous documents.
-        let HtmlParserResult { discovery_port }
-            = parse_html(&*page, *document, parser_input, self.resource_task.clone(),
-                Some(load_data));
-
         {
             // Create the root frame.
             let mut frame = page.mut_frame();
@@ -813,23 +804,9 @@ impl ScriptTask {
             });
         }
 
+        parse_html(&*page, *document, parser_input, self.resource_task.clone(), Some(load_data));
+
         document.set_ready_state(DocumentReadyStateValues::Interactive);
-
-        // Send style sheets over to layout.
-        //
-        // FIXME: These should be streamed to layout as they're parsed. We don't need to stop here
-        // in the script task.
-
-        let mut js_scripts = None;
-        loop {
-            match discovery_port.recv_opt() {
-                Ok(HtmlDiscoveredScript(scripts)) => {
-                    assert!(js_scripts.is_none());
-                    js_scripts = Some(scripts);
-                }
-                Err(()) => break
-            }
-        }
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {}", url);
@@ -845,31 +822,6 @@ impl ScriptTask {
             let mut page_url = page.mut_url();
             *page_url = Some((url.clone(), false));
         }
-
-        // Receive the JavaScript scripts.
-        assert!(js_scripts.is_some());
-        let js_scripts = js_scripts.take().unwrap();
-        debug!("js_scripts: {:?}", js_scripts);
-
-        with_compartment((**cx).ptr, window.reflector().get_jsobject(), || {
-            // Evaluate every script in the document.
-            for file in js_scripts.iter() {
-                let global_obj = window.reflector().get_jsobject();
-                let filename = match file.url {
-                    None => String::new(),
-                    Some(ref url) => url.serialize(),
-                };
-
-                //FIXME: this should have some kind of error handling, or explicitly
-                //       drop an exception on the floor.
-                match cx.evaluate_script(global_obj, file.data.clone(), filename, 1) {
-                    Ok(_) => (),
-                    Err(_) => println!("evaluate_script failed")
-                }
-
-                window.flush_layout(ReflowForDisplay);
-            }
-        });
 
         // https://html.spec.whatwg.org/multipage/#the-end step 4
         let event = Event::new(&global::Window(*window), "DOMContentLoaded".to_string(),

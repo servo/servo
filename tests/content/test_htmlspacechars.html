@@ -2,11 +2,6 @@
 <html>
     <head>
         <script src="harness.js"></script>
-        <script>
-            is(document.getElementsByClassName("foo").length, 6);
-            is_not(document.getElementById("bar").className, "ggg foo");
-            finish();
-        </script>
     </head>
     <body>
         <!-- \u0020 Space -->
@@ -23,5 +18,10 @@
         <div id="foo-6" class="fff foo"></div>
         <!-- Non-HTML space character -->
         <div id="bar" class="ggg&#11;foo"></div>
+        <script>
+            is(document.getElementsByClassName("foo").length, 6);
+            is_not(document.getElementById("bar").className, "ggg foo");
+            finish();
+        </script>
     </body>
 </html>

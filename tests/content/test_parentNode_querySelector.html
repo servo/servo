@@ -2,6 +2,12 @@
 <html>
     <head>
         <script src="harness.js"></script>
+    </head>
+    <body>
+        <div id="foo"></div>
+        <div id="foo\bar"></div>
+        <div id="foo:bar"></div>
+        <div id="bar" class="myClass"></p>
         <script>
             { // document.querySelector
                 let div = document.getElementById("foo");
@@ -60,11 +66,5 @@
             }
             finish();
         </script>
-    </head>
-    <body>
-        <div id="foo"></div>
-        <div id="foo\bar"></div>
-        <div id="foo:bar"></div>
-        <div id="bar" class="myClass"></p>
     </body>
 </html>

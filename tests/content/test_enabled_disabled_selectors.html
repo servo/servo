@@ -3,6 +3,54 @@
     <head>
         <title>Tests for :enabled and :disabled selectors</title>
         <script src="harness.js"></script>
+    </head>
+    <body>
+        <button id="button-1"></button>
+        <button id="button-2" disabled></button>
+
+        <input id="input-1"></input>
+        <input id="input-2" disabled></input>
+
+        <option id="option-1"></option>
+        <option id="option-2" disabled></option>
+
+        <select id="select-1"></select>
+        <select id="select-2" disabled></select>
+
+        <textarea id="textarea-1"></textarea>
+        <textarea id="textarea-2" disabled></textarea>
+
+        <optgroup disabled>
+            <option id="option-3"></option>
+        </optgroup>
+
+        <fieldset disabled>
+            <fieldset>
+                <button id="button-3"></button>
+                <input id="input-3"></input>
+                <select id="select-3"></select>
+                <textarea id="textarea-3"></textarea>
+            </fieldset>
+        </fieldset>
+
+        <fieldset disabled>
+            <legend>
+                <button id="button-4"></button>
+                <input id="input-4"></input>
+                <select id="select-4"></select>
+                <textarea id="textarea-4"></textarea>
+            </legend>
+        </fieldset>
+
+        <fieldset disabled>
+            <legend></legend>
+            <legend>
+                <button id="button-5"></button>
+                <input id="input-5"></input>
+                <select id="select-5"></select>
+                <textarea id="textarea-5"></textarea>
+            </legend>
+        </fieldset>
         <script>
             { // Simple initialization checks.
                 var list, i, elem;
@@ -127,53 +175,5 @@
 
             finish();
         </script>
-    </head>
-    <body>
-        <button id="button-1"></button>
-        <button id="button-2" disabled></button>
-
-        <input id="input-1"></input>
-        <input id="input-2" disabled></input>
-
-        <option id="option-1"></option>
-        <option id="option-2" disabled></option>
-
-        <select id="select-1"></select>
-        <select id="select-2" disabled></select>
-
-        <textarea id="textarea-1"></textarea>
-        <textarea id="textarea-2" disabled></textarea>
-
-        <optgroup disabled>
-            <option id="option-3"></option>
-        </optgroup>
-
-        <fieldset disabled>
-            <fieldset>
-                <button id="button-3"></button>
-                <input id="input-3"></input>
-                <select id="select-3"></select>
-                <textarea id="textarea-3"></textarea>
-            </fieldset>
-        </fieldset>
-
-        <fieldset disabled>
-            <legend>
-                <button id="button-4"></button>
-                <input id="input-4"></input>
-                <select id="select-4"></select>
-                <textarea id="textarea-4"></textarea>
-            </legend>
-        </fieldset>
-
-        <fieldset disabled>
-            <legend></legend>
-            <legend>
-                <button id="button-5"></button>
-                <input id="input-5"></input>
-                <select id="select-5"></select>
-                <textarea id="textarea-5"></textarea>
-            </legend>
-        </fieldset>
     </body>
 </html>

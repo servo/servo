@@ -19,7 +19,7 @@ use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
 use dom::screen::Screen;
-use layout_interface::{ReflowGoal, ReflowForDisplay};
+use layout_interface::ReflowGoal;
 use page::Page;
 use script_task::{ExitWindowMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
 use script_task::FromWindow;
@@ -318,15 +318,20 @@ pub trait WindowHelpers {
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext);
     fn evaluate_js_with_result(self, code: &str) -> JSVal;
+    fn evaluate_script_with_result(self, code: &str, filename: &str) -> JSVal;
 }
 
 
 impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn evaluate_js_with_result(self, code: &str) -> JSVal {
+        self.evaluate_script_with_result(code, "")
+    }
+
+    fn evaluate_script_with_result(self, code: &str, filename: &str) -> JSVal {
         let global = self.reflector().get_jsobject();
         let code: Vec<u16> = code.as_slice().utf16_units().collect();
         let mut rval = UndefinedValue();
-        let filename = "".to_c_str();
+        let filename = filename.to_c_str();
         let cx = self.get_cx();
 
         with_compartment(cx, global, || {
@@ -343,10 +348,6 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
     fn reflow(self) {
         self.page().damage();
-        // FIXME This should probably be ReflowForQuery, not Display. All queries currently
-        // currently rely on the display list, which means we can't destroy it by
-        // doing a query reflow.
-        self.page().reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor);
     }
 
     fn flush_layout(self, goal: ReflowGoal) {

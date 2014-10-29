@@ -1,6 +1,10 @@
 <html>
 <head>
 <script src="harness.js"></script>
+</head>
+<body>
+<div>this is
+ text content</div>
 <script>
   var div = document.getElementsByTagName('div')[0];
   is(div.textContent, "this is\n text content");
@@ -9,9 +13,5 @@
   is(div.textContent, newContent);
   finish();
 </script>
-</head>
-<body>
-<div>this is
- text content</div>
 </body>
 </html>
