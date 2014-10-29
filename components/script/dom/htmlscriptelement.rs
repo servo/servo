@@ -14,6 +14,7 @@ use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
+use dom::element::{ElementCreator, ParserCreated};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node, CloneChildrenFlag};
@@ -22,7 +23,6 @@ use dom::window::WindowHelpers;
 
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecodeReplace};
-use parse::html::{ElementCreator, ParserCreated};
 use servo_net::resource_task::load_whole_resource;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::cell::Cell;
