@@ -287,20 +287,15 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
 
         let parent = self.parent_node().root();
         parent.map(|parent| vtable_for(&*parent).child_inserted(self));
-
-        document.content_and_heritage_changed(self);
+        document.content_and_heritage_changed(self, OtherNodeDamage);
     }
 
     // http://dom.spec.whatwg.org/#node-is-removed
     fn node_removed(self, parent_in_doc: bool) {
         assert!(self.parent_node().is_none());
-        let document = document_from_node(self).root();
-
         for node in self.traverse_preorder() {
             vtable_for(&node).unbind_from_tree(parent_in_doc);
         }
-
-        document.content_changed(self);
     }
 
     //
@@ -311,9 +306,6 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     ///
     /// Fails unless `new_child` is disconnected from the tree.
     fn add_child(self, new_child: JSRef<Node>, before: Option<JSRef<Node>>) {
-        let doc = self.owner_doc().root();
-        doc.wait_until_safe_to_modify_dom();
-
         assert!(new_child.parent_node().is_none());
         assert!(new_child.prev_sibling().is_none());
         assert!(new_child.next_sibling().is_none());
@@ -354,9 +346,6 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     ///
     /// Fails unless `child` is a child of this node.
     fn remove_child(self, child: JSRef<Node>) {
-        let doc = self.owner_doc().root();
-        doc.wait_until_safe_to_modify_dom();
-
         assert!(child.parent_node().root().root_ref() == Some(self));
 
         match child.prev_sibling.get().root() {
@@ -428,8 +417,6 @@ pub trait NodeHelpers<'a> {
     fn set_owner_doc(self, document: JSRef<Document>);
     fn is_in_html_doc(self) -> bool;
 
-    fn wait_until_safe_to_modify_dom(self);
-
     fn is_element(self) -> bool;
     fn is_document(self) -> bool;
     fn is_doctype(self) -> bool;
@@ -460,10 +447,11 @@ pub trait NodeHelpers<'a> {
     fn get_has_dirty_descendants(self) -> bool;
     fn set_has_dirty_descendants(self, state: bool);
 
-    /// Marks the given node as `IS_DIRTY`, its siblings as `IS_DIRTY` (to deal
-    /// with sibling selectors), its ancestors as `HAS_DIRTY_DESCENDANTS`, and its
-    /// descendants as `IS_DIRTY`.
-    fn dirty(self);
+    /// Marks the given node as `IS_DIRTY`, its siblings as `HAS_DIRTY_SIBLINGS` (to deal with
+    /// sibling selectors), its ancestors as `HAS_DIRTY_DESCENDANTS`, and its descendants as
+    /// `IS_DIRTY`. If anything more than the node's style was damaged, this method also sets the
+    /// `HAS_CHANGED` flag.
+    fn dirty(self, damage: NodeDamage);
 
     /// Similar to `dirty`, but will always walk the ancestors to mark them dirty,
     /// too. This is useful when a node is reparented. The node will frequently
@@ -471,9 +459,9 @@ pub trait NodeHelpers<'a> {
     /// still need to be marked as `HAS_DIRTY_DESCENDANTS`.
     ///
     /// See #4170
-    fn force_dirty_ancestors(self);
+    fn force_dirty_ancestors(self, damage: NodeDamage);
 
-    fn dirty_impl(self, force_ancestors: bool);
+    fn dirty_impl(self, damage: NodeDamage, force_ancestors: bool);
 
     fn dump(self);
     fn dump_indent(self, indent: uint);
@@ -656,17 +644,20 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self.set_flag(HAS_DIRTY_DESCENDANTS, state)
     }
 
-    fn force_dirty_ancestors(self) {
-        self.dirty_impl(true)
+    fn force_dirty_ancestors(self, damage: NodeDamage) {
+        self.dirty_impl(damage, true)
     }
 
-    fn dirty(self) {
-        self.dirty_impl(false)
+    fn dirty(self, damage: NodeDamage) {
+        self.dirty_impl(damage, false)
     }
 
-    fn dirty_impl(self, force_ancestors: bool) {
+    fn dirty_impl(self, damage: NodeDamage, force_ancestors: bool) {
         // 1. Dirty self.
-        self.set_has_changed(true);
+        match damage {
+            NodeStyleDamaged => {}
+            OtherNodeDamage => self.set_has_changed(true),
+        }
 
         if self.get_is_dirty() && !force_ancestors {
             return
@@ -828,11 +819,6 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self.children()
             .filter_map::<JSRef<Element>>(ElementCast::to_ref)
             .peekable()
-    }
-
-    fn wait_until_safe_to_modify_dom(self) {
-        let document = self.owner_doc().root();
-        document.wait_until_safe_to_modify_dom();
     }
 
     fn remove_self(self) {
@@ -1826,14 +1812,12 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
             CommentNodeTypeId |
             TextNodeTypeId |
             ProcessingInstructionNodeTypeId => {
-                self.wait_until_safe_to_modify_dom();
-
                 let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
                 characterdata.set_data(value);
 
                 // Notify the document that the content of this node is different
                 let document = self.owner_doc().root();
-                document.content_changed(self);
+                document.content_changed(self, OtherNodeDamage);
             }
             DoctypeNodeTypeId |
             DocumentNodeTypeId => {}
@@ -2366,3 +2350,13 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
         self.set_enabled_state(!has_disabled_attrib);
     }
 }
+
+/// A summary of the changes that happened to a node.
+#[deriving(Clone, PartialEq)]
+pub enum NodeDamage {
+    /// The node's `style` attribute changed.
+    NodeStyleDamaged,
+    /// Other parts of a node changed; attributes, text content, etc.
+    OtherNodeDamage,
+}
+
