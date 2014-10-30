@@ -419,9 +419,8 @@ pub trait AttributeHandlers {
                        value: DOMString) -> AttrValue;
 
     fn remove_attribute(self, namespace: Namespace, name: &str);
-    fn notify_attribute_changed(self, local_name: &Atom);
+    fn notify_content_changed(self);
     fn has_class(&self, name: &Atom) -> bool;
-    fn notify_attribute_removed(self);
 
     fn set_atomic_attribute(self, name: &Atom, value: DOMString);
 
@@ -527,10 +526,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         match idx {
             None => (),
             Some(idx) => {
-                {
-                    let node: JSRef<Node> = NodeCast::from_ref(self);
-                    node.wait_until_safe_to_modify_dom();
-                }
+                let node: JSRef<Node> = NodeCast::from_ref(self);
+                node.wait_until_safe_to_modify_dom();
 
                 if namespace == ns!("") {
                     let attr = (*self.attrs.borrow())[idx].root();
@@ -538,23 +535,15 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                 }
 
                 self.attrs.borrow_mut().remove(idx);
-                self.notify_attribute_removed();
+                self.notify_content_changed();
             }
         };
     }
 
-    fn notify_attribute_changed(self, _local_name: &Atom) {
+    fn notify_content_changed(self) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         if node.is_in_doc() {
-            let document = node.owner_doc().root();
-            document.content_changed(node);
-        }
-    }
-
-    fn notify_attribute_removed(self) {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
-        if node.is_in_doc() {
-            let document = node.owner_doc().root();
+            let document = document_from_node(self).root();
             document.content_changed(node);
         }
     }
@@ -1020,7 +1009,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             _ => ()
         }
 
-        self.notify_attribute_changed(attr.local_name());
+        self.notify_content_changed();
     }
 
     fn before_remove_attr(&self, attr: JSRef<Attr>) {
@@ -1045,7 +1034,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
             _ => ()
         }
 
-        self.notify_attribute_changed(attr.local_name());
+        self.notify_content_changed();
     }
 
     fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {
