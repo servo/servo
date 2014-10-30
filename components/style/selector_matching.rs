@@ -761,6 +761,53 @@ fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
     }
 }
 
+bitflags! {
+    flags CommonStyleAffectingAttributes: u8 {
+        static HiddenAttribute = 0x01,
+        static NoWrapAttribute = 0x02,
+        static AlignLeftAttribute = 0x04,
+        static AlignCenterAttribute = 0x08,
+        static AlignRightAttribute = 0x10,
+    }
+}
+
+pub struct CommonStyleAffectingAttributeInfo {
+    pub atom: Atom,
+    pub mode: CommonStyleAffectingAttributeMode,
+}
+
+pub enum CommonStyleAffectingAttributeMode {
+    AttrIsPresentMode(CommonStyleAffectingAttributes),
+    AttrIsEqualMode(&'static str, CommonStyleAffectingAttributes),
+}
+
+// NB: This must match the order in `layout::css::matching::CommonStyleAffectingAttributes`.
+#[inline]
+pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo, ..5] {
+    [
+        CommonStyleAffectingAttributeInfo {
+            atom: atom!("hidden"),
+            mode: AttrIsPresentMode(HiddenAttribute),
+        },
+        CommonStyleAffectingAttributeInfo {
+            atom: atom!("nowrap"),
+            mode: AttrIsPresentMode(NoWrapAttribute),
+        },
+        CommonStyleAffectingAttributeInfo {
+            atom: atom!("align"),
+            mode: AttrIsEqualMode("left", AlignLeftAttribute),
+        },
+        CommonStyleAffectingAttributeInfo {
+            atom: atom!("align"),
+            mode: AttrIsEqualMode("center", AlignCenterAttribute),
+        },
+        CommonStyleAffectingAttributeInfo {
+            atom: atom!("align"),
+            mode: AttrIsEqualMode("right", AlignRightAttribute),
+        }
+    ]
+}
+
 /// Determines whether the given element matches the given single selector.
 ///
 /// NB: If you add support for any new kinds of selectors to this routine, be sure to set
@@ -781,7 +828,6 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
         }
 
         NamespaceSelector(ref namespace) => {
-            *shareable = false;
             let element = element.as_element();
             element.get_namespace() == namespace
         }
@@ -799,11 +845,26 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
         }
 
         AttrExists(ref attr) => {
-            *shareable = false;
+            // NB(pcwalton): If you update this, remember to update the corresponding list in
+            // `can_share_style_with()` as well.
+            if common_style_affecting_attributes().iter().all(|common_attr_info| {
+                !(common_attr_info.atom == attr.name && match common_attr_info.mode {
+                    AttrIsPresentMode(_) => true,
+                    AttrIsEqualMode(..) => false,
+                })
+            }) {
+                *shareable = false;
+            }
             element.match_attr(attr, |_| true)
         }
         AttrEqual(ref attr, ref value, case_sensitivity) => {
-            if value.as_slice() != "DIR" {
+            if value.as_slice() != "DIR" &&
+                    common_style_affecting_attributes().iter().all(|common_attr_info| {
+                        !(common_attr_info.atom == attr.name && match common_attr_info.mode {
+                            AttrIsEqualMode(target_value, _) => target_value == value.as_slice(),
+                            AttrIsPresentMode(_) => false,
+                        })
+                    }) {
                 // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
                 // here because the UA style otherwise disables all style sharing completely.
                 *shareable = false
@@ -853,7 +914,6 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             element.get_link().is_some()
         }
         Link => {
-            *shareable = false;
             let elem = element.as_element();
             match elem.get_link() {
                 Some(url) => !url_is_visited(url),
@@ -861,7 +921,8 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             }
         }
         Visited => {
-            *shareable = false;
+            // NB(pcwalton): When we actually start supporting visited links, remember to update
+            // `can_share_style_with`.
             let elem = element.as_element();
             match elem.get_link() {
                 Some(url) => url_is_visited(url),
@@ -947,6 +1008,7 @@ fn url_is_visited(_url: &str) -> bool {
     // FIXME: implement this.
     // This function will probably need to take a "session"
     // or something containing browsing history as an additional parameter.
+    // NB(pcwalton): When you implement this, remember to update `can_share_style_with`!
     false
 }
 

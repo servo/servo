@@ -19,10 +19,10 @@ use servo_util::arc_ptr_eq;
 use std::mem;
 use std::hash::{Hash, sip};
 use std::slice::Items;
-use style::{After, Before, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
-use style::cascade;
+use string_cache::{Atom, Namespace};
+use style::{mod, After, Before, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
+use style::{AttrIsEqualMode, AttrIsPresentMode, CommonStyleAffectingAttributes, cascade};
 use sync::Arc;
-use string_cache::Atom;
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec16<DeclarationBlock>,
@@ -150,6 +150,29 @@ pub struct StyleSharingCandidateCache {
     cache: LRUCache<StyleSharingCandidate,()>,
 }
 
+fn create_common_style_affecting_attributes_from_element(element: &LayoutElement)
+                                                         -> CommonStyleAffectingAttributes {
+    let mut flags = CommonStyleAffectingAttributes::empty();
+    for attribute_info in style::common_style_affecting_attributes().iter() {
+        match attribute_info.mode {
+            AttrIsPresentMode(flag) => {
+                if element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
+                    flags.insert(flag)
+                }
+            }
+            AttrIsEqualMode(target_value, flag) => {
+                match element.get_attr(&ns!(""), &attribute_info.atom) {
+                    Some(element_value) if element_value == target_value => {
+                        flags.insert(flag)
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    flags
+}
+
 #[deriving(Clone)]
 pub struct StyleSharingCandidate {
     pub style: Arc<ComputedValues>,
@@ -157,6 +180,9 @@ pub struct StyleSharingCandidate {
     pub local_name: Atom,
     // FIXME(pcwalton): Should be a list of atoms instead.
     pub class: Option<String>,
+    pub namespace: Namespace,
+    pub common_style_affecting_attributes: CommonStyleAffectingAttributes,
+    pub link: bool,
 }
 
 impl PartialEq for StyleSharingCandidate {
@@ -164,7 +190,10 @@ impl PartialEq for StyleSharingCandidate {
         arc_ptr_eq(&self.style, &other.style) &&
             arc_ptr_eq(&self.parent_style, &other.parent_style) &&
             self.local_name == other.local_name &&
-            self.class == other.class
+            self.class == other.class &&
+            self.link == other.link &&
+            self.namespace == other.namespace &&
+            self.common_style_affecting_attributes == other.common_style_affecting_attributes
     }
 }
 
@@ -215,6 +244,10 @@ impl StyleSharingCandidate {
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&ns!(""), &atom!("class"))
                           .map(|string| string.to_string()),
+            link: element.get_link().is_some(),
+            namespace: (*element.get_namespace()).clone(),
+            common_style_affecting_attributes:
+                   create_common_style_affecting_attributes_from_element(&element)
         })
     }
 
@@ -232,6 +265,44 @@ impl StyleSharingCandidate {
             }
             (&Some(_), Some(_)) | (&None, None) => {}
         }
+
+        if *element.get_namespace() != self.namespace {
+            return false
+        }
+
+        for attribute_info in style::common_style_affecting_attributes().iter() {
+            match attribute_info.mode {
+                AttrIsPresentMode(flag) => {
+                    if self.common_style_affecting_attributes.contains(flag) !=
+                            element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
+                        return false
+                    }
+                }
+                AttrIsEqualMode(target_value, flag) => {
+                    match element.get_attr(&ns!(""), &attribute_info.atom) {
+                        Some(ref element_value) if self.common_style_affecting_attributes
+                                                       .contains(flag) &&
+                                                       *element_value != target_value => {
+                            return false
+                        }
+                        Some(_) if !self.common_style_affecting_attributes.contains(flag) => {
+                            return false
+                        }
+                        None if self.common_style_affecting_attributes.contains(flag) => {
+                            return false
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+        if element.get_link().is_some() != self.link {
+            return false
+        }
+
+        // TODO(pcwalton): We don't support visited links yet, but when we do there will need to
+        // be some logic here.
 
         true
     }
