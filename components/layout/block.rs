@@ -529,6 +529,9 @@ pub struct BlockFlow {
     /// used to speculatively lay out block formatting contexts.
     inline_size_of_preceding_right_floats: Au,
 
+    /// The hypothetical position, used for absolutely-positioned flows.
+    hypothetical_position: LogicalPoint<Au>,
+
     /// Additional floating flow members.
     pub float: Option<Box<FloatedBlockInfo>>,
 
@@ -558,6 +561,7 @@ impl BlockFlow {
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
+            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
             float: None,
             flags: BlockFlowFlags::empty(),
         }
@@ -571,6 +575,7 @@ impl BlockFlow {
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
+            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
             float: None,
             flags: BlockFlowFlags::empty(),
         }
@@ -587,6 +592,7 @@ impl BlockFlow {
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
+            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
             float: Some(box FloatedBlockInfo::new(float_kind)),
             flags: BlockFlowFlags::empty(),
         }
@@ -603,6 +609,7 @@ impl BlockFlow {
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
             inline_size_of_preceding_right_floats: Au(0),
+            hypothetical_position: LogicalPoint::new(writing_mode, Au(0), Au(0)),
             float: Some(box FloatedBlockInfo::new(float_kind)),
             flags: BlockFlowFlags::empty(),
         }
@@ -842,9 +849,9 @@ impl BlockFlow {
         let mut layers_needed_for_descendants = false;
         for kid in self.base.child_iter() {
             if flow::base(kid).flags.is_absolutely_positioned() {
-                // Assume that the *hypothetical box* for an absolute flow starts immediately after
-                // the block-end border edge of the previous flow.
-                flow::mut_base(kid).position.start.b = cur_b;
+                // Assume that the *hypothetical box* for an absolute flow starts immediately
+                // after the block-end border edge of the previous flow.
+                kid.as_block().hypothetical_position.b = cur_b;
                 kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
                 propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
 
@@ -974,6 +981,8 @@ impl BlockFlow {
 
             // Store the content block-size for use in calculating the absolute flow's dimensions
             // later.
+            //
+            // FIXME(pcwalton): This looks not idempotent. Is it?
             self.fragment.border_box.size.block = block_size;
             return
         }
@@ -1008,7 +1017,10 @@ impl BlockFlow {
         // position.
         self.fragment.border_box.size.block = cur_b;
         self.fragment.border_box.start.b = Au(0);
-        self.base.position.size.block = cur_b;
+
+        if !self.base.flags.is_absolutely_positioned() {
+            self.base.position.size.block = cur_b;
+        }
 
         // Store the current set of floats in the flow so that flows that come later in the
         // document can access them.
@@ -1068,7 +1080,10 @@ impl BlockFlow {
                                               Au(0),
                                               self.fragment.margin.block_start);
 
-        self.base.position = self.base.position.translate(&float_offset).translate(&margin_offset);
+        if !self.base.flags.is_absolutely_positioned() {
+            self.base.position = self.base.position.translate(&float_offset)
+                                                   .translate(&margin_offset);
+        }
     }
 
 
@@ -1189,7 +1204,7 @@ impl BlockFlow {
     /// roughly set to its static position (the position it would have had in
     /// the normal flow).
     pub fn get_hypothetical_block_start_edge(&self) -> Au {
-        self.base.position.start.b
+        self.hypothetical_position.b
     }
 
     /// Assigns the computed inline-start content edge and inline-size to all the children of this
@@ -1270,8 +1285,16 @@ impl BlockFlow {
 
             // The inline-start margin edge of the child flow is at our inline-start content edge,
             // and its inline-size is our content inline-size.
-            flow::mut_base(kid).position.start.i = inline_start_content_edge;
-            flow::mut_base(kid).block_container_inline_size = content_inline_size;
+            {
+                let kid_base = flow::mut_base(kid);
+                if !kid_base.flags.is_absolutely_positioned() {
+                    kid_base.position.start.i = inline_start_content_edge
+                }
+                kid_base.block_container_inline_size = content_inline_size;
+            }
+            if kid.is_block_like() {
+                kid.as_block().hypothetical_position.i = inline_start_content_edge
+            }
 
             // Determine float impaction.
             if flow::base(kid).flags.clears_left() {
@@ -1583,7 +1606,9 @@ impl Flow for BlockFlow {
             let containing_block_block_size =
                 self.base.block_container_explicit_block_size.unwrap_or(Au(0));
             self.fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
-            self.base.position.size.block = self.fragment.border_box.size.block;
+            if !self.base.flags.is_absolutely_positioned() {
+                self.base.position.size.block = self.fragment.border_box.size.block;
+            }
         } else if self.is_root() || self.is_float() || self.is_inline_block() {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
             debug!("assign_block_size: assigning block_size for root flow");
