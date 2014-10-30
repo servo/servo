@@ -1516,7 +1516,7 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    Some(element.prefix().as_slice().to_string()), *document, ScriptCreated);
+                    element.prefix().as_ref().map(|p| p.as_slice().to_string()), *document, ScriptCreated);
                 NodeCast::from_temporary(element)
             },
             TextNodeTypeId => {
