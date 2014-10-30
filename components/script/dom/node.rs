@@ -33,7 +33,7 @@ use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument, NotFromParser};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::element::{AttributeHandlers, Element, ScriptCreated, ElementTypeId};
 use dom::element::{HTMLAnchorElementTypeId, HTMLButtonElementTypeId, ElementHelpers};
 use dom::element::{HTMLInputElementTypeId, HTMLSelectElementTypeId};
 use dom::element::{HTMLTextAreaElementTypeId, HTMLOptGroupElementTypeId};
@@ -45,7 +45,6 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use geom::rect::Rect;
-use parse::html::{build_element_from_tag, ScriptCreated};
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC,
                        LayoutChan, ReapLayoutDataMsg};
 use devtools_traits::NodeInfo;
@@ -1520,7 +1519,7 @@ impl Node {
                     ns: element.namespace().clone(),
                     local: element.local_name().clone()
                 };
-                let element = build_element_from_tag(name,
+                let element = Element::create(name,
                     Some(element.prefix().as_slice().to_string()), *document, ScriptCreated);
                 NodeCast::from_temporary(element)
             },

@@ -91,6 +91,7 @@ pub mod dom {
     pub mod domrectlist;
     pub mod comment;
     pub mod console;
+    mod create;
     pub mod customevent;
     pub mod dedicatedworkerglobalscope;
     pub mod document;
