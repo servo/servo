@@ -19,6 +19,7 @@ use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
+use dom::create::create_element;
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
@@ -147,11 +148,22 @@ pub enum ElementTypeId {
     ElementTypeId_,
 }
 
+#[deriving(PartialEq)]
+pub enum ElementCreator {
+    ParserCreated,
+    ScriptCreated,
+}
+
 //
 // Element methods
 //
-
 impl Element {
+    pub fn create(name: QualName, prefix: Option<DOMString>,
+                  document: JSRef<Document>, creator: ElementCreator)
+                  -> Temporary<Element> {
+        create_element(name, prefix, document, creator)
+    }
+
     pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JSRef<Document>) -> Element {
         Element {
             node: Node::new_inherited(ElementNodeTypeId(type_id), document),

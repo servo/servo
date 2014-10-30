@@ -7,10 +7,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLScriptElementCast};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{AttributeHandlers, ElementHelpers};
-use dom::htmlelement::HTMLElement;
-use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
-use dom::htmlformelement::HTMLFormElement;
+use dom::element::{Element, AttributeHandlers, ElementHelpers, ParserCreated};
 use dom::htmlscriptelement::HTMLScriptElementHelpers;
 use dom::node::{Node, NodeHelpers, TrustedNodeAddress};
 use dom::servohtmlparser;
@@ -26,7 +23,6 @@ use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask};
 use servo_msg::constellation_msg::LoadData as MsgLoadData;
 use servo_util::task_state;
 use servo_util::task_state::InHTMLParser;
-use servo_util::str::DOMString;
 use std::ascii::StrAsciiExt;
 use std::comm::channel;
 use std::str::MaybeOwned;
@@ -63,156 +59,6 @@ fn parse_last_modified(timestamp: &str) -> String {
     match time::strptime(timestamp, "%c") {
         Ok(t) => t.to_local().strftime(format),
         Err(_) => String::from_str("")
-    }
-}
-
-#[deriving(PartialEq)]
-pub enum ElementCreator {
-    ParserCreated,
-    ScriptCreated,
-}
-
-pub fn build_element_from_tag(name: QualName,
-                              prefix: Option<DOMString>,
-                              document: JSRef<Document>,
-                              creator: ElementCreator) -> Temporary<Element> {
-    if name.ns != ns!(HTML) {
-        return Element::new(name.local.as_slice().to_string(), name.ns, None, document);
-    }
-
-    macro_rules! make(
-        ($ctor:ident $(, $arg:expr)*) => ({
-            let obj = $ctor::new(name.local.as_slice().to_string(), prefix, document $(, $arg)*);
-            ElementCast::from_temporary(obj)
-        })
-    )
-
-    // This is a big match, and the IDs for inline-interned atoms are not very structured.
-    // Perhaps we should build a perfect hash from those IDs instead.
-    match name.local {
-        atom!("a")          => make!(HTMLAnchorElement),
-        atom!("abbr")       => make!(HTMLElement),
-        atom!("acronym")    => make!(HTMLElement),
-        atom!("address")    => make!(HTMLElement),
-        atom!("applet")     => make!(HTMLAppletElement),
-        atom!("area")       => make!(HTMLAreaElement),
-        atom!("article")    => make!(HTMLElement),
-        atom!("aside")      => make!(HTMLElement),
-        atom!("audio")      => make!(HTMLAudioElement),
-        atom!("b")          => make!(HTMLElement),
-        atom!("base")       => make!(HTMLBaseElement),
-        atom!("bdi")        => make!(HTMLElement),
-        atom!("bdo")        => make!(HTMLElement),
-        atom!("bgsound")    => make!(HTMLElement),
-        atom!("big")        => make!(HTMLElement),
-        atom!("blockquote") => make!(HTMLElement),
-        atom!("body")       => make!(HTMLBodyElement),
-        atom!("br")         => make!(HTMLBRElement),
-        atom!("button")     => make!(HTMLButtonElement),
-        atom!("canvas")     => make!(HTMLCanvasElement),
-        atom!("caption")    => make!(HTMLTableCaptionElement),
-        atom!("center")     => make!(HTMLElement),
-        atom!("cite")       => make!(HTMLElement),
-        atom!("code")       => make!(HTMLElement),
-        atom!("col")        => make!(HTMLTableColElement),
-        atom!("colgroup")   => make!(HTMLTableColElement),
-        atom!("data")       => make!(HTMLDataElement),
-        atom!("datalist")   => make!(HTMLDataListElement),
-        atom!("dd")         => make!(HTMLElement),
-        atom!("del")        => make!(HTMLModElement),
-        atom!("details")    => make!(HTMLElement),
-        atom!("dfn")        => make!(HTMLElement),
-        atom!("dir")        => make!(HTMLDirectoryElement),
-        atom!("div")        => make!(HTMLDivElement),
-        atom!("dl")         => make!(HTMLDListElement),
-        atom!("dt")         => make!(HTMLElement),
-        atom!("em")         => make!(HTMLElement),
-        atom!("embed")      => make!(HTMLEmbedElement),
-        atom!("fieldset")   => make!(HTMLFieldSetElement),
-        atom!("figcaption") => make!(HTMLElement),
-        atom!("figure")     => make!(HTMLElement),
-        atom!("font")       => make!(HTMLFontElement),
-        atom!("footer")     => make!(HTMLElement),
-        atom!("form")       => make!(HTMLFormElement),
-        atom!("frame")      => make!(HTMLFrameElement),
-        atom!("frameset")   => make!(HTMLFrameSetElement),
-        atom!("h1")         => make!(HTMLHeadingElement, Heading1),
-        atom!("h2")         => make!(HTMLHeadingElement, Heading2),
-        atom!("h3")         => make!(HTMLHeadingElement, Heading3),
-        atom!("h4")         => make!(HTMLHeadingElement, Heading4),
-        atom!("h5")         => make!(HTMLHeadingElement, Heading5),
-        atom!("h6")         => make!(HTMLHeadingElement, Heading6),
-        atom!("head")       => make!(HTMLHeadElement),
-        atom!("header")     => make!(HTMLElement),
-        atom!("hgroup")     => make!(HTMLElement),
-        atom!("hr")         => make!(HTMLHRElement),
-        atom!("html")       => make!(HTMLHtmlElement),
-        atom!("i")          => make!(HTMLElement),
-        atom!("iframe")     => make!(HTMLIFrameElement),
-        atom!("img")        => make!(HTMLImageElement),
-        atom!("input")      => make!(HTMLInputElement),
-        atom!("ins")        => make!(HTMLModElement),
-        atom!("isindex")    => make!(HTMLElement),
-        atom!("kbd")        => make!(HTMLElement),
-        atom!("label")      => make!(HTMLLabelElement),
-        atom!("legend")     => make!(HTMLLegendElement),
-        atom!("li")         => make!(HTMLLIElement),
-        atom!("link")       => make!(HTMLLinkElement),
-        atom!("main")       => make!(HTMLElement),
-        atom!("map")        => make!(HTMLMapElement),
-        atom!("mark")       => make!(HTMLElement),
-        atom!("marquee")    => make!(HTMLElement),
-        atom!("meta")       => make!(HTMLMetaElement),
-        atom!("meter")      => make!(HTMLMeterElement),
-        atom!("nav")        => make!(HTMLElement),
-        atom!("nobr")       => make!(HTMLElement),
-        atom!("noframes")   => make!(HTMLElement),
-        atom!("noscript")   => make!(HTMLElement),
-        atom!("object")     => make!(HTMLObjectElement),
-        atom!("ol")         => make!(HTMLOListElement),
-        atom!("optgroup")   => make!(HTMLOptGroupElement),
-        atom!("option")     => make!(HTMLOptionElement),
-        atom!("output")     => make!(HTMLOutputElement),
-        atom!("p")          => make!(HTMLParagraphElement),
-        atom!("param")      => make!(HTMLParamElement),
-        atom!("pre")        => make!(HTMLPreElement),
-        atom!("progress")   => make!(HTMLProgressElement),
-        atom!("q")          => make!(HTMLQuoteElement),
-        atom!("rp")         => make!(HTMLElement),
-        atom!("rt")         => make!(HTMLElement),
-        atom!("ruby")       => make!(HTMLElement),
-        atom!("s")          => make!(HTMLElement),
-        atom!("samp")       => make!(HTMLElement),
-        atom!("script")     => make!(HTMLScriptElement, creator),
-        atom!("section")    => make!(HTMLElement),
-        atom!("select")     => make!(HTMLSelectElement),
-        atom!("small")      => make!(HTMLElement),
-        atom!("source")     => make!(HTMLSourceElement),
-        atom!("spacer")     => make!(HTMLElement),
-        atom!("span")       => make!(HTMLSpanElement),
-        atom!("strike")     => make!(HTMLElement),
-        atom!("strong")     => make!(HTMLElement),
-        atom!("style")      => make!(HTMLStyleElement),
-        atom!("sub")        => make!(HTMLElement),
-        atom!("summary")    => make!(HTMLElement),
-        atom!("sup")        => make!(HTMLElement),
-        atom!("table")      => make!(HTMLTableElement),
-        atom!("tbody")      => make!(HTMLTableSectionElement),
-        atom!("td")         => make!(HTMLTableDataCellElement),
-        atom!("template")   => make!(HTMLTemplateElement),
-        atom!("textarea")   => make!(HTMLTextAreaElement),
-        atom!("th")         => make!(HTMLTableHeaderCellElement),
-        atom!("time")       => make!(HTMLTimeElement),
-        atom!("title")      => make!(HTMLTitleElement),
-        atom!("tr")         => make!(HTMLTableRowElement),
-        atom!("tt")         => make!(HTMLElement),
-        atom!("track")      => make!(HTMLTrackElement),
-        atom!("u")          => make!(HTMLElement),
-        atom!("ul")         => make!(HTMLUListElement),
-        atom!("var")        => make!(HTMLElement),
-        atom!("video")      => make!(HTMLVideoElement),
-        atom!("wbr")        => make!(HTMLElement),
-        _                   => make!(HTMLUnknownElement),
     }
 }
 
@@ -257,7 +103,7 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
             -> TrustedNodeAddress {
         let doc = self.document.root();
-        let elem = build_element_from_tag(name, None, *doc, ParserCreated).root();
+        let elem = Element::create(name, None, *doc, ParserCreated).root();
 
         for attr in attrs.into_iter() {
             elem.set_attribute_from_parser(attr.name, attr.value, None);
