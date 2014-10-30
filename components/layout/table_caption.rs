@@ -10,6 +10,7 @@ use block::BlockFlow;
 use construct::FlowConstructor;
 use context::LayoutContext;
 use flow::{TableCaptionFlowClass, FlowClass, Flow};
+use fragment::FragmentBoundsIterator;
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
@@ -78,6 +79,10 @@ impl Flow for TableCaptionFlow {
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
+    }
+
+    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
+        self.iterate_through_fragment_bounds(iterator);
     }
 }
 

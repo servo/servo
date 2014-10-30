@@ -45,8 +45,7 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use geom::rect::Rect;
-use layout_interface::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC,
-                       LayoutChan, ReapLayoutDataMsg};
+use layout_interface::{LayoutChan, ReapLayoutDataMsg};
 use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
 use servo_util::geometry::Au;
@@ -689,20 +688,11 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn get_bounding_content_box(self) -> Rect<Au> {
-        let window = window_from_node(self).root();
-        let page = window.page();
-        let addr = self.to_trusted_node_address();
-
-        let ContentBoxResponse(rect) = page.layout().content_box(addr);
-        rect
+        window_from_node(self).root().page().content_box_query(self.to_trusted_node_address())
     }
 
     fn get_content_boxes(self) -> Vec<Rect<Au>> {
-        let window = window_from_node(self).root();
-        let page = window.page();
-        let addr = self.to_trusted_node_address();
-        let ContentBoxesResponse(rects) = page.layout().content_boxes(addr);
-        rects
+        window_from_node(self).root().page().content_boxes_query(self.to_trusted_node_address())
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector

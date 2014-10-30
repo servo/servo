@@ -9,7 +9,7 @@
 use context::LayoutContext;
 use css::node_style::StyledNode;
 use flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
-use fragment::{Fragment, TableColumnFragment};
+use fragment::{Fragment, FragmentBoundsIterator, TableColumnFragment};
 use layout_debug;
 use wrapper::ThreadSafeLayoutNode;
 
@@ -95,6 +95,9 @@ impl Flow for TableColGroupFlow {
     fn build_display_list(&mut self, _: &LayoutContext) {}
 
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
+
+    fn iterate_through_fragment_bounds(&self, _: &mut FragmentBoundsIterator) {
+    }
 }
 
 impl fmt::Show for TableColGroupFlow {

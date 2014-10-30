@@ -22,7 +22,7 @@ use text;
 use util::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
-use geom::Size2D;
+use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
@@ -1482,6 +1482,13 @@ impl Fragment {
     pub fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.style = (*new_style).clone()
     }
+
+    pub fn abs_bounds_from_origin(&self, fragment_origin: &Point2D<Au>) -> Rect<Au> {
+        // FIXME(#2795): Get the real container size
+        let container_size = Size2D::zero();
+        self.border_box.to_physical(self.style.writing_mode, container_size)
+                        .translate(fragment_origin)
+    }
 }
 
 impl fmt::Show for Fragment {
@@ -1501,4 +1508,14 @@ bitflags! {
         static IntrinsicInlineSizeIncludesBorder = 0x04,
         static IntrinsicInlineSizeIncludesSpecified = 0x08,
     }
+}
+
+/// A top-down fragment bounds iteration handler.
+pub trait FragmentBoundsIterator {
+    /// The operation to perform.
+    fn process(&mut self, fragment: &Fragment, bounds: Rect<Au>);
+
+    /// Returns true if this fragment must be processed in-order. If this returns false,
+    /// we skip the operation for this fragment, but continue processing siblings.
+    fn should_process(&mut self, fragment: &Fragment) -> bool;
 }

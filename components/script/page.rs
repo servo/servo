@@ -11,19 +11,22 @@ use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
-use layout_interface::{ReflowForDisplay};
-use layout_interface::{HitTestResponse, MouseOverResponse};
-use layout_interface::{GetRPCMsg, LayoutChan, LayoutRPC};
-use layout_interface::{Reflow, ReflowGoal, ReflowMsg};
+use layout_interface::{
+    ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, ContentBoxesResponse,
+    GetRPCMsg, HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse, NoQuery,
+    Reflow, ReflowForDisplay, ReflowForScriptQuery, ReflowGoal, ReflowMsg,
+    ReflowQueryType, TrustedNodeAddress
+};
 use script_traits::{UntrustedNodeAddress, ScriptControlChan};
 
-use geom::point::Point2D;
+use geom::{Point2D, Rect};
 use js::rust::Cx;
 use servo_msg::compositor_msg::PerformingLayout;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
+use servo_util::geometry::Au;
 use servo_util::str::DOMString;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use std::cell::Cell;
@@ -164,24 +167,46 @@ impl Page {
         }
     }
 
-    pub fn flush_layout(&self, goal: ReflowGoal) {
-        if self.damaged.get() {
+    pub fn flush_layout(&self, query: ReflowQueryType) {
+        // If we are damaged, we need to force a full reflow, so that queries interact with
+        // an accurate flow tree.
+        let (reflow_goal, force_reflow) = if self.damaged.get() {
+            (ReflowForDisplay, true)
+        } else {
+            match query {
+                ContentBoxQuery(_) | ContentBoxesQuery(_) => (ReflowForScriptQuery, true),
+                NoQuery => (ReflowForDisplay, false),
+            }
+        };
+
+        if force_reflow {
             let frame = self.frame();
             let window = frame.as_ref().unwrap().window.root();
-            self.reflow(goal, window.control_chan().clone(), window.compositor());
+            self.reflow(reflow_goal, window.control_chan().clone(), window.compositor(), query);
         } else {
             self.avoided_reflows.set(self.avoided_reflows.get() + 1);
         }
     }
 
-    pub fn layout(&self) -> &LayoutRPC {
-        // FIXME This should probably be ReflowForQuery, not Display. All queries currently
-        // currently rely on the display list, which means we can't destroy it by
-        // doing a query reflow.
-        self.flush_layout(ReflowForDisplay);
+     pub fn layout(&self) -> &LayoutRPC {
+        self.flush_layout(NoQuery);
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let layout_rpc: &LayoutRPC = &*self.layout_rpc;
         layout_rpc
+    }
+
+    pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Rect<Au> {
+        self.flush_layout(ContentBoxQuery(content_box_request));
+        self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
+        let ContentBoxResponse(rect) = self.layout_rpc.content_box();
+        rect
+    }
+
+    pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
+        self.flush_layout(ContentBoxesQuery(content_boxes_request));
+        self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
+        let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
+        rects
     }
 
     // must handle root case separately
@@ -303,7 +328,8 @@ impl Page {
     pub fn reflow(&self,
                   goal: ReflowGoal,
                   script_chan: ScriptControlChan,
-                  compositor: &ScriptListener) {
+                  compositor: &ScriptListener,
+                  query_type: ReflowQueryType) {
 
         let root = match *self.frame() {
             None => return,
@@ -349,6 +375,7 @@ impl Page {
                     script_chan: script_chan,
                     script_join_chan: join_chan,
                     id: last_reflow_id.get(),
+                    query_type: query_type,
                 };
 
                 let LayoutChan(ref chan) = self.layout_chan;
