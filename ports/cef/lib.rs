@@ -23,7 +23,6 @@ extern crate glfw;
 extern crate glfw_app;
 extern crate js;
 extern crate layers;
-extern crate opengles;
 extern crate png;
 extern crate script;
 
