@@ -668,7 +668,11 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     // http://dom.spec.whatwg.org/#dom-element-tagname
     fn TagName(self) -> DOMString {
         let qualified_name = match self.prefix {
-            Some(ref prefix) => format!("{}:{}", prefix, self.local_name).into_maybe_owned(),
+            Some(ref prefix) => {
+                (format!("{:s}:{:s}",
+                         prefix.as_slice(),
+                         self.local_name.as_slice())).into_maybe_owned()
+            },
             None => self.local_name.as_slice().into_maybe_owned()
         };
         if self.html_element_in_html_document() {
