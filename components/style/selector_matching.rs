@@ -21,8 +21,8 @@ use string_cache::Atom;
 use legacy::{SizeIntegerAttribute, WidthLengthAttribute};
 use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock, SpecifiedValue, WidthDeclaration};
-use properties::{specified};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock, PropertyDeclarationImportance, Normal};
+use properties::{specified, SpecifiedValue, WidthDeclaration};
 use selectors::*;
 use stylesheets::{Stylesheet, iter_stylesheet_style_rules};
 
@@ -317,31 +317,25 @@ impl Stylist {
 
         // Take apart the StyleRule into individual Rules and insert
         // them into the SelectorMap of that priority.
-        macro_rules! append(
-            ($style_rule: ident, $priority: ident) => {
-                if $style_rule.declarations.$priority.len() > 0 {
-                    for selector in $style_rule.selectors.iter() {
-                        let map = match selector.pseudo_element {
-                            None => &mut element_map,
-                            Some(Before) => &mut before_map,
-                            Some(After) => &mut after_map,
-                        };
-                        map.$priority.insert(Rule {
-                                selector: selector.compound_selectors.clone(),
-                                declarations: DeclarationBlock {
-                                    specificity: selector.specificity,
-                                    declarations: $style_rule.declarations.$priority.clone(),
-                                    source_order: rules_source_order,
-                                },
-                        });
-                    }
-                }
-            };
-        );
-
         iter_stylesheet_style_rules(&stylesheet, device, |style_rule| {
-            append!(style_rule, normal);
-            append!(style_rule, important);
+            if style_rule.declarations.declarations.len() > 0 {
+                for selector in style_rule.selectors.iter() {
+                    let map = match selector.pseudo_element {
+                        None => &mut element_map,
+                        Some(Before) => &mut before_map,
+                        Some(After) => &mut after_map,
+                    };
+                    map.declarations.insert(Rule {
+                            selector: selector.compound_selectors.clone(),
+                            declarations: DeclarationBlock {
+                                specificity: selector.specificity,
+                                declarations: style_rule.declarations.declarations.clone(),
+                                source_order: rules_source_order,
+                            },
+                    });
+                }
+            }
+
             rules_source_order += 1;
         });
         self.rules_source_order = rules_source_order;
@@ -381,49 +375,26 @@ impl Stylist {
                                                                    applicable_declarations,
                                                                    &mut shareable);
 
-        // Step 2: Normal rules.
-        map.user_agent.normal.get_all_matching_rules(element,
+        // Step 2: Rules.
+        map.user_agent.declarations.get_all_matching_rules(element,
+                                                           parent_bf,
+                                                           applicable_declarations,
+                                                           &mut shareable);
+        map.user.declarations.get_all_matching_rules(element,
                                                      parent_bf,
                                                      applicable_declarations,
                                                      &mut shareable);
-        map.user.normal.get_all_matching_rules(element,
-                                               parent_bf,
-                                               applicable_declarations,
-                                               &mut shareable);
-        map.author.normal.get_all_matching_rules(element,
-                                                 parent_bf,
-                                                 applicable_declarations,
-                                                 &mut shareable);
+        map.author.declarations.get_all_matching_rules(element,
+                                                       parent_bf,
+                                                       applicable_declarations,
+                                                       &mut shareable);
 
-        // Step 3: Normal style attributes.
+        // Step 3: Style attributes.
         style_attribute.map(|sa| {
             shareable = false;
-            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.normal
+            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.declarations
                                                                                    .clone()))
         });
-
-        // Step 4: Author-supplied `!important` rules.
-        map.author.important.get_all_matching_rules(element,
-                                                    parent_bf,
-                                                    applicable_declarations,
-                                                    &mut shareable);
-
-        // Step 5: `!important` style attributes.
-        style_attribute.map(|sa| {
-            shareable = false;
-            applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.important
-                                                                                   .clone()))
-        });
-
-        // Step 6: User and UA `!important` rules.
-        map.user.important.get_all_matching_rules(element,
-                                                  parent_bf,
-                                                  applicable_declarations,
-                                                  &mut shareable);
-        map.user_agent.important.get_all_matching_rules(element,
-                                                        parent_bf,
-                                                        applicable_declarations,
-                                                        &mut shareable);
 
         shareable
     }
@@ -447,14 +418,14 @@ impl Stylist {
                     AutoLpa => {}
                     PercentageLpa(percentage) => {
                         let width_value = specified::LPA_Percentage(percentage);
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(width_value))));
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration((
+                                WidthDeclaration(SpecifiedValue(width_value)), Normal)));
                         *shareable = false
                     }
                     LengthLpa(length) => {
                         let width_value = specified::LPA_Length(specified::Au_(length));
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(width_value))));
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration((
+                                WidthDeclaration(SpecifiedValue(width_value)), Normal)));
                         *shareable = false
                     }
                 };
@@ -472,9 +443,9 @@ impl Stylist {
                             }
                             _ => specified::Au_(Au::from_px(value as int)),
                         };
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration((
                                 WidthDeclaration(SpecifiedValue(specified::LPA_Length(
-                                            value)))));
+                                            value))), Normal)));
                         *shareable = false
                     }
                     Some(_) | None => {}
@@ -486,16 +457,14 @@ impl Stylist {
 }
 
 struct PerOriginSelectorMap {
-    normal: SelectorMap,
-    important: SelectorMap,
+    declarations: SelectorMap
 }
 
 impl PerOriginSelectorMap {
     #[inline]
     fn new() -> PerOriginSelectorMap {
         PerOriginSelectorMap {
-            normal: SelectorMap::new(),
-            important: SelectorMap::new(),
+            declarations: SelectorMap::new()
         }
     }
 }
@@ -530,14 +499,14 @@ struct Rule {
 /// we can sort them.
 #[deriving(Clone)]
 pub struct DeclarationBlock {
-    pub declarations: Arc<Vec<PropertyDeclaration>>,
+    pub declarations: Arc<Vec<(PropertyDeclaration, PropertyDeclarationImportance)>>,
     source_order: uint,
     specificity: u32,
 }
 
 impl DeclarationBlock {
     #[inline]
-    pub fn from_declarations(declarations: Arc<Vec<PropertyDeclaration>>) -> DeclarationBlock {
+    pub fn from_declarations(declarations: Arc<Vec<(PropertyDeclaration, PropertyDeclarationImportance)>>) -> DeclarationBlock {
         DeclarationBlock {
             declarations: declarations,
             source_order: 0,
@@ -548,7 +517,7 @@ impl DeclarationBlock {
     /// A convenience function to create a declaration block from a single declaration. This is
     /// primarily used in `synthesize_rules_for_legacy_attributes`.
     #[inline]
-    pub fn from_declaration(rule: PropertyDeclaration) -> DeclarationBlock {
+    pub fn from_declaration(rule: (PropertyDeclaration, PropertyDeclarationImportance)) -> DeclarationBlock {
         DeclarationBlock::from_declarations(Arc::new(vec![rule]))
     }
 }
