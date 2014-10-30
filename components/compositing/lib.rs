@@ -21,13 +21,13 @@ extern crate geom;
 extern crate gfx;
 extern crate layers;
 extern crate layout_traits;
-extern crate opengles;
 extern crate png;
 extern crate script_traits;
 extern crate "msg" as servo_msg;
 extern crate "net" as servo_net;
 #[phase(plugin, link)]
 extern crate "util" as servo_util;
+extern crate gleam;
 
 extern crate libc;
 extern crate time;

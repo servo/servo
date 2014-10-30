@@ -32,8 +32,9 @@ use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
-use opengles::gl2;
 use png;
+use gleam::gl::types::{GLint, GLsizei};
+use gleam::gl;
 use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerId};
 use servo_msg::compositor_msg::{ReadyState, RenderingRenderState, RenderState, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
@@ -904,21 +905,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
 
         if output_image {
-            framebuffer_ids = gl2::gen_framebuffers(1);
-            gl2::bind_framebuffer(gl2::FRAMEBUFFER, framebuffer_ids[0]);
+            framebuffer_ids = gl::gen_framebuffers(1);
+            gl::bind_framebuffer(gl::FRAMEBUFFER, framebuffer_ids[0]);
 
-            texture_ids = gl2::gen_textures(1);
-            gl2::bind_texture(gl2::TEXTURE_2D, texture_ids[0]);
+            texture_ids = gl::gen_textures(1);
+            gl::bind_texture(gl::TEXTURE_2D, texture_ids[0]);
 
-            gl2::tex_image_2d(gl2::TEXTURE_2D, 0, gl2::RGB as gl2::GLint, width as gl2::GLsizei,
-                                height as gl2::GLsizei, 0, gl2::RGB, gl2::UNSIGNED_BYTE, None);
-            gl2::tex_parameter_i(gl2::TEXTURE_2D, gl2::TEXTURE_MAG_FILTER, gl2::NEAREST as gl2::GLint);
-            gl2::tex_parameter_i(gl2::TEXTURE_2D, gl2::TEXTURE_MIN_FILTER, gl2::NEAREST as gl2::GLint);
+            gl::tex_image_2d(gl::TEXTURE_2D, 0, gl::RGB as GLint, width as GLsizei,
+                             height as GLsizei, 0, gl::RGB, gl::UNSIGNED_BYTE, None);
+            gl::tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
+            gl::tex_parameter_i(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
 
-            gl2::framebuffer_texture_2d(gl2::FRAMEBUFFER, gl2::COLOR_ATTACHMENT0, gl2::TEXTURE_2D,
-                                        texture_ids[0], 0);
+            gl::framebuffer_texture_2d(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0, gl::TEXTURE_2D,
+                                       texture_ids[0], 0);
 
-            gl2::bind_texture(gl2::TEXTURE_2D, 0);
+            gl::bind_texture(gl::TEXTURE_2D, 0);
         }
 
         profile(time::CompositingCategory, None, self.time_profiler_chan.clone(), || {
@@ -939,15 +940,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         if output_image {
             let path = from_str::<Path>(opts::get().output_file.as_ref().unwrap().as_slice()).unwrap();
-            let mut pixels = gl2::read_pixels(0, 0,
-                                              width as gl2::GLsizei,
-                                              height as gl2::GLsizei,
-                                              gl2::RGB, gl2::UNSIGNED_BYTE);
+            let mut pixels = gl::read_pixels(0, 0,
+                                             width as GLsizei,
+                                             height as GLsizei,
+                                             gl::RGB, gl::UNSIGNED_BYTE);
 
-            gl2::bind_framebuffer(gl2::FRAMEBUFFER, 0);
+            gl::bind_framebuffer(gl::FRAMEBUFFER, 0);
 
-            gl2::delete_buffers(texture_ids.as_slice());
-            gl2::delete_frame_buffers(framebuffer_ids.as_slice());
+            gl::delete_buffers(texture_ids.as_slice());
+            gl::delete_frame_buffers(framebuffer_ids.as_slice());
 
             // flip image vertically (texture is upside down)
             let orig_pixels = pixels.clone();
