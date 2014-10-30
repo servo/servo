@@ -17,6 +17,8 @@ use servo_util::geometry::Au;
 use std::cmp::max;
 use std::fmt;
 use style::computed_values::LengthOrPercentageOrAuto;
+use style::ComputedValues;
+use sync::Arc;
 
 /// A table formatting context.
 pub struct TableColGroupFlow {
@@ -91,6 +93,8 @@ impl Flow for TableColGroupFlow {
 
     // Table columns are invisible.
     fn build_display_list(&mut self, _: &LayoutContext) {}
+
+    fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 }
 
 impl fmt::Show for TableColGroupFlow {

@@ -8,10 +8,9 @@
 use css::node_style::StyledNode;
 use construct::FlowConstructionResult;
 use context::SharedLayoutContext;
-use flow::{Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
-use flow;
+use flow::{mod, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
-use incremental::{Reflow, Repaint};
+use incremental::{LayoutDamageComputation, Reflow, ReflowEntireDocument, Repaint};
 use layout_debug;
 use parallel::UnsafeFlow;
 use parallel;
@@ -675,7 +674,10 @@ impl LayoutTask {
                 Some((&data.url, data.iframe, self.first_reflow.get())),
                 self.time_profiler_chan.clone(),
                 || {
-            layout_root.propagate_restyle_damage();
+            if opts::get().nonincremental_layout ||
+                    layout_root.compute_layout_damage().contains(ReflowEntireDocument) {
+                layout_root.reflow_entire_document()
+            }
         });
 
         // Verification of the flow tree, which ensures that all nodes were either marked as leaves

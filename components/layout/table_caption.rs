@@ -14,6 +14,8 @@ use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use std::fmt;
+use style::ComputedValues;
+use sync::Arc;
 
 /// A table formatting context.
 pub struct TableCaptionFlow {
@@ -72,6 +74,10 @@ impl Flow for TableCaptionFlow {
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
         debug!("build_display_list_table_caption: same process as block flow");
         self.block_flow.build_display_list(layout_context)
+    }
+
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.block_flow.repair_style(new_style)
     }
 }
 

@@ -5,7 +5,6 @@
 // Style retrieval from DOM elements.
 
 use css::node_util::NodeUtil;
-use incremental::RestyleDamage;
 use wrapper::ThreadSafeLayoutNode;
 
 use style::ComputedValues;
@@ -15,8 +14,6 @@ use sync::Arc;
 pub trait StyledNode {
     fn style<'a>(&'a self) -> &'a Arc<ComputedValues>;
     fn unstyle(self);
-    fn restyle_damage(self) -> RestyleDamage;
-    fn set_restyle_damage(self, damage: RestyleDamage);
 }
 
 impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
@@ -27,16 +24,5 @@ impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
 
     fn unstyle(self) {
         self.remove_css_select_results()
-    }
-
-    fn restyle_damage(self) -> RestyleDamage {
-        self.get_restyle_damage()
-    }
-
-    fn set_restyle_damage(self, damage: RestyleDamage) {
-        fn doit<N: NodeUtil>(n: N, damage: RestyleDamage) {
-            n.set_restyle_damage(damage);
-        }
-        doit(self, damage);
     }
 }
