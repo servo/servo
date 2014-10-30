@@ -43,7 +43,7 @@ pub struct FontTable;
 
 impl FontTableMethods for FontTable {
     fn with_buffer(&self, _blk: |*const u8, uint|) {
-        fail!()
+        panic!()
     }
 }
 
@@ -61,7 +61,7 @@ impl Drop for FontHandle {
         assert!(self.face.is_not_null());
         unsafe {
             if !FT_Done_Face(self.face).succeeded() {
-                fail!("FT_Done_Face failed");
+                panic!("FT_Done_Face failed");
             }
         }
     }

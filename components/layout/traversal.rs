@@ -88,7 +88,7 @@ fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
                                layout_context: &LayoutContext) {
     match style_bloom.replace(Some((bf, *unsafe_node, layout_context.shared.generation))) {
         None => {},
-        Some(_) => fail!("Putting into a never-taken task-local bloom filter"),
+        Some(_) => panic!("Putting into a never-taken task-local bloom filter"),
     }
 }
 
@@ -268,7 +268,7 @@ impl PreorderFlow for FlowTreeVerification {
         if !base.flags.is_leaf() && !base.flags.is_nonleaf() {
             println!("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
             flow.dump();
-            fail!("flow tree verification failed")
+            panic!("flow tree verification failed")
         }
     }
 }

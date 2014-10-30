@@ -108,7 +108,7 @@ impl ActorRegistry {
                 return key.to_string();
             }
         }
-        fail!("couldn't find actor named {:s}", actor)
+        panic!("couldn't find actor named {:s}", actor)
     }
 
     /// Create a unique name based on a monotonically increasing suffix

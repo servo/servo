@@ -82,7 +82,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
             // Wait for a start message.
             let (mut deque, ref_count, queue_data) = match self.port.recv() {
                 StartMsg(deque, ref_count, queue_data) => (deque, ref_count, queue_data),
-                StopMsg => fail!("unexpected stop message"),
+                StopMsg => panic!("unexpected stop message"),
                 ExitMsg => return,
             };
 
@@ -130,7 +130,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                                         break
                                     }
                                     Ok(ExitMsg) => return,
-                                    Ok(_) => fail!("unexpected message"),
+                                    Ok(_) => panic!("unexpected message"),
                                     _ => {}
                                 }
 
@@ -270,7 +270,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     pub fn push(&mut self, work_unit: WorkUnit<QueueData, WorkData>) {
         match self.workers.get_mut(0).deque {
             None => {
-                fail!("tried to push a block but we don't have the deque?!")
+                panic!("tried to push a block but we don't have the deque?!")
             }
             Some(ref mut deque) => deque.push(work_unit),
         }
@@ -298,7 +298,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         for _ in range(0, self.workers.len()) {
             match self.port.recv() {
                 ReturnDequeMsg(index, deque) => self.workers.get_mut(index).deque = Some(deque),
-                FinishedMsg => fail!("unexpected finished message!"),
+                FinishedMsg => panic!("unexpected finished message!"),
             }
         }
     }

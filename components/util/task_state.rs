@@ -52,14 +52,14 @@ mod imp {
     pub fn initialize(x: TaskState) {
         match STATE.replace(Some(x)) {
             None => (),
-            Some(s) => fail!("Task state already initialized as {}", s),
+            Some(s) => panic!("Task state already initialized as {}", s),
         };
         get(); // check the assertion below
     }
 
     pub fn get() -> TaskState {
         let state = match STATE.get() {
-            None => fail!("Task state not initialized"),
+            None => panic!("Task state not initialized"),
             Some(s) => *s,
         };
 

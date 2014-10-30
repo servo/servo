@@ -328,7 +328,7 @@ fn parse_one_simple_selector<I: Iterator<ComponentValue>>(
         Some(&IDHash(_)) => match iter.next() {
             Some(IDHash(id)) => Ok(Some(SimpleSelectorResult(
                 IDSelector(Atom::from_slice(id.as_slice()))))),
-            _ => fail!("Implementation error, this should not happen."),
+            _ => panic!("Implementation error, this should not happen."),
         },
         Some(&Delim('.')) => {
             iter.next();
@@ -341,7 +341,7 @@ fn parse_one_simple_selector<I: Iterator<ComponentValue>>(
         Some(&SquareBracketBlock(_)) => match iter.next() {
             Some(SquareBracketBlock(content))
             => Ok(Some(SimpleSelectorResult(try!(parse_attribute_selector(content, namespaces))))),
-            _ => fail!("Implementation error, this should not happen."),
+            _ => panic!("Implementation error, this should not happen."),
         },
         Some(&Colon) => {
             iter.next();
@@ -445,7 +445,7 @@ fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &Namespace
     let iter = &mut content.into_iter().peekable();
     let attr = match try!(parse_qualified_name(iter, /* in_attr_selector = */ true, namespaces)) {
         None => return Err(()),
-        Some((_, None)) => fail!("Implementation error, this should not happen."),
+        Some((_, None)) => panic!("Implementation error, this should not happen."),
         Some((namespace, Some(local_name))) => AttrSelector {
             namespace: namespace,
             lower_name: Atom::from_slice(local_name.as_slice().to_ascii_lower().as_slice()),
@@ -578,7 +578,7 @@ fn parse_negation(arguments: Vec<ComponentValue>, namespaces: &NamespaceMap)
 fn get_next_ident<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> String {
     match iter.next() {
         Some(Ident(value)) => value,
-        _ => fail!("Implementation error, this should not happen."),
+        _ => panic!("Implementation error, this should not happen."),
     }
 }
 

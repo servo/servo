@@ -75,7 +75,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                     pixels: png::RGBA8(image.data)
                 })
             }
-            stb_image::ImageF32(_image) => fail!("HDR images not implemented"),
+            stb_image::ImageF32(_image) => panic!("HDR images not implemented"),
             stb_image::Error(_) => None
         }
     }

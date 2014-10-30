@@ -282,13 +282,13 @@ impl Page {
                         }
                         Ok(_) => {}
                         Err(Disconnected) => {
-                            fail!("Layout task failed while script was waiting for a result.");
+                            panic!("Layout task failed while script was waiting for a result.");
                         }
                     }
 
                     debug!("script: layout joined")
                 }
-                None => fail!("reader forked but no join port?"),
+                None => panic!("reader forked but no join port?"),
             }
         }
     }

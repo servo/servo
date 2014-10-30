@@ -68,7 +68,7 @@ impl Flow for TableColGroupFlow {
             let inline_size = fragment.style().content_inline_size();
             let span: int = match fragment.specific {
                 TableColumnFragment(col_fragment) => max(col_fragment.span, 1),
-                _ => fail!("non-table-column fragment inside table column?!"),
+                _ => panic!("non-table-column fragment inside table column?!"),
             };
             for _ in range(0, span) {
                 self.inline_sizes.push(inline_size)

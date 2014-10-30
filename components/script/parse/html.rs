@@ -419,7 +419,7 @@ pub fn parse_html(page: &Page,
                                 parser.parse_chunk(data);
                             }
                             Done(Err(err)) => {
-                                fail!("Failed to load page URL {:s}, error: {:s}", url.serialize(), err);
+                                panic!("Failed to load page URL {:s}, error: {:s}", url.serialize(), err);
                             }
                             Done(Ok(())) => break,
                         }

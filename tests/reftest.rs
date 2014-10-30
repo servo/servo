@@ -46,7 +46,7 @@ fn main() {
     let servo_args = parts.next().unwrap_or(&[]);
 
     let (render_mode_string, base_path, testname) = match harness_args {
-        [] | [_] => fail!("USAGE: cpu|gpu base_path [testname regex]"),
+        [] | [_] => panic!("USAGE: cpu|gpu base_path [testname regex]"),
         [ref render_mode_string, ref base_path] => (render_mode_string, base_path, None),
         [ref render_mode_string, ref base_path, ref testname, ..] => (render_mode_string, base_path, Some(Regex::new(testname.as_slice()).unwrap())),
     };
@@ -54,7 +54,7 @@ fn main() {
     let mut render_mode = match render_mode_string.as_slice() {
         "cpu" => CpuRendering,
         "gpu" => GpuRendering,
-        _ => fail!("First argument must specify cpu or gpu as rendering mode")
+        _ => panic!("First argument must specify cpu or gpu as rendering mode")
     };
     if cfg!(target_os = "linux") {
         render_mode.insert(LinuxTarget);
@@ -156,13 +156,13 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
                 file_left: parts[2],
                 file_right: parts[3],
             },
-            _ => fail!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line),
+            _ => panic!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line),
         };
 
         let kind = match test_line.kind {
             "==" => Same,
             "!=" => Different,
-            part => fail!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
+            part => panic!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
         };
         let base = file.dir_path();
         let file_left =  base.join(test_line.file_left);
@@ -243,14 +243,14 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     }
     let retval = match command.status() {
         Ok(status) => status,
-        Err(e) => fail!("failed to execute process: {}", e),
+        Err(e) => panic!("failed to execute process: {}", e),
     };
     assert_eq!(retval, ExitStatus(0));
 
     let image = png::load_png(&from_str::<Path>(png_filename.as_slice()).unwrap()).unwrap();
     let rgba8_bytes = match image.pixels {
         png::RGBA8(pixels) => pixels,
-        _ => fail!(),
+        _ => panic!(),
     };
     (image.width, image.height, rgba8_bytes)
 }
@@ -266,7 +266,7 @@ fn check_reftest(reftest: Reftest) {
     let right_all_white = right_bytes.iter().all(|&p| p == 255);
 
     if left_all_white && right_all_white {
-        fail!("Both renderings are empty")
+        panic!("Both renderings are empty")
     }
 
     let pixels = left_bytes.iter().zip(right_bytes.iter()).map(|(&a, &b)| {
@@ -296,7 +296,7 @@ fn check_reftest(reftest: Reftest) {
 
         match (reftest.kind, reftest.is_flaky) {
             (Same, true) => println!("flaky test - rendering difference: {}", output_str),
-            (Same, false) => fail!("rendering difference: {}", output_str),
+            (Same, false) => panic!("rendering difference: {}", output_str),
             (Different, _) => {}   // Result was different and that's what was expected
         }
     } else {

@@ -108,14 +108,14 @@ impl<T> DOMRefCell<T> {
     pub fn borrow<'a>(&'a self) -> Ref<'a, T> {
         match self.try_borrow() {
             Some(ptr) => ptr,
-            None => fail!("DOMRefCell<T> already mutably borrowed")
+            None => panic!("DOMRefCell<T> already mutably borrowed")
         }
     }
 
     pub fn borrow_mut<'a>(&'a self) -> RefMut<'a, T> {
         match self.try_borrow_mut() {
             Some(ptr) => ptr,
-            None => fail!("DOMRefCell<T> already borrowed")
+            None => panic!("DOMRefCell<T> already borrowed")
         }
     }
 }

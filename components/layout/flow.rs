@@ -78,94 +78,94 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// If this is a block flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
-        fail!("called as_immutable_block() on a non-block flow")
+        panic!("called as_immutable_block() on a non-block flow")
     }
 
     /// If this is a block flow, returns the underlying object. Fails otherwise.
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         debug!("called as_block() on a flow of type {}", self.class());
-        fail!("called as_block() on a non-block flow")
+        panic!("called as_block() on a non-block flow")
     }
 
     /// If this is an inline flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_inline<'a>(&'a self) -> &'a InlineFlow {
-        fail!("called as_immutable_inline() on a non-inline flow")
+        panic!("called as_immutable_inline() on a non-inline flow")
     }
 
     /// If this is an inline flow, returns the underlying object. Fails otherwise.
     fn as_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
-        fail!("called as_inline() on a non-inline flow")
+        panic!("called as_inline() on a non-inline flow")
     }
 
     /// If this is a table wrapper flow, returns the underlying object. Fails otherwise.
     fn as_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
-        fail!("called as_table_wrapper() on a non-tablewrapper flow")
+        panic!("called as_table_wrapper() on a non-tablewrapper flow")
     }
 
     /// If this is a table wrapper flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
-        fail!("called as_immutable_table_wrapper() on a non-tablewrapper flow")
+        panic!("called as_immutable_table_wrapper() on a non-tablewrapper flow")
     }
 
     /// If this is a table flow, returns the underlying object. Fails otherwise.
     fn as_table<'a>(&'a mut self) -> &'a mut TableFlow {
-        fail!("called as_table() on a non-table flow")
+        panic!("called as_table() on a non-table flow")
     }
 
     /// If this is a table flow, returns the underlying object, borrowed immutably. Fails otherwise.
     fn as_immutable_table<'a>(&'a self) -> &'a TableFlow {
-        fail!("called as_table() on a non-table flow")
+        panic!("called as_table() on a non-table flow")
     }
 
     /// If this is a table colgroup flow, returns the underlying object. Fails otherwise.
     fn as_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
-        fail!("called as_table_colgroup() on a non-tablecolgroup flow")
+        panic!("called as_table_colgroup() on a non-tablecolgroup flow")
     }
 
     /// If this is a table rowgroup flow, returns the underlying object. Fails otherwise.
     fn as_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
-        fail!("called as_table_rowgroup() on a non-tablerowgroup flow")
+        panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
     }
 
     /// If this is a table rowgroup flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
-        fail!("called as_table_rowgroup() on a non-tablerowgroup flow")
+        panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
     }
 
     /// If this is a table row flow, returns the underlying object. Fails otherwise.
     fn as_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
-        fail!("called as_table_row() on a non-tablerow flow")
+        panic!("called as_table_row() on a non-tablerow flow")
     }
 
     /// If this is a table row flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_row<'a>(&'a self) -> &'a TableRowFlow {
-        fail!("called as_table_row() on a non-tablerow flow")
+        panic!("called as_table_row() on a non-tablerow flow")
     }
 
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
     fn as_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
-        fail!("called as_table_caption() on a non-tablecaption flow")
+        panic!("called as_table_caption() on a non-tablecaption flow")
     }
 
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
     fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
-        fail!("called as_table_cell() on a non-tablecell flow")
+        panic!("called as_table_cell() on a non-tablecell flow")
     }
 
     /// If this is a table cell flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_cell<'a>(&'a self) -> &'a TableCellFlow {
-        fail!("called as_table_cell() on a non-tablecell flow")
+        panic!("called as_table_cell() on a non-tablecell flow")
     }
 
     /// If this is a table row or table rowgroup or table flow, returns column inline-sizes.
     /// Fails otherwise.
     fn column_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnInlineSize> {
-        fail!("called column_inline_sizes() on non-table flow")
+        panic!("called column_inline_sizes() on non-table flow")
     }
 
     // Main methods
@@ -177,17 +177,17 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// This function must decide minimum/preferred inline-sizes based on its children's inline-
     /// sizes and the dimensions of any boxes it is responsible for flowing.
     fn bubble_inline_sizes(&mut self) {
-        fail!("bubble_inline_sizes not yet implemented")
+        panic!("bubble_inline_sizes not yet implemented")
     }
 
     /// Pass 2 of reflow: computes inline-size.
     fn assign_inline_sizes(&mut self, _ctx: &LayoutContext) {
-        fail!("assign_inline_sizes not yet implemented")
+        panic!("assign_inline_sizes not yet implemented")
     }
 
     /// Pass 3a of reflow: computes block-size.
     fn assign_block_size<'a>(&mut self, _ctx: &'a LayoutContext<'a>) {
-        fail!("assign_block_size not yet implemented")
+        panic!("assign_block_size not yet implemented")
     }
 
     /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
@@ -279,7 +279,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// Return the dimensions of the containing block generated by this flow for absolutely-
     /// positioned descendants. For block flows, this is the padding box.
     fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        fail!("generated_containing_block_position not yet implemented for this flow")
+        panic!("generated_containing_block_position not yet implemented for this flow")
     }
 
     /// Returns a layer ID for the given fragment.
@@ -838,7 +838,7 @@ impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
 impl Drop for BaseFlow {
     fn drop(&mut self) {
         if self.ref_count.load(SeqCst) != 0 {
-            fail!("Flow destroyed before its ref count hit zero—this is unsafe!")
+            panic!("Flow destroyed before its ref count hit zero—this is unsafe!")
         }
     }
 }
@@ -1037,7 +1037,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
                 box TableCellFlow::from_node_and_fragment(node, fragment) as Box<Flow>
             },
             _ => {
-                fail!("no need to generate a missing child")
+                panic!("no need to generate a missing child")
             }
         };
         FlowRef::new(flow)
@@ -1304,7 +1304,7 @@ impl ContainingBlockLink {
     #[inline]
     pub fn generated_containing_block_rect(&mut self) -> LogicalRect<Au> {
         match self.link {
-            None => fail!("haven't done it"),
+            None => panic!("haven't done it"),
             Some(ref mut link) => link.generated_containing_block_rect(),
         }
     }

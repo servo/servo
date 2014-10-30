@@ -55,7 +55,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> String {
             }
             DocumentFragmentNodeTypeId => {}
             DocumentNodeTypeId => {
-                fail!("It shouldn't be possible to serialize a document node")
+                panic!("It shouldn't be possible to serialize a document node")
             }
         }
     }

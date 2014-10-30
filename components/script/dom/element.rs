@@ -299,7 +299,7 @@ impl RawLayoutElementHelpers for Element {
         match length_attribute {
             WidthLengthAttribute => {
                 if !self.is_htmltablecellelement() {
-                    fail!("I'm not a table cell!")
+                    panic!("I'm not a table cell!")
                 }
                 let this: &HTMLTableCellElement = mem::transmute(self);
                 this.get_width()
@@ -314,7 +314,7 @@ impl RawLayoutElementHelpers for Element {
         match integer_attribute {
             SizeIntegerAttribute => {
                 if !self.is_htmlinputelement() {
-                    fail!("I'm not a form input!")
+                    panic!("I'm not a form input!")
                 }
                 let this: &HTMLInputElement = mem::transmute(self);
                 Some(this.get_size_for_layout() as i32)
@@ -623,7 +623,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             Some(attribute) => {
                 match *attribute.value() {
                     UIntAttrValue(_, value) => value,
-                    _ => fail!("Expected a UIntAttrValue"),
+                    _ => panic!("Expected a UIntAttrValue"),
                 }
             }
             None => 0,
@@ -1135,7 +1135,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
             let attr = attr.root();
             match *attr.value() {
                 AtomAttrValue(ref val) => val.clone(),
-                _ => fail!("`id` attribute should be AtomAttrValue"),
+                _ => panic!("`id` attribute should be AtomAttrValue"),
             }
         })
     }
