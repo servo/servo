@@ -25,7 +25,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#2ec4ba457224ba15024e5a846848782df6e8a2c7"
+source = "git+https://github.com/servo/rust-azure#8e9b6b1fdbbe0386655d61b0f58e1a9910497311"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics#6a9919f8a912cc67571b891ba198d5325964a104)",
@@ -34,7 +34,6 @@ dependencies = [
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype#0b03da276e4bdeae2300596dabc4ccb16733ad70)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#3737b00270644594a95896a2cd37ffca36d5bc5f)",
- "opengles 0.1.0 (git+https://github.com/servo/rust-opengles#e308a8672f7d953f6484932b6a4aaae8a0cc2a50)",
  "skia-sys 0.0.20130412 (git+https://github.com/servo/skia#6d696712962fd0d41120b7a414a48417da8e6a92)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib#581d4faddec5188d3c3ae5307dbea28aab90644c)",
 ]
@@ -43,7 +42,7 @@ dependencies = [
 name = "canvas"
 version = "0.0.1"
 dependencies = [
- "azure 0.1.0 (git+https://github.com/servo/rust-azure#2ec4ba457224ba15024e5a846848782df6e8a2c7)",
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure#8e9b6b1fdbbe0386655d61b0f58e1a9910497311)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "util 0.0.1",
 ]
@@ -66,7 +65,7 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "alert 0.1.0 (git+https://github.com/servo/rust-alert#fdc24f13be8d8a2d15214ec228d166b3221b809e)",
- "azure 0.1.0 (git+https://github.com/servo/rust-azure#2ec4ba457224ba15024e5a846848782df6e8a2c7)",
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure#8e9b6b1fdbbe0386655d61b0f58e1a9910497311)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics#6a9919f8a912cc67571b891ba198d5325964a104)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text#967a97fa7e9ae47f96aee5e48f5fb0be1345d89e)",
  "devtools 0.0.1",
@@ -181,7 +180,7 @@ source = "git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a
 name = "gfx"
 version = "0.0.1"
 dependencies = [
- "azure 0.1.0 (git+https://github.com/servo/rust-azure#2ec4ba457224ba15024e5a846848782df6e8a2c7)",
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure#8e9b6b1fdbbe0386655d61b0f58e1a9910497311)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics#6a9919f8a912cc67571b891ba198d5325964a104)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text#967a97fa7e9ae47f96aee5e48f5fb0be1345d89e)",
@@ -347,7 +346,7 @@ source = "git+https://github.com/servo/mozjs#47cd6a4e60c75642ba182f0df9a42b71ec7
 name = "msg"
 version = "0.0.1"
 dependencies = [
- "azure 0.1.0 (git+https://github.com/servo/rust-azure#2ec4ba457224ba15024e5a846848782df6e8a2c7)",
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure#8e9b6b1fdbbe0386655d61b0f58e1a9910497311)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation#5c3b85b079ab2fe4a046497a84e55386db7598e8)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo#5e9b063b36028a5b40a417c661ee5c628b594be9)",
