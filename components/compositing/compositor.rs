@@ -22,6 +22,8 @@ use azure::azure_hl;
 use std::cmp;
 use std::num::Zero;
 use std::time::duration::Duration;
+use std::u64;
+use time::precise_time_ns;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
@@ -122,7 +124,11 @@ pub struct IOCompositor<Window: WindowMethods> {
     memory_profiler_chan: MemoryProfilerChan,
 
     /// Pending scroll to fragment event, if any
-    fragment_point: Option<Point2D<f32>>
+    fragment_point: Option<Point2D<f32>>,
+
+    /// A tracker to support mouse-drag scrolling. Useful for simulating drag
+    /// scrolling on non-touchscreen devices.
+    mouse_drag_scrolling_state: MouseDragScrollingState,
 }
 
 #[deriving(PartialEq)]
@@ -179,6 +185,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             memory_profiler_chan: memory_profiler_chan,
             fragment_point: None,
             outstanding_render_msgs: 0,
+            mouse_drag_scrolling_state: MouseDragScrollingState::new(),
         }
     }
 
@@ -637,7 +644,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             ScrollWindowEvent(delta, cursor) => {
-                self.on_scroll_window_event(delta, cursor);
+                self.on_scroll_window_event(delta, cursor.as_f32());
             }
 
             ZoomWindowEvent(magnification) => {
@@ -703,19 +710,34 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         chan.send(msg);
     }
 
-    fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
+    fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
         let point = match mouse_window_event {
             MouseWindowClickEvent(_, p) => p,
             MouseWindowMouseDownEvent(_, p) => p,
             MouseWindowMouseUpEvent(_, p) => p,
         };
+
+        let (handled, scroll_delta) =
+            self.mouse_drag_scrolling_state.process_mouse_button_event(&mouse_window_event);
+        if handled {
+            self.on_scroll_window_event(scroll_delta, point);
+            return;
+        }
+
         match self.find_topmost_layer_at_point(point / self.scene.scale) {
             Some(result) => result.layer.send_mouse_event(mouse_window_event, result.point),
             None => {},
         }
     }
 
-    fn on_mouse_window_move_event_class(&self, cursor: TypedPoint2D<DevicePixel, f32>) {
+    fn on_mouse_window_move_event_class(&mut self, cursor: TypedPoint2D<DevicePixel, f32>) {
+        let (handled, scroll_delta) =
+            self.mouse_drag_scrolling_state.process_mouse_move_event(cursor);
+        if handled {
+            self.on_scroll_window_event(scroll_delta, cursor);
+            return;
+        }
+
         match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
             Some(result) => result.layer.send_mouse_move_event(result.point),
             None => {},
@@ -724,7 +746,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_scroll_window_event(&mut self,
                               delta: TypedPoint2D<DevicePixel, f32>,
-                              cursor: TypedPoint2D<DevicePixel, i32>) {
+                              cursor: TypedPoint2D<DevicePixel, f32>) {
+        if delta.is_zero() {
+            return;
+        }
+
         let delta = delta / self.scene.scale;
         let cursor = cursor.as_f32() / self.scene.scale;
 
@@ -1053,4 +1079,71 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
     }
 
     return None;
+}
+
+struct MouseDragScrollingState {
+    last_drag_location: Option<TypedPoint2D<DevicePixel, f32>>,
+    last_process_time: u64,
+}
+
+impl MouseDragScrollingState {
+    fn new() -> MouseDragScrollingState {
+        MouseDragScrollingState {
+            last_drag_location: None,
+            last_process_time: 0,
+        }
+    }
+
+    fn calculate_drag_delta(&mut self,
+                            point: TypedPoint2D<DevicePixel, f32>,
+                            current_time: u64)
+                            -> TypedPoint2D<DevicePixel, f32> {
+        // We wait 45 milliseconds between drag updates. This can decrease as
+        // we improve compositor performance.
+        static TIME_BETWEEN_DRAG_UPDATES: u64 = 45 * 1000000;
+
+        match self.last_drag_location {
+            Some(old_point) => {
+                if current_time - self.last_process_time > TIME_BETWEEN_DRAG_UPDATES {
+                    self.last_process_time = current_time;
+                    self.last_drag_location = Some(point);
+                    point - old_point
+                } else {
+                    Zero::zero()
+                }
+            }
+            None => Zero::zero()
+        }
+    }
+
+    fn process_mouse_button_event(&mut self,
+                                  event: &MouseWindowEvent)
+                                  -> (bool, TypedPoint2D<DevicePixel, f32>) {
+        match event {
+            &MouseWindowMouseDownEvent(2, point) => {
+                self.last_drag_location = Some(point);
+                self.last_process_time = precise_time_ns();
+                (true, Zero::zero())
+            }
+            &MouseWindowMouseUpEvent(2, point) => {
+                let delta = self.calculate_drag_delta(point, u64::MAX);
+                self.last_drag_location = None;
+                self.last_process_time = 0;
+                (true, delta)
+            }
+            _ => (false, Zero::zero())
+        }
+    }
+
+    fn process_mouse_move_event(&mut self,
+                                point: TypedPoint2D<DevicePixel, f32>)
+                                -> (bool, TypedPoint2D<DevicePixel, f32>) {
+        if self.last_drag_location.is_none() {
+            return (false, Zero::zero());
+        }
+
+        let current_time = precise_time_ns();
+        let delta = self.calculate_drag_delta(point, current_time);
+        return (true, delta);
+    }
 }
