@@ -1260,7 +1260,7 @@ impl Node {
                             0 => (),
                             // Step 6.1.2
                             1 => {
-                                if parent.child_elements().peek().is_some() {
+                                if !parent.child_elements().is_empty() {
                                     return Err(HierarchyRequest);
                                 }
                                 match child {
@@ -1279,7 +1279,7 @@ impl Node {
                     },
                     // Step 6.2
                     ElementNodeTypeId(_) => {
-                        if parent.child_elements().peek().is_some() {
+                        if !parent.child_elements().is_empty() {
                             return Err(HierarchyRequest);
                         }
                         match child {
@@ -1306,7 +1306,7 @@ impl Node {
                                 }
                             },
                             None => {
-                                if parent.child_elements().peek().is_some() {
+                                if !parent.child_elements().is_empty() {
                                     return Err(HierarchyRequest);
                                 }
                             },
