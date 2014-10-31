@@ -380,10 +380,10 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
 
 pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator<'a>;
-    fn children(self) -> AbstractNodeChildrenIterator<'a>;
+    fn children(self) -> NodeChildrenIterator<'a>;
     fn rev_children(self) -> ReverseChildrenIterator<'a>;
     fn child_elements(self) -> ChildElementIterator<'a>;
-    fn following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
+    fn following_siblings(self) -> NodeChildrenIterator<'a>;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
     fn is_parent_of(self, child: JSRef<Node>) -> bool;
@@ -442,7 +442,7 @@ pub trait NodeHelpers<'a> {
     fn debug_str(self) -> String;
 
     fn traverse_preorder(self) -> TreeIterator<'a>;
-    fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
+    fn inclusively_following_siblings(self) -> NodeChildrenIterator<'a>;
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress;
 
@@ -661,8 +661,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         TreeIterator::new(self)
     }
 
-    fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'a> {
-        AbstractNodeChildrenIterator {
+    fn inclusively_following_siblings(self) -> NodeChildrenIterator<'a> {
+        NodeChildrenIterator {
             current: Some(self.clone()),
         }
     }
@@ -671,8 +671,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self == parent || parent.ancestors().any(|ancestor| ancestor == self)
     }
 
-    fn following_siblings(self) -> AbstractNodeChildrenIterator<'a> {
-        AbstractNodeChildrenIterator {
+    fn following_siblings(self) -> NodeChildrenIterator<'a> {
+        NodeChildrenIterator {
             current: self.next_sibling().root().map(|next| next.clone()),
         }
     }
@@ -763,8 +763,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self.owner_doc().root().is_html_document()
     }
 
-    fn children(self) -> AbstractNodeChildrenIterator<'a> {
-        AbstractNodeChildrenIterator {
+    fn children(self) -> NodeChildrenIterator<'a> {
+        NodeChildrenIterator {
             current: self.first_child.get().map(|node| (*node.root()).clone()),
         }
     }
@@ -968,13 +968,13 @@ impl RawLayoutNodeHelpers for Node {
 
 pub type ChildElementIterator<'a> = Map<'a, JSRef<'a, Node>,
                                         JSRef<'a, Element>,
-                                        Filter<'a, JSRef<'a, Node>, AbstractNodeChildrenIterator<'a>>>;
+                                        Filter<'a, JSRef<'a, Node>, NodeChildrenIterator<'a>>>;
 
-pub struct AbstractNodeChildrenIterator<'a> {
+pub struct NodeChildrenIterator<'a> {
     current: Option<JSRef<'a, Node>>,
 }
 
-impl<'a> Iterator<JSRef<'a, Node>> for AbstractNodeChildrenIterator<'a> {
+impl<'a> Iterator<JSRef<'a, Node>> for NodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current;
         self.current = node.and_then(|node| node.next_sibling().map(|node| *node.root().deref()));
