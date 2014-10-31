@@ -59,7 +59,7 @@ use libc;
 use libc::{uintptr_t, c_void};
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
-use std::iter::{Map, Filter};
+use std::iter::{Map, Filter, Peekable};
 use std::mem;
 use style;
 use style::ComputedValues;
@@ -784,6 +784,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
                 let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 elem.clone()
             })
+            .peekable()
     }
 
     fn wait_until_safe_to_modify_dom(self) {
@@ -966,9 +967,10 @@ impl RawLayoutNodeHelpers for Node {
 // Iteration and traversal
 //
 
-pub type ChildElementIterator<'a> = Map<'a, JSRef<'a, Node>,
-                                        JSRef<'a, Element>,
-                                        Filter<'a, JSRef<'a, Node>, NodeChildrenIterator<'a>>>;
+pub type ChildElementIterator<'a> = Peekable<JSRef<'a, Element>,
+                                        Map<'a, JSRef<'a, Node>,
+                                            JSRef<'a, Element>,
+                                            Filter<'a, JSRef<'a, Node>, NodeChildrenIterator<'a>>>>;
 
 pub struct NodeChildrenIterator<'a> {
     current: Option<JSRef<'a, Node>>,
@@ -1258,9 +1260,7 @@ impl Node {
                             0 => (),
                             // Step 6.1.2
                             1 => {
-                                // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
-                                // will be fixed
-                                if parent.child_elements().count() > 0 {
+                                if parent.child_elements().peek().is_some() {
                                     return Err(HierarchyRequest);
                                 }
                                 match child {
@@ -1279,9 +1279,7 @@ impl Node {
                     },
                     // Step 6.2
                     ElementNodeTypeId(_) => {
-                        // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
-                        // will be fixed
-                        if parent.child_elements().count() > 0 {
+                        if parent.child_elements().peek().is_some() {
                             return Err(HierarchyRequest);
                         }
                         match child {
@@ -1308,9 +1306,7 @@ impl Node {
                                 }
                             },
                             None => {
-                                // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
-                                // will be fixed
-                                if parent.child_elements().count() > 0 {
+                                if parent.child_elements().peek().is_some() {
                                     return Err(HierarchyRequest);
                                 }
                             },
