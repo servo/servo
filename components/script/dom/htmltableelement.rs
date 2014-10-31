@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLTableCaptionElementTypeId;
 use dom::element::HTMLTableElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
@@ -52,11 +51,10 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     //  http://www.whatwg.org/html/#dom-table-caption
     fn GetCaption(self) -> Option<Temporary<HTMLTableCaptionElement>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.children().find(|child| {
-            child.type_id() == ElementNodeTypeId(HTMLTableCaptionElementTypeId)
-        }).map(|node| {
-            Temporary::from_rooted(HTMLTableCaptionElementCast::to_ref(node).unwrap())
-        })
+        node.children()
+            .filter_map::<JSRef<HTMLTableCaptionElement>>(HTMLTableCaptionElementCast::to_ref)
+            .next()
+            .map(Temporary::from_rooted)
     }
 
     // http://www.whatwg.org/html/#dom-table-caption
