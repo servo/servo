@@ -112,7 +112,7 @@ impl LintPass for UnrootedPass {
             ast::DefaultBlock => {
                 for arg in decl.inputs.iter() {
                     lint_unrooted_ty(cx, &*arg.ty,
-                                     "Type must be rooted, use #[must_root] on the fn definition to propagate")
+                                     "Type must be rooted")
                 }
             }
             _ => () // fn is `unsafe`
