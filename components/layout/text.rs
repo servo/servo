@@ -119,7 +119,7 @@ impl TextRunScanner {
             for in_fragment in self.clump.iter() {
                 let in_fragment = match in_fragment.specific {
                     UnscannedTextFragment(ref text_fragment_info) => &text_fragment_info.text,
-                    _ => fail!("Expected an unscanned text fragment!"),
+                    _ => panic!("Expected an unscanned text fragment!"),
                 };
 
                 let mut new_line_pos = Vec::new();

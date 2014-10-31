@@ -266,7 +266,7 @@ fn test_bad_scheme() {
     let response = start.recv();
     match response.progress_port.recv() {
       Done(result) => { assert!(result.is_err()) }
-      _ => fail!("bleh")
+      _ => panic!("bleh")
     }
     resource_task.send(Exit);
 }

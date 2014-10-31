@@ -114,7 +114,7 @@ pub fn run<Window: WindowMethods>(window: Option<Rc<Window>>) {
                 Ok(url) => url,
                 Err(url::RelativeUrlWithoutBase)
                 => url::Url::from_file_path(&cwd.join(url.as_slice())).unwrap(),
-                Err(_) => fail!("URL parsing failed"),
+                Err(_) => panic!("URL parsing failed"),
             };
 
             let ConstellationChan(ref chan) = constellation_chan;

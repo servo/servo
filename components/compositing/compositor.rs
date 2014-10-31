@@ -262,7 +262,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         loop {
             match (self.port.try_recv(), self.shutdown_state) {
                 (_, FinishedShuttingDown) =>
-                    fail!("compositor shouldn't be handling messages after shutting down"),
+                    panic!("compositor shouldn't be handling messages after shutting down"),
 
                 (Err(_), _) => break,
 
@@ -459,7 +459,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Rc<Layer<CompositorData>> {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null()) {
             Some(ref layer) => layer.clone(),
-            None => fail!("Tried to create or update layer for unknown pipeline"),
+            None => panic!("Tried to create or update layer for unknown pipeline"),
         }
     }
 
@@ -552,7 +552,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.fragment_point.take() {
             Some(point) => {
                 if !self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
-                    fail!("Compositor: Tried to scroll to fragment with unknown layer.");
+                    panic!("Compositor: Tried to scroll to fragment with unknown layer.");
                 }
 
                 self.recomposite = true;
@@ -569,7 +569,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(ref layer) => {
                 layer.bounds.borrow_mut().origin = Point2D::from_untyped(&new_origin)
             }
-            None => fail!("Compositor received SetLayerOrigin for nonexistent layer"),
+            None => panic!("Compositor received SetLayerOrigin for nonexistent layer"),
         };
 
         self.send_buffer_requests_for_all_layers();
@@ -595,7 +595,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // FIXME: This may potentially be triggered by a race condition where a
                 // buffers are being rendered but the layer is removed before rendering
                 // completes.
-                fail!("compositor given paint command for non-existent layer");
+                panic!("compositor given paint command for non-existent layer");
             }
         }
     }
@@ -694,7 +694,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.got_load_complete_message = false;
         let root_pipeline_id = match self.scene.root {
             Some(ref layer) => layer.extra_data.borrow().pipeline.id.clone(),
-            None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor \
+            None => panic!("Compositor: Received LoadUrlWindowEvent without initialized compositor \
                            layers"),
         };
 

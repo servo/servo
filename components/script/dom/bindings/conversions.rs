@@ -62,7 +62,7 @@ impl ToJSValConvertible for JSVal {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         let mut value = *self;
         if unsafe { JS_WrapValue(cx, &mut value) } == 0 {
-            fail!("JS_WrapValue failed.");
+            panic!("JS_WrapValue failed.");
         }
         value
     }
@@ -231,7 +231,7 @@ impl ToJSValConvertible for DOMString {
             let string_utf16: Vec<u16> = self.as_slice().utf16_units().collect();
             let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr(), string_utf16.len() as libc::size_t);
             if jsstr.is_null() {
-                fail!("JS_NewUCStringCopyN failed");
+                panic!("JS_NewUCStringCopyN failed");
             }
             StringValue(&*jsstr)
         }
@@ -297,7 +297,7 @@ impl ToJSValConvertible for ByteString {
             let jsstr = JS_NewStringCopyN(cx, slice.as_ptr() as *const libc::c_char,
                                           slice.len() as libc::size_t);
             if jsstr.is_null() {
-                fail!("JS_NewStringCopyN failed");
+                panic!("JS_NewStringCopyN failed");
             }
             StringValue(&*jsstr)
         }
@@ -333,7 +333,7 @@ impl ToJSValConvertible for Reflector {
         assert!(obj.is_not_null());
         let mut value = ObjectValue(unsafe { &*obj });
         if unsafe { JS_WrapValue(cx, &mut value) } == 0 {
-            fail!("JS_WrapValue failed.");
+            panic!("JS_WrapValue failed.");
         }
         value
     }

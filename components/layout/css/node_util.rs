@@ -91,7 +91,7 @@ impl<'ln> NodeUtil for ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) => layout_data.data.restyle_damage = damage,
-            _ => fail!("no layout data for this node"),
+            _ => panic!("no layout data for this node"),
         }
     }
 }

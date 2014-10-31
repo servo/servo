@@ -78,7 +78,7 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
         match self.filter {
             FilterNone => None,
             FilterJS(nf) => Some(nf),
-            FilterNative(_) => fail!("Cannot convert native node filter to DOM NodeFilter")
+            FilterNative(_) => panic!("Cannot convert native node filter to DOM NodeFilter")
         }
     }
 

@@ -340,7 +340,7 @@ impl LayoutTask {
             } else if ret == port2.id() {
                 Pipeline
             } else {
-                fail!("invalid select result");
+                panic!("invalid select result");
             }
         };
 
@@ -444,7 +444,7 @@ impl LayoutTask {
                     break
                 }
                 _ => {
-                    fail!("layout: message that wasn't `ExitNowMsg` received after \
+                    panic!("layout: message that wasn't `ExitNowMsg` received after \
                            `PrepareToExitMsg`")
                 }
             }
@@ -560,7 +560,7 @@ impl LayoutTask {
         let _scope = layout_debug_scope!("solve_constraints_parallel");
 
         match rw_data.parallel_traversal {
-            None => fail!("solve_contraints_parallel() called with no parallel traversal ready"),
+            None => panic!("solve_contraints_parallel() called with no parallel traversal ready"),
             Some(ref mut traversal) => {
                 // NOTE: this currently computes borders, so any pruning should separate that
                 // operation out.
@@ -894,7 +894,7 @@ impl LayoutRPC for LayoutRPCImpl {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock();
             match rw_data.display_list {
-                None => fail!("no display list!"),
+                None => panic!("no display list!"),
                 Some(ref display_list) => {
                     union_boxes_for_node(&mut rect, display_list.iter(), node)
                 }
@@ -922,7 +922,7 @@ impl LayoutRPC for LayoutRPCImpl {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock();
             match rw_data.display_list {
-                None => fail!("no display list!"),
+                None => panic!("no display list!"),
                 Some(ref display_list) => {
                     add_boxes_for_node(&mut boxes, display_list.iter(), node)
                 }
@@ -950,7 +950,7 @@ impl LayoutRPC for LayoutRPCImpl {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock();
             match rw_data.display_list {
-                None => fail!("no display list!"),
+                None => panic!("no display list!"),
                 Some(ref display_list) => hit_test(point, display_list.list.iter().rev()),
             }
         };
@@ -981,7 +981,7 @@ impl LayoutRPC for LayoutRPCImpl {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock();
             match rw_data.display_list {
-                None => fail!("no display list!"),
+                None => panic!("no display list!"),
                 Some(ref display_list) => {
                     mouse_over_test(point, display_list.list.iter().rev(), &mut mouse_over_list);
                 }

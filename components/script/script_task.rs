@@ -466,7 +466,7 @@ impl ScriptTask {
             } else if ret == port3.id() {
                 FromDevtools(self.devtools_port.recv())
             } else {
-                fail!("unexpected select result")
+                panic!("unexpected select result")
             }
         };
 
@@ -517,21 +517,21 @@ impl ScriptTask {
         for msg in sequential.into_iter() {
             match msg {
                 // TODO(tkuehn) need to handle auxiliary layouts for iframes
-                FromConstellation(AttachLayoutMsg(_)) => fail!("should have handled AttachLayoutMsg already"),
+                FromConstellation(AttachLayoutMsg(_)) => panic!("should have handled AttachLayoutMsg already"),
                 FromConstellation(LoadMsg(id, load_data)) => self.load(id, load_data),
                 FromScript(TriggerLoadMsg(id, load_data)) => self.trigger_load(id, load_data),
                 FromScript(TriggerFragmentMsg(id, url)) => self.trigger_fragment(id, url),
                 FromConstellation(SendEventMsg(id, event)) => self.handle_event(id, event),
                 FromScript(FireTimerMsg(FromWindow(id), timer_id)) => self.handle_fire_timer_msg(id, timer_id),
-                FromScript(FireTimerMsg(FromWorker, _)) => fail!("Worker timeouts must not be sent to script task"),
+                FromScript(FireTimerMsg(FromWorker, _)) => panic!("Worker timeouts must not be sent to script task"),
                 FromScript(NavigateMsg(direction)) => self.handle_navigate_msg(direction),
                 FromConstellation(ReflowCompleteMsg(id, reflow_id)) => self.handle_reflow_complete_msg(id, reflow_id),
                 FromConstellation(ResizeInactiveMsg(id, new_size)) => self.handle_resize_inactive_msg(id, new_size),
                 FromConstellation(ExitPipelineMsg(id)) => if self.handle_exit_pipeline_msg(id) { return false },
                 FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
-                FromConstellation(ResizeMsg(..)) => fail!("should have handled ResizeMsg already"),
+                FromConstellation(ResizeMsg(..)) => panic!("should have handled ResizeMsg already"),
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
-                FromScript(DOMMessage(..)) => fail!("unexpected message"),
+                FromScript(DOMMessage(..)) => panic!("unexpected message"),
                 FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
                 FromDevtools(EvaluateJS(id, s, reply)) => self.handle_evaluate_js(id, s, reply),
@@ -569,7 +569,7 @@ impl ScriptTask {
         } else {
             //FIXME: jsvals don't have an is_int32/is_number yet
             assert!(rval.is_object_or_null());
-            fail!("object values unimplemented")
+            panic!("object values unimplemented")
         });
     }
 
@@ -604,7 +604,7 @@ impl ScriptTask {
             }
         }
 
-        fail!("couldn't find node with unique id {:s}", node_id)
+        panic!("couldn't find node with unique id {:s}", node_id)
     }
 
     fn handle_get_children(&self, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {

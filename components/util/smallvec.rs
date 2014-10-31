@@ -153,7 +153,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> where T: 'static {
             let last_index = self.len() - 1;
 
             if (last_index as int) < 0 {
-                fail!("overflow")
+                panic!("overflow")
             }
             let end_ptr = self.begin().offset(last_index as int);
 
@@ -239,7 +239,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> where T: 'static {
     }
 
     fn fail_bounds_check(&self, index: uint) {
-        fail!("index {} beyond length ({})", index, self.len())
+        panic!("index {} beyond length ({})", index, self.len())
     }
 }
 

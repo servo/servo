@@ -555,7 +555,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // and add the new pipeline to their sub frames.
         let frame_trees = self.find_all(source_pipeline_id);
         if frame_trees.is_empty() {
-            fail!("Constellation: source pipeline id of LoadIframeUrlMsg is not in
+            panic!("Constellation: source pipeline id of LoadIframeUrlMsg is not in
                    navigation context, nor is it in a pending frame. This should be
                    impossible.");
         }

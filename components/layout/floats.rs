@@ -21,7 +21,7 @@ pub enum FloatKind {
 impl FloatKind {
     pub fn from_property(property: float::T) -> FloatKind {
         match property {
-            float::none => fail!("can't create a float type from an unfloated property"),
+            float::none => panic!("can't create a float type from an unfloated property"),
             float::left => FloatLeft,
             float::right => FloatRight,
         }
@@ -232,7 +232,7 @@ impl Floats {
                 (max(block_start, r_block_start), r_block_end)
             }
             (None, None, None, None) => return None,
-            _ => fail!("Reached unreachable state when computing float area")
+            _ => panic!("Reached unreachable state when computing float area")
         };
 
         // FIXME(eatkinson): This assertion is too strong and fails in some cases. It is OK to

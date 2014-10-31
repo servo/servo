@@ -985,7 +985,7 @@ impl Fragment {
                 })
             }
             UnscannedTextFragment(..) => {
-                fail!("Unscanned text fragments should have been scanned by now!")
+                panic!("Unscanned text fragments should have been scanned by now!")
             }
         };
 
@@ -1023,8 +1023,8 @@ impl Fragment {
                 let text_bounds = run.metrics_for_range(range).bounding_box;
                 text_bounds.size.width
             }
-            TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
-            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            TableColumnFragment(_) => panic!("Table column fragments do not have inline_size"),
+            UnscannedTextFragment(_) => panic!("Unscanned text fragments should have been scanned by now!"),
         }
     }
 
@@ -1041,8 +1041,8 @@ impl Fragment {
                 // Compute the block-size based on the line-block-size and font size.
                 self.calculate_line_height(layout_context)
             }
-            TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
-            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            TableColumnFragment(_) => panic!("Table column fragments do not have block_size"),
+            UnscannedTextFragment(_) => panic!("Unscanned text fragments should have been scanned by now!"),
         }
     }
 
@@ -1068,10 +1068,10 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment | InputFragment => None,
-            TableColumnFragment(_) => fail!("Table column fragments do not need to split"),
-            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            TableColumnFragment(_) => panic!("Table column fragments do not need to split"),
+            UnscannedTextFragment(_) => panic!("Unscanned text fragments should have been scanned by now!"),
             InlineBlockFragment(_) | InlineAbsoluteHypotheticalFragment(_) => {
-                fail!("Inline blocks or inline absolute hypothetical fragments do not get split")
+                panic!("Inline blocks or inline absolute hypothetical fragments do not get split")
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let mut new_line_pos = text_fragment_info.new_line_pos.clone();
@@ -1117,9 +1117,9 @@ impl Fragment {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment |
             TableCellFragment | TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
             InputFragment | InlineAbsoluteHypotheticalFragment(_) => None,
-            TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
+            TableColumnFragment(_) => panic!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => {
-                fail!("Unscanned text fragments should have been scanned by now!")
+                panic!("Unscanned text fragments should have been scanned by now!")
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let mut pieces_processed_count: uint = 0;
@@ -1220,9 +1220,9 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment | InputFragment => return,
-            TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
+            TableColumnFragment(_) => panic!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => {
-                fail!("Unscanned text fragments should have been scanned by now!")
+                panic!("Unscanned text fragments should have been scanned by now!")
             }
             ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) |
             InlineAbsoluteHypotheticalFragment(_) => {}
@@ -1301,7 +1301,7 @@ impl Fragment {
                 self.border_box.size.inline = inline_size + noncontent_inline_size;
                 image_fragment_info.computed_inline_size = Some(inline_size);
             }
-            _ => fail!("this case should have been handled above"),
+            _ => panic!("this case should have been handled above"),
         }
     }
 
@@ -1313,9 +1313,9 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment | InputFragment => return,
-            TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
+            TableColumnFragment(_) => panic!("Table column fragments do not have block_size"),
             UnscannedTextFragment(_) => {
-                fail!("Unscanned text fragments should have been scanned by now!")
+                panic!("Unscanned text fragments should have been scanned by now!")
             }
             ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) |
             InlineAbsoluteHypotheticalFragment(_) => {}
@@ -1370,7 +1370,7 @@ impl Fragment {
                 let block_flow = info.flow_ref.as_block();
                 self.border_box.size.block = block_flow.base.position.size.block;
             }
-            _ => fail!("should have been handled above"),
+            _ => panic!("should have been handled above"),
         }
     }
 

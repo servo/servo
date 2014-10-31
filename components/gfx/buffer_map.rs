@@ -97,7 +97,7 @@ impl BufferMap {
                 None => {
                     match self.map.iter().min_by(|&(_, x)| x.last_action) {
                         Some((k, _)) => *k,
-                        None => fail!("BufferMap: tried to delete with no elements in map"),
+                        None => panic!("BufferMap: tried to delete with no elements in map"),
                     }
                 }
             };

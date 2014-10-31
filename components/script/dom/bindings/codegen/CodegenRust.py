@@ -381,7 +381,7 @@ class CGMethodCall(CGThing):
                                "return 0;\n" % methodName)))
         #XXXjdm Avoid unreachable statement warnings
         #overloadCGThings.append(
-        #    CGGeneric('fail!("We have an always-returning default case");\n'
+        #    CGGeneric('panic!("We have an always-returning default case");\n'
         #              'return 0;'))
         self.cgRoot = CGWrapper(CGList(overloadCGThings, "\n"),
                                 pre="\n")
@@ -2348,7 +2348,7 @@ class CGCase(CGList):
         bodyList = CGList([body], "\n")
         if fallThrough:
             raise TypeError("fall through required but unsupported")
-            #bodyList.append(CGGeneric('fail!("fall through unsupported"); /* Fall through */'))
+            #bodyList.append(CGGeneric('panic!("fall through unsupported"); /* Fall through */'))
         self.append(CGIndenter(bodyList));
         self.append(CGGeneric("}"))
 
