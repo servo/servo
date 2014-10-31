@@ -59,7 +59,7 @@ use libc;
 use libc::{uintptr_t, c_void};
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
-use std::iter::{Map, Filter};
+use std::iter::{Map, Filter, Peekable};
 use std::mem;
 use style;
 use style::ComputedValues;
@@ -380,10 +380,10 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
 
 pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator<'a>;
-    fn children(self) -> AbstractNodeChildrenIterator<'a>;
+    fn children(self) -> NodeChildrenIterator<'a>;
     fn rev_children(self) -> ReverseChildrenIterator<'a>;
     fn child_elements(self) -> ChildElementIterator<'a>;
-    fn following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
+    fn following_siblings(self) -> NodeChildrenIterator<'a>;
     fn is_in_doc(self) -> bool;
     fn is_inclusive_ancestor_of(self, parent: JSRef<Node>) -> bool;
     fn is_parent_of(self, child: JSRef<Node>) -> bool;
@@ -442,7 +442,7 @@ pub trait NodeHelpers<'a> {
     fn debug_str(self) -> String;
 
     fn traverse_preorder(self) -> TreeIterator<'a>;
-    fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'a>;
+    fn inclusively_following_siblings(self) -> NodeChildrenIterator<'a>;
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress;
 
@@ -661,8 +661,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         TreeIterator::new(self)
     }
 
-    fn inclusively_following_siblings(self) -> AbstractNodeChildrenIterator<'a> {
-        AbstractNodeChildrenIterator {
+    fn inclusively_following_siblings(self) -> NodeChildrenIterator<'a> {
+        NodeChildrenIterator {
             current: Some(self.clone()),
         }
     }
@@ -671,8 +671,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self == parent || parent.ancestors().any(|ancestor| ancestor == self)
     }
 
-    fn following_siblings(self) -> AbstractNodeChildrenIterator<'a> {
-        AbstractNodeChildrenIterator {
+    fn following_siblings(self) -> NodeChildrenIterator<'a> {
+        NodeChildrenIterator {
             current: self.next_sibling().root().map(|next| next.clone()),
         }
     }
@@ -763,8 +763,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self.owner_doc().root().is_html_document()
     }
 
-    fn children(self) -> AbstractNodeChildrenIterator<'a> {
-        AbstractNodeChildrenIterator {
+    fn children(self) -> NodeChildrenIterator<'a> {
+        NodeChildrenIterator {
             current: self.first_child.get().map(|node| (*node.root()).clone()),
         }
     }
@@ -784,6 +784,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
                 let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 elem.clone()
             })
+            .peekable()
     }
 
     fn wait_until_safe_to_modify_dom(self) {
@@ -966,15 +967,16 @@ impl RawLayoutNodeHelpers for Node {
 // Iteration and traversal
 //
 
-pub type ChildElementIterator<'a> = Map<'a, JSRef<'a, Node>,
-                                        JSRef<'a, Element>,
-                                        Filter<'a, JSRef<'a, Node>, AbstractNodeChildrenIterator<'a>>>;
+pub type ChildElementIterator<'a> = Peekable<JSRef<'a, Element>,
+                                        Map<'a, JSRef<'a, Node>,
+                                            JSRef<'a, Element>,
+                                            Filter<'a, JSRef<'a, Node>, NodeChildrenIterator<'a>>>>;
 
-pub struct AbstractNodeChildrenIterator<'a> {
+pub struct NodeChildrenIterator<'a> {
     current: Option<JSRef<'a, Node>>,
 }
 
-impl<'a> Iterator<JSRef<'a, Node>> for AbstractNodeChildrenIterator<'a> {
+impl<'a> Iterator<JSRef<'a, Node>> for NodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current;
         self.current = node.and_then(|node| node.next_sibling().map(|node| *node.root().deref()));
@@ -1258,9 +1260,7 @@ impl Node {
                             0 => (),
                             // Step 6.1.2
                             1 => {
-                                // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
-                                // will be fixed
-                                if parent.child_elements().count() > 0 {
+                                if !parent.child_elements().is_empty() {
                                     return Err(HierarchyRequest);
                                 }
                                 match child {
@@ -1279,9 +1279,7 @@ impl Node {
                     },
                     // Step 6.2
                     ElementNodeTypeId(_) => {
-                        // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
-                        // will be fixed
-                        if parent.child_elements().count() > 0 {
+                        if !parent.child_elements().is_empty() {
                             return Err(HierarchyRequest);
                         }
                         match child {
@@ -1308,9 +1306,7 @@ impl Node {
                                 }
                             },
                             None => {
-                                // FIXME: change to empty() when https://github.com/mozilla/rust/issues/11218
-                                // will be fixed
-                                if parent.child_elements().count() > 0 {
+                                if !parent.child_elements().is_empty() {
                                     return Err(HierarchyRequest);
                                 }
                             },
