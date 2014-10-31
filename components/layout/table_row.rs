@@ -21,7 +21,9 @@ use wrapper::ThreadSafeLayoutNode;
 use servo_util::geometry::Au;
 use std::cmp::max;
 use std::fmt;
+use style::ComputedValues;
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage};
+use sync::Arc;
 
 /// A single row of a table.
 #[deriving(Encodable)]
@@ -244,6 +246,10 @@ impl Flow for TableRowFlow {
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
         self.block_flow.build_display_list(layout_context)
+    }
+
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.block_flow.repair_style(new_style)
     }
 }
 

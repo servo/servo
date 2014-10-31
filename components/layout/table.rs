@@ -22,8 +22,9 @@ use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalRect;
 use std::cmp::max;
 use std::fmt;
+use style::{ComputedValues, CSSFloat};
 use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, table_layout};
-use style::CSSFloat;
+use sync::Arc;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
@@ -321,6 +322,10 @@ impl Flow for TableFlow {
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
         self.block_flow.build_display_list(layout_context);
+    }
+
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.block_flow.repair_style(new_style)
     }
 }
 

@@ -42,6 +42,9 @@ pub struct PrivateLayoutData {
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
+
+    /// Various flags.
+    pub flags: LayoutDataFlags,
 }
 
 impl PrivateLayoutData {
@@ -55,7 +58,15 @@ impl PrivateLayoutData {
             before_flow_construction_result: NoConstructionResult,
             after_flow_construction_result: NoConstructionResult,
             parallel: DomParallelInfo::new(),
+            flags: LayoutDataFlags::empty(),
         }
+    }
+}
+
+bitflags! {
+    flags LayoutDataFlags: u8 {
+        #[doc="Whether a flow has been newly constructed."]
+        static HasNewlyConstructedFlow = 0x01
     }
 }
 

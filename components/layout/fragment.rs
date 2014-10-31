@@ -1479,6 +1479,9 @@ impl Fragment {
         }
     }
 
+    pub fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.style = (*new_style).clone()
+    }
 }
 
 impl fmt::Show for Fragment {
