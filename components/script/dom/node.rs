@@ -1381,18 +1381,20 @@ impl Node {
                 // Step 4.
                 // Step 5: DocumentFragment, mutation records.
                 // Step 6: DocumentFragment.
-                for c in node.children() {
-                    Node::remove(c, node, Suppressed);
+                let mut kids = Vec::new();
+                for kid in node.children() {
+                    kids.push(kid.clone());
+                    Node::remove(kid, node, Suppressed);
                 }
 
                 // Step 7: mutation records.
                 // Step 8.
-                for node in node.children() {
-                    do_insert(node, parent, child);
+                for kid in kids.iter() {
+                    do_insert((*kid).clone(), parent, child);
                 }
 
-                for node in node.children() {
-                    fire_observer_if_necessary(node, suppress_observers);
+                for kid in kids.into_iter() {
+                    fire_observer_if_necessary(kid, suppress_observers);
                 }
             }
             _ => {
