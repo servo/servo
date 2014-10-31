@@ -141,7 +141,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
 }
 
 /// "Steps" as defined by CSS 2.1 § E.2.
-#[deriving(Clone, PartialEq)]
+#[deriving(Clone, PartialEq, Show)]
 pub enum StackingLevel {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
     BackgroundAndBordersStackingLevel,
@@ -287,10 +287,8 @@ impl DisplayList {
     }
 
     pub fn debug(&self) {
-        if log_enabled!(::log::DEBUG) {
-            for item in self.list.iter() {
-                item.debug_with_level(0);
-            }
+        for item in self.list.iter() {
+            item.debug_with_level(0);
         }
     }
 
@@ -665,13 +663,13 @@ impl DisplayItem {
         for _ in range(0, level) {
             indent.push_str("| ")
         }
-        debug!("{}+ {}", indent, self);
+        println!("{}+ {}", indent, self);
     }
 }
 
 impl fmt::Show for DisplayItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} @ {} ({:x})",
+        write!(f, "{} @ {} ({:x}) [{}]",
             match *self {
                 SolidColorDisplayItemClass(_) => "SolidColor",
                 TextDisplayItemClass(_) => "Text",
@@ -682,6 +680,7 @@ impl fmt::Show for DisplayItem {
             },
             self.base().bounds,
             self.base().node.id(),
+            self.base().level
         )
     }
 }
