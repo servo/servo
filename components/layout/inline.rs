@@ -12,6 +12,7 @@ use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
 use flow;
 use fragment::{Fragment, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
 use fragment::{ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
+use incremental::{Reflow, ReflowOutOfFlow};
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
@@ -1111,6 +1112,14 @@ impl Flow for InlineFlow {
                 line.bounds.size.block;
         } // End of `lines.each` loop.
 
+        // Assign block sizes for any inline-block descendants.
+        for kid in self.base.child_iter() {
+            if flow::base(kid).flags.is_absolutely_positioned() || kid.is_float() {
+                continue
+            }
+            kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+        }
+
         self.base.position.size.block = match self.lines.as_slice().last() {
             Some(ref last_line) => last_line.bounds.start.b + last_line.bounds.size.block,
             None => Au(0),
@@ -1120,6 +1129,8 @@ impl Flow for InlineFlow {
         self.base.floats.translate(LogicalSize::new(self.base.writing_mode,
                                                     Au(0),
                                                     -self.base.position.size.block));
+
+        self.base.restyle_damage.remove(ReflowOutOfFlow | Reflow);
     }
 
     fn compute_absolute_position(&mut self) {
@@ -1210,6 +1221,8 @@ impl Flow for InlineFlow {
             self.base.validate_display_list_geometry();
         }
     }
+
+    fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 }
 
 impl fmt::Show for InlineFlow {

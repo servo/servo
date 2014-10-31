@@ -32,7 +32,7 @@ use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
 use fragment::{Fragment, TableRowFragment, TableCellFragment};
-use incremental::RestyleDamage;
+use incremental::{ReconstructFlow, Reflow, ReflowOutOfFlow, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use parallel::FlowParallelInfo;
@@ -62,6 +62,8 @@ use std::raw;
 use std::sync::atomics::{AtomicUint, SeqCst};
 use std::slice::MutItems;
 use style::computed_values::{clear, float, position, text_align};
+use style::ComputedValues;
+use sync::Arc;
 
 /// Virtual methods that make up a float context.
 ///
@@ -199,6 +201,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
         let impacted = base(&*self).flags.impacted_by_floats();
         if impacted {
             self.assign_block_size(layout_context);
+            mut_base(&mut *self).restyle_damage.remove(ReflowOutOfFlow | Reflow);
         }
         impacted
     }
@@ -289,6 +292,10 @@ pub trait Flow: fmt::Show + ToString + Sync {
             LayerId(pointer, fragment_id)
         }
     }
+
+    /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
+    /// the new style. This can only succeed if the flow has exactly one fragment.
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>);
 }
 
 impl<'a, E, S: Encoder<E>> Encodable<S, E> for &'a Flow + 'a {
@@ -420,8 +427,6 @@ pub trait MutableFlowUtils {
     /// So, kids have their flow origin already set. In the case of absolute flow kids, they have
     /// their hypothetical box position already set.
     fn collect_static_block_offsets_from_children(self);
-
-    fn propagate_restyle_damage(self);
 }
 
 pub trait MutableOwnedFlowUtils {
@@ -874,9 +879,13 @@ impl BaseFlow {
             }
         }
 
+        // New flows start out as fully damaged.
+        let mut damage = RestyleDamage::all();
+        damage.remove(ReconstructFlow);
+
         BaseFlow {
             ref_count: AtomicUint::new(1),
-            restyle_damage: RestyleDamage::all(),
+            restyle_damage: damage,
             children: FlowList::new(),
             intrinsic_inline_sizes: IntrinsicISizes::new(),
             position: LogicalRect::zero(writing_mode),
@@ -1208,47 +1217,6 @@ impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
             }
         }
         mut_base(self).abs_descendants.static_block_offsets = absolute_descendant_block_offsets
-    }
-
-    fn propagate_restyle_damage(self) {
-        struct DirtyFloats {
-            left:  bool,
-            right: bool,
-        }
-
-        fn doit(flow: &mut Flow, down: RestyleDamage, dirty_floats: &mut DirtyFloats) -> RestyleDamage {
-            if base(flow).flags.clears_left() {
-                dirty_floats.left  = false;
-            }
-            if base(flow).flags.clears_right() {
-                dirty_floats.right = false;
-            }
-
-            if base(flow).flags.floats_left() {
-                (*dirty_floats).left  = true;
-            } else if base(flow).flags.floats_right() {
-                (*dirty_floats).right = true;
-            }
-
-            let mut my_damage = mut_base(flow).restyle_damage;
-            my_damage.insert(down);
-
-            if (*dirty_floats).left || (*dirty_floats).right {
-                my_damage = RestyleDamage::all();
-            }
-
-            let down_damage = my_damage.propagate_down();
-
-            for kid in child_iter(flow) {
-                my_damage.insert(doit(kid, down_damage, dirty_floats));
-            }
-
-            mut_base(flow).restyle_damage = my_damage;
-
-            my_damage.propagate_up()
-        }
-
-        doit(self, RestyleDamage::empty(), &mut DirtyFloats { left: false, right: false });
     }
 }
 

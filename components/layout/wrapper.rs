@@ -32,7 +32,9 @@
 
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
-use util::{LayoutDataAccess, LayoutDataWrapper, PrivateLayoutData, OpaqueNodeMethods};
+use incremental::RestyleDamage;
+use util::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, OpaqueNodeMethods};
+use util::{PrivateLayoutData};
 
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::cell::{Ref, RefMut};
@@ -803,7 +805,17 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         layout_data_wrapper_ref.data.after_style.is_some()
     }
 
+    /// Borrows the layout data without checking. Fails on a conflicting borrow.
+    #[inline(always)]
+    fn borrow_layout_data_unchecked<'a>(&'a self) -> *const Option<LayoutDataWrapper> {
+        unsafe {
+            mem::transmute(self.get().layout_data_unchecked())
+        }
+    }
+
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
+    ///
+    /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
     #[inline(always)]
     pub fn borrow_layout_data<'a>(&'a self) -> Ref<'a,Option<LayoutDataWrapper>> {
         unsafe {
@@ -812,6 +824,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     }
 
     /// Borrows the layout data mutably. Fails on a conflicting borrow.
+    ///
+    /// TODO(pcwalton): Make this private. It will let us avoid borrow flag checks in some cases.
     #[inline(always)]
     pub fn mutate_layout_data<'a>(&'a self) -> RefMut<'a,Option<LayoutDataWrapper>> {
         unsafe {
@@ -885,6 +899,50 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
                 Some(input) => input.get_size_for_layout(),
                 None => fail!("not an input element!")
             }
+        }
+    }
+
+    /// Get the description of how to account for recent style changes.
+    /// This is a simple bitfield and fine to copy by value.
+    pub fn restyle_damage(self) -> RestyleDamage {
+        let layout_data_ref = self.borrow_layout_data();
+        layout_data_ref.as_ref().unwrap().data.restyle_damage
+    }
+
+    /// Set the restyle damage field.
+    pub fn set_restyle_damage(self, damage: RestyleDamage) {
+        let mut layout_data_ref = self.mutate_layout_data();
+        match &mut *layout_data_ref {
+            &Some(ref mut layout_data) => layout_data.data.restyle_damage = damage,
+            _ => fail!("no layout data for this node"),
+        }
+    }
+
+    /// Returns the layout data flags for this node.
+    pub fn flags(self) -> LayoutDataFlags {
+        unsafe {
+            match *self.borrow_layout_data_unchecked() {
+                None => fail!(),
+                Some(ref layout_data) => layout_data.data.flags,
+            }
+        }
+    }
+
+    /// Adds the given flags to this node.
+    pub fn insert_flags(self, new_flags: LayoutDataFlags) {
+        let mut layout_data_ref = self.mutate_layout_data();
+        match &mut *layout_data_ref {
+            &Some(ref mut layout_data) => layout_data.data.flags.insert(new_flags),
+            _ => fail!("no layout data for this node"),
+        }
+    }
+
+    /// Removes the given flags from this node.
+    pub fn remove_flags(self, flags: LayoutDataFlags) {
+        let mut layout_data_ref = self.mutate_layout_data();
+        match &mut *layout_data_ref {
+            &Some(ref mut layout_data) => layout_data.data.flags.remove(flags),
+            _ => fail!("no layout data for this node"),
         }
     }
 }

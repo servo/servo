@@ -26,8 +26,9 @@ use wrapper::ThreadSafeLayoutNode;
 use servo_util::geometry::Au;
 use std::cmp::{max, min};
 use std::fmt;
-use style::CSSFloat;
+use style::{ComputedValues, CSSFloat};
 use style::computed_values::table_layout;
+use sync::Arc;
 
 #[deriving(Encodable)]
 pub enum TableLayout {
@@ -328,6 +329,10 @@ impl Flow for TableWrapperFlow {
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
         self.block_flow.build_display_list(layout_context)
+    }
+
+    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+        self.block_flow.repair_style(new_style)
     }
 }
 

@@ -27,7 +27,7 @@ use fragment::{InlineAbsoluteHypotheticalFragmentInfo, InlineBlockFragment};
 use fragment::{InlineBlockFragmentInfo, InputFragment, SpecificFragmentInfo, TableCellFragment};
 use fragment::{TableColumnFragment, TableColumnFragmentInfo, TableFragment, TableRowFragment};
 use fragment::{TableWrapperFragment, UnscannedTextFragment, UnscannedTextFragmentInfo};
-use incremental::RestyleDamage;
+use incremental::{ReconstructFlow, RestyleDamage};
 use inline::InlineFlow;
 use parallel;
 use table_wrapper::TableWrapperFlow;
@@ -38,7 +38,7 @@ use table_rowgroup::TableRowGroupFlow;
 use table_row::TableRowFlow;
 use table_cell::TableCellFlow;
 use text::TextRunScanner;
-use util::{LayoutDataAccess, OpaqueNodeMethods, LayoutDataWrapper};
+use util::{HasNewlyConstructedFlow, LayoutDataAccess, OpaqueNodeMethods, LayoutDataWrapper};
 use wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
 use wrapper::{Before, After, Normal};
 
@@ -942,6 +942,44 @@ impl<'a> FlowConstructor<'a> {
 
         FlowConstructionResult(flow, Descendants::new())
     }
+
+    /// Attempts to perform incremental repair to account for recent changes to this node. This
+    /// can fail and return false, indicating that flows will need to be reconstructed.
+    ///
+    /// TODO(pcwalton): Add some more fast paths, like toggling `display: none`, adding block kids
+    /// to block parents with no {ib} splits, adding out-of-flow kids, etc.
+    pub fn repair_if_possible(&mut self, node: &ThreadSafeLayoutNode) -> bool {
+        // We can skip reconstructing the flow if we don't have to reconstruct and none of our kids
+        // did either.
+        if node.restyle_damage().contains(ReconstructFlow) {
+            return false
+        }
+
+        let mut need_to_reconstruct = false;
+        for kid in node.children() {
+            if kid.flags().contains(HasNewlyConstructedFlow) {
+                kid.remove_flags(HasNewlyConstructedFlow);
+                need_to_reconstruct = true
+            }
+        }
+        if need_to_reconstruct {
+            return false
+        }
+
+        match node.swap_out_construction_result() {
+            NoConstructionResult => true,
+            FlowConstructionResult(mut flow, _) => {
+                // The node's flow is of the same type and has the same set of children and can
+                // therefore be repaired by simply propagating damage and style to the flow.
+                flow::mut_base(&mut *flow).restyle_damage.insert(node.restyle_damage());
+                flow.repair_style(node.style());
+                true
+            }
+            ConstructionItemConstructionResult(_) => {
+                false
+            }
+        }
+    }
 }
 
 impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
@@ -1088,6 +1126,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             }
         }
 
+        node.insert_flags(HasNewlyConstructedFlow);
         true
     }
 }
