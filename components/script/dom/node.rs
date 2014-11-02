@@ -59,7 +59,7 @@ use libc;
 use libc::{uintptr_t, c_void};
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
-use std::iter::{Map, Filter, Peekable};
+use std::iter::{FilterMap, Peekable};
 use std::mem;
 use style;
 use style::ComputedValues;
@@ -777,13 +777,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     fn child_elements(self) -> ChildElementIterator<'a> {
         self.children()
-            .filter(|node| {
-                node.is_element()
-            })
-            .map(|node| {
-                let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                elem.clone()
-            })
+            .filter_map::<JSRef<Element>>(ElementCast::to_ref)
             .peekable()
     }
 
@@ -967,10 +961,12 @@ impl RawLayoutNodeHelpers for Node {
 // Iteration and traversal
 //
 
-pub type ChildElementIterator<'a> = Peekable<JSRef<'a, Element>,
-                                        Map<'a, JSRef<'a, Node>,
-                                            JSRef<'a, Element>,
-                                            Filter<'a, JSRef<'a, Node>, NodeChildrenIterator<'a>>>>;
+pub type ChildElementIterator<'a> =
+    Peekable<JSRef<'a, Element>,
+             FilterMap<'a,
+                       JSRef<'a, Node>,
+                       JSRef<'a, Element>,
+                       NodeChildrenIterator<'a>>>;
 
 pub struct NodeChildrenIterator<'a> {
     current: Option<JSRef<'a, Node>>,
