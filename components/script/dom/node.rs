@@ -1050,15 +1050,13 @@ impl NodeIterator {
     }
 
     fn next_child<'b>(&self, node: JSRef<'b, Node>) -> Option<JSRef<'b, Node>> {
-        if !self.include_descendants_of_void && node.is_element() {
-            let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
-            if elem.is_void() {
-                None
-            } else {
-                node.first_child().map(|child| (*child.root()).clone())
-            }
-        } else {
-            node.first_child().map(|child| (*child.root()).clone())
+        let skip = |element: JSRef<Element>| {
+            !self.include_descendants_of_void && element.is_void()
+        };
+
+        match ElementCast::to_ref(node) {
+            Some(element) if skip(element) => None,
+            _ => node.first_child().map(|child| (*child.root()).clone()),
         }
     }
 }
