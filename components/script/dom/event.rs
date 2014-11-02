@@ -77,7 +77,7 @@ impl Event {
             phase: Cell::new(PhaseNone),
             type_: DOMRefCell::new("".to_string()),
             canceled: Cell::new(false),
-            cancelable: Cell::new(true),
+            cancelable: Cell::new(false),
             bubbles: Cell::new(false),
             trusted: Cell::new(false),
             dispatching: Cell::new(false),
