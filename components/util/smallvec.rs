@@ -57,7 +57,7 @@ pub trait SmallVecPrivate<T> {
     unsafe fn set_ptr(&mut self, new_ptr: *mut T);
 }
 
-pub trait SmallVec<T> : SmallVecPrivate<T> where T: 'static {
+pub trait SmallVec<T> : SmallVecPrivate<T> {
     fn inline_size(&self) -> uint;
     fn len(&self) -> uint;
     fn is_empty(&self) -> bool;
@@ -294,11 +294,11 @@ impl<'a,T> Iterator<&'a mut T> for SmallVecMutIterator<'a,T> {
 pub struct SmallVecMoveIterator<'a,T> {
     allocation: Option<*mut u8>,
     cap: uint,
-    iter: SmallVecIterator<'static,T>,
+    iter: SmallVecIterator<'a,T>,
     lifetime: ContravariantLifetime<'a>,
 }
 
-impl<'a, T: 'static> Iterator<T> for SmallVecMoveIterator<'a,T> {
+impl<'a, T: 'a> Iterator<T> for SmallVecMoveIterator<'a,T> {
     #[inline]
     fn next(&mut self) -> Option<T> {
         unsafe {
@@ -315,7 +315,7 @@ impl<'a, T: 'static> Iterator<T> for SmallVecMoveIterator<'a,T> {
 }
 
 #[unsafe_destructor]
-impl<'a, T: 'static> Drop for SmallVecMoveIterator<'a,T> {
+impl<'a, T: 'a> Drop for SmallVecMoveIterator<'a,T> {
     fn drop(&mut self) {
         // Destroy the remaining elements.
         for _ in *self {}
@@ -344,7 +344,7 @@ macro_rules! def_small_vector(
             data: [T, ..$size],
         }
 
-        impl<T: 'static> SmallVecPrivate<T> for $name<T> {
+        impl<T> SmallVecPrivate<T> for $name<T> {
             unsafe fn set_len(&mut self, new_len: uint) {
                 self.len = new_len
             }
@@ -370,7 +370,7 @@ macro_rules! def_small_vector(
             }
         }
 
-        impl<T: 'static> SmallVec<T> for $name<T> {
+        impl<T> SmallVec<T> for $name<T> {
             fn inline_size(&self) -> uint {
                 $size
             }
@@ -385,7 +385,7 @@ macro_rules! def_small_vector(
             }
         }
 
-        impl<T: 'static> VecLike<T> for $name<T> {
+        impl<T> VecLike<T> for $name<T> {
             #[inline]
             fn vec_len(&self) -> uint {
                 self.len()
@@ -402,7 +402,7 @@ macro_rules! def_small_vector(
             }
         }
 
-        impl<T: 'static> FromIterator<T> for $name<T> {
+        impl<T> FromIterator<T> for $name<T> {
             fn from_iter<I: Iterator<T>>(mut iter: I) -> $name<T> {
                 let mut v = $name::new();
 
@@ -420,7 +420,7 @@ macro_rules! def_small_vector(
             }
         }
 
-        impl<T: 'static> Extendable<T> for $name<T> {
+        impl<T> Extendable<T> for $name<T> {
             fn extend<I: Iterator<T>>(&mut self, mut iter: I) {
                 let (lower_size_bound, _) = iter.size_hint();
 
@@ -436,13 +436,13 @@ macro_rules! def_small_vector(
             }
         }
 
-        impl<T: fmt::Show + 'static> fmt::Show for $name<T> {
+        impl<T: fmt::Show> fmt::Show for $name<T> {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "{}", self.as_slice())
             }
         }
 
-        impl<T: 'static> $name<T> {
+        impl<T> $name<T> {
             #[inline]
             pub fn new() -> $name<T> {
                 unsafe {
@@ -469,7 +469,7 @@ def_small_vector!(SmallVec32, 32)
 macro_rules! def_small_vector_drop_impl(
     ($name:ident, $size:expr) => (
         #[unsafe_destructor]
-        impl<T: 'static> Drop for $name<T> {
+        impl<T> Drop for $name<T> {
             fn drop(&mut self) {
                 if !self.spilled() {
                     return
@@ -500,7 +500,7 @@ def_small_vector_drop_impl!(SmallVec32, 32)
 
 macro_rules! def_small_vector_clone_impl(
     ($name:ident) => (
-        impl<T:Clone+'static> Clone for $name<T> {
+        impl<T: Clone> Clone for $name<T> {
             fn clone(&self) -> $name<T> {
                 let mut new_vector = $name::new();
                 for element in self.iter() {
