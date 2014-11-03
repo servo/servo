@@ -39,7 +39,7 @@ use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use net::image_cache_task::ImageCacheTask;
 use script_traits::ScriptControlChan;
 use std::collections::hashmap::HashMap;
-use collections::hash::Hash;
+use collections::hash::{Hash, Hasher};
 use style::PropertyDeclarationBlock;
 use std::comm::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
@@ -170,7 +170,9 @@ impl<T: JSTraceable> JSTraceable for Option<T> {
     }
 }
 
-impl<K: Eq+Hash+JSTraceable, V: JSTraceable> JSTraceable for HashMap<K, V> {
+impl<K,V,S,H> JSTraceable for HashMap<K, V, H> where K: Eq + Hash<S> + JSTraceable,
+                                                     V: JSTraceable,
+                                                     H: Hasher<S> {
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
         for e in self.iter() {

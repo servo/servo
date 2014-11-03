@@ -18,6 +18,7 @@ use dom::xmlhttprequest::XMLHttpRequestId;
 use dom::virtualmethods::VirtualMethods;
 use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
 use js::jsapi::{JSContext, JSObject};
+use servo_util::fnv::FnvHasher;
 use servo_util::str::DOMString;
 use libc::{c_char, size_t};
 use std::ptr;
@@ -69,7 +70,7 @@ pub struct EventListenerEntry {
 pub struct EventTarget {
     type_id: EventTargetTypeId,
     reflector_: Reflector,
-    handlers: DOMRefCell<HashMap<DOMString, Vec<EventListenerEntry>>>,
+    handlers: DOMRefCell<HashMap<DOMString, Vec<EventListenerEntry>, FnvHasher>>,
 }
 
 impl EventTarget {
@@ -77,7 +78,7 @@ impl EventTarget {
         EventTarget {
             type_id: type_id,
             reflector_: Reflector::new(),
-            handlers: DOMRefCell::new(HashMap::new()),
+            handlers: DOMRefCell::new(HashMap::with_hasher(FnvHasher)),
         }
     }
 
