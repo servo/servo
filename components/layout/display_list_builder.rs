@@ -322,7 +322,7 @@ impl FragmentDisplayListBuilding for Fragment {
             Rect(physical_rect.origin + flow_origin, physical_rect.size)
         };
         // Fragment position wrt to the owning flow.
-        let absolute_fragment_bounds = rect_to_absolute(self.style.writing_mode, self.border_box);
+        let absolute_fragment_bounds = self.abs_bounds_from_origin(&flow_origin);
         debug!("Fragment::build_display_list at rel={}, abs={}: {}",
                self.border_box,
                absolute_fragment_bounds,
@@ -615,18 +615,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
     fn build_display_list_for_block(&mut self,
                                     layout_context: &LayoutContext,
                                     background_border_level: BackgroundAndBorderLevel) {
-        let relative_offset =
-            self.fragment.relative_position(&self.base
-                                                 .absolute_position_info
-                                                 .relative_containing_block_size);
 
         // Add the box that starts the block context.
-        self.base.display_list = DisplayList::new();
-        let absolute_position =
-            self.base.abs_position.add_size(&relative_offset.to_physical(self.base.writing_mode));
+        let absolute_fragment_origin = self.base.child_fragment_absolute_position(&self.fragment);
         self.fragment.build_display_list(&mut self.base.display_list,
                                          layout_context,
-                                         absolute_position,
+                                         absolute_fragment_origin,
                                          background_border_level,
                                          &self.base.clip_rect);
 

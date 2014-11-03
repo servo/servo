@@ -31,7 +31,7 @@ use context::LayoutContext;
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
-use fragment::{Fragment, TableRowFragment, TableCellFragment};
+use fragment::{Fragment, FragmentBoundsIterator, TableRowFragment, TableCellFragment};
 use incremental::{ReconstructFlow, Reflow, ReflowOutOfFlow, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
@@ -213,6 +213,9 @@ pub trait Flow: fmt::Show + ToString + Sync {
 
     /// Phase 5 of reflow: builds display lists.
     fn build_display_list(&mut self, layout_context: &LayoutContext);
+
+    /// Perform an iteration of fragment bounds on this flow.
+    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator);
 
     fn compute_collapsible_block_start_margin(&mut self,
                                               _layout_context: &mut LayoutContext,
@@ -942,6 +945,14 @@ impl BaseFlow {
                 error!("DisplayList item {} outside of Flow overflow ({})", item, paint_bounds);
             }
         }
+    }
+
+    pub fn child_fragment_absolute_position(&self, fragment: &Fragment) -> Point2D<Au> {
+        let relative_offset =
+            fragment.relative_position(&self
+                                       .absolute_position_info
+                                       .relative_containing_block_size);
+        self.abs_position.add_size(&relative_offset.to_physical(self.writing_mode))
     }
 }
 

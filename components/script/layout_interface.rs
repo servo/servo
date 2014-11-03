@@ -60,9 +60,9 @@ pub enum Msg {
 //    3) and really needs to be fast.
 pub trait LayoutRPC {
     /// Requests the dimensions of the content box, as in the `getBoundingClientRect()` call.
-    fn content_box(&self, node: TrustedNodeAddress) -> ContentBoxResponse;
+    fn content_box(&self) -> ContentBoxResponse;
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
-    fn content_boxes(&self, node: TrustedNodeAddress) -> ContentBoxesResponse;
+    fn content_boxes(&self) -> ContentBoxesResponse;
     /// Requests the node containing the point of interest
     fn hit_test(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()>;
     fn mouse_over(&self, node: TrustedNodeAddress, point: Point2D<f32>) -> Result<MouseOverResponse, ()>;
@@ -82,6 +82,13 @@ pub enum ReflowGoal {
     ReflowForScriptQuery,
 }
 
+/// Any query to perform with this reflow.
+pub enum ReflowQueryType {
+    NoQuery,
+    ContentBoxQuery(TrustedNodeAddress),
+    ContentBoxesQuery(TrustedNodeAddress),
+}
+
 /// Information needed for a reflow.
 pub struct Reflow {
     /// The document node.
@@ -99,7 +106,9 @@ pub struct Reflow {
     /// The channel that we send a notification to.
     pub script_join_chan: Sender<()>,
     /// Unique identifier
-    pub id: uint
+    pub id: uint,
+    /// The type of query if any to perform during this reflow.
+    pub query_type: ReflowQueryType,
 }
 
 /// Encapsulates a channel to the layout task.
