@@ -11,6 +11,7 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use getopts;
+use std::collections::HashSet;
 use std::cmp;
 use std::io;
 use std::mem;
@@ -114,6 +115,26 @@ fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
     println!("{}", getopts::usage(message.as_slice(), opts));
 }
 
+pub fn print_debug_usage(app: &str)  {
+    fn print_option(name: &str, description: &str) {
+        println!("\t{:<35} {}", name, description);
+    }
+
+    println!("Usage: {} debug option,[options,...]\n\twhere options include\n\nOptions:", app);
+
+    print_option("bubble-widths", "Bubble intrinsic widths separately like other engines.");
+    print_option("disable-text-aa", "Disable antialiasing of rendered text.");
+    print_option("dump-flow-tree", "Print the flow tree after each layout.");
+    print_option("profile-tasks", "Instrument each task, writing the output to a file.");
+    print_option("show-compositor-borders", "Paint borders along layer and tile boundaries.");
+    print_option("show-fragment-borders", "Paint borders along fragment boundaries.");
+    print_option("trace-layout", "Write layout trace to an external file for debugging.");
+    print_option("validate-display-list-geometry",
+                 "Display an error when display list geometry escapes overflow region.");
+
+    println!("");
+}
+
 fn args_fail(msg: &str) {
     io::stderr().write_line(msg).unwrap();
     os::set_exit_status(1);
@@ -176,17 +197,10 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optflag("i", "nonincremental-layout", "Enable to turn off incremental layout."),
         getopts::optflag("z", "headless", "Headless mode"),
         getopts::optflag("f", "hard-fail", "Exit on task failure instead of displaying about:failure"),
-        getopts::optflag("b", "bubble-widths", "Bubble intrinsic widths separately like other engines"),
-        getopts::optflag("", "show-debug-borders", "Show debugging borders on layers and tiles."),
-        getopts::optflag("", "show-debug-fragment-borders", "Show debugging borders on fragments."),
-        getopts::optflag("", "profile-tasks", "Instrument each task, writing the output to a file."),
-        getopts::optflag("", "disable-text-aa", "Disable antialiasing for text rendering."),
-        getopts::optflag("", "trace-layout", "Write layout trace to external file for debugging."),
         getopts::optflagopt("", "devtools", "Start remote devtools server on port", "6000"),
         getopts::optopt("", "resolution", "Set window resolution.", "800x600"),
         getopts::optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)"),
-        getopts::optflag("", "dump-flow-tree", "Dump the flow (render) tree during each layout."),
-        getopts::optflag("", "validate-display-list-geometry", "Display an error when display list geometry escapes overflow region."),
+        getopts::optopt("Z", "debug", "A comma-separated string of debug options. Pass help to show available options.", ""),
         getopts::optflag("h", "help", "Print this message")
     );
 
@@ -202,6 +216,19 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         print_usage(app_name.as_slice(), opts.as_slice());
         return false;
     };
+
+    let mut debug_options = HashSet::new();
+    let debug_string = match opt_match.opt_str("Z") {
+        Some(string) => string,
+        None => String::new()
+    };
+    for split in debug_string.as_slice().split(',') {
+        debug_options.insert(split.clone());
+    }
+    if debug_options.contains(&"help") {
+        print_debug_usage(app_name.as_slice());
+        return false;
+    }
 
     let urls = if opt_match.free.is_empty() {
         print_usage(app_name.as_slice(), opts.as_slice());
@@ -242,9 +269,8 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
 
     let nonincremental_layout = opt_match.opt_present("i");
 
-    let mut bubble_inline_sizes_separately = opt_match.opt_present("b");
-
-    let trace_layout = opt_match.opt_present("trace-layout");
+    let mut bubble_inline_sizes_separately = debug_options.contains(&"bubble-widths");
+    let trace_layout = debug_options.contains(&"trace-layout");
     if trace_layout {
         n_render_threads = 1;
         layout_threads = 1;
@@ -281,16 +307,16 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
-        show_debug_borders: opt_match.opt_present("show-debug-borders"),
-        show_debug_fragment_borders: opt_match.opt_present("show-debug-fragment-borders"),
-        enable_text_antialiasing: !opt_match.opt_present("disable-text-aa"),
-        profile_tasks: opt_match.opt_present("profile-tasks"),
+        profile_tasks: debug_options.contains(&"profile-tasks"),
         trace_layout: trace_layout,
         devtools_port: devtools_port,
         initial_window_size: initial_window_size,
         user_agent: opt_match.opt_str("u"),
-        dump_flow_tree: opt_match.opt_present("dump-flow-tree"),
-        validate_display_list_geometry: opt_match.opt_present("validate-display-list-geometry"),
+        show_debug_borders: debug_options.contains(&"show-compositor-borders"),
+        show_debug_fragment_borders: debug_options.contains(&"show-fragment-borders"),
+        enable_text_antialiasing: !debug_options.contains(&"disable-text-aa"),
+        dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
+        validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
     };
 
     set_opts(opts);
