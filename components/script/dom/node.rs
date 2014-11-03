@@ -620,6 +620,10 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         // 1. Dirty self.
         self.set_has_changed(true);
 
+        if self.get_is_dirty() {
+            return
+        }
+
         // 2. Dirty descendants.
         fn dirty_subtree(node: JSRef<Node>) {
             // Stop if this subtree is already dirty.
@@ -1141,7 +1145,7 @@ impl Node {
 
             layout_data: LayoutDataRef::new(),
 
-            unique_id: DOMRefCell::new("".to_string()),
+            unique_id: DOMRefCell::new(String::new()),
         }
     }
 
@@ -1327,29 +1331,8 @@ impl Node {
               parent: JSRef<Node>,
               child: Option<JSRef<Node>>,
               suppress_observers: SuppressObserver) {
-        // XXX assert owner_doc
-        // Step 1-3: ranges.
-        // Step 4.
-        let mut nodes = match node.type_id() {
-            DocumentFragmentNodeTypeId => node.children().collect(),
-            _ => vec!(node.clone()),
-        };
-
-        // Step 5: DocumentFragment, mutation records.
-        // Step 6: DocumentFragment.
-        match node.type_id() {
-            DocumentFragmentNodeTypeId => {
-                for c in node.children() {
-                    Node::remove(c, node, Suppressed);
-                }
-            },
-            _ => (),
-        }
-
-        // Step 7: mutation records.
-        // Step 8.
-        for node in nodes.iter_mut() {
-            parent.add_child(*node, child);
+        fn do_insert(node: JSRef<Node>, parent: JSRef<Node>, child: Option<JSRef<Node>>) {
+            parent.add_child(node, child);
             let is_in_doc = parent.is_in_doc();
             for kid in node.traverse_preorder() {
                 let mut flags = kid.flags.get();
@@ -1362,14 +1345,47 @@ impl Node {
             }
         }
 
-        // Step 9.
-        match suppress_observers {
-            Unsuppressed => {
-                for node in nodes.iter() {
-                    node.node_inserted();
+        fn fire_observer_if_necessary(node: JSRef<Node>, suppress_observers: SuppressObserver) {
+            match suppress_observers {
+                Unsuppressed => node.node_inserted(),
+                Suppressed => ()
+            }
+        }
+
+        // XXX assert owner_doc
+        // Step 1-3: ranges.
+
+        match node.type_id() {
+            DocumentFragmentNodeTypeId => {
+                // Step 4.
+                // Step 5: DocumentFragment, mutation records.
+                // Step 6: DocumentFragment.
+                let mut kids = Vec::new();
+                for kid in node.children() {
+                    kids.push(kid.clone());
+                    Node::remove(kid, node, Suppressed);
+                }
+
+                // Step 7: mutation records.
+                // Step 8.
+                for kid in kids.iter() {
+                    do_insert((*kid).clone(), parent, child);
+                }
+
+                for kid in kids.into_iter() {
+                    fire_observer_if_necessary(kid, suppress_observers);
                 }
             }
-            Suppressed => ()
+            _ => {
+                // Step 4.
+                // Step 5: DocumentFragment, mutation records.
+                // Step 6: DocumentFragment.
+                // Step 7: mutation records.
+                // Step 8.
+                do_insert(node, parent, child);
+                // Step 9.
+                fire_observer_if_necessary(node, suppress_observers);
+            }
         }
     }
 

@@ -32,9 +32,13 @@ impl HTMLTableDataCellElement {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTableDataCellElement> {
-        let element = HTMLTableDataCellElement::new_inherited(localName, prefix, document);
-        Node::reflect_node(box element, document, HTMLTableDataCellElementBinding::Wrap)
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+               -> Temporary<HTMLTableDataCellElement> {
+        Node::reflect_node(box HTMLTableDataCellElement::new_inherited(localName,
+                                                                       prefix,
+                                                                       document),
+                           document,
+                           HTMLTableDataCellElementBinding::Wrap)
     }
 }
 
