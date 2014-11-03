@@ -133,7 +133,6 @@ pub enum SpecificFragmentInfo {
     InlineAbsoluteHypotheticalFragment(InlineAbsoluteHypotheticalFragmentInfo),
 
     InlineBlockFragment(InlineBlockFragmentInfo),
-    InputFragment,
     ScannedTextFragment(Box<ScannedTextFragmentInfo>),
     TableFragment,
     TableCellFragment,
@@ -149,7 +148,6 @@ impl SpecificFragmentInfo {
             match *self {
                 IframeFragment(_)
                 | ImageFragment(_)
-                | InputFragment
                 | ScannedTextFragment(_)
                 | TableFragment
                 | TableCellFragment
@@ -172,7 +170,6 @@ impl SpecificFragmentInfo {
             ImageFragment(_) => "ImageFragment",
             InlineAbsoluteHypotheticalFragment(_) => "InlineAbsoluteHypotheticalFragment",
             InlineBlockFragment(_) => "InlineBlockFragment",
-            InputFragment => "InputFragment",
             ScannedTextFragment(_) => "ScannedTextFragment",
             TableFragment => "TableFragment",
             TableCellFragment => "TableCellFragment",
@@ -638,8 +635,9 @@ impl Fragment {
     fn quantities_included_in_intrinsic_inline_size(&self)
                                                     -> QuantitiesIncludedInIntrinsicInlineSizes {
         match self.specific {
-            GenericFragment | IframeFragment(_) | ImageFragment(_) | InlineBlockFragment(_) |
-            InputFragment => QuantitiesIncludedInIntrinsicInlineSizes::all(),
+            GenericFragment | IframeFragment(_) | ImageFragment(_) | InlineBlockFragment(_) => {
+                QuantitiesIncludedInIntrinsicInlineSizes::all()
+            }
             TableFragment | TableCellFragment => {
                 IntrinsicInlineSizeIncludesPadding |
                     IntrinsicInlineSizeIncludesBorder |
@@ -957,7 +955,7 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableColumnFragment(_) | TableRowFragment | TableWrapperFragment |
-            InlineAbsoluteHypotheticalFragment(_) | InputFragment => {}
+            InlineAbsoluteHypotheticalFragment(_) => {}
             InlineBlockFragment(ref mut info) => {
                 let block_flow = info.flow_ref.as_block();
                 result.union_block(&block_flow.base.intrinsic_inline_sizes)
@@ -1014,7 +1012,7 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
-            InputFragment | InlineAbsoluteHypotheticalFragment(_) => Au(0),
+            InlineAbsoluteHypotheticalFragment(_) => Au(0),
             ImageFragment(ref image_fragment_info) => {
                 image_fragment_info.computed_inline_size()
             }
@@ -1033,7 +1031,7 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
-            InputFragment | InlineAbsoluteHypotheticalFragment(_) => Au(0),
+            InlineAbsoluteHypotheticalFragment(_) => Au(0),
             ImageFragment(ref image_fragment_info) => {
                 image_fragment_info.computed_block_size()
             }
@@ -1067,7 +1065,7 @@ impl Fragment {
             -> Option<(SplitInfo, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InputFragment => None,
+            TableRowFragment | TableWrapperFragment => None,
             TableColumnFragment(_) => fail!("Table column fragments do not need to split"),
             UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
             InlineBlockFragment(_) | InlineAbsoluteHypotheticalFragment(_) => {
@@ -1116,7 +1114,7 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment |
             TableCellFragment | TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
-            InputFragment | InlineAbsoluteHypotheticalFragment(_) => None,
+            InlineAbsoluteHypotheticalFragment(_) => None,
             TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => {
                 fail!("Unscanned text fragments should have been scanned by now!")
@@ -1219,7 +1217,7 @@ impl Fragment {
     pub fn assign_replaced_inline_size_if_necessary(&mut self, container_inline_size: Au) {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InputFragment => return,
+            TableRowFragment | TableWrapperFragment => return,
             TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => {
                 fail!("Unscanned text fragments should have been scanned by now!")
@@ -1312,7 +1310,7 @@ impl Fragment {
     pub fn assign_replaced_block_size_if_necessary(&mut self, containing_block_block_size: Au) {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InputFragment => return,
+            TableRowFragment | TableWrapperFragment => return,
             TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
             UnscannedTextFragment(_) => {
                 fail!("Unscanned text fragments should have been scanned by now!")
@@ -1455,7 +1453,7 @@ impl Fragment {
             TableWrapperFragment => false,
             GenericFragment | IframeFragment(_) | ImageFragment(_) | ScannedTextFragment(_) |
             TableFragment | TableCellFragment | TableColumnFragment(_) | TableRowFragment |
-            UnscannedTextFragment(_) | InputFragment => true,
+            UnscannedTextFragment(_) => true,
         }
     }
 

@@ -24,7 +24,7 @@ use flow_ref::FlowRef;
 use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment};
 use fragment::{ImageFragmentInfo, InlineAbsoluteHypotheticalFragment};
 use fragment::{InlineAbsoluteHypotheticalFragmentInfo, InlineBlockFragment};
-use fragment::{InlineBlockFragmentInfo, InputFragment, SpecificFragmentInfo, TableCellFragment};
+use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, TableCellFragment};
 use fragment::{TableColumnFragment, TableColumnFragmentInfo, TableFragment, TableRowFragment};
 use fragment::{TableWrapperFragment, UnscannedTextFragment, UnscannedTextFragmentInfo};
 use incremental::{ReconstructFlow, RestyleDamage};
@@ -263,9 +263,6 @@ impl<'a> FlowConstructor<'a> {
             Some(ElementNodeTypeId(HTMLImageElementTypeId)) => {
                 self.build_fragment_info_for_image(node, node.image_url())
             }
-            Some(ElementNodeTypeId(HTMLInputElementTypeId)) => {
-                InputFragment
-            }
             Some(ElementNodeTypeId(HTMLObjectElementTypeId)) => {
                 let data = node.get_object_data();
                 self.build_fragment_info_for_image(node, data)
@@ -274,6 +271,7 @@ impl<'a> FlowConstructor<'a> {
             Some(ElementNodeTypeId(HTMLTableColElementTypeId)) => {
                 TableColumnFragment(TableColumnFragmentInfo::new(node))
             }
+            Some(ElementNodeTypeId(HTMLInputElementTypeId)) |
             Some(ElementNodeTypeId(HTMLTableDataCellElementTypeId)) |
             Some(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId)) => TableCellFragment,
             Some(ElementNodeTypeId(HTMLTableRowElementTypeId)) |

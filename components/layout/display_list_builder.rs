@@ -15,7 +15,7 @@ use context::LayoutContext;
 use flow::{mod, Flow};
 use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment};
 use fragment::{ImageFragmentInfo, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
-use fragment::{InputFragment, ScannedTextFragment, ScannedTextFragmentInfo, TableFragment};
+use fragment::{ScannedTextFragment, ScannedTextFragmentInfo, TableFragment};
 use fragment::{TableCellFragment, TableColumnFragment, TableRowFragment, TableWrapperFragment};
 use fragment::{UnscannedTextFragment};
 use model;
@@ -500,7 +500,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             }
             GenericFragment | IframeFragment(..) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) | InputFragment |
+            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
             InlineAbsoluteHypotheticalFragment(_) => {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_fragment(display_list,
