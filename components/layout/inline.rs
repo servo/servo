@@ -11,7 +11,8 @@ use floats::{FloatLeft, Floats, PlacementInfo};
 use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
 use flow;
 use fragment::{Fragment, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
-use fragment::{ScannedTextFragment, ScannedTextFragmentInfo, SplitInfo};
+use fragment::{FragmentBoundsIterator, ScannedTextFragment, ScannedTextFragmentInfo};
+use fragment::SplitInfo;
 use incremental::{Reflow, ReflowOutOfFlow};
 use layout_debug;
 use model::IntrinsicISizesContribution;
@@ -1195,15 +1196,10 @@ impl Flow for InlineFlow {
         debug!("Flow: building display list for {:u} inline fragments", self.fragments.len());
 
         for fragment in self.fragments.fragments.iter_mut() {
-            let rel_offset = fragment.relative_position(&self.base
-                                                             .absolute_position_info
-                                                             .relative_containing_block_size);
-            let fragment_position = self.base
-                                        .abs_position
-                                        .add_size(&rel_offset.to_physical(self.base.writing_mode));
+            let fragment_origin = self.base.child_fragment_absolute_position(fragment);
             fragment.build_display_list(&mut self.base.display_list,
                                         layout_context,
-                                        fragment_position,
+                                        fragment_origin,
                                         ContentLevel,
                                         &self.base.clip_rect);
             match fragment.specific {
@@ -1223,6 +1219,15 @@ impl Flow for InlineFlow {
     }
 
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
+
+    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
+        for fragment in self.fragments.fragments.iter() {
+            if iterator.should_process(fragment) {
+                let fragment_origin = self.base.child_fragment_absolute_position(fragment);
+                iterator.process(fragment, fragment.abs_bounds_from_origin(&fragment_origin));
+            }
+        }
+    }
 }
 
 impl fmt::Show for InlineFlow {

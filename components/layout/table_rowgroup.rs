@@ -12,7 +12,7 @@ use construct::FlowConstructor;
 use context::LayoutContext;
 use flow::{TableRowGroupFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow;
-use fragment::Fragment;
+use fragment::{Fragment, FragmentBoundsIterator};
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use table::{ColumnInlineSize, InternalTable, TableFlow};
@@ -210,6 +210,10 @@ impl Flow for TableRowGroupFlow {
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
+    }
+
+    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
+        self.block_flow.iterate_through_fragment_bounds(iterator);
     }
 }
 

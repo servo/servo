@@ -9,7 +9,7 @@
 use block::{BlockFlow, MarginsMayNotCollapse, ISizeAndMarginsComputer};
 use context::LayoutContext;
 use flow::{TableCellFlowClass, FlowClass, Flow};
-use fragment::Fragment;
+use fragment::{Fragment, FragmentBoundsIterator};
 use model::{MaybeAuto};
 use layout_debug;
 use table::InternalTable;
@@ -147,6 +147,10 @@ impl Flow for TableCellFlow {
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.block_flow.repair_style(new_style)
+    }
+
+    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
+        self.block_flow.iterate_through_fragment_bounds(iterator);
     }
 }
 

@@ -8,6 +8,7 @@ use context::{LayoutContext, SharedLayoutContext};
 use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
 use flow_ref::FlowRef;
+use fragment::FragmentBoundsIterator;
 use servo_util::opts;
 use traversal::{BubbleISizes, RecalcStyleForNode, ConstructFlows};
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
@@ -91,4 +92,17 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
     let build_display_list         = BuildDisplayList         { layout_context: &layout_context };
 
     doit(root.deref_mut(), compute_absolute_positions, build_display_list);
+}
+
+pub fn iterate_through_flow_tree_fragment_bounds(root: &mut FlowRef,
+                                                 iterator: &mut FragmentBoundsIterator) {
+    fn doit(flow: &mut Flow, iterator: &mut FragmentBoundsIterator) {
+        flow.iterate_through_fragment_bounds(iterator);
+
+        for kid in flow::mut_base(flow).child_iter() {
+            doit(kid, iterator);
+        }
+    }
+
+    doit(root.deref_mut(), iterator);
 }

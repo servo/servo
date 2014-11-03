@@ -35,7 +35,8 @@ use floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, FloatLeft, Floats, Pla
 use flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
 use flow;
-use fragment::{Fragment, ImageFragment, InlineBlockFragment, ScannedTextFragment};
+use fragment::{Fragment, ImageFragment, InlineBlockFragment, FragmentBoundsIterator};
+use fragment::ScannedTextFragment;
 use incremental::{Reflow, ReflowOutOfFlow};
 use layout_debug;
 use model::{Auto, IntrinsicISizes, MarginCollapseInfo, MarginsCollapse, MarginsCollapseThrough};
@@ -1815,6 +1816,14 @@ impl Flow for BlockFlow {
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.fragment.repair_style(new_style)
+    }
+
+    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
+        if iterator.should_process(&self.fragment) {
+            let fragment_origin = self.base.child_fragment_absolute_position(&self.fragment);
+            iterator.process(&self.fragment,
+                             self.fragment.abs_bounds_from_origin(&fragment_origin));
+        }
     }
 }
 

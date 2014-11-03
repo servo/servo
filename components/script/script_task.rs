@@ -29,7 +29,7 @@ use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
 use parse::html::{InputString, InputUrl, parse_html};
-use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowForDisplay};
+use layout_interface::{ScriptLayoutChan, LayoutChan, NoQuery, ReflowForDisplay};
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
@@ -815,7 +815,7 @@ impl ScriptTask {
             let document_as_node = NodeCast::from_ref(document_js_ref);
             document.content_changed(document_as_node);
         }
-        window.flush_layout(ReflowForDisplay);
+        window.flush_layout();
 
         {
             // No more reflow required
@@ -870,7 +870,7 @@ impl ScriptTask {
         }
 
         page.damage();
-        page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor);
+        page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor, NoQuery);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.
@@ -969,7 +969,7 @@ impl ScriptTask {
                                         let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(node);
                                         let _ = eventtarget.dispatch_event_with_target(None, *event);
 
-                                        window.flush_layout(ReflowForDisplay);
+                                        window.flush_layout();
                                     }
                                     None => {}
                                 }

@@ -19,7 +19,7 @@ use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
 use dom::screen::Screen;
-use layout_interface::ReflowGoal;
+use layout_interface::NoQuery;
 use page::Page;
 use script_task::{ExitWindowMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
 use script_task::FromWindow;
@@ -312,7 +312,7 @@ impl Reflectable for Window {
 
 pub trait WindowHelpers {
     fn reflow(self);
-    fn flush_layout(self, goal: ReflowGoal);
+    fn flush_layout(self);
     fn wait_until_safe_to_modify_dom(self);
     fn init_browser_context(self, doc: JSRef<Document>);
     fn load_url(self, href: DOMString);
@@ -350,8 +350,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         self.page().damage();
     }
 
-    fn flush_layout(self, goal: ReflowGoal) {
-        self.page().flush_layout(goal);
+    fn flush_layout(self) {
+        self.page().flush_layout(NoQuery);
     }
 
     fn wait_until_safe_to_modify_dom(self) {

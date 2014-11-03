@@ -10,6 +10,7 @@ use construct::FlowConstructionResult;
 use context::SharedLayoutContext;
 use flow::{mod, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
+use fragment::{Fragment, FragmentBoundsIterator};
 use incremental::{LayoutDamageComputation, Reflow, ReflowEntireDocument, Repaint};
 use layout_debug;
 use parallel::UnsafeFlow;
@@ -24,7 +25,7 @@ use encoding::all::UTF_8;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
-use gfx::display_list::{ContentStackingLevel, DisplayItem, DisplayItemIterator, DisplayList};
+use gfx::display_list::{ContentStackingLevel, DisplayItem, DisplayList};
 use gfx::display_list::{OpaqueNode};
 use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
@@ -34,12 +35,12 @@ use log;
 use script::dom::bindings::js::JS;
 use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
-use script::layout_interface::{AddStylesheetMsg, LoadStylesheetMsg, ScriptLayoutChan};
-use script::layout_interface::{TrustedNodeAddress, ContentBoxesResponse, ExitNowMsg};
-use script::layout_interface::{ContentBoxResponse, HitTestResponse, MouseOverResponse};
-use script::layout_interface::{LayoutChan, Msg, PrepareToExitMsg};
-use script::layout_interface::{GetRPCMsg, LayoutRPC, ReapLayoutDataMsg, Reflow};
-use script::layout_interface::{ReflowForDisplay, ReflowMsg};
+use script::layout_interface::{
+    AddStylesheetMsg, ContentBoxResponse, ContentBoxesResponse, ContentBoxesQuery,
+    ContentBoxQuery, ExitNowMsg, GetRPCMsg, HitTestResponse, LayoutChan, LayoutRPC,
+    LoadStylesheetMsg, MouseOverResponse, Msg, NoQuery, PrepareToExitMsg, ReapLayoutDataMsg,
+    Reflow, ReflowForDisplay, ReflowMsg, ScriptLayoutChan, TrustedNodeAddress,
+};
 use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
@@ -95,6 +96,12 @@ pub struct LayoutTaskData {
     /// True if a style sheet was added since the last reflow. Currently, this causes all nodes to
     /// be dirtied at the next reflow.
     pub stylesheet_dirty: bool,
+
+    /// A queued response for the union of the content boxes of a node.
+    pub content_box_response: Rect<Au>,
+
+    /// A queued response for the content boxes of a node.
+    pub content_boxes_response: Vec<Rect<Au>>,
 }
 
 /// Information needed by the layout task.
@@ -284,6 +291,8 @@ impl LayoutTask {
                     dirty: Rect::zero(),
                     generation: 0,
                     stylesheet_dirty: false,
+                    content_box_response: Rect::zero(),
+                    content_boxes_response: Vec::new(),
               })),
         }
     }
@@ -587,6 +596,124 @@ impl LayoutTask {
     fn verify_flow_tree(&self, _: &mut FlowRef) {
     }
 
+    fn process_content_box_request<'a>(&'a self,
+                                       requested_node: TrustedNodeAddress,
+                                       layout_root: &mut FlowRef,
+                                       rw_data: &mut RWGuard<'a>) {
+        let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+        let mut iterator = UnioningFragmentBoundsIterator::new(requested_node);
+        sequential::iterate_through_flow_tree_fragment_bounds(layout_root, &mut iterator);
+        rw_data.content_box_response = iterator.rect;
+    }
+
+    fn process_content_boxes_request<'a>(&'a self,
+                                         requested_node: TrustedNodeAddress,
+                                         layout_root: &mut FlowRef,
+                                         rw_data: &mut RWGuard<'a>) {
+        let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
+        let mut iterator = CollectingFragmentBoundsIterator::new(requested_node);
+        sequential::iterate_through_flow_tree_fragment_bounds(layout_root, &mut iterator);
+        rw_data.content_boxes_response = iterator.rects;
+    }
+
+    fn build_display_list_for_reflow<'a>(&'a self,
+                                         data: &Reflow,
+                                         node: &mut LayoutNode,
+                                         layout_root: &mut FlowRef,
+                                         shared_layout_ctx: &mut SharedLayoutContext,
+                                         rw_data: &mut RWGuard<'a>) {
+        let writing_mode = flow::base(layout_root.deref()).writing_mode;
+        profile(time::LayoutDispListBuildCategory,
+                Some((&data.url, data.iframe, self.first_reflow.get())),
+                     self.time_profiler_chan.clone(),
+                     || {
+            shared_layout_ctx.dirty =
+                flow::base(layout_root.deref()).position.to_physical(writing_mode,
+                                                                     rw_data.screen_size);
+            flow::mut_base(layout_root.deref_mut()).abs_position =
+                LogicalPoint::zero(writing_mode).to_physical(writing_mode,
+                                                             rw_data.screen_size);
+
+            let rw_data = rw_data.deref_mut();
+            match rw_data.parallel_traversal {
+                None => {
+                    sequential::build_display_list_for_subtree(layout_root, shared_layout_ctx);
+                }
+                Some(ref mut traversal) => {
+                    parallel::build_display_list_for_subtree(layout_root,
+                                                             &data.url,
+                                                             data.iframe,
+                                                             self.first_reflow.get(),
+                                                             self.time_profiler_chan.clone(),
+                                                             shared_layout_ctx,
+                                                             traversal);
+                }
+            }
+
+            debug!("Done building display list. Display List = {}",
+                   flow::base(layout_root.deref()).display_list);
+
+            flow::mut_base(layout_root.deref_mut()).display_list.flatten(ContentStackingLevel);
+            let display_list =
+                Arc::new(mem::replace(&mut flow::mut_base(layout_root.deref_mut()).display_list,
+                                      DisplayList::new()));
+
+            // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
+            // it with extreme prejudice.
+            let mut color = color::rgba(1.0, 1.0, 1.0, 1.0);
+            for child in node.traverse_preorder() {
+                if child.type_id() == Some(ElementNodeTypeId(HTMLHtmlElementTypeId)) ||
+                        child.type_id() == Some(ElementNodeTypeId(HTMLBodyElementTypeId)) {
+                    let element_bg_color = {
+                        let thread_safe_child = ThreadSafeLayoutNode::new(&child);
+                        thread_safe_child.style()
+                                         .resolve_color(thread_safe_child.style()
+                                                                         .get_background()
+                                                                         .background_color)
+                                         .to_gfx_color()
+                    };
+                    match element_bg_color {
+                        color::rgba(0., 0., 0., 0.) => {}
+                        _ => {
+                            color = element_bg_color;
+                            break;
+                       }
+                    }
+                }
+            }
+
+            let root_size = {
+                let root_flow = flow::base(layout_root.deref());
+                root_flow.position.size.to_physical(root_flow.writing_mode)
+            };
+            let root_size = Size2D(root_size.width.to_nearest_px() as uint,
+                                   root_size.height.to_nearest_px() as uint);
+            let render_layer = RenderLayer {
+                id: layout_root.layer_id(0),
+                display_list: display_list.clone(),
+                position: Rect(Point2D(0u, 0u), root_size),
+                background_color: color,
+                scroll_policy: Scrollable,
+            };
+
+            rw_data.display_list = Some(display_list);
+
+            // TODO(pcwalton): Eventually, when we have incremental reflow, this will have to
+            // be smarter in order to handle retained layer contents properly from reflow to
+            // reflow.
+            let mut layers = SmallVec1::new();
+            layers.push(render_layer);
+            for layer in mem::replace(&mut flow::mut_base(layout_root.deref_mut()).layers,
+                                      DList::new()).into_iter() {
+                layers.push(layer)
+            }
+
+            debug!("Layout done!");
+
+            self.render_chan.send(RenderInitMsg(layers));
+        });
+    }
+
     /// The high-level routine that performs layout tasks.
     fn handle_reflow<'a>(&'a self,
                          data: &Reflow,
@@ -713,97 +840,19 @@ impl LayoutTask {
 
         // Build the display list if necessary, and send it to the renderer.
         if data.goal == ReflowForDisplay {
-            let writing_mode = flow::base(layout_root.deref()).writing_mode;
-            profile(time::LayoutDispListBuildCategory,
-                    Some((&data.url, data.iframe, self.first_reflow.get())),
-                         self.time_profiler_chan.clone(),
-                         || {
-                shared_layout_ctx.dirty =
-                    flow::base(layout_root.deref()).position.to_physical(writing_mode,
-                                                                         rw_data.screen_size);
-                flow::mut_base(layout_root.deref_mut()).abs_position =
-                    LogicalPoint::zero(writing_mode).to_physical(writing_mode,
-                                                                 rw_data.screen_size);
+            self.build_display_list_for_reflow(data,
+                                               node,
+                                               &mut layout_root,
+                                               &mut shared_layout_ctx,
+                                               &mut rw_data);
+        }
 
-                let rw_data = rw_data.deref_mut();
-                match rw_data.parallel_traversal {
-                    None => {
-                        sequential::build_display_list_for_subtree(&mut layout_root,
-                                                                   &shared_layout_ctx);
-                    }
-                    Some(ref mut traversal) => {
-                        parallel::build_display_list_for_subtree(&mut layout_root,
-                                                                 &data.url,
-                                                                 data.iframe,
-                                                                 self.first_reflow.get(),
-                                                                 self.time_profiler_chan.clone(),
-                                                                 &shared_layout_ctx,
-                                                                 traversal);
-                    }
-                }
-
-                debug!("Done building display list. Display List = {}",
-                       flow::base(layout_root.deref()).display_list);
-
-                flow::mut_base(&mut *layout_root).display_list.flatten(ContentStackingLevel);
-                let display_list =
-                    Arc::new(mem::replace(&mut flow::mut_base(&mut *layout_root).display_list,
-                                          DisplayList::new()));
-
-                // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
-                // it with extreme prejudice.
-                let mut color = color::rgba(1.0, 1.0, 1.0, 1.0);
-                for child in node.traverse_preorder() {
-                    if child.type_id() == Some(ElementNodeTypeId(HTMLHtmlElementTypeId)) ||
-                            child.type_id() == Some(ElementNodeTypeId(HTMLBodyElementTypeId)) {
-                        let element_bg_color = {
-                            let thread_safe_child = ThreadSafeLayoutNode::new(&child);
-                            thread_safe_child.style()
-                                             .resolve_color(thread_safe_child.style()
-                                                                             .get_background()
-                                                                             .background_color)
-                                             .to_gfx_color()
-                        };
-                        match element_bg_color {
-                            color::rgba(0., 0., 0., 0.) => {}
-                            _ => {
-                                color = element_bg_color;
-                                break;
-                           }
-                        }
-                    }
-                }
-
-                let root_size = {
-                    let root_flow = flow::base(layout_root.deref());
-                    root_flow.position.size.to_physical(root_flow.writing_mode)
-                };
-                let root_size = Size2D(root_size.width.to_nearest_px() as uint,
-                                       root_size.height.to_nearest_px() as uint);
-                let render_layer = RenderLayer {
-                    id: layout_root.layer_id(0),
-                    display_list: display_list.clone(),
-                    position: Rect(Point2D(0u, 0u), root_size),
-                    background_color: color,
-                    scroll_policy: Scrollable,
-                };
-
-                rw_data.display_list = Some(display_list);
-
-                // TODO(pcwalton): Eventually, when we have incremental reflow, this will have to
-                // be smarter in order to handle retained layer contents properly from reflow to
-                // reflow.
-                let mut layers = SmallVec1::new();
-                layers.push(render_layer);
-                for layer in mem::replace(&mut flow::mut_base(layout_root.deref_mut()).layers,
-                                          DList::new()).into_iter() {
-                    layers.push(layer)
-                }
-
-                debug!("Layout done!");
-
-                self.render_chan.send(RenderInitMsg(layers));
-            });
+        match data.query_type {
+            ContentBoxQuery(node) =>
+                self.process_content_box_request(node, &mut layout_root, &mut rw_data),
+            ContentBoxesQuery(node) =>
+                self.process_content_boxes_request(node, &mut layout_root, &mut rw_data),
+            NoQuery => {},
         }
 
         self.first_reflow.set(false);
@@ -876,61 +925,17 @@ struct LayoutRPCImpl(Arc<Mutex<LayoutTaskData>>);
 impl LayoutRPC for LayoutRPCImpl {
     // The neat thing here is that in order to answer the following two queries we only
     // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
-    fn content_box(&self, node: TrustedNodeAddress) -> ContentBoxResponse {
-        let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);
-        fn union_boxes_for_node(accumulator: &mut Option<Rect<Au>>,
-                                mut iter: DisplayItemIterator,
-                                node: OpaqueNode) {
-            for item in iter {
-                if item.base().node == node {
-                    match *accumulator {
-                        None => *accumulator = Some(item.base().bounds),
-                        Some(ref mut acc) => *acc = acc.union(&item.base().bounds),
-                    }
-                }
-            }
-        }
-
-        let mut rect = None;
-        {
-            let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock();
-            match rw_data.display_list {
-                None => fail!("no display list!"),
-                Some(ref display_list) => {
-                    union_boxes_for_node(&mut rect, display_list.iter(), node)
-                }
-            }
-        }
-        ContentBoxResponse(rect.unwrap_or(Rect::zero()))
+    fn content_box(&self) -> ContentBoxResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock();
+        ContentBoxResponse(rw_data.content_box_response)
     }
 
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
-    fn content_boxes(&self, node: TrustedNodeAddress) -> ContentBoxesResponse {
-        let node: OpaqueNode = OpaqueNodeMethods::from_script_node(node);
-
-        fn add_boxes_for_node(accumulator: &mut Vec<Rect<Au>>,
-                              mut iter: DisplayItemIterator,
-                              node: OpaqueNode) {
-            for item in iter {
-                if item.base().node == node {
-                    accumulator.push(item.base().bounds)
-                }
-            }
-        }
-
-        let mut boxes = vec!();
-        {
-            let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock();
-            match rw_data.display_list {
-                None => fail!("no display list!"),
-                Some(ref display_list) => {
-                    add_boxes_for_node(&mut boxes, display_list.iter(), node)
-                }
-            }
-        }
-        ContentBoxesResponse(boxes)
+    fn content_boxes(&self) -> ContentBoxesResponse {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let mut rw_data = rw_data.lock();
+        ContentBoxesResponse(rw_data.content_boxes_response.clone())
     }
 
     /// Requests the node containing the point of interest
@@ -995,5 +1000,57 @@ impl LayoutRPC for LayoutRPCImpl {
         } else {
             Ok(MouseOverResponse(mouse_over_list))
         }
+    }
+}
+
+struct UnioningFragmentBoundsIterator {
+    node_address: OpaqueNode,
+    rect: Rect<Au>,
+}
+
+impl UnioningFragmentBoundsIterator {
+    fn new(node_address: OpaqueNode) -> UnioningFragmentBoundsIterator {
+        UnioningFragmentBoundsIterator {
+            node_address: node_address,
+            rect: Rect::zero(),
+        }
+    }
+}
+
+impl FragmentBoundsIterator for UnioningFragmentBoundsIterator {
+    fn process(&mut self, _: &Fragment, bounds: Rect<Au>) {
+        if self.rect.is_empty() {
+            self.rect = bounds;
+        } else {
+            self.rect = self.rect.union(&bounds);
+        }
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        self.node_address == fragment.node
+    }
+}
+
+struct CollectingFragmentBoundsIterator {
+    node_address: OpaqueNode,
+    rects: Vec<Rect<Au>>,
+}
+
+impl CollectingFragmentBoundsIterator {
+    fn new(node_address: OpaqueNode) -> CollectingFragmentBoundsIterator {
+        CollectingFragmentBoundsIterator {
+            node_address: node_address,
+            rects: Vec::new(),
+        }
+    }
+}
+
+impl FragmentBoundsIterator for CollectingFragmentBoundsIterator {
+    fn process(&mut self, _: &Fragment, bounds: Rect<Au>) {
+        self.rects.push(bounds);
+    }
+
+    fn should_process(&mut self, fragment: &Fragment) -> bool {
+        self.node_address == fragment.node
     }
 }
