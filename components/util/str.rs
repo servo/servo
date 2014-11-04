@@ -7,6 +7,7 @@ use geometry::Au;
 use std::from_str::FromStr;
 use std::iter::Filter;
 use std::str::{CharEq, CharSplits};
+use unicode::char::to_lowercase;
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
@@ -184,3 +185,22 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
 }
 
 
+#[deriving(Clone, Eq, PartialEq, Hash, Show)]
+pub struct LowercaseString {
+    inner: String,
+}
+
+impl LowercaseString {
+    pub fn new(s: &str) -> LowercaseString {
+        LowercaseString {
+            inner: s.chars().map(to_lowercase).collect(),
+        }
+    }
+}
+
+impl Str for LowercaseString {
+    #[inline]
+    fn as_slice(&self) -> &str {
+        self.inner.as_slice()
+    }
+}

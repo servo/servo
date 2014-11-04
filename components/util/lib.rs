@@ -26,6 +26,7 @@ extern crate sync;
 extern crate task_info;
 extern crate "time" as std_time;
 extern crate string_cache;
+extern crate unicode;
 extern crate url;
 
 #[phase(plugin)]

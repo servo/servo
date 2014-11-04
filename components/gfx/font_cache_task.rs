@@ -8,12 +8,14 @@ use platform::font_list::get_variations_for_family;
 use platform::font_list::get_last_resort_font_families;
 use platform::font_context::FontContextHandle;
 
+use collections::str::Str;
 use std::collections::HashMap;
 use sync::Arc;
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use platform::font_template::FontTemplateData;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 use servo_util::task::spawn_named;
+use servo_util::str::LowercaseString;
 use style::{Source, LocalSource, UrlSource_};
 
 /// A list of font templates that make up a given font family.
@@ -86,21 +88,21 @@ pub enum Reply {
 /// font templates that are currently in use.
 struct FontCache {
     port: Receiver<Command>,
-    generic_fonts: HashMap<String, String>,
-    local_families: HashMap<String, FontFamily>,
-    web_families: HashMap<String, FontFamily>,
+    generic_fonts: HashMap<LowercaseString, LowercaseString>,
+    local_families: HashMap<LowercaseString, FontFamily>,
+    web_families: HashMap<LowercaseString, FontFamily>,
     font_context: FontContextHandle,
     resource_task: ResourceTask,
 }
 
-fn add_generic_font(generic_fonts: &mut HashMap<String, String>,
+fn add_generic_font(generic_fonts: &mut HashMap<LowercaseString, LowercaseString>,
                     generic_name: &str, mapped_name: &str) {
     let opt_system_default = get_system_default_family(generic_name);
     let family_name = match opt_system_default {
-        Some(system_default) => system_default,
-        None => mapped_name.to_string(),
+        Some(system_default) => LowercaseString::new(system_default.as_slice()),
+        None => LowercaseString::new(mapped_name),
     };
-    generic_fonts.insert(generic_name.to_string(), family_name);
+    generic_fonts.insert(LowercaseString::new(generic_name), family_name);
 }
 
 impl FontCache {
@@ -110,6 +112,7 @@ impl FontCache {
 
             match msg {
                 GetFontTemplate(family, descriptor, result) => {
+                    let family = LowercaseString::new(family.as_slice());
                     let maybe_font_template = self.get_font_template(&family, &descriptor);
                     result.send(GetFontTemplateReply(maybe_font_template));
                 }
@@ -118,6 +121,7 @@ impl FontCache {
                     result.send(GetFontTemplateReply(Some(font_template)));
                 }
                 AddWebFont(family_name, src, result) => {
+                    let family_name = LowercaseString::new(family_name.as_slice());
                     if !self.web_families.contains_key(&family_name) {
                         let family = FontFamily::new();
                         self.web_families.insert(family_name.clone(), family);
@@ -157,6 +161,7 @@ impl FontCache {
     fn refresh_local_families(&mut self) {
         self.local_families.clear();
         get_available_families(|family_name| {
+            let family_name = LowercaseString::new(family_name.as_slice());
             if !self.local_families.contains_key(&family_name) {
                 let family = FontFamily::new();
                 self.local_families.insert(family_name, family);
@@ -164,14 +169,14 @@ impl FontCache {
         });
     }
 
-    fn transform_family(&self, family: &String) -> String {
+    fn transform_family(&self, family: &LowercaseString) -> LowercaseString {
         match self.generic_fonts.find(family) {
-            None => family.to_string(),
+            None => family.clone(),
             Some(mapped_family) => (*mapped_family).clone()
         }
     }
 
-    fn find_font_in_local_family<'a>(&'a mut self, family_name: &String, desc: &FontTemplateDescriptor)
+    fn find_font_in_local_family<'a>(&'a mut self, family_name: &LowercaseString, desc: &FontTemplateDescriptor)
                                 -> Option<Arc<FontTemplateData>> {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
@@ -199,7 +204,7 @@ impl FontCache {
         }
     }
 
-    fn find_font_in_web_family<'a>(&'a mut self, family_name: &String, desc: &FontTemplateDescriptor)
+    fn find_font_in_web_family<'a>(&'a mut self, family_name: &LowercaseString, desc: &FontTemplateDescriptor)
                                 -> Option<Arc<FontTemplateData>> {
         if self.web_families.contains_key(family_name) {
             let family = self.web_families.get_mut(family_name);
@@ -210,7 +215,7 @@ impl FontCache {
         }
     }
 
-    fn get_font_template(&mut self, family: &String, desc: &FontTemplateDescriptor)
+    fn get_font_template(&mut self, family: &LowercaseString, desc: &FontTemplateDescriptor)
                             -> Option<Arc<FontTemplateData>> {
         let transformed_family_name = self.transform_family(family);
         let mut maybe_template = self.find_font_in_web_family(&transformed_family_name, desc);
@@ -225,7 +230,8 @@ impl FontCache {
         let last_resort = get_last_resort_font_families();
 
         for family in last_resort.iter() {
-            let maybe_font_in_family = self.find_font_in_local_family(family, desc);
+            let family = LowercaseString::new(family.as_slice());
+            let maybe_font_in_family = self.find_font_in_local_family(&family, desc);
             if maybe_font_in_family.is_some() {
                 return maybe_font_in_family.unwrap();
             }
