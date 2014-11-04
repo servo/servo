@@ -223,7 +223,8 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     command
         .args(reftest.servo_args.as_slice())
         // Allows pixel perfect rendering of Ahem font for reftests.
-        .arg("--disable-text-aa")
+        .arg("-Z")
+        .arg("disable-text-aa")
         .args(["-f", "-o"])
         .arg(png_filename.as_slice())
         .arg({
