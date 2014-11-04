@@ -106,9 +106,11 @@ impl TextInput {
         let prefix_end = if forward {
             self.edit_point.index
         } else {
-            //TODO: handle backspacing from position 0 of current line
             if self.multiline {
-                assert!(self.edit_point.index > 0);
+                //TODO: handle backspacing from position 0 of current line
+                if self.edit_point.index == 0 {
+                    return;
+                }
             } else if self.edit_point.index == 0 {
                 return;
             }
@@ -118,7 +120,9 @@ impl TextInput {
             let is_eol = self.edit_point.index == self.current_line_length() - 1;
             if self.multiline {
                 //TODO: handle deleting from end position of current line
-                assert!(!is_eol);
+                if is_eol {
+                    return;
+                }
             } else if is_eol {
                 return;
             }

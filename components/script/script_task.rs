@@ -9,6 +9,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyStateValues};
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast, ElementCast};
@@ -950,19 +951,25 @@ impl ScriptTask {
 
         let props = KeyboardEvent::key_properties(key, modifiers);
 
-        let event = KeyboardEvent::new(*window, ev_type, true, true, Some(*window), 0,
-                                       props.key.to_string(), props.code.to_string(), props.location,
-                                       is_repeating, is_composing, ctrl, alt, shift, meta,
-                                       None, props.key_code).root();
-        let _ = target.DispatchEvent(EventCast::from_ref(*event));
+        let keyevent = KeyboardEvent::new(*window, ev_type, true, true, Some(*window), 0,
+                                          props.key.to_string(), props.code.to_string(),
+                                          props.location, is_repeating, is_composing,
+                                          ctrl, alt, shift, meta,
+                                          None, props.key_code).root();
+        let event = EventCast::from_ref(*keyevent);
+        let _ = target.DispatchEvent(event);
 
-        if state != Released && props.is_printable() {
+        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
+        if state != Released && props.is_printable() && !event.DefaultPrevented() {
+            // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
             let event = KeyboardEvent::new(*window, "keypress".to_string(), true, true, Some(*window),
                                            0, props.key.to_string(), props.code.to_string(),
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,
                                            props.char_code, 0).root();
             let _ = target.DispatchEvent(EventCast::from_ref(*event));
+
+            // TODO: if keypress event is canceled, prevent firing input events
         }
 
         window.flush_layout();

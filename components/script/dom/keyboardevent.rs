@@ -117,8 +117,8 @@ impl KeyboardEvent {
                 key: key_value(key, mods),
                 code: code_value(key),
                 location: key_location(key),
-                char_code: key_char_code(key, mods),
-                key_code: key_key_code(key),
+                char_code: key_charcode(key, mods),
+                key_code: key_keycode(key),
             }
     }
 }
@@ -215,7 +215,7 @@ fn key_value(key: constellation_msg::Key, mods: constellation_msg::KeyModifiers)
         constellation_msg::KeyZ if shift => "Z",
         constellation_msg::KeyZ => "z",
         constellation_msg::KeyLeftBracket if shift => "{",
-        constellation_msg::KeyLeftBracket => "{",
+        constellation_msg::KeyLeftBracket => "[",
         constellation_msg::KeyBackslash if shift => "|",
         constellation_msg::KeyBackslash => "\\",
         constellation_msg::KeyRightBracket if shift => "}",
@@ -444,7 +444,7 @@ fn key_location(key: constellation_msg::Key) -> u32 {
 }
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-KeyboardEvent-charCode
-fn key_char_code(key: constellation_msg::Key, mods: constellation_msg::KeyModifiers) -> Option<u32> {
+fn key_charcode(key: constellation_msg::Key, mods: constellation_msg::KeyModifiers) -> Option<u32> {
     let key = key_value(key, mods);
     if key.len() == 1 {
         Some(key.char_at(0) as u32)
@@ -454,7 +454,7 @@ fn key_char_code(key: constellation_msg::Key, mods: constellation_msg::KeyModifi
 }
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#legacy-key-models
-fn key_key_code(key: constellation_msg::Key) -> u32 {
+fn key_keycode(key: constellation_msg::Key) -> u32 {
     match key {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#legacy-key-models
         constellation_msg::KeyBackspace => 8,
@@ -601,13 +601,15 @@ impl<'a> KeyboardEventMethods for JSRef<'a, KeyboardEvent> {
         self.is_composing.get()
     }
 
+    // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-KeyboardEvent-getModifierState
     fn GetModifierState(self, keyArg: DOMString) -> bool {
         match keyArg.as_slice() {
             "Ctrl" => self.CtrlKey(),
             "Alt" => self.AltKey(),
             "Shift" => self.ShiftKey(),
             "Meta" => self.MetaKey(),
-            "AltGraph" | "CapsLock" | "NumLock" | "ScrollLock" => false, //FIXME
+            "AltGraph" | "CapsLock" | "NumLock" | "ScrollLock" | "Accel" |
+            "Fn" | "FnLock" | "Hyper" | "OS" | "Symbol" | "SymbolLock" => false, //FIXME
             _ => false,
         }
     }

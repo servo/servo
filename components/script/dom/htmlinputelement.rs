@@ -438,7 +438,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             let doc = document_from_node(*self).root();
             doc.request_focus(ElementCast::from_ref(*self));
         } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() &&
-            (self.input_type.get() == InputText|| self.input_type.get() == InputPassword) {
+            (self.input_type.get() == InputText || self.input_type.get() == InputPassword) {
                 let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
                 keyevent.map(|event| {
                     match self.textinput.borrow_mut().handle_keydown(event) {

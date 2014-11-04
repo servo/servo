@@ -1,5 +1,14 @@
 --- WebIDL.py
 +++ WebIDL.py
+@@ -1422,6 +1422,9 @@ class IDLDictionary(IDLObjectWithScope):
+                                   self.identifier.name,
+                                   [member.location] + locations)
+
++    def module(self):
++        return self.location.filename().split('/')[-1].split('.webidl')[0] + 'Binding'
++
+     def addExtendedAttributes(self, attrs):
+         assert len(attrs) == 0
 @@ -3398,6 +3398,9 @@ class IDLCallbackType(IDLType, IDLObjectWithScope):
          self._treatNonCallableAsNull = False
          self._treatNonObjectAsNull = False
