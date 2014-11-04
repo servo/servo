@@ -194,7 +194,9 @@ impl Window {
                 let hidpi = (backing_size as f32) / (window_size as f32);
                 let x = x as f32 * hidpi;
                 let y = y as f32 * hidpi;
-                if button == glfw::MouseButtonLeft || button == glfw::MouseButtonRight {
+                if button == glfw::MouseButtonLeft ||
+                   button == glfw::MouseButtonRight ||
+                   button == glfw::MouseButtonMiddle {
                     self.handle_mouse(button, action, x as i32, y as i32);
                 }
             },
