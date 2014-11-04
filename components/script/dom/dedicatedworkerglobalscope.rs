@@ -19,7 +19,7 @@ use dom::workerglobalscope::DedicatedGlobalScope;
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::xmlhttprequest::XMLHttpRequest;
 use script_task::{ScriptTask, ScriptChan};
-use script_task::{ScriptMsg, FromWorker,  DOMMessage, FireTimerMsg, XHRProgressMsg, WorkerRelease};
+use script_task::{ScriptMsg, FromWorker,  DOMMessage, FireTimerMsg, XHRProgressMsg, XHRReleaseMsg, WorkerRelease};
 use script_task::WorkerPostMessage;
 use script_task::StackRootTLS;
 
@@ -134,7 +134,10 @@ impl DedicatedWorkerGlobalScope {
                         global.delayed_release_worker();
                     },
                     Ok(XHRProgressMsg(addr, progress)) => {
-                        XMLHttpRequest::handle_xhr_progress(addr, progress)
+                        XMLHttpRequest::handle_progress(addr, progress)
+                    },
+                    Ok(XHRReleaseMsg(addr)) => {
+                        XMLHttpRequest::handle_release(addr)
                     },
                     Ok(WorkerPostMessage(addr, data, nbytes)) => {
                         Worker::handle_message(addr, data, nbytes);
