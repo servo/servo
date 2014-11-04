@@ -30,6 +30,7 @@ extern crate "util" as servo_util;
 extern crate gleam;
 
 extern crate libc;
+extern crate native;
 extern crate time;
 extern crate url;
 
@@ -38,12 +39,14 @@ extern crate core_graphics;
 #[cfg(target_os="macos")]
 extern crate core_text;
 
-pub use compositor_task::{CompositorChan, CompositorTask};
+pub use compositor_task::{CompositorEventListener, CompositorProxy, CompositorTask};
 pub use constellation::Constellation;
 
 pub mod compositor_task;
 
 mod compositor_layer;
+mod scrolling;
+
 mod compositor;
 mod headless;
 

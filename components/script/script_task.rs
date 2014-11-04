@@ -168,7 +168,7 @@ pub struct ScriptTask {
     /// For communicating load url messages to the constellation
     constellation_chan: ConstellationChan,
     /// A handle to the compositor for communicating ready state messages.
-    compositor: Box<ScriptListener+'static>,
+    compositor: DOMRefCell<Box<ScriptListener+'static>>,
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
@@ -248,25 +248,25 @@ impl ScriptTaskFactory for ScriptTask {
         box pair.sender() as Box<Any+Send>
     }
 
-    fn create<C:ScriptListener + Send + 'static>(
-                  _phantom: Option<&mut ScriptTask>,
-                  id: PipelineId,
-                  compositor: Box<C>,
-                  layout_chan: &OpaqueScriptLayoutChannel,
-                  control_chan: ScriptControlChan,
-                  control_port: Receiver<ConstellationControlMsg>,
-                  constellation_chan: ConstellationChan,
-                  failure_msg: Failure,
-                  resource_task: ResourceTask,
-                  image_cache_task: ImageCacheTask,
-                  devtools_chan: Option<DevtoolsControlChan>,
-                  window_size: WindowSizeData) {
+    fn create<C>(_phantom: Option<&mut ScriptTask>,
+                 id: PipelineId,
+                 compositor: C,
+                 layout_chan: &OpaqueScriptLayoutChannel,
+                 control_chan: ScriptControlChan,
+                 control_port: Receiver<ConstellationControlMsg>,
+                 constellation_chan: ConstellationChan,
+                 failure_msg: Failure,
+                 resource_task: ResourceTask,
+                 image_cache_task: ImageCacheTask,
+                 devtools_chan: Option<DevtoolsControlChan>,
+                 window_size: WindowSizeData)
+                 where C: ScriptListener + Send + 'static {
         let ConstellationChan(const_chan) = constellation_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
         spawn_named_with_send_on_failure("ScriptTask", task_state::Script, proc() {
             let script_task = ScriptTask::new(id,
-                                              compositor as Box<ScriptListener>,
+                                              box compositor as Box<ScriptListener>,
                                               layout_chan,
                                               script_port,
                                               ScriptChan(script_chan),
@@ -350,7 +350,7 @@ impl ScriptTask {
             control_chan: control_chan,
             control_port: control_port,
             constellation_chan: constellation_chan,
-            compositor: compositor,
+            compositor: DOMRefCell::new(compositor),
             devtools_chan: devtools_chan,
             devtools_port: devtools_receiver,
 
@@ -671,7 +671,7 @@ impl ScriptTask {
             *layout_join_port = None;
         }
 
-        self.compositor.set_ready_state(pipeline_id, FinishedLoading);
+        self.compositor.borrow_mut().set_ready_state(pipeline_id, FinishedLoading);
 
         if page.pending_reflows.get() > 0 {
             page.pending_reflows.set(0);
@@ -709,7 +709,7 @@ impl ScriptTask {
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the
         // compositor. In the future it'll need to be smarter.
-        self.compositor.close();
+        self.compositor.borrow_mut().close();
     }
 
     /// Handles a request to exit the script task and shut down layout.
@@ -771,7 +771,7 @@ impl ScriptTask {
                                  page.clone(),
                                  self.chan.clone(),
                                  self.control_chan.clone(),
-                                 self.compositor.dup(),
+                                 self.compositor.borrow_mut().dup(),
                                  self.image_cache_task.clone()).root();
         let doc_url = if is_javascript {
             let doc_url = last_url.unwrap_or_else(|| {
@@ -787,7 +787,7 @@ impl ScriptTask {
 
         window.init_browser_context(*document);
 
-        self.compositor.set_ready_state(pipeline_id, Loading);
+        self.compositor.borrow_mut().set_ready_state(pipeline_id, Loading);
 
         let parser_input = if !is_javascript {
             InputUrl(url.clone())
@@ -858,7 +858,7 @@ impl ScriptTask {
         // Really what needs to happen is that this needs to go through layout to ask which
         // layer the element belongs to, and have it send the scroll message to the
         // compositor.
-        self.compositor.scroll_fragment_point(pipeline_id, LayerId::null(), point);
+        self.compositor.borrow_mut().scroll_fragment_point(pipeline_id, LayerId::null(), point);
     }
 
     fn force_reflow(&self, page: &Page) {
@@ -873,7 +873,10 @@ impl ScriptTask {
         }
 
         page.damage();
-        page.reflow(ReflowForDisplay, self.control_chan.clone(), &*self.compositor, NoQuery);
+        page.reflow(ReflowForDisplay,
+                    self.control_chan.clone(),
+                    &mut **self.compositor.borrow_mut(),
+                    NoQuery);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.

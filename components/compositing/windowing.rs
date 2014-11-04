@@ -4,6 +4,8 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
+use compositor_task::{CompositorProxy, CompositorReceiver};
+
 use geom::point::TypedPoint2D;
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
@@ -11,6 +13,8 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use servo_msg::compositor_msg::{ReadyState, RenderState};
 use servo_util::geometry::ScreenPx;
+use std::fmt::{FormatError, Formatter, Show};
+use std::rc::Rc;
 
 pub enum MouseWindowEvent {
     MouseWindowClickEvent(uint, TypedPoint2D<DevicePixel, f32>),
@@ -25,10 +29,12 @@ pub enum WindowNavigateMsg {
 
 /// Events that the windowing system sends to Servo.
 pub enum WindowEvent {
-    /// Sent when no message has arrived.
+    /// Sent when no message has arrived, but the event loop was kicked for some reason (perhaps
+    /// by another Servo subsystem).
     ///
-    /// FIXME: This is a bogus event and is only used because we don't have the new
-    /// scheduler integrated with the platform event loop.
+    /// FIXME(pcwalton): This is kind of ugly and may not work well with multiprocess Servo.
+    /// It's possible that this should be something like
+    /// `CompositorMessageWindowEvent(compositor_task::Msg)` instead.
     IdleWindowEvent,
     /// Sent when part of the window is marked dirty and needs to be redrawn.
     RefreshWindowEvent,
@@ -54,6 +60,25 @@ pub enum WindowEvent {
     QuitWindowEvent,
 }
 
+impl Show for WindowEvent {
+    fn fmt(&self, f: &mut Formatter) -> Result<(),FormatError> {
+        match *self {
+            IdleWindowEvent => write!(f, "Idle"),
+            RefreshWindowEvent => write!(f, "Refresh"),
+            ResizeWindowEvent(..) => write!(f, "Resize"),
+            LoadUrlWindowEvent(..) => write!(f, "LoadUrl"),
+            MouseWindowEventClass(..) => write!(f, "Mouse"),
+            MouseWindowMoveEventClass(..) => write!(f, "MouseMove"),
+            ScrollWindowEvent(..) => write!(f, "Scroll"),
+            ZoomWindowEvent(..) => write!(f, "Zoom"),
+            PinchZoomWindowEvent(..) => write!(f, "PinchZoom"),
+            NavigationWindowEvent(..) => write!(f, "Navigation"),
+            FinishedWindowEvent => write!(f, "Finished"),
+            QuitWindowEvent => write!(f, "Quit"),
+        }
+    }
+}
+
 pub trait WindowMethods {
     /// Returns the size of the window in hardware pixels.
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint>;
@@ -61,9 +86,6 @@ pub trait WindowMethods {
     fn size(&self) -> TypedSize2D<ScreenPx, f32>;
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self);
-
-    /// Spins the event loop and returns the next event.
-    fn recv(&self) -> WindowEvent;
 
     /// Sets the ready state of the current page.
     fn set_ready_state(&self, ready_state: ReadyState);
@@ -75,5 +97,13 @@ pub trait WindowMethods {
 
     /// Gets the OS native graphics information for this window.
     fn native_metadata(&self) -> NativeGraphicsMetadata;
+
+    /// Creates a channel to the compositor. The dummy parameter is needed because we don't have
+    /// UFCS in Rust yet.
+    ///
+    /// This is part of the windowing system because its implementation often involves OS-specific
+    /// magic to wake the up window's event loop.
+    fn create_compositor_channel(_: &Option<Rc<Self>>)
+                                 -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>);
 }
 

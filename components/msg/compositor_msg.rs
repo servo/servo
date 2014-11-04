@@ -84,36 +84,36 @@ pub struct LayerMetadata {
 
 /// The interface used by the renderer to acquire draw targets for each render frame and
 /// submit them to be drawn to the display.
-pub trait RenderListener {
-    fn get_graphics_metadata(&self) -> Option<NativeGraphicsMetadata>;
+pub trait RenderListener for Sized? {
+    fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata>;
 
     /// Informs the compositor of the layers for the given pipeline. The compositor responds by
     /// creating and/or destroying render layers as necessary.
-    fn initialize_layers_for_pipeline(&self,
+    fn initialize_layers_for_pipeline(&mut self,
                                       pipeline_id: PipelineId,
                                       metadata: Vec<LayerMetadata>,
                                       epoch: Epoch);
 
     /// Sends new tiles for the given layer to the compositor.
-    fn paint(&self,
+    fn paint(&mut self,
              pipeline_id: PipelineId,
              epoch: Epoch,
              replies: Vec<(LayerId, Box<LayerBufferSet>)>);
 
-    fn render_msg_discarded(&self);
-    fn set_render_state(&self, PipelineId, RenderState);
+    fn render_msg_discarded(&mut self);
+    fn set_render_state(&mut self, PipelineId, RenderState);
 }
 
 /// The interface used by the script task to tell the compositor to update its ready state,
 /// which is used in displaying the appropriate message in the window's title.
-pub trait ScriptListener : Clone {
-    fn set_ready_state(&self, PipelineId, ReadyState);
-    fn scroll_fragment_point(&self,
+pub trait ScriptListener {
+    fn set_ready_state(&mut self, PipelineId, ReadyState);
+    fn scroll_fragment_point(&mut self,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
                              point: Point2D<f32>);
-    fn close(&self);
-    fn dup(&self) -> Box<ScriptListener+'static>;
+    fn close(&mut self);
+    fn dup(&mut self) -> Box<ScriptListener+'static>;
 }
 
 impl<E, S: Encoder<E>> Encodable<S, E> for Box<ScriptListener+'static> {

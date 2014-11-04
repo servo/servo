@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::{DOMRefCell, Ref};
+use dom::bindings::cell::{DOMRefCell, Ref, RefMut};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -53,7 +53,7 @@ pub struct Window {
     location: MutNullableJS<Location>,
     navigator: MutNullableJS<Navigator>,
     image_cache_task: ImageCacheTask,
-    compositor: Box<ScriptListener+'static>,
+    compositor: DOMRefCell<Box<ScriptListener+'static>>,
     browser_context: DOMRefCell<Option<BrowserContext>>,
     page: Rc<Page>,
     performance: MutNullableJS<Performance>,
@@ -81,8 +81,8 @@ impl Window {
         &self.image_cache_task
     }
 
-    pub fn compositor<'a>(&'a self) -> &'a ScriptListener+'static {
-        &*self.compositor
+    pub fn compositor(&self) -> RefMut<Box<ScriptListener+'static>> {
+        self.compositor.borrow_mut()
     }
 
     pub fn browser_context(&self) -> Ref<Option<BrowserContext>> {
@@ -398,7 +398,7 @@ impl Window {
             script_chan: script_chan,
             control_chan: control_chan,
             console: Default::default(),
-            compositor: compositor,
+            compositor: DOMRefCell::new(compositor),
             page: page,
             location: Default::default(),
             navigator: Default::default(),

@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! Communication with the compositor task.
+
 pub use windowing;
+pub use constellation::SendableFrameTree;
 
 use compositor;
 use headless;
-pub use constellation::SendableFrameTree;
-use windowing::WindowMethods;
+use windowing::{WindowEvent, WindowMethods};
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
 use geom::point::Point2D;
@@ -21,39 +23,64 @@ use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
+use std::fmt::{FormatError, Formatter, Show};
 use std::rc::Rc;
-
 use url::Url;
 
-/// The implementation of the layers-based compositor.
-#[deriving(Clone)]
-pub struct CompositorChan {
-    /// A channel on which messages can be sent to the compositor.
-    pub chan: Sender<Msg>,
+/// Sends messages to the compositor. This is a trait supplied by the port because the method used
+/// to communicate with the compositor may have to kick OS event loops awake, communicate cross-
+/// process, and so forth.
+pub trait CompositorProxy : 'static + Send {
+    /// Sends a message to the compositor.
+    fn send(&mut self, msg: Msg);
+    /// Clones the compositor proxy.
+    fn clone_compositor_proxy(&self) -> Box<CompositorProxy+'static+Send>;
+}
+
+/// The port that the compositor receives messages on. As above, this is a trait supplied by the
+/// Servo port.
+pub trait CompositorReceiver for Sized? : 'static {
+    /// Receives the next message inbound for the compositor. This must not block.
+    fn try_recv_compositor_msg(&mut self) -> Option<Msg>;
+    /// Synchronously waits for, and returns, the next message inbound for the compositor.
+    fn recv_compositor_msg(&mut self) -> Msg;
+}
+
+/// A convenience implementation of `CompositorReceiver` for a plain old Rust `Receiver`.
+impl CompositorReceiver for Receiver<Msg> {
+    fn try_recv_compositor_msg(&mut self) -> Option<Msg> {
+        match self.try_recv() {
+            Ok(msg) => Some(msg),
+            Err(_) => None,
+        }
+    }
+    fn recv_compositor_msg(&mut self) -> Msg {
+        self.recv()
+    }
 }
 
 /// Implementation of the abstract `ScriptListener` interface.
-impl ScriptListener for CompositorChan {
-    fn set_ready_state(&self, pipeline_id: PipelineId, ready_state: ReadyState) {
+impl ScriptListener for Box<CompositorProxy+'static+Send> {
+    fn set_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
         let msg = ChangeReadyState(pipeline_id, ready_state);
-        self.chan.send(msg);
+        self.send(msg);
     }
 
-    fn scroll_fragment_point(&self,
+    fn scroll_fragment_point(&mut self,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
                              point: Point2D<f32>) {
-        self.chan.send(ScrollFragmentPoint(pipeline_id, layer_id, point));
+        self.send(ScrollFragmentPoint(pipeline_id, layer_id, point));
     }
 
-    fn close(&self) {
+    fn close(&mut self) {
         let (chan, port) = channel();
-        self.chan.send(Exit(chan));
+        self.send(Exit(chan));
         port.recv();
     }
 
-    fn dup(&self) -> Box<ScriptListener+'static> {
-        box self.clone() as Box<ScriptListener+'static>
+    fn dup(&mut self) -> Box<ScriptListener+'static> {
+        box self.clone_compositor_proxy() as Box<ScriptListener+'static>
     }
 }
 
@@ -83,21 +110,21 @@ impl LayerProperties {
 }
 
 /// Implementation of the abstract `RenderListener` interface.
-impl RenderListener for CompositorChan {
-    fn get_graphics_metadata(&self) -> Option<NativeGraphicsMetadata> {
+impl RenderListener for Box<CompositorProxy+'static+Send> {
+    fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
         let (chan, port) = channel();
-        self.chan.send(GetGraphicsMetadata(chan));
+        self.send(GetGraphicsMetadata(chan));
         port.recv()
     }
 
-    fn paint(&self,
+    fn paint(&mut self,
              pipeline_id: PipelineId,
              epoch: Epoch,
              replies: Vec<(LayerId, Box<LayerBufferSet>)>) {
-        self.chan.send(Paint(pipeline_id, epoch, replies));
+        self.send(Paint(pipeline_id, epoch, replies));
     }
 
-    fn initialize_layers_for_pipeline(&self,
+    fn initialize_layers_for_pipeline(&mut self,
                                       pipeline_id: PipelineId,
                                       metadata: Vec<LayerMetadata>,
                                       epoch: Epoch) {
@@ -108,36 +135,23 @@ impl RenderListener for CompositorChan {
         for metadata in metadata.iter() {
             let layer_properties = LayerProperties::new(pipeline_id, epoch, metadata);
             if first {
-                self.chan.send(CreateOrUpdateRootLayer(layer_properties));
+                self.send(CreateOrUpdateRootLayer(layer_properties));
                 first = false
             } else {
-                self.chan.send(CreateOrUpdateDescendantLayer(layer_properties));
+                self.send(CreateOrUpdateDescendantLayer(layer_properties));
             }
         }
     }
 
-    fn render_msg_discarded(&self) {
-        self.chan.send(RenderMsgDiscarded);
+    fn render_msg_discarded(&mut self) {
+        self.send(RenderMsgDiscarded);
     }
 
-    fn set_render_state(&self, pipeline_id: PipelineId, render_state: RenderState) {
-        self.chan.send(ChangeRenderState(pipeline_id, render_state))
+    fn set_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
+        self.send(ChangeRenderState(pipeline_id, render_state))
     }
 }
 
-impl CompositorChan {
-    pub fn new() -> (Receiver<Msg>, CompositorChan) {
-        let (chan, port) = channel();
-        let compositor_chan = CompositorChan {
-            chan: chan,
-        };
-        (port, compositor_chan)
-    }
-
-    pub fn send(&self, msg: Msg) {
-        self.chan.send(msg);
-    }
-}
 /// Messages from the painting task and the constellation task to the compositor task.
 pub enum Msg {
     /// Requests that the compositor shut down.
@@ -177,6 +191,30 @@ pub enum Msg {
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// The load of a page for a given URL has completed.
     LoadComplete(PipelineId, Url),
+    /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
+    /// composite should happen. (See the `scrolling` module.)
+    ScrollTimeout(u64),
+}
+
+impl Show for Msg {
+    fn fmt(&self, f: &mut Formatter) -> Result<(),FormatError> {
+        match *self {
+            Exit(..) => write!(f, "Exit"),
+            ShutdownComplete(..) => write!(f, "ShutdownComplete"),
+            GetGraphicsMetadata(..) => write!(f, "GetGraphicsMetadata"),
+            CreateOrUpdateRootLayer(..) => write!(f, "CreateOrUpdateRootLayer"),
+            CreateOrUpdateDescendantLayer(..) => write!(f, "CreateOrUpdateDescendantLayer"),
+            SetLayerOrigin(..) => write!(f, "SetLayerOrigin"),
+            ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
+            Paint(..) => write!(f, "Paint"),
+            ChangeReadyState(..) => write!(f, "ChangeReadyState"),
+            ChangeRenderState(..) => write!(f, "ChangeRenderState"),
+            RenderMsgDiscarded(..) => write!(f, "RenderMsgDiscarded"),
+            SetIds(..) => write!(f, "SetIds"),
+            LoadComplete(..) => write!(f, "LoadComplete"),
+            ScrollTimeout(..) => write!(f, "ScrollTimeout"),
+        }
+    }
 }
 
 pub struct CompositorTask;
@@ -196,27 +234,38 @@ impl CompositorTask {
         NativeCompositingGraphicsContext::new()
     }
 
-    pub fn create<Window: WindowMethods>(
-                  window: Option<Rc<Window>>,
-                  port: Receiver<Msg>,
-                  constellation_chan: ConstellationChan,
-                  time_profiler_chan: TimeProfilerChan,
-                  memory_profiler_chan: MemoryProfilerChan) {
-
+    pub fn create<Window>(window: Option<Rc<Window>>,
+                          sender: Box<CompositorProxy+Send>,
+                          receiver: Box<CompositorReceiver>,
+                          constellation_chan: ConstellationChan,
+                          time_profiler_chan: TimeProfilerChan,
+                          memory_profiler_chan: MemoryProfilerChan)
+                          -> Box<CompositorEventListener + 'static>
+                          where Window: WindowMethods + 'static {
         match window {
             Some(window) => {
-                compositor::IOCompositor::create(window,
-                                                 port,
-                                                 constellation_chan.clone(),
-                                                 time_profiler_chan,
-                                                 memory_profiler_chan)
+                box compositor::IOCompositor::create(window,
+                                                     sender,
+                                                     receiver,
+                                                     constellation_chan.clone(),
+                                                     time_profiler_chan,
+                                                     memory_profiler_chan)
+                    as Box<CompositorEventListener>
             }
             None => {
-                headless::NullCompositor::create(port,
-                                                 constellation_chan.clone(),
-                                                 time_profiler_chan,
-                                                 memory_profiler_chan)
+                box headless::NullCompositor::create(receiver,
+                                                     constellation_chan.clone(),
+                                                     time_profiler_chan,
+                                                     memory_profiler_chan)
+                    as Box<CompositorEventListener>
             }
-        };
+        }
     }
 }
+
+pub trait CompositorEventListener {
+    fn handle_event(&mut self, event: WindowEvent) -> bool;
+    fn repaint_synchronously(&mut self);
+    fn shutdown(&mut self);
+}
+

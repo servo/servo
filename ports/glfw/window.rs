@@ -4,14 +4,18 @@
 
 //! A windowing implementation using GLFW.
 
+use NestedEventLoopListener;
+
 use alert::{Alert, AlertMethods};
-use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
+use compositing::windowing::{Forward, Back};
 use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent};
-use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass, ScrollWindowEvent};
-use compositing::windowing::{ZoomWindowEvent, PinchZoomWindowEvent, NavigationWindowEvent};
-use compositing::windowing::{FinishedWindowEvent, QuitWindowEvent, MouseWindowClickEvent};
-use compositing::windowing::{MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
-use compositing::windowing::{RefreshWindowEvent, Forward, Back};
+use compositing::windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent};
+use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass};
+use compositing::windowing::{MouseWindowMouseUpEvent, RefreshWindowEvent};
+use compositing::windowing::{NavigationWindowEvent, ScrollWindowEvent, ZoomWindowEvent};
+use compositing::windowing::{PinchZoomWindowEvent, QuitWindowEvent};
+use compositing::windowing::{WindowEvent, WindowMethods, FinishedWindowEvent};
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
@@ -19,8 +23,8 @@ use glfw::{mod, Context};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
-use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
 use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
+use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
 use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
 use std::rc::Rc;
@@ -84,11 +88,49 @@ impl Window {
         window.glfw_window.set_cursor_pos_polling(true);
         window.glfw_window.set_scroll_polling(true);
 
-        let wrapped_window = Rc::new(window);
+        glfw.set_swap_interval(1);
 
-        wrapped_window
+        Rc::new(window)
+    }
+
+    pub fn wait_events(&self) -> WindowEvent {
+        {
+            let mut event_queue = self.event_queue.borrow_mut();
+            if !event_queue.is_empty() {
+                return event_queue.remove(0).unwrap();
+            }
+        }
+
+        self.glfw.wait_events();
+        for (_, event) in glfw::flush_messages(&self.events) {
+            self.handle_window_event(&self.glfw_window, event);
+        }
+
+        if self.glfw_window.should_close() {
+            QuitWindowEvent
+        } else {
+            self.event_queue.borrow_mut().remove(0).unwrap_or(IdleWindowEvent)
+        }
+    }
+
+    pub unsafe fn set_nested_event_loop_listener(
+            &self,
+            listener: *mut NestedEventLoopListener + 'static) {
+        self.glfw_window.set_refresh_polling(false);
+        glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.ptr, Some(on_refresh));
+        glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.ptr, Some(on_framebuffer_size));
+        g_nested_event_loop_listener = Some(listener)
+    }
+
+    pub unsafe fn remove_nested_event_loop_listener(&self) {
+        glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.ptr, None);
+        glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.ptr, None);
+        self.glfw_window.set_refresh_polling(true);
+        g_nested_event_loop_listener = None
     }
 }
+
+static mut g_nested_event_loop_listener: Option<*mut NestedEventLoopListener + 'static> = None;
 
 impl WindowMethods for Window {
     /// Returns the size of the window in hardware pixels.
@@ -106,26 +148,6 @@ impl WindowMethods for Window {
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self) {
         self.glfw_window.swap_buffers();
-    }
-
-    fn recv(&self) -> WindowEvent {
-        {
-            let mut event_queue = self.event_queue.borrow_mut();
-            if !event_queue.is_empty() {
-                return event_queue.remove(0).unwrap();
-            }
-        }
-
-        self.glfw.poll_events();
-        for (_, event) in glfw::flush_messages(&self.events) {
-            self.handle_window_event(&self.glfw_window, event);
-        }
-
-        if self.glfw_window.should_close() {
-            QuitWindowEvent
-        } else {
-            self.event_queue.borrow_mut().remove(0).unwrap_or(IdleWindowEvent)
-        }
     }
 
     /// Sets the ready state.
@@ -168,6 +190,15 @@ impl WindowMethods for Window {
                 pixel_format: CGLGetPixelFormat(CGLGetCurrentContext()),
             }
         }
+    }
+
+    fn create_compositor_channel(_: &Option<Rc<Window>>)
+                                 -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
+        let (sender, receiver) = channel();
+        (box GlfwCompositorProxy {
+             sender: sender,
+         } as Box<CompositorProxy+Send>,
+         box receiver as Box<CompositorReceiver>)
     }
 }
 
@@ -219,7 +250,6 @@ impl Window {
                         self.scroll_window(dx, dy);
                     }
                 }
-
             },
             _ => {}
         }
@@ -342,6 +372,48 @@ impl Window {
             self.event_queue.borrow_mut().push(LoadUrlWindowEvent("http://purple.com/".to_string()))
         } else {
             self.event_queue.borrow_mut().push(LoadUrlWindowEvent(value.clone()))
+        }
+    }
+}
+
+struct GlfwCompositorProxy {
+    sender: Sender<compositor_task::Msg>,
+}
+
+impl CompositorProxy for GlfwCompositorProxy {
+    fn send(&mut self, msg: compositor_task::Msg) {
+        // Send a message and kick the OS event loop awake.
+        self.sender.send(msg);
+        glfw::Glfw::post_empty_event()
+    }
+    fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
+        box GlfwCompositorProxy {
+            sender: self.sender.clone(),
+        } as Box<CompositorProxy+Send>
+    }
+}
+
+extern "C" fn on_refresh(_glfw_window: *mut glfw::ffi::GLFWwindow) {
+    unsafe {
+        match g_nested_event_loop_listener {
+            None => {}
+            Some(listener) => {
+                (*listener).handle_event_from_nested_event_loop(RefreshWindowEvent);
+            }
+        }
+    }
+}
+
+extern "C" fn on_framebuffer_size(_glfw_window: *mut glfw::ffi::GLFWwindow,
+                                  width: c_int,
+                                  height: c_int) {
+    unsafe {
+        match g_nested_event_loop_listener {
+            None => {}
+            Some(listener) => {
+                let size = TypedSize2D(width as uint, height as uint);
+                (*listener).handle_event_from_nested_event_loop(ResizeWindowEvent(size));
+            }
         }
     }
 }
