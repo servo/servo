@@ -13,7 +13,7 @@ use namespaces::NamespaceMap;
 use parsing_utils::{BufferedIter, ParserIter};
 use properties::common_types::*;
 use properties::longhands;
-use servo_util::geometry::ScreenPx;
+use servo_util::geometry::ViewportPx;
 use url::Url;
 
 pub struct MediaRule {
@@ -83,11 +83,11 @@ pub enum MediaType {
 
 pub struct Device {
     pub media_type: MediaType,
-    pub viewport_size: TypedSize2D<ScreenPx, f32>,
+    pub viewport_size: TypedSize2D<ViewportPx, f32>,
 }
 
 impl Device {
-    pub fn new(media_type: MediaType, viewport_size: TypedSize2D<ScreenPx, f32>) -> Device {
+    pub fn new(media_type: MediaType, viewport_size: TypedSize2D<ViewportPx, f32>) -> Device {
         Device {
             media_type: media_type,
             viewport_size: viewport_size,

@@ -17,12 +17,14 @@ use namespaces::{NamespaceMap, parse_namespace_rule};
 use media_queries::{Device, MediaRule, parse_media_rule};
 use media_queries;
 use font_face::{FontFaceRule, Source, parse_font_face_rule, iter_font_face_rules_inner};
+use selector_matching::StylesheetOrigin;
 
 
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
     rules: Vec<CSSRule>,
+    pub origin: StylesheetOrigin,
 }
 
 
@@ -42,25 +44,25 @@ pub struct StyleRule {
 impl Stylesheet {
     pub fn from_bytes_iter<I: Iterator<Vec<u8>>>(
             mut input: I, base_url: Url, protocol_encoding_label: Option<&str>,
-            environment_encoding: Option<EncodingRef>) -> Stylesheet {
+            environment_encoding: Option<EncodingRef>, origin: StylesheetOrigin) -> Stylesheet {
         let mut bytes = vec!();
         // TODO: incremental decoding and tokinization/parsing
         for chunk in input {
             bytes.push_all(chunk.as_slice())
         }
-        Stylesheet::from_bytes(bytes.as_slice(), base_url, protocol_encoding_label, environment_encoding)
+        Stylesheet::from_bytes(bytes.as_slice(), base_url, protocol_encoding_label, environment_encoding, origin)
     }
 
     pub fn from_bytes(
             bytes: &[u8], base_url: Url, protocol_encoding_label: Option<&str>,
-            environment_encoding: Option<EncodingRef>) -> Stylesheet {
+            environment_encoding: Option<EncodingRef>, origin: StylesheetOrigin) -> Stylesheet {
         // TODO: bytes.as_slice could be bytes.container_as_bytes()
         let (string, _) = decode_stylesheet_bytes(
             bytes.as_slice(), protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(string.as_slice(), base_url)
+        Stylesheet::from_str(string.as_slice(), base_url, origin)
     }
 
-    pub fn from_str(css: &str, base_url: Url) -> Stylesheet {
+    pub fn from_str(css: &str, base_url: Url, origin: StylesheetOrigin) -> Stylesheet {
         static STATE_CHARSET: uint = 1;
         static STATE_IMPORTS: uint = 2;
         static STATE_NAMESPACES: uint = 3;
@@ -119,7 +121,10 @@ impl Stylesheet {
             }
             state = next_state;
         }
-        Stylesheet{ rules: rules }
+        Stylesheet {
+            rules: rules,
+            origin: origin,
+        }
     }
 }
 
@@ -165,7 +170,6 @@ pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
     }
 }
 
-#[cfg(test)]
 pub fn iter_stylesheet_media_rules(stylesheet: &Stylesheet, callback: |&MediaRule|) {
     for rule in stylesheet.rules.iter() {
         match *rule {
