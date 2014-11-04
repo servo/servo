@@ -208,9 +208,6 @@ class Descriptor(DescriptorProvider):
                             addIndexedOrNamedOperation('Creator', m)
                         if m.isDeleter():
                             addIndexedOrNamedOperation('Deleter', m)
-                            raise TypeError("deleter specified on %s but we "
-                                            "don't support deleters yet" %
-                                            self.interface.identifier.name)
 
                 iface.setUserData('hasConcreteDescendant', True)
                 iface = iface.parent

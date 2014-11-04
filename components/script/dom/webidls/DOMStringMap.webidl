@@ -8,5 +8,5 @@
 interface DOMStringMap {
   getter DOMString (DOMString name);
   setter creator void (DOMString name, DOMString value);
-  //deleter void (DOMString name);
+  deleter void (DOMString name);
 };

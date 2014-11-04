@@ -37,6 +37,10 @@ impl<'a> DOMStringMapMethods for JSRef<'a, DOMStringMap> {
         self.map.borrow_mut().insert(name, value);
     }
 
+    fn NamedDeleter(self, name: DOMString) {
+        self.map.borrow_mut().remove(&name);
+    }
+
     fn NamedSetter(self, name: DOMString, value: DOMString) {
         self.map.borrow_mut().insert(name, value);
     }
