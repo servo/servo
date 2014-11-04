@@ -21,6 +21,7 @@ extern crate rustrt;
 extern crate stb_image;
 extern crate png;
 extern crate serialize;
+extern crate unicode;
 #[phase(plugin)]
 extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
@@ -71,4 +72,3 @@ pub mod platform;
 // Text
 #[path = "text/mod.rs"]
 pub mod text;
-
