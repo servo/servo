@@ -31,7 +31,7 @@ pub struct TransmutePass;
 ///
 ///  - Not being used in a struct/enum field which is not `#[must_root]` itself
 ///  - Not being used as an argument to a function (Except onces named `new` and `new_inherited`)
-///  - Not being bound locally in a `let` statement.
+///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
 ///
 /// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a GC pass.
 pub struct UnrootedPass;
@@ -142,17 +142,30 @@ impl LintPass for UnrootedPass {
     }
 
     // Partially copied from rustc::middle::lint::builtin
-    // Catches `let` statements which store a #[must_root] value
-    // Expressions which return out of blocks eventually end up in a `let`
+    // Catches `let` statements and assignments which store a #[must_root] value
+    // Expressions which return out of blocks eventually end up in a `let` or assignment
     // statement or a function return (which will be caught when it is used elsewhere)
     fn check_stmt(&mut self, cx: &Context, s: &ast::Stmt) {
-        // Catch the let binding
         let expr = match s.node {
+            // Catch a `let` binding
             ast::StmtDecl(ref decl, _) => match decl.node {
                 ast::DeclLocal(ref loc) => match loc.init {
-                        Some(ref e) => &**e,
-                        _ => return
+                    Some(ref e) => &**e,
+                    _ => return
                 },
+                _ => return
+            },
+            ast::StmtExpr(ref expr, _) => match expr.node {
+                // This catches deferred `let` statements
+                ast::ExprAssign(_, ref e) |
+                // Match statements allow you to bind onto the variable later in an arm
+                // We need not check arms individually since enum/struct fields are already
+                // linted in `check_struct_def` and `check_variant `
+                // (so there is no way of destructuring out a `#[must_root]` field)
+                ast::ExprMatch(ref e, _) |
+                // For loops allow you to bind a return value locally
+                ast::ExprForLoop(_, ref e, _, _) => &**e,
+                // XXXManishearth look into `if let` once it lands in our rustc
                 _ => return
             },
             _ => return
