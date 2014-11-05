@@ -21,6 +21,8 @@ use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::DOMString;
 
+use string_cache::Atom;
+
 #[dom_struct]
 pub struct HTMLElement {
     element: Element
@@ -67,6 +69,9 @@ impl<'a> PrivateHTMLElementHelpers for JSRef<'a, HTMLElement> {
 }
 
 impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
+    make_getter!(Title)
+    make_setter!(SetTitle, "title")
+
     event_handler!(click, GetOnclick, SetOnclick)
 
     fn GetOnload(self) -> Option<EventHandlerNonNull> {
