@@ -10,13 +10,13 @@ use std::ptr;
 
 struct RawDList<T> {
     length: uint,
-    head: Option<Box<RawNode<T>>>,
+    head: *mut RawNode<T>,
     tail: *mut RawNode<T>,
 }
 
 #[allow(dead_code)]
 struct RawNode<T> {
-    next: Option<Box<RawNode<T>>>,
+    next: *mut RawNode<T>,
     prev: *mut RawNode<T>,
     value: T,
 }
@@ -38,27 +38,32 @@ pub fn split<T>(list: &mut DList<T>) -> DList<T> {
     if list.length == 0 {
         fail!("split_dlist(): empty list")
     }
-    let mut head_node = mem::replace(&mut list.head, None);
-    let head_node_ptr: *mut RawNode<T> = &mut **head_node.as_mut().unwrap();
-    let mut head_list = RawDList {
+    let head_node = mem::replace(&mut list.head, ptr::null_mut());
+    let head_list = RawDList {
         length: 1,
         head: head_node,
-        tail: head_node_ptr,
+        tail: head_node,
     };
-    debug_assert!(list.head.is_none());
-    mem::swap(&mut head_list.head.as_mut().unwrap().next, &mut list.head);
-    debug_assert!(head_list.head.as_mut().unwrap().next.is_none());
-    debug_assert!(head_list.head.as_mut().unwrap().prev.is_null());
-    head_list.head.as_mut().unwrap().prev = ptr::null_mut();
+    debug_assert!(list.head.is_null());
+
+    unsafe {
+        mem::swap(&mut (*head_list.head).next, &mut list.head);
+        debug_assert!((*head_list.head).next.is_null());
+        debug_assert!((*head_list.head).prev.is_null());
+        (*head_list.head).prev = ptr::null_mut();
+    }
 
     list.length -= 1;
     if list.length == 0 {
         list.tail = ptr::null_mut()
     } else {
         if list.length == 1 {
-            list.tail = &mut **list.head.as_mut().unwrap() as *mut RawNode<T>
+            list.tail = list.head
         }
-        list.head.as_mut().unwrap().prev = ptr::null_mut()
+
+        unsafe {
+            (*list.head).prev = ptr::null_mut()
+        }
     }
 
     unsafe {
@@ -73,19 +78,19 @@ pub fn append_from<T>(this: &mut DList<T>, other: &mut DList<T>) {
         let this = mem::transmute::<&mut DList<T>,&mut RawDList<T>>(this);
         let other = mem::transmute::<&mut DList<T>,&mut RawDList<T>>(other);
         if this.length == 0 {
-            this.head = mem::replace(&mut other.head, None);
+            this.head = mem::replace(&mut other.head, ptr::null_mut());
             this.tail = mem::replace(&mut other.tail, ptr::null_mut());
             this.length = mem::replace(&mut other.length, 0);
             return
         }
 
-        (*this.tail).next = match mem::replace(&mut other.head, None) {
-            None => return,
-            Some(mut head) => {
-                head.prev = this.tail;
-                Some(head)
-            }
-        };
+        let old_other_head = mem::replace(&mut other.head, ptr::null_mut());
+        if old_other_head.is_null() {
+            return
+        }
+        (*old_other_head).prev = this.tail;
+        (*this.tail).next = old_other_head;
+
         this.tail = mem::replace(&mut other.tail, ptr::null_mut());
         this.length += other.length;
         other.length = 0;
