@@ -182,7 +182,7 @@ impl Page {
         if force_reflow {
             let frame = self.frame();
             let window = frame.as_ref().unwrap().window.root();
-            self.reflow(reflow_goal, window.control_chan().clone(), window.compositor(), query);
+            self.reflow(reflow_goal, window.control_chan().clone(), &mut **window.compositor(), query);
         } else {
             self.avoided_reflows.set(self.avoided_reflows.get() + 1);
         }
@@ -328,9 +328,8 @@ impl Page {
     pub fn reflow(&self,
                   goal: ReflowGoal,
                   script_chan: ScriptControlChan,
-                  compositor: &ScriptListener,
+                  compositor: &mut ScriptListener,
                   query_type: ReflowQueryType) {
-
         let root = match *self.frame() {
             None => return,
             Some(ref frame) => {

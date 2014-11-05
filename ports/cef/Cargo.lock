@@ -8,7 +8,7 @@ dependencies = [
  "devtools 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
  "gfx 0.0.1",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
+ "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#cec2861dd75eb721694b3176f94a276d77018bde)",
  "glfw_app 0.0.1",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs#1ec216a2577c03738fa11a78958bb2a0fd3f7fbd)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#3737b00270644594a95896a2cd37ffca36d5bc5f)",
@@ -229,16 +229,16 @@ dependencies = [
 [[package]]
 name = "glfw"
 version = "0.0.1"
-source = "git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b"
+source = "git+https://github.com/servo/glfw-rs?ref=servo#cec2861dd75eb721694b3176f94a276d77018bde"
 dependencies = [
- "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?ref=cargo-3.0.4#65a2b4721276589d9de24f6a9999a2db37286cae)",
+ "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?ref=cargo-3.0.4#aa8e0d26cccdb4145f34c5a1724d7e48e0399674)",
  "semver 0.0.1 (git+https://github.com/rust-lang/semver#d04583a173395b76c1eaa15cc630a5f6f8f0ae10)",
 ]
 
 [[package]]
 name = "glfw-sys"
 version = "3.0.4"
-source = "git+https://github.com/servo/glfw?ref=cargo-3.0.4#65a2b4721276589d9de24f6a9999a2db37286cae"
+source = "git+https://github.com/servo/glfw?ref=cargo-3.0.4#aa8e0d26cccdb4145f34c5a1724d7e48e0399674"
 
 [[package]]
 name = "glfw_app"
@@ -248,7 +248,7 @@ dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl#698c6c5409c1049ba5a7e0f7bdddf97f91dc4cf5)",
  "compositing 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom#b001a76e907befaae1d0d6dd259418a22092da86)",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#a15c2d04b8969aea653841d1d79e5fdf68de664b)",
+ "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo#cec2861dd75eb721694b3176f94a276d77018bde)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers#3737b00270644594a95896a2cd37ffca36d5bc5f)",
  "msg 0.0.1",
  "util 0.0.1",

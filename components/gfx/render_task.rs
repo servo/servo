@@ -7,6 +7,7 @@
 use buffer_map::BufferMap;
 use display_list::optimizer::DisplayListOptimizer;
 use display_list::DisplayList;
+use font_cache_task::FontCacheTask;
 use font_context::FontContext;
 use render_context::RenderContext;
 
@@ -37,7 +38,6 @@ use std::comm::{Receiver, Sender, channel};
 use std::mem;
 use std::task::TaskBuilder;
 use sync::Arc;
-use font_cache_task::FontCacheTask;
 
 /// Information about a layer that layout sends to the painting task.
 #[deriving(Clone)]
@@ -153,7 +153,10 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
         spawn_named_with_send_on_failure("RenderTask", task_state::Render, proc() {
-            { // Ensures RenderTask and graphics context are destroyed before shutdown msg
+            {
+                // Ensures that the render task and graphics context are destroyed before the
+                // shutdown message.
+                let mut compositor = compositor;
                 let native_graphics_context = compositor.get_graphics_metadata().map(
                     |md| NativePaintingGraphicsContext::from_metadata(&md));
                 let worker_threads = WorkerThreadProxy::spawn(compositor.get_graphics_metadata(),
