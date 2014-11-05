@@ -509,7 +509,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                        value: DOMString) -> AttrValue {
         if *namespace == ns!("") {
             vtable_for(&NodeCast::from_ref(self))
-                .parse_plain_attribute(local_name.as_slice(), value)
+                .parse_plain_attribute(local_name, value)
         } else {
             StringAttrValue(value)
         }
@@ -1028,10 +1028,10 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
         self.notify_content_changed();
     }
 
-    fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            "id" => AttrValue::from_atomic(value),
-            "class" => AttrValue::from_tokenlist(value),
+            &atom!("id") => AttrValue::from_atomic(value),
+            &atom!("class") => AttrValue::from_tokenlist(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

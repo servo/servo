@@ -195,9 +195,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            "width" | "height" | "hspace" | "vspace" => AttrValue::from_u32(value, 0),
+            &atom!("width") | &atom!("height") |
+            &atom!("hspace") | &atom!("vspace") => AttrValue::from_u32(value, 0),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
