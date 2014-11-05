@@ -95,31 +95,34 @@ struct StackingContext {
 }
 
 impl StackingContext {
-    /// Creates a stacking context from a display list, consuming that display list in the process.
-    fn new(list: &mut DisplayList) -> StackingContext {
-        let mut stacking_context = StackingContext {
+    /// Creates a new empty stacking context.
+    #[inline]
+    fn new() -> StackingContext {
+        StackingContext {
             background_and_borders: DisplayList::new(),
             block_backgrounds_and_borders: DisplayList::new(),
             floats: DisplayList::new(),
             content: DisplayList::new(),
             positioned_descendants: Vec::new(),
-        };
+        }
+    }
 
+    /// Initializes a stacking context from a display list, consuming that display list in the
+    /// process.
+    fn init_from_list(&mut self, list: &mut DisplayList) {
         while !list.list.is_empty() {
             let mut head = DisplayList::from_list(servo_dlist::split(&mut list.list));
             match head.front().unwrap().base().level {
                 BackgroundAndBordersStackingLevel => {
-                    stacking_context.background_and_borders.append_from(&mut head)
+                    self.background_and_borders.append_from(&mut head)
                 }
                 BlockBackgroundsAndBordersStackingLevel => {
-                    stacking_context.block_backgrounds_and_borders.append_from(&mut head)
+                    self.block_backgrounds_and_borders.append_from(&mut head)
                 }
-                FloatStackingLevel => stacking_context.floats.append_from(&mut head),
-                ContentStackingLevel => stacking_context.content.append_from(&mut head),
+                FloatStackingLevel => self.floats.append_from(&mut head),
+                ContentStackingLevel => self.content.append_from(&mut head),
                 PositionedDescendantStackingLevel(z_index) => {
-                    match stacking_context.positioned_descendants
-                                          .iter_mut()
-                                          .find(|& &(z, _)| z_index == z) {
+                    match self.positioned_descendants.iter_mut().find(|& &(z, _)| z_index == z) {
                         Some(&(_, ref mut my_list)) => {
                             my_list.append_from(&mut head);
                             continue
@@ -127,12 +130,10 @@ impl StackingContext {
                         None => {}
                     }
 
-                    stacking_context.positioned_descendants.push((z_index, head))
+                    self.positioned_descendants.push((z_index, head))
                 }
             }
         }
-
-        stacking_context
     }
 }
 
@@ -237,43 +238,38 @@ impl DisplayList {
             return
         }
 
-        let StackingContext {
-            mut background_and_borders,
-            mut block_backgrounds_and_borders,
-            mut floats,
-            mut content,
-            mut positioned_descendants
-        } = StackingContext::new(self);
+        let mut stacking_context = StackingContext::new();
+        stacking_context.init_from_list(self);
         debug_assert!(self.list.is_empty());
 
         // Steps 1 and 2: Borders and background for the root.
-        self.append_from(&mut background_and_borders);
+        self.append_from(&mut stacking_context.background_and_borders);
 
         // Sort positioned children according to z-index.
-        positioned_descendants.sort_by(|&(z_index_a, _), &(z_index_b, _)| {
+        stacking_context.positioned_descendants.sort_by(|&(z_index_a, _), &(z_index_b, _)| {
             z_index_a.cmp(&z_index_b)
         });
 
         // Step 3: Positioned descendants with negative z-indices.
-        for &(ref mut z_index, ref mut list) in positioned_descendants.iter_mut() {
+        for &(ref mut z_index, ref mut list) in stacking_context.positioned_descendants.iter_mut() {
             if *z_index < 0 {
                 self.append_from(list)
             }
         }
 
         // Step 4: Block backgrounds and borders.
-        self.append_from(&mut block_backgrounds_and_borders);
+        self.append_from(&mut stacking_context.block_backgrounds_and_borders);
 
         // Step 5: Floats.
-        self.append_from(&mut floats);
+        self.append_from(&mut stacking_context.floats);
 
         // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
 
         // Step 7: Content.
-        self.append_from(&mut content);
+        self.append_from(&mut stacking_context.content);
 
         // Steps 8 and 9: Positioned descendants with nonnegative z-indices.
-        for &(ref mut z_index, ref mut list) in positioned_descendants.iter_mut() {
+        for &(ref mut z_index, ref mut list) in stacking_context.positioned_descendants.iter_mut() {
             if *z_index >= 0 {
                 self.append_from(list)
             }
