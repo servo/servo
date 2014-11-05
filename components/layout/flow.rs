@@ -241,10 +241,6 @@ pub trait Flow: fmt::Show + ToString + Sync {
         false
     }
 
-    fn is_float(&self) -> bool {
-        false
-    }
-
     /// The 'position' property of this flow.
     fn positioning(&self) -> position::T {
         position::static_
@@ -568,6 +564,11 @@ impl FlowFlags {
         } else {
             float::none
         }
+    }
+
+    #[inline]
+    pub fn is_float(&self) -> bool {
+        self.floats_left() || self.floats_right()
     }
 
     #[inline]

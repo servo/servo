@@ -1116,7 +1116,8 @@ impl Flow for InlineFlow {
 
         // Assign block sizes for any inline-block descendants.
         for kid in self.base.child_iter() {
-            if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) || kid.is_float() {
+            if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) ||
+                    flow::base(kid).flags.is_float() {
                 continue
             }
             kid.assign_block_size_for_inorder_child_if_necessary(layout_context);

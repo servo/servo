@@ -639,7 +639,7 @@ impl BlockFlow {
             } else {
                 AbsoluteNonReplacedType
             }
-        } else if self.is_float() {
+        } else if self.base.flags.is_float() {
             if self.is_replaced_content() {
                 FloatReplacedType
             } else {
@@ -877,7 +877,7 @@ impl BlockFlow {
                 // Assign block-size now for the child if it was impacted by floats and we couldn't
                 // before.
                 flow::mut_base(kid).floats = floats.clone();
-                if kid.is_float() {
+                if flow::base(kid).flags.is_float() {
                     flow::mut_base(kid).position.start.b = cur_b;
                     {
                         let kid_block = kid.as_block();
@@ -1225,7 +1225,7 @@ impl BlockFlow {
     pub fn propagate_and_compute_used_inline_size(&mut self, layout_context: &LayoutContext) {
         let containing_block_inline_size = self.base.block_container_inline_size;
         self.compute_used_inline_size(layout_context, containing_block_inline_size);
-        if self.is_float() {
+        if self.base.flags.is_float() {
             self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size;
         }
     }
@@ -1547,7 +1547,7 @@ impl Flow for BlockFlow {
         }
 
         debug!("assign_inline_sizes({}): assigning inline_size for flow",
-               if self.is_float() {
+               if self.base.flags.is_float() {
                    "float"
                } else {
                    "block"
@@ -1612,7 +1612,7 @@ impl Flow for BlockFlow {
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
                                                             layout_context: &'a LayoutContext<'a>)
                                                             -> bool {
-        if self.is_float() {
+        if self.base.flags.is_float() {
             self.place_float();
             return true
         }
@@ -1655,7 +1655,7 @@ impl Flow for BlockFlow {
             if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 self.base.position.size.block = self.fragment.border_box.size.block;
             }
-        } else if self.is_root() || self.is_float() || self.is_inline_block() {
+        } else if self.is_root() || self.base.flags.is_float() || self.is_inline_block() {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
             debug!("assign_block_size: assigning block_size for root flow");
             self.assign_block_size_block_base(ctx, MarginsMayNotCollapse);
@@ -1772,10 +1772,6 @@ impl Flow for BlockFlow {
         self.flags.contains(IS_ROOT)
     }
 
-    fn is_float(&self) -> bool {
-        self.float.is_some()
-    }
-
     /// The 'position' property of this flow.
     fn positioning(&self) -> position::T {
         self.fragment.style.get_box().position
@@ -1822,7 +1818,7 @@ impl Flow for BlockFlow {
     }
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        if self.is_float() {
+        if self.base.flags.is_float() {
             // TODO(#2009, pcwalton): This is a pseudo-stacking context. We need to merge `z-index:
             // auto` kids into the parent stacking context, when that is supported.
             self.build_display_list_for_floating_block(layout_context)
