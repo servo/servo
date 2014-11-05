@@ -68,6 +68,8 @@ use dom::node::{Node, NodeHelpers, ElementNodeTypeId, CloneChildrenFlag};
 
 use servo_util::str::DOMString;
 
+use string_cache::Atom;
+
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.
 pub trait VirtualMethods {
@@ -95,7 +97,7 @@ pub trait VirtualMethods {
 
     /// Returns the right AttrValue variant for the attribute with name `name`
     /// on this element.
-    fn parse_plain_attribute(&self, name: &str, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match self.super_type() {
             Some(ref s) => s.parse_plain_attribute(name, value),
             _ => StringAttrValue(value),

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrValue, UIntAttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -24,7 +24,7 @@ use dom::htmlformelement::{InputElement, FormOwner, HTMLFormElement, HTMLFormEle
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::{DOMString, parse_unsigned_integer};
+use servo_util::str::DOMString;
 use string_cache::Atom;
 
 use std::ascii::OwnedStrAsciiExt;
@@ -282,9 +282,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 self.update_checked_state(true);
             }
             &atom!("size") => {
-                let value = attr.value();
-                let parsed = parse_unsigned_integer(value.as_slice().chars());
-                self.size.set(parsed.unwrap_or(DEFAULT_INPUT_SIZE));
+                match *attr.value() {
+                    UIntAttrValue(_, value) => self.size.set(value),
+                    _ => fail!("Expected a UIntAttrValue"),
+                }
                 self.force_relayout();
             }
             &atom!("type") => {
@@ -360,6 +361,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 }
             }
             _ => ()
+        }
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("size") => AttrValue::from_u32(value, DEFAULT_INPUT_SIZE),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
 
