@@ -160,7 +160,7 @@ impl LintPass for UnrootedPass {
                 ast::ExprAssign(_, ref e) |
                 // Match statements allow you to bind onto the variable later in an arm
                 // We need not check arms individually since enum/struct fields are already
-                // linted in `check_struct_def` and `check_variant `
+                // linted in `check_struct_def` and `check_variant`
                 // (so there is no way of destructuring out a `#[must_root]` field)
                 ast::ExprMatch(ref e, _) |
                 // For loops allow you to bind a return value locally

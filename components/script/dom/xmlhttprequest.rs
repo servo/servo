@@ -13,7 +13,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRe
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAccess};
 use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
-use dom::bindings::global::{GlobalField, GlobalRef, WorkerField};
+use dom::bindings::global::{GlobalField, GlobalRef, WorkerRoot};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -698,8 +698,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         self.response_type.get()
     }
     fn SetResponseType(self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
-        match self.global {
-            WorkerField(_) if response_type == XMLHttpRequestResponseTypeValues::Document
+        match self.global.root() {
+            WorkerRoot(_) if response_type == XMLHttpRequestResponseTypeValues::Document
             => return Ok(()),
             _ => {}
         }
