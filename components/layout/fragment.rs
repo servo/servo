@@ -4,7 +4,7 @@
 
 //! The `Fragment` type, which represents the leaves of the layout tree.
 
-#![deny(unsafe_block)]
+#![deny(unsafe_blocks)]
 
 use css::node_style::StyledNode;
 use construct::FlowConstructor;
@@ -639,18 +639,18 @@ impl Fragment {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
             TableFragment | TableCellFragment => {
-                IntrinsicInlineSizeIncludesPadding |
-                    IntrinsicInlineSizeIncludesBorder |
-                    IntrinsicInlineSizeIncludesSpecified
+                INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_BORDER |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED
             }
             TableWrapperFragment => {
-                IntrinsicInlineSizeIncludesMargins |
-                    IntrinsicInlineSizeIncludesBorder |
-                    IntrinsicInlineSizeIncludesSpecified
+                INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_BORDER |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED
             }
             TableRowFragment => {
-                IntrinsicInlineSizeIncludesBorder |
-                    IntrinsicInlineSizeIncludesSpecified
+                INTRINSIC_INLINE_SIZE_INCLUDES_BORDER |
+                    INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED
             }
             ScannedTextFragment(_) | TableColumnFragment(_) | UnscannedTextFragment(_) |
             InlineAbsoluteHypotheticalFragment(_) => {
@@ -670,7 +670,7 @@ impl Fragment {
         // FIXME(pcwalton): Percentages should be relative to any definite size per CSS-SIZING.
         // This will likely need to be done by pushing down definite sizes during selector
         // cascading.
-        let margin = if flags.contains(IntrinsicInlineSizeIncludesMargins) {
+        let margin = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS) {
             let margin = style.logical_margin();
             (MaybeAuto::from_style(margin.inline_start, Au(0)).specified_or_zero() +
              MaybeAuto::from_style(margin.inline_end, Au(0)).specified_or_zero())
@@ -681,7 +681,7 @@ impl Fragment {
         // FIXME(pcwalton): Percentages should be relative to any definite size per CSS-SIZING.
         // This will likely need to be done by pushing down definite sizes during selector
         // cascading.
-        let padding = if flags.contains(IntrinsicInlineSizeIncludesPadding) {
+        let padding = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_PADDING) {
             let padding = style.logical_padding();
             (model::specified(padding.inline_start, Au(0)) +
              model::specified(padding.inline_end, Au(0)))
@@ -689,7 +689,7 @@ impl Fragment {
             Au(0)
         };
 
-        let border = if flags.contains(IntrinsicInlineSizeIncludesBorder) {
+        let border = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_BORDER) {
             self.border_width().inline_start_end()
         } else {
             Au(0)
@@ -703,7 +703,7 @@ impl Fragment {
     fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizesContribution {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
-        let specified = if flags.contains(IntrinsicInlineSizeIncludesSpecified) {
+        let specified = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
             MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero()
         } else {
             Au(0)
@@ -983,7 +983,7 @@ impl Fragment {
                 })
             }
             UnscannedTextFragment(..) => {
-                fail!("Unscanned text fragments should have been scanned by now!")
+                panic!("Unscanned text fragments should have been scanned by now!")
             }
         };
 
@@ -1021,8 +1021,8 @@ impl Fragment {
                 let text_bounds = run.metrics_for_range(range).bounding_box;
                 text_bounds.size.width
             }
-            TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
-            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            TableColumnFragment(_) => panic!("Table column fragments do not have inline_size"),
+            UnscannedTextFragment(_) => panic!("Unscanned text fragments should have been scanned by now!"),
         }
     }
 
@@ -1039,8 +1039,8 @@ impl Fragment {
                 // Compute the block-size based on the line-block-size and font size.
                 self.calculate_line_height(layout_context)
             }
-            TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
-            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            TableColumnFragment(_) => panic!("Table column fragments do not have block_size"),
+            UnscannedTextFragment(_) => panic!("Unscanned text fragments should have been scanned by now!"),
         }
     }
 
@@ -1066,10 +1066,10 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment => None,
-            TableColumnFragment(_) => fail!("Table column fragments do not need to split"),
-            UnscannedTextFragment(_) => fail!("Unscanned text fragments should have been scanned by now!"),
+            TableColumnFragment(_) => panic!("Table column fragments do not need to split"),
+            UnscannedTextFragment(_) => panic!("Unscanned text fragments should have been scanned by now!"),
             InlineBlockFragment(_) | InlineAbsoluteHypotheticalFragment(_) => {
-                fail!("Inline blocks or inline absolute hypothetical fragments do not get split")
+                panic!("Inline blocks or inline absolute hypothetical fragments do not get split")
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let mut new_line_pos = text_fragment_info.new_line_pos.clone();
@@ -1115,9 +1115,9 @@ impl Fragment {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment |
             TableCellFragment | TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
             InlineAbsoluteHypotheticalFragment(_) => None,
-            TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
+            TableColumnFragment(_) => panic!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => {
-                fail!("Unscanned text fragments should have been scanned by now!")
+                panic!("Unscanned text fragments should have been scanned by now!")
             }
             ScannedTextFragment(ref text_fragment_info) => {
                 let mut pieces_processed_count: uint = 0;
@@ -1165,7 +1165,7 @@ impl Fragment {
                             // the inline-end chunk.
                             let inline_end_range_end = text_fragment_info.range.end() - slice_begin;
                             inline_end_range = Some(Range::new(slice_begin, inline_end_range_end));
-                            debug!("split_to_inline_size: case=splitting remainder with inline_end range={:?}",
+                            debug!("split_to_inline_size: case=splitting remainder with inline_end range={}",
                                    inline_end_range);
                         }
                     }
@@ -1218,9 +1218,9 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment => return,
-            TableColumnFragment(_) => fail!("Table column fragments do not have inline_size"),
+            TableColumnFragment(_) => panic!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => {
-                fail!("Unscanned text fragments should have been scanned by now!")
+                panic!("Unscanned text fragments should have been scanned by now!")
             }
             ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) |
             InlineAbsoluteHypotheticalFragment(_) => {}
@@ -1299,7 +1299,7 @@ impl Fragment {
                 self.border_box.size.inline = inline_size + noncontent_inline_size;
                 image_fragment_info.computed_inline_size = Some(inline_size);
             }
-            _ => fail!("this case should have been handled above"),
+            _ => panic!("this case should have been handled above"),
         }
     }
 
@@ -1311,9 +1311,9 @@ impl Fragment {
         match self.specific {
             GenericFragment | IframeFragment(_) | TableFragment | TableCellFragment |
             TableRowFragment | TableWrapperFragment => return,
-            TableColumnFragment(_) => fail!("Table column fragments do not have block_size"),
+            TableColumnFragment(_) => panic!("Table column fragments do not have block_size"),
             UnscannedTextFragment(_) => {
-                fail!("Unscanned text fragments should have been scanned by now!")
+                panic!("Unscanned text fragments should have been scanned by now!")
             }
             ImageFragment(_) | ScannedTextFragment(_) | InlineBlockFragment(_) |
             InlineAbsoluteHypotheticalFragment(_) => {}
@@ -1368,7 +1368,7 @@ impl Fragment {
                 let block_flow = info.flow_ref.as_block();
                 self.border_box.size.block = block_flow.base.position.size.block;
             }
-            _ => fail!("should have been handled above"),
+            _ => panic!("should have been handled above"),
         }
     }
 
@@ -1501,10 +1501,10 @@ impl fmt::Show for Fragment {
 
 bitflags! {
     flags QuantitiesIncludedInIntrinsicInlineSizes: u8 {
-        static IntrinsicInlineSizeIncludesMargins = 0x01,
-        static IntrinsicInlineSizeIncludesPadding = 0x02,
-        static IntrinsicInlineSizeIncludesBorder = 0x04,
-        static IntrinsicInlineSizeIncludesSpecified = 0x08,
+        const INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS = 0x01,
+        const INTRINSIC_INLINE_SIZE_INCLUDES_PADDING = 0x02,
+        const INTRINSIC_INLINE_SIZE_INCLUDES_BORDER = 0x04,
+        const INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED = 0x08,
     }
 }
 

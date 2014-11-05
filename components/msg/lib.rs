@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 extern crate azure;
 extern crate geom;

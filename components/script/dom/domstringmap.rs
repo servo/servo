@@ -10,7 +10,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
 
 #[dom_struct]
 pub struct DOMStringMap {
@@ -46,7 +46,7 @@ impl<'a> DOMStringMapMethods for JSRef<'a, DOMStringMap> {
     }
 
     fn NamedGetter(self, name: DOMString, found: &mut bool) -> DOMString {
-        match self.map.borrow().find(&name) {
+        match self.map.borrow().get(&name) {
             Some(value) => {
                 *found = true;
                 value.clone()

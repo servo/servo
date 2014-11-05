@@ -6,10 +6,10 @@
 
 use string_cache::{Atom, Namespace};
 
-static KEY_SIZE: uint = 12;
-static ARRAY_SIZE: uint = 1 << KEY_SIZE;
-static KEY_MASK: u32 = (1 << KEY_SIZE) - 1;
-static KEY_SHIFT: uint = 16;
+const KEY_SIZE: uint = 12;
+const ARRAY_SIZE: uint = 1 << KEY_SIZE;
+const KEY_MASK: u32 = (1 << KEY_SIZE) - 1;
+const KEY_SHIFT: uint = 16;
 
 /// A counting Bloom filter with 8-bit counters.  For now we assume
 /// that having two hash functions is enough, but we may revisit that
@@ -334,4 +334,3 @@ mod bench {
         })
     }
 }
-

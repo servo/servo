@@ -15,11 +15,11 @@ use dom::window::Window;
 use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
 use string_cache::{Atom, Namespace};
 
 pub trait CollectionFilter : JSTraceable {
-    fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool;
+    fn filter<'a>(&self, elem: JSRef<'a, Element>, root: JSRef<'a, Node>) -> bool;
 }
 
 #[jstraceable]

@@ -21,10 +21,11 @@ use js::jsapi::{JSContext, JSObject};
 use servo_util::fnv::FnvHasher;
 use servo_util::str::DOMString;
 use libc::{c_char, size_t};
+use std::collections::hash_map::{Occupied, Vacant};
 use std::ptr;
 use url::Url;
 
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
 
 #[deriving(PartialEq)]
 #[jstraceable]
@@ -83,14 +84,14 @@ impl EventTarget {
     }
 
     pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListener>> {
-        self.handlers.borrow().find_equiv(&type_).map(|listeners| {
+        self.handlers.borrow().find_equiv(type_).map(|listeners| {
             listeners.iter().map(|entry| entry.listener.get_listener()).collect()
         })
     }
 
     pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
         -> Option<Vec<EventListener>> {
-        self.handlers.borrow().find_equiv(&type_).map(|listeners| {
+        self.handlers.borrow().find_equiv(type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener.get_listener()).collect()
         })
@@ -137,7 +138,11 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
                                  ty: DOMString,
                                  listener: Option<EventListener>) {
         let mut handlers = self.handlers.borrow_mut();
-        let entries = handlers.find_or_insert_with(ty, |_| vec!());
+        let entries = match handlers.entry(ty) {
+            Occupied(entry) => entry.into_mut(),
+            Vacant(entry) => entry.set(vec!()),
+        };
+
         let idx = entries.iter().position(|&entry| {
             match entry.listener {
                 Inline(_) => true,
@@ -148,7 +153,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         match idx {
             Some(idx) => {
                 match listener {
-                    Some(listener) => entries.get_mut(idx).listener = Inline(listener),
+                    Some(listener) => entries[idx].listener = Inline(listener),
                     None => {
                         entries.remove(idx);
                     }
@@ -167,7 +172,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
 
     fn get_inline_event_listener(self, ty: DOMString) -> Option<EventListener> {
         let handlers = self.handlers.borrow();
-        let entries = handlers.find(&ty);
+        let entries = handlers.get(&ty);
         entries.and_then(|entries| entries.iter().find(|entry| {
             match entry.listener {
                 Inline(_) => true,
@@ -187,21 +192,21 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         let lineno = 0; //XXXjdm need to get a real number here
 
         let nargs = 1; //XXXjdm not true for onerror
-        static arg_name: [c_char, ..6] =
+        static ARG_NAME: [c_char, ..6] =
             ['e' as c_char, 'v' as c_char, 'e' as c_char, 'n' as c_char, 't' as c_char, 0];
-        static arg_names: [*const c_char, ..1] = [&arg_name as *const c_char];
+        static ARG_NAMES: [*const c_char, ..1] = [&ARG_NAME as *const c_char];
 
         let source: Vec<u16> = source.as_slice().utf16_units().collect();
         let handler = unsafe {
-                JS_CompileUCFunction(cx,
-                                     ptr::null_mut(),
-                                     name.as_ptr(),
-                                     nargs,
-                                     &arg_names as *const *const i8 as *mut *const i8,
-                                     source.as_ptr(),
-                                     source.len() as size_t,
-                                     url.as_ptr(),
-                                     lineno)
+            JS_CompileUCFunction(cx,
+                                 ptr::null_mut(),
+                                 name.as_ptr(),
+                                 nargs,
+                                 &ARG_NAMES as *const *const i8 as *mut *const i8,
+                                 source.as_ptr(),
+                                 source.len() as size_t,
+                                 url.as_ptr(),
+                                 lineno)
         };
         if handler.is_null() {
             report_pending_exception(cx, self.reflector().get_jsobject());
@@ -241,7 +246,11 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         match listener {
             Some(listener) => {
                 let mut handlers = self.handlers.borrow_mut();
-                let entry = handlers.find_or_insert_with(ty, |_| vec!());
+                let entry = match handlers.entry(ty) {
+                    Occupied(entry) => entry.into_mut(),
+                    Vacant(entry) => entry.set(vec!()),
+                };
+
                 let phase = if capture { Capturing } else { Bubbling };
                 let new_entry = EventListenerEntry {
                     phase: phase,
@@ -262,7 +271,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         match listener {
             Some(listener) => {
                 let mut handlers = self.handlers.borrow_mut();
-                let mut entry = handlers.find_mut(&ty);
+                let mut entry = handlers.get_mut(&ty);
                 for entry in entry.iter_mut() {
                     let phase = if capture { Capturing } else { Bubbling };
                     let old_entry = EventListenerEntry {

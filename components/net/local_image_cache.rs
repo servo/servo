@@ -12,7 +12,8 @@ use image_cache_task::{Decode, GetImage, ImageCacheTask, ImageFailed, ImageNotRe
 use image_cache_task::{ImageResponseMsg, Prefetch, WaitForImage};
 
 use std::comm::{Receiver, channel};
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
+use std::collections::hash_map::{Occupied, Vacant};
 use servo_util::task::spawn_named;
 use url::Url;
 
@@ -153,15 +154,15 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
     }
 
     fn get_state<'a>(&'a mut self, url: &Url) -> &'a mut ImageState {
-        let state = self.state_map.find_or_insert_with(url.clone(), |_| {
-            let new_state = ImageState {
-                prefetched: false,
-                decoded: false,
-                last_request_round: 0,
-                last_response: ImageNotReady
-            };
-            new_state
-        });
-        state
+        match self.state_map.entry((*url).clone()) {
+            Occupied(entry) => entry.into_mut(),
+            Vacant(entry) =>
+                entry.set(ImageState {
+                    prefetched: false,
+                    decoded: false,
+                    last_request_round: 0,
+                    last_response: ImageNotReady,
+                })
+        }
     }
 }

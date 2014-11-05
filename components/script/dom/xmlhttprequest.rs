@@ -50,13 +50,12 @@ use script_task::{ScriptChan, XHRProgressMsg, XHRReleaseMsg};
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::comm::{Sender, Receiver, channel};
 use std::default::Default;
 use std::io::{BufReader, MemWriter, Timer};
 use std::from_str::FromStr;
-use std::path::BytesContainer;
 use std::time::duration::Duration;
 use std::num::Zero;
 use time;
@@ -454,7 +453,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                     let mut buf = h.header_value();
                     buf.as_mut_vec().push_all(&[0x2C, 0x20]);
                     buf.as_mut_vec().push_all(value.as_slice());
-                    value = ByteString::new(buf.container_into_owned_bytes());
+                    value = ByteString::new(buf.into_bytes());
 
                 }
             },
@@ -875,7 +874,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
-                *self.status_text.borrow_mut() = ByteString::new(status.reason().container_into_owned_bytes());
+                *self.status_text.borrow_mut() = ByteString::new(status.reason().into_bytes());
                 self.status.set(status.code());
                 match headers {
                     Some(ref h) => {

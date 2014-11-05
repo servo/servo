@@ -252,7 +252,7 @@ impl Actor for WalkerActor {
             }
 
             "children" => {
-                let target = msg.find(&"node".to_string()).unwrap().as_string().unwrap();
+                let target = msg.get(&"node".to_string()).unwrap().as_string().unwrap();
                 let (tx, rx) = channel();
                 self.script_chan.send(GetChildren(self.pipeline,
                                                   registry.actor_to_script(target.to_string()),
@@ -347,6 +347,7 @@ struct GetLayoutReply {
 }
 
 #[deriving(Encodable)]
+#[allow(dead_code)]
 struct AutoMargins {
     top: String,
     bottom: String,
@@ -389,14 +390,14 @@ impl Actor for PageStyleActor {
 
             //TODO: query script for box layout properties of node (msg.node)
             "getLayout" => {
-                let target = msg.find(&"node".to_string()).unwrap().as_string().unwrap();
+                let target = msg.get(&"node".to_string()).unwrap().as_string().unwrap();
                 let (tx, rx) = channel();
                 self.script_chan.send(GetLayout(self.pipeline,
                                                 registry.actor_to_script(target.to_string()),
                                                 tx));
                 let (width, height) = rx.recv();
 
-                let auto_margins = msg.find(&"autoMargins".to_string()).unwrap().as_boolean().unwrap();
+                let auto_margins = msg.get(&"autoMargins".to_string()).unwrap().as_boolean().unwrap();
 
                 //TODO: the remaining layout properties (margin, border, padding, position)
                 //      as specified in getLayout in http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js

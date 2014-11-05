@@ -54,3 +54,9 @@ optional = true
 
 [dependencies.url]
 git = "https://github.com/servo/rust-url"
+
+[dependencies.green]
+git = "https://github.com/alexcrichton/green-rs"
+
+[dependencies.rustuv]
+git = "https://github.com/alexcrichton/green-rs"

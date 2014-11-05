@@ -32,11 +32,13 @@ struct StartedListenersReply {
 }
 
 #[deriving(Encodable)]
+#[allow(dead_code)]
 struct ConsoleAPIMessage {
     _type: String, //FIXME: should this be __type__ instead?
 }
 
 #[deriving(Encodable)]
+#[allow(dead_code)]
 struct PageErrorMessage {
     _type: String, //FIXME: should this be __type__ instead?
     errorMessage: String,
@@ -54,6 +56,7 @@ struct PageErrorMessage {
 }
 
 #[deriving(Encodable)]
+#[allow(dead_code)]
 struct LogMessage {
     _type: String, //FIXME: should this be __type__ instead?
     timeStamp: uint,
@@ -61,6 +64,7 @@ struct LogMessage {
 }
 
 #[deriving(Encodable)]
+#[allow(dead_code)]
 enum ConsoleMessageType {
     ConsoleAPIType(ConsoleAPIMessage),
     PageErrorType(PageErrorMessage),
@@ -115,7 +119,7 @@ impl Actor for ConsoleActor {
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
             "getCachedMessages" => {
-                let types = msg.find(&"messageTypes".to_string()).unwrap().as_list().unwrap();
+                let types = msg.get(&"messageTypes".to_string()).unwrap().as_list().unwrap();
                 let /*mut*/ messages = vec!();
                 for msg_type in types.iter() {
                     let msg_type = msg_type.as_string().unwrap();
@@ -187,7 +191,7 @@ impl Actor for ConsoleActor {
                 //TODO: actually implement listener filters that support starting/stopping
                 let msg = StopListenersReply {
                     from: self.name(),
-                    stoppedListeners: msg.find(&"listeners".to_string())
+                    stoppedListeners: msg.get(&"listeners".to_string())
                                          .unwrap()
                                          .as_list()
                                          .unwrap_or(&vec!())
@@ -212,7 +216,7 @@ impl Actor for ConsoleActor {
             }
 
             "evaluateJS" => {
-                let input = msg.find(&"text".to_string()).unwrap().as_string().unwrap().to_string();
+                let input = msg.get(&"text".to_string()).unwrap().as_string().unwrap().to_string();
                 let (chan, port) = channel();
                 self.script_chan.send(EvaluateJS(self.pipeline, input.clone(), chan));
 

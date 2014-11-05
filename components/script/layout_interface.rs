@@ -15,7 +15,7 @@ use servo_msg::constellation_msg::WindowSizeData;
 use servo_util::geometry::Au;
 use std::any::{Any, AnyRefExt};
 use std::comm::{channel, Receiver, Sender};
-use std::owned::BoxAny;
+use std::boxed::BoxAny;
 use style::Stylesheet;
 use url::Url;
 

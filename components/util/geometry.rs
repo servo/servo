@@ -28,6 +28,7 @@ use std::fmt;
 ///
 /// The ratio between ScreenPx and DevicePixel for a given display be found by calling
 /// `servo::windowing::WindowMethods::hidpi_factor`.
+#[deriving(Show)]
 pub enum ScreenPx {}
 
 /// One CSS "px" in the coordinate system of the "initial viewport":
@@ -39,7 +40,7 @@ pub enum ScreenPx {}
 ///
 /// At the default zoom level of 100%, one PagePx is equal to one ScreenPx.  However, if the
 /// document is zoomed in or out then this scale may be larger or smaller.
-#[deriving(Encodable)]
+#[deriving(Encodable, Show)]
 pub enum ViewportPx {}
 
 /// One CSS "px" in the root coordinate system for the content document.
@@ -48,7 +49,7 @@ pub enum ViewportPx {}
 /// This is the mobile-style "pinch zoom" that enlarges content without reflowing it.  When the
 /// viewport zoom is not equal to 1.0, then the layout viewport is no longer the same physical size
 /// as the viewable area.
-#[deriving(Encodable)]
+#[deriving(Encodable, Show)]
 pub enum PagePx {}
 
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
@@ -95,8 +96,8 @@ pub static MAX_RECT: Rect<Au> = Rect {
     }
 };
 
-pub static MIN_AU: Au = Au(i32::MIN);
-pub static MAX_AU: Au = Au(i32::MAX);
+pub const MIN_AU: Au = Au(i32::MIN);
+pub const MAX_AU: Au = Au(i32::MAX);
 
 impl<E, S: Encoder<E>> Encodable<S, E> for Au {
     fn encode(&self, e: &mut S) -> Result<(), E> {
@@ -319,4 +320,3 @@ pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
     Rect(Point2D(Au::from_frac32_px(rect.origin.x), Au::from_frac32_px(rect.origin.y)),
          Size2D(Au::from_frac32_px(rect.size.width), Au::from_frac32_px(rect.size.height)))
 }
-

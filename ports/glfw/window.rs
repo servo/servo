@@ -367,7 +367,7 @@ impl Window {
                 }
                 MouseWindowMouseUpEvent(button as uint, TypedPoint2D(x as f32, y as f32))
             }
-            _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
+            _ => panic!("I cannot recognize the type of mouse action that occured. :-(")
         };
         self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
     }

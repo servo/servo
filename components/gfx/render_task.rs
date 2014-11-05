@@ -152,7 +152,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("RenderTask", task_state::Render, proc() {
+        spawn_named_with_send_on_failure("RenderTask", task_state::RENDER, proc() {
             {
                 // Ensures that the render task and graphics context are destroyed before the
                 // shutdown message.
@@ -237,7 +237,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                         if self.epoch == epoch {
                             self.render(&mut replies, buffer_requests, scale, layer_id);
                         } else {
-                            debug!("renderer epoch mismatch: {:?} != {:?}", self.epoch, epoch);
+                            debug!("renderer epoch mismatch: {} != {}", self.epoch, epoch);
                         }
                     }
 
@@ -340,14 +340,14 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
             for (i, tile) in tiles.into_iter().enumerate() {
                 let thread_id = i % self.worker_threads.len();
                 let layer_buffer = self.find_or_create_layer_buffer_for_tile(&tile, scale);
-                self.worker_threads.get_mut(thread_id).paint_tile(tile,
-                                                                  layer_buffer,
-                                                                  render_layer.clone(),
-                                                                  scale);
+                self.worker_threads[thread_id].paint_tile(tile,
+                                                          layer_buffer,
+                                                          render_layer.clone(),
+                                                          scale);
             }
             let new_buffers = Vec::from_fn(tile_count, |i| {
                 let thread_id = i % self.worker_threads.len();
-                self.worker_threads.get_mut(thread_id).get_painted_tile_buffer()
+                self.worker_threads[thread_id].get_painted_tile_buffer()
             });
 
             let layer_buffer_set = box LayerBufferSet {
@@ -570,4 +570,3 @@ enum MsgToWorkerThread {
 enum MsgFromWorkerThread {
     PaintedTileMsgFromWorkerThread(Box<LayerBuffer>),
 }
-

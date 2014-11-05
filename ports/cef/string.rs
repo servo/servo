@@ -172,7 +172,7 @@ pub extern "C" fn cef_string_utf16_cmp(a: *const cef_string_utf16_t, b: *const c
     unsafe {
        slice::raw::buf_as_slice(mem::transmute((*a).str), (*a).length as uint, |astr:&[u16]| {
             slice::raw::buf_as_slice(mem::transmute((*b).str), (*b).length as uint, |bstr:&[u16]| {
-                  match astr.cmp(&bstr) {
+                  match astr.cmp(bstr) {
                        Less => -1,
                        Equal => 0,
                        Greater => 1

@@ -5,7 +5,7 @@
 use cssparser::ast::*;
 use cssparser::parse_declaration_list;
 use errors::{ErrorLoggerIterator, log_css_error};
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
 use parsing_utils::{BufferedIter, ParserIter, parse_slice_comma_separated};
 use properties::longhands::font_family::parse_one_family;
 use properties::computed_values::font_family::FamilyName;
