@@ -8,7 +8,7 @@ use css::node_style::StyledNode;
 use context::LayoutContext;
 use display_list_builder::{ContentLevel, DisplayListResult, FragmentDisplayListBuilding};
 use floats::{FloatLeft, Floats, PlacementInfo};
-use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
+use flow::{BaseFlow, FlowClass, Flow, ForceNonfloated, InlineFlowClass, MutableFlowUtils};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow;
 use fragment::{Fragment, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
@@ -706,7 +706,7 @@ pub struct InlineFlow {
 impl InlineFlow {
     pub fn from_fragments(fragments: InlineFragments, writing_mode: WritingMode) -> InlineFlow {
         InlineFlow {
-            base: BaseFlow::new(None, writing_mode),
+            base: BaseFlow::new(None, writing_mode, ForceNonfloated),
             fragments: fragments,
             lines: Vec::new(),
             minimum_block_size_above_baseline: Au(0),
