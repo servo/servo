@@ -16,6 +16,7 @@ script](etc/ci/travis.install.sh).
 On OS X (homebrew):
 
 ``` sh
+brew tap homebrew/versions
 brew install automake pkg-config python glfw3 cmake
 pip install virtualenv
 ```
