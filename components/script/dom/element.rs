@@ -854,16 +854,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-hasattribute
     fn HasAttribute(self, name: DOMString) -> bool {
-        // Step 1.
-        if self.html_element_in_html_document() {
-            // TODO(pcwalton): Small string optimization here.
-            return self.has_attribute(&Atom::from_slice(name.as_slice()
-                                                            .to_ascii_lower()
-                                                            .as_slice()))
-        }
-
-        // Step 2.
-        self.has_attribute(&Atom::from_slice(name.as_slice()))
+        self.GetAttribute(name).is_some()
     }
 
     // http://dom.spec.whatwg.org/#dom-element-hasattributens
