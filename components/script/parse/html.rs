@@ -136,7 +136,7 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
     }
 
     fn parse_error(&mut self, msg: MaybeOwned<'static>) {
-        error!("Parse error: {:s}", msg);
+        debug!("Parse error: {:s}", msg);
     }
 
     fn set_quirks_mode(&mut self, mode: QuirksMode) {
