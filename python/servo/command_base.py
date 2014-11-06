@@ -54,6 +54,9 @@ class CommandBase(object):
         if not hasattr(self.context, "bootstrapped"):
             self.context.bootstrapped = False
 
+        if not hasattr(self.context, "sharedir"):
+            self.context.sharedir = path.join(path.expanduser("~/"), ".servo")
+
         config_path = path.join(context.topdir, ".servobuild")
         if path.exists(config_path):
             self.config = toml.loads(open(config_path).read())
@@ -68,10 +71,10 @@ class CommandBase(object):
         self.config["tools"].setdefault("cargo-root", "")
         if not self.config["tools"]["system-rust"]:
             self.config["tools"]["rust-root"] = path.join(
-                context.topdir, "rust", *self.rust_snapshot_path().split("/"))
+                context.sharedir, "rust", *self.rust_snapshot_path().split("/"))
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
-                context.topdir, "cargo")
+                context.sharedir, "cargo", self.cargo_build_id())
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
@@ -82,6 +85,7 @@ class CommandBase(object):
         self.config["android"].setdefault("toolchain", "")
 
     _rust_snapshot_path = None
+    _cargo_build_id = None
 
     def rust_snapshot_path(self):
         if self._rust_snapshot_path is None:
@@ -89,6 +93,12 @@ class CommandBase(object):
             snapshot_hash = open(filename).read().strip()
             self._rust_snapshot_path = "%s-%s" % (snapshot_hash, host_triple())
         return self._rust_snapshot_path
+
+    def cargo_build_id(self):
+        if self._cargo_build_id is None:
+            filename = path.join(self.context.topdir, "cargo-nightly-build")
+            self._cargo_build_id = open(filename).read().strip()
+        return self._cargo_build_id
 
     def build_env(self):
         """Return an extended environment dictionary."""
@@ -148,7 +158,7 @@ class CommandBase(object):
             Registrar.dispatch("bootstrap-rust", context=self.context)
         if not self.config["tools"]["system-cargo"] and \
            not path.exists(path.join(
-                self.context.topdir, "cargo", "bin", "cargo")):
+                self.config["tools"]["cargo-root"], "bin", "cargo")):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True
