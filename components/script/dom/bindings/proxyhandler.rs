@@ -48,7 +48,7 @@ pub unsafe extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObj
     JS_GetPropertyDescriptorById(cx, proto, id, JSRESOLVE_QUALIFIED, desc) != 0
 }
 
-pub unsafe fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
+pub unsafe extern fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
                               desc: *mut JSPropertyDescriptor) -> bool {
     static JSMSG_GETTER_ONLY: libc::c_uint = 160;
 
@@ -70,11 +70,6 @@ pub unsafe fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid
 
     return JS_DefinePropertyById(cx, expando, id, (*desc).value, (*desc).getter,
                                  (*desc).setter, (*desc).attrs) != 0;
-}
-
-pub unsafe extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                                    desc: *mut JSPropertyDescriptor) -> bool {
-    defineProperty_(cx, proxy, id, desc)
 }
 
 pub unsafe extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,

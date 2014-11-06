@@ -2091,7 +2091,7 @@ class CGDefineProxyHandler(CGAbstractMethod):
 let traps = ProxyTraps {
   getPropertyDescriptor: Some(getPropertyDescriptor),
   getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
-  defineProperty: Some(defineProperty),
+  defineProperty: Some(defineProperty_),
   getOwnPropertyNames: ptr::null(),
   delete_: Some(delete_),
   enumerate: ptr::null(),
@@ -3506,7 +3506,8 @@ class CGProxySpecialOperation(CGPerSignatureCall):
             # arguments[0] is the index or name of the item that we're setting.
             argument = arguments[1]
             template, _, declType, needsRooting = getJSToNativeConversionTemplate(
-                argument.type, descriptor, treatNullAs=argument.treatNullAs)
+                argument.type, descriptor, treatNullAs=argument.treatNullAs,
+                exceptionCode="return false;")
             templateValues = {
                 "val": "(*desc).value",
             }
@@ -4033,7 +4034,8 @@ class CGInterfaceTrait(CGThing):
 
         def members():
             for m in descriptor.interface.members:
-                if m.isMethod() and not m.isStatic():
+                if m.isMethod() and not m.isStatic() \
+                        and not m.isIdentifierLess():
                     name = CGSpecializedMethod.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m)
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
@@ -4064,7 +4066,10 @@ class CGInterfaceTrait(CGThing):
                     rettype, arguments = operation.signatures()[0]
 
                     infallible = 'infallible' in descriptor.getExtendedAttributes(operation)
-                    arguments = method_arguments(rettype, arguments, ("found", "&mut bool"))
+                    if operation.isGetter():
+                        arguments = method_arguments(rettype, arguments, ("found", "&mut bool"))
+                    else:
+                        arguments = method_arguments(rettype, arguments)
                     rettype = return_type(rettype, infallible)
                     yield name, arguments, rettype
 
@@ -4551,7 +4556,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
-            'dom::bindings::proxyhandler::{_obj_toString, defineProperty}',
+            'dom::bindings::proxyhandler::{_obj_toString, defineProperty_}',
             'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
             'dom::bindings::proxyhandler::{delete_, getPropertyDescriptor}',
             'dom::bindings::str::ByteString',
