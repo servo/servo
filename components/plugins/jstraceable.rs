@@ -20,6 +20,9 @@ pub fn expand_dom_struct(_: &mut ExtCtxt, _: Span, _: &MetaItem, item: P<Item>) 
     P(item2)
 }
 
+/// Provides the hook to expand `#[jstraceable]` into an implementation of `JSTraceable`
+///
+/// The expansion basically calls `trace()` on all of the fields of the struct/enum, erroring if they do not implement the method.
 pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: &Item, push: |P<Item>|) {
     let trait_def = TraitDef {
         span: span,
@@ -45,6 +48,7 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
 }
 
 // Mostly copied from syntax::ext::deriving::hash
+/// Defines how the implementation for `trace()` is to be generated
 fn jstraceable_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substructure) -> P<Expr> {
     let state_expr = match substr.nonself_args {
         [ref state_expr] => state_expr,
