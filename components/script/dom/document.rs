@@ -571,14 +571,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             _ => {}
         }
 
-        if ns == ns!(HTML) {
-            let name = QualName::new(ns!(HTML), Atom::from_slice(local_name_from_qname));
-            Ok(Element::create(name, prefix_from_qname.map(|s| s.to_string()), self,
-                               ScriptCreated))
-        } else {
-            Ok(Element::new(local_name_from_qname.to_string(), ns,
-                            prefix_from_qname.map(|s| s.to_string()), self))
-        }
+        let name = QualName::new(ns, Atom::from_slice(local_name_from_qname));
+        Ok(Element::create(name, prefix_from_qname.map(|s| s.to_string()), self,
+                           ScriptCreated))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment
