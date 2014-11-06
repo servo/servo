@@ -18,9 +18,9 @@ use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
-use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, Msg};
-use servo_msg::constellation_msg::{LoadData, NavigateMsg, NavigationType, PipelineId};
-use servo_msg::constellation_msg::{RendererReadyMsg, ResizedWindowMsg, SubpageId, WindowSizeData};
+use servo_msg::constellation_msg::{LoadCompleteMsg, LoadUrlMsg, LoadData, Msg, NavigateMsg};
+use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
+use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SubpageId, WindowSizeData};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
@@ -382,9 +382,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got frame rect message");
                 self.handle_frame_rect_msg(pipeline_id, subpage_id, Rect::from_untyped(&rect));
             }
-            LoadIframeUrlMsg(url, source_pipeline_id, subpage_id, sandbox) => {
+            ScriptLoadedURLInIFrameMsg(url, source_pipeline_id, subpage_id, sandbox) => {
                 debug!("constellation got iframe URL load message");
-                self.handle_load_iframe_url_msg(url, source_pipeline_id, subpage_id, sandbox);
+                self.handle_script_loaded_url_in_iframe_msg(url,
+                                                            source_pipeline_id,
+                                                            subpage_id,
+                                                            sandbox);
             }
             // Load a new page, usually -- but not always -- from a mouse click or typed url
             // If there is already a pending page (self.pending_frames), it will not be overridden;
@@ -593,21 +596,20 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
 
-    fn handle_load_iframe_url_msg(&mut self,
-                                  url: Url,
-                                  source_pipeline_id: PipelineId,
-                                  subpage_id: SubpageId,
-                                  sandbox: IFrameSandboxState) {
-        // A message from the script associated with pipeline_id that it has
-        // parsed an iframe during html parsing. This iframe will result in a
-        // new pipeline being spawned and a frame tree being added to pipeline_id's
-        // frame tree's children. This message is never the result of a link clicked
-        // or a new url entered.
-        //     Start by finding the frame trees matching the pipeline id,
+    // The script task associated with pipeline_id has loaded a URL in an iframe via script. This
+    // will result in a new pipeline being spawned and a frame tree being added to
+    // source_pipeline_id's frame tree's children. This message is never the result of a page
+    // navigation.
+    fn handle_script_loaded_url_in_iframe_msg(&mut self,
+                                              url: Url,
+                                              source_pipeline_id: PipelineId,
+                                              subpage_id: SubpageId,
+                                              sandbox: IFrameSandboxState) {
+        // Start by finding the frame trees matching the pipeline id,
         // and add the new pipeline to their sub frames.
         let frame_trees = self.find_all(source_pipeline_id);
         if frame_trees.is_empty() {
-            fail!("Constellation: source pipeline id of LoadIframeUrlMsg is not in
+            fail!("Constellation: source pipeline id of ScriptLoadedURLInIFrameMsg is not in
                    navigation context, nor is it in a pending frame. This should be
                    impossible.");
         }
@@ -617,7 +619,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // Compare the pipeline's url to the new url. If the origin is the same,
         // then reuse the script task in creating the new pipeline
         let source_pipeline = self.pipelines.find(&source_pipeline_id).expect("Constellation:
-            source Id of LoadIframeUrlMsg does have an associated pipeline in
+            source Id of ScriptLoadedURLInIFrameMsg does have an associated pipeline in
             constellation. This should be impossible.").clone();
 
         let source_url = source_pipeline.load_data.url.clone();

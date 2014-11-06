@@ -23,7 +23,7 @@ use page::IterablePage;
 
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_msg::constellation_msg::{IFrameSandboxed, IFrameUnsandboxed};
-use servo_msg::constellation_msg::{ConstellationChan, LoadIframeUrlMsg};
+use servo_msg::constellation_msg::{ConstellationChan, ScriptLoadedURLInIFrameMsg};
 use servo_util::str::DOMString;
 
 use std::ascii::StrAsciiExt;
@@ -125,7 +125,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
             // https://github.com/servo/servo/issues/3738
             // We can't handle dynamic frame tree changes in the compositor right now.
             let ConstellationChan(ref chan) = page.constellation_chan;
-            chan.send(LoadIframeUrlMsg(url, page.id, subpage_id, sandboxed));
+            chan.send(ScriptLoadedURLInIFrameMsg(url, page.id, subpage_id, sandboxed));
         }
     }
 }

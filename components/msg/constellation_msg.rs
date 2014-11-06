@@ -58,7 +58,7 @@ pub enum Msg {
     LoadCompleteMsg(PipelineId, Url),
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
     LoadUrlMsg(PipelineId, LoadData),
-    LoadIframeUrlMsg(Url, PipelineId, SubpageId, IFrameSandboxState),
+    ScriptLoadedURLInIFrameMsg(Url, PipelineId, SubpageId, IFrameSandboxState),
     NavigateMsg(NavigationDirection),
     RendererReadyMsg(PipelineId),
     ResizedWindowMsg(WindowSizeData),
