@@ -83,7 +83,7 @@ pub fn create_element(name: QualName, prefix: Option<DOMString>,
                       document: JSRef<Document>, creator: ElementCreator)
                       -> Temporary<Element> {
     if name.ns != ns!(HTML) {
-        return Element::new(name.local.as_slice().to_string(), name.ns, None, document);
+        return Element::new(name.local.as_slice().to_string(), name.ns, prefix, document);
     }
 
     macro_rules! make(
