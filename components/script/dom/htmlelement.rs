@@ -72,6 +72,9 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     make_getter!(Title)
     make_setter!(SetTitle, "title")
 
+    make_getter!(Lang)
+    make_setter!(SetLang, "lang")
+
     event_handler!(click, GetOnclick, SetOnclick)
 
     fn GetOnload(self) -> Option<EventHandlerNonNull> {
