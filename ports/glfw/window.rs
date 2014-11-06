@@ -225,8 +225,18 @@ impl Window {
                 let hidpi = (backing_size as f32) / (window_size as f32);
                 let x = x as f32 * hidpi;
                 let y = y as f32 * hidpi;
-                if button == glfw::MouseButtonLeft || button == glfw::MouseButtonRight {
-                    self.handle_mouse(button, action, x as i32, y as i32);
+
+                match button {
+                    glfw::MouseButton5 => { // Back button (might be different per platform)
+                        self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
+                    },
+                    glfw::MouseButton6 => { // Forward
+                        self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
+                    },
+                    glfw::MouseButtonLeft | glfw::MouseButtonRight => {
+                        self.handle_mouse(button, action, x as i32, y as i32);
+                    }
+                    _ => {}
                 }
             },
             glfw::CursorPosEvent(xpos, ypos) => {
