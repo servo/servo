@@ -378,7 +378,7 @@ impl Stylist {
     }
 
     pub fn set_device(&mut self, device: Device) {
-        let is_dirty = self.stylesheets.iter().any(|stylesheet| {
+        let is_dirty = self.is_dirty || self.stylesheets.iter().any(|stylesheet| {
             let mut stylesheet_dirty = false;
             iter_stylesheet_media_rules(stylesheet, |rule| {
                 stylesheet_dirty |= rule.media_queries.evaluate(&self.device) !=
