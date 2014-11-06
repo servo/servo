@@ -25,6 +25,7 @@ use encoding::all::UTF_8;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
+use geom::scale_factor::ScaleFactor;
 use gfx::display_list::{ContentStackingLevel, DisplayItem, DisplayList};
 use gfx::display_list::{OpaqueNode};
 use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
@@ -93,10 +94,6 @@ pub struct LayoutTaskData {
     /// This can be used to easily check for invalid stale data.
     pub generation: uint,
 
-    /// True if a style sheet was added since the last reflow. Currently, this causes all nodes to
-    /// be dirtied at the next reflow.
-    pub stylesheet_dirty: bool,
-
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Rect<Au>,
 
@@ -147,10 +144,6 @@ pub struct LayoutTask {
     ///
     /// All the other elements of this struct are read-only.
     pub rw_data: Arc<Mutex<LayoutTaskData>>,
-
-    /// The media queries device state.
-    /// TODO: Handle updating this when window size changes etc.
-    pub device: Device,
 }
 
 struct LayoutImageResponder {
@@ -259,7 +252,7 @@ impl LayoutTask {
         let local_image_cache =
             Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
-        let device = Device::new(Screen, opts::get().initial_window_size.as_f32());
+        let device = Device::new(Screen, opts::get().initial_window_size.as_f32() * ScaleFactor(1.0));
         let parallel_traversal = if opts::get().layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", task_state::Layout,
                                 opts::get().layout_threads, ptr::null()))
@@ -280,17 +273,15 @@ impl LayoutTask {
             image_cache_task: image_cache_task.clone(),
             font_cache_task: font_cache_task,
             first_reflow: Cell::new(true),
-            device: device,
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     local_image_cache: local_image_cache,
                     screen_size: screen_size,
                     display_list: None,
-                    stylist: box Stylist::new(&device),
+                    stylist: box Stylist::new(device),
                     parallel_traversal: parallel_traversal,
                     dirty: Rect::zero(),
                     generation: 0,
-                    stylesheet_dirty: false,
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
               })),
@@ -491,7 +482,8 @@ impl LayoutTask {
         let sheet = Stylesheet::from_bytes_iter(iter,
                                                 final_url,
                                                 protocol_encoding_label,
-                                                Some(environment_encoding));
+                                                Some(environment_encoding),
+                                                AuthorOrigin);
         self.handle_add_stylesheet(sheet, possibly_locked_rw_data);
     }
 
@@ -501,12 +493,11 @@ impl LayoutTask {
                                     &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
-        iter_font_face_rules(&sheet, &self.device, |family, src| {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        iter_font_face_rules(&sheet, &rw_data.stylist.device, |family, src| {
             self.font_cache_task.add_web_font(family.to_string(), (*src).clone());
         });
-        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        rw_data.stylist.add_stylesheet(sheet, AuthorOrigin, &self.device);
-        rw_data.stylesheet_dirty = true;
+        rw_data.stylist.add_stylesheet(sheet);
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 
@@ -757,12 +748,17 @@ impl LayoutTask {
                                                                      &data.url);
 
         // Handle conditions where the entire flow tree is invalid.
-        let needs_dirtying = rw_data.stylesheet_dirty;
+        let screen_size_changed = current_screen_size != old_screen_size;
 
-        let mut needs_reflow = current_screen_size != old_screen_size;
+        if screen_size_changed {
+            let device = Device::new(Screen, data.window_size.initial_viewport);
+            rw_data.stylist.set_device(device);
+        }
+
+        let needs_dirtying = rw_data.stylist.update();
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        needs_reflow &= !needs_dirtying;
+        let needs_reflow = screen_size_changed && !needs_dirtying;
 
         unsafe {
             if needs_dirtying {
@@ -774,8 +770,6 @@ impl LayoutTask {
             self.try_get_layout_root(*node).map(
                 |mut flow| LayoutTask::reflow_all_nodes(flow.deref_mut()));
         }
-
-        rw_data.stylesheet_dirty = false;
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       Some((&data.url,
