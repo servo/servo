@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that parsing linear gradients works. -->
+<style>
+section {
+    display: block;
+    width: 100px;
+    height: 100px;
+    border: solid black 1px;
+    position: relative;
+}
+#a {
+    background: red;
+}
+#b {
+    background: #abacab;
+}
+nav {
+    display: block;
+    width: 50%;
+    height: 100%;
+    position: absolute;
+}
+#ca {
+    background: violet;
+    left: 0;
+}
+#cb {
+    background: blue;
+    right: 0;
+}
+</style>
+</head>
+<body>
+<section id=a></section>
+<section id=b></section>
+<section id=c>
+    <nav id=ca></nav>
+    <nav id=cb></nav>
+</section>
+</body>
+</html>

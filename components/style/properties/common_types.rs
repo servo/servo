@@ -14,8 +14,11 @@ pub static DEFAULT_LINE_HEIGHT: CSSFloat = 1.14;
 
 pub mod specified {
     use std::ascii::StrAsciiExt;
+    use std::f64::consts::PI;
+    use url::Url;
     use cssparser::ast;
     use cssparser::ast::*;
+    use parsing_utils::{mod, BufferedIter, ParserIter};
     use super::{Au, CSSFloat};
     pub use cssparser::Color as CSSColor;
 
@@ -208,13 +211,250 @@ pub mod specified {
             }
         }
     }
+
+    #[deriving(Clone, PartialEq, PartialOrd)]
+    pub struct Angle(pub CSSFloat);
+
+    impl Angle {
+        pub fn radians(self) -> f64 {
+            let Angle(radians) = self;
+            radians
+        }
+    }
+
+    static DEG_TO_RAD: CSSFloat = PI / 180.0;
+    static GRAD_TO_RAD: CSSFloat = PI / 200.0;
+
+    impl Angle {
+        /// Parses an angle according to CSS-VALUES § 6.1.
+        fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Angle,()> {
+            if unit.eq_ignore_ascii_case("deg") {
+                Ok(Angle(value * DEG_TO_RAD))
+            } else if unit.eq_ignore_ascii_case("grad") {
+                Ok(Angle(value * GRAD_TO_RAD))
+            } else if unit.eq_ignore_ascii_case("rad") {
+                Ok(Angle(value))
+            } else if unit.eq_ignore_ascii_case("turn") {
+                Ok(Angle(value * 2.0 * PI))
+            } else {
+                Err(())
+            }
+        }
+    }
+
+    /// Specified values for an image according to CSS-IMAGES.
+    #[deriving(Clone)]
+    pub enum Image {
+        UrlImage(Url),
+        LinearGradientImage(LinearGradient),
+    }
+
+    impl Image {
+        pub fn from_component_value(component_value: &ComponentValue, base_url: &Url)
+                                    -> Result<Image,()> {
+            match component_value {
+                &ast::URL(ref url) => {
+                    let image_url = super::parse_url(url.as_slice(), base_url);
+                    Ok(UrlImage(image_url))
+                },
+                &ast::Function(ref name, ref args) => {
+                    if name.as_slice().eq_ignore_ascii_case("linear-gradient") {
+                        Ok(LinearGradientImage(try!(
+                                    super::specified::LinearGradient::parse_function(
+                                    args.as_slice()))))
+                    } else {
+                        Err(())
+                    }
+                }
+                _ => Err(()),
+            }
+        }
+
+        pub fn to_computed_value(self, context: &super::computed::Context)
+                                 -> super::computed::Image {
+            match self {
+                UrlImage(url) => super::computed::UrlImage(url),
+                LinearGradientImage(linear_gradient) => {
+                    super::computed::LinearGradientImage(
+                        super::computed::LinearGradient::compute(linear_gradient, context))
+                }
+            }
+        }
+    }
+
+    /// Specified values for a CSS linear gradient.
+    #[deriving(Clone)]
+    pub struct LinearGradient {
+        /// The angle or corner of the gradient.
+        pub angle_or_corner: AngleOrCorner,
+
+        /// The color stops.
+        pub stops: Vec<ColorStop>,
+    }
+
+    /// Specified values for an angle or a corner in a linear gradient.
+    #[deriving(Clone, PartialEq)]
+    pub enum AngleOrCorner {
+        AngleAoc(Angle),
+        CornerAoc(HorizontalDirection, VerticalDirection),
+    }
+
+    /// Specified values for one color stop in a linear gradient.
+    #[deriving(Clone)]
+    pub struct ColorStop {
+        /// The color of this stop.
+        pub color: CSSColor,
+
+        /// The position of this stop. If not specified, this stop is placed halfway between the
+        /// point that precedes it and the point that follows it.
+        pub position: Option<LengthOrPercentage>,
+    }
+
+    #[deriving(Clone, PartialEq)]
+    pub enum HorizontalDirection {
+        Left,
+        Right,
+    }
+
+    #[deriving(Clone, PartialEq)]
+    pub enum VerticalDirection {
+        Top,
+        Bottom,
+    }
+
+    fn parse_color_stop(source: ParserIter) -> Result<ColorStop,()> {
+        let color = match source.next() {
+            Some(color) => try!(CSSColor::parse(color)),
+            None => return Err(()),
+        };
+
+        let position = match source.next() {
+            None => None,
+            Some(value) => {
+                match *value {
+                    Comma => {
+                        source.push_back(value);
+                        None
+                    }
+                    ref position => Some(try!(LengthOrPercentage::parse(position))),
+                }
+            }
+        };
+
+        Ok(ColorStop {
+            color: color,
+            position: position,
+        })
+    }
+
+    impl LinearGradient {
+        /// Parses a linear gradient from the given arguments.
+        pub fn parse_function(args: &[ComponentValue]) -> Result<LinearGradient,()> {
+            let mut source = BufferedIter::new(args.skip_whitespace());
+
+            // Parse the angle.
+            let (angle_or_corner, need_to_parse_comma) = match source.next() {
+                None => return Err(()),
+                Some(token) => {
+                    match *token {
+                        Dimension(ref value, ref unit) => {
+                            match Angle::parse_dimension(value.value, unit.as_slice()) {
+                                Ok(angle) => {
+                                    (AngleAoc(angle), true)
+                                }
+                                Err(()) => {
+                                    source.push_back(token);
+                                    (AngleAoc(Angle(PI)), false)
+                                }
+                            }
+                        }
+                        Ident(ref ident) if ident.as_slice().eq_ignore_ascii_case("to") => {
+                            let (mut horizontal, mut vertical) = (None, None);
+                            loop {
+                                match source.next() {
+                                    None => break,
+                                    Some(token) => {
+                                        match *token {
+                                            Ident(ref ident) => {
+                                                let ident = ident.as_slice();
+                                                if ident.eq_ignore_ascii_case("top") &&
+                                                        vertical.is_none() {
+                                                    vertical = Some(Top)
+                                                } else if ident.eq_ignore_ascii_case("bottom") &&
+                                                        vertical.is_none() {
+                                                    vertical = Some(Bottom)
+                                                } else if ident.eq_ignore_ascii_case("left") &&
+                                                        horizontal.is_none() {
+                                                    horizontal = Some(Left)
+                                                } else if ident.eq_ignore_ascii_case("right") &&
+                                                        horizontal.is_none() {
+                                                    horizontal = Some(Right)
+                                                } else {
+                                                    return Err(())
+                                                }
+                                            }
+                                            Comma => {
+                                                source.push_back(token);
+                                                break
+                                            }
+                                            _ => return Err(()),
+                                        }
+                                    }
+                                }
+                            }
+
+                            (match (horizontal, vertical) {
+                                (None, Some(Top)) => AngleAoc(Angle(0.0)),
+                                (Some(Right), None) => AngleAoc(Angle(PI * 0.5)),
+                                (None, Some(Bottom)) => AngleAoc(Angle(PI)),
+                                (Some(Left), None) => AngleAoc(Angle(PI * 1.5)),
+                                (Some(horizontal), Some(vertical)) => {
+                                    CornerAoc(horizontal, vertical)
+                                }
+                                (None, None) => return Err(()),
+                            }, true)
+                        }
+                        _ => {
+                            source.push_back(token);
+                            (AngleAoc(Angle(PI)), false)
+                        }
+                    }
+                }
+            };
+
+            // Parse the color stops.
+            let stops = if need_to_parse_comma {
+                match source.next() {
+                    Some(&Comma) => {
+                        try!(parsing_utils::parse_comma_separated(&mut source, parse_color_stop))
+                    }
+                    None => Vec::new(),
+                    Some(_) => return Err(()),
+                }
+            } else {
+                try!(parsing_utils::parse_comma_separated(&mut source, parse_color_stop))
+            };
+
+            if stops.len() < 2 {
+                return Err(())
+            }
+
+            Ok(LinearGradient {
+                angle_or_corner: angle_or_corner,
+                stops: stops,
+            })
+        }
+    }
 }
 
 pub mod computed {
+    pub use super::specified::{Angle, AngleAoc, AngleOrCorner, CornerAoc, HorizontalDirection};
+    pub use super::specified::{VerticalDirection};
     pub use cssparser::Color as CSSColor;
     pub use super::super::longhands::computed_as_specified as compute_CSSColor;
     use super::*;
     use super::super::longhands;
+    use url::Url;
 
     pub struct Context {
         pub inherited_font_weight: longhands::font_weight::computed_value::T,
@@ -309,9 +549,60 @@ pub mod computed {
             specified::LPN_None => LPN_None,
         }
     }
+
+    /// Computed values for an image according to CSS-IMAGES.
+    #[deriving(Clone, PartialEq)]
+    pub enum Image {
+        UrlImage(Url),
+        LinearGradientImage(LinearGradient),
+    }
+
+    /// Computed values for a CSS linear gradient.
+    #[deriving(Clone, PartialEq)]
+    pub struct LinearGradient {
+        /// The angle or corner of the gradient.
+        pub angle_or_corner: AngleOrCorner,
+
+        /// The color stops.
+        pub stops: Vec<ColorStop>,
+    }
+
+    /// Computed values for one color stop in a linear gradient.
+    #[deriving(Clone, PartialEq)]
+    pub struct ColorStop {
+        /// The color of this stop.
+        pub color: CSSColor,
+
+        /// The position of this stop. If not specified, this stop is placed halfway between the
+        /// point that precedes it and the point that follows it per CSS-IMAGES § 3.4.
+        pub position: Option<LengthOrPercentage>,
+    }
+
+    impl LinearGradient {
+        pub fn compute(value: specified::LinearGradient, context: &Context) -> LinearGradient {
+            let specified::LinearGradient {
+                angle_or_corner,
+                stops
+            } = value;
+            LinearGradient {
+                angle_or_corner: angle_or_corner,
+                stops: stops.into_iter().map(|stop| {
+                    ColorStop {
+                        color: stop.color,
+                        position: match stop.position {
+                            None => None,
+                            Some(value) => Some(compute_LengthOrPercentage(value, context)),
+                        },
+                    }
+                }).collect()
+            }
+        }
+    }
 }
 
 pub fn parse_url(input: &str, base_url: &Url) -> Url {
     UrlParser::new().base_url(base_url).parse(input)
         .unwrap_or_else(|_| Url::parse("about:invalid").unwrap())
 }
+
+

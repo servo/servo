@@ -2,22 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use display_list::{SidewaysLeft, SidewaysRight, TextDisplayItem, Upright};
-use font_context::FontContext;
-use style::computed_values::border_style;
+//! Painting of display lists using Moz2D/Azure.
 
 use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
-use azure::azure_hl::{DrawSurfaceOptions,DrawTarget, Linear, SourceOp, StrokeOptions};
+use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GradientStop, Linear};
+use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, SourceOp, StrokeOptions};
 use azure::scaled_font::ScaledFont;
-use azure::{AZ_CAP_BUTT, AzDrawTargetFillGlyphs, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
-use azure::{struct__AzGlyphBuffer, struct__AzPoint};
+use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
+use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
+use display_list::{SidewaysLeft, SidewaysRight, TextDisplayItem, Upright};
+use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
-use geom::size::Size2D;
 use geom::side_offsets::SideOffsets2D;
-use libc::types::common::c99::{uint16_t, uint32_t};
+use geom::size::Size2D;
 use libc::size_t;
+use libc::types::common::c99::{uint16_t, uint32_t};
 use png::{RGB8, RGBA8, K8, KA8};
 use servo_net::image::base::Image;
 use servo_util::geometry::Au;
@@ -25,9 +26,10 @@ use servo_util::opts;
 use servo_util::range::Range;
 use std::num::Zero;
 use std::ptr;
+use style::computed_values::border_style;
 use sync::Arc;
-use text::glyph::CharIndex;
 use text::TextRun;
+use text::glyph::CharIndex;
 
 pub struct RenderContext<'a> {
     pub draw_target: &'a DrawTarget,
@@ -443,6 +445,36 @@ impl<'a> RenderContext<'a>  {
             self.draw_target.set_transform(current_transform)
         }
     }
+
+    /// Draws a linear gradient in the given boundaries from the given start point to the given end
+    /// point with the given stops.
+    pub fn draw_linear_gradient(&self,
+                                bounds: &Rect<Au>,
+                                start_point: &Point2D<Au>,
+                                end_point: &Point2D<Au>,
+                                stops: &[GradientStop]) {
+        self.draw_target.make_current();
+
+        let stops = self.draw_target.create_gradient_stops(stops, ExtendClamp);
+        let pattern = LinearGradientPattern::new(&start_point.to_azure_point(),
+                                                 &end_point.to_azure_point(),
+                                                 stops,
+                                                 &Matrix2D::identity());
+
+        self.draw_target.fill_rect(&bounds.to_azure_rect(),
+                                   LinearGradientPatternRef(&pattern),
+                                   None);
+    }
+}
+
+trait ToAzurePoint {
+    fn to_azure_point(&self) -> Point2D<AzFloat>;
+}
+
+impl ToAzurePoint for Point2D<Au> {
+    fn to_azure_point(&self) -> Point2D<AzFloat> {
+        Point2D(self.x.to_nearest_px() as AzFloat, self.y.to_nearest_px() as AzFloat)
+    }
 }
 
 trait ToAzureRect {
@@ -451,8 +483,7 @@ trait ToAzureRect {
 
 impl ToAzureRect for Rect<Au> {
     fn to_azure_rect(&self) -> Rect<AzFloat> {
-        Rect(Point2D(self.origin.x.to_nearest_px() as AzFloat,
-                     self.origin.y.to_nearest_px() as AzFloat),
+        Rect(self.origin.to_azure_point(),
              Size2D(self.size.width.to_nearest_px() as AzFloat,
                     self.size.height.to_nearest_px() as AzFloat))
     }

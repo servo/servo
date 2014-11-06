@@ -13,6 +13,8 @@ pub use url::Url;
 pub use cssparser::*;
 pub use cssparser::ast::*;
 pub use geom::SideOffsets2D;
+pub use self::common_types::specified::{Angle, AngleAoc, AngleOrCorner, Bottom, CornerAoc};
+pub use self::common_types::specified::{Left, Right, Top};
 
 use errors::{ErrorLoggerIterator, log_css_error};
 pub use parsing_utils::*;
@@ -602,28 +604,40 @@ pub mod longhands {
                       "RGBAColor(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
     <%self:single_component_value name="background-image">
-            // The computed value is the same as the specified value.
-            pub use super::computed_as_specified as to_computed_value;
-            pub mod computed_value {
-                pub use url::Url;
-                pub type T = Option<Url>;
-            }
-            pub type SpecifiedValue = computed_value::T;
-            #[inline] pub fn get_initial_value() -> SpecifiedValue {
-                None
-            }
-            pub fn from_component_value(component_value: &ComponentValue, base_url: &Url)
-                                        -> Result<SpecifiedValue, ()> {
-                match component_value {
-                    &ast::URL(ref url) => {
-                        let image_url = parse_url(url.as_slice(), base_url);
-                        Ok(Some(image_url))
-                    },
-                    &ast::Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none")
-                    => Ok(None),
-                    _ => Err(()),
+        use super::common_types::specified as common_specified;
+        pub mod computed_value {
+            use super::super::super::common_types::computed;
+            #[deriving(Clone, PartialEq)]
+            pub type T = Option<computed::Image>;
+        }
+        #[deriving(Clone)]
+        pub type SpecifiedValue = Option<common_specified::Image>;
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            None
+        }
+        pub fn from_component_value(component_value: &ComponentValue, base_url: &Url)
+                                    -> Result<SpecifiedValue, ()> {
+            match component_value {
+                &ast::Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => {
+                    Ok(None)
+                }
+                _ => {
+                    match common_specified::Image::from_component_value(component_value,
+                                                                        base_url) {
+                        Err(err) => Err(err),
+                        Ok(result) => Ok(Some(result)),
+                    }
                 }
             }
+        }
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                                 -> computed_value::T {
+            match value {
+                None => None,
+                Some(image) => Some(image.to_computed_value(context)),
+            }
+        }
     </%self:single_component_value>
 
     <%self:longhand name="background-position">

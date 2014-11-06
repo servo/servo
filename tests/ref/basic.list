@@ -179,3 +179,8 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == box_sizing_sanity_check_a.html box_sizing_sanity_check_ref.html
 == inline_block_overflow_hidden_a.html inline_block_overflow_hidden_ref.html
 == issue-1324.html issue-1324-ref.html
+== linear_gradients_parsing_a.html linear_gradients_parsing_ref.html
+!= linear_gradients_smoke_a.html linear_gradients_smoke_ref.html
+== linear_gradients_reverse_a.html linear_gradients_reverse_ref.html
+!= linear_gradients_corners_a.html linear_gradients_corners_ref.html
+== linear_gradients_lengths_a.html linear_gradients_lengths_ref.html
