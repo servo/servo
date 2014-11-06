@@ -7,7 +7,7 @@
 interface HTMLElement : Element {
   // metadata attributes
            attribute DOMString title;
-  //         attribute DOMString lang;
+           attribute DOMString lang;
   //         attribute boolean translate;
   //         attribute DOMString dir;
   //readonly attribute DOMStringMap dataset;
