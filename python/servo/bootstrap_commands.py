@@ -78,7 +78,7 @@ class MachCommands(CommandBase):
                      help='Force download even if a snapshot already exists')
     def bootstrap_rustc(self, force=False):
         rust_dir = path.join(
-            self.context.topdir, "rust", *self.rust_snapshot_path().split("/"))
+            self.context.sharedir, "rust", *self.rust_snapshot_path().split("/"))
         if not force and path.exists(path.join(rust_dir, "bin", "rustc")):
             print("Snapshot Rust compiler already downloaded.", end=" ")
             print("Use |bootstrap_rust --force| to download again.")
@@ -107,7 +107,8 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Force download even if cargo already exists')
     def bootstrap_cargo(self, force=False):
-        cargo_dir = path.join(self.context.topdir, "cargo")
+        cargo_dir = path.join(self.context.sharedir, "cargo",
+                              self.cargo_build_id())
         if not force and path.exists(path.join(cargo_dir, "bin", "cargo")):
             print("Cargo already downloaded.", end=" ")
             print("Use |bootstrap_cargo --force| to download again.")
@@ -115,11 +116,12 @@ class MachCommands(CommandBase):
 
         if path.isdir(cargo_dir):
             shutil.rmtree(cargo_dir)
-        os.mkdir(cargo_dir)
+        os.makedirs(cargo_dir)
 
         tgz_file = "cargo-nightly-%s.tar.gz" % host_triple()
         # FIXME(#3582): use https.
-        nightly_url = "http://static.rust-lang.org/cargo-dist/2014-10-21/%s" % tgz_file
+        nightly_url = "http://static.rust-lang.org/cargo-dist/%s/%s" % \
+            (self.cargo_build_id(), tgz_file)
 
         download("Cargo nightly", nightly_url, tgz_file)
 
