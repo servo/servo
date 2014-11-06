@@ -85,12 +85,34 @@ struct FrameTree {
     pub children: RefCell<Vec<ChildFrameTree>>,
 }
 
+impl FrameTree {
+    fn new(pipeline: Rc<Pipeline>, parent_pipeline: Option<Rc<Pipeline>>) -> FrameTree {
+        FrameTree {
+            pipeline: pipeline.clone(),
+            parent: match parent_pipeline {
+                Some(ref pipeline) => RefCell::new(Some(pipeline.clone())),
+                None => RefCell::new(None),
+            },
+            children: RefCell::new(vec!()),
+        }
+    }
+}
+
 #[deriving(Clone)]
 struct ChildFrameTree {
     frame_tree: Rc<FrameTree>,
     /// Clipping rect representing the size and position, in page coordinates, of the visible
     /// region of the child frame relative to the parent.
     pub rect: Option<TypedRect<PagePx, f32>>,
+}
+
+impl ChildFrameTree {
+    fn new(frame_tree: Rc<FrameTree>, rect: Option<TypedRect<PagePx, f32>>) -> ChildFrameTree {
+        ChildFrameTree {
+            frame_tree: frame_tree,
+            rect: rect,
+        }
+    }
 }
 
 pub struct SendableFrameTree {
@@ -481,11 +503,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         self.pending_frames.push(FrameChange{
             before: Some(pipeline_id),
-            after: Rc::new(FrameTree {
-                pipeline: pipeline.clone(),
-                parent: RefCell::new(None),
-                children: RefCell::new(vec!()),
-            }),
+            after: Rc::new(FrameTree::new(pipeline.clone(), None)),
             navigation_type: constellation_msg::Load,
         });
 
@@ -498,11 +516,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         self.pending_frames.push(FrameChange {
             before: None,
-            after: Rc::new(FrameTree {
-                pipeline: pipeline.clone(),
-                parent: RefCell::new(None),
-                children: RefCell::new(vec!()),
-            }),
+            after: Rc::new(FrameTree::new(pipeline.clone(), None)),
             navigation_type: constellation_msg::Load,
         });
         self.pipelines.insert(pipeline.id, pipeline);
@@ -645,14 +659,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
         for frame_tree in frame_trees.iter() {
-            frame_tree.children.borrow_mut().push(ChildFrameTree {
-                frame_tree: Rc::new(FrameTree {
-                    pipeline: pipeline.clone(),
-                    parent: RefCell::new(Some(source_pipeline.clone())),
-                    children: RefCell::new(vec!()),
-                }),
-                rect: rect,
-            });
+            frame_tree.children.borrow_mut().push(ChildFrameTree::new(
+                Rc::new(FrameTree::new(pipeline.clone(), Some(source_pipeline.clone()))),
+                rect));
         }
         self.pipelines.insert(pipeline.id, pipeline);
     }
@@ -686,13 +695,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, None, load_data);
 
-        self.pending_frames.push(FrameChange{
+        self.pending_frames.push(FrameChange {
             before: Some(source_id),
-            after: Rc::new(FrameTree {
-                pipeline: pipeline.clone(),
-                parent: parent,
-                children: RefCell::new(vec!()),
-            }),
+            after: Rc::new(FrameTree::new(pipeline.clone(), parent.borrow().clone())),
             navigation_type: constellation_msg::Load,
         });
         self.pipelines.insert(pipeline.id, pipeline);
@@ -816,10 +821,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                         let parent = next_frame_tree.find(parent.id).expect(
                             "Constellation: pending frame has a parent frame that is not
                             active. This is a bug.");
-                        parent.children.borrow_mut().push(ChildFrameTree {
-                            frame_tree: to_add.clone(),
-                            rect: rect,
-                        });
+                        parent.children.borrow_mut().push(ChildFrameTree::new(to_add.clone(),
+                                                          rect));
                     }
                 }
             }
