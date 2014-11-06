@@ -89,6 +89,7 @@ pub mod dom {
     pub mod characterdata;
     pub mod domrect;
     pub mod domrectlist;
+    pub mod domstringmap;
     pub mod comment;
     pub mod console;
     mod create;
