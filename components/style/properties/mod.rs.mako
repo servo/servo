@@ -1510,12 +1510,15 @@ mod property_bit_field {
     }
 }
 
+pub enum PropertyDeclarationImportance {
+    Normal,
+    Important
+}
 
 /// Declarations are stored in reverse order.
 /// Overridden declarations are skipped.
 pub struct PropertyDeclarationBlock {
-    pub important: Arc<Vec<PropertyDeclaration>>,
-    pub normal: Arc<Vec<PropertyDeclaration>>,
+    pub declarations: Arc<Vec<(PropertyDeclaration, PropertyDeclarationImportance)>>
 }
 
 
@@ -1525,10 +1528,8 @@ pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclaration
 
 
 pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &Url) -> PropertyDeclarationBlock {
-    let mut important_declarations = vec!();
-    let mut normal_declarations = vec!();
-    let mut important_seen = PropertyBitField::new();
-    let mut normal_seen = PropertyBitField::new();
+    let mut property_declarations = vec!();
+    let mut property_seen = PropertyBitField::new();
     let items: Vec<DeclarationListItem> =
         ErrorLoggerIterator(parse_declaration_list(input)).collect();
     for item in items.into_iter().rev() {
@@ -1537,12 +1538,12 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
             Declaration_(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
-                let (list, seen) = if i {
-                    (&mut important_declarations, &mut important_seen)
-                } else {
-                    (&mut normal_declarations, &mut normal_seen)
+                let (list, seen) = (&mut property_declarations, &mut property_seen);
+                let importance = match i {
+                    true => Important,
+                    false => Normal
                 };
-                match PropertyDeclaration::parse(n.as_slice(), v.as_slice(), list, base_url, seen) {
+                match PropertyDeclaration::parse(n.as_slice(), v.as_slice(), importance, list, base_url, seen) {
                     UnknownProperty => log_css_error(l, format!(
                         "Unsupported property: {}:{}", n, v.iter().to_css()).as_slice()),
                     ExperimentalProperty => log_css_error(l, format!(
@@ -1557,8 +1558,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
         }
     }
     PropertyDeclarationBlock {
-        important: Arc::new(important_declarations),
-        normal: Arc::new(normal_declarations),
+        declarations: Arc::new(property_declarations)
     }
 }
 
@@ -1611,7 +1611,8 @@ pub enum PropertyDeclarationParseResult {
 
 impl PropertyDeclaration {
     pub fn parse(name: &str, value: &[ComponentValue],
-                 result_list: &mut Vec<PropertyDeclaration>,
+                 importance: PropertyDeclarationImportance,
+                 result_list: &mut Vec<(PropertyDeclaration, PropertyDeclarationImportance)>,
                  base_url: &Url,
                  seen: &mut PropertyBitField) -> PropertyDeclarationParseResult {
         // FIXME: local variable to work around Rust #10683
@@ -1631,7 +1632,7 @@ impl PropertyDeclaration {
                         match longhands::${property.ident}::parse_declared(value, base_url) {
                             Ok(value) => {
                                 seen.set_${property.ident}();
-                                result_list.push(${property.camel_case}Declaration(value));
+                                result_list.push((${property.camel_case}Declaration(value), importance));
                                 ValidOrIgnoredDeclaration
                             },
                             Err(()) => InvalidValue,
@@ -1653,7 +1654,7 @@ impl PropertyDeclaration {
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
                                     result_list.push(
-                                        ${sub_property.camel_case}Declaration(Inherit));
+                                        (${sub_property.camel_case}Declaration(Inherit), importance));
                                 }
                             % endfor
                             ValidOrIgnoredDeclaration
@@ -1663,7 +1664,7 @@ impl PropertyDeclaration {
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
                                     result_list.push(
-                                        ${sub_property.camel_case}Declaration(Initial));
+                                        (${sub_property.camel_case}Declaration(Initial), importance));
                                 }
                             % endfor
                             ValidOrIgnoredDeclaration
@@ -1672,9 +1673,9 @@ impl PropertyDeclaration {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
-                                    result_list.push(${sub_property.camel_case}Declaration(
+                                    result_list.push((${sub_property.camel_case}Declaration(
                                         ${"Inherit" if sub_property.style_struct.inherited else "Initial"}
-                                    ));
+                                    ), importance));
                                 }
                             % endfor
                             ValidOrIgnoredDeclaration
@@ -1684,12 +1685,12 @@ impl PropertyDeclaration {
                                 % for sub_property in shorthand.sub_properties:
                                     if !seen.get_${sub_property.ident}() {
                                         seen.set_${sub_property.ident}();
-                                        result_list.push(${sub_property.camel_case}Declaration(
+                                        result_list.push((${sub_property.camel_case}Declaration(
                                             match result.${sub_property.ident} {
                                                 Some(value) => SpecifiedValue(value),
                                                 None => Initial,
                                             }
-                                        ));
+                                        ), importance));
                                     }
                                 % endfor
                                 ValidOrIgnoredDeclaration
@@ -1934,7 +1935,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
-                            ${property.camel_case}Declaration(ref ${'_' if not style_struct.inherited else ''}declared_value) => {
+                            (${property.camel_case}Declaration(ref ${'_' if not style_struct.inherited else ''}declared_value), _) => {
                                 % if style_struct.inherited:
                                     if seen.get_${property.ident}() {
                                         continue
@@ -1980,7 +1981,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
                                 % endif
                             }
                         % else:
-                            ${property.camel_case}Declaration(_) => {
+                            (${property.camel_case}Declaration(_), _) => {
                                 // Do not allow stylesheets to set derived properties.
                             }
                         % endif
@@ -2066,7 +2067,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
         // Declarations are stored in reverse source order, we want them in forward order here.
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
-                FontSizeDeclaration(ref value) => {
+                (FontSizeDeclaration(ref value), _) => {
                     context.font_size = match *value {
                         SpecifiedValue(specified_value) => computed::compute_Au_with_font_size(
                             specified_value, context.inherited_font_size),
@@ -2074,27 +2075,27 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                         Inherit => context.inherited_font_size,
                     }
                 }
-                ColorDeclaration(ref value) => {
+                (ColorDeclaration(ref value), _) => {
                     context.color = get_specified!(get_color, color, value);
                 }
-                DisplayDeclaration(ref value) => {
+                (DisplayDeclaration(ref value), _) => {
                     context.display = get_specified!(get_box, display, value);
                 }
-                PositionDeclaration(ref value) => {
+                (PositionDeclaration(ref value), _) => {
                     context.positioned = match get_specified!(get_box, position, value) {
                         longhands::position::absolute | longhands::position::fixed => true,
                         _ => false,
                     }
                 }
-                FloatDeclaration(ref value) => {
+                (FloatDeclaration(ref value), _) => {
                     context.floated = get_specified!(get_box, float, value)
                                       != longhands::float::none;
                 }
-                TextDecorationDeclaration(ref value) => {
+                (TextDecorationDeclaration(ref value), _) => {
                     context.text_decoration = get_specified!(get_text, text_decoration, value);
                 }
                 % for side in ["top", "right", "bottom", "left"]:
-                    Border${side.capitalize()}StyleDeclaration(ref value) => {
+                    (Border${side.capitalize()}StyleDeclaration(ref value), _) => {
                         context.border_${side}_present =
                         match get_specified!(get_border, border_${side}_style, value) {
                             longhands::border_top_style::none |
@@ -2140,7 +2141,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
-                            ${property.camel_case}Declaration(ref declared_value) => {
+                            (${property.camel_case}Declaration(ref declared_value), _) => {
                                 if seen.get_${property.ident}() {
                                     continue
                                 }
@@ -2180,7 +2181,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                                 % endif
                             }
                         % else:
-                            ${property.camel_case}Declaration(_) => {
+                            (${property.camel_case}Declaration(_), _) => {
                                 // Do not allow stylesheets to set derived properties.
                             }
                         % endif
