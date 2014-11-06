@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Exports macros for use in other Servo crates.
-
 #[macro_export]
 macro_rules! bitfield(
     ($bitfieldname:ident, $getter:ident, $setter:ident, $value:expr) => (

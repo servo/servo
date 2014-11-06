@@ -18,8 +18,27 @@ declare_lint!(UNROOTED_MUST_ROOT, Deny,
 declare_lint!(PRIVATIZE, Deny,
               "Allows to enforce private fields for struct definitions")
 
+/// Lint for auditing transmutes
+///
+/// This lint (off by default, enable with `-W transmute-type-lint`) warns about all the transmutes
+/// being used, along with the types they transmute to/from.
 pub struct TransmutePass;
+
+/// Lint for ensuring safe usage of unrooted pointers
+///
+/// This lint (disable with `-A unrooted-must-root`/`#[allow(unrooted_must_root)]`) ensures that `#[must_root]` values are used correctly.
+/// "Incorrect" usage includes:
+///
+///  - Not being used in a struct/enum field which is not `#[must_root]` itself
+///  - Not being used as an argument to a function (Except onces named `new` and `new_inherited`)
+///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
+///
+/// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a GC pass.
 pub struct UnrootedPass;
+
+/// Lint for keeping DOM fields private
+///
+/// This lint (disable with `-A privatize`/`#[allow(privatize)]`) ensures all types marked with `#[privatize]` have no private fields
 pub struct PrivatizePass;
 
 impl LintPass for TransmutePass {
@@ -51,6 +70,9 @@ impl LintPass for TransmutePass {
     }
 }
 
+// Checks if a type has the #[must_root] annotation.
+// Unwraps pointers as well
+// TODO (#3874, sort of): unwrap other types like Vec/Option/HashMap/etc
 fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
     match ty.node {
         ast::TyBox(ref t) | ast::TyUniq(ref t) |
@@ -74,7 +96,7 @@ impl LintPass for UnrootedPass {
     fn get_lints(&self) -> LintArray {
         lint_array!(UNROOTED_MUST_ROOT)
     }
-
+    /// All structs containing #[must_root] types must be #[must_root] themselves
     fn check_struct_def(&mut self, cx: &Context, def: &ast::StructDef, _i: ast::Ident, _gen: &ast::Generics, id: ast::NodeId) {
         if cx.tcx.map.expect_item(id).attrs.iter().all(|a| !a.check_name("must_root")) {
             for ref field in def.fields.iter() {
@@ -83,7 +105,7 @@ impl LintPass for UnrootedPass {
             }
         }
     }
-
+    /// All enums containing #[must_root] types must be #[must_root] themselves
     fn check_variant(&mut self, cx: &Context, var: &ast::Variant, _gen: &ast::Generics) {
         let ref map = cx.tcx.map;
         if map.expect_item(map.get_parent(var.node.id)).attrs.iter().all(|a| !a.check_name("must_root")) {
@@ -98,7 +120,7 @@ impl LintPass for UnrootedPass {
             }
         }
     }
-
+    /// Function arguments that are #[must_root] types are not allowed
     fn check_fn(&mut self, cx: &Context, kind: visit::FnKind, decl: &ast::FnDecl,
                 block: &ast::Block, _span: codemap::Span, _id: ast::NodeId) {
         match kind {
@@ -120,17 +142,30 @@ impl LintPass for UnrootedPass {
     }
 
     // Partially copied from rustc::middle::lint::builtin
-    // Catches `let` statements which store a #[must_root] value
-    // Expressions which return out of blocks eventually end up in a `let`
+    // Catches `let` statements and assignments which store a #[must_root] value
+    // Expressions which return out of blocks eventually end up in a `let` or assignment
     // statement or a function return (which will be caught when it is used elsewhere)
     fn check_stmt(&mut self, cx: &Context, s: &ast::Stmt) {
-        // Catch the let binding
         let expr = match s.node {
+            // Catch a `let` binding
             ast::StmtDecl(ref decl, _) => match decl.node {
                 ast::DeclLocal(ref loc) => match loc.init {
-                        Some(ref e) => &**e,
-                        _ => return
+                    Some(ref e) => &**e,
+                    _ => return
                 },
+                _ => return
+            },
+            ast::StmtExpr(ref expr, _) => match expr.node {
+                // This catches deferred `let` statements
+                ast::ExprAssign(_, ref e) |
+                // Match statements allow you to bind onto the variable later in an arm
+                // We need not check arms individually since enum/struct fields are already
+                // linted in `check_struct_def` and `check_variant`
+                // (so there is no way of destructuring out a `#[must_root]` field)
+                ast::ExprMatch(ref e, _) |
+                // For loops allow you to bind a return value locally
+                ast::ExprForLoop(_, ref e, _, _) => &**e,
+                // XXXManishearth look into `if let` once it lands in our rustc
                 _ => return
             },
             _ => return
