@@ -6,13 +6,16 @@ use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLScriptElementCast};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
+use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
+use dom::documenttype::DocumentType;
 use dom::element::{Element, AttributeHandlers, ElementHelpers, ParserCreated};
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlscriptelement::HTMLScriptElementHelpers;
 use dom::node::{Node, NodeHelpers, TrustedNodeAddress};
 use dom::servohtmlparser;
 use dom::servohtmlparser::ServoHTMLParser;
-use dom::types::*;
+use dom::text::Text;
 use page::Page;
 use parse::Parser;
 
