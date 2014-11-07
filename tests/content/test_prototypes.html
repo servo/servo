@@ -19,7 +19,6 @@ function test() {
   is(window.document.documentElement.tagName, "HTML");
   is_a(window.document.getElementsByTagName('foo-á')[0], HTMLUnknownElement);
   is(window.document.getElementsByTagName('foo-á')[0].tagName, "FOO-á");
-  finish();
 }
 </script>
 </body>

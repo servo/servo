@@ -75,6 +75,9 @@ function check_disabled_selector(elem, disabled) {
 var _test_complete = false;
 var _test_timeout = 10000; //10 seconds
 function finish() {
+   if (_test_complete) {
+    _fail('finish called multiple times');
+  }
   if (_expectations > _tests) {
     _fail('expected ' + _expectations + ' tests, fullfilled ' + _tests);
   }
@@ -90,3 +93,14 @@ function _test_timed_out() {
 }
 
 setTimeout(_test_timed_out, _test_timeout);
+
+var _needs_finish = false;
+function waitForExplicitFinish() {
+    _needs_finish = true;
+}
+
+addEventListener('load', function() {
+  if (!_needs_finish) {
+    finish();
+  }
+});
