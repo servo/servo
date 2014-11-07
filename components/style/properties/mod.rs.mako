@@ -1209,6 +1209,7 @@ pub mod longhands {
 
     ${single_keyword("box-sizing", "content-box border-box")}
 
+    // Box-shadow, etc.
     ${new_style_struct("Effects", is_inherited=False)}
 
     <%self:single_component_value name="opacity">
@@ -1239,6 +1240,139 @@ pub mod longhands {
             }
         }
     </%self:single_component_value>
+
+    <%self:raw_longhand name="box-shadow">
+        use cssparser;
+
+        pub type SpecifiedValue = Vec<SpecifiedBoxShadow>;
+
+        #[deriving(Clone)]
+        pub struct SpecifiedBoxShadow {
+            pub offset_x: specified::Length,
+            pub offset_y: specified::Length,
+            pub blur_radius: specified::Length,
+            pub spread_radius: specified::Length,
+            pub color: Option<specified::CSSColor>,
+            pub inset: bool,
+        }
+
+        pub mod computed_value {
+            use super::super::Au;
+            use super::super::super::computed;
+
+            pub type T = Vec<BoxShadow>;
+
+            #[deriving(Clone, PartialEq)]
+            pub struct BoxShadow {
+                pub offset_x: Au,
+                pub offset_y: Au,
+                pub blur_radius: Au,
+                pub spread_radius: Au,
+                pub color: computed::CSSColor,
+                pub inset: bool,
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            Vec::new()
+        }
+
+        pub fn parse_specified(input: &[ComponentValue], _: &Url)
+                               -> Result<DeclaredValue<SpecifiedValue>,()> {
+            if input.len() == 1 {
+                match input[0] {
+                    Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => {
+                        return Ok(SpecifiedValue(Vec::new()))
+                    }
+                    _ => {}
+                }
+            }
+            match parse_slice_comma_separated(input, parse_one_box_shadow) {
+                Ok(result) => Ok(SpecifiedValue(result)),
+                Err(()) => Err(()),
+            }
+        }
+
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                                 -> computed_value::T {
+            value.into_iter().map(|value| {
+                computed_value::BoxShadow {
+                    offset_x: computed::compute_Au(value.offset_x, context),
+                    offset_y: computed::compute_Au(value.offset_y, context),
+                    blur_radius: computed::compute_Au(value.blur_radius, context),
+                    spread_radius: computed::compute_Au(value.spread_radius, context),
+                    color: match value.color {
+                        Some(color) => color,
+                        None => cssparser::RGBAColor(context.color),
+                    },
+                    inset: value.inset,
+                }
+            }).collect()
+        }
+
+        fn parse_one_box_shadow(iter: ParserIter) -> Result<SpecifiedBoxShadow,()> {
+            let inset = match iter.next() {
+                Some(&Ident(ref value)) if value.as_slice().eq_ignore_ascii_case("inset") => {
+                    true
+                }
+                Some(other) => {
+                    iter.push_back(other);
+                    false
+                }
+                None => return Err(()),
+            };
+
+            let mut lengths = [specified::Au_(Au(0)), ..4];
+            for (i, length) in lengths.iter_mut().enumerate() {
+                match iter.next() {
+                    Some(value) => {
+                        match specified::Length::parse(value) {
+                            Ok(specified_length) => *length = specified_length,
+                            Err(()) => {
+                                iter.push_back(value);
+                                if i < 2 {
+                                    // The first two lengths must be specified.
+                                    return Err(())
+                                }
+                                break
+                            }
+                        }
+                    }
+                    None => {
+                        if i < 2 {
+                            // The first two lengths must be specified.
+                            return Err(())
+                        }
+                        break
+                    }
+                }
+            }
+
+            let color = match iter.next() {
+                Some(value) => {
+                    match specified::CSSColor::parse(value) {
+                        Ok(color) => Some(color),
+                        Err(()) => {
+                            iter.push_back(value);
+                            None
+                        }
+                    }
+                }
+                None => None,
+            };
+
+            Ok(SpecifiedBoxShadow {
+                offset_x: lengths[0],
+                offset_y: lengths[1],
+                blur_radius: lengths[2],
+                spread_radius: lengths[3],
+                color: color,
+                inset: inset,
+            })
+        }
+    </%self:raw_longhand>
+>>>>>>> gfx: Implement most of `box-shadow` per CSS-BACKGROUNDS.
 }
 
 

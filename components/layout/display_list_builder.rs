@@ -24,12 +24,15 @@ use util::{OpaqueNodeMethods, ToGfxColor};
 use geom::approxeq::ApproxEq;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
-use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass, DisplayItem};
-use gfx::display_list::{DisplayList, GradientDisplayItem, GradientDisplayItemClass, GradientStop};
-use gfx::display_list::{ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem, BorderRadii};
-use gfx::display_list::{LineDisplayItemClass, PseudoDisplayItemClass, SidewaysLeft, SidewaysRight};
-use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, StackingContext};
-use gfx::display_list::{TextDisplayItem, TextDisplayItemClass, Upright};
+use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, BackgroundAndBorderLevel, BaseDisplayItem};
+use gfx::display_list::{BorderDisplayItem, BorderDisplayItemClass, BoxShadowDisplayItem};
+use gfx::display_list::{BoxShadowDisplayItemClass, ContentStackingLevel, DisplayList};
+use gfx::display_list::{FloatStackingLevel, GradientDisplayItem, GradientDisplayItemClass};
+use gfx::display_list::{GradientStop, ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem};
+use gfx::display_list::{LineDisplayItemClass, PositionedDescendantStackingLevel};
+use gfx::display_list::{PseudoDisplayItemClass, RootOfStackingContextLevel, SidewaysLeft};
+use gfx::display_list::{SidewaysRight, SolidColorDisplayItem, SolidColorDisplayItemClass};
+use gfx::display_list::{StackingLevel, TextDisplayItem, TextDisplayItemClass, Upright};
 use gfx::paint_task::PaintLayer;
 use servo_msg::compositor_msg::{FixedPosition, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg};
@@ -111,6 +114,16 @@ pub trait FragmentDisplayListBuilding {
                                                     abs_bounds: &Rect<Au>,
                                                     level: StackingLevel,
                                                     clip_rect: &Rect<Au>);
+
+    /// Adds the display items necessary to paint the box shadow of this fragment to the display
+    /// list if necessary.
+    fn build_display_list_for_box_shadow_if_applicable(&self,
+                                                       style: &ComputedValues,
+                                                       list: &mut DisplayList,
+                                                       layout_context: &LayoutContext,
+                                                       level: StackingLevel,
+                                                       absolute_bounds: &Rect<Au>,
+                                                       clip_rect: &Rect<Au>);
 
     fn build_debug_borders_around_text_fragments(&self,
                                                  display_list: &mut DisplayList,
@@ -407,6 +420,31 @@ impl FragmentDisplayListBuilding for Fragment {
         display_list.push(gradient_display_item, level)
     }
 
+    fn build_display_list_for_box_shadow_if_applicable(&self,
+                                                       style: &ComputedValues,
+                                                       list: &mut DisplayList,
+                                                       _layout_context: &LayoutContext,
+                                                       level: StackingLevel,
+                                                       absolute_bounds: &Rect<Au>,
+                                                       clip_rect: &Rect<Au>) {
+        // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
+        for box_shadow in style.get_effects().box_shadow.iter().rev() {
+            let inflation = (box_shadow.spread_radius + box_shadow.blur_radius) *
+                BOX_SHADOW_INFLATION_FACTOR;
+            let bounds =
+                absolute_bounds.translate(&Point2D(box_shadow.offset_x, box_shadow.offset_y))
+                               .inflate(inflation, inflation);
+            list.push(BoxShadowDisplayItemClass(box BoxShadowDisplayItem {
+                base: BaseDisplayItem::new(bounds, self.node, level, *clip_rect),
+                box_bounds: *absolute_bounds,
+                color: style.resolve_color(box_shadow.color).to_gfx_color(),
+                offset: Point2D(box_shadow.offset_x, box_shadow.offset_y),
+                blur_radius: box_shadow.blur_radius,
+                spread_radius: box_shadow.spread_radius,
+            }));
+        }
+    }
+
     fn build_display_list_for_borders_if_applicable(&self,
                                                     style: &ComputedValues,
                                                     display_list: &mut DisplayList,
@@ -555,6 +593,34 @@ impl FragmentDisplayListBuilding for Fragment {
                                                              self.node,
                                                              *clip_rect);
             display_list.push(PseudoDisplayItemClass(base_display_item), level);
+
+            // Add a shadow to the list, if applicable.
+            match self.inline_context {
+                Some(ref inline_context) => {
+                    for style in inline_context.styles.iter().rev() {
+                        self.build_display_list_for_box_shadow_if_applicable(
+                            &**style,
+                            display_list,
+                            layout_context,
+                            level,
+                            &absolute_fragment_bounds,
+                            clip_rect);
+                    }
+                }
+                None => {}
+            }
+            match self.specific {
+                ScannedTextFragment(_) => {},
+                _ => {
+                    self.build_display_list_for_box_shadow_if_applicable(
+                        &*self.style,
+                        display_list,
+                        layout_context,
+                        level,
+                        &absolute_fragment_bounds,
+                        clip_rect);
+                }
+            }
 
             // Add the background to the list, if applicable.
             match self.inline_context {

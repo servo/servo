@@ -44,6 +44,11 @@ pub use azure::azure_hl::GradientStop;
 
 pub mod optimizer;
 
+/// The factor that we multiply the blur radius by in order to inflate the boundaries of box shadow
+/// display items. This ensures that the box shadow display item boundaries include all the
+/// shadow's ink.
+pub static BOX_SHADOW_INFLATION_FACTOR: i32 = 3;
+
 /// An opaque handle to a node. The only safe operation that can be performed on this node is to
 /// compare it to another opaque handle or to another node.
 ///
@@ -420,6 +425,7 @@ pub enum DisplayItem {
     BorderDisplayItemClass(Box<BorderDisplayItem>),
     GradientDisplayItemClass(Box<GradientDisplayItem>),
     LineDisplayItemClass(Box<LineDisplayItem>),
+    BoxShadowDisplayItemClass(Box<BoxShadowDisplayItem>),
 
     /// A pseudo-display item that exists only so that queries like `ContentBoxQuery` and
     /// `ContentBoxesQuery` can be answered.
@@ -561,6 +567,28 @@ pub struct LineDisplayItem {
     pub style: border_style::T
 }
 
+/// Paints a box shadow per CSS-BACKGROUNDS.
+#[deriving(Clone)]
+pub struct BoxShadowDisplayItem {
+    /// Fields common to all display items.
+    pub base: BaseDisplayItem,
+
+    /// The dimensions of the box that we're placing a shadow around.
+    pub box_bounds: Rect<Au>,
+
+    /// The offset of this shadow from the box.
+    pub offset: Point2D<Au>,
+
+    /// The color of this shadow.
+    pub color: Color,
+
+    /// The blur radius for this shadow.
+    pub blur_radius: Au,
+
+    /// The spread radius of this shadow.
+    pub spread_radius: Au,
+}
+
 pub enum DisplayItemIterator<'a> {
     EmptyDisplayItemIterator,
     ParentDisplayItemIterator(dlist::Items<'a,DisplayItem>),
@@ -640,6 +668,15 @@ impl DisplayItem {
                                           line.style)
             }
 
+            BoxShadowDisplayItemClass(ref box_shadow) => {
+                render_context.draw_box_shadow(&box_shadow.base.bounds,
+                                               &box_shadow.box_bounds,
+                                               &box_shadow.offset,
+                                               box_shadow.color,
+                                               box_shadow.blur_radius,
+                                               box_shadow.spread_radius)
+            }
+
             PseudoDisplayItemClass(_) => {}
         }
     }
@@ -652,6 +689,7 @@ impl DisplayItem {
             BorderDisplayItemClass(ref border) => &border.base,
             GradientDisplayItemClass(ref gradient) => &gradient.base,
             LineDisplayItemClass(ref line) => &line.base,
+            BoxShadowDisplayItemClass(ref box_shadow) => &box_shadow.base,
             PseudoDisplayItemClass(ref base) => &**base,
         }
     }
@@ -664,6 +702,7 @@ impl DisplayItem {
             BorderDisplayItemClass(ref mut border) => &mut border.base,
             GradientDisplayItemClass(ref mut gradient) => &mut gradient.base,
             LineDisplayItemClass(ref mut line) => &mut line.base,
+            BoxShadowDisplayItemClass(ref mut box_shadow) => &mut box_shadow.base,
             PseudoDisplayItemClass(ref mut base) => &mut **base,
         }
     }
@@ -691,6 +730,7 @@ impl fmt::Show for DisplayItem {
                 BorderDisplayItemClass(_) => "Border",
                 GradientDisplayItemClass(_) => "Gradient",
                 LineDisplayItemClass(_) => "Line",
+                BoxShadowDisplayItemClass(_) => "BoxShadow",
                 PseudoDisplayItemClass(_) => "Pseudo",
             },
             self.base().bounds,

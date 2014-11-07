@@ -7,11 +7,13 @@
 use azure::azure::AzIntSize;
 use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GradientStop, Linear};
-use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, SourceOp, StrokeOptions};
+use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, OverOp, SourceOp};
+use azure::azure_hl::{StrokeOptions};
 use azure::scaled_font::ScaledFont;
 use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
-use display_list::{SidewaysLeft, SidewaysRight, TextDisplayItem, Upright, BorderRadii};
+use display_list::{BOX_SHADOW_INFLATION_FACTOR, BorderRadii, SidewaysLeft, SidewaysRight};
+use display_list::{TextDisplayItem, Upright};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -22,7 +24,7 @@ use libc::size_t;
 use libc::types::common::c99::{uint16_t, uint32_t};
 use png::{RGB8, RGBA8, K8, KA8};
 use servo_net::image::base::Image;
-use servo_util::geometry::Au;
+use servo_util::geometry::{Au, MAX_AU};
 use servo_util::opts;
 use servo_util::range::Range;
 use std::default::Default;
@@ -44,6 +46,8 @@ pub struct PaintContext<'a> {
     /// rect used by the last display item. We cache the last value so that we avoid pushing and
     /// popping clip rects unnecessarily.
     pub transient_clip_rect: Option<Rect<Au>>,
+    /// The scale factor.
+    pub scale: AzFloat,
 }
 
 enum Direction {
@@ -739,6 +743,89 @@ impl<'a> PaintContext<'a>  {
                                       draw_options);
         self.draw_target.set_transform(&old_transform);
     }
+
+    /// Draws a box shadow with the given boundaries, color, offset, blur radius, and spread
+    /// radius. `bounds` is just a rectangle that must be large enough to encompass all the ink in
+    /// this box shadow. `box_bounds` represents the boundaries of the box itself.
+    ///
+    /// TODO(pcwalton): Add support for `inset`.
+    pub fn draw_box_shadow(&self,
+                           bounds: &Rect<Au>,
+                           box_bounds: &Rect<Au>,
+                           offset: &Point2D<Au>,
+                           color: Color,
+                           blur_radius: Au,
+                           spread_radius: Au) {
+        let sigma = blur_radius.to_subpx() as f32 * 2.0;
+        let format = self.draw_target.get_format();
+        let scaled_box_size =
+            Size2D((bounds.size.width.to_subpx() as f32 * self.scale) as i32,
+                   (bounds.size.height.to_subpx() as f32 * self.scale) as i32);
+        let shadow_draw_target =
+            self.draw_target.create_shadow_draw_target(&scaled_box_size.to_azure_int_size(),
+                                                       format,
+                                                       sigma);
+        let matrix: Matrix2D<AzFloat> = Matrix2D::identity().scale(self.scale, self.scale);
+        shadow_draw_target.set_transform(&matrix);
+
+        let shadow_draw_target_offset =
+            Point2D((blur_radius + spread_radius) * BOX_SHADOW_INFLATION_FACTOR,
+                    (blur_radius + spread_radius) * BOX_SHADOW_INFLATION_FACTOR);
+        let shadow_draw_target_box_bounds = Rect(shadow_draw_target_offset, box_bounds.size);
+
+        // FIXME(pcwalton): This is a pretty ugly way to paint with a spread when a blur is
+        // present. We will need to add support for it to Azure to actually draw it well.
+        let shadow_draw_target_box_bounds = shadow_draw_target_box_bounds.inflate(spread_radius,
+                                                                                  spread_radius);
+
+        shadow_draw_target.fill_rect(&shadow_draw_target_box_bounds.to_azure_rect(),
+                                     ColorPatternRef(&ColorPattern::new(color)),
+                                     None);
+
+        let shadow_surface = shadow_draw_target.snapshot();
+        let shadow_origin = box_bounds.origin - shadow_draw_target_offset;
+        let transform = self.draw_target.get_transform();
+        let shadow_origin = transform.transform_point(&shadow_origin.to_azure_point());
+        let shadow_offset = matrix.transform_point(&offset.to_azure_point());
+        self.push_clip_outside_rect(box_bounds);
+        self.draw_target.draw_surface_with_shadow(shadow_surface,
+                                                  &shadow_origin,
+                                                  &color,
+                                                  &shadow_offset,
+                                                  sigma,
+                                                  OverOp);
+        self.draw_target.pop_clip();
+    }
+
+    fn push_clip_outside_rect(&self, bounds: &Rect<Au>) {
+        // +-----------+
+        // |2          |1
+        // |           |
+        // |   +---+---+
+        // |   |9  |6  |5, 10
+        // |   |   |   |
+        // |   +---+   |
+        // |    8   7  |
+        // |           |
+        // +-----------+
+        //  3           4
+
+        let bounds = bounds.to_azure_rect();
+        let tile_rect = Rect(Point2D(Au(0), Au(0)), Size2D(MAX_AU, MAX_AU)).to_azure_rect();
+
+        let path_builder = self.draw_target.create_path_builder();
+        path_builder.move_to(Point2D(tile_rect.max_x(), tile_rect.origin.y));   // 1
+        path_builder.line_to(Point2D(tile_rect.origin.x, tile_rect.origin.y));  // 2
+        path_builder.line_to(Point2D(tile_rect.origin.x, tile_rect.max_y()));   // 3
+        path_builder.line_to(Point2D(tile_rect.max_x(), tile_rect.max_y()));    // 4
+        path_builder.line_to(Point2D(tile_rect.max_x(), bounds.origin.y));      // 5
+        path_builder.line_to(Point2D(bounds.max_x(), bounds.origin.y));         // 6
+        path_builder.line_to(Point2D(bounds.max_x(), bounds.max_y()));          // 7
+        path_builder.line_to(Point2D(bounds.origin.x, bounds.max_y()));         // 8
+        path_builder.line_to(bounds.origin);                                    // 9
+        path_builder.line_to(Point2D(tile_rect.max_x(), tile_rect.origin.y));   // 10
+        self.draw_target.push_clip(&path_builder.finish());
+    }
 }
 
 pub trait ToAzurePoint {
@@ -770,6 +857,22 @@ pub trait ToAzureSize {
 impl ToAzureSize for AzIntSize {
     fn to_azure_size(&self) -> Size2D<AzFloat> {
         Size2D(self.width as AzFloat, self.height as AzFloat)
+    }
+}
+
+trait ToAzureIntSize {
+    fn to_azure_int_size(&self) -> Size2D<i32>;
+}
+
+impl ToAzureIntSize for Size2D<Au> {
+    fn to_azure_int_size(&self) -> Size2D<i32> {
+        Size2D(self.width.to_nearest_px() as i32, self.height.to_nearest_px() as i32)
+    }
+}
+
+impl ToAzureIntSize for Size2D<i32> {
+    fn to_azure_int_size(&self) -> Size2D<i32> {
+        Size2D(self.width, self.height)
     }
 }
 

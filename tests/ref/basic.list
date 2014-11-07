@@ -187,3 +187,9 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == incremental_float_a.html incremental_float_ref.html
 == opacity_simple_a.html opacity_simple_ref.html
 == opacity_stacking_context_a.html opacity_stacking_context_ref.html
+== table_specified_width_a.html table_specified_width_ref.html
+!= box_shadow_blur_a.html box_shadow_blur_ref.html
+== box_shadow_border_box_a.html box_shadow_border_box_ref.html
+== box_shadow_default_color_a.html box_shadow_default_color_ref.html
+== box_shadow_paint_order_a.html box_shadow_paint_order_ref.html
+== box_shadow_spread_a.html box_shadow_spread_ref.html
