@@ -56,7 +56,7 @@ class MachCommands(CommandBase):
             opts += ["-v"]
 
         features = []
-        if debug_mozjs:
+        if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
 
         if features:
