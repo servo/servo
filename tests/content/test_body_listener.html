@@ -2,6 +2,7 @@
 <head>
 <script src="harness.js"></script>
 <script>
+  waitForExplicitFinish();
   function check_onload(listener) {
     is(listener, window);
     var ev = new Event('click', {bubbles: true, cancelable: true});
