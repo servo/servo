@@ -76,3 +76,20 @@ pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef
         })
     }
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_map_key(sm: *mut cef_string_map_t, index: c_int, value: *mut cef_string_t) -> c_int {
+    unsafe {
+        if index < 0 || fptr_is_null(mem::transmute(sm)) { return 0; }
+        let v = string_map_to_treemap(sm);
+        if index as uint > (*v).len() - 1 { return 0; }
+
+        for (i, k) in (*v).keys().enumerate() {
+            if i == index as uint {
+                cef_string_utf8_set(k.as_bytes().as_ptr(), k.len() as u64, value, 1);
+                return 1;
+            }
+        }
+    }
+    0
+}
