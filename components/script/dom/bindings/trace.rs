@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![deny(missing_doc)]
+
 //! Utilities for tracing JS-managed values.
 //!
 //! The lifetime of DOM objects is managed by the SpiderMonkey Garbage
@@ -58,6 +60,12 @@ use dom::node::{Node, TrustedNodeAddress};
 use dom::bindings::utils::WindowProxyHandler;
 use html5ever::tree_builder::QuirksMode;
 
+/// A trait to allow tracing (only) DOM objects.
+pub trait JSTraceable {
+    /// Trace `self`.
+    fn trace(&self, trc: *mut JSTracer);
+}
+
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {
         trace_reflector(trc, "", self.reflector());
@@ -65,11 +73,6 @@ impl<T: Reflectable> JSTraceable for JS<T> {
 }
 
 no_jsmanaged_fields!(Reflector)
-
-/// A trait to allow tracing (only) DOM objects.
-pub trait JSTraceable {
-    fn trace(&self, trc: *mut JSTracer);
-}
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
