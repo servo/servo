@@ -12,6 +12,8 @@ cargo-root = "/path/to/cargo"
 [build]
 # Set "android = true" or use `mach build --android` to build the Android app.
 android = false
+# Set "debug-mozjs" or use `mach build --debug-mozjs` to build a debug spidermonkey.
+debug-mozjs = false
 
 # Android information
 [android]
