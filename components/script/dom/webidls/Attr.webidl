@@ -9,10 +9,14 @@
  */
 
 interface Attr {
-  readonly attribute DOMString localName;
-           attribute DOMString value;
-
-  readonly attribute DOMString name;
   readonly attribute DOMString? namespaceURI;
   readonly attribute DOMString? prefix;
+  readonly attribute DOMString localName;
+  readonly attribute DOMString name;
+           attribute DOMString value;
+           attribute DOMString textContent; // alias of .value
+
+  readonly attribute Element? ownerElement;
+
+  readonly attribute boolean specified; // useless; always returns true
 };

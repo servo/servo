@@ -141,6 +141,14 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
         self.set_value(ReplacedAttr, value);
     }
 
+    fn TextContent(self) -> DOMString {
+        self.Value()
+    }
+
+    fn SetTextContent(self, value: DOMString) {
+        self.SetValue(value)
+    }
+
     fn Name(self) -> DOMString {
         self.name.as_slice().to_string()
     }
@@ -155,6 +163,14 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
     fn GetPrefix(self) -> Option<DOMString> {
         self.prefix.clone()
+    }
+
+    fn GetOwnerElement(self) -> Option<Temporary<Element>> {
+        Some(Temporary::new(self.owner))
+    }
+
+    fn Specified(self) -> bool {
+        true // Always returns true
     }
 }
 
