@@ -136,8 +136,6 @@ check_tag("video",    1, [HTMLMediaElement, HTMLVideoElement]);
 // Test non-ASCII tag names.  Uppercasing is ASCII-only per spec:
 // http://dom.spec.whatwg.org/#dom-element-tagname
 check_tag("foo-á", 1, [HTMLUnknownElement], "FOO-á");
-
-finish();
 </script>
 </body>
 </html>

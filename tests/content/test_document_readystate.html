@@ -4,6 +4,8 @@
 </head>
 <body onload="is(document.readyState, 'complete'); is(gNumChanges, 2); finish()">
   <script>
+    waitForExplicitFinish();
+
     gNumChanges = 0;
     document.addEventListener('readystatechange', function() {
       gNumChanges++;
