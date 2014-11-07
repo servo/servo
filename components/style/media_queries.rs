@@ -13,7 +13,7 @@ use namespaces::NamespaceMap;
 use parsing_utils::{BufferedIter, ParserIter};
 use properties::common_types::*;
 use properties::longhands;
-use servo_util::geometry::ScreenPx;
+use servo_util::geometry::ViewportPx;
 use url::Url;
 
 pub struct MediaRule {
@@ -83,11 +83,11 @@ pub enum MediaType {
 
 pub struct Device {
     pub media_type: MediaType,
-    pub viewport_size: TypedSize2D<ScreenPx, f32>,
+    pub viewport_size: TypedSize2D<ViewportPx, f32>,
 }
 
 impl Device {
-    pub fn new(media_type: MediaType, viewport_size: TypedSize2D<ScreenPx, f32>) -> Device {
+    pub fn new(media_type: MediaType, viewport_size: TypedSize2D<ViewportPx, f32>) -> Device {
         Device {
             media_type: media_type,
             viewport_size: viewport_size,
@@ -311,12 +311,13 @@ mod tests {
     use geom::size::TypedSize2D;
     use properties::common_types::*;
     use stylesheets::{iter_stylesheet_media_rules, iter_stylesheet_style_rules, Stylesheet};
+    use selector_matching::AuthorOrigin;
     use super::*;
     use url::Url;
 
     fn test_media_rule(css: &str, callback: |&MediaQueryList, &str|) {
         let url = Url::parse("http://localhost").unwrap();
-        let stylesheet = Stylesheet::from_str(css, url);
+        let stylesheet = Stylesheet::from_str(css, url, AuthorOrigin);
         let mut rule_count: int = 0;
         iter_stylesheet_media_rules(&stylesheet, |rule| {
             rule_count += 1;
@@ -327,7 +328,7 @@ mod tests {
 
     fn media_query_test(device: &Device, css: &str, expected_rule_count: int) {
         let url = Url::parse("http://localhost").unwrap();
-        let ss = Stylesheet::from_str(css, url);
+        let ss = Stylesheet::from_str(css, url, AuthorOrigin);
         let mut rule_count: int = 0;
         iter_stylesheet_style_rules(&ss, device, |_| rule_count += 1);
         assert!(rule_count == expected_rule_count, css.to_string());

@@ -24,7 +24,7 @@ use node::{TElement, TElementAttributes, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, SpecifiedValue, WidthDeclaration};
 use properties::{specified};
 use selectors::*;
-use stylesheets::{Stylesheet, iter_stylesheet_style_rules};
+use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
 
 pub enum StylesheetOrigin {
     UserAgentOrigin,
@@ -264,6 +264,18 @@ impl SelectorMap {
 pub static RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE: uint = 4096;
 
 pub struct Stylist {
+    // List of stylesheets (including all media rules)
+    stylesheets: Vec<Stylesheet>,
+
+    // Device that the stylist is currently evaluating against.
+    pub device: Device,
+
+    // If true, a stylesheet has been added or the device has
+    // changed, and the stylist needs to be updated.
+    is_dirty: bool,
+
+    // The current selector maps, after evaluating media
+    // rules against the current device.
     element_map: PerPseudoElementSelectorMap,
     before_map: PerPseudoElementSelectorMap,
     after_map: PerPseudoElementSelectorMap,
@@ -272,8 +284,12 @@ pub struct Stylist {
 
 impl Stylist {
     #[inline]
-    pub fn new(device: &Device) -> Stylist {
+    pub fn new(device: Device) -> Stylist {
         let mut stylist = Stylist {
+            stylesheets: vec!(),
+            device: device,
+            is_dirty: true,
+
             element_map: PerPseudoElementSelectorMap::new(),
             before_map: PerPseudoElementSelectorMap::new(),
             after_map: PerPseudoElementSelectorMap::new(),
@@ -288,63 +304,96 @@ impl Stylist {
                 read_resource_file([filename]).unwrap().as_slice(),
                 Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
                 None,
-                None);
-            stylist.add_stylesheet(ua_stylesheet, UserAgentOrigin, device);
+                None,
+                UserAgentOrigin);
+            stylist.add_stylesheet(ua_stylesheet);
         }
         stylist
     }
 
-    pub fn add_stylesheet(&mut self, stylesheet: Stylesheet, origin: StylesheetOrigin,
-                            device: &Device) {
-        let (mut element_map, mut before_map, mut after_map) = match origin {
-            UserAgentOrigin => (
-                &mut self.element_map.user_agent,
-                &mut self.before_map.user_agent,
-                &mut self.after_map.user_agent,
-            ),
-            AuthorOrigin => (
-                &mut self.element_map.author,
-                &mut self.before_map.author,
-                &mut self.after_map.author,
-            ),
-            UserOrigin => (
-                &mut self.element_map.user,
-                &mut self.before_map.user,
-                &mut self.after_map.user,
-            ),
-        };
-        let mut rules_source_order = self.rules_source_order;
+    pub fn update(&mut self) -> bool {
+        if self.is_dirty {
+            self.element_map = PerPseudoElementSelectorMap::new();
+            self.before_map = PerPseudoElementSelectorMap::new();
+            self.after_map = PerPseudoElementSelectorMap::new();
+            self.rules_source_order = 0;
 
-        // Take apart the StyleRule into individual Rules and insert
-        // them into the SelectorMap of that priority.
-        macro_rules! append(
-            ($style_rule: ident, $priority: ident) => {
-                if $style_rule.declarations.$priority.len() > 0 {
-                    for selector in $style_rule.selectors.iter() {
-                        let map = match selector.pseudo_element {
-                            None => &mut element_map,
-                            Some(Before) => &mut before_map,
-                            Some(After) => &mut after_map,
-                        };
-                        map.$priority.insert(Rule {
-                                selector: selector.compound_selectors.clone(),
-                                declarations: DeclarationBlock {
-                                    specificity: selector.specificity,
-                                    declarations: $style_rule.declarations.$priority.clone(),
-                                    source_order: rules_source_order,
-                                },
-                        });
-                    }
-                }
-            };
-        );
+            for stylesheet in self.stylesheets.iter() {
+                let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
+                    UserAgentOrigin => (
+                        &mut self.element_map.user_agent,
+                        &mut self.before_map.user_agent,
+                        &mut self.after_map.user_agent,
+                    ),
+                    AuthorOrigin => (
+                        &mut self.element_map.author,
+                        &mut self.before_map.author,
+                        &mut self.after_map.author,
+                    ),
+                    UserOrigin => (
+                        &mut self.element_map.user,
+                        &mut self.before_map.user,
+                        &mut self.after_map.user,
+                    ),
+                };
+                let mut rules_source_order = self.rules_source_order;
 
-        iter_stylesheet_style_rules(&stylesheet, device, |style_rule| {
-            append!(style_rule, normal);
-            append!(style_rule, important);
-            rules_source_order += 1;
+                // Take apart the StyleRule into individual Rules and insert
+                // them into the SelectorMap of that priority.
+                macro_rules! append(
+                    ($style_rule: ident, $priority: ident) => {
+                        if $style_rule.declarations.$priority.len() > 0 {
+                            for selector in $style_rule.selectors.iter() {
+                                let map = match selector.pseudo_element {
+                                    None => &mut element_map,
+                                    Some(Before) => &mut before_map,
+                                    Some(After) => &mut after_map,
+                                };
+                                map.$priority.insert(Rule {
+                                        selector: selector.compound_selectors.clone(),
+                                        declarations: DeclarationBlock {
+                                            specificity: selector.specificity,
+                                            declarations: $style_rule.declarations.$priority.clone(),
+                                            source_order: rules_source_order,
+                                        },
+                                });
+                            }
+                        }
+                    };
+                );
+
+                iter_stylesheet_style_rules(stylesheet, &self.device, |style_rule| {
+                    append!(style_rule, normal);
+                    append!(style_rule, important);
+                    rules_source_order += 1;
+                });
+                self.rules_source_order = rules_source_order;
+            }
+
+            self.is_dirty = false;
+            return true;
+        }
+
+        false
+    }
+
+    pub fn set_device(&mut self, device: Device) {
+        let is_dirty = self.is_dirty || self.stylesheets.iter().any(|stylesheet| {
+            let mut stylesheet_dirty = false;
+            iter_stylesheet_media_rules(stylesheet, |rule| {
+                stylesheet_dirty |= rule.media_queries.evaluate(&self.device) !=
+                                    rule.media_queries.evaluate(&device);
+            });
+            stylesheet_dirty
         });
-        self.rules_source_order = rules_source_order;
+
+        self.device = device;
+        self.is_dirty |= is_dirty;
+    }
+
+    pub fn add_stylesheet(&mut self, stylesheet: Stylesheet) {
+        self.stylesheets.push(stylesheet);
+        self.is_dirty = true;
     }
 
     /// Returns the applicable CSS declarations for the given element. This corresponds to
@@ -364,6 +413,7 @@ impl Stylist {
                                         where E: TElement<'a> + TElementAttributes,
                                               N: TNode<'a,E>,
                                               V: VecLike<DeclarationBlock> {
+        assert!(!self.is_dirty);
         assert!(element.is_element());
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");

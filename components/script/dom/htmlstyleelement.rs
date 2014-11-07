@@ -15,7 +15,7 @@ use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{AddStylesheetMsg, LayoutChan};
 use servo_util::str::DOMString;
-use style::Stylesheet;
+use style::{AuthorOrigin, Stylesheet};
 
 #[dom_struct]
 pub struct HTMLStyleElement {
@@ -55,7 +55,7 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         let url = win.page().get_url();
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
-        let sheet = Stylesheet::from_str(data.as_slice(), url);
+        let sheet = Stylesheet::from_str(data.as_slice(), url, AuthorOrigin);
         let LayoutChan(ref layout_chan) = win.page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));
     }
