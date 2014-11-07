@@ -34,3 +34,23 @@ pub extern "C" fn cef_string_map_size(sm: *mut cef_string_map_t) -> c_int {
         (*v).len() as c_int
     }
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const cef_string_t, value: *const cef_string_t) -> c_int {
+    unsafe {
+        if fptr_is_null(mem::transmute(sm)) { return 0; }
+        let v = string_map_to_treemap(sm);
+        slice::raw::buf_as_slice(mem::transmute((*key).str), (*key).length as uint, |result| {
+            match str::from_utf8(result) {
+                Some(k) => {
+                    let s = String::from_str(k);
+                    let csv = cef_string_userfree_utf8_alloc();
+                    cef_string_utf8_set(mem::transmute((*value).str), (*value).length, csv, 1);
+                    (*v).insert(s, csv);
+                    1
+                },
+                None => 0
+            }
+        })
+    }
+}
