@@ -12,6 +12,10 @@ use std::string::String;
 use string::{cef_string_userfree_utf8_alloc,cef_string_userfree_utf8_free,cef_string_utf8_set};
 use types::{cef_string_map_t,cef_string_t};
 
+fn string_map_to_treemap(sm: *mut cef_string_map_t) -> *mut TreeMap<String, *mut cef_string_t> {
+    sm as *mut TreeMap<String, *mut cef_string_t>
+}
+
 //cef_string_map
 
 #[no_mangle]
@@ -19,5 +23,14 @@ pub extern "C" fn cef_string_map_alloc() -> *mut cef_string_map_t {
     unsafe {
          let sm: Box<TreeMap<String, *mut cef_string_t>> = box TreeMap::new();
          mem::transmute(sm)
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn cef_string_map_size(sm: *mut cef_string_map_t) -> c_int {
+    unsafe {
+        if fptr_is_null(mem::transmute(sm)) { return 0; }
+        let v = string_map_to_treemap(sm);
+        (*v).len() as c_int
     }
 }
