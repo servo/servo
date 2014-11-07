@@ -29,7 +29,7 @@ use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
 use servo_util::dlist as servo_dlist;
-use servo_util::geometry::{mod, Au};
+use servo_util::geometry::{mod, Au, ZERO_POINT};
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
@@ -43,6 +43,11 @@ use sync::Arc;
 pub use azure::azure_hl::GradientStop;
 
 pub mod optimizer;
+
+/// The factor that we multiply the blur radius by in order to inflate the boundaries of box shadow
+/// display items. This ensures that the box shadow display item boundaries include all the
+/// shadow's ink.
+pub static BOX_SHADOW_INFLATION_FACTOR: i32 = 3;
 
 /// An opaque handle to a node. The only safe operation that can be performed on this node is to
 /// compare it to another opaque handle or to another node.
@@ -174,7 +179,7 @@ impl StackingContext {
             display_list: display_list,
             layer: layer,
             bounds: bounds,
-            clip_rect: bounds,
+            clip_rect: Rect(ZERO_POINT, bounds.size),
             z_index: z_index,
             opacity: opacity,
         }
@@ -185,7 +190,7 @@ impl StackingContext {
                                           paint_context: &mut PaintContext,
                                           tile_bounds: &Rect<AzFloat>,
                                           transform: &Matrix2D<AzFloat>,
-                                          clip_rect: Option<&Rect<Au>>) {
+                                          clip_rect: Option<Rect<Au>>) {
         let temporary_draw_target =
             paint_context.get_or_create_temporary_draw_target(self.opacity);
         {
@@ -194,6 +199,7 @@ impl StackingContext {
                 font_ctx: &mut *paint_context.font_ctx,
                 page_rect: paint_context.page_rect,
                 screen_rect: paint_context.screen_rect,
+                clip_rect: clip_rect,
                 transient_clip_rect: None,
             };
 
@@ -210,12 +216,9 @@ impl StackingContext {
                                .sort_by(|this, other| this.z_index.cmp(&other.z_index));
 
             // Set up our clip rect and transform.
-            match clip_rect {
-                None => {}
-                Some(clip_rect) => paint_subcontext.draw_push_clip(clip_rect),
-            }
             let old_transform = paint_subcontext.draw_target.get_transform();
             paint_subcontext.draw_target.set_transform(transform);
+            paint_subcontext.push_clip_if_applicable();
 
             // Steps 1 and 2: Borders and background for the root.
             for display_item in display_list.background_and_borders.iter() {
@@ -243,7 +246,7 @@ impl StackingContext {
                     positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
-                                                                  Some(&positioned_kid.clip_rect))
+                                                                  Some(positioned_kid.clip_rect))
                 }
             }
 
@@ -286,7 +289,7 @@ impl StackingContext {
                     positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
-                                                                  Some(&positioned_kid.clip_rect))
+                                                                  Some(positioned_kid.clip_rect))
                 }
             }
 
@@ -296,14 +299,9 @@ impl StackingContext {
             }
 
             // Undo our clipping and transform.
-            if paint_subcontext.transient_clip_rect.is_some() {
-                paint_subcontext.draw_pop_clip();
-                paint_subcontext.transient_clip_rect = None
-            }
-            paint_subcontext.draw_target.set_transform(&old_transform);
-            if clip_rect.is_some() {
-                paint_subcontext.draw_pop_clip()
-            }
+            paint_subcontext.remove_transient_clip_if_applicable();
+            paint_subcontext.pop_clip_if_applicable();
+            paint_subcontext.draw_target.set_transform(&old_transform)
         }
 
         paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target, self.opacity)
@@ -437,6 +435,7 @@ pub enum DisplayItem {
     BorderDisplayItemClass(Box<BorderDisplayItem>),
     GradientDisplayItemClass(Box<GradientDisplayItem>),
     LineDisplayItemClass(Box<LineDisplayItem>),
+    BoxShadowDisplayItemClass(Box<BoxShadowDisplayItem>),
 }
 
 /// Information common to all display items.
@@ -571,6 +570,31 @@ pub struct LineDisplayItem {
     pub style: border_style::T
 }
 
+/// Paints a box shadow per CSS-BACKGROUNDS.
+#[deriving(Clone)]
+pub struct BoxShadowDisplayItem {
+    /// Fields common to all display items.
+    pub base: BaseDisplayItem,
+
+    /// The dimensions of the box that we're placing a shadow around.
+    pub box_bounds: Rect<Au>,
+
+    /// The offset of this shadow from the box.
+    pub offset: Point2D<Au>,
+
+    /// The color of this shadow.
+    pub color: Color,
+
+    /// The blur radius for this shadow.
+    pub blur_radius: Au,
+
+    /// The spread radius of this shadow.
+    pub spread_radius: Au,
+
+    /// True if this shadow is inset; false if it's outset.
+    pub inset: bool,
+}
+
 pub enum DisplayItemIterator<'a> {
     EmptyDisplayItemIterator,
     ParentDisplayItemIterator(dlist::Items<'a,DisplayItem>),
@@ -649,6 +673,15 @@ impl DisplayItem {
                                           line.color,
                                           line.style)
             }
+
+            BoxShadowDisplayItemClass(ref box_shadow) => {
+                paint_context.draw_box_shadow(&box_shadow.box_bounds,
+                                              &box_shadow.offset,
+                                              box_shadow.color,
+                                              box_shadow.blur_radius,
+                                              box_shadow.spread_radius,
+                                              box_shadow.inset)
+            }
         }
     }
 
@@ -660,6 +693,7 @@ impl DisplayItem {
             BorderDisplayItemClass(ref border) => &border.base,
             GradientDisplayItemClass(ref gradient) => &gradient.base,
             LineDisplayItemClass(ref line) => &line.base,
+            BoxShadowDisplayItemClass(ref box_shadow) => &box_shadow.base,
         }
     }
 
@@ -671,6 +705,7 @@ impl DisplayItem {
             BorderDisplayItemClass(ref mut border) => &mut border.base,
             GradientDisplayItemClass(ref mut gradient) => &mut gradient.base,
             LineDisplayItemClass(ref mut line) => &mut line.base,
+            BoxShadowDisplayItemClass(ref mut box_shadow) => &mut box_shadow.base,
         }
     }
 
@@ -697,6 +732,7 @@ impl fmt::Show for DisplayItem {
                 BorderDisplayItemClass(_) => "Border",
                 GradientDisplayItemClass(_) => "Gradient",
                 LineDisplayItemClass(_) => "Line",
+                BoxShadowDisplayItemClass(_) => "BoxShadow",
             },
             self.base().bounds,
             self.base().node.id()

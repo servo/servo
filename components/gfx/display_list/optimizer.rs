@@ -59,8 +59,7 @@ impl DisplayListOptimizer {
                                              mut stacking_contexts: I)
                                              where I: Iterator<&'a Arc<StackingContext>> {
         for stacking_context in stacking_contexts {
-            if self.visible_rect.intersects(&stacking_context.bounds) &&
-                    self.visible_rect.intersects(&stacking_context.clip_rect) {
+            if self.visible_rect.intersects(&stacking_context.bounds) {
                 result_list.push_back((*stacking_context).clone())
             }
         }
