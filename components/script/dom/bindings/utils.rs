@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![deny(missing_doc)]
+
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
 use dom::bindings::codegen::PrototypeList;
@@ -45,14 +47,18 @@ use js::{JSPROP_ENUMERATE, JSPROP_READONLY, JSPROP_PERMANENT};
 use js::JSFUN_CONSTRUCTOR;
 use js;
 
+/// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);
 
 #[allow(raw_pointer_deriving)]
 #[jstraceable]
+/// Static data associated with a global object.
 pub struct GlobalStaticData {
+    /// The WindowProxy proxy handler for this global.
     pub windowproxy_handler: WindowProxyHandler,
 }
 
+/// Creates a new GlobalStaticData.
 pub fn GlobalStaticData() -> GlobalStaticData {
     GlobalStaticData {
         windowproxy_handler: browsercontext::new_window_proxy_handler(),
@@ -182,18 +188,26 @@ pub static JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 /// Representation of an IDL constant value.
 #[deriving(Clone)]
 pub enum ConstantVal {
+    /// `long` constant.
     IntVal(i32),
+    /// `unsigned long` constant.
     UintVal(u32),
+    /// `double` constant.
     DoubleVal(f64),
+    /// `boolean` constant.
     BoolVal(bool),
+    /// `null` constant.
     NullVal,
+    /// `undefined` constant.
     VoidVal
 }
 
 /// Representation of an IDL constant.
 #[deriving(Clone)]
 pub struct ConstantSpec {
+    /// name of the constant.
     pub name: &'static [u8],
+    /// value of the constant.
     pub value: ConstantVal
 }
 
@@ -232,7 +246,9 @@ pub struct DOMClass {
 
 /// The JSClass used for DOM object reflectors.
 pub struct DOMJSClass {
+    /// The actual JSClass.
     pub base: js::Class,
+    /// Associated data for DOM object reflectors.
     pub dom_class: DOMClass
 }
 
@@ -248,10 +264,15 @@ pub fn GetProtoOrIfaceArray(global: *mut JSObject) -> *mut *mut JSObject {
 /// Contains references to lists of methods, attributes, and constants for a
 /// given interface.
 pub struct NativeProperties {
+    /// Instance methods for the interface.
     pub methods: Option<&'static [JSFunctionSpec]>,
+    /// Instance attributes for the interface.
     pub attrs: Option<&'static [JSPropertySpec]>,
+    /// Constants for the interface.
     pub consts: Option<&'static [ConstantSpec]>,
+    /// Static methods for the interface.
     pub staticMethods: Option<&'static [JSFunctionSpec]>,
+    /// Static attributes for the interface.
     pub staticAttrs: Option<&'static [JSPropertySpec]>,
 }
 
@@ -416,6 +437,7 @@ pub fn initialize_global(global: *mut JSObject) {
 
 /// A trait to provide access to the `Reflector` for a DOM object.
 pub trait Reflectable {
+    /// Returns the receiver's reflector.
     fn reflector<'a>(&'a self) -> &'a Reflector;
 }
 
@@ -468,6 +490,10 @@ impl Reflector {
     }
 }
 
+/// Gets the property `id` on  `proxy`'s prototype. If it exists, `*found` is
+/// set to true and `*vp` to the value, otherwise `*found` is set to false.
+///
+/// Returns false on JSAPI failure.
 pub fn GetPropertyOnPrototype(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, found: *mut bool,
                               vp: *mut JSVal) -> bool {
     unsafe {
@@ -585,6 +611,7 @@ pub fn get_dictionary_property(cx: *mut JSContext,
     Ok(Some(value))
 }
 
+/// Returns whether `proxy` has a property `id` on its prototype.
 pub fn HasPropertyOnPrototype(cx: *mut JSContext, proxy: *mut JSObject, id: jsid) -> bool {
     //  MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
     let mut found = false;
@@ -639,6 +666,7 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
     }
 }
 
+/// Deletes the property `id` from `object`.
 pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
                                     id: jsid, bp: &mut bool) -> bool {
     let mut value = UndefinedValue();
@@ -652,6 +680,7 @@ pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
 
 /// Results of `xml_name_type`.
 #[deriving(PartialEq)]
+#[allow(missing_doc)]
 pub enum XMLName {
     QName,
     Name,
