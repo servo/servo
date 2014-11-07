@@ -110,3 +110,16 @@ pub extern "C" fn cef_string_map_value(sm: *mut cef_string_map_t, index: c_int, 
     }
     0
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_map_clear(sm: *mut cef_string_map_t) {
+    unsafe {
+        if fptr_is_null(mem::transmute(sm)) { return; }
+        let v = string_map_to_treemap(sm);
+        if (*v).len() == 0 { return; }
+        for val in (*v).values() {
+            cef_string_userfree_utf8_free((*val));
+        }
+        (*v).clear();
+    }
+}
