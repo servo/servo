@@ -54,3 +54,25 @@ pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const c
         })
     }
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef_string_t, value: *mut cef_string_t) -> c_int {
+    unsafe {
+        if fptr_is_null(mem::transmute(sm)) { return 0; }
+        let v = string_map_to_treemap(sm);
+        slice::raw::buf_as_slice(mem::transmute((*key).str), (*key).length as uint, |result| {
+            match str::from_utf8(result) {
+                Some(k) => {
+                    match (*v).find(&String::from_str(k)) {
+                        Some(s) => {
+                            cef_string_utf8_set(mem::transmute((**s).str), (**s).length, value, 1);
+                            1
+                        }
+                        None => 0
+                    }
+                },
+                None => 0
+            }
+        })
+    }
+}
