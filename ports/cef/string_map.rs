@@ -93,3 +93,20 @@ pub extern "C" fn cef_string_map_key(sm: *mut cef_string_map_t, index: c_int, va
     }
     0
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_map_value(sm: *mut cef_string_map_t, index: c_int, value: *mut cef_string_t) -> c_int {
+    unsafe {
+        if index < 0 || fptr_is_null(mem::transmute(sm)) { return 0; }
+        let v = string_map_to_treemap(sm);
+        if index as uint > (*v).len() - 1 { return 0; }
+
+        for (i, val) in (*v).values().enumerate() {
+            if i == index as uint {
+                cef_string_utf8_set(mem::transmute((**val).str), (**val).length, value, 1);
+                return 1;
+            }
+        }
+    }
+    0
+}
