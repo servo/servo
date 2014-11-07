@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![deny(missing_doc)]
+
 //! Base classes to work with IDL callbacks.
 
 use dom::bindings::global::global_object_for_js_object;
@@ -33,6 +35,7 @@ pub struct CallbackFunction {
 }
 
 impl CallbackFunction {
+    /// Create a new `CallbackFunction` for this object.
     pub fn new(callback: *mut JSObject) -> CallbackFunction {
         CallbackFunction {
             object: CallbackObject {
