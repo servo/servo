@@ -1524,12 +1524,12 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
             Declaration_(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
-                let (list, seen) = (&mut property_declarations, &mut property_seen);
                 let importance = match i {
                     true => Important,
                     false => Normal
                 };
-                match PropertyDeclaration::parse(n.as_slice(), v.as_slice(), importance, list, base_url, seen) {
+                match PropertyDeclaration::parse(n.as_slice(), v.as_slice(), importance,
+                                                &mut property_declarations, base_url, &mut property_seen) {
                     UnknownProperty => log_css_error(l, format!(
                         "Unsupported property: {}:{}", n, v.iter().to_css()).as_slice()),
                     ExperimentalProperty => log_css_error(l, format!(

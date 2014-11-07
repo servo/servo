@@ -325,7 +325,7 @@ impl Stylist {
                         Some(Before) => &mut before_map,
                         Some(After) => &mut after_map,
                     };
-                    map.declarations.insert(Rule {
+                    map.insert(Rule {
                             selector: selector.compound_selectors.clone(),
                             declarations: DeclarationBlock {
                                 specificity: selector.specificity,
@@ -375,26 +375,36 @@ impl Stylist {
                                                                    applicable_declarations,
                                                                    &mut shareable);
 
-        // Step 2: Rules.
-        map.user_agent.declarations.get_all_matching_rules(element,
-                                                           parent_bf,
-                                                           applicable_declarations,
-                                                           &mut shareable);
-        map.user.declarations.get_all_matching_rules(element,
-                                                     parent_bf,
-                                                     applicable_declarations,
-                                                     &mut shareable);
-        map.author.declarations.get_all_matching_rules(element,
-                                                       parent_bf,
-                                                       applicable_declarations,
-                                                       &mut shareable);
+        // Step 2: Normal rules.
+        map.user_agent.get_all_matching_rules(element,
+                                              parent_bf,
+                                              applicable_declarations,
+                                              &mut shareable);
+        map.user.get_all_matching_rules(element,
+                                        parent_bf,
+                                        applicable_declarations,
+                                        &mut shareable);
+        map.author.get_all_matching_rules(element,
+                                          parent_bf,
+                                          applicable_declarations,
+                                          &mut shareable);
 
-        // Step 3: Style attributes.
+        // Step 3: Normal style attributes.
         style_attribute.map(|sa| {
             shareable = false;
             applicable_declarations.vec_push(DeclarationBlock::from_declarations(sa.declarations
                                                                                    .clone()))
         });
+
+
+        // Step 4: Author-supplied `!important` rules.
+
+
+        // Step 5: `!important` style attributes.
+
+
+        // Step 6: User and UA `!important` rules.
+
 
         shareable
     }
@@ -456,32 +466,19 @@ impl Stylist {
     }
 }
 
-struct PerOriginSelectorMap {
-    declarations: SelectorMap
-}
-
-impl PerOriginSelectorMap {
-    #[inline]
-    fn new() -> PerOriginSelectorMap {
-        PerOriginSelectorMap {
-            declarations: SelectorMap::new()
-        }
-    }
-}
-
 struct PerPseudoElementSelectorMap {
-    user_agent: PerOriginSelectorMap,
-    author: PerOriginSelectorMap,
-    user: PerOriginSelectorMap,
+    user_agent: SelectorMap,
+    author: SelectorMap,
+    user: SelectorMap,
 }
 
 impl PerPseudoElementSelectorMap {
     #[inline]
     fn new() -> PerPseudoElementSelectorMap {
         PerPseudoElementSelectorMap {
-            user_agent: PerOriginSelectorMap::new(),
-            author: PerOriginSelectorMap::new(),
-            user: PerOriginSelectorMap::new(),
+            user_agent: SelectorMap::new(),
+            author: SelectorMap::new(),
+            user: SelectorMap::new(),
         }
     }
 }
