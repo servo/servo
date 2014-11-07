@@ -123,3 +123,13 @@ pub extern "C" fn cef_string_map_clear(sm: *mut cef_string_map_t) {
         (*v).clear();
     }
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_map_free(sm: *mut cef_string_map_t) {
+    unsafe {
+        if fptr_is_null(mem::transmute(sm)) { return; }
+        let v: Box<TreeMap<String, *mut cef_string_t>> = mem::transmute(sm);
+        cef_string_map_clear(sm);
+        drop(v);
+    }
+}
