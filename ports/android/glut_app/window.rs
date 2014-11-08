@@ -4,6 +4,7 @@
 
 //! A windowing implementation using GLUT.
 
+use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
 use compositing::windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
@@ -129,6 +130,17 @@ impl Window {
 
         wrapped_window
     }
+
+    pub fn wait_events(&self) -> WindowEvent {
+        if !self.event_queue.borrow_mut().is_empty() {
+            return self.event_queue.borrow_mut().remove(0).unwrap();
+        }
+
+        // XXX: Need a function that blocks waiting for events, like glfwWaitEvents.
+        glut::check_loop();
+
+        self.event_queue.borrow_mut().remove(0).unwrap_or(IdleWindowEvent)
+    }
 }
 
 impl Drop for Window {
@@ -153,14 +165,13 @@ impl WindowMethods for Window {
         glut::swap_buffers();
     }
 
-    fn recv(&self) -> WindowEvent {
-        if !self.event_queue.borrow_mut().is_empty() {
-            return self.event_queue.borrow_mut().remove(0).unwrap();
-        }
-
-        glut::check_loop();
-
-        self.event_queue.borrow_mut().remove(0).unwrap_or(IdleWindowEvent)
+    fn create_compositor_channel(_: &Option<Rc<Window>>)
+                                 -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
+        let (sender, receiver) = channel();
+        (box GlutCompositorProxy {
+             sender: sender,
+         } as Box<CompositorProxy+Send>,
+         box receiver as Box<CompositorReceiver>)
     }
 
     /// Sets the ready state.
@@ -287,6 +298,24 @@ impl Window {
         }
     }
 }
+
+struct GlutCompositorProxy {
+    sender: Sender<compositor_task::Msg>,
+}
+
+impl CompositorProxy for GlutCompositorProxy {
+    fn send(&mut self, msg: compositor_task::Msg) {
+        // Send a message and kick the OS event loop awake.
+        self.sender.send(msg);
+        // XXX: Need a way to unblock wait_events, like glfwPostEmptyEvent
+    }
+    fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
+        box GlutCompositorProxy {
+            sender: self.sender.clone(),
+        } as Box<CompositorProxy+Send>
+    }
+}
+
 
 local_data_key!(TLS_KEY: Rc<Window>)
 

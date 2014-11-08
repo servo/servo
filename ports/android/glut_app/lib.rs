@@ -56,8 +56,10 @@ pub extern "C" fn android_start(argc: int, argv: *const *const u8) -> int {
         }
 
         if opts::from_cmdline_args(args.as_slice()) {
-            let window = Some(create_window());
-            servo::run(window);
+            let window = create_window();
+            let mut browser = servo::Browser::new(Some(window.clone()));
+            while browser.handle_event(window.wait_events()) {}
+            browser.shutdown();
         }
     })
 }
