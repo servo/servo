@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::error::{ErrorResult, Fallible, Syntax, Network, FailureUnknown};
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
@@ -155,8 +156,9 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         base64_atob(atob)
     }
 
-    fn SetTimeout(self, _cx: *mut JSContext, handler: JSVal, timeout: i32) -> i32 {
-        self.timers.set_timeout_or_interval(handler,
+    fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(callback,
+                                            args,
                                             timeout,
                                             false, // is_interval
                                             FromWorker,
@@ -167,8 +169,9 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         self.timers.clear_timeout_or_interval(handle);
     }
 
-    fn SetInterval(self, _cx: *mut JSContext, handler: JSVal, timeout: i32) -> i32 {
-        self.timers.set_timeout_or_interval(handler,
+    fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(callback,
+                                            args,
                                             timeout,
                                             true, // is_interval
                                             FromWorker,
@@ -181,14 +184,13 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
 }
 
 pub trait WorkerGlobalScopeHelpers {
-    fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext);
+    fn handle_fire_timer(self, timer_id: TimerId);
 }
 
 impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
 
-    fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext) {
-        let this_value = self.reflector().get_jsobject();
-        self.timers.fire_timer(timer_id, this_value, cx);
+    fn handle_fire_timer(self, timer_id: TimerId) {
+        self.timers.fire_timer(timer_id, self.clone());
     }
 
 }
