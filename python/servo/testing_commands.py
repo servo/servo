@@ -87,7 +87,7 @@ class MachCommands(CommandBase):
             return self.infer_test_by_dir(params)
 
         test_start = time()
-        for t in ["tidy", "unit", "ref", "content", "wpt"]:
+        for t in ["tidy", "unit", "ref", "content", "wpt", "csswg"]:
             Registrar.dispatch("test-%s" % t, context=self.context)
         elapsed = time() - test_start
 
@@ -218,4 +218,17 @@ class MachCommands(CommandBase):
 
         return subprocess.call(
             ["bash", path.join("tests", "wpt", "run.sh")] + params,
+            env=self.build_env())
+
+    @Command('test-csswg',
+             description='Run the CSSWG tests',
+             category='testing')
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help="Command-line arguments to be passed through to wpt/run-csswg.sh")
+    def test_csswg(self, params=None):
+        if params is None:
+            params = []
+        return subprocess.call(
+            ["bash", path.join("tests", "wpt", "run-csswg.sh")] + params,
             env=self.build_env())

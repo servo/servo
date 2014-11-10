@@ -7,3 +7,6 @@
 [submodule "support/time"]
 	path = support/time
 	url = https://github.com/servo/time
+[submodule "tests/wpt/csswg-test"]
+	path = tests/wpt/csswg-test
+	url = https://github.com/servo/csswg-test.git
