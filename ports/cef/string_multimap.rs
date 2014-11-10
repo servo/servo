@@ -36,3 +36,19 @@ pub extern "C" fn cef_string_multimap_size(smm: *mut cef_string_multimap_t) -> c
         c
     }
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_multimap_find_count(smm: *mut cef_string_multimap_t, key: *const cef_string_t) -> c_int {
+    unsafe {
+        if smm.is_null() { return 0; }
+        let v = string_multimap_to_treemap(smm);
+        slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
+            match (*v).find(&String::from_str(result)) {
+                Some(s) => {
+                    s.len() as c_int
+                }
+                None => 0
+            }
+        })
+    }
+}
