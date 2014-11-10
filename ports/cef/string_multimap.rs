@@ -76,3 +76,23 @@ pub extern "C" fn cef_string_multimap_append(smm: *mut cef_string_multimap_t, ke
         })
     }
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_multimap_enumerate(smm: *mut cef_string_multimap_t, key: *const cef_string_t, index: c_int, value: *mut cef_string_t) -> c_int {
+    unsafe {
+        if smm.is_null() { return 0; }
+        let v = string_multimap_to_treemap(smm);
+        slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
+            match (*v).find(&String::from_str(result)) {
+                Some(s) => {
+                    if (*s).len() <= index as uint {
+                        return 0;
+                    }
+                    let cs = (*s)[index as uint];
+                    cef_string_utf8_set((*cs).str as *const u8, (*cs).length, value, 1)
+                }
+                None => 0
+            }
+        })
+    }
+}
