@@ -52,3 +52,27 @@ pub extern "C" fn cef_string_multimap_find_count(smm: *mut cef_string_multimap_t
         })
     }
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_multimap_append(smm: *mut cef_string_multimap_t, key: *const cef_string_t, value: *const cef_string_t) -> c_int {
+    unsafe {
+        if smm.is_null() { return 0; }
+        let v = string_multimap_to_treemap(smm);
+        slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
+            let s = String::from_str(result);
+            let csv = cef_string_userfree_utf8_alloc();
+            cef_string_utf8_set((*value).str as *const u8, (*value).length, csv, 1);
+            match (*v).find_mut(&s) {
+                Some(vc) => {
+                    (*vc).push(csv);
+                    1
+                }
+                None => {
+                    let vc = vec!(csv);
+                    (*v).insert(s, vc);
+                    1
+                }
+            }
+        })
+    }
+}
