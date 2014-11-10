@@ -149,3 +149,13 @@ pub extern "C" fn cef_string_multimap_clear(smm: *mut cef_string_multimap_t) {
         (*v).clear();
     }
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_multimap_free(smm: *mut cef_string_multimap_t) {
+    unsafe {
+        if smm.is_null() { return; }
+        let v: Box<TreeMap<String, Vec<*mut cef_string_t>>> = mem::transmute(smm);
+        cef_string_multimap_clear(smm);
+        drop(v);
+    }
+}
