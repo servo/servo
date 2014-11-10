@@ -96,3 +96,21 @@ pub extern "C" fn cef_string_multimap_enumerate(smm: *mut cef_string_multimap_t,
         })
     }
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_multimap_key(smm: *mut cef_string_multimap_t, index: c_int, value: *mut cef_string_t) -> c_int {
+    unsafe {
+        if index < 0 || smm.is_null() { return 0; }
+        let v = string_multimap_to_treemap(smm);
+        let mut rem = index as uint;
+
+        for (key, val) in (*v).iter() {
+            if rem < (*val).len() {
+                return cef_string_utf8_set((*key).as_bytes().as_ptr(), (*key).len() as u64, value, 1);
+            } else {
+                rem = rem - (*val).len();
+            }
+        }
+    }
+    0
+}
