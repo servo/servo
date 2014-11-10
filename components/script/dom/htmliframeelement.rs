@@ -6,6 +6,7 @@ use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLIFrameElementDerived};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
@@ -16,6 +17,7 @@ use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use page::IterablePage;
@@ -178,6 +180,22 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
                     Temporary::new(frame.window.clone())
                 })
             })
+        })
+    }
+
+    fn GetContentDocument(self) -> Option<Temporary<Document>> {
+        self.GetContentWindow().root().and_then(|window| {
+            let self_url = match self.get_url() {
+                Some(self_url) => self_url,
+                None => return None,
+            };
+            let win_url = window_from_node(self).root().page().get_url();
+
+            if UrlHelper::SameOrigin(&self_url, &win_url) {
+                Some(window.Document())
+            } else {
+                None
+            }
         })
     }
 }

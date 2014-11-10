@@ -27,4 +27,18 @@ impl UrlHelper {
             Some(ref hash) => format!("#{}", hash)
         }
     }
+
+    /// https://html.spec.whatwg.org/multipage/browsers.html#same-origin
+    pub fn SameOrigin(urlA: &Url, urlB: &Url) -> bool {
+        if urlA.host() != urlB.host() {
+            return false
+        }
+        if urlA.scheme != urlB.scheme {
+            return false
+        }
+        if urlA.port() != urlB.port() {
+            return false
+        }
+        return true
+    }
 }
