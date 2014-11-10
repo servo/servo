@@ -133,3 +133,19 @@ pub extern "C" fn cef_string_multimap_value(smm: *mut cef_string_multimap_t, ind
     }
     0
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_multimap_clear(smm: *mut cef_string_multimap_t) {
+    unsafe {
+        if smm.is_null() { return; }
+        let v = string_multimap_to_treemap(smm);
+        if (*v).len() == 0 { return; }
+        for (_, val) in (*v).iter_mut() {
+            while (*val).len() != 0 {
+                let cs = (*val).pop();
+                cef_string_userfree_utf8_free(cs.unwrap());
+            }
+        }
+        (*v).clear();
+    }
+}
