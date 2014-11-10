@@ -4,7 +4,7 @@
 
 use pipeline::{Pipeline, CompositionPipeline};
 
-use compositor_task::{CompositorProxy, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
+use compositor_task::{CompositorProxy, FrameTreeUpdateMsg, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
 use devtools_traits::DevtoolsControlChan;
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
@@ -29,7 +29,7 @@ use servo_util::geometry::{PagePx, ViewportPx};
 use servo_util::opts;
 use servo_util::task::spawn_named;
 use servo_util::time::TimeProfilerChan;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::hashmap::{HashMap, HashSet};
 use std::io;
 use std::mem::replace;
@@ -83,6 +83,7 @@ struct FrameTree {
     pub pipeline: Rc<Pipeline>,
     pub parent: RefCell<Option<Rc<Pipeline>>>,
     pub children: RefCell<Vec<ChildFrameTree>>,
+    pub has_compositor_layer: Cell<bool>,
 }
 
 impl FrameTree {
@@ -94,6 +95,7 @@ impl FrameTree {
                 None => RefCell::new(None),
             },
             children: RefCell::new(vec!()),
+            has_compositor_layer: Cell::new(false),
         }
     }
 }
@@ -128,6 +130,16 @@ pub struct SendableChildFrameTree {
 enum ReplaceResult {
     ReplacedNode(Rc<FrameTree>),
     OriginalNode(Rc<FrameTree>),
+}
+
+/// A struct that triggers the addition of a new frame to a previously existing frame tree.
+pub struct FrameTreeDiff {
+    /// The parent pipeline of the new frame.
+    pub parent_pipeline: CompositionPipeline,
+    /// The pipeline of the new frame itself.
+    pub pipeline: CompositionPipeline,
+    /// The frame rect of the new frame used for positioning its compositor layer.
+    pub rect: Option<TypedRect<PagePx, f32>>,
 }
 
 impl FrameTree {
@@ -744,21 +756,22 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     }
 
+    fn pipeline_is_in_current_frame(&self, pipeline_id: PipelineId) -> bool {
+        self.current_frame().iter()
+            .any(|current_frame| current_frame.contains(pipeline_id))
+    }
+
     fn handle_renderer_ready_msg(&mut self, pipeline_id: PipelineId) {
         debug!("Renderer {:?} ready to send paint msg", pipeline_id);
         // This message could originate from a pipeline in the navigation context or
         // from a pending frame. The only time that we will grant paint permission is
         // when the message originates from a pending frame or the current frame.
 
-        for current_frame in self.current_frame().iter() {
-            // Messages originating in the current frame are not navigations;
-            // they may come from a page load in a subframe.
-            if current_frame.contains(pipeline_id) {
-                for frame in current_frame.iter() {
-                    frame.pipeline.grant_paint_permission();
-                }
-                return;
-            }
+        // Messages originating in the current frame are not navigations;
+        // they may come from a page load in a subframe.
+        if self.pipeline_is_in_current_frame(pipeline_id) {
+            self.create_compositor_layer_for_iframe_if_necessary(pipeline_id);
+            return;
         }
 
         // Find the pending frame change whose new pipeline id is pipeline_id.
@@ -916,10 +929,64 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             Ok(()) => {
                 let mut iter = frame_tree.iter();
                 for frame in iter {
+                    frame.has_compositor_layer.set(true);
                     frame.pipeline.grant_paint_permission();
                 }
             }
             Err(()) => {} // message has been discarded, probably shutting down
+        }
+    }
+
+    fn find_child_parent_pair_in_frame_tree(&self,
+                                            frame_tree: Rc<FrameTree>,
+                                            child_pipeline_id: PipelineId)
+                                            -> Option<(ChildFrameTree, Rc<FrameTree>)> {
+        for child in frame_tree.children.borrow().iter() {
+            let child_frame_tree = child.frame_tree.clone();
+            if child.frame_tree.pipeline.id == child_pipeline_id {
+                return Some((ChildFrameTree::new(child_frame_tree, child.rect),
+                            frame_tree.clone()));
+            }
+            let result = self.find_child_parent_pair_in_frame_tree(child_frame_tree,
+                                                                   child_pipeline_id);
+            if result.is_some() {
+                return result;
+            }
+        }
+        None
+    }
+
+    fn create_compositor_layer_for_iframe_if_necessary(&mut self, pipeline_id: PipelineId) {
+        let current_frame_tree = match self.current_frame() {
+            &Some(ref tree) => tree.clone(),
+            &None => return,
+        };
+
+        let (child, parent) =
+            match self.find_child_parent_pair_in_frame_tree(current_frame_tree, pipeline_id) {
+            Some(pair) => pair,
+            None => return,
+        };
+
+        if child.frame_tree.has_compositor_layer.get() {
+            child.frame_tree.pipeline.grant_paint_permission();
+            return;
+        }
+
+        let sendable_frame_tree_diff = FrameTreeDiff {
+            parent_pipeline: parent.pipeline.to_sendable(),
+            pipeline: child.frame_tree.pipeline.to_sendable(),
+            rect: child.rect,
+        };
+
+        let (chan, port) = channel();
+        self.compositor_proxy.send(FrameTreeUpdateMsg(sendable_frame_tree_diff, chan));
+        match port.recv_opt() {
+            Ok(()) => {
+                child.frame_tree.has_compositor_layer.set(true);
+                child.frame_tree.pipeline.grant_paint_permission();
+            }
+            Err(()) => {} // The message has been discarded, we are probably shutting down.
         }
     }
 }

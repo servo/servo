@@ -4,12 +4,13 @@
 
 use compositor_layer::{CompositorData, CompositorLayer, DoesntWantScrollEvents};
 use compositor_layer::{ScrollPositionChanged, WantsScrollEvents};
-use compositor_task::{Msg, CompositorTask, Exit, ChangeReadyState, SetIds, LayerProperties};
-use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
-use compositor_task::{SetLayerOrigin, Paint, ScrollFragmentPoint, LoadComplete};
-use compositor_task::{ShutdownComplete, ChangeRenderState, RenderMsgDiscarded, ScrollTimeout};
-use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver};
-use constellation::SendableFrameTree;
+use compositor_task::{ChangeReadyState, ChangeRenderState, CompositorEventListener};
+use compositor_task::{CompositorProxy, CompositorReceiver, CompositorTask};
+use compositor_task::{CreateOrUpdateDescendantLayer, CreateOrUpdateRootLayer, Exit};
+use compositor_task::{FrameTreeUpdateMsg, GetGraphicsMetadata, LayerProperties};
+use compositor_task::{LoadComplete, Msg, Paint, RenderMsgDiscarded, ScrollFragmentPoint};
+use compositor_task::{ScrollTimeout, SetIds, SetLayerOrigin, ShutdownComplete};
+use constellation::{SendableFrameTree, FrameTreeDiff};
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
 use windowing;
@@ -267,6 +268,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                     new_constellation_chan);
             }
 
+            (FrameTreeUpdateMsg(frame_tree_diff, response_channel), NotShuttingDown) => {
+                self.update_frame_tree(&frame_tree_diff);
+                response_channel.send(());
+            }
+
             (CreateOrUpdateRootLayer(layer_properties), NotShuttingDown) => {
                 self.create_or_update_root_layer(layer_properties);
             }
@@ -444,6 +450,34 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             root_layer.add_child(self.create_frame_tree_root_layers(&kid.frame_tree, kid.rect));
         }
         return root_layer;
+    }
+
+    fn update_frame_tree(&mut self, frame_tree_diff: &FrameTreeDiff) {
+        let layer_properties = LayerProperties {
+            pipeline_id: frame_tree_diff.pipeline.id,
+            epoch: Epoch(0),
+            id: LayerId::null(),
+            rect: Rect::zero(),
+            background_color: azure_hl::Color::new(0., 0., 0., 0.),
+            scroll_policy: Scrollable,
+        };
+        let root_layer = CompositorData::new_layer(frame_tree_diff.pipeline.clone(),
+                                                   layer_properties,
+                                                   WantsScrollEvents,
+                                                   opts::get().tile_size);
+
+        match frame_tree_diff.rect {
+            Some(ref frame_rect) => {
+                *root_layer.masks_to_bounds.borrow_mut() = true;
+
+                let frame_rect = frame_rect.to_untyped();
+                *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
+            }
+            None => {}
+        }
+
+        let parent_layer = self.find_pipeline_root_layer(frame_tree_diff.parent_pipeline.id);
+        parent_layer.add_child(root_layer);
     }
 
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Rc<Layer<CompositorData>> {
