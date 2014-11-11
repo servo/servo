@@ -20,7 +20,7 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
-use page::IterablePage;
+use page::{IterablePage, Page};
 
 use servo_msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan};
 use servo_msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -44,7 +44,8 @@ enum SandboxAllowance {
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
-    size: Cell<Option<IFrameSize>>,
+    subpage_id: Cell<Option<SubpageId>>,
+    containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
 }
 
@@ -54,31 +55,12 @@ impl HTMLIFrameElementDerived for EventTarget {
     }
 }
 
-#[jstraceable]
-#[privatize]
-#[deriving(Copy)]
-pub struct IFrameSize {
-    pipeline_id: PipelineId,
-    subpage_id: SubpageId,
-}
-
-impl IFrameSize {
-    #[inline]
-    pub fn pipeline_id<'a>(&'a self) -> &'a PipelineId {
-        &self.pipeline_id
-    }
-
-    #[inline]
-    pub fn subpage_id<'a>(&'a self) -> &'a SubpageId {
-        &self.subpage_id
-    }
-}
-
 pub trait HTMLIFrameElementHelpers {
     fn is_sandboxed(self) -> bool;
     fn get_url(self) -> Option<Url>;
     /// http://www.whatwg.org/html/#process-the-iframe-attributes
     fn process_the_iframe_attributes(self);
+    fn generate_new_subpage_id(self, page: &Page) -> (SubpageId, Option<SubpageId>);
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -100,6 +82,13 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
         })
     }
 
+    fn generate_new_subpage_id(self, page: &Page) -> (SubpageId, Option<SubpageId>) {
+        let old_subpage_id = self.subpage_id.get();
+        let subpage_id = page.get_next_subpage_id();
+        self.subpage_id.set(Some(subpage_id));
+        (subpage_id, old_subpage_id)
+    }
+
     fn process_the_iframe_attributes(self) {
         let url = match self.get_url() {
             Some(url) => url.clone(),
@@ -112,19 +101,19 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
             IFrameUnsandboxed
         };
 
-        // Subpage Id
         let window = window_from_node(self).root();
         let window = window.r();
         let page = window.page();
-        let subpage_id = page.get_next_subpage_id();
+        let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id(page);
 
-        self.size.set(Some(IFrameSize {
-            pipeline_id: page.id,
-            subpage_id: subpage_id,
-        }));
+        self.containing_page_pipeline_id.set(Some(page.id));
 
         let ConstellationChan(ref chan) = page.constellation_chan;
-        chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url, page.id, subpage_id, sandboxed));
+    chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
+                                                        page.id,
+                                                        new_subpage_id,
+                                                        old_subpage_id,
+                                                        sandboxed));
     }
 }
 
@@ -132,7 +121,8 @@ impl HTMLIFrameElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
-            size: Cell::new(None),
+            subpage_id: Cell::new(None),
+            containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
         }
     }
@@ -144,8 +134,13 @@ impl HTMLIFrameElement {
     }
 
     #[inline]
-    pub fn size(&self) -> Option<IFrameSize> {
-        self.size.get()
+    pub fn containing_page_pipeline_id(&self) -> Option<PipelineId> {
+        self.containing_page_pipeline_id.get()
+    }
+
+    #[inline]
+    pub fn subpage_id(&self) -> Option<SubpageId> {
+        self.subpage_id.get()
     }
 }
 
@@ -171,11 +166,11 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn GetContentWindow(self) -> Option<Temporary<Window>> {
-        self.size.get().and_then(|size| {
+        self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self).root();
             let children = window.page().children.borrow();
             let child = children.iter().find(|child| {
-                child.subpage_id.unwrap() == size.subpage_id
+                child.subpage_id.unwrap() == subpage_id
             });
             child.and_then(|page| {
                 page.frame.borrow().as_ref().map(|frame| {
