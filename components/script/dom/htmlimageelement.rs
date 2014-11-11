@@ -60,9 +60,6 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
 
                 // inform the image cache to load this, but don't store a
                 // handle.
-                //
-                // TODO (Issue #84): don't prefetch if we are within a
-                // <noscript> tag.
                 image_cache.send(image_cache_task::Prefetch(img_url));
             }
         }
