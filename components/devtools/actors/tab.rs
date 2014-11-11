@@ -7,7 +7,7 @@
 /// Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
 use actor::{Actor, ActorRegistry};
-use protocol::JsonPacketSender;
+use protocol::JsonPacketStream;
 
 use serialize::json;
 use std::io::TcpStream;

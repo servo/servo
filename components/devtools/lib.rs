@@ -34,7 +34,7 @@ use actors::console::ConsoleActor;
 use actors::inspector::InspectorActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
-use protocol::JsonPacketSender;
+use protocol::JsonPacketStream;
 
 use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg};
 use servo_msg::constellation_msg::PipelineId;
@@ -44,9 +44,7 @@ use std::cell::RefCell;
 use std::comm;
 use std::comm::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
-use std::io::{Acceptor, Listener, EndOfFile, TimedOut};
-use std::num;
-use serialize::json;
+use std::io::{Acceptor, Listener, TimedOut};
 use sync::{Arc, Mutex};
 
 mod actor;
@@ -91,41 +89,20 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
         println!("connection established to {:?}", stream.peer_name().unwrap());
-
         {
             let mut actors = actors.lock();
             let msg = actors.find::<RootActor>("root").encodable();
             stream.write_json_packet(&msg);
         }
 
-        // https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport
-        // In short, each JSON packet is [ascii length]:[JSON data of given length]
-        // TODO: this really belongs in the protocol module.
         'outer: loop {
-            let mut buffer = vec!();
-            loop {
-                let colon = ':' as u8;
-                match stream.read_byte() {
-                    Ok(c) if c != colon => buffer.push(c as u8),
-                    Ok(_) => {
-                        let packet_len_str = String::from_utf8(buffer).unwrap();
-                        let packet_len = num::from_str_radix(packet_len_str.as_slice(), 10).unwrap();
-                        let packet_buf = stream.read_exact(packet_len).unwrap();
-                        let packet = String::from_utf8(packet_buf).unwrap();
-                        println!("{:s}", packet);
-                        let json_packet = json::from_str(packet.as_slice()).unwrap();
-                        actors.lock().handle_message(json_packet.as_object().unwrap(),
-                                                     &mut stream);
-                        break;
-                    }
-                    Err(ref e) if e.kind == EndOfFile => {
-                        println!("\nEOF");
-                        break 'outer;
-                    },
-                    _ => {
-                        println!("\nconnection error");
-                        break 'outer;
-                    }
+            match stream.read_json_packet() {
+                Ok(json_packet) =>
+                    actors.lock().handle_message(json_packet.as_object().unwrap(),
+                                                                &mut stream),
+                Err(e) => {
+                    println!("error: {}", e.desc);
+                    break 'outer
                 }
             }
         }

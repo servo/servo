@@ -8,7 +8,7 @@
 
 use actor::{Actor, ActorRegistry};
 use actors::tab::{TabActor, TabActorMsg};
-use protocol::JsonPacketSender;
+use protocol::JsonPacketStream;
 
 use serialize::json;
 use std::io::TcpStream;
