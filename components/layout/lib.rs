@@ -35,7 +35,6 @@ extern crate string_cache;
 
 extern crate collections;
 extern crate encoding;
-extern crate green;
 extern crate libc;
 extern crate sync;
 extern crate url;
