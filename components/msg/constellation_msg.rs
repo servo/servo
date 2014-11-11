@@ -200,7 +200,7 @@ pub enum Msg {
     LoadCompleteMsg,
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
     LoadUrlMsg(PipelineId, LoadData),
-    ScriptLoadedURLInIFrameMsg(Url, PipelineId, SubpageId, IFrameSandboxState),
+    ScriptLoadedURLInIFrameMsg(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
     NavigateMsg(NavigationDirection),
     PainterReadyMsg(PipelineId),
     ResizedWindowMsg(WindowSizeData),
