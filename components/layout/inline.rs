@@ -6,7 +6,7 @@
 
 use css::node_style::StyledNode;
 use context::LayoutContext;
-use display_list_builder::FragmentDisplayListBuilding;
+use display_list_builder::{ContentLevel, DisplayListResult, FragmentDisplayListBuilding};
 use floats::{FloatLeft, Floats, PlacementInfo};
 use flow::{BaseFlow, FlowClass, Flow, InlineFlowClass, MutableFlowUtils};
 use flow;
@@ -20,7 +20,7 @@ use text;
 
 use collections::{RingBuf};
 use geom::{Rect, Size2D};
-use gfx::display_list::ContentLevel;
+use gfx::display_list::DisplayList;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
@@ -1136,34 +1136,34 @@ impl Flow for InlineFlow {
 
     fn compute_absolute_position(&mut self) {
         for fragment in self.fragments.fragments.iter_mut() {
-            let absolute_position = match fragment.specific {
+            let stacking_relative_position = match fragment.specific {
                 InlineBlockFragment(ref mut info) => {
                     let block_flow = info.flow_ref.as_block();
                     // FIXME(#2795): Get the real container size
                     let container_size = Size2D::zero();
 
-                    block_flow.base.abs_position =
-                        self.base.abs_position +
+                    block_flow.base.stacking_relative_position =
+                        self.base.stacking_relative_position +
                         fragment.border_box.start.to_physical(self.base.writing_mode,
                                                               container_size);
-                    block_flow.base.abs_position
+                    block_flow.base.stacking_relative_position
                 }
                 InlineAbsoluteHypotheticalFragment(ref mut info) => {
                     let block_flow = info.flow_ref.as_block();
                     // FIXME(#2795): Get the real container size
                     let container_size = Size2D::zero();
-                    block_flow.base.abs_position =
-                        self.base.abs_position +
+                    block_flow.base.stacking_relative_position =
+                        self.base.stacking_relative_position +
                         fragment.border_box.start.to_physical(self.base.writing_mode,
                                                               container_size);
-                    block_flow.base.abs_position
+                    block_flow.base.stacking_relative_position
 
                 }
                 _ => continue,
             };
 
             let clip_rect = fragment.clip_rect_for_children(self.base.clip_rect,
-                                                            absolute_position);
+                                                            stacking_relative_position);
 
             match fragment.specific {
                 InlineBlockFragment(ref mut info) => {
@@ -1183,11 +1183,11 @@ impl Flow for InlineFlow {
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
         let size = self.base.position.size.to_physical(self.base.writing_mode);
-        if !Rect(self.base.abs_position, size).intersects(&layout_context.shared.dirty) {
-            debug!("inline block (abs pos {}, size {}) didn't intersect \
-                    dirty rect two",
-                     self.base.abs_position,
-                     size);
+        if !Rect(self.base.stacking_relative_position, size).intersects(&layout_context.shared
+                                                                                       .dirty) {
+            debug!("inline block (stacking relative pos {}, size {}) didn't intersect dirty rect",
+                   self.base.stacking_relative_position,
+                   size);
             return
         }
 
@@ -1195,9 +1195,10 @@ impl Flow for InlineFlow {
         // not recurse on a line if nothing in it can intersect the dirty region.
         debug!("Flow: building display list for {:u} inline fragments", self.fragments.len());
 
+        let mut display_list = box DisplayList::new();
         for fragment in self.fragments.fragments.iter_mut() {
-            let fragment_origin = self.base.child_fragment_absolute_position(fragment);
-            fragment.build_display_list(&mut self.base.display_list,
+            let fragment_origin = self.base.stacking_relative_position_of_child_fragment(fragment);
+            fragment.build_display_list(&mut *display_list,
                                         layout_context,
                                         fragment_origin,
                                         ContentLevel,
@@ -1205,13 +1206,14 @@ impl Flow for InlineFlow {
             match fragment.specific {
                 InlineBlockFragment(ref mut block_flow) => {
                     let block_flow = block_flow.flow_ref.deref_mut();
-                    self.base
-                        .display_list
-                        .append_from(&mut flow::mut_base(block_flow).display_list)
+                    flow::mut_base(block_flow).display_list_building_result
+                                              .add_to(&mut *display_list)
                 }
                 _ => {}
             }
         }
+
+        self.base.display_list_building_result = DisplayListResult(display_list);
 
         if opts::get().validate_display_list_geometry {
             self.base.validate_display_list_geometry();
@@ -1223,8 +1225,9 @@ impl Flow for InlineFlow {
     fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
         for fragment in self.fragments.fragments.iter() {
             if iterator.should_process(fragment) {
-                let fragment_origin = self.base.child_fragment_absolute_position(fragment);
-                iterator.process(fragment, fragment.abs_bounds_from_origin(&fragment_origin));
+                let fragment_origin =
+                    self.base.stacking_relative_position_of_child_fragment(fragment);
+                iterator.process(fragment, fragment.stacking_relative_bounds(&fragment_origin));
             }
         }
     }

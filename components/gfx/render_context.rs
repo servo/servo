@@ -467,7 +467,7 @@ impl<'a> RenderContext<'a>  {
     }
 }
 
-trait ToAzurePoint {
+pub trait ToAzurePoint {
     fn to_azure_point(&self) -> Point2D<AzFloat>;
 }
 
@@ -477,7 +477,7 @@ impl ToAzurePoint for Point2D<Au> {
     }
 }
 
-trait ToAzureRect {
+pub trait ToAzureRect {
     fn to_azure_rect(&self) -> Rect<AzFloat>;
 }
 
