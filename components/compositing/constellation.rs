@@ -4,7 +4,7 @@
 
 use pipeline::{Pipeline, CompositionPipeline};
 
-use compositor_task::{CompositorProxy, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
+use compositor_task::{CompositorProxy, FrameTreeUpdateMsg, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
 use devtools_traits::DevtoolsControlChan;
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
@@ -18,9 +18,9 @@ use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
-use servo_msg::constellation_msg::{LoadCompleteMsg, LoadIframeUrlMsg, LoadUrlMsg, Msg};
-use servo_msg::constellation_msg::{LoadData, NavigateMsg, NavigationType, PipelineId};
-use servo_msg::constellation_msg::{RendererReadyMsg, ResizedWindowMsg, SubpageId, WindowSizeData};
+use servo_msg::constellation_msg::{LoadCompleteMsg, LoadUrlMsg, LoadData, Msg, NavigateMsg};
+use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
+use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SubpageId, WindowSizeData};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
@@ -29,7 +29,7 @@ use servo_util::geometry::{PagePx, ViewportPx};
 use servo_util::opts;
 use servo_util::task::spawn_named;
 use servo_util::time::TimeProfilerChan;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::hashmap::{HashMap, HashSet};
 use std::io;
 use std::mem::replace;
@@ -83,6 +83,21 @@ struct FrameTree {
     pub pipeline: Rc<Pipeline>,
     pub parent: RefCell<Option<Rc<Pipeline>>>,
     pub children: RefCell<Vec<ChildFrameTree>>,
+    pub has_compositor_layer: Cell<bool>,
+}
+
+impl FrameTree {
+    fn new(pipeline: Rc<Pipeline>, parent_pipeline: Option<Rc<Pipeline>>) -> FrameTree {
+        FrameTree {
+            pipeline: pipeline.clone(),
+            parent: match parent_pipeline {
+                Some(ref pipeline) => RefCell::new(Some(pipeline.clone())),
+                None => RefCell::new(None),
+            },
+            children: RefCell::new(vec!()),
+            has_compositor_layer: Cell::new(false),
+        }
+    }
 }
 
 #[deriving(Clone)]
@@ -91,6 +106,15 @@ struct ChildFrameTree {
     /// Clipping rect representing the size and position, in page coordinates, of the visible
     /// region of the child frame relative to the parent.
     pub rect: Option<TypedRect<PagePx, f32>>,
+}
+
+impl ChildFrameTree {
+    fn new(frame_tree: Rc<FrameTree>, rect: Option<TypedRect<PagePx, f32>>) -> ChildFrameTree {
+        ChildFrameTree {
+            frame_tree: frame_tree,
+            rect: rect,
+        }
+    }
 }
 
 pub struct SendableFrameTree {
@@ -106,6 +130,16 @@ pub struct SendableChildFrameTree {
 enum ReplaceResult {
     ReplacedNode(Rc<FrameTree>),
     OriginalNode(Rc<FrameTree>),
+}
+
+/// A struct that triggers the addition of a new frame to a previously existing frame tree.
+pub struct FrameTreeDiff {
+    /// The parent pipeline of the new frame.
+    pub parent_pipeline: CompositionPipeline,
+    /// The pipeline of the new frame itself.
+    pub pipeline: CompositionPipeline,
+    /// The frame rect of the new frame used for positioning its compositor layer.
+    pub rect: Option<TypedRect<PagePx, f32>>,
 }
 
 impl FrameTree {
@@ -382,9 +416,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got frame rect message");
                 self.handle_frame_rect_msg(pipeline_id, subpage_id, Rect::from_untyped(&rect));
             }
-            LoadIframeUrlMsg(url, source_pipeline_id, subpage_id, sandbox) => {
+            ScriptLoadedURLInIFrameMsg(url, source_pipeline_id, subpage_id, sandbox) => {
                 debug!("constellation got iframe URL load message");
-                self.handle_load_iframe_url_msg(url, source_pipeline_id, subpage_id, sandbox);
+                self.handle_script_loaded_url_in_iframe_msg(url,
+                                                            source_pipeline_id,
+                                                            subpage_id,
+                                                            sandbox);
             }
             // Load a new page, usually -- but not always -- from a mouse click or typed url
             // If there is already a pending page (self.pending_frames), it will not be overridden;
@@ -478,11 +515,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         self.pending_frames.push(FrameChange{
             before: Some(pipeline_id),
-            after: Rc::new(FrameTree {
-                pipeline: pipeline.clone(),
-                parent: RefCell::new(None),
-                children: RefCell::new(vec!()),
-            }),
+            after: Rc::new(FrameTree::new(pipeline.clone(), None)),
             navigation_type: constellation_msg::Load,
         });
 
@@ -495,11 +528,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         self.pending_frames.push(FrameChange {
             before: None,
-            after: Rc::new(FrameTree {
-                pipeline: pipeline.clone(),
-                parent: RefCell::new(None),
-                children: RefCell::new(vec!()),
-            }),
+            after: Rc::new(FrameTree::new(pipeline.clone(), None)),
             navigation_type: constellation_msg::Load,
         });
         self.pipelines.insert(pipeline.id, pipeline);
@@ -593,21 +622,20 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
 
-    fn handle_load_iframe_url_msg(&mut self,
-                                  url: Url,
-                                  source_pipeline_id: PipelineId,
-                                  subpage_id: SubpageId,
-                                  sandbox: IFrameSandboxState) {
-        // A message from the script associated with pipeline_id that it has
-        // parsed an iframe during html parsing. This iframe will result in a
-        // new pipeline being spawned and a frame tree being added to pipeline_id's
-        // frame tree's children. This message is never the result of a link clicked
-        // or a new url entered.
-        //     Start by finding the frame trees matching the pipeline id,
+    // The script task associated with pipeline_id has loaded a URL in an iframe via script. This
+    // will result in a new pipeline being spawned and a frame tree being added to
+    // source_pipeline_id's frame tree's children. This message is never the result of a page
+    // navigation.
+    fn handle_script_loaded_url_in_iframe_msg(&mut self,
+                                              url: Url,
+                                              source_pipeline_id: PipelineId,
+                                              subpage_id: SubpageId,
+                                              sandbox: IFrameSandboxState) {
+        // Start by finding the frame trees matching the pipeline id,
         // and add the new pipeline to their sub frames.
         let frame_trees = self.find_all(source_pipeline_id);
         if frame_trees.is_empty() {
-            fail!("Constellation: source pipeline id of LoadIframeUrlMsg is not in
+            fail!("Constellation: source pipeline id of ScriptLoadedURLInIFrameMsg is not in
                    navigation context, nor is it in a pending frame. This should be
                    impossible.");
         }
@@ -617,7 +645,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // Compare the pipeline's url to the new url. If the origin is the same,
         // then reuse the script task in creating the new pipeline
         let source_pipeline = self.pipelines.find(&source_pipeline_id).expect("Constellation:
-            source Id of LoadIframeUrlMsg does have an associated pipeline in
+            source Id of ScriptLoadedURLInIFrameMsg does have an associated pipeline in
             constellation. This should be impossible.").clone();
 
         let source_url = source_pipeline.load_data.url.clone();
@@ -626,7 +654,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                            source_url.port() == url.port()) && sandbox == IFrameUnsandboxed;
         // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
         // Reuse the script task if the URL is same-origin
-        let new_pipeline = if same_script {
+        let script_pipeline = if same_script {
             debug!("Constellation: loading same-origin iframe at {:?}", url);
             Some(source_pipeline.clone())
         } else {
@@ -637,20 +665,15 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let pipeline = self.new_pipeline(
             next_pipeline_id,
             Some(subpage_id),
-            new_pipeline,
+            script_pipeline,
             LoadData::new(url)
         );
 
         let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
         for frame_tree in frame_trees.iter() {
-            frame_tree.children.borrow_mut().push(ChildFrameTree {
-                frame_tree: Rc::new(FrameTree {
-                    pipeline: pipeline.clone(),
-                    parent: RefCell::new(Some(source_pipeline.clone())),
-                    children: RefCell::new(vec!()),
-                }),
-                rect: rect,
-            });
+            frame_tree.children.borrow_mut().push(ChildFrameTree::new(
+                Rc::new(FrameTree::new(pipeline.clone(), Some(source_pipeline.clone()))),
+                rect));
         }
         self.pipelines.insert(pipeline.id, pipeline);
     }
@@ -684,13 +707,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, None, load_data);
 
-        self.pending_frames.push(FrameChange{
+        self.pending_frames.push(FrameChange {
             before: Some(source_id),
-            after: Rc::new(FrameTree {
-                pipeline: pipeline.clone(),
-                parent: parent,
-                children: RefCell::new(vec!()),
-            }),
+            after: Rc::new(FrameTree::new(pipeline.clone(), parent.borrow().clone())),
             navigation_type: constellation_msg::Load,
         });
         self.pipelines.insert(pipeline.id, pipeline);
@@ -737,21 +756,22 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     }
 
+    fn pipeline_is_in_current_frame(&self, pipeline_id: PipelineId) -> bool {
+        self.current_frame().iter()
+            .any(|current_frame| current_frame.contains(pipeline_id))
+    }
+
     fn handle_renderer_ready_msg(&mut self, pipeline_id: PipelineId) {
         debug!("Renderer {:?} ready to send paint msg", pipeline_id);
         // This message could originate from a pipeline in the navigation context or
         // from a pending frame. The only time that we will grant paint permission is
         // when the message originates from a pending frame or the current frame.
 
-        for current_frame in self.current_frame().iter() {
-            // Messages originating in the current frame are not navigations;
-            // they may come from a page load in a subframe.
-            if current_frame.contains(pipeline_id) {
-                for frame in current_frame.iter() {
-                    frame.pipeline.grant_paint_permission();
-                }
-                return;
-            }
+        // Messages originating in the current frame are not navigations;
+        // they may come from a page load in a subframe.
+        if self.pipeline_is_in_current_frame(pipeline_id) {
+            self.create_compositor_layer_for_iframe_if_necessary(pipeline_id);
+            return;
         }
 
         // Find the pending frame change whose new pipeline id is pipeline_id.
@@ -814,10 +834,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                         let parent = next_frame_tree.find(parent.id).expect(
                             "Constellation: pending frame has a parent frame that is not
                             active. This is a bug.");
-                        parent.children.borrow_mut().push(ChildFrameTree {
-                            frame_tree: to_add.clone(),
-                            rect: rect,
-                        });
+                        parent.children.borrow_mut().push(ChildFrameTree::new(to_add.clone(),
+                                                          rect));
                     }
                 }
             }
@@ -911,10 +929,64 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             Ok(()) => {
                 let mut iter = frame_tree.iter();
                 for frame in iter {
+                    frame.has_compositor_layer.set(true);
                     frame.pipeline.grant_paint_permission();
                 }
             }
             Err(()) => {} // message has been discarded, probably shutting down
+        }
+    }
+
+    fn find_child_parent_pair_in_frame_tree(&self,
+                                            frame_tree: Rc<FrameTree>,
+                                            child_pipeline_id: PipelineId)
+                                            -> Option<(ChildFrameTree, Rc<FrameTree>)> {
+        for child in frame_tree.children.borrow().iter() {
+            let child_frame_tree = child.frame_tree.clone();
+            if child.frame_tree.pipeline.id == child_pipeline_id {
+                return Some((ChildFrameTree::new(child_frame_tree, child.rect),
+                            frame_tree.clone()));
+            }
+            let result = self.find_child_parent_pair_in_frame_tree(child_frame_tree,
+                                                                   child_pipeline_id);
+            if result.is_some() {
+                return result;
+            }
+        }
+        None
+    }
+
+    fn create_compositor_layer_for_iframe_if_necessary(&mut self, pipeline_id: PipelineId) {
+        let current_frame_tree = match self.current_frame() {
+            &Some(ref tree) => tree.clone(),
+            &None => return,
+        };
+
+        let (child, parent) =
+            match self.find_child_parent_pair_in_frame_tree(current_frame_tree, pipeline_id) {
+            Some(pair) => pair,
+            None => return,
+        };
+
+        if child.frame_tree.has_compositor_layer.get() {
+            child.frame_tree.pipeline.grant_paint_permission();
+            return;
+        }
+
+        let sendable_frame_tree_diff = FrameTreeDiff {
+            parent_pipeline: parent.pipeline.to_sendable(),
+            pipeline: child.frame_tree.pipeline.to_sendable(),
+            rect: child.rect,
+        };
+
+        let (chan, port) = channel();
+        self.compositor_proxy.send(FrameTreeUpdateMsg(sendable_frame_tree_diff, chan));
+        match port.recv_opt() {
+            Ok(()) => {
+                child.frame_tree.has_compositor_layer.set(true);
+                child.frame_tree.pipeline.grant_paint_permission();
+            }
+            Err(()) => {} // The message has been discarded, we are probably shutting down.
         }
     }
 }
