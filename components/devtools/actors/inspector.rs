@@ -8,7 +8,7 @@ use devtools_traits::{GetRootNode, GetDocumentElement, GetChildren, DevtoolScrip
 use devtools_traits::{GetLayout, NodeInfo};
 
 use actor::{Actor, ActorRegistry};
-use protocol::JsonPacketSender;
+use protocol::JsonPacketStream;
 
 use collections::TreeMap;
 use servo_msg::constellation_msg::PipelineId;
