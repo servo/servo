@@ -968,15 +968,15 @@ impl<T: Add<T, T> + Sub<T, T>> Sub<LogicalMargin<T>, LogicalRect<T>> for Logical
 fn modes() -> [WritingMode, ..10] {
     [
         WritingMode::empty(),
-        FlagVertical,
-        FlagVertical | FlagVerticalLR,
-        FlagVertical | FlagVerticalLR | FlagSidewaysLeft,
-        FlagVertical | FlagSidewaysLeft,
-        FlagRTL,
-        FlagVertical | FlagRTL,
-        FlagVertical | FlagVerticalLR | FlagRTL,
-        FlagVertical | FlagVerticalLR | FlagSidewaysLeft | FlagRTL,
-        FlagVertical | FlagSidewaysLeft | FlagRTL,
+        FLAG_VERTICAL,
+        FLAG_VERTICAL | FLAG_VERTICAL_LR,
+        FLAG_VERTICAL | FLAG_VERTICAL_LR | FLAG_SIDEWAYS_LEFT,
+        FLAG_VERTICAL | FLAG_SIDEWAYS_LEFT,
+        FLAG_RTL,
+        FLAG_VERTICAL | FLAG_RTL,
+        FLAG_VERTICAL | FLAG_VERTICAL_LR | FLAG_RTL,
+        FLAG_VERTICAL | FLAG_VERTICAL_LR | FLAG_SIDEWAYS_LEFT | FLAG_RTL,
+        FLAG_VERTICAL | FLAG_SIDEWAYS_LEFT | FLAG_RTL,
     ]
 }
 
