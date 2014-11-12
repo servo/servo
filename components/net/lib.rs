@@ -5,6 +5,7 @@
 #![deny(unsafe_code)]
 #![feature(box_syntax)]
 #![feature(iterator_step_by)]
+#![feature(default_type_params, globs, phase, slicing_syntax)]
 
 extern crate base64;
 extern crate brotli;
@@ -50,6 +51,7 @@ mod data_loader;
 pub mod filemanager_thread;
 mod hosts;
 pub mod hsts;
+pub mod http_cache;
 pub mod http_loader;
 pub mod image_cache;
 pub mod mime_classifier;
