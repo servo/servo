@@ -7,10 +7,12 @@
 use about_loader;
 use data_loader;
 use file_loader;
+use http_cache::MemoryCache;
 use http_loader;
 use sniffer_task;
 
 use std::comm::{channel, Receiver, Sender};
+use std::sync::{Arc, Mutex};
 use http::headers::content_type::MediaType;
 use http::headers::response::HeaderCollection as ResponseHeaderCollection;
 use http::headers::request::HeaderCollection as RequestHeaderCollection;
@@ -58,6 +60,7 @@ pub struct ResourceCORSData {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
+#[deriving(Clone)]
 pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: Url,
@@ -176,6 +179,7 @@ pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
 struct ResourceManager {
     from_client: Receiver<ControlMsg>,
     user_agent: Option<String>,
+    memory_cache: Arc<Mutex<MemoryCache>>,
 }
 
 impl ResourceManager {
@@ -183,6 +187,7 @@ impl ResourceManager {
         ResourceManager {
             from_client: from_client,
             user_agent: user_agent,
+            memory_cache: Arc::new(Mutex::new(MemoryCache::new())),
         }
     }
 }
@@ -212,11 +217,18 @@ impl ResourceManager {
 
         let sniffer_task = sniffer_task::new_sniffer_task(start_chan.clone());
 
+        fn from_factory<'a>(factory: fn(LoadData, Sender<LoadResponse>))
+                            -> proc(LoadData, Sender<LoadResponse>): 'a {
+            proc(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+                factory(load_data, start_chan)
+            }
+        }
+
         let loader = match load_data.url.scheme.as_slice() {
-            "file" => file_loader::factory,
-            "http" | "https" => http_loader::factory,
-            "data" => data_loader::factory,
-            "about" => about_loader::factory,
+            "file" => from_factory(file_loader::factory),
+            "http" | "https" => http_loader::factory(self.memory_cache.clone()),
+            "data" => from_factory(data_loader::factory),
+            "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {:s}", load_data.url.scheme);
                 start_sending(start_chan, Metadata::default(load_data.url))

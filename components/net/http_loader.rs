@@ -2,28 +2,62 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use http_cache::{MemoryCache, Uncacheable, CachedContentPending, NewCacheEntry};
+use http_cache::{CachedPendingResource, UncachedPendingResource, ResourceResponseTarget};
+use http_cache::{UncachedInProgressResource, CachedInProgressResource, ResourceProgressTarget};
 use resource_task::{Metadata, Payload, Done, LoadResponse, LoadData, start_sending_opt};
 
 use log;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
 use http::client::{RequestWriter, NetworkStream};
 use http::headers::HeaderEnum;
 use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::Url;
 
-pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
-    spawn_named("http_loader", proc() load(load_data, start_chan))
+pub fn factory<'a>(cache: Arc<Mutex<MemoryCache>>)
+                   -> proc(load_data: LoadData, start_chan: Sender<LoadResponse>): 'a {
+    proc(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+        spawn_named("http_loader", proc() load(load_data, start_chan, cache.clone()))
+    }
 }
 
-fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
+fn start_sending_http_opt(start_chan: ResourceResponseTarget, metadata: Metadata)
+                          -> Result<ResourceProgressTarget, ()> {
+    match start_chan {
+        CachedPendingResource(key, cache) => {
+            {
+                let mut cache = cache.lock();
+                cache.process_metadata(&key, metadata);
+            }
+            Ok(CachedInProgressResource(key, cache))
+        }
+        UncachedPendingResource(start_chan) =>
+            start_sending_opt(start_chan, metadata).map(|chan| {
+                UncachedInProgressResource(chan)
+            })
+    }
+}
+
+pub fn send_error_direct(url: Url, err: String, start_chan: Sender<LoadResponse>) {
     match start_sending_opt(start_chan, Metadata::default(url)) {
         Ok(p) => p.send(Done(Err(err))),
         _ => {}
     };
 }
 
-fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+fn send_error(url: Url, err: String, start_chan: &ResourceResponseTarget) {
+    match *start_chan {
+        CachedPendingResource(ref key, ref cache) => {
+            let mut cache = cache.lock();
+            cache.doom_request(key, err);
+        }
+        UncachedPendingResource(ref start_chan) => send_error_direct(url, err, start_chan.clone()),
+    }
+}
+
+fn load(load_data: LoadData, start_chan: Sender<LoadResponse>, cache: Arc<Mutex<MemoryCache>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -32,17 +66,35 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
 
+    info!("checking cache for {}", url);
+    let cache_result = {
+        let mut cache = cache.lock();
+        cache.process_pending_request(&load_data, start_chan.clone())
+    };
+
+    let start_chan = match cache_result {
+        Uncacheable(reason) => {
+            info!("request for {} can't be cached: {}", url, reason);
+            UncachedPendingResource(start_chan)
+        }
+        CachedContentPending => return,
+        NewCacheEntry(key) => {
+            info!("new cache entry for {}", url);
+            CachedPendingResource(key, cache)
+        }
+    };
+
     // Loop to handle redirects.
     loop {
         iters = iters + 1;
 
         if iters > max_redirects {
-            send_error(url, "too many redirects".to_string(), start_chan);
+            send_error(url, "too many redirects".to_string(), &start_chan);
             return;
         }
 
         if redirected_to.contains(&url) {
-            send_error(url, "redirect loop".to_string(), start_chan);
+            send_error(url, "redirect loop".to_string(), &start_chan);
             return;
         }
 
@@ -52,7 +104,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
             "http" | "https" => {}
             _ => {
                 let s = format!("{:s} request, but we don't support that scheme", url.scheme);
-                send_error(url, s, start_chan);
+                send_error(url, s, &start_chan);
                 return;
             }
         }
@@ -63,7 +115,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let mut writer = match request {
             Ok(w) => box w,
             Err(e) => {
-                send_error(url, e.desc.to_string(), start_chan);
+                send_error(url, e.desc.to_string(), &start_chan);
                 return;
             }
         };
@@ -81,7 +133,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 writer.headers.content_length = Some(data.len());
                 match writer.write(data.as_slice()) {
                     Err(e) => {
-                        send_error(url, e.desc.to_string(), start_chan);
+                        send_error(url, e.desc.to_string(), &start_chan);
                         return;
                     }
                     _ => {}
@@ -92,7 +144,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let mut response = match writer.read_response() {
             Ok(r) => r,
             Err((_, e)) => {
-                send_error(url, e.desc.to_string(), start_chan);
+                send_error(url, e.desc.to_string(), &start_chan);
                 return;
             }
         };
@@ -113,7 +165,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                         Some(ref c) => {
                             if c.preflight {
                                 // The preflight lied
-                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), start_chan);
+                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), &start_chan);
                                 return;
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
@@ -135,7 +187,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         metadata.headers = Some(response.headers.clone());
         metadata.status = response.status.clone();
 
-        let progress_chan = match start_sending_opt(start_chan, metadata) {
+        let progress_chan = match start_sending_http_opt(start_chan, metadata) {
             Ok(p) => p,
             _ => return
         };
@@ -146,15 +198,31 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
             match response.read(buf.as_mut_slice()) {
                 Ok(len) => {
                     unsafe { buf.set_len(len); }
-                    if progress_chan.send_opt(Payload(buf)).is_err() {
-                        // The send errors when the receiver is out of scope,
-                        // which will happen if the fetch has timed out (or has been aborted)
-                        // so we don't need to continue with the loading of the file here.
-                        return;
+                    match progress_chan {
+                        CachedInProgressResource(ref key, ref cache) => {
+                            let mut cache = cache.lock();
+                            cache.process_payload(key, buf);
+                        }
+                        UncachedInProgressResource(ref progress_chan) => {
+                            if progress_chan.send_opt(Payload(buf)).is_err() {
+                                // The send errors when the receiver is out of scope,
+                                // which will happen if the fetch has timed out (or has been aborted)
+                                // so we don't need to continue with the loading of the file here.
+                                return;
+                            }
+                        }
                     }
                 }
                 Err(_) => {
-                    let _ = progress_chan.send_opt(Done(Ok(())));
+                    match progress_chan {
+                        CachedInProgressResource(ref key, ref cache) => {
+                            let mut cache = cache.lock();
+                            cache.process_done(key);
+                        }
+                        UncachedInProgressResource(ref progress_chan) => {
+                            let _ = progress_chan.send_opt(Done(Ok(())));
+                        }
+                    }
                     break;
                 }
             }
