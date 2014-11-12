@@ -48,6 +48,7 @@ mod data_loader;
 pub mod filemanager_thread;
 mod hosts;
 pub mod hsts;
+pub mod http_cache;
 pub mod http_loader;
 pub mod image_cache;
 pub mod mime_classifier;

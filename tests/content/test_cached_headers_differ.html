@@ -1,0 +1,14 @@
+<html>
+<head>
+<script src="harness.js"></script>
+<script src="netharness.js"></script>
+</head>
+<body>
+<script>
+  reset_stats();
+  fetch('resources/helper.html');
+  fetch('resources/helper.html', [['X-User', 'foo']]);
+  assert_requests_made('resources/helper.html', 2);
+</script>
+</body>
+</html>
