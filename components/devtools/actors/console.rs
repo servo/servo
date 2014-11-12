@@ -7,7 +7,7 @@
 /// inspection, JS evaluation, autocompletion) in Servo.
 
 use actor::{Actor, ActorRegistry};
-use protocol::JsonPacketSender;
+use protocol::JsonPacketStream;
 
 use devtools_traits::{EvaluateJS, NullValue, VoidValue, NumberValue, StringValue, BooleanValue};
 use devtools_traits::{ActorValue, DevtoolScriptControlMsg};
