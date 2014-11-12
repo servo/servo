@@ -5,7 +5,7 @@
 //! Communication with the compositor task.
 
 pub use windowing;
-pub use constellation::SendableFrameTree;
+pub use constellation::{SendableFrameTree, FrameTreeDiff};
 
 use compositor;
 use headless;
@@ -189,6 +189,8 @@ pub enum Msg {
     RenderMsgDiscarded,
     /// Sets the channel to the current layout and render tasks, along with their id
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
+    /// Sends an updated version of the frame tree.
+    FrameTreeUpdateMsg(FrameTreeDiff, Sender<()>),
     /// The load of a page for a given URL has completed.
     LoadComplete(PipelineId, Url),
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
@@ -211,6 +213,7 @@ impl Show for Msg {
             ChangeRenderState(..) => write!(f, "ChangeRenderState"),
             RenderMsgDiscarded(..) => write!(f, "RenderMsgDiscarded"),
             SetIds(..) => write!(f, "SetIds"),
+            FrameTreeUpdateMsg(..) => write!(f, "FrameTreeUpdateMsg"),
             LoadComplete(..) => write!(f, "LoadComplete"),
             ScrollTimeout(..) => write!(f, "ScrollTimeout"),
         }
