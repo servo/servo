@@ -89,6 +89,10 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
                    view: Option<JSRef<Window>>,
                    detail: i32) {
         let event: JSRef<Event> = EventCast::from_ref(self);
+        if event.dispatching() {
+            return;
+        }
+
         event.InitEvent(type_, can_bubble, cancelable);
         self.view.assign(view);
         self.detail.set(detail);

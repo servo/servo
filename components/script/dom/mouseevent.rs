@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{UIEventCast, MouseEventDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, MouseEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
@@ -160,6 +160,11 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
                       metaKeyArg: bool,
                       buttonArg: i16,
                       relatedTargetArg: Option<JSRef<EventTarget>>) {
+        let event: JSRef<Event> = EventCast::from_ref(self);
+        if event.dispatching() {
+            return;
+        }
+
         let uievent: JSRef<UIEvent> = UIEventCast::from_ref(self);
         uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x.set(screenXArg);

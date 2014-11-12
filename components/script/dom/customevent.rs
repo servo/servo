@@ -65,8 +65,12 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
                        can_bubble: bool,
                        cancelable: bool,
                        detail: JSVal) {
-        self.detail.set(detail);
         let event: JSRef<Event> = EventCast::from_ref(self);
+        if event.dispatching() {
+            return;
+        }
+
+        self.detail.set(detail);
         event.InitEvent(type_, can_bubble, cancelable);
     }
 }

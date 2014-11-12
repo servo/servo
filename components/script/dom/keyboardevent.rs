@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::KeyboardEventBinding;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::{KeyboardEventMethods, KeyboardEventConstants};
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{UIEventCast, KeyboardEventDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, KeyboardEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
@@ -558,6 +558,11 @@ impl<'a> KeyboardEventMethods for JSRef<'a, KeyboardEvent> {
                          _modifiersListArg: DOMString,
                          repeat: bool,
                          _locale: DOMString) {
+        let event: JSRef<Event> = EventCast::from_ref(self);
+        if event.dispatching() {
+            return;
+        }
+
         let uievent: JSRef<UIEvent> = UIEventCast::from_ref(self);
         uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, 0);
         *self.key.borrow_mut() = keyArg;
