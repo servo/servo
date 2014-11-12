@@ -7,13 +7,10 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyStateValues};
-use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
-use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast, ElementCast};
-use dom::bindings::conversions;
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast};
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
@@ -36,11 +33,11 @@ use layout_interface::{ScriptLayoutChan, LayoutChan, NoQuery, ReflowForDisplay};
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
+use devtools;
 
-use devtools_traits;
-use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, NodeInfo, GetRootNode};
-use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, EvaluateJSReply, GetDocumentElement};
-use devtools_traits::{GetChildren, GetLayout};
+use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, GetRootNode};
+use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, GetDocumentElement};
+use devtools_traits::{GetChildren, GetLayout, ModifyAttribute};
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, ViewportMsg, SendEventMsg};
@@ -553,11 +550,12 @@ impl ScriptTask {
                 FromScript(DOMMessage(..)) => panic!("unexpected message"),
                 FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
-                FromDevtools(EvaluateJS(id, s, reply)) => self.handle_evaluate_js(id, s, reply),
-                FromDevtools(GetRootNode(id, reply)) => self.handle_get_root_node(id, reply),
-                FromDevtools(GetDocumentElement(id, reply)) => self.handle_get_document_element(id, reply),
-                FromDevtools(GetChildren(id, node_id, reply)) => self.handle_get_children(id, node_id, reply),
-                FromDevtools(GetLayout(id, node_id, reply)) => self.handle_get_layout(id, node_id, reply),
+                FromDevtools(EvaluateJS(id, s, reply)) => devtools::handle_evaluate_js(&*self.page.borrow(), id, s, reply),
+                FromDevtools(GetRootNode(id, reply)) => devtools::handle_get_root_node(&*self.page.borrow(), id, reply),
+                FromDevtools(GetDocumentElement(id, reply)) => devtools::handle_get_document_element(&*self.page.borrow(), id, reply),
+                FromDevtools(GetChildren(id, node_id, reply)) => devtools::handle_get_children(&*self.page.borrow(), id, node_id, reply),
+                FromDevtools(GetLayout(id, node_id, reply)) => devtools::handle_get_layout(&*self.page.borrow(), id, node_id, reply),
+                FromDevtools(ModifyAttribute(id, node_id, modifications)) => devtools::handle_modify_attribute(&*self.page.borrow(), id, node_id, modifications),
             }
         }
 
@@ -567,76 +565,6 @@ impl ScriptTask {
         }
 
         true
-    }
-
-    fn handle_evaluate_js(&self, pipeline: PipelineId, eval: String, reply: Sender<EvaluateJSReply>) {
-        let page = get_page(&*self.page.borrow(), pipeline);
-        let frame = page.frame();
-        let window = frame.as_ref().unwrap().window.root();
-        let cx = window.get_cx();
-        let rval = window.evaluate_js_with_result(eval.as_slice());
-
-        reply.send(if rval.is_undefined() {
-            devtools_traits::VoidValue
-        } else if rval.is_boolean() {
-            devtools_traits::BooleanValue(rval.to_boolean())
-        } else if rval.is_double() {
-            devtools_traits::NumberValue(FromJSValConvertible::from_jsval(cx, rval, ()).unwrap())
-        } else if rval.is_string() {
-            //FIXME: use jsstring_to_str when jsval grows to_jsstring
-            devtools_traits::StringValue(FromJSValConvertible::from_jsval(cx, rval, conversions::Default).unwrap())
-        } else {
-            //FIXME: jsvals don't have an is_int32/is_number yet
-            assert!(rval.is_object_or_null());
-            panic!("object values unimplemented")
-        });
-    }
-
-    fn handle_get_root_node(&self, pipeline: PipelineId, reply: Sender<NodeInfo>) {
-        let page = get_page(&*self.page.borrow(), pipeline);
-        let frame = page.frame();
-        let document = frame.as_ref().unwrap().document.root();
-
-        let node: JSRef<Node> = NodeCast::from_ref(*document);
-        reply.send(node.summarize());
-    }
-
-    fn handle_get_document_element(&self, pipeline: PipelineId, reply: Sender<NodeInfo>) {
-        let page = get_page(&*self.page.borrow(), pipeline);
-        let frame = page.frame();
-        let document = frame.as_ref().unwrap().document.root();
-        let document_element = document.GetDocumentElement().root().unwrap();
-
-        let node: JSRef<Node> = NodeCast::from_ref(*document_element);
-        reply.send(node.summarize());
-    }
-
-    fn find_node_by_unique_id(&self, pipeline: PipelineId, node_id: String) -> Temporary<Node> {
-        let page = get_page(&*self.page.borrow(), pipeline);
-        let frame = page.frame();
-        let document = frame.as_ref().unwrap().document.root();
-        let node: JSRef<Node> = NodeCast::from_ref(*document);
-
-        for candidate in node.traverse_preorder() {
-            if candidate.get_unique_id().as_slice() == node_id.as_slice() {
-                return Temporary::from_rooted(candidate);
-            }
-        }
-
-        panic!("couldn't find node with unique id {:s}", node_id)
-    }
-
-    fn handle_get_children(&self, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {
-        let parent = self.find_node_by_unique_id(pipeline, node_id).root();
-        let children = parent.children().map(|child| child.summarize()).collect();
-        reply.send(children);
-    }
-
-    fn handle_get_layout(&self, pipeline: PipelineId, node_id: String, reply: Sender<(f32, f32)>) {
-        let node = self.find_node_by_unique_id(pipeline, node_id).root();
-        let elem: JSRef<Element> = ElementCast::to_ref(*node).expect("should be getting layout of element");
-        let rect = elem.GetBoundingClientRect().root();
-        reply.send((rect.Width(), rect.Height()));
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
@@ -1210,7 +1138,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime) {
 }
 
 
-fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
+pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
     page.find(pipeline_id).expect("ScriptTask: received an event \
         message for a layout channel that is not associated with this script task.\
          This is a bug.")
