@@ -28,37 +28,37 @@
 //! a datatype.
 
 use dom::bindings::js::JS;
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
+use dom::node::{Node, TrustedNodeAddress};
+
+use collections::hash::{Hash, Hasher};
+use geom::rect::Rect;
+use html5ever::tree_builder::QuirksMode;
+use http::headers::request::HeaderCollection as RequestHeaderCollection;
+use http::headers::response::HeaderCollection as ResponseHeaderCollection;
+use http::method::Method;
 use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
 use js::jsval::JSVal;
-
+use js::rust::Cx;
+use layout_interface::{LayoutRPC, LayoutChan};
 use libc;
-use std::rc::Rc;
-use std::cell::{Cell, RefCell};
-
-use url::Url;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use net::image_cache_task::ImageCacheTask;
 use script_traits::ScriptControlChan;
-use std::collections::hashmap::HashMap;
-use collections::hash::{Hash, Hasher};
-use style::PropertyDeclarationBlock;
-use std::comm::{Receiver, Sender};
-use string_cache::{Atom, Namespace};
-use js::rust::Cx;
-use http::headers::response::HeaderCollection as ResponseHeaderCollection;
-use http::headers::request::HeaderCollection as RequestHeaderCollection;
-use http::method::Method;
-use std::io::timer::Timer;
 use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::str::LengthOrPercentageOrAuto;
-use layout_interface::{LayoutRPC, LayoutChan};
-use dom::node::{Node, TrustedNodeAddress};
-use dom::bindings::utils::WindowProxyHandler;
-use html5ever::tree_builder::QuirksMode;
+use std::cell::{Cell, RefCell};
+use std::collections::hashmap::HashMap;
+use std::comm::{Receiver, Sender};
+use std::io::timer::Timer;
+use std::rc::Rc;
+use string_cache::{Atom, Namespace};
+use style::PropertyDeclarationBlock;
+use url::Url;
+
 
 /// A trait to allow tracing (only) DOM objects.
 pub trait JSTraceable {
@@ -200,6 +200,7 @@ no_jsmanaged_fields!(uint, u8, u16, u32, u64)
 no_jsmanaged_fields!(int, i8, i16, i32, i64)
 no_jsmanaged_fields!(Sender<T>)
 no_jsmanaged_fields!(Receiver<T>)
+no_jsmanaged_fields!(Rect<T>)
 no_jsmanaged_fields!(ImageCacheTask, ScriptControlChan)
 no_jsmanaged_fields!(Atom, Namespace, Timer)
 no_jsmanaged_fields!(PropertyDeclarationBlock)

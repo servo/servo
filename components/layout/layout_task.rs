@@ -625,6 +625,8 @@ impl LayoutTask {
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              rw_data.screen_size);
 
+            flow::mut_base(layout_root.deref_mut()).clip_rect = data.page_clip_rect;
+
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
                 None => {
