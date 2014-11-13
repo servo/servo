@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use eutil::fptr_is_null;
+use eutil::{fptr_is_null, slice_to_str};
 use libc::{c_int};
 use std::collections::TreeMap;
 use std::mem;
-use std::slice;
-use std::str;
 use std::string::String;
 use string::{cef_string_userfree_utf8_alloc,cef_string_userfree_utf8_free,cef_string_utf8_set};
 use types::{cef_string_map_t, cef_string_t};
@@ -40,17 +38,12 @@ pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const c
     unsafe {
         if fptr_is_null(mem::transmute(sm)) { return 0; }
         let v = string_map_to_treemap(sm);
-        slice::raw::buf_as_slice(mem::transmute((*key).str), (*key).length as uint, |result| {
-            match str::from_utf8(result) {
-                Some(k) => {
-                    let s = String::from_str(k);
-                    let csv = cef_string_userfree_utf8_alloc();
-                    cef_string_utf8_set(mem::transmute((*value).str), (*value).length, csv, 1);
-                    (*v).insert(s, csv);
-                    1
-                },
-                None => 0
-            }
+        slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
+            let s = String::from_str(result);
+            let csv = cef_string_userfree_utf8_alloc();
+            cef_string_utf8_set((*value).str as *const u8, (*value).length, csv, 1);
+            (*v).insert(s, csv);
+            1
         })
     }
 }
@@ -60,17 +53,12 @@ pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef
     unsafe {
         if fptr_is_null(mem::transmute(sm)) { return 0; }
         let v = string_map_to_treemap(sm);
-        slice::raw::buf_as_slice(mem::transmute((*key).str), (*key).length as uint, |result| {
-            match str::from_utf8(result) {
-                Some(k) => {
-                    match (*v).find(&String::from_str(k)) {
-                        Some(s) => {
-                            cef_string_utf8_set(mem::transmute((**s).str), (**s).length, value, 1);
-                            1
-                        }
-                        None => 0
-                    }
-                },
+        slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
+            match (*v).find(&String::from_str(result)) {
+                Some(s) => {
+                    cef_string_utf8_set((**s).str as *const u8, (**s).length, value, 1);
+                    1
+                }
                 None => 0
             }
         })
