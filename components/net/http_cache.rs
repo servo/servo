@@ -5,13 +5,21 @@
 use http_loader::send_error_direct;
 use resource_task::{Metadata, ProgressMsg, LoadResponse, LoadData, Payload, Done, start_sending_opt};
 
+use servo_util::time::parse_http_timestamp;
+
 use http::headers::HeaderEnum;
 use http::method::Get;
 use http::status::Ok as StatusOk;
 
 use std::collections::HashMap;
 use std::comm::Sender;
+use std::iter::Map;
+use std::num::FromStrRadix;
+use std::str::CharSplits;
 use std::sync::{Arc, Mutex};
+use std::time::duration::{MAX, Duration};
+use time;
+use time::Timespec;
 use url::Url;
 
 //TODO: Store an Arc<Vec<u8>> instead?
@@ -54,17 +62,20 @@ struct PendingResource {
     metadata: Option<Metadata>,
     body: Vec<u8>,
     consumers: PendingConsumers,
+    expires: Duration,
     doomed: bool,
 }
 
-pub struct CachedResource {
-    pub metadata: Metadata,
-    pub body: Vec<u8>
+struct CachedResource {
+    metadata: Metadata,
+    body: Vec<u8>,
+    expires: Duration,
 }
 
 pub struct MemoryCache {
     complete_entries: HashMap<CacheKey, CachedResource>,
     pending_entries: HashMap<CacheKey, PendingResource>,
+    base_time: Timespec,
 }
 
 pub enum ResourceResponseTarget {
@@ -83,6 +94,11 @@ pub enum CacheOperationResult {
     NewCacheEntry(CacheKey),
 }
 
+fn split_header(header: &str) -> Map<&str, &str, CharSplits<char>> {
+    header.split(',')
+          .map(|v| v.trim())
+}
+
 fn response_is_cacheable(metadata: &Metadata) -> bool {
     if metadata.status != StatusOk {
         return false;
@@ -93,9 +109,7 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     }
 
     fn any_token_matches(header: &str, tokens: &[&str]) -> bool {
-        header.split(',')
-              .map(|v| v.trim())
-              .any(|token| tokens.iter().any(|&s| s == token))
+        split_header(header).any(|token| tokens.iter().any(|&s| s == token))
     }
 
     let headers = metadata.headers.as_ref().unwrap();
@@ -120,11 +134,34 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     return true;
 }
 
+fn get_response_expiry(metadata: &Metadata) -> Duration {
+    metadata.headers.as_ref().and_then(|headers| {
+        headers.cache_control.as_ref().and_then(|cache_control| {
+            for token in split_header(cache_control[]) {
+                let mut parts = token.split('=');
+                if parts.next().unwrap() == "max-age" {
+                    return parts.next()
+                                .and_then(|val| FromStrRadix::from_str_radix(val, 10))
+                                .map(|secs| Duration::seconds(secs));
+                }
+            }
+            None
+        }).or_else(|| {
+            headers.expires.as_ref().and_then(|expires| {
+                parse_http_timestamp(expires[]).map(|t| {
+                    Duration::seconds(t.to_timespec().sec)
+                })
+            })
+        })
+    }).unwrap_or(MAX)
+}
+
 impl MemoryCache {
     pub fn new() -> MemoryCache {
         MemoryCache {
             complete_entries: HashMap::new(),
             pending_entries: HashMap::new(),
+            base_time: time::now().to_timespec(),
         }
     }
 
@@ -164,6 +201,7 @@ impl MemoryCache {
             resource.doomed = true;
         }
 
+        resource.expires = get_response_expiry(&metadata);
         resource.metadata = Some(metadata);
         resource.consumers = AwaitingBody(chans);
     }
@@ -203,6 +241,7 @@ impl MemoryCache {
         let complete = CachedResource {
             metadata: resource.metadata.unwrap(),
             body: resource.body,
+            expires: resource.expires,
         };
         self.complete_entries.insert(key.clone(), complete);
     }
@@ -214,9 +253,22 @@ impl MemoryCache {
         }
 
         let key = CacheKey::new(load_data.clone());
-        if self.complete_entries.contains_key(&key) {
-            self.send_complete_entry(key, start_chan);
-            return CachedContentPending;
+        let expired = self.complete_entries.get(&key).map(|resource| {
+            self.base_time + resource.expires >= time::now().to_timespec()
+        });
+
+        match expired {
+            Some(true) => {
+                info!("evicting existing entry for {}", load_data.url);
+                self.complete_entries.remove(&key);
+            }
+
+            Some(false) => {
+                self.send_complete_entry(key, start_chan);
+                return CachedContentPending;
+            }
+
+            None => ()
         }
 
         let new_entry = match self.pending_entries.get(&key) {
@@ -239,6 +291,7 @@ impl MemoryCache {
             metadata: None,
             body: vec!(),
             consumers: AwaitingHeaders(vec!(start_chan)),
+            expires: MAX,
             doomed: false,
         };
         info!("creating cache entry for {}", key.url);

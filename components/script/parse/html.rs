@@ -26,12 +26,12 @@ use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask};
 use servo_msg::constellation_msg::LoadData as MsgLoadData;
 use servo_util::task_state;
 use servo_util::task_state::IN_HTML_PARSER;
+use servo_util::time::parse_http_timestamp;
 use std::ascii::AsciiExt;
 use std::comm::channel;
 use std::str::MaybeOwned;
 use url::Url;
 use http::headers::HeaderEnum;
-use time;
 use html5ever::Attribute;
 use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText};
 use string_cache::QualName;
@@ -44,25 +44,9 @@ pub enum HTMLInput {
 // Parses an RFC 2616 compliant date/time string, and returns a localized
 // date/time string in a format suitable for document.lastModified.
 fn parse_last_modified(timestamp: &str) -> String {
-    let format = "%m/%d/%Y %H:%M:%S";
-
-    // RFC 822, updated by RFC 1123
-    match time::strptime(timestamp, "%a, %d %b %Y %T %Z") {
-        Ok(t) => return t.to_local().strftime(format).unwrap(),
-        Err(_) => ()
-    }
-
-    // RFC 850, obsoleted by RFC 1036
-    match time::strptime(timestamp, "%A, %d-%b-%y %T %Z") {
-        Ok(t) => return t.to_local().strftime(format).unwrap(),
-        Err(_) => ()
-    }
-
-    // ANSI C's asctime() format
-    match time::strptime(timestamp, "%c") {
-        Ok(t) => t.to_local().strftime(format).unwrap(),
-        Err(_) => String::from_str("")
-    }
+    parse_http_timestamp(timestamp).map(|t| {
+        t.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap()
+    }).unwrap_or(String::new())
 }
 
 trait SinkHelpers {

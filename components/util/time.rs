@@ -10,7 +10,7 @@ use std::f64;
 use std::io::timer::sleep;
 use std::iter::AdditiveIterator;
 use std::time::duration::Duration;
-use std_time::precise_time_ns;
+use std_time::{Tm, precise_time_ns, strptime};
 use task::{spawn_named};
 use url::Url;
 
@@ -276,4 +276,25 @@ pub fn time<T>(msg: &str, callback: || -> T) -> T{
         debug!("{:s} took {} ms", msg, ms);
     }
     return val;
+}
+
+// Parses an RFC 2616 compliant date/time string
+pub fn parse_http_timestamp(timestamp: &str) -> Option<Tm> {
+    // RFC 822, updated by RFC 1123
+    match strptime(timestamp, "%a, %d %b %Y %T %Z") {
+        Ok(t) => return Some(t),
+        Err(_) => ()
+    }
+
+    // RFC 850, obsoleted by RFC 1036
+    match strptime(timestamp, "%A, %d-%b-%y %T %Z") {
+        Ok(t) => return Some(t),
+        Err(_) => ()
+    }
+
+    // ANSI C's asctime() format
+    match strptime(timestamp, "%c") {
+        Ok(t) => Some(t),
+        Err(_) => None,
+    }
 }
