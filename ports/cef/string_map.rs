@@ -7,7 +7,7 @@ use libc::{c_int};
 use std::collections::TreeMap;
 use std::mem;
 use std::string::String;
-use string::{cef_string_userfree_utf8_alloc,cef_string_userfree_utf8_free,cef_string_utf8_set};
+use string::{cef_string_userfree_utf8_alloc, cef_string_userfree_utf8_free, cef_string_utf8_set};
 use types::{cef_string_map_t, cef_string_t};
 
 fn string_map_to_treemap(sm: *mut cef_string_map_t) -> *mut TreeMap<String, *mut cef_string_t> {

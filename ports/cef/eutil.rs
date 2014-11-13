@@ -13,12 +13,7 @@ pub fn fptr_is_null(fptr: *const u8) -> bool {
 pub fn slice_to_str(s: *const u8, l: uint, f: |&str| -> c_int) -> c_int {
     unsafe {
         slice::raw::buf_as_slice(s, l, |result| {
-             match str::from_utf8(result) {
-                  Some(ruststr) => {
-                       f(ruststr)
-                  },
-                  None => 0
-             }
+             str::from_utf8(result).map(|s| f(s)).unwrap_or(0)
         })
     }
 }
