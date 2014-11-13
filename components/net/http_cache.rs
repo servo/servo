@@ -7,6 +7,7 @@ use resource_task::{Metadata, ProgressMsg, LoadResponse, LoadData, Payload, Done
 
 use http::headers::HeaderEnum;
 use http::method::Get;
+use http::status::Ok as StatusOk;
 
 use std::collections::HashMap;
 use std::comm::Sender;
@@ -15,9 +16,6 @@ use url::Url;
 
 //TODO: Store an Arc<Vec<u8>> instead?
 //TODO: Cache non-GET requests?
-//TODO: Don't cache HTTPS
-//TODO: Doom cache entries based on response headers (Cache-Control, Expires, Vary, Pragma)
-//TODO: Doom non-200 responses
 //TODO: Doom responses with network errors
 //TODO: Send Err responses for doomed entries
 //TODO: Enable forced eviction of a request instead of retrieving the cached response
@@ -56,6 +54,7 @@ struct PendingResource {
     metadata: Option<Metadata>,
     body: Vec<u8>,
     consumers: PendingConsumers,
+    doomed: bool,
 }
 
 pub struct CachedResource {
@@ -84,6 +83,43 @@ pub enum CacheOperationResult {
     NewCacheEntry(CacheKey),
 }
 
+fn response_is_cacheable(metadata: &Metadata) -> bool {
+    if metadata.status != StatusOk {
+        return false;
+    }
+
+    if metadata.headers.is_none() {
+        return true;
+    }
+
+    fn any_token_matches(header: &str, tokens: &[&str]) -> bool {
+        header.split(',')
+              .map(|v| v.trim())
+              .any(|token| tokens.iter().any(|&s| s == token))
+    }
+
+    let headers = metadata.headers.as_ref().unwrap();
+    match headers.cache_control {
+        Some(ref cache_control) => {
+            if any_token_matches(cache_control[], &["no-cache", "no-store", "max-age=0"]) {
+                return false;
+            }
+        }
+        None => ()
+    }
+
+    match headers.pragma {
+        Some(ref pragma) => {
+            if any_token_matches(pragma[], &["no-cache"]) {
+                return false;
+            }
+        }
+        None => ()
+    }
+
+    return true;
+}
+
 impl MemoryCache {
     pub fn new() -> MemoryCache {
         MemoryCache {
@@ -94,7 +130,7 @@ impl MemoryCache {
 
     pub fn doom_request(&mut self, key: &CacheKey, err: String) {
         info!("dooming entry for {}", key.url);
-        let resource = self.pending_entries.get(key).unwrap();
+        let resource = self.pending_entries.remove(key).unwrap();
         match resource.consumers {
             AwaitingHeaders(ref consumers) => {
                 for consumer in consumers.iter() {
@@ -123,7 +159,12 @@ impl MemoryCache {
             }
             AwaitingBody(_) => panic!("obtained headers for {} but awaiting body?", key.url)
         }
-        resource.metadata = Some(metadata.clone());
+
+        if !response_is_cacheable(&metadata) {
+            resource.doomed = true;
+        }
+
+        resource.metadata = Some(metadata);
         resource.consumers = AwaitingBody(chans);
     }
 
@@ -154,6 +195,11 @@ impl MemoryCache {
             }
         }
 
+        if resource.doomed {
+            info!("completing dooming of {}", key.url);
+            return;
+        }
+
         let complete = CachedResource {
             metadata: resource.metadata.unwrap(),
             body: resource.body,
@@ -173,13 +219,19 @@ impl MemoryCache {
             return CachedContentPending;
         }
 
-        if !self.pending_entries.contains_key(&key) {
-            self.add_pending_cache_entry(key.clone(), start_chan);
-            return NewCacheEntry(key);
-        }
+        let new_entry = match self.pending_entries.get(&key) {
+            Some(resource) if resource.doomed => return Uncacheable("Cache entry already doomed"),
+            Some(_) => false,
+            None => true,
+        };
 
-        self.send_partial_entry(key, start_chan);
-        CachedContentPending
+        if new_entry {
+            self.add_pending_cache_entry(key.clone(), start_chan);
+            NewCacheEntry(key)
+        } else {
+            self.send_partial_entry(key, start_chan);
+            CachedContentPending
+        }
     }
 
     fn add_pending_cache_entry(&mut self, key: CacheKey, start_chan: Sender<LoadResponse>) {
@@ -187,6 +239,7 @@ impl MemoryCache {
             metadata: None,
             body: vec!(),
             consumers: AwaitingHeaders(vec!(start_chan)),
+            doomed: false,
         };
         info!("creating cache entry for {}", key.url);
         self.pending_entries.insert(key, resource);
