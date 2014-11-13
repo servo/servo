@@ -94,6 +94,21 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
 }
 
 #[no_mangle]
+pub extern "C" fn cef_string_utf8_cmp(a: *const cef_string_utf8_t, b: *const cef_string_utf8_t) -> c_int {
+    unsafe {
+       slice::raw::buf_as_slice((*a).str as *const u8, (*a).length as uint, |astr:&[u8]| {
+            slice::raw::buf_as_slice((*b).str as *const u8, (*b).length as uint, |bstr:&[u8]| {
+                  match astr.cmp(bstr) {
+                       Less => -1,
+                       Equal => 0,
+                       Greater => 1
+                  }
+            })
+       })
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, output: *mut cef_string_utf16_t) -> c_int {
     unsafe {
        slice::raw::buf_as_slice(src, src_len as uint, |result| {
