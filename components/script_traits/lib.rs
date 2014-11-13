@@ -32,6 +32,7 @@ use servo_util::smallvec::SmallVec1;
 use std::any::Any;
 
 use geom::point::Point2D;
+use geom::rect::Rect;
 
 use serialize::{Encodable, Encoder};
 
@@ -62,6 +63,7 @@ pub enum ConstellationControlMsg {
     SendEventMsg(PipelineId, CompositorEvent),
     /// Notifies script that reflow is finished.
     ReflowCompleteMsg(PipelineId, uint),
+    ViewportMsg(PipelineId, Rect<f32>),
 }
 
 /// Events from the compositor that the script task needs to know about

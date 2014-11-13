@@ -109,6 +109,8 @@ pub struct Reflow {
     pub id: uint,
     /// The type of query if any to perform during this reflow.
     pub query_type: ReflowQueryType,
+    ///  A clipping rectangle for the page, an enlarged rectangle containing the viewport.
+    pub page_clip_rect: Rect<Au>,
 }
 
 /// Encapsulates a channel to the layout task.

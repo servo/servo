@@ -38,10 +38,12 @@ use layers::scene::Scene;
 use png;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
+use script_traits::{ViewportMsg, ScriptControlChan};
 use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerId};
 use servo_msg::compositor_msg::{ReadyState, RenderingRenderState, RenderState, Scrollable};
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
-use servo_msg::constellation_msg::{LoadData, PipelineId, ResizedWindowMsg, WindowSizeData};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg};
+use servo_msg::constellation_msg::{NavigateMsg, LoadData, PipelineId, ResizedWindowMsg};
+use servo_msg::constellation_msg::{WindowSizeData};
 use servo_msg::constellation_msg;
 use servo_util::geometry::{PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
@@ -266,6 +268,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.set_frame_tree(&frame_tree,
                                     response_chan,
                                     new_constellation_chan);
+                self.send_viewport_rects_for_all_layers();
             }
 
             (FrameTreeUpdateMsg(frame_tree_diff, response_channel), NotShuttingDown) => {
@@ -775,6 +778,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn process_pending_scroll_events(&mut self) {
+        let had_scroll_events = self.pending_scroll_events.len() > 0;
         for scroll_event in mem::replace(&mut self.pending_scroll_events, Vec::new()).into_iter() {
             let delta = scroll_event.delta / self.scene.scale;
             let cursor = scroll_event.cursor.as_f32() / self.scene.scale;
@@ -788,6 +792,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             self.start_scrolling_timer_if_necessary();
             self.send_buffer_requests_for_all_layers();
+        }
+
+        if had_scroll_events {
+            self.send_viewport_rects_for_all_layers();
         }
     }
 
@@ -845,6 +853,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => { }
         }
 
+        self.send_viewport_rects_for_all_layers();
         self.composite_if_necessary();
     }
 
@@ -899,6 +908,27 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             },
             None => {}
+        }
+    }
+
+    fn send_viewport_rect_for_layer(&self, layer: Rc<Layer<CompositorData>>) {
+        if layer.extra_data.borrow().id == LayerId::null() {
+            let layer_rect = Rect(-layer.extra_data.borrow().scroll_offset.to_untyped(),
+                                  layer.bounds.borrow().size.to_untyped());
+            let pipeline = &layer.extra_data.borrow().pipeline;
+            let ScriptControlChan(ref chan) = pipeline.script_chan;
+            chan.send(ViewportMsg(pipeline.id.clone(), layer_rect));
+        }
+
+        for kid in layer.children().iter() {
+            self.send_viewport_rect_for_layer(kid.clone());
+        }
+    }
+
+    fn send_viewport_rects_for_all_layers(&self) {
+        match self.scene.root {
+            Some(ref root) => self.send_viewport_rect_for_layer(root.clone()),
+            None => {},
         }
     }
 
