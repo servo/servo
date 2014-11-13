@@ -10,7 +10,7 @@ use std::slice;
 use std::str;
 use std::string::String;
 use string::{cef_string_userfree_utf8_alloc,cef_string_userfree_utf8_free,cef_string_utf8_set};
-use types::{cef_string_map_t,cef_string_t};
+use types::{cef_string_map_t, cef_string_t};
 
 fn string_map_to_treemap(sm: *mut cef_string_map_t) -> *mut TreeMap<String, *mut cef_string_t> {
     sm as *mut TreeMap<String, *mut cef_string_t>
@@ -103,7 +103,7 @@ pub extern "C" fn cef_string_map_value(sm: *mut cef_string_map_t, index: c_int, 
 
         for (i, val) in (*v).values().enumerate() {
             if i == index as uint {
-                cef_string_utf8_set(mem::transmute((**val).str), (**val).length, value, 1);
+                cef_string_utf8_set((**val).str as *const u8, (**val).length, value, 1);
                 return 1;
             }
         }
@@ -116,9 +116,8 @@ pub extern "C" fn cef_string_map_clear(sm: *mut cef_string_map_t) {
     unsafe {
         if fptr_is_null(mem::transmute(sm)) { return; }
         let v = string_map_to_treemap(sm);
-        if (*v).len() == 0 { return; }
         for val in (*v).values() {
-            cef_string_userfree_utf8_free((*val));
+            cef_string_userfree_utf8_free(*val);
         }
         (*v).clear();
     }
@@ -128,8 +127,7 @@ pub extern "C" fn cef_string_map_clear(sm: *mut cef_string_map_t) {
 pub extern "C" fn cef_string_map_free(sm: *mut cef_string_map_t) {
     unsafe {
         if fptr_is_null(mem::transmute(sm)) { return; }
-        let v: Box<TreeMap<String, *mut cef_string_t>> = mem::transmute(sm);
+        let _v: Box<TreeMap<String, *mut cef_string_t>> = mem::transmute(sm);
         cef_string_map_clear(sm);
-        drop(v);
     }
 }
