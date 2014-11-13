@@ -26,8 +26,8 @@ use geom::size::Size2D;
 use std::cell::Cell;
 use std::default::Default;
 
-static DefaultWidth: u32 = 300;
-static DefaultHeight: u32 = 150;
+const DEFAULT_WIDTH: u32 = 300;
+const DEFAULT_HEIGHT: u32 = 150;
 
 #[dom_struct]
 pub struct HTMLCanvasElement {
@@ -48,8 +48,8 @@ impl HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, prefix, document),
             context: Default::default(),
-            width: Cell::new(DefaultWidth),
-            height: Cell::new(DefaultHeight),
+            width: Cell::new(DEFAULT_WIDTH),
+            height: Cell::new(DEFAULT_HEIGHT),
         }
     }
 
@@ -108,11 +108,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
 
         let recreate = match attr.local_name() {
             &atom!("width") => {
-                self.width.set(DefaultWidth);
+                self.width.set(DEFAULT_WIDTH);
                 true
             }
             &atom!("height") => {
-                self.height.set(DefaultHeight);
+                self.height.set(DEFAULT_HEIGHT);
                 true
             }
             _ => false,
@@ -136,11 +136,11 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         let value = attr.value();
         let recreate = match attr.local_name() {
             &atom!("width") => {
-                self.width.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DefaultWidth));
+                self.width.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DEFAULT_WIDTH));
                 true
             }
             &atom!("height") => {
-                self.height.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DefaultHeight));
+                self.height.set(parse_unsigned_integer(value.as_slice().chars()).unwrap_or(DEFAULT_HEIGHT));
                 true
             }
             _ => false,

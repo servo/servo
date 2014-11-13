@@ -18,7 +18,7 @@ use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, LoadStylesheetMsg};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
 use url::UrlParser;
 use string_cache::Atom;
 
@@ -121,7 +121,7 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;
                 layout_chan.send(LoadStylesheetMsg(url));
             }
-            Err(e) => debug!("Parsing url {:s} failed: {:?}", href, e)
+            Err(e) => debug!("Parsing url {:s} failed: {}", href, e)
         }
     }
 }

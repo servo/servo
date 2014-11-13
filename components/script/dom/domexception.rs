@@ -56,7 +56,7 @@ impl DOMErrorName {
             error::Abort => AbortError,
             error::Timeout => TimeoutError,
             error::DataClone => DataCloneError,
-            error::FailureUnknown => fail!(),
+            error::FailureUnknown => panic!(),
         }
     }
 }

@@ -27,14 +27,15 @@ use dom::virtualmethods::VirtualMethods;
 use servo_util::str::DOMString;
 use string_cache::Atom;
 
-use std::ascii::OwnedStrAsciiExt;
+use std::ascii::OwnedAsciiExt;
 use std::cell::Cell;
 
-static DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
-static DEFAULT_RESET_VALUE: &'static str = "Reset";
+const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
+const DEFAULT_RESET_VALUE: &'static str = "Reset";
 
 #[jstraceable]
 #[deriving(PartialEq)]
+#[allow(dead_code)]
 enum InputType {
     InputButton(Option<&'static str>),
     InputText,
@@ -284,7 +285,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             &atom!("size") => {
                 match *attr.value() {
                     UIntAttrValue(_, value) => self.size.set(value),
-                    _ => fail!("Expected a UIntAttrValue"),
+                    _ => panic!("Expected a UIntAttrValue"),
                 }
                 self.force_relayout();
             }

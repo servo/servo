@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![deny(missing_doc)]
+#![deny(missing_docs)]
 
 //! Utilities for tracing JS-managed values.
 //!
@@ -51,7 +51,7 @@ use servo_msg::constellation_msg::ConstellationChan;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::str::LengthOrPercentageOrAuto;
 use std::cell::{Cell, RefCell};
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
 use std::comm::{Receiver, Sender};
 use std::io::timer::Timer;
 use std::rc::Rc;

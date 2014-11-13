@@ -11,7 +11,7 @@
 //!
 //! Hereafter this document is referred to as INTRINSIC.
 
-#![deny(unsafe_block)]
+#![deny(unsafe_blocks)]
 
 use block::{BlockFlow, BlockNonReplaced, FloatNonReplaced, ISizeAndMarginsComputer};
 use block::{MarginsMayNotCollapse};

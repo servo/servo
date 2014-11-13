@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![deny(unsafe_block)]
+#![deny(unsafe_blocks)]
 
 use css::node_style::StyledNode;
 use context::LayoutContext;
@@ -13,12 +13,12 @@ use flow;
 use fragment::{Fragment, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
 use fragment::{FragmentBoundsIterator, ScannedTextFragment, ScannedTextFragmentInfo};
 use fragment::SplitInfo;
-use incremental::{Reflow, ReflowOutOfFlow};
+use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::IntrinsicISizesContribution;
 use text;
 
-use collections::{Deque, RingBuf};
+use collections::{RingBuf};
 use geom::{Rect, Size2D};
 use gfx::display_list::ContentLevel;
 use gfx::font::FontMetrics;
@@ -273,7 +273,7 @@ impl LineBreaker {
     }
 
     fn flush_current_line(&mut self) {
-        debug!("LineBreaker: Flushing line {:u}: {:?}",
+        debug!("LineBreaker: Flushing line {:u}: {}",
                self.lines.len(), self.pending_line);
 
         // clear line and add line mapping
@@ -325,7 +325,7 @@ impl LineBreaker {
 
         let line_bounds = self.floats.place_between_floats(&info);
 
-        debug!("LineBreaker: found position for line: {} using placement_info: {:?}",
+        debug!("LineBreaker: found position for line: {} using placement_info: {}",
                line_bounds,
                info);
 
@@ -623,7 +623,7 @@ impl InlineFragments {
 
     /// A convenience function to return a mutable reference to the fragment at a given index.
     pub fn get_mut<'a>(&'a mut self, index: uint) -> &'a mut Fragment {
-        self.fragments.get_mut(index)
+        &mut self.fragments[index]
     }
 
     /// This function merges previously-line-broken fragments back into their
@@ -944,7 +944,7 @@ impl Flow for InlineFlow {
         // TODO: Combine this with `LineBreaker`'s walk in the fragment list, or put this into
         // `Fragment`.
 
-        debug!("InlineFlow::assign_inline_sizes: floats in: {:?}", self.base.floats);
+        debug!("InlineFlow::assign_inline_sizes: floats in: {}", self.base.floats);
 
         self.base.position.size.inline = self.base.block_container_inline_size;
 
@@ -984,7 +984,7 @@ impl Flow for InlineFlow {
         // element to determine its block-size for computing the line's own block-size.
         //
         // TODO(pcwalton): Cache the line scanner?
-        debug!("assign_block_size_inline: floats in: {:?}", self.base.floats);
+        debug!("assign_block_size_inline: floats in: {}", self.base.floats);
 
         // assign block-size for inline fragments
         let containing_block_block_size =
@@ -1028,11 +1028,11 @@ impl Flow for InlineFlow {
                  mut largest_block_size_for_bottom_fragments) = (Au(0), Au(0));
 
             for fragment_index in range(line.range.begin(), line.range.end()) {
-                let fragment = self.fragments.fragments.get_mut(fragment_index.to_uint());
+                let fragment = &mut self.fragments.fragments[fragment_index.to_uint()];
 
                 let InlineMetrics {
-                    block_size_above_baseline: mut block_size_above_baseline,
-                    depth_below_baseline: mut depth_below_baseline,
+                    mut block_size_above_baseline,
+                    mut depth_below_baseline,
                     ascent
                 } = fragment.inline_metrics(layout_context);
 
@@ -1131,7 +1131,7 @@ impl Flow for InlineFlow {
                                                     Au(0),
                                                     -self.base.position.size.block));
 
-        self.base.restyle_damage.remove(ReflowOutOfFlow | Reflow);
+        self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
     fn compute_absolute_position(&mut self) {

@@ -198,13 +198,12 @@ fn get_resident() -> Option<u64> {
     resident_size()
 }
 
-#[cfg(not(target_os="linux"), not(target_os = "macos"))]
+#[cfg(not(any(target_os="linux", target_os = "macos")))]
 fn get_vsize() -> Option<u64> {
     None
 }
 
-#[cfg(not(target_os="linux"), not(target_os = "macos"))]
+#[cfg(not(any(target_os="linux", target_os = "macos")))]
 fn get_resident() -> Option<u64> {
     None
 }
-

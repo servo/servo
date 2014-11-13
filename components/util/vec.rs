@@ -4,6 +4,9 @@
 
 use std::cmp::{PartialOrd, PartialEq};
 
+#[cfg(test)]
+use std::fmt::Show;
+
 /// FIXME(pcwalton): Workaround for lack of unboxed closures. This is called in
 /// performance-critical code, so a closure is insufficient.
 pub trait Comparator<K,T> {
@@ -71,11 +74,11 @@ fn test_find_all_elems<T: PartialEq + PartialOrd + Eq + Ord>(arr: &[T]) {
 }
 
 #[cfg(test)]
-fn test_miss_all_elems<T: PartialEq + PartialOrd + Eq + Ord>(arr: &[T], misses: &[T]) {
+fn test_miss_all_elems<T: PartialEq + PartialOrd + Eq + Ord + Show>(arr: &[T], misses: &[T]) {
     let mut i = 0;
     while i < misses.len() {
         let res = arr.binary_search_(&misses[i]);
-        debug!("{:?} == {:?} ?", misses[i], res);
+        debug!("{} == {} ?", misses[i], res);
         assert!(!test_match(&misses[i], arr.binary_search_(&misses[i])));
         i += 1;
     }

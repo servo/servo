@@ -62,8 +62,9 @@ use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use string_cache::{Atom, QualName};
 use url::Url;
 
-use std::collections::hashmap::HashMap;
-use std::ascii::StrAsciiExt;
+use std::collections::HashMap;
+use std::collections::hash_map::{Vacant, Occupied};
+use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::default::Default;
 use time;
@@ -233,7 +234,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                                 to_unregister: JSRef<Element>,
                                 id: Atom) {
         let mut idmap = self.idmap.borrow_mut();
-        let is_empty = match idmap.find_mut(&id) {
+        let is_empty = match idmap.get_mut(&id) {
             None => false,
             Some(elements) => {
                 let position = elements.iter()
@@ -262,29 +263,35 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let mut idmap = self.idmap.borrow_mut();
 
         let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root();
-        idmap.find_with_or_insert_with(id, element,
-            |_key, elements, element| {
+
+        match idmap.entry(id) {
+            Vacant(entry) => {
+                entry.set(vec!(element.unrooted()));
+            }
+            Occupied(entry) => {
+                let elements = entry.into_mut();
+
                 let new_node: JSRef<Node> = NodeCast::from_ref(element);
-                let mut head : uint = 0u;
+                let mut head: uint = 0u;
                 let root: JSRef<Node> = NodeCast::from_ref(*root);
                 for node in root.traverse_preorder() {
                     let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
                     match elem {
+                        None => {},
                         Some(elem) => {
                             if *(*elements)[head].root() == elem {
-                                head = head + 1;
+                                head += 1;
                             }
                             if new_node == node || head == elements.len() {
                                 break;
                             }
                         }
-                        None => {}
                     }
                 }
+
                 elements.insert_unrooted(head, &element);
-            },
-            |_key, element| vec![element.unrooted()]
-        );
+            }
+        }
     }
 
     fn load_anchor_href(self, href: DOMString) {
@@ -514,7 +521,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(self, id: DOMString) -> Option<Temporary<Element>> {
         let id = Atom::from_slice(id.as_slice());
-        match self.idmap.borrow().find(&id) {
+        match self.idmap.borrow().get(&id) {
             None => None,
             Some(ref elements) => Some(Temporary::new((*elements)[0].clone())),
         }
@@ -660,7 +667,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn LastModified(self) -> DOMString {
         match *self.last_modified.borrow() {
             Some(ref t) => t.clone(),
-            None => time::now().strftime("%m/%d/%Y %H:%M:%S"),
+            None => time::now().strftime("%m/%d/%Y %H:%M:%S").unwrap(),
         }
     }
 

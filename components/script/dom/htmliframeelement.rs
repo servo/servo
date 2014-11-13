@@ -25,7 +25,7 @@ use servo_msg::constellation_msg::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::{ConstellationChan, ScriptLoadedURLInIFrameMsg};
 use servo_util::str::DOMString;
 
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
 use std::cell::Cell;
 use url::{Url, UrlParser};
 

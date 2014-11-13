@@ -114,8 +114,8 @@ impl<'a> RenderContext<'a>  {
         let (pixel_width, pixels, source_format) = match image.pixels {
             RGBA8(ref pixels) => (4, pixels.as_slice(), B8G8R8A8),
             K8(ref pixels) => (1, pixels.as_slice(), A8),
-            RGB8(_) => fail!("RGB8 color type not supported"),
-            KA8(_) => fail!("KA8 color type not supported"),
+            RGB8(_) => panic!("RGB8 color type not supported"),
+            KA8(_) => panic!("KA8 color type not supported"),
         };
         let stride = image.width * pixel_width;
 
@@ -366,7 +366,7 @@ impl<'a> RenderContext<'a>  {
         let is_groove = match style {
                 border_style::groove =>  true,
                 border_style::ridge  =>  false,
-                _                    =>  fail!("invalid border style")
+                _                    =>  panic!("invalid border style")
         };
         let darker_color               = self.scale_color(color, if is_groove { 1.0/3.0 } else { 2.0/3.0 });
         let (outer_color, inner_color) = match (direction, is_groove) {
@@ -388,7 +388,7 @@ impl<'a> RenderContext<'a>  {
         let is_inset = match style {
                 border_style::inset  =>  true,
                 border_style::outset =>  false,
-                _                    =>  fail!("invalid border style")
+                _                    =>  panic!("invalid border style")
         };
         // original bounds as a Rect<f32>
         let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);

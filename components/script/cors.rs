@@ -9,10 +9,9 @@
 //! This library will eventually become the core of the Fetch crate
 //! with CORSRequest being expanded into FetchRequest (etc)
 
-use std::ascii::{StrAsciiExt, OwnedStrAsciiExt};
+use std::ascii::{AsciiExt, OwnedAsciiExt};
 use std::from_str::FromStr;
 use std::io::BufReader;
-use std::str::StrSlice;
 use time;
 use time::{now, Timespec};
 
@@ -155,7 +154,7 @@ impl CORSRequest {
 
         // Step 12
         match response.status.code() {
-         200 .. 299 => {}
+         200 ... 299 => {}
          _ => return error
         }
         cors_response.headers = response.headers.clone();

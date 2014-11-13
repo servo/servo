@@ -14,25 +14,25 @@ bitflags! {
     flags RestyleDamage: u8 {
         #[doc = "Repaint the node itself."]
         #[doc = "Currently unused; need to decide how this propagates."]
-        static Repaint = 0x01,
+        const REPAINT = 0x01,
 
         #[doc = "Recompute intrinsic inline_sizes (minimum and preferred)."]
         #[doc = "Propagates down the flow tree because the computation is"]
         #[doc = "bottom-up."]
-        static BubbleISizes = 0x02,
+        const BUBBLE_ISIZES = 0x02,
 
         #[doc = "Recompute actual inline-sizes and block-sizes, only taking out-of-flow children \
                  into account. \
                  Propagates up the flow tree because the computation is top-down."]
-        static ReflowOutOfFlow = 0x04,
+        const REFLOW_OUT_OF_FLOW = 0x04,
 
         #[doc = "Recompute actual inline_sizes and block_sizes."]
         #[doc = "Propagates up the flow tree because the computation is"]
         #[doc = "top-down."]
-        static Reflow = 0x08,
+        const REFLOW = 0x08,
 
         #[doc = "The entire flow needs to be reconstructed."]
-        static ReconstructFlow = 0x10
+        const RECONSTRUCT_FLOW = 0x10
     }
 }
 
@@ -40,7 +40,7 @@ bitflags! {
     flags SpecialRestyleDamage: u8 {
         #[doc="If this flag is set, we need to reflow the entire document. This is more or less a \
                temporary hack to deal with cases that we don't handle incrementally yet."]
-        static ReflowEntireDocument = 0x01,
+        const REFLOW_ENTIRE_DOCUMENT = 0x01,
     }
 }
 
@@ -49,9 +49,9 @@ impl RestyleDamage {
     /// we should add to the *parent* of this flow.
     pub fn damage_for_parent(self, child_is_absolutely_positioned: bool) -> RestyleDamage {
         if child_is_absolutely_positioned {
-            self & (Repaint | ReflowOutOfFlow)
+            self & (REPAINT | REFLOW_OUT_OF_FLOW)
         } else {
-            self & (Repaint | Reflow | ReflowOutOfFlow)
+            self & (REPAINT | REFLOW | REFLOW_OUT_OF_FLOW)
         }
     }
 
@@ -66,20 +66,20 @@ impl RestyleDamage {
                 // Absolute children are out-of-flow and therefore insulated from changes.
                 //
                 // FIXME(pcwalton): Au contraire, if the containing block dimensions change!
-                self & Repaint
+                self & REPAINT
             }
             (true, false) => {
                 // Changing the position of an absolutely-positioned block requires us to reflow
                 // its kids.
-                if self.contains(ReflowOutOfFlow) {
-                    self | Reflow
+                if self.contains(REFLOW_OUT_OF_FLOW) {
+                    self | REFLOW
                 } else {
                     self
                 }
             }
             _ => {
                 // TODO(pcwalton): Take floatedness into account.
-                self & (Repaint | Reflow)
+                self & (REPAINT | REFLOW)
             }
         }
     }
@@ -90,11 +90,11 @@ impl fmt::Show for RestyleDamage {
         let mut first_elem = true;
 
         let to_iter =
-            [ (Repaint,         "Repaint")
-            , (BubbleISizes,    "BubbleISizes")
-            , (ReflowOutOfFlow, "ReflowOutOfFlow")
-            , (Reflow,          "Reflow")
-            , (ReconstructFlow, "ReconstructFlow")
+            [ (REPAINT,         "Repaint")
+            , (BUBBLE_ISIZES,    "BubbleISizes")
+            , (REFLOW_OUT_OF_FLOW, "ReflowOutOfFlow")
+            , (REFLOW,          "Reflow")
+            , (RECONSTRUCT_FLOW, "ReconstructFlow")
             ];
 
         for &(damage, damage_str) in to_iter.iter() {
@@ -141,20 +141,20 @@ pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -
     // FIXME: We can short-circuit more of this.
 
     add_if_not_equal!(old, new, damage,
-                      [ Repaint ], [
+                      [ REPAINT ], [
         get_color.color, get_background.background_color,
         get_border.border_top_color, get_border.border_right_color,
         get_border.border_bottom_color, get_border.border_left_color
     ]);
 
     add_if_not_equal!(old, new, damage,
-                      [ Repaint, ReflowOutOfFlow ], [
+                      [ REPAINT, REFLOW_OUT_OF_FLOW ], [
         get_positionoffsets.top, get_positionoffsets.left,
         get_positionoffsets.right, get_positionoffsets.bottom
     ]);
 
     add_if_not_equal!(old, new, damage,
-                      [ Repaint, BubbleISizes, ReflowOutOfFlow, Reflow ], [
+                      [ REPAINT, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW ], [
         get_border.border_top_width, get_border.border_right_width,
         get_border.border_bottom_width, get_border.border_left_width,
         get_margin.margin_top, get_margin.margin_right,
@@ -167,7 +167,7 @@ pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -
     ]);
 
     add_if_not_equal!(old, new, damage,
-                      [ Repaint, BubbleISizes, ReflowOutOfFlow, Reflow, ReconstructFlow ],
+                      [ REPAINT, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW, RECONSTRUCT_FLOW ],
                       [ get_box.float, get_box.display, get_box.position ]);
 
     // FIXME: test somehow that we checked every CSS property
@@ -203,8 +203,8 @@ impl<'a> LayoutDamageComputation for &'a mut Flow+'a {
 
         let self_base = flow::base(self);
         if self_base.flags.float_kind() != float::none &&
-                self_base.restyle_damage.intersects(Reflow) {
-            special_damage.insert(ReflowEntireDocument);
+                self_base.restyle_damage.intersects(REFLOW) {
+            special_damage.insert(REFLOW_ENTIRE_DOCUMENT);
         }
 
         special_damage
@@ -213,7 +213,7 @@ impl<'a> LayoutDamageComputation for &'a mut Flow+'a {
     fn reflow_entire_document(self) {
         let self_base = flow::mut_base(self);
         self_base.restyle_damage.insert(RestyleDamage::all());
-        self_base.restyle_damage.remove(ReconstructFlow);
+        self_base.restyle_damage.remove(RECONSTRUCT_FLOW);
         for kid in self_base.children.iter_mut() {
             kid.reflow_entire_document();
         }

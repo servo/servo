@@ -66,7 +66,7 @@ impl PrivateLayoutData {
 bitflags! {
     flags LayoutDataFlags: u8 {
         #[doc="Whether a flow has been newly constructed."]
-        static HasNewlyConstructedFlow = 0x01
+        const HAS_NEWLY_CONSTRUCTED_FLOW = 0x01
     }
 }
 

@@ -16,9 +16,10 @@ use servo_util::str::DOMString;
 use encoding::all::UTF_8;
 use encoding::types::{EncodingRef, EncodeReplace};
 
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
+use std::collections::hash_map::{Occupied, Vacant};
 use std::fmt::radix;
-use std::ascii::OwnedStrAsciiExt;
+use std::ascii::OwnedAsciiExt;
 
 #[dom_struct]
 pub struct URLSearchParams {
@@ -60,8 +61,15 @@ impl URLSearchParams {
 
 impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
     fn Append(self, name: DOMString, value: DOMString) {
-        self.data.borrow_mut().insert_or_update_with(name, vec!(value.clone()),
-                                                             |_k, v| v.push(value.clone()));
+        let mut data = self.data.borrow_mut();
+
+        match data.entry(name) {
+            Occupied(entry) => entry.into_mut().push(value),
+            Vacant(entry) => {
+                entry.set(vec!(value));
+            }
+        }
+
         self.update_steps();
     }
 
@@ -109,8 +117,8 @@ impl URLSearchParamsHelpers for URLSearchParams {
                 let append = match *i {
                     0x20 => vec!(0x2B),
                     0x2A | 0x2D | 0x2E |
-                    0x30 .. 0x39 | 0x41 .. 0x5A |
-                    0x5F | 0x61..0x7A => vec!(*i),
+                    0x30 ... 0x39 | 0x41 ... 0x5A |
+                    0x5F | 0x61...0x7A => vec!(*i),
                     a => {
                         // http://url.spec.whatwg.org/#percent-encode
                         let mut encoded = vec!(0x25); // %

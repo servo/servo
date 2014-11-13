@@ -1,5 +1,3 @@
-paths = ["support/glfw-rs"]
-
 [target.arm-linux-androideabi]
 ar = "arm-linux-androideabi-ar"
 linker = "arm-linux-androideabi-g++"

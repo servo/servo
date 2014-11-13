@@ -7,12 +7,11 @@
 
 #![feature(globs, macro_rules, phase, thread_local)]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 #[phase(plugin, link)]
 extern crate log;
-
-extern crate debug;
 
 extern crate compositing;
 extern crate devtools;
@@ -72,12 +71,17 @@ pub struct Browser<Window> {
 impl<Window> Browser<Window> where Window: WindowMethods + 'static {
     #[cfg(not(test))]
     pub fn new(window: Option<Rc<Window>>) -> Browser<Window> {
+        use rustuv::EventLoop;
+        fn event_loop() -> Box<green::EventLoop + Send> {
+            box EventLoop::new().unwrap() as Box<green::EventLoop + Send>
+        }
+
         ::servo_util::opts::set_experimental_enabled(opts::get().enable_experimental);
         let opts = opts::get();
         RegisterBindings::RegisterProxyHandlers();
 
         let mut pool_config = green::PoolConfig::new();
-        pool_config.event_loop_factory = rustuv::event_loop;
+        pool_config.event_loop_factory = event_loop;
         let mut pool = green::SchedPool::new(pool_config);
         let shared_task_pool = TaskPool::new(8);
 
@@ -125,7 +129,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                     Ok(url) => url,
                     Err(url::RelativeUrlWithoutBase)
                     => url::Url::from_file_path(&cwd.join(url.as_slice())).unwrap(),
-                    Err(_) => fail!("URL parsing failed"),
+                    Err(_) => panic!("URL parsing failed"),
                 };
 
                 let ConstellationChan(ref chan) = constellation_chan;

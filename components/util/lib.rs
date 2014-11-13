@@ -4,13 +4,13 @@
 
 #![feature(default_type_params,macro_rules,unsafe_destructor)]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 #![feature(phase)]
 #[phase(plugin, link)]
 extern crate log;
 
-extern crate debug;
 extern crate alloc;
 extern crate collections;
 extern crate geom;
