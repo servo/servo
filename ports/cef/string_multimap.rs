@@ -43,7 +43,7 @@ pub extern "C" fn cef_string_multimap_find_count(smm: *mut cef_string_multimap_t
         if smm.is_null() { return 0; }
         let v = string_multimap_to_treemap(smm);
         slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
-            match (*v).find(&String::from_str(result)) {
+            match (*v).get(&String::from_str(result)) {
                 Some(s) => {
                     s.len() as c_int
                 }
@@ -62,7 +62,7 @@ pub extern "C" fn cef_string_multimap_append(smm: *mut cef_string_multimap_t, ke
             let s = String::from_str(result);
             let csv = cef_string_userfree_utf8_alloc();
             cef_string_utf8_set((*value).str as *const u8, (*value).length, csv, 1);
-            match (*v).find_mut(&s) {
+            match (*v).get_mut(&s) {
                 Some(vc) => {
                     (*vc).push(csv);
                     1
@@ -83,7 +83,7 @@ pub extern "C" fn cef_string_multimap_enumerate(smm: *mut cef_string_multimap_t,
         if smm.is_null() { return 0; }
         let v = string_multimap_to_treemap(smm);
         slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
-            match (*v).find(&String::from_str(result)) {
+            match (*v).get(&String::from_str(result)) {
                 Some(s) => {
                     if (*s).len() <= index as uint {
                         return 0;
