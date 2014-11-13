@@ -854,10 +854,10 @@ impl ScriptTask {
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
         let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
 
-        *page.fragment_name.borrow_mut() = url.fragment.clone();
+        *page.fragment_name.borrow_mut() = url.fragment;
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(LoadCompleteMsg(page.id, url));
+        chan.send(LoadCompleteMsg);
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {

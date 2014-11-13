@@ -434,9 +434,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             // A page loaded through one of several methods above has completed all parsing,
             // script, and reflow messages have been sent.
-            LoadCompleteMsg(pipeline_id, url) => {
+            LoadCompleteMsg => {
                 debug!("constellation got load complete message");
-                self.compositor_proxy.send(LoadComplete(pipeline_id, url));
+                self.compositor_proxy.send(LoadComplete);
             }
             // Handle a forward or back request
             NavigateMsg(direction) => {
