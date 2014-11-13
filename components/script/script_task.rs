@@ -751,7 +751,7 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
-        let url = load_data.url.clone();
+        let mut url = load_data.url.clone();
         debug!("ScriptTask: loading {} on page {}", url, pipeline_id);
 
         let page = self.page.borrow_mut();
@@ -818,6 +818,7 @@ impl ScriptTask {
         }
 
         parse_html(&*page, *document, parser_input, self.resource_task.clone(), Some(load_data));
+        url = page.get_url().clone();
 
         document.set_ready_state(DocumentReadyStateValues::Interactive);
 
