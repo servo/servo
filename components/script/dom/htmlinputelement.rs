@@ -13,16 +13,20 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFormElementCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, ResultRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
+use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId, LayoutElementHelpers};
+use dom::element::RawLayoutElementHelpers;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
+use dom::keyboardevent::KeyboardEvent;
 use dom::htmlformelement::{InputElement, FormOwner, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
+use textinput::{Single, TextInput, TriggerDefaultAction, DispatchInput, Nothing};
 
 use servo_util::str::DOMString;
 use string_cache::Atom;
@@ -51,9 +55,8 @@ pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
     checked: Cell<bool>,
-    uncommitted_value: DOMRefCell<Option<String>>,
-    value: DOMRefCell<Option<String>>,
     size: Cell<u32>,
+    textinput: DOMRefCell<TextInput>,
 }
 
 impl HTMLInputElementDerived for EventTarget {
@@ -70,9 +73,8 @@ impl HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, prefix, document),
             input_type: Cell::new(InputText),
             checked: Cell::new(false),
-            uncommitted_value: DOMRefCell::new(None),
-            value: DOMRefCell::new(None),
             size: Cell::new(DEFAULT_INPUT_SIZE),
+            textinput: DOMRefCell::new(TextInput::new(Single, "".to_string())),
         }
     }
 
@@ -84,40 +86,55 @@ impl HTMLInputElement {
 }
 
 pub trait LayoutHTMLInputElementHelpers {
-    unsafe fn get_value_for_layout(&self) -> String;
+    unsafe fn get_value_for_layout(self) -> String;
+    unsafe fn get_size_for_layout(self) -> u32;
+}
+
+pub trait RawLayoutHTMLInputElementHelpers {
     unsafe fn get_size_for_layout(&self) -> u32;
 }
 
-impl LayoutHTMLInputElementHelpers for HTMLInputElement {
+impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
     #[allow(unrooted_must_root)]
-    unsafe fn get_value_for_layout(&self) -> String {
-        match self.input_type.get() {
+    unsafe fn get_value_for_layout(self) -> String {
+        unsafe fn get_raw_textinput_value(input: JS<HTMLInputElement>) -> Option<String> {
+            let elem: JS<Element> = input.transmute_copy();
+            if !elem.has_attr_for_layout(&ns!(""), &atom!("value")) {
+                return None;
+            }
+            Some((*input.unsafe_get()).textinput.borrow_for_layout().get_content())
+        }
+
+        unsafe fn get_raw_attr_value(input: JS<HTMLInputElement>) -> Option<String> {
+            let elem: JS<Element> = input.transmute_copy();
+            (*elem.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("value"))
+                                .map(|s| s.to_string())
+        }
+
+        match (*self.unsafe_get()).input_type.get() {
             InputCheckbox | InputRadio => "".to_string(),
             InputFile | InputImage => "".to_string(),
-            InputButton(ref default) => self.value.borrow_for_layout().clone()
+            InputButton(ref default) => get_raw_attr_value(self)
                                           .or_else(|| default.map(|v| v.to_string()))
                                           .unwrap_or_else(|| "".to_string()),
             InputPassword => {
-                let raw = self.value.borrow_for_layout().clone().unwrap_or_else(|| "".to_string());
-                String::from_char(raw.len(), '*')
+                let raw = get_raw_textinput_value(self).unwrap_or_else(|| "".to_string());
+                String::from_char(raw.len(), '●')
             }
-            _ => self.value.borrow_for_layout().clone().unwrap_or_else(|| "".to_string()),
+            _ => get_raw_textinput_value(self).unwrap_or_else(|| "".to_string()),
         }
     }
 
     #[allow(unrooted_must_root)]
-    unsafe fn get_size_for_layout(&self) -> u32 {
-        self.size.get()
+    unsafe fn get_size_for_layout(self) -> u32 {
+        (*self.unsafe_get()).get_size_for_layout()
     }
 }
 
-impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
-    unsafe fn get_value_for_layout(&self) -> String {
-        (*self.unsafe_get()).get_value_for_layout()
-    }
-
+impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
+    #[allow(unrooted_must_root)]
     unsafe fn get_size_for_layout(&self) -> u32 {
-        (*self.unsafe_get()).get_size_for_layout()
+        self.size.get()
     }
 }
 
@@ -156,7 +173,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
     fn Value(self) -> DOMString {
-        self.value.borrow().clone().unwrap_or("".to_string())
+        self.textinput.borrow().get_content()
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
@@ -309,7 +326,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 self.force_relayout();
             }
             &atom!("value") => {
-                *self.value.borrow_mut() = Some(attr.value().as_slice().to_string());
+                self.textinput.borrow_mut().set_content(attr.value().as_slice().to_string());
                 self.force_relayout();
             }
             &atom!("name") => {
@@ -353,7 +370,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 self.force_relayout();
             }
             &atom!("value") => {
-                *self.value.borrow_mut() = None;
+                self.textinput.borrow_mut().set_content("".to_string());
                 self.force_relayout();
             }
             &atom!("name") => {
@@ -415,6 +432,23 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 }
                 _ => {}
             }
+
+            //TODO: set the editing position for text inputs
+
+            let doc = document_from_node(*self).root();
+            doc.request_focus(ElementCast::from_ref(*self));
+        } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() &&
+            (self.input_type.get() == InputText || self.input_type.get() == InputPassword) {
+                let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
+                keyevent.map(|event| {
+                    match self.textinput.borrow_mut().handle_keydown(event) {
+                        TriggerDefaultAction => (),
+                        DispatchInput => {
+                            self.force_relayout();
+                        }
+                        Nothing => (),
+                    }
+                });
         }
     }
 }

@@ -22,15 +22,11 @@ interface MouseEvent : UIEvent {
 };
 
 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-def-MouseEventInit
-dictionary MouseEventInit : UIEventInit {
+dictionary MouseEventInit : SharedKeyboardAndMouseEventInit {
     long           screenX = 0;
     long           screenY = 0;
     long           clientX = 0;
     long           clientY = 0;
-    boolean        ctrlKey = false;
-    boolean        shiftKey = false;
-    boolean        altKey = false;
-    boolean        metaKey = false;
     short          button = 0;
     //unsigned short buttons = 0;
     EventTarget?   relatedTarget = null;

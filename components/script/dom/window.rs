@@ -382,6 +382,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext) {
         let this_value = self.reflector().get_jsobject();
         self.timers.fire_timer(timer_id, this_value, cx);
+        self.flush_layout();
     }
 }
 

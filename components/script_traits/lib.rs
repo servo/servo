@@ -25,7 +25,7 @@ extern crate serialize;
 use devtools_traits::DevtoolsControlChan;
 use libc::c_void;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
-use servo_msg::constellation_msg::{LoadData, SubpageId};
+use servo_msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
@@ -74,7 +74,8 @@ pub enum CompositorEvent {
     ClickEvent(uint, Point2D<f32>),
     MouseDownEvent(uint, Point2D<f32>),
     MouseUpEvent(uint, Point2D<f32>),
-    MouseMoveEvent(Point2D<f32>)
+    MouseMoveEvent(Point2D<f32>),
+    KeyEvent(Key, KeyState, KeyModifiers),
 }
 
 /// An opaque wrapper around script<->layout channels to avoid leaking message types into

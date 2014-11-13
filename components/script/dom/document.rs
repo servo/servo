@@ -96,6 +96,10 @@ pub struct Document {
     anchors: MutNullableJS<HTMLCollection>,
     applets: MutNullableJS<HTMLCollection>,
     ready_state: Cell<DocumentReadyState>,
+    /// The element that has most recently requested focus for itself.
+    possibly_focused: MutNullableJS<Element>,
+    /// The element that currently has the document focus context.
+    focused: MutNullableJS<Element>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -178,6 +182,10 @@ pub trait DocumentHelpers<'a> {
     fn load_anchor_href(self, href: DOMString);
     fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>>;
     fn set_ready_state(self, state: DocumentReadyState);
+    fn get_focused_element(self) -> Option<Temporary<Element>>;
+    fn begin_focus_transaction(self);
+    fn request_focus(self, elem: JSRef<Element>);
+    fn commit_focus_transaction(self);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -327,6 +335,30 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         let _ = target.DispatchEvent(*event);
     }
+
+    /// Return the element that currently has focus.
+    // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-focusevent-doc-focus
+    fn get_focused_element(self) -> Option<Temporary<Element>> {
+        self.focused.get()
+    }
+
+    /// Initiate a new round of checking for elements requesting focus. The last element to call
+    /// `request_focus` before `commit_focus_transaction` is called will receive focus.
+    fn begin_focus_transaction(self) {
+        self.possibly_focused.clear();
+    }
+
+    /// Request that the given element receive focus once the current transaction is complete.
+    fn request_focus(self, elem: JSRef<Element>) {
+        self.possibly_focused.assign(Some(elem))
+    }
+
+    /// Reassign the focus context to the element that last requested focus during this
+    /// transaction, or none if no elements requested it.
+    fn commit_focus_transaction(self) {
+        //TODO: dispatch blur, focus, focusout, and focusin events
+        self.focused.assign(self.possibly_focused.get());
+    }
 }
 
 #[deriving(PartialEq)]
@@ -390,6 +422,8 @@ impl Document {
             anchors: Default::default(),
             applets: Default::default(),
             ready_state: Cell::new(ready_state),
+            possibly_focused: Default::default(),
+            focused: Default::default(),
         }
     }
 

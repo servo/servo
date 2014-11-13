@@ -26,7 +26,7 @@ use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
-use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
 use dom::htmlserializer::serialize;
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
@@ -231,17 +231,24 @@ pub trait RawLayoutElementHelpers {
                                                -> Option<i32>;
 }
 
+#[inline]
+#[allow(unrooted_must_root)]
+unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name: &Atom) -> Option<&'a JS<Attr>> {
+    // cast to point to T in RefCell<T> directly
+    let attrs: *const Vec<JS<Attr>> = mem::transmute(&elem.attrs);
+    (*attrs).iter().find(|attr: & &JS<Attr>| {
+        let attr = attr.unsafe_get();
+        *name == (*attr).local_name_atom_forever() &&
+        (*attr).namespace() == namespace
+    })
+}
+
 impl RawLayoutElementHelpers for Element {
     #[inline]
     #[allow(unrooted_must_root)]
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                           -> Option<&'a str> {
-        let attrs = self.attrs.borrow_for_layout();
-        (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr = attr.unsafe_get();
-            *name == (*attr).local_name_atom_forever() &&
-            (*attr).namespace() == namespace
-        }).map(|attr| {
+        get_attr_for_layout(self, namespace, name).map(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_ref_forever()
         })
@@ -337,6 +344,7 @@ impl RawLayoutElementHelpers for Element {
 
 pub trait LayoutElementHelpers {
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
+    unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
 }
 
 impl LayoutElementHelpers for JS<Element> {
@@ -348,6 +356,10 @@ impl LayoutElementHelpers for JS<Element> {
         }
         let node: JS<Node> = self.transmute_copy();
         node.owner_doc_for_layout().is_html_document_for_layout()
+    }
+
+    unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool {
+        get_attr_for_layout(&*self.unsafe_get(), namespace, name).is_some()
     }
 }
 
