@@ -4,8 +4,8 @@
 
 /// General actor system infrastructure.
 
-use std::any::{AnyPrivate, AnyRefExt, AnyMutRefExt};
-use std::collections::hashmap::HashMap;
+use std::any::{Any, AnyRefExt, AnyMutRefExt};
+use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
 use std::intrinsics::TypeId;
 use std::io::TcpStream;
@@ -16,7 +16,7 @@ use serialize::json;
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 /// TODO: ensure the name is immutable
-pub trait Actor: AnyPrivate {
+pub trait Actor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
@@ -45,9 +45,12 @@ impl<'a> AnyRefExt<'a> for &'a Actor + 'a {
     fn is<T: 'static>(self) -> bool {
         // This implementation is only needed so long as there's a Rust bug that
         // prevents downcast_ref from giving realistic return values.
-        let t = TypeId::of::<T>();
-        let boxed = self.get_type_id();
-        t == boxed
+        unsafe {
+            let t = TypeId::of::<T>();
+            let this: &Actor = transmute(self);
+            let boxed: TypeId = this.get_type_id();
+            t == boxed
+        }
     }
 
     fn downcast_ref<T: 'static>(self) -> Option<&'a T> {
@@ -94,7 +97,7 @@ impl ActorRegistry {
         if script_id.as_slice() == "" {
             return "".to_string();
         }
-        self.script_actors.borrow().find(&script_id).unwrap().to_string()
+        self.script_actors.borrow().get(&script_id).unwrap().to_string()
     }
 
     pub fn script_actor_registered(&self, script_id: String) -> bool {
@@ -108,7 +111,7 @@ impl ActorRegistry {
                 return key.to_string();
             }
         }
-        fail!("couldn't find actor named {:s}", actor)
+        panic!("couldn't find actor named {:s}", actor)
     }
 
     /// Create a unique name based on a monotonically increasing suffix
@@ -134,7 +137,7 @@ impl ActorRegistry {
         //       fails for unknown reasons.
         /*let actor: &Actor+Send+Sized = *self.actors.find(&name.to_string()).unwrap();
         (actor as &Any).downcast_ref::<T>().unwrap()*/
-        self.actors.find(&name.to_string()).unwrap().downcast_ref::<T>().unwrap()
+        self.actors.get(&name.to_string()).unwrap().downcast_ref::<T>().unwrap()
     }
 
     /// Find an actor by registered name
@@ -143,17 +146,17 @@ impl ActorRegistry {
         //       fails for unknown reasons.
         /*let actor: &mut Actor+Send+Sized = *self.actors.find_mut(&name.to_string()).unwrap();
         (actor as &mut Any).downcast_mut::<T>().unwrap()*/
-        self.actors.find_mut(&name.to_string()).unwrap().downcast_mut::<T>().unwrap()
+        self.actors.get_mut(&name.to_string()).unwrap().downcast_mut::<T>().unwrap()
     }
 
     /// Attempt to process a message as directed by its `to` property. If the actor is not
     /// found or does not indicate that it knew how to process the message, ignore the failure.
     pub fn handle_message(&mut self, msg: &json::JsonObject, stream: &mut TcpStream) {
-        let to = msg.find(&"to".to_string()).unwrap().as_string().unwrap();
-        match self.actors.find(&to.to_string()) {
+        let to = msg.get(&"to".to_string()).unwrap().as_string().unwrap();
+        match self.actors.get(&to.to_string()) {
             None => println!("message received for unknown actor \"{:s}\"", to),
             Some(actor) => {
-                let msg_type = msg.find(&"type".to_string()).unwrap().as_string().unwrap();
+                let msg_type = msg.get(&"type".to_string()).unwrap().as_string().unwrap();
                 if !actor.handle_message(self, &msg_type.to_string(), msg, stream) {
                     println!("unexpected message type \"{:s}\" found for actor \"{:s}\"",
                              msg_type, to);

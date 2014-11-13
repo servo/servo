@@ -26,7 +26,7 @@ use script_task::StackRootTLS;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 use servo_util::task::spawn_named_native;
 use servo_util::task_state;
-use servo_util::task_state::{Script, InWorker};
+use servo_util::task_state::{SCRIPT, IN_WORKER};
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
@@ -89,7 +89,7 @@ impl DedicatedWorkerGlobalScope {
                             receiver: Receiver<ScriptMsg>) {
         spawn_named_native(format!("WebWorker for {}", worker_url.serialize()), proc() {
 
-            task_state::initialize(Script | InWorker);
+            task_state::initialize(SCRIPT | IN_WORKER);
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
@@ -148,7 +148,7 @@ impl DedicatedWorkerGlobalScope {
                     Ok(FireTimerMsg(FromWorker, timer_id)) => {
                         scope.handle_fire_timer(timer_id, js_context.ptr);
                     }
-                    Ok(_) => fail!("Unexpected message"),
+                    Ok(_) => panic!("Unexpected message"),
                     Err(_) => break,
                 }
             }

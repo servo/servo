@@ -24,7 +24,7 @@ struct RawNode<T> {
 #[unsafe_destructor]
 impl<T> Drop for RawDList<T> {
     fn drop(&mut self) {
-        fail!("shouldn't happen")
+        panic!("shouldn't happen")
     }
 }
 
@@ -36,7 +36,7 @@ pub fn split<T>(list: &mut DList<T>) -> DList<T> {
     };
 
     if list.length == 0 {
-        fail!("split_dlist(): empty list")
+        panic!("split_dlist(): empty list")
     }
     let head_node = mem::replace(&mut list.head, ptr::null_mut());
     let head_list = RawDList {
@@ -96,4 +96,3 @@ pub fn append_from<T>(this: &mut DList<T>, other: &mut DList<T>) {
         other.length = 0;
     }
 }
-

@@ -14,7 +14,8 @@
 
 #![feature(macro_rules, plugin_registrar, quote, phase)]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 #[phase(plugin,link)]
 extern crate syntax;

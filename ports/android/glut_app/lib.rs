@@ -6,7 +6,8 @@
 
 #![license = "MPL"]
 #![feature(macro_rules, phase)]
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 extern crate alert;
 extern crate compositing;

@@ -32,7 +32,7 @@ use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBoundsIterator, TableRowFragment, TableCellFragment};
-use incremental::{ReconstructFlow, Reflow, ReflowOutOfFlow, RestyleDamage};
+use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use parallel::FlowParallelInfo;
@@ -59,7 +59,7 @@ use std::num::Zero;
 use std::fmt;
 use std::iter::Zip;
 use std::raw;
-use std::sync::atomics::{AtomicUint, SeqCst};
+use std::sync::atomic::{AtomicUint, SeqCst};
 use std::slice::MutItems;
 use style::computed_values::{clear, float, position, text_align};
 use style::ComputedValues;
@@ -80,94 +80,94 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// If this is a block flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
-        fail!("called as_immutable_block() on a non-block flow")
+        panic!("called as_immutable_block() on a non-block flow")
     }
 
     /// If this is a block flow, returns the underlying object. Fails otherwise.
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         debug!("called as_block() on a flow of type {}", self.class());
-        fail!("called as_block() on a non-block flow")
+        panic!("called as_block() on a non-block flow")
     }
 
     /// If this is an inline flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_inline<'a>(&'a self) -> &'a InlineFlow {
-        fail!("called as_immutable_inline() on a non-inline flow")
+        panic!("called as_immutable_inline() on a non-inline flow")
     }
 
     /// If this is an inline flow, returns the underlying object. Fails otherwise.
     fn as_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
-        fail!("called as_inline() on a non-inline flow")
+        panic!("called as_inline() on a non-inline flow")
     }
 
     /// If this is a table wrapper flow, returns the underlying object. Fails otherwise.
     fn as_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
-        fail!("called as_table_wrapper() on a non-tablewrapper flow")
+        panic!("called as_table_wrapper() on a non-tablewrapper flow")
     }
 
     /// If this is a table wrapper flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
-        fail!("called as_immutable_table_wrapper() on a non-tablewrapper flow")
+        panic!("called as_immutable_table_wrapper() on a non-tablewrapper flow")
     }
 
     /// If this is a table flow, returns the underlying object. Fails otherwise.
     fn as_table<'a>(&'a mut self) -> &'a mut TableFlow {
-        fail!("called as_table() on a non-table flow")
+        panic!("called as_table() on a non-table flow")
     }
 
     /// If this is a table flow, returns the underlying object, borrowed immutably. Fails otherwise.
     fn as_immutable_table<'a>(&'a self) -> &'a TableFlow {
-        fail!("called as_table() on a non-table flow")
+        panic!("called as_table() on a non-table flow")
     }
 
     /// If this is a table colgroup flow, returns the underlying object. Fails otherwise.
     fn as_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
-        fail!("called as_table_colgroup() on a non-tablecolgroup flow")
+        panic!("called as_table_colgroup() on a non-tablecolgroup flow")
     }
 
     /// If this is a table rowgroup flow, returns the underlying object. Fails otherwise.
     fn as_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
-        fail!("called as_table_rowgroup() on a non-tablerowgroup flow")
+        panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
     }
 
     /// If this is a table rowgroup flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
-        fail!("called as_table_rowgroup() on a non-tablerowgroup flow")
+        panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
     }
 
     /// If this is a table row flow, returns the underlying object. Fails otherwise.
     fn as_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
-        fail!("called as_table_row() on a non-tablerow flow")
+        panic!("called as_table_row() on a non-tablerow flow")
     }
 
     /// If this is a table row flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_row<'a>(&'a self) -> &'a TableRowFlow {
-        fail!("called as_table_row() on a non-tablerow flow")
+        panic!("called as_table_row() on a non-tablerow flow")
     }
 
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
     fn as_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
-        fail!("called as_table_caption() on a non-tablecaption flow")
+        panic!("called as_table_caption() on a non-tablecaption flow")
     }
 
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
     fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
-        fail!("called as_table_cell() on a non-tablecell flow")
+        panic!("called as_table_cell() on a non-tablecell flow")
     }
 
     /// If this is a table cell flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_cell<'a>(&'a self) -> &'a TableCellFlow {
-        fail!("called as_table_cell() on a non-tablecell flow")
+        panic!("called as_table_cell() on a non-tablecell flow")
     }
 
     /// If this is a table row or table rowgroup or table flow, returns column inline-sizes.
     /// Fails otherwise.
     fn column_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnInlineSize> {
-        fail!("called column_inline_sizes() on non-table flow")
+        panic!("called column_inline_sizes() on non-table flow")
     }
 
     // Main methods
@@ -179,17 +179,17 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// This function must decide minimum/preferred inline-sizes based on its children's inline-
     /// sizes and the dimensions of any boxes it is responsible for flowing.
     fn bubble_inline_sizes(&mut self) {
-        fail!("bubble_inline_sizes not yet implemented")
+        panic!("bubble_inline_sizes not yet implemented")
     }
 
     /// Pass 2 of reflow: computes inline-size.
     fn assign_inline_sizes(&mut self, _ctx: &LayoutContext) {
-        fail!("assign_inline_sizes not yet implemented")
+        panic!("assign_inline_sizes not yet implemented")
     }
 
     /// Pass 3a of reflow: computes block-size.
     fn assign_block_size<'a>(&mut self, _ctx: &'a LayoutContext<'a>) {
-        fail!("assign_block_size not yet implemented")
+        panic!("assign_block_size not yet implemented")
     }
 
     /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
@@ -201,7 +201,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
         let impacted = base(&*self).flags.impacted_by_floats();
         if impacted {
             self.assign_block_size(layout_context);
-            mut_base(&mut *self).restyle_damage.remove(ReflowOutOfFlow | Reflow);
+            mut_base(&mut *self).restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
         impacted
     }
@@ -285,7 +285,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// Return the dimensions of the containing block generated by this flow for absolutely-
     /// positioned descendants. For block flows, this is the padding box.
     fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        fail!("generated_containing_block_position not yet implemented for this flow")
+        panic!("generated_containing_block_position not yet implemented for this flow")
     }
 
     /// Returns a layer ID for the given fragment.
@@ -299,26 +299,6 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
     /// the new style. This can only succeed if the flow has exactly one fragment.
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>);
-}
-
-impl<'a, E, S: Encoder<E>> Encodable<S, E> for &'a Flow + 'a {
-    fn encode(&self, e: &mut S) -> Result<(), E> {
-        e.emit_struct("flow", 0, |e| {
-            try!(e.emit_struct_field("class", 0, |e| self.class().encode(e)))
-            e.emit_struct_field("data", 1, |e| {
-                match self.class() {
-                    BlockFlowClass => self.as_immutable_block().encode(e),
-                    InlineFlowClass => self.as_immutable_inline().encode(e),
-                    TableFlowClass => self.as_immutable_table().encode(e),
-                    TableWrapperFlowClass => self.as_immutable_table_wrapper().encode(e),
-                    TableRowGroupFlowClass => self.as_immutable_table_rowgroup().encode(e),
-                    TableRowFlowClass => self.as_immutable_table_row().encode(e),
-                    TableCellFlowClass => self.as_immutable_table_cell().encode(e),
-                    _ => { Ok(()) }     // TODO: Support captions
-                }
-            })
-        })
-    }
 }
 
 // Base access
@@ -832,7 +812,24 @@ impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
             e.emit_struct_field("children", 4, |e| {
                 e.emit_seq(self.children.len(), |e| {
                     for (i, c) in self.children.iter().enumerate() {
-                        try!(e.emit_seq_elt(i, |e| c.encode(e)))
+                        try!(e.emit_seq_elt(i, |e| {
+                            try!(e.emit_struct("flow", 0, |e| {
+                                try!(e.emit_struct_field("class", 0, |e| c.class().encode(e)))
+                                e.emit_struct_field("data", 1, |e| {
+                                    match c.class() {
+                                        BlockFlowClass => c.as_immutable_block().encode(e),
+                                        InlineFlowClass => c.as_immutable_inline().encode(e),
+                                        TableFlowClass => c.as_immutable_table().encode(e),
+                                        TableWrapperFlowClass => c.as_immutable_table_wrapper().encode(e),
+                                        TableRowGroupFlowClass => c.as_immutable_table_rowgroup().encode(e),
+                                        TableRowFlowClass => c.as_immutable_table_row().encode(e),
+                                        TableCellFlowClass => c.as_immutable_table_cell().encode(e),
+                                        _ => { Ok(()) }     // TODO: Support captions
+                                    }
+                                })
+                            }))
+                            Ok(())
+                        }))
                     }
                     Ok(())
                 })
@@ -846,7 +843,7 @@ impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
 impl Drop for BaseFlow {
     fn drop(&mut self) {
         if self.ref_count.load(SeqCst) != 0 {
-            fail!("Flow destroyed before its ref count hit zero—this is unsafe!")
+            panic!("Flow destroyed before its ref count hit zero—this is unsafe!")
         }
     }
 }
@@ -884,7 +881,7 @@ impl BaseFlow {
 
         // New flows start out as fully damaged.
         let mut damage = RestyleDamage::all();
-        damage.remove(ReconstructFlow);
+        damage.remove(RECONSTRUCT_FLOW);
 
         BaseFlow {
             ref_count: AtomicUint::new(1),
@@ -1057,7 +1054,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
                 box TableCellFlow::from_node_and_fragment(node, fragment) as Box<Flow>
             },
             _ => {
-                fail!("no need to generate a missing child")
+                panic!("no need to generate a missing child")
             }
         };
         FlowRef::new(flow)
@@ -1283,7 +1280,7 @@ impl ContainingBlockLink {
     #[inline]
     pub fn generated_containing_block_rect(&mut self) -> LogicalRect<Au> {
         match self.link {
-            None => fail!("haven't done it"),
+            None => panic!("haven't done it"),
             Some(ref mut link) => link.generated_containing_block_rect(),
         }
     }

@@ -15,7 +15,8 @@ use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
 use servo_util::str::DOMString;
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
+use std::collections::hash_map::{Occupied, Vacant};
 
 #[deriving(Clone)]
 #[jstraceable]
@@ -57,13 +58,21 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     #[allow(unrooted_must_root)]
     fn Append(self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
         let file = FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
-        self.data.borrow_mut().insert_or_update_with(name.clone(), vec!(file.clone()),
-                                        |_k, v| {v.push(file.clone());});
+        let mut data = self.data.borrow_mut();
+        match data.entry(name) {
+            Occupied(entry) => entry.into_mut().push(file),
+            Vacant(entry) => {
+                entry.set(vec!(file));
+            }
+        }
     }
 
     fn Append_(self, name: DOMString, value: DOMString) {
-        self.data.borrow_mut().insert_or_update_with(name, vec!(StringData(value.clone())),
-                                        |_k, v| {v.push(StringData(value.clone()));});
+        let mut data = self.data.borrow_mut();
+        match data.entry(name) {
+            Occupied(entry) => entry.into_mut().push(StringData(value)),
+            Vacant  (entry) => { entry.set(vec!(StringData(value))); },
+        }
     }
 
     fn Delete(self, name: DOMString) {

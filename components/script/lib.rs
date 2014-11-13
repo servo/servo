@@ -7,7 +7,8 @@
 
 #![feature(default_type_params, globs, macro_rules, struct_variant, phase, unsafe_destructor)]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 #![allow(non_snake_case)]
 
 #![doc="The script crate contains all matters DOM."]
@@ -15,7 +16,6 @@
 #[phase(plugin, link)]
 extern crate log;
 
-extern crate debug;
 extern crate devtools_traits;
 extern crate cssparser;
 extern crate collections;

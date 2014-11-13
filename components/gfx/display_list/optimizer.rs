@@ -33,7 +33,7 @@ impl DisplayListOptimizer {
         for item in display_list.iter() {
             match self.process_display_item(item) {
                 None => {}
-                Some(display_item) => result.push(display_item),
+                Some(display_item) => result.push_back(display_item),
             }
         }
         DisplayList {
@@ -51,4 +51,3 @@ impl DisplayListOptimizer {
         }
     }
 }
-

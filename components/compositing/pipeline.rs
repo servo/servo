@@ -168,7 +168,7 @@ impl Pipeline {
     }
 
     pub fn exit(&self) {
-        debug!("pipeline {:?} exiting", self.id);
+        debug!("pipeline {} exiting", self.id);
 
         // Script task handles shutting down layout, and layout handles shutting down the renderer.
         // For now, if the script task has failed, we give up on clean shutdown.
@@ -189,4 +189,3 @@ impl Pipeline {
         }
     }
 }
-

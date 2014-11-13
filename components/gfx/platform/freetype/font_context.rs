@@ -70,7 +70,7 @@ impl FontContextHandle {
             let mut ctx: FT_Library = ptr::null_mut();
 
             let result = FT_New_Library(ptr as FT_Memory, &mut ctx);
-            if !result.succeeded() { fail!("Unable to initialize FreeType library"); }
+            if !result.succeeded() { panic!("Unable to initialize FreeType library"); }
 
             FT_Add_Default_Modules(ctx);
 

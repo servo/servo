@@ -49,7 +49,7 @@ use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
-use script::dom::node::{HasChanged, IsDirty, HasDirtySiblings, HasDirtyDescendants};
+use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
@@ -102,7 +102,7 @@ pub trait TLayoutNode {
         unsafe {
             match HTMLImageElementCast::to_js(self.get_jsmanaged()) {
                 Some(elem) => elem.image().as_ref().map(|url| (*url).clone()),
-                None => fail!("not an image!")
+                None => panic!("not an image!")
             }
         }
     }
@@ -114,7 +114,7 @@ pub trait TLayoutNode {
             let iframe_element: JS<HTMLIFrameElement> =
                 match HTMLIFrameElementCast::to_js(self.get_jsmanaged()) {
                     Some(elem) => elem,
-                    None => fail!("not an iframe element!")
+                    None => panic!("not an iframe element!")
                 };
             let size = (*iframe_element.unsafe_get()).size().unwrap();
             (*size.pipeline_id(), *size.subpage_id())
@@ -187,7 +187,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
                 Some(text) => (*text.unsafe_get()).characterdata().data_for_layout().to_string(),
                 None => match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
                     Some(input) => input.get_value_for_layout(),
-                    None => fail!("not text!")
+                    None => panic!("not text!")
                 }
             }
         }
@@ -342,7 +342,7 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
         unsafe {
             let elem: JS<Element> = match ElementCast::to_js(&self.node) {
                 Some(elem) => elem,
-                None => fail!("not an element")
+                None => panic!("not an element")
             };
 
             let element = &*elem.unsafe_get();
@@ -390,35 +390,35 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
     }
 
     fn has_changed(self) -> bool {
-        unsafe { self.node.get_flag(HasChanged) }
+        unsafe { self.node.get_flag(HAS_CHANGED) }
     }
 
     unsafe fn set_changed(self, value: bool) {
-        self.node.set_flag(HasChanged, value)
+        self.node.set_flag(HAS_CHANGED, value)
     }
 
     fn is_dirty(self) -> bool {
-        unsafe { self.node.get_flag(IsDirty) }
+        unsafe { self.node.get_flag(IS_DIRTY) }
     }
 
     unsafe fn set_dirty(self, value: bool) {
-        self.node.set_flag(IsDirty, value)
+        self.node.set_flag(IS_DIRTY, value)
     }
 
     fn has_dirty_siblings(self) -> bool {
-        unsafe { self.node.get_flag(HasDirtySiblings) }
+        unsafe { self.node.get_flag(HAS_DIRTY_SIBLINGS) }
     }
 
     unsafe fn set_dirty_siblings(self, value: bool) {
-        self.node.set_flag(HasDirtySiblings, value);
+        self.node.set_flag(HAS_DIRTY_SIBLINGS, value);
     }
 
     fn has_dirty_descendants(self) -> bool {
-        unsafe { self.node.get_flag(HasDirtyDescendants) }
+        unsafe { self.node.get_flag(HAS_DIRTY_DESCENDANTS) }
     }
 
     unsafe fn set_dirty_descendants(self, value: bool) {
-        self.node.set_flag(HasDirtyDescendants, value)
+        self.node.set_flag(HAS_DIRTY_DESCENDANTS, value)
     }
 }
 
@@ -752,7 +752,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         unsafe {
             let element = match ElementCast::to_js(self.get_jsmanaged()) {
                 Some(e) => e.unsafe_get(),
-                None => fail!("not an element")
+                None => panic!("not an element")
             };
             // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
             // implementations.
@@ -888,7 +888,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         unsafe {
             match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
                 Some(input) => input.get_value_for_layout(),
-                None => fail!("not an input element!")
+                None => panic!("not an input element!")
             }
         }
     }
@@ -897,7 +897,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         unsafe {
             match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
                 Some(input) => input.get_size_for_layout(),
-                None => fail!("not an input element!")
+                None => panic!("not an input element!")
             }
         }
     }
@@ -914,7 +914,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) => layout_data.data.restyle_damage = damage,
-            _ => fail!("no layout data for this node"),
+            _ => panic!("no layout data for this node"),
         }
     }
 
@@ -922,7 +922,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn flags(self) -> LayoutDataFlags {
         unsafe {
             match *self.borrow_layout_data_unchecked() {
-                None => fail!(),
+                None => panic!(),
                 Some(ref layout_data) => layout_data.data.flags,
             }
         }
@@ -933,7 +933,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) => layout_data.data.flags.insert(new_flags),
-            _ => fail!("no layout data for this node"),
+            _ => panic!("no layout data for this node"),
         }
     }
 
@@ -942,7 +942,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) => layout_data.data.flags.remove(flags),
-            _ => fail!("no layout data for this node"),
+            _ => panic!("no layout data for this node"),
         }
     }
 }

@@ -4,7 +4,7 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
-pub use std::ascii::StrAsciiExt;
+pub use std::ascii::AsciiExt;
 
 use servo_util::logical_geometry::{WritingMode, LogicalMargin};
 use sync::Arc;
@@ -160,7 +160,7 @@ pub mod longhands {
             ${caller.body()}
             pub mod computed_value {
                 #[allow(non_camel_case_types)]
-                #[deriving(PartialEq, Clone, FromPrimitive)]
+                #[deriving(PartialEq, Clone, FromPrimitive, Show)]
                 pub enum T {
                     % for value in values.split():
                         ${to_rust_ident(value)},
@@ -942,7 +942,7 @@ pub mod longhands {
             use super::super::Au;
             pub type T = Au;
         }
-        static MEDIUM_PX: int = 16;
+        const MEDIUM_PX: int = 16;
         #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(MEDIUM_PX)
         }
@@ -999,7 +999,8 @@ pub mod longhands {
         }
         pub mod computed_value {
             pub type T = super::SpecifiedValue;
-            pub static none: T = super::SpecifiedValue { underline: false, overline: false, line_through: false };
+            #[allow(non_upper_case_globals)]
+            pub const none: T = super::SpecifiedValue { underline: false, overline: false, line_through: false };
         }
         #[inline] pub fn get_initial_value() -> computed_value::T {
             none
@@ -1845,27 +1846,27 @@ fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Writing
     match inheritedbox_style.direction {
         computed_values::direction::ltr => {},
         computed_values::direction::rtl => {
-            flags.insert(logical_geometry::FlagRTL);
+            flags.insert(logical_geometry::FLAG_RTL);
         },
     }
     match inheritedbox_style.writing_mode {
         computed_values::writing_mode::horizontal_tb => {},
         computed_values::writing_mode::vertical_rl => {
-            flags.insert(logical_geometry::FlagVertical);
+            flags.insert(logical_geometry::FLAG_VERTICAL);
         },
         computed_values::writing_mode::vertical_lr => {
-            flags.insert(logical_geometry::FlagVertical);
-            flags.insert(logical_geometry::FlagVerticalLR);
+            flags.insert(logical_geometry::FLAG_VERTICAL);
+            flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
     }
     match inheritedbox_style.text_orientation {
         computed_values::text_orientation::sideways_right => {},
         computed_values::text_orientation::sideways_left => {
-            flags.insert(logical_geometry::FlagSidewaysLeft);
+            flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
         computed_values::text_orientation::sideways => {
-            if flags.intersects(logical_geometry::FlagVerticalLR) {
-                flags.insert(logical_geometry::FlagSidewaysLeft);
+            if flags.intersects(logical_geometry::FLAG_VERTICAL_LR) {
+                flags.insert(logical_geometry::FLAG_SIDEWAYS_LEFT);
             }
         },
     }

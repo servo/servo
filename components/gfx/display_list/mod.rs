@@ -20,7 +20,6 @@ use text::glyph::CharIndex;
 use text::TextRun;
 
 use azure::azure::AzFloat;
-use collections::Deque;
 use collections::dlist::{mod, DList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use libc::uintptr_t;
@@ -188,7 +187,7 @@ impl DisplayList {
     /// Appends the given item to the display list.
     #[inline]
     pub fn push(&mut self, item: DisplayItem) {
-        self.list.push(item);
+        self.list.push_back(item);
     }
 
     /// Appends the items in the given display list to this one, removing them in the process.
@@ -476,7 +475,7 @@ impl DisplayItem {
             }
 
             ImageDisplayItemClass(ref image_item) => {
-                debug!("Drawing image at {:?}.", image_item.base.bounds);
+                debug!("Drawing image at {}.", image_item.base.bounds);
 
                 let mut y_offset = Au(0);
                 while y_offset < image_item.base.bounds.size.height {

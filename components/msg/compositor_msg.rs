@@ -7,7 +7,6 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use layers::platform::surface::NativeGraphicsMetadata;
 use layers::layers::LayerBufferSet;
-use serialize::{Encoder, Encodable};
 use std::fmt::{Formatter, Show};
 use std::fmt;
 
@@ -33,7 +32,7 @@ pub enum ReadyState {
 }
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Show)]
 pub struct Epoch(pub uint);
 
 impl Epoch {
@@ -114,10 +113,4 @@ pub trait ScriptListener {
                              point: Point2D<f32>);
     fn close(&mut self);
     fn dup(&mut self) -> Box<ScriptListener+'static>;
-}
-
-impl<E, S: Encoder<E>> Encodable<S, E> for Box<ScriptListener+'static> {
-    fn encode(&self, _s: &mut S) -> Result<(), E> {
-        Ok(())
-    }
 }

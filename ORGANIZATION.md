@@ -20,8 +20,6 @@
 These libraries are either internal but used by Servo or external and need
 special integration:
 
-* `support/glfw-rs`: Wrapping for the GLFW library. Will eventually move to
-  being completely out of tree.
 * `support/rust-task_info`: A binding to the task_info library on OS X.
 
 ## Tests

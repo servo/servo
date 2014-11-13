@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
 use cssparser::ast::{ComponentValue, Ident, Comma, SkipWhitespaceIterable, SkipWhitespaceIterator};
 
 

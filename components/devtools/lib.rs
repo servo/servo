@@ -23,7 +23,6 @@ extern crate log;
 extern crate collections;
 extern crate core;
 extern crate devtools_traits;
-extern crate debug;
 extern crate serialize;
 extern crate sync;
 extern crate "msg" as servo_msg;
@@ -69,7 +68,7 @@ pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
 static POLL_TIMEOUT: u64 = 300;
 
 fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
-    let listener = TcpListener::bind("127.0.0.1", port);
+    let listener = TcpListener::bind(format!("{}:{}", "127.0.0.1", port).as_slice());
 
     // bind the listener to the specified address
     let mut acceptor = listener.listen().unwrap();
@@ -88,9 +87,9 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
 
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
-        println!("connection established to {:?}", stream.peer_name().unwrap());
+        println!("connection established to {}", stream.peer_name().unwrap());
         {
-            let mut actors = actors.lock();
+            let actors = actors.lock();
             let msg = actors.find::<RootActor>("root").encodable();
             stream.write_json_packet(&msg);
         }

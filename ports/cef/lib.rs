@@ -5,7 +5,7 @@
 #![feature(globs, macro_rules, phase, thread_local, link_args)]
 
 #![allow(experimental, non_camel_case_types)]
-#![deny(unused_imports, unused_variable, unused_mut)]
+#![deny(unused_imports, unused_variables, unused_mut)]
 
 #![feature(phase)]
 #[phase(plugin, link)]
@@ -46,7 +46,7 @@ pub mod browser;
 pub mod command_line;
 pub mod core;
 pub mod eutil;
-#[cfg(target_os="linux")] #[cfg(target_os="macos")]
+#[cfg(any(target_os="linux",target_os="macos"))]
 pub mod mem;
 pub mod request;
 pub mod string;

@@ -24,7 +24,7 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<LoadResponse>) {
             chan.send(Done(Ok(())));
             return
         }
-        "crash" => fail!("Loading the about:crash URL."),
+        "crash" => panic!("Loading the about:crash URL."),
         "failure" => {
             let mut path = resources_dir_path();
             path.push("failure.html");

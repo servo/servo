@@ -16,7 +16,7 @@ use js::rust::with_compartment;
 
 use std::cell::Cell;
 use std::cmp;
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
 use std::comm::{channel, Sender};
 use std::comm::Select;
 use std::hash::{Hash, sip};
@@ -149,7 +149,7 @@ impl TimerManager {
     }
 
     pub fn clear_timeout_or_interval(&self, handle: i32) {
-        let mut timer_handle = self.active_timers.borrow_mut().pop(&TimerId(handle));
+        let mut timer_handle = self.active_timers.borrow_mut().remove(&TimerId(handle));
         match timer_handle {
             Some(ref mut handle) => handle.cancel(),
             None => { }
@@ -158,7 +158,7 @@ impl TimerManager {
 
     pub fn fire_timer(&self, timer_id: TimerId, this: *mut JSObject, cx: *mut JSContext) {
 
-        let data = match self.active_timers.borrow().find(&timer_id) {
+        let data = match self.active_timers.borrow().get(&timer_id) {
             None => return,
             Some(timer_handle) => timer_handle.data,
         };

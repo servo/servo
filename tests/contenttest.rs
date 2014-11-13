@@ -7,7 +7,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 extern crate getopts;
 extern crate regex;
@@ -44,7 +45,7 @@ fn parse_config(args: Vec<String>) -> Config {
     let opts = vec!(reqopt("s", "source-dir", "source-dir", "source-dir"));
     let matches = match getopts(args, opts.as_slice()) {
       Ok(m) => m,
-      Err(f) => fail!(format!("{}", f))
+      Err(f) => panic!(format!("{}", f))
     };
 
     Config {
@@ -73,7 +74,7 @@ fn find_tests(config: Config) -> Vec<TestDescAndFn> {
     let files_res = fs::readdir(&Path::new(config.source_dir));
     let mut files = match files_res {
         Ok(files) => files,
-        _ => fail!("Error reading directory."),
+        _ => panic!("Error reading directory."),
     };
     files.retain(|file| file.extension_str() == Some("html") );
     return files.iter().map(|file| make_test(format!("{}", file.display()))).collect();
@@ -106,7 +107,7 @@ fn run_test(file: String) {
         .spawn()
     {
         Ok(p) => p,
-        _ => fail!("Unable to spawn process."),
+        _ => panic!("Unable to spawn process."),
     };
     let mut output = Vec::new();
     loop {
@@ -124,12 +125,12 @@ fn run_test(file: String) {
     let lines: Vec<&str> = out.unwrap().split('\n').collect();
     for &line in lines.iter() {
         if line.contains("TEST-UNEXPECTED-FAIL") {
-            fail!(line.to_string());
+            panic!(line.to_string());
         }
     }
 
     let retval = prc.wait();
     if retval != Ok(ExitStatus(0)) {
-        fail!("Servo exited with non-zero status {}", retval);
+        panic!("Servo exited with non-zero status {}", retval);
     }
 }

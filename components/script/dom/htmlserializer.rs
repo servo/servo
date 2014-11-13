@@ -55,7 +55,7 @@ pub fn serialize(iterator: &mut NodeIterator) -> String {
             }
             DocumentFragmentNodeTypeId => {}
             DocumentNodeTypeId => {
-                fail!("It shouldn't be possible to serialize a document node")
+                panic!("It shouldn't be possible to serialize a document node")
             }
         }
     }
@@ -94,7 +94,7 @@ fn serialize_processing_instruction(processing_instruction: JSRef<ProcessingInst
                                     html: &mut String) {
     html.push_str("<?");
     html.push_str(processing_instruction.target().as_slice());
-    html.push_char(' ');
+    html.push(' ');
     html.push_str(processing_instruction.characterdata().data().as_slice());
     html.push_str("?>");
 }
@@ -102,17 +102,17 @@ fn serialize_processing_instruction(processing_instruction: JSRef<ProcessingInst
 fn serialize_doctype(doctype: JSRef<DocumentType>, html: &mut String) {
     html.push_str("<!DOCTYPE");
     html.push_str(doctype.name().as_slice());
-    html.push_char('>');
+    html.push('>');
 }
 
 fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &mut String) {
-    html.push_char('<');
+    html.push('<');
     html.push_str(elem.local_name().as_slice());
     for attr in elem.attrs().iter() {
         let attr = attr.root();
         serialize_attr(*attr, html);
     };
-    html.push_char('>');
+    html.push('>');
 
     match elem.local_name().as_slice() {
         "pre" | "listing" | "textarea" if *elem.namespace() == ns!(HTML) => {
@@ -121,7 +121,7 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
                 Some(ref child) if child.is_text() => {
                     let text: JSRef<CharacterData> = CharacterDataCast::to_ref(**child).unwrap();
                     if text.data().len() > 0 && text.data().as_slice().char_at(0) == '\n' {
-                        html.push_char('\x0A');
+                        html.push('\x0A');
                     }
                 },
                 _ => {}
@@ -136,7 +136,7 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
 }
 
 fn serialize_attr(attr: JSRef<Attr>, html: &mut String) {
-    html.push_char(' ');
+    html.push(' ');
     if *attr.namespace() == ns!(XML) {
         html.push_str("xml:");
         html.push_str(attr.local_name().as_slice());
@@ -154,18 +154,18 @@ fn serialize_attr(attr: JSRef<Attr>, html: &mut String) {
     };
     html.push_str("=\"");
     escape(attr.value().as_slice(), true, html);
-    html.push_char('"');
+    html.push('"');
 }
 
 fn escape(string: &str, attr_mode: bool, html: &mut String) {
     for c in string.chars() {
         match c {
             '&' => html.push_str("&amp;"),
-            '\xA0' => html.push_str("&nbsp;"),
+            '\u00A0' => html.push_str("&nbsp;"),
             '"' if attr_mode => html.push_str("&quot;"),
             '<' if !attr_mode => html.push_str("&lt;"),
             '>' if !attr_mode => html.push_str("&gt;"),
-            c => html.push_char(c),
+            c => html.push(c),
         }
     }
 }

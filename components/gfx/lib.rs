@@ -4,13 +4,13 @@
 
 #![feature(globs, macro_rules, phase, unsafe_destructor)]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 #![feature(phase)]
 #[phase(plugin, link)]
 extern crate log;
 
-extern crate debug;
 extern crate azure;
 extern crate collections;
 extern crate geom;
@@ -38,8 +38,11 @@ extern crate url;
 extern crate harfbuzz;
 
 // Linux and Android-specific library dependencies
-#[cfg(target_os="linux")] #[cfg(target_os="android")] extern crate fontconfig;
-#[cfg(target_os="linux")] #[cfg(target_os="android")] extern crate freetype;
+#[cfg(any(target_os="linux", target_os = "android"))]
+extern crate fontconfig;
+
+#[cfg(any(target_os="linux", target_os = "android"))]
+extern crate freetype;
 
 // Mac OS-specific library dependencies
 #[cfg(target_os="macos")] extern crate core_foundation;

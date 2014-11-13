@@ -6,7 +6,7 @@ use dom::bindings::trace::JSTraceable;
 use js::jsapi::{JSTracer};
 
 use servo_util::task_state;
-use servo_util::task_state::{Script, InGC};
+use servo_util::task_state::{SCRIPT, IN_GC};
 
 use std::cell::{Cell, UnsafeCell};
 use std::kinds::marker;
@@ -39,7 +39,7 @@ impl<T> DOMRefCell<T> {
     /// This succeeds even if the object is mutably borrowed,
     /// so you have to be careful in trace code!
     pub unsafe fn borrow_for_gc_trace<'a>(&'a self) -> &'a T {
-        debug_assert!(task_state::get().contains(Script | InGC));
+        debug_assert!(task_state::get().contains(SCRIPT | IN_GC));
         &*self.value.get()
     }
 
@@ -87,8 +87,8 @@ impl<T: JSTraceable> JSTraceable for DOMRefCell<T> {
 // Values [1, MAX-1] represent the number of `Ref` active
 // (will not outgrow its range since `uint` is the size of the address space)
 type BorrowFlag = uint;
-static UNUSED: BorrowFlag = 0;
-static WRITING: BorrowFlag = -1;
+const UNUSED: BorrowFlag = 0;
+const WRITING: BorrowFlag = -1;
 
 impl<T> DOMRefCell<T> {
     pub fn new(value: T) -> DOMRefCell<T> {
@@ -108,14 +108,14 @@ impl<T> DOMRefCell<T> {
     pub fn borrow<'a>(&'a self) -> Ref<'a, T> {
         match self.try_borrow() {
             Some(ptr) => ptr,
-            None => fail!("DOMRefCell<T> already mutably borrowed")
+            None => panic!("DOMRefCell<T> already mutably borrowed")
         }
     }
 
     pub fn borrow_mut<'a>(&'a self) -> RefMut<'a, T> {
         match self.try_borrow_mut() {
             Some(ptr) => ptr,
-            None => fail!("DOMRefCell<T> already borrowed")
+            None => panic!("DOMRefCell<T> already borrowed")
         }
     }
 }

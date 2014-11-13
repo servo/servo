@@ -126,7 +126,7 @@ impl Request {
             },
             "blob" | "data" | "file" | "ftp" => {
                 // XXXManishearth handle these
-                fail!("Unimplemented scheme for Fetch")
+                panic!("Unimplemented scheme for Fetch")
             },
 
             _ => Response::network_error()

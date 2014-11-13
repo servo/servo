@@ -5,7 +5,7 @@
 use flow::Flow;
 use flow_ref::FlowRef;
 
-use std::collections::{Deque, dlist, DList};
+use std::collections::{dlist, DList};
 
 // This needs to be reworked now that we have dynamically-sized types in Rust.
 // Until then, it's just a wrapper around DList.
@@ -20,19 +20,6 @@ pub struct FlowListIterator<'a> {
 
 pub struct MutFlowListIterator<'a> {
     it: dlist::MutItems<'a, FlowRef>,
-}
-
-impl Collection for FlowList {
-    /// O(1)
-    #[inline]
-    fn is_empty(&self) -> bool {
-        self.flows.is_empty()
-    }
-    /// O(1)
-    #[inline]
-    fn len(&self) -> uint {
-        self.flows.len()
-    }
 }
 
 impl FlowList {
@@ -78,7 +65,7 @@ impl FlowList {
     ///
     /// O(1)
     pub fn push_back(&mut self, new_tail: FlowRef) {
-        self.flows.push(new_tail);
+        self.flows.push_back(new_tail);
     }
 
     /// Create an empty list
@@ -103,6 +90,18 @@ impl FlowList {
         MutFlowListIterator {
             it: self.flows.iter_mut(),
         }
+    }
+
+    /// O(1)
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.flows.is_empty()
+    }
+
+    /// O(1)
+    #[inline]
+    pub fn len(&self) -> uint {
+        self.flows.len()
     }
 }
 

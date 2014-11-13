@@ -90,9 +90,9 @@ impl Metadata {
     pub fn set_content_type(&mut self, content_type: &Option<MediaType>) {
         match *content_type {
             None => (),
-            Some(MediaType { type_:      ref type_,
-                             subtype:    ref subtype,
-                             parameters: ref parameters }) => {
+            Some(MediaType { ref type_,
+                             ref subtype,
+                             ref parameters }) => {
                 self.content_type = Some((type_.clone(), subtype.clone()));
                 for &(ref k, ref v) in parameters.iter() {
                     if "charset" == k.as_slice() {
@@ -266,7 +266,7 @@ fn test_bad_scheme() {
     let response = start.recv();
     match response.progress_port.recv() {
       Done(result) => { assert!(result.is_err()) }
-      _ => fail!("bleh")
+      _ => panic!("bleh")
     }
     resource_task.send(Exit);
 }

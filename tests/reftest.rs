@@ -7,14 +7,15 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 extern crate png;
 extern crate test;
 extern crate regex;
 extern crate url;
 
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
 use std::io;
 use std::io::{File, Reader, Command};
 use std::io::process::ExitStatus;
@@ -29,11 +30,11 @@ use url::Url;
 
 bitflags!(
     flags RenderMode: u32 {
-        static CpuRendering  = 0x00000001,
-        static GpuRendering  = 0x00000010,
-        static LinuxTarget   = 0x00000100,
-        static MacOsTarget   = 0x00001000,
-        static AndroidTarget = 0x00010000
+        const CPU_RENDERING  = 0x00000001,
+        const GPU_RENDERING  = 0x00000010,
+        const LINUX_TARGET   = 0x00000100,
+        const MACOS_TARGET   = 0x00001000,
+        const ANDROID_TARGET = 0x00010000
     }
 )
 
@@ -46,24 +47,24 @@ fn main() {
     let servo_args = parts.next().unwrap_or(&[]);
 
     let (render_mode_string, base_path, testname) = match harness_args {
-        [] | [_] => fail!("USAGE: cpu|gpu base_path [testname regex]"),
+        [] | [_] => panic!("USAGE: cpu|gpu base_path [testname regex]"),
         [ref render_mode_string, ref base_path] => (render_mode_string, base_path, None),
         [ref render_mode_string, ref base_path, ref testname, ..] => (render_mode_string, base_path, Some(Regex::new(testname.as_slice()).unwrap())),
     };
 
     let mut render_mode = match render_mode_string.as_slice() {
-        "cpu" => CpuRendering,
-        "gpu" => GpuRendering,
-        _ => fail!("First argument must specify cpu or gpu as rendering mode")
+        "cpu" => CPU_RENDERING,
+        "gpu" => GPU_RENDERING,
+        _ => panic!("First argument must specify cpu or gpu as rendering mode")
     };
     if cfg!(target_os = "linux") {
-        render_mode.insert(LinuxTarget);
+        render_mode.insert(LINUX_TARGET);
     }
     if cfg!(target_os = "macos") {
-        render_mode.insert(MacOsTarget);
+        render_mode.insert(MACOS_TARGET);
     }
     if cfg!(target_os = "android") {
-        render_mode.insert(AndroidTarget);
+        render_mode.insert(ANDROID_TARGET);
     }
 
     let mut all_tests = vec!();
@@ -156,13 +157,13 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
                 file_left: parts[2],
                 file_right: parts[3],
             },
-            _ => fail!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line),
+            _ => panic!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line),
         };
 
         let kind = match test_line.kind {
             "==" => Same,
             "!=" => Different,
-            part => fail!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
+            part => panic!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
         };
         let base = file.dir_path();
         let file_left =  base.join(test_line.file_left);
@@ -174,10 +175,10 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
         let mut fragment_identifier = None;
         for condition in conditions_list {
             match condition {
-                "flaky_cpu" => flakiness.insert(CpuRendering),
-                "flaky_gpu" => flakiness.insert(GpuRendering),
-                "flaky_linux" => flakiness.insert(LinuxTarget),
-                "flaky_macos" => flakiness.insert(MacOsTarget),
+                "flaky_cpu" => flakiness.insert(CPU_RENDERING),
+                "flaky_gpu" => flakiness.insert(GPU_RENDERING),
+                "flaky_linux" => flakiness.insert(LINUX_TARGET),
+                "flaky_macos" => flakiness.insert(MACOS_TARGET),
                 "experimental" => experimental = true,
                 _ => (),
             }
@@ -233,10 +234,10 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
             url.to_string()
         });
     // CPU rendering is the default
-    if reftest.render_mode.contains(CpuRendering) {
+    if reftest.render_mode.contains(CPU_RENDERING) {
         command.arg("-c");
     }
-    if reftest.render_mode.contains(GpuRendering) {
+    if reftest.render_mode.contains(GPU_RENDERING) {
         command.arg("-g");
     }
     if reftest.experimental {
@@ -244,14 +245,14 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     }
     let retval = match command.status() {
         Ok(status) => status,
-        Err(e) => fail!("failed to execute process: {}", e),
+        Err(e) => panic!("failed to execute process: {}", e),
     };
     assert_eq!(retval, ExitStatus(0));
 
     let image = png::load_png(&from_str::<Path>(png_filename.as_slice()).unwrap()).unwrap();
     let rgba8_bytes = match image.pixels {
         png::RGBA8(pixels) => pixels,
-        _ => fail!(),
+        _ => panic!(),
     };
     (image.width, image.height, rgba8_bytes)
 }
@@ -267,7 +268,7 @@ fn check_reftest(reftest: Reftest) {
     let right_all_white = right_bytes.iter().all(|&p| p == 255);
 
     if left_all_white && right_all_white {
-        fail!("Both renderings are empty")
+        panic!("Both renderings are empty")
     }
 
     let pixels = left_bytes.iter().zip(right_bytes.iter()).map(|(&a, &b)| {
@@ -297,7 +298,7 @@ fn check_reftest(reftest: Reftest) {
 
         match (reftest.kind, reftest.is_flaky) {
             (Same, true) => println!("flaky test - rendering difference: {}", output_str),
-            (Same, false) => fail!("rendering difference: {}", output_str),
+            (Same, false) => panic!("rendering difference: {}", output_str),
             (Different, _) => {}   // Result was different and that's what was expected
         }
     } else {

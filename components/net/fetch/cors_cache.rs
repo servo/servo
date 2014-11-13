@@ -10,7 +10,7 @@
 //! with CORSRequest being expanded into FetchRequest (etc)
 
 use http::method::Method;
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
 use std::comm::{Sender, Receiver, channel};
 use time;
 use time::{now, Timespec};

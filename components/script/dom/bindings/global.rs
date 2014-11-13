@@ -61,7 +61,7 @@ impl<'a> GlobalRef<'a> {
     pub fn as_window<'b>(&'b self) -> JSRef<'b, window::Window> {
         match *self {
             Window(window) => window,
-            Worker(_) => fail!("expected a Window scope"),
+            Worker(_) => panic!("expected a Window scope"),
         }
     }
 
@@ -144,6 +144,6 @@ pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalField {
             Err(_) => (),
         }
 
-        fail!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
+        panic!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
     }
 }
