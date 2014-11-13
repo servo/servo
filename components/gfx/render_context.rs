@@ -10,7 +10,7 @@ use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, SourceOp,
 use azure::scaled_font::ScaledFont;
 use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
-use display_list::{SidewaysLeft, SidewaysRight, TextDisplayItem, Upright};
+use display_list::{SidewaysLeft, SidewaysRight, TextDisplayItem, Upright, BorderRadii};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -24,7 +24,8 @@ use servo_net::image::base::Image;
 use servo_util::geometry::Au;
 use servo_util::opts;
 use servo_util::range::Range;
-use std::num::Zero;
+use std::default::Default;
+use std::num::{Float, FloatMath, Zero};
 use std::ptr;
 use style::computed_values::border_style;
 use sync::Arc;
@@ -67,15 +68,18 @@ impl<'a> RenderContext<'a>  {
     pub fn draw_border(&self,
                        bounds: &Rect<Au>,
                        border: SideOffsets2D<Au>,
+                       radius: &BorderRadii<Au>,
                        color: SideOffsets2D<Color>,
                        style: SideOffsets2D<border_style::T>) {
         let border = border.to_float_px();
+        let radius = radius.to_radii_px();
+
         self.draw_target.make_current();
 
-        self.draw_border_segment(Top, bounds, border, color, style);
-        self.draw_border_segment(Right, bounds, border, color, style);
-        self.draw_border_segment(Bottom, bounds, border, color, style);
-        self.draw_border_segment(Left, bounds, border, color, style);
+        self.draw_border_segment(Top, bounds, border, &radius, color, style);
+        self.draw_border_segment(Right, bounds, border, &radius, color, style);
+        self.draw_border_segment(Bottom, bounds, border, &radius, color, style);
+        self.draw_border_segment(Left, bounds, border, &radius, color, style);
     }
 
     pub fn draw_line(&self,
@@ -84,7 +88,7 @@ impl<'a> RenderContext<'a>  {
                      style: border_style::T) {
         self.draw_target.make_current();
 
-        self.draw_line_segment(bounds, color, style);
+        self.draw_line_segment(bounds, &Default::default(), color, style);
     }
 
     pub fn draw_push_clip(&self, bounds: &Rect<Au>) {
@@ -149,7 +153,7 @@ impl<'a> RenderContext<'a>  {
         self.draw_target.fill_rect(&rect, ColorPatternRef(&pattern), Some(&draw_options));
     }
 
-    fn draw_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: SideOffsets2D<Color>, style: SideOffsets2D<border_style::T>) {
+    fn draw_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<AzFloat>, color: SideOffsets2D<Color>, style: SideOffsets2D<border_style::T>) {
         let (style_select, color_select) = match direction {
             Top => (style.top, color.top),
             Left => (style.left, color.left),
@@ -170,24 +174,24 @@ impl<'a> RenderContext<'a>  {
                 self.draw_dashed_border_segment(direction, bounds, border, color_select, DashedBorder);
             }
             border_style::solid                        => {
-                self.draw_solid_border_segment(direction,bounds,border,color_select);
+                self.draw_solid_border_segment(direction,bounds,border,radius,color_select);
             }
             border_style::double                       => {
-                self.draw_double_border_segment(direction, bounds, border, color_select);
+                self.draw_double_border_segment(direction, bounds, border, radius, color_select);
             }
             border_style::groove | border_style::ridge => {
-                self.draw_groove_ridge_border_segment(direction, bounds, border, color_select, style_select);
+                self.draw_groove_ridge_border_segment(direction, bounds, border, radius, color_select, style_select);
             }
             border_style::inset | border_style::outset => {
-                self.draw_inset_outset_border_segment(direction, bounds, border, style_select, color_select);
+                self.draw_inset_outset_border_segment(direction, bounds, border, radius, color_select, style_select);
             }
         }
     }
 
-    fn draw_line_segment(&self, bounds: &Rect<Au>, color: Color, style: border_style::T) {
+    fn draw_line_segment(&self, bounds: &Rect<Au>, radius: &BorderRadii<AzFloat>, color: Color, style: border_style::T) {
         let border = SideOffsets2D::new_all_same(bounds.size.width).to_float_px();
 
-        match style{
+        match style {
             border_style::none | border_style::hidden  => {}
             border_style::dotted                       => {
                 self.draw_dashed_border_segment(Right, bounds, border, color, DottedBorder);
@@ -196,61 +200,231 @@ impl<'a> RenderContext<'a>  {
                 self.draw_dashed_border_segment(Right, bounds, border, color, DashedBorder);
             }
             border_style::solid                        => {
-                self.draw_solid_border_segment(Right,bounds,border,color);
+                self.draw_solid_border_segment(Right, bounds, border, radius, color);
             }
             border_style::double                       => {
-                self.draw_double_border_segment(Right, bounds, border, color);
+                self.draw_double_border_segment(Right, bounds, border, radius, color);
             }
             border_style::groove | border_style::ridge => {
-                self.draw_groove_ridge_border_segment(Right, bounds, border, color, style);
+                self.draw_groove_ridge_border_segment(Right, bounds, border, radius, color, style);
             }
             border_style::inset | border_style::outset => {
-                self.draw_inset_outset_border_segment(Right, bounds, border, style, color);
+                self.draw_inset_outset_border_segment(Right, bounds, border, radius, color, style);
             }
         }
     }
 
+    // The following comment is wonderful, and stolen from
+    // gecko:gfx/thebes/gfxContext.cpp:RoundedRectangle for reference.
+    //
+    // It does not currently apply to the code, but will be extremely useful in
+    // the future when the below TODO is addressed.
+    //
+    // TODO(cgaebel): Switch from arcs to beziers for drawing the corners.
+    //                Then, add http://www.subcide.com/experiments/fail-whale/
+    //                to the reftest suite.
+    //
+    // ---------------------------------------------------------------
+    //
+    // For CW drawing, this looks like:
+    //
+    //  ...******0**      1    C
+    //              ****
+    //                  ***    2
+    //                     **
+    //                       *
+    //                        *
+    //                         3
+    //                         *
+    //                         *
+    //
+    // Where 0, 1, 2, 3 are the control points of the Bezier curve for
+    // the corner, and C is the actual corner point.
+    //
+    // At the start of the loop, the current point is assumed to be
+    // the point adjacent to the top left corner on the top
+    // horizontal.  Note that corner indices start at the top left and
+    // continue clockwise, whereas in our loop i = 0 refers to the top
+    // right corner.
+    //
+    // When going CCW, the control points are swapped, and the first
+    // corner that's drawn is the top left (along with the top segment).
+    //
+    // There is considerable latitude in how one chooses the four
+    // control points for a Bezier curve approximation to an ellipse.
+    // For the overall path to be continuous and show no corner at the
+    // endpoints of the arc, points 0 and 3 must be at the ends of the
+    // straight segments of the rectangle; points 0, 1, and C must be
+    // collinear; and points 3, 2, and C must also be collinear.  This
+    // leaves only two free parameters: the ratio of the line segments
+    // 01 and 0C, and the ratio of the line segments 32 and 3C.  See
+    // the following papers for extensive discussion of how to choose
+    // these ratios:
+    //
+    //   Dokken, Tor, et al. "Good approximation of circles by
+    //      curvature-continuous Bezier curves."  Computer-Aided
+    //      Geometric Design 7(1990) 33--41.
+    //   Goldapp, Michael. "Approximation of circular arcs by cubic
+    //      polynomials." Computer-Aided Geometric Design 8(1991) 227--238.
+    //   Maisonobe, Luc. "Drawing an elliptical arc using polylines,
+    //      quadratic, or cubic Bezier curves."
+    //      http://www.spaceroots.org/documents/ellipse/elliptical-arc.pdf
+    //
+    // We follow the approach in section 2 of Goldapp (least-error,
+    // Hermite-type approximation) and make both ratios equal to
+    //
+    //          2   2 + n - sqrt(2n + 28)
+    //  alpha = - * ---------------------
+    //          3           n - 4
+    //
+    // where n = 3( cbrt(sqrt(2)+1) - cbrt(sqrt(2)-1) ).
+    //
+    // This is the result of Goldapp's equation (10b) when the angle
+    // swept out by the arc is pi/2, and the parameter "a-bar" is the
+    // expression given immediately below equation (21).
+    //
+    // Using this value, the maximum radial error for a circle, as a
+    // fraction of the radius, is on the order of 0.2 x 10^-3.
+    // Neither Dokken nor Goldapp discusses error for a general
+    // ellipse; Maisonobe does, but his choice of control points
+    // follows different constraints, and Goldapp's expression for
+    // 'alpha' gives much smaller radial error, even for very flat
+    // ellipses, than Maisonobe's equivalent.
+    //
+    // For the various corners and for each axis, the sign of this
+    // constant changes, or it might be 0 -- it's multiplied by the
+    // appropriate multiplier from the list before using.
+
+    #[allow(non_snake_case)]
     fn draw_border_path(&self,
-                        bounds:    Rect<f32>,
+                        bounds:    &Rect<f32>,
                         direction: Direction,
                         border:    SideOffsets2D<f32>,
+                        radius:    &BorderRadii<AzFloat>,
                         color:     Color) {
-        let left_top     = bounds.origin;
-        let right_top    = left_top + Point2D(bounds.size.width, 0.0);
-        let left_bottom  = left_top + Point2D(0.0, bounds.size.height);
-        let right_bottom = left_top + Point2D(bounds.size.width, bounds.size.height);
+        // T = top, B = bottom, L = left, R = right
+
+        let box_TL = bounds.origin;
+        let box_TR = box_TL + Point2D(bounds.size.width, 0.0);
+        let box_BL = box_TL + Point2D(0.0, bounds.size.height);
+        let box_BR = box_TL + Point2D(bounds.size.width, bounds.size.height);
+
         let draw_opts    = DrawOptions::new(1.0, 0);
         let path_builder = self.draw_target.create_path_builder();
-         match direction {
-             Top    => {
-                 path_builder.move_to(left_top);
-                 path_builder.line_to(right_top);
-                 path_builder.line_to(right_top + Point2D(-border.right, border.top));
-                 path_builder.line_to(left_top + Point2D(border.left, border.top));
-             }
-             Left   => {
-                 path_builder.move_to(left_top);
-                 path_builder.line_to(left_top + Point2D(border.left, border.top));
-                 path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
-                 path_builder.line_to(left_bottom);
-             }
-             Right  => {
-                 path_builder.move_to(right_top);
-                 path_builder.line_to(right_bottom);
-                 path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
-                 path_builder.line_to(right_top + Point2D(-border.right, border.top));
-             }
-             Bottom => {
-                 path_builder.move_to(left_bottom);
-                 path_builder.line_to(left_bottom + Point2D(border.left, -border.bottom));
-                 path_builder.line_to(right_bottom + Point2D(-border.right, -border.bottom));
-                 path_builder.line_to(right_bottom);
-             }
-         }
-         let path = path_builder.finish();
-         self.draw_target.fill(&path, &ColorPattern::new(color), &draw_opts);
 
-     }
+        let rad_R: AzFloat = 0.;
+        let rad_BR = rad_R  + Float::frac_pi_4();
+        let rad_B  = rad_BR + Float::frac_pi_4();
+        let rad_BL = rad_B  + Float::frac_pi_4();
+        let rad_L  = rad_BL + Float::frac_pi_4();
+        let rad_TL = rad_L  + Float::frac_pi_4();
+        let rad_T  = rad_TL + Float::frac_pi_4();
+        let rad_TR = rad_T  + Float::frac_pi_4();
+
+        match direction {
+            Top    => {
+                let edge_TL = box_TL  + Point2D(radius.top_left.max(border.left), 0.);
+                let edge_TR = box_TR  + Point2D(-radius.top_right.max(border.right), 0.);
+                let edge_BR = edge_TR + Point2D(0., border.top);
+                let edge_BL = edge_TL + Point2D(0., border.top);
+
+                path_builder.move_to(edge_TL);
+                path_builder.line_to(edge_TR);
+
+                // the origin is the center of the arcs we're about to draw.
+                let origin = edge_TR + Point2D((border.right - radius.top_right).max(0.), radius.top_right);
+                // the elbow is the inside of the border's curve.
+                let distance_to_elbow = (radius.top_right - border.top).max(0.);
+
+                path_builder.arc(origin, radius.top_right,  rad_T, rad_TR, false);
+                path_builder.arc(origin, distance_to_elbow, rad_TR, rad_T, true);
+
+                path_builder.line_to(edge_BR);
+                path_builder.line_to(edge_BL);
+
+                let origin = edge_TL + Point2D(-(border.left - radius.top_left).max(0.), radius.top_left);
+                let distance_to_elbow = (radius.top_left - border.top).max(0.);
+
+                path_builder.arc(origin, distance_to_elbow, rad_T, rad_TL, true);
+                path_builder.arc(origin, radius.top_left,   rad_TL, rad_T, false);
+            }
+            Left   => {
+                let edge_TL = box_TL  + Point2D(0., radius.top_left.max(border.top));
+                let edge_BL = box_BL  + Point2D(0., -radius.bottom_left.max(border.bottom));
+                let edge_TR = edge_TL + Point2D(border.left, 0.);
+                let edge_BR = edge_BL + Point2D(border.left, 0.);
+
+                path_builder.move_to(edge_BL);
+                path_builder.line_to(edge_TL);
+
+                let origin = edge_TL + Point2D(radius.top_left, -(border.top - radius.top_left).max(0.));
+                let distance_to_elbow = (radius.top_left - border.left).max(0.);
+
+                path_builder.arc(origin, radius.top_left,   rad_L, rad_TL, false);
+                path_builder.arc(origin, distance_to_elbow, rad_TL, rad_L, true);
+
+                path_builder.line_to(edge_TR);
+                path_builder.line_to(edge_BR);
+
+                let origin = edge_BL + Point2D(radius.bottom_left, (border.bottom - radius.bottom_left).max(0.));
+                let distance_to_elbow = (radius.bottom_left - border.left).max(0.);
+
+                path_builder.arc(origin, distance_to_elbow,  rad_L, rad_BL, true);
+                path_builder.arc(origin, radius.bottom_left, rad_BL, rad_L, false);
+            }
+            Right  => {
+                let edge_TR = box_TR  + Point2D(0., radius.top_right.max(border.top));
+                let edge_BR = box_BR  + Point2D(0., -radius.bottom_right.max(border.bottom));
+                let edge_TL = edge_TR + Point2D(-border.right, 0.);
+                let edge_BL = edge_BR + Point2D(-border.right, 0.);
+
+                path_builder.move_to(edge_BL);
+                path_builder.line_to(edge_TL);
+
+                let origin = edge_TR + Point2D(-radius.top_right, -(border.top - radius.top_right).max(0.));
+                let distance_to_elbow = (radius.top_right - border.right).max(0.);
+
+                path_builder.arc(origin, distance_to_elbow, rad_R, rad_TR, true);
+                path_builder.arc(origin, radius.top_right,  rad_TR, rad_R, false);
+
+                path_builder.line_to(edge_TR);
+                path_builder.line_to(edge_BR);
+
+                let origin = edge_BR + Point2D(-radius.bottom_right, (border.bottom - radius.bottom_right).max(0.));
+                let distance_to_elbow = (radius.bottom_right - border.right).max(0.);
+
+                path_builder.arc(origin, radius.bottom_right, rad_R, rad_BR, false);
+                path_builder.arc(origin, distance_to_elbow,   rad_BR, rad_R, true);
+            }
+            Bottom => {
+                let edge_BL = box_BL  + Point2D(radius.bottom_left.max(border.left), 0.);
+                let edge_BR = box_BR  + Point2D(-radius.bottom_right.max(border.right), 0.);
+                let edge_TL = edge_BL + Point2D(0., -border.bottom);
+                let edge_TR = edge_BR + Point2D(0., -border.bottom);
+
+                path_builder.move_to(edge_TL);
+                path_builder.line_to(edge_TR);
+
+                let origin = edge_BR + Point2D((border.right - radius.bottom_right).max(0.), -radius.bottom_right);
+                let distance_to_elbow = (radius.bottom_right - border.bottom).max(0.);
+
+                path_builder.arc(origin, distance_to_elbow,   rad_B, rad_BR, true);
+                path_builder.arc(origin, radius.bottom_right, rad_BR, rad_B, false);
+
+                path_builder.line_to(edge_BR);
+                path_builder.line_to(edge_BL);
+
+                let origin = edge_BL - Point2D((border.left - radius.bottom_left).max(0.), radius.bottom_left);
+                let distance_to_elbow = (radius.bottom_left - border.bottom).max(0.);
+
+                path_builder.arc(origin, radius.bottom_left, rad_B, rad_BL, false);
+                path_builder.arc(origin, distance_to_elbow,  rad_BL, rad_B, true);
+            }
+        }
+
+        let path = path_builder.finish();
+        self.draw_target.fill(&path, &ColorPattern::new(color), &draw_opts);
+    }
 
     fn draw_dashed_border_segment(&self,
                                   direction: Direction,
@@ -312,9 +486,9 @@ impl<'a> RenderContext<'a>  {
                                      &draw_opts);
     }
 
-    fn draw_solid_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {
+    fn draw_solid_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<AzFloat>, color: Color) {
         let rect = bounds.to_azure_rect();
-        self.draw_border_path(rect, direction, border, color);
+        self.draw_border_path(&rect, direction, border, radius, color);
     }
 
     fn get_scaled_bounds(&self,
@@ -337,22 +511,23 @@ impl<'a> RenderContext<'a>  {
         return Color::new(color.r * scale_factor, color.g * scale_factor, color.b * scale_factor, color.a);
     }
 
-    fn draw_double_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, color: Color) {
+    fn draw_double_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<AzFloat>, color: Color) {
         let scaled_border       = SideOffsets2D::new((1.0/3.0) * border.top,
                                                      (1.0/3.0) * border.right,
                                                      (1.0/3.0) * border.bottom,
                                                      (1.0/3.0) * border.left);
         let inner_scaled_bounds = self.get_scaled_bounds(bounds, border, 2.0/3.0);
         // draw the outer portion of the double border.
-        self.draw_solid_border_segment(direction, bounds, scaled_border, color);
+        self.draw_solid_border_segment(direction, bounds, scaled_border, radius, color);
         // draw the inner portion of the double border.
-        self.draw_border_path(inner_scaled_bounds, direction, scaled_border, color);
+        self.draw_border_path(&inner_scaled_bounds, direction, scaled_border, radius, color);
     }
 
     fn draw_groove_ridge_border_segment(&self,
                                         direction: Direction,
                                         bounds:    &Rect<Au>,
                                         border:    SideOffsets2D<f32>,
+                                        radius:    &BorderRadii<AzFloat>,
                                         color:     Color,
                                         style:     border_style::T) {
         // original bounds as a Rect<f32>, with no scaling.
@@ -374,17 +549,18 @@ impl<'a> RenderContext<'a>  {
             (Top, false) | (Left, false) | (Right, true)  | (Bottom, true)  => (color, darker_color)
         };
         // outer portion of the border
-        self.draw_border_path(original_bounds, direction, scaled_border, outer_color);
+        self.draw_border_path(&original_bounds, direction, scaled_border, radius, outer_color);
         // inner portion of the border
-        self.draw_border_path(inner_scaled_bounds, direction, scaled_border, inner_color);
+        self.draw_border_path(&inner_scaled_bounds, direction, scaled_border, radius, inner_color);
     }
 
     fn draw_inset_outset_border_segment(&self,
                                         direction: Direction,
                                         bounds:    &Rect<Au>,
                                         border:    SideOffsets2D<f32>,
-                                        style:     border_style::T,
-                                        color:     Color) {
+                                        radius:    &BorderRadii<AzFloat>,
+                                        color:     Color,
+                                        style:     border_style::T) {
         let is_inset = match style {
                 border_style::inset  =>  true,
                 border_style::outset =>  false,
@@ -398,7 +574,7 @@ impl<'a> RenderContext<'a>  {
             Left            => self.scale_color(color, if is_inset { 1.0/6.0 } else { 0.5     }),
             Right | Bottom  => self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 })
         };
-        self.draw_border_path(original_bounds, direction, border, scaled_color);
+        self.draw_border_path(&original_bounds, direction, border, radius, scaled_color);
     }
 
     pub fn draw_text(&mut self,
@@ -502,6 +678,21 @@ impl ToSideOffsetsPx for SideOffsets2D<Au> {
     }
 }
 
+trait ToRadiiPx {
+    fn to_radii_px(&self) -> BorderRadii<AzFloat>;
+}
+
+impl ToRadiiPx for BorderRadii<Au> {
+    fn to_radii_px(&self) -> BorderRadii<AzFloat> {
+        BorderRadii {
+            top_left: self.top_left.to_nearest_px() as AzFloat,
+            top_right: self.top_right.to_nearest_px() as AzFloat,
+            bottom_left: self.bottom_left.to_nearest_px() as AzFloat,
+            bottom_right: self.bottom_right.to_nearest_px() as AzFloat,
+        }
+    }
+}
+
 trait ScaledFontExtensionMethods {
     fn draw_text_into_context(&self,
                               rctx: &RenderContext,
@@ -575,4 +766,3 @@ impl ScaledFontExtensionMethods for ScaledFont {
         }
     }
 }
-
