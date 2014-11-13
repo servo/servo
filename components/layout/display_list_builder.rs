@@ -25,7 +25,7 @@ use collections::dlist::DList;
 use geom::approxeq::ApproxEq;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
-use gfx::display_list::{BackgroundAndBorderLevel, BaseDisplayItem, BorderDisplayItem};
+use gfx::display_list::{BackgroundAndBorderLevel, BaseDisplayItem, BorderDisplayItem, BorderRadii};
 use gfx::display_list::{BorderDisplayItemClass, ContentStackingLevel, DisplayList};
 use gfx::display_list::{FloatStackingLevel, GradientDisplayItem, GradientDisplayItemClass};
 use gfx::display_list::{GradientStop, ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem};
@@ -41,12 +41,15 @@ use servo_util::dlist;
 use servo_util::geometry::{mod, Au, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, WritingMode};
 use servo_util::opts;
+use std::cmp;
+use std::default::Default;
 use std::mem;
 use style::computed::{AngleAoc, CornerAoc, LP_Length, LP_Percentage, LengthOrPercentage};
 use style::computed::{LinearGradient, LinearGradientImage, UrlImage};
 use style::computed_values::{background_attachment, background_repeat, border_style, overflow};
 use style::computed_values::{visibility};
 use style::{ComputedValues, Bottom, Left, RGBA, Right, Top};
+use style::style_structs::Border;
 use sync::Arc;
 use url::Url;
 
@@ -127,6 +130,38 @@ pub trait FragmentDisplayListBuilding {
 
     fn clip_rect_for_children(&self, current_clip_rect: Rect<Au>, flow_origin: Point2D<Au>)
                               -> Rect<Au>;
+}
+
+fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &Border) -> BorderRadii<Au> {
+    fn au_of_length(len: LengthOrPercentage, base: Au) -> Au {
+        cmp::min(
+            base / 2,
+            match len {
+                LP_Length(x)        => x,
+                LP_Percentage(frac) => base.scale_by(frac),
+            })
+    }
+
+    fn avg(x: LengthOrPercentage, x_width: Au, y: LengthOrPercentage, y_width: Au) -> Au {
+        // TODO(cgaebel): Temporary hack to support border-radius only when they're
+        // they same on all sides.
+        (au_of_length(x, x_width) + au_of_length(y, y_width)).scale_by(0.5)
+    }
+
+    BorderRadii {
+        top_left:
+            avg(border_style.border_top_left_radius.first,  abs_bounds.size.width,
+                border_style.border_top_left_radius.second, abs_bounds.size.height),
+        top_right:
+            avg(border_style.border_top_right_radius.first, abs_bounds.size.width,
+                border_style.border_top_right_radius.second, abs_bounds.size.height),
+        bottom_right:
+            avg(border_style.border_bottom_right_radius.first, abs_bounds.size.width,
+                border_style.border_bottom_right_radius.second, abs_bounds.size.height),
+        bottom_left:
+            avg(border_style.border_bottom_left_radius.first, abs_bounds.size.width,
+                border_style.border_bottom_left_radius.second, abs_bounds.size.height),
+    }
 }
 
 impl FragmentDisplayListBuilding for Fragment {
@@ -392,7 +427,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Append the border to the display list.
         list.push(BorderDisplayItemClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(*abs_bounds, self.node, level, *clip_rect),
-            border: border.to_physical(style.writing_mode),
+            width: border.to_physical(style.writing_mode),
             color: SideOffsets2D::new(top_color.to_gfx_color(),
                                       right_color.to_gfx_color(),
                                       bottom_color.to_gfx_color(),
@@ -400,7 +435,8 @@ impl FragmentDisplayListBuilding for Fragment {
             style: SideOffsets2D::new(style.get_border().border_top_style,
                                       style.get_border().border_right_style,
                                       style.get_border().border_bottom_style,
-                                      style.get_border().border_left_style)
+                                      style.get_border().border_left_style),
+            radius: build_border_radius(abs_bounds, style.get_border()),
         }));
     }
 
@@ -423,9 +459,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                        self.node,
                                        ContentStackingLevel,
                                        *clip_rect),
-            border: SideOffsets2D::new_all_same(Au::from_px(1)),
+            width: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
-            style: SideOffsets2D::new_all_same(border_style::solid)
+            style: SideOffsets2D::new_all_same(border_style::solid),
+            radius: Default::default(),
         }));
 
         // Draw a rectangle representing the baselines.
@@ -462,9 +499,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                        self.node,
                                        ContentStackingLevel,
                                        *clip_rect),
-            border: SideOffsets2D::new_all_same(Au::from_px(1)),
+            width: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
-            style: SideOffsets2D::new_all_same(border_style::solid)
+            style: SideOffsets2D::new_all_same(border_style::solid),
+            radius: Default::default(),
         }));
     }
 
@@ -872,4 +910,3 @@ fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32
         LP_Percentage(percentage) => percentage as f32,
     }
 }
-

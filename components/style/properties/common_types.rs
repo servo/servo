@@ -22,7 +22,7 @@ pub mod specified {
     use super::{Au, CSSFloat};
     pub use cssparser::Color as CSSColor;
 
-    #[deriving(Clone)]
+    #[deriving(Clone, Show)]
     pub enum Length {
         Au_(Au),  // application units
         Em(CSSFloat),
@@ -84,11 +84,12 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Clone, Show)]
     pub enum LengthOrPercentage {
         LP_Length(Length),
         LP_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
     }
+
     impl LengthOrPercentage {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
                               -> Result<LengthOrPercentage, ()> {
@@ -504,11 +505,12 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Show)]
     pub enum LengthOrPercentage {
         LP_Length(Au),
         LP_Percentage(CSSFloat),
     }
+
     #[allow(non_snake_case)]
     pub fn compute_LengthOrPercentage(value: specified::LengthOrPercentage, context: &Context)
                                    -> LengthOrPercentage {
@@ -518,7 +520,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Show)]
     pub enum LengthOrPercentageOrAuto {
         LPA_Length(Au),
         LPA_Percentage(CSSFloat),
@@ -534,7 +536,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Show)]
     pub enum LengthOrPercentageOrNone {
         LPN_Length(Au),
         LPN_Percentage(CSSFloat),
@@ -604,5 +606,3 @@ pub fn parse_url(input: &str, base_url: &Url) -> Url {
     UrlParser::new().base_url(base_url).parse(input)
         .unwrap_or_else(|_| Url::parse("about:invalid").unwrap())
 }
-
-

@@ -284,6 +284,67 @@ pub mod longhands {
         </%self:longhand>
     % endfor
 
+    % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
+        <%self:longhand name="border-${corner}-radius">
+            % if corner == "top-left":
+                #[deriving(Clone, Show)]
+                pub struct SpecifiedValue {
+                    pub first: specified::LengthOrPercentage,
+                    pub second: specified::LengthOrPercentage,
+                }
+
+                pub mod computed_value {
+                    use super::super::computed;
+
+                    #[deriving(Clone, PartialEq, Show)]
+                    pub struct T {
+                        pub first: computed::LengthOrPercentage,
+                        pub second: computed::LengthOrPercentage,
+                    }
+
+                }
+            % else:
+                pub type SpecifiedValue = super::border_top_left_radius::SpecifiedValue;
+
+                pub mod computed_value {
+                    pub type T = super::super::border_top_left_radius::computed_value::T;
+                }
+            % endif
+
+            #[inline]
+            pub fn get_initial_value() -> computed_value::T {
+                computed_value::T {
+                    first: computed::LP_Length(Au(0)),
+                    second: computed::LP_Length(Au(0)),
+                }
+            }
+            #[inline]
+            pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                                     -> computed_value::T {
+                computed_value::T {
+                    first: computed::compute_LengthOrPercentage(value.first, context),
+                    second: computed::compute_LengthOrPercentage(value.second, context),
+                }
+            }
+
+            pub fn parse(input: &[ComponentValue], _: &Url) -> Result<SpecifiedValue,()> {
+                if input.len() == 0 || input.len() > 2 {
+                    return Err(())
+                }
+                let first = try!(specified::LengthOrPercentage::parse(&input[0]));
+                let second = if input.len() == 2 {
+                    try!(specified::LengthOrPercentage::parse(&input[1]))
+                } else {
+                    first
+                };
+                Ok(SpecifiedValue {
+                    first: first,
+                    second: second,
+                })
+            }
+        </%self:longhand>
+    % endfor
+
     ${new_style_struct("PositionOffsets", is_inherited=False)}
 
     % for side in ["top", "right", "bottom", "left"]:
@@ -1156,6 +1217,7 @@ pub mod shorthands {
                     pub ${sub_property.ident}: Option<${sub_property.ident}::SpecifiedValue>,
                 % endfor
             }
+            #[allow(unused_variables)]
             pub fn parse(input: &[ComponentValue], base_url: &Url) -> Result<Longhands, ()> {
                 ${caller.body()}
             }
@@ -1380,6 +1442,64 @@ pub mod shorthands {
                     % endfor
                 % endfor
             }
+        })
+    </%self:shorthand>
+
+    <%self:shorthand name="border-radius" sub_properties="${' '.join(
+        'border-%s-radius' % (corner)
+         for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
+    )}">
+        use std::iter::Peekable;
+
+        fn parse_one_set_of_border_radii<'a,I>(mut input: Peekable< &'a ComponentValue,I >)
+                                         -> Result<[specified::LengthOrPercentage, ..4],()>
+                                         where I: Iterator< &'a ComponentValue > {
+            let (mut count, mut values) = (0u, [specified::LP_Length(specified::Au_(Au(0))), ..4]);
+            while count < 4 {
+                let token = match input.peek() {
+                    None => break,
+                    Some(token) => *token,
+                };
+                let value = match specified::LengthOrPercentage::parse(token) {
+                    Err(_) => break,
+                    Ok(value) => value,
+                };
+                drop(input.next());
+                values[count] = value;
+                count += 1
+            }
+
+            match count {
+                1 => Ok([values[0], values[0], values[0], values[0]]),
+                2 => Ok([values[0], values[1], values[0], values[1]]),
+                3 => Ok([values[0], values[1], values[2], values[1]]),
+                4 => Ok([values[0], values[1], values[2], values[3]]),
+                count => Err(()),
+            }
+        }
+
+        let input = input.skip_whitespace().peekable();
+        let first_set = try!(parse_one_set_of_border_radii(input));
+        // TODO(pcwalton): Elliptical borders, as soon as the CSS parser can parse slashes!
+        let second_set = first_set;
+
+        Ok(Longhands {
+            border_top_left_radius: Some(border_top_left_radius::SpecifiedValue {
+                first: first_set[0],
+                second: second_set[0],
+            }),
+            border_top_right_radius: Some(border_top_left_radius::SpecifiedValue {
+                first: first_set[1],
+                second: second_set[1],
+            }),
+            border_bottom_right_radius: Some(border_top_left_radius::SpecifiedValue {
+                first: first_set[2],
+                second: second_set[2],
+            }),
+            border_bottom_left_radius: Some(border_top_left_radius::SpecifiedValue {
+                first: first_set[3],
+                second: second_set[3],
+            }),
         })
     </%self:shorthand>
 
