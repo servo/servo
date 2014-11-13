@@ -51,7 +51,7 @@ use servo_msg::constellation_msg::ConstellationChan;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::str::LengthOrPercentageOrAuto;
 use std::cell::{Cell, RefCell};
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
 use std::comm::{Receiver, Sender};
 use std::io::timer::Timer;
 use std::rc::Rc;

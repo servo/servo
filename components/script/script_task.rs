@@ -494,7 +494,7 @@ impl ScriptTask {
                     needs_reflow.insert(id);
                 }
                 FromConstellation(ViewportMsg(id, rect)) => {
-                    let mut page = self.page.borrow_mut();
+                    let page = self.page.borrow_mut();
                     let inner_page = page.find(id).expect("Page rect message sent to nonexistent pipeline");
                     if inner_page.set_page_clip_rect_with_new_viewport(rect) {
                         needs_reflow.insert(id);
@@ -535,7 +535,7 @@ impl ScriptTask {
                 FromConstellation(ReflowCompleteMsg(id, reflow_id)) => self.handle_reflow_complete_msg(id, reflow_id),
                 FromConstellation(ResizeInactiveMsg(id, new_size)) => self.handle_resize_inactive_msg(id, new_size),
                 FromConstellation(ExitPipelineMsg(id)) => if self.handle_exit_pipeline_msg(id) { return false },
-                FromConstellation(ViewportMsg(..)) => fail!("should have handled ViewportMsg already"),
+                FromConstellation(ViewportMsg(..)) => panic!("should have handled ViewportMsg already"),
                 FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
                 FromConstellation(ResizeMsg(..)) => panic!("should have handled ResizeMsg already"),
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_progress(addr, progress),
