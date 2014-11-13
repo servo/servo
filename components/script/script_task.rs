@@ -9,7 +9,9 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyStateValues};
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast, ElementCast};
 use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
@@ -23,6 +25,7 @@ use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptio
 use dom::event::{Event, Bubbles, DoesNotBubble, Cancelable, NotCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
+use dom::keyboardevent::KeyboardEvent;
 use dom::node;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
@@ -42,11 +45,13 @@ use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, Mouse
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, ViewportMsg, SendEventMsg};
 use script_traits::{ResizeInactiveMsg, ExitPipelineMsg, NewLayoutInfo, OpaqueScriptLayoutChannel};
-use script_traits::{ScriptControlChan, ReflowCompleteMsg, UntrustedNodeAddress};
+use script_traits::{ScriptControlChan, ReflowCompleteMsg, UntrustedNodeAddress, KeyEvent};
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading};
 use servo_msg::compositor_msg::{ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{LoadData, PipelineId, Failure, FailureMsg, WindowSizeData};
+use servo_msg::constellation_msg::{LoadData, PipelineId, Failure, FailureMsg, WindowSizeData, Key, KeyState};
+use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed};
+use servo_msg::constellation_msg::{Released};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
@@ -907,7 +912,67 @@ impl ScriptTask {
             MouseMoveEvent(point) => {
               self.handle_mouse_move_event(pipeline_id, point);
             }
+
+            KeyEvent(key, state, modifiers) => {
+                self.dispatch_key_event(key, state, modifiers, pipeline_id);
+            }
         }
+    }
+
+    /// The entry point for all key processing for web content
+    fn dispatch_key_event(&self, key: Key,
+                          state: KeyState,
+                          modifiers: KeyModifiers,
+                          pipeline_id: PipelineId) {
+        let page = get_page(&*self.page.borrow(), pipeline_id);
+        let frame = page.frame();
+        let window = frame.as_ref().unwrap().window.root();
+        let doc = window.Document().root();
+        let focused = doc.get_focused_element().root();
+        let body = doc.GetBody().root();
+
+        let target: JSRef<EventTarget> = match (&focused, &body) {
+            (&Some(ref focused), _) => EventTargetCast::from_ref(**focused),
+            (&None, &Some(ref body)) => EventTargetCast::from_ref(**body),
+            (&None, &None) => EventTargetCast::from_ref(*window),
+        };
+
+        let ctrl = modifiers.contains(CONTROL);
+        let alt = modifiers.contains(ALT);
+        let shift = modifiers.contains(SHIFT);
+        let meta = modifiers.contains(SUPER);
+
+        let is_composing = false;
+        let is_repeating = state == Repeated;
+        let ev_type = match state {
+            Pressed | Repeated => "keydown",
+            Released => "keyup",
+        }.to_string();
+
+        let props = KeyboardEvent::key_properties(key, modifiers);
+
+        let keyevent = KeyboardEvent::new(*window, ev_type, true, true, Some(*window), 0,
+                                          props.key.to_string(), props.code.to_string(),
+                                          props.location, is_repeating, is_composing,
+                                          ctrl, alt, shift, meta,
+                                          None, props.key_code).root();
+        let event = EventCast::from_ref(*keyevent);
+        let _ = target.DispatchEvent(event);
+
+        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
+        if state != Released && props.is_printable() && !event.DefaultPrevented() {
+            // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
+            let event = KeyboardEvent::new(*window, "keypress".to_string(), true, true, Some(*window),
+                                           0, props.key.to_string(), props.code.to_string(),
+                                           props.location, is_repeating, is_composing,
+                                           ctrl, alt, shift, meta,
+                                           props.char_code, 0).root();
+            let _ = target.DispatchEvent(EventCast::from_ref(*event));
+
+            // TODO: if keypress event is canceled, prevent firing input events
+        }
+
+        window.flush_layout();
     }
 
     /// The entry point for content to notify that a new load has been requested
@@ -1011,6 +1076,9 @@ impl ScriptTask {
                         match *page.frame() {
                             Some(ref frame) => {
                                 let window = frame.window.root();
+                                let doc = window.Document().root();
+                                doc.begin_focus_transaction();
+
                                 let event =
                                     Event::new(&global::Window(*window),
                                                "click".to_string(),
@@ -1018,6 +1086,7 @@ impl ScriptTask {
                                 let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(node);
                                 let _ = eventtarget.dispatch_event_with_target(None, *event);
 
+                                doc.commit_focus_transaction();
                                 window.flush_layout();
                             }
                             None => {}
@@ -1093,7 +1162,7 @@ impl ScriptTask {
             }
 
             None => {}
-      }
+        }
     }
 }
 

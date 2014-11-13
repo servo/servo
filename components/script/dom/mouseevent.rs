@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::MouseEventBinding;
 use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
-use dom::bindings::codegen::InheritTypes::{UIEventCast, MouseEventDerived};
+use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, MouseEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
@@ -21,7 +21,7 @@ use std::default::Default;
 
 #[dom_struct]
 pub struct MouseEvent {
-    mouseevent: UIEvent,
+    uievent: UIEvent,
     screen_x: Cell<i32>,
     screen_y: Cell<i32>,
     client_x: Cell<i32>,
@@ -43,7 +43,7 @@ impl MouseEventDerived for Event {
 impl MouseEvent {
     fn new_inherited() -> MouseEvent {
         MouseEvent {
-            mouseevent: UIEvent::new_inherited(MouseEventTypeId),
+            uievent: UIEvent::new_inherited(MouseEventTypeId),
             screen_x: Cell::new(0),
             screen_y: Cell::new(0),
             client_x: Cell::new(0),
@@ -91,13 +91,13 @@ impl MouseEvent {
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Temporary<MouseEvent>> {
         let event = MouseEvent::new(global.as_window(), type_,
-                                    init.parent.parent.bubbles,
-                                    init.parent.parent.cancelable,
-                                    init.parent.view.root_ref(),
-                                    init.parent.detail,
+                                    init.parent.parent.parent.bubbles,
+                                    init.parent.parent.parent.cancelable,
+                                    init.parent.parent.view.root_ref(),
+                                    init.parent.parent.detail,
                                     init.screenX, init.screenY,
-                                    init.clientX, init.clientY, init.ctrlKey,
-                                    init.altKey, init.shiftKey, init.metaKey,
+                                    init.clientX, init.clientY, init.parent.ctrlKey,
+                                    init.parent.altKey, init.parent.shiftKey, init.parent.metaKey,
                                     init.button, init.relatedTarget.root_ref());
         Ok(event)
     }
@@ -160,6 +160,11 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
                       metaKeyArg: bool,
                       buttonArg: i16,
                       relatedTargetArg: Option<JSRef<EventTarget>>) {
+        let event: JSRef<Event> = EventCast::from_ref(self);
+        if event.dispatching() {
+            return;
+        }
+
         let uievent: JSRef<UIEvent> = UIEventCast::from_ref(self);
         uievent.InitUIEvent(typeArg, canBubbleArg, cancelableArg, viewArg, detailArg);
         self.screen_x.set(screenXArg);
@@ -175,9 +180,8 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
     }
 }
 
-
 impl Reflectable for MouseEvent {
     fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.mouseevent.reflector()
+        self.uievent.reflector()
     }
 }

@@ -1422,6 +1422,9 @@ class IDLDictionary(IDLObjectWithScope):
                                   self.identifier.name,
                                   [member.location] + locations)
 
+    def module(self):
+        return self.location.filename().split('/')[-1].split('.webidl')[0] + 'Binding'
+
     def addExtendedAttributes(self, attrs):
         assert len(attrs) == 0
 

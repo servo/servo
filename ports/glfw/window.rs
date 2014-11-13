@@ -10,7 +10,7 @@ use alert::{Alert, AlertMethods};
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{Forward, Back};
 use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent};
-use compositing::windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent};
+use compositing::windowing::{KeyEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass};
 use compositing::windowing::{MouseWindowMouseUpEvent, RefreshWindowEvent};
 use compositing::windowing::{NavigationWindowEvent, ScrollWindowEvent, ZoomWindowEvent};
@@ -25,6 +25,7 @@ use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
 use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
 use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
+use msg::constellation_msg;
 use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
 use std::rc::Rc;
@@ -207,8 +208,16 @@ impl Window {
         match event {
             glfw::KeyEvent(key, _, action, mods) => {
                 if action == glfw::Press {
-                    self.handle_key(key, mods)
+                    self.handle_key(key, mods);
                 }
+                let key = glfw_key_to_script_key(key);
+                let state = match action {
+                    glfw::Press => constellation_msg::Pressed,
+                    glfw::Release => constellation_msg::Released,
+                    glfw::Repeat => constellation_msg::Repeated,
+                };
+                let modifiers = glfw_mods_to_script_mods(mods);
+                self.event_queue.borrow_mut().push(KeyEvent(key, state, modifiers));
             },
             glfw::FramebufferSizeEvent(width, height) => {
                 self.event_queue.borrow_mut().push(
@@ -428,3 +437,152 @@ extern "C" fn on_framebuffer_size(_glfw_window: *mut glfw::ffi::GLFWwindow,
     }
 }
 
+fn glfw_mods_to_script_mods(mods: glfw::Modifiers) -> constellation_msg::KeyModifiers {
+    let mut result = constellation_msg::KeyModifiers::from_bits(0).unwrap();
+    if mods.contains(glfw::Shift) {
+        result.insert(constellation_msg::SHIFT);
+    }
+    if mods.contains(glfw::Alt) {
+        result.insert(constellation_msg::ALT);
+    }
+    if mods.contains(glfw::Control) {
+        result.insert(constellation_msg::CONTROL);
+    }
+    if mods.contains(glfw::Super) {
+        result.insert(constellation_msg::SUPER);
+    }
+    result
+}
+
+macro_rules! glfw_keys_to_script_keys(
+    ($key:expr, $($name:ident),+) => (
+        match $key {
+            $(glfw::$name => constellation_msg::$name,)+
+        }
+    );
+)
+
+fn glfw_key_to_script_key(key: glfw::Key) -> constellation_msg::Key {
+    glfw_keys_to_script_keys!(key,
+                              KeySpace,
+                              KeyApostrophe,
+                              KeyComma,
+                              KeyMinus,
+                              KeyPeriod,
+                              KeySlash,
+                              Key0,
+                              Key1,
+                              Key2,
+                              Key3,
+                              Key4,
+                              Key5,
+                              Key6,
+                              Key7,
+                              Key8,
+                              Key9,
+                              KeySemicolon,
+                              KeyEqual,
+                              KeyA,
+                              KeyB,
+                              KeyC,
+                              KeyD,
+                              KeyE,
+                              KeyF,
+                              KeyG,
+                              KeyH,
+                              KeyI,
+                              KeyJ,
+                              KeyK,
+                              KeyL,
+                              KeyM,
+                              KeyN,
+                              KeyO,
+                              KeyP,
+                              KeyQ,
+                              KeyR,
+                              KeyS,
+                              KeyT,
+                              KeyU,
+                              KeyV,
+                              KeyW,
+                              KeyX,
+                              KeyY,
+                              KeyZ,
+                              KeyLeftBracket,
+                              KeyBackslash,
+                              KeyRightBracket,
+                              KeyGraveAccent,
+                              KeyWorld1,
+                              KeyWorld2,
+
+                              KeyEscape,
+                              KeyEnter,
+                              KeyTab,
+                              KeyBackspace,
+                              KeyInsert,
+                              KeyDelete,
+                              KeyRight,
+                              KeyLeft,
+                              KeyDown,
+                              KeyUp,
+                              KeyPageUp,
+                              KeyPageDown,
+                              KeyHome,
+                              KeyEnd,
+                              KeyCapsLock,
+                              KeyScrollLock,
+                              KeyNumLock,
+                              KeyPrintScreen,
+                              KeyPause,
+                              KeyF1,
+                              KeyF2,
+                              KeyF3,
+                              KeyF4,
+                              KeyF5,
+                              KeyF6,
+                              KeyF7,
+                              KeyF8,
+                              KeyF9,
+                              KeyF10,
+                              KeyF11,
+                              KeyF12,
+                              KeyF13,
+                              KeyF14,
+                              KeyF15,
+                              KeyF16,
+                              KeyF17,
+                              KeyF18,
+                              KeyF19,
+                              KeyF20,
+                              KeyF21,
+                              KeyF22,
+                              KeyF23,
+                              KeyF24,
+                              KeyF25,
+                              KeyKp0,
+                              KeyKp1,
+                              KeyKp2,
+                              KeyKp3,
+                              KeyKp4,
+                              KeyKp5,
+                              KeyKp6,
+                              KeyKp7,
+                              KeyKp8,
+                              KeyKp9,
+                              KeyKpDecimal,
+                              KeyKpDivide,
+                              KeyKpMultiply,
+                              KeyKpSubtract,
+                              KeyKpAdd,
+                              KeyKpEnter,
+                              KeyKpEqual,
+                              KeyLeftShift,
+                              KeyLeftControl,
+                              KeyLeftAlt,
+                              KeyLeftSuper,
+                              KeyRightShift,
+                              KeyRightControl,
+                              KeyRightAlt,
+                              KeyRightSuper,
+                              KeyMenu)
+}

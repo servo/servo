@@ -178,6 +178,7 @@ pub mod dom {
     pub mod htmlulistelement;
     pub mod htmlvideoelement;
     pub mod htmlunknownelement;
+    pub mod keyboardevent;
     pub mod location;
     pub mod messageevent;
     pub mod mouseevent;
@@ -220,3 +221,4 @@ pub mod layout_interface;
 pub mod page;
 pub mod script_task;
 mod timers;
+pub mod textinput;
