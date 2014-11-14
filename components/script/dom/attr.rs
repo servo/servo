@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::{DOMRefCell, Ref};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
@@ -16,8 +16,11 @@ use dom::virtualmethods::vtable_for;
 
 use devtools_traits::AttrInfo;
 use servo_util::str::{DOMString, split_html_space_chars};
-use std::mem;
+
 use string_cache::{Atom, Namespace};
+
+use std::cell::Ref;
+use std::mem;
 
 pub enum AttrSettingType {
     FirstSetAttr,
