@@ -751,7 +751,7 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
-        let url = load_data.url.clone();
+        let mut url = load_data.url.clone();
         debug!("ScriptTask: loading {} on page {}", url, pipeline_id);
 
         let page = self.page.borrow_mut();
@@ -818,6 +818,7 @@ impl ScriptTask {
         }
 
         parse_html(&*page, *document, parser_input, self.resource_task.clone(), Some(load_data));
+        url = page.get_url().clone();
 
         document.set_ready_state(DocumentReadyStateValues::Interactive);
 
@@ -853,10 +854,10 @@ impl ScriptTask {
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
         let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
 
-        *page.fragment_name.borrow_mut() = url.fragment.clone();
+        *page.fragment_name.borrow_mut() = url.fragment;
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(LoadCompleteMsg(page.id, url));
+        chan.send(LoadCompleteMsg);
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {
