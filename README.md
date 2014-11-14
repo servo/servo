@@ -32,7 +32,7 @@ On Debian-based Linuxes:
 sudo apt-get install curl freeglut3-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     msttcorefonts gperf g++ cmake python-virtualenv \
-    libssl-dev libglfw-dev
+    libssl-dev libglfw-dev libbz2-dev
 ```
 
 On Fedora:
@@ -41,7 +41,7 @@ On Fedora:
 sudo yum install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv expat-devel \
-    rpm-build openssl-devel glfw-devel cmake
+    rpm-build openssl-devel glfw-devel cmake bzip2
 pushd .
 cd /tmp
 wget http://corefonts.sourceforge.net/msttcorefonts-2.5-1.spec
@@ -53,7 +53,7 @@ popd
 On Arch Linux:
 
 ``` sh
-sudo pacman -S base-devel git python2 python2-virtualenv mesa glfw ttf-font cmake
+sudo pacman -S base-devel git python2 python2-virtualenv mesa glfw ttf-font cmake bzip2
 ```
 
 Cross-compilation for Android:
