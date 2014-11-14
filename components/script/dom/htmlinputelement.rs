@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
+use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFormElementCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived};
@@ -23,7 +24,7 @@ use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::keyboardevent::KeyboardEvent;
-use dom::htmlformelement::{InputElement, FormOwner, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
+use dom::htmlformelement::{InputElement, FormElement, FormOwner, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use textinput::{Single, TextInput, TriggerDefaultAction, DispatchInput, Nothing};
@@ -437,16 +438,37 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 
             let doc = document_from_node(*self).root();
             doc.request_focus(ElementCast::from_ref(*self));
-        } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() &&
-            (self.input_type.get() == InputText || self.input_type.get() == InputPassword) {
+        } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() {
                 let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
                 keyevent.map(|event| {
-                    match self.textinput.borrow_mut().handle_keydown(event) {
-                        TriggerDefaultAction => (),
-                        DispatchInput => {
-                            self.force_relayout();
+                    if event.KeyCode() == 13 {
+                        // Enter key pressed
+                        self.form_owner().map(|o| {
+                            let owner = o.root();
+                            let submitter = match self.input_type.get() {
+                                InputButton(Some(DEFAULT_SUBMIT_VALUE)) => InputElement(*self),
+                                InputButton(Some(DEFAULT_RESET_VALUE)) => {
+                                    // FIXME (#3981): This should reset the form
+                                    return;
+                                },
+                                InputButton(None) => return,
+                                // Note: there may be some other input elements with special behavior on
+                                // having the enter key pressed (but we don't support them yet)
+                                _ => FormElement(*owner)
+                            };
+                            owner.submit(NotFromFormSubmitMethod, submitter);
+                        });
+                        return;
+                    }
+                    // FIXME (#3982) handle space/tab/etc
+                    if self.input_type.get() == InputText || self.input_type.get() == InputPassword {
+                        match self.textinput.borrow_mut().handle_keydown(event) {
+                            TriggerDefaultAction => (),
+                            DispatchInput => {
+                                self.force_relayout();
+                            }
+                            Nothing => (),
                         }
-                        Nothing => (),
                     }
                 });
         }
