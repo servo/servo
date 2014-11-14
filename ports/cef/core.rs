@@ -23,22 +23,12 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     }
     unsafe {
         command_line_init((*args).argc, (*args).argv);
-        match (*application).get_browser_process_handler {
-            Some(cb) => {
+        (*application).get_browser_process_handler.map(|cb| {
                 let handler = cb(application);
                 if handler.is_not_null() {
-                    match (*handler).on_context_initialized {
-                        Some(hcb) => {
-                            hcb(handler);
-                            return 1;
-                        },
-                        None => { return 1; }
-                    }
+                    (*handler).on_context_initialized.map(|hcb| hcb(handler));
                 }
-                return 1;
-            },
-            None => { return 1; }
-        }
+        });
     }
     return 1
 }
