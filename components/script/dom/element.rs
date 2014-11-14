@@ -120,7 +120,7 @@ pub enum ElementCreator {
 // Element methods
 //
 impl Element {
-    pub fn create(name: QualName, prefix: Option<DOMString>,
+    pub fn create(name: QualName, prefix: Option<Atom>,
                   document: JSRef<Document>, creator: ElementCreator)
                   -> Temporary<Element> {
         create_element(name, prefix, document, creator)
