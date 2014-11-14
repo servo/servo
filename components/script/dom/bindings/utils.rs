@@ -469,13 +469,11 @@ impl Reflector {
         self.object.set(object);
     }
 
-    /// Return a pointer to the memory location at which the JS reflector object is stored.
-    /// Used by Temporary values to root the reflector, as required by the JSAPI rooting
-    /// APIs.
-    pub fn rootable(&self) -> *mut *mut JSObject {
-        &self.object as *const Cell<*mut JSObject>
-                     as *mut Cell<*mut JSObject>
-                     as *mut *mut JSObject
+    /// Return a pointer to the memory location at which the JS reflector
+    /// object is stored. Used by Temporary values to root the reflector, as
+    /// required by the JSAPI rooting APIs.
+    pub unsafe fn rootable(&self) -> *mut *mut JSObject {
+        self.object.as_unsafe_cell().get()
     }
 
     /// Create an uninitialized `Reflector`.
