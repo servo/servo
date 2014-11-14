@@ -1023,7 +1023,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let (namespace, prefix, local_name) =
             try!(validate_and_extract(namespace, &qualified_name));
         let name = QualName::new(namespace, local_name);
-        Ok(Element::create(name, prefix, self, ElementCreator::ScriptCreated))
+        Ok(Element::create(name, prefix.map(|prefix| prefix.as_slice().to_owned()), self, ElementCreator::ScriptCreated))
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createattribute
