@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use eutil::fptr_is_null;
 use libc::{c_int};
 use std::mem;
 use string::{cef_string_userfree_utf8_alloc,cef_string_userfree_utf8_free,cef_string_utf8_set};
@@ -26,7 +25,7 @@ pub extern "C" fn cef_string_list_alloc() -> *mut cef_string_list_t {
 #[no_mangle]
 pub extern "C" fn cef_string_list_size(lt: *mut cef_string_list_t) -> c_int {
     unsafe {
-        if fptr_is_null(mem::transmute(lt)) { return 0; }
+        if lt.is_null() { return 0; }
         let v = string_list_to_vec(lt);
         (*v).len() as c_int
     }
@@ -35,7 +34,7 @@ pub extern "C" fn cef_string_list_size(lt: *mut cef_string_list_t) -> c_int {
 #[no_mangle]
 pub extern "C" fn cef_string_list_append(lt: *mut cef_string_list_t, value: *const cef_string_t) {
     unsafe {
-        if fptr_is_null(mem::transmute(lt)) { return; }
+        if lt.is_null() { return; }
         let v = string_list_to_vec(lt);
         let cs = cef_string_userfree_utf8_alloc();
         cef_string_utf8_set(mem::transmute((*value).str), (*value).length, cs, 1);
@@ -46,7 +45,7 @@ pub extern "C" fn cef_string_list_append(lt: *mut cef_string_list_t, value: *con
 #[no_mangle]
 pub extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int, value: *mut cef_string_t) -> c_int {
     unsafe {
-        if index < 0 || fptr_is_null(mem::transmute(lt)) { return 0; }
+        if index < 0 || lt.is_null() { return 0; }
         let v = string_list_to_vec(lt);
         if index as uint > (*v).len() - 1 { return 0; }
         let cs = (*v)[index as uint];
@@ -57,7 +56,7 @@ pub extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int
 #[no_mangle]
 pub extern "C" fn cef_string_list_clear(lt: *mut cef_string_list_t) {
     unsafe {
-        if fptr_is_null(mem::transmute(lt)) { return; }
+        if lt.is_null() { return; }
         let v = string_list_to_vec(lt);
         if (*v).len() == 0 { return; }
         let mut cs;
@@ -71,7 +70,7 @@ pub extern "C" fn cef_string_list_clear(lt: *mut cef_string_list_t) {
 #[no_mangle]
 pub extern "C" fn cef_string_list_free(lt: *mut cef_string_list_t) {
     unsafe {
-        if fptr_is_null(mem::transmute(lt)) { return; }
+        if lt.is_null() { return; }
         let v: Box<Vec<*mut cef_string_t>> = mem::transmute(lt);
         cef_string_list_clear(lt);
         drop(v);
@@ -81,7 +80,7 @@ pub extern "C" fn cef_string_list_free(lt: *mut cef_string_list_t) {
 #[no_mangle]
 pub extern "C" fn cef_string_list_copy(lt: *mut cef_string_list_t) -> *mut cef_string_list_t {
     unsafe {
-        if fptr_is_null(mem::transmute(lt)) { return 0 as *mut cef_string_list_t; }
+        if lt.is_null() { return 0 as *mut cef_string_list_t; }
         let v = string_list_to_vec(lt);
         let lt2 = cef_string_list_alloc();
         for cs in (*v).iter() {

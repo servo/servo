@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use eutil::{fptr_is_null, slice_to_str};
+use eutil::slice_to_str;
 use libc::{c_int};
 use std::collections::TreeMap;
 use std::mem;
@@ -27,7 +27,7 @@ pub extern "C" fn cef_string_map_alloc() -> *mut cef_string_map_t {
 #[no_mangle]
 pub extern "C" fn cef_string_map_size(sm: *mut cef_string_map_t) -> c_int {
     unsafe {
-        if fptr_is_null(mem::transmute(sm)) { return 0; }
+        if sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
         (*v).len() as c_int
     }
@@ -36,7 +36,7 @@ pub extern "C" fn cef_string_map_size(sm: *mut cef_string_map_t) -> c_int {
 #[no_mangle]
 pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const cef_string_t, value: *const cef_string_t) -> c_int {
     unsafe {
-        if fptr_is_null(mem::transmute(sm)) { return 0; }
+        if sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
         slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
             let s = String::from_str(result);
@@ -51,7 +51,7 @@ pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const c
 #[no_mangle]
 pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef_string_t, value: *mut cef_string_t) -> c_int {
     unsafe {
-        if fptr_is_null(mem::transmute(sm)) { return 0; }
+        if sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
         slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
             match (*v).find(&String::from_str(result)) {
@@ -68,7 +68,7 @@ pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef
 #[no_mangle]
 pub extern "C" fn cef_string_map_key(sm: *mut cef_string_map_t, index: c_int, value: *mut cef_string_t) -> c_int {
     unsafe {
-        if index < 0 || fptr_is_null(mem::transmute(sm)) { return 0; }
+        if index < 0 || sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
         if index as uint > (*v).len() - 1 { return 0; }
 
@@ -85,7 +85,7 @@ pub extern "C" fn cef_string_map_key(sm: *mut cef_string_map_t, index: c_int, va
 #[no_mangle]
 pub extern "C" fn cef_string_map_value(sm: *mut cef_string_map_t, index: c_int, value: *mut cef_string_t) -> c_int {
     unsafe {
-        if index < 0 || fptr_is_null(mem::transmute(sm)) { return 0; }
+        if index < 0 || sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
         if index as uint > (*v).len() - 1 { return 0; }
 
@@ -102,7 +102,7 @@ pub extern "C" fn cef_string_map_value(sm: *mut cef_string_map_t, index: c_int, 
 #[no_mangle]
 pub extern "C" fn cef_string_map_clear(sm: *mut cef_string_map_t) {
     unsafe {
-        if fptr_is_null(mem::transmute(sm)) { return; }
+        if sm.is_null() { return; }
         let v = string_map_to_treemap(sm);
         for val in (*v).values() {
             cef_string_userfree_utf8_free(*val);
@@ -114,7 +114,7 @@ pub extern "C" fn cef_string_map_clear(sm: *mut cef_string_map_t) {
 #[no_mangle]
 pub extern "C" fn cef_string_map_free(sm: *mut cef_string_map_t) {
     unsafe {
-        if fptr_is_null(mem::transmute(sm)) { return; }
+        if sm.is_null() { return; }
         let _v: Box<TreeMap<String, *mut cef_string_t>> = mem::transmute(sm);
         cef_string_map_clear(sm);
     }
