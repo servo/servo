@@ -109,21 +109,21 @@ pub struct Attr {
 
 impl Attr {
     fn new_inherited(local_name: Atom, value: AttrValue, name: Atom, namespace: Namespace,
-                     prefix: Option<DOMString>, owner: Option<JSRef<Element>>) -> Attr {
+                     prefix: Option<Atom>, owner: Option<JSRef<Element>>) -> Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
             value: DOMRefCell::new(value),
             name: name,
             namespace: namespace,
-            prefix: prefix.map(|p| Atom::from_slice(&p)),
+            prefix: prefix,
             owner: MutNullableHeap::new(owner.map(JS::from_rooted)),
         }
     }
 
     pub fn new(window: JSRef<Window>, local_name: Atom, value: AttrValue,
                name: Atom, namespace: Namespace,
-               prefix: Option<DOMString>, owner: Option<JSRef<Element>>) -> Temporary<Attr> {
+               prefix: Option<Atom>, owner: Option<JSRef<Element>>) -> Temporary<Attr> {
         reflect_dom_object(
             box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
             GlobalRef::Window(window),

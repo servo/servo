@@ -17,7 +17,6 @@ use util::str::DOMString;
 
 use libc;
 use libc::c_uint;
-use std::borrow::ToOwned;
 use std::boxed;
 use std::cell::Cell;
 use std::ffi::CString;
@@ -628,7 +627,7 @@ pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {
 /// Validate a namespace and qualified name and extract their parts.
 /// See https://dom.spec.whatwg.org/#validate-and-extract for details.
 pub fn validate_and_extract(namespace: Option<DOMString>, qualified_name: &str)
-                            -> Fallible<(Namespace, Option<DOMString>, Atom)> {
+                            -> Fallible<(Namespace, Option<Atom>, Atom)> {
     // Step 1.
     let namespace = namespace::from_domstring(namespace);
 
@@ -667,7 +666,7 @@ pub fn validate_and_extract(namespace: Option<DOMString>, qualified_name: &str)
         },
         (ns, p) => {
             // Step 10.
-            Ok((ns, p.map(|s| s.to_owned()), Atom::from_slice(local_name)))
+            Ok((ns, p.map(Atom::from_slice), Atom::from_slice(local_name)))
         }
     }
 }

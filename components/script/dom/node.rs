@@ -1778,7 +1778,7 @@ impl Node {
                         &Attr::new(window.r(),
                                    attr.r().local_name().clone(), attr.r().value().clone(),
                                    attr.r().name().clone(), attr.r().namespace().clone(),
-                                   attr.r().GetPrefix(), Some(copy_elem)));
+                                   attr.r().prefix().clone(), Some(copy_elem)));
                 }
             },
             _ => ()
