@@ -197,7 +197,7 @@ pub enum Msg {
     ExitMsg,
     FailureMsg(Failure),
     InitLoadUrlMsg(Url),
-    LoadCompleteMsg(PipelineId, Url),
+    LoadCompleteMsg,
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
     LoadUrlMsg(PipelineId, LoadData),
     ScriptLoadedURLInIFrameMsg(Url, PipelineId, SubpageId, IFrameSandboxState),
