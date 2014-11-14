@@ -1,17 +1,25 @@
 [root]
-name = "servo"
+name = "embedding"
 version = "0.0.1"
 dependencies = [
- "compositing 0.0.1",
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
+ "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
+ "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
+ "devtools 0.0.1",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
+ "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo)",
  "glfw_app 0.0.1",
- "green 0.0.1 (git+https://github.com/alexcrichton/green-rs)",
- "layout 0.0.1",
+ "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
  "net 0.0.1",
- "rustuv 0.0.1 (git+https://github.com/alexcrichton/green-rs)",
+ "plugins 0.0.1",
+ "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "script 0.0.1",
- "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "servo 0.0.1",
+ "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
+ "style 0.0.1",
  "util 0.0.1",
 ]
 
@@ -295,7 +303,7 @@ dependencies = [
 [[package]]
 name = "green"
 version = "0.0.1"
-source = "git+https://github.com/alexcrichton/green-rs#215f3c87bf545b36a90100b7fb209ba640f2f481"
+source = "git+https://github.com/servo/green-rs?ref=servo#332144c9d876e5df00235a72c0563b6b12473dcf"
 
 [[package]]
 name = "harfbuzz"
@@ -322,7 +330,7 @@ source = "git+https://github.com/servo/html5ever?ref=servo#87c7e8b710391338b2463
 [[package]]
 name = "http"
 version = "0.1.0-pre"
-source = "git+https://github.com/servo/rust-http?ref=servo#3597f981aa001c57d3c918eb9f8ab58d3f0bf5a5"
+source = "git+https://github.com/servo/rust-http?ref=servo#f957b94deb2c939c8e3d73d51823b65f8a1f8256"
 dependencies = [
  "openssl 0.0.0 (git+https://github.com/sfackler/rust-openssl.git)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
@@ -342,11 +350,11 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#b8109aa873d886b6ee295ea17359063da7fd3e2f"
+source = "git+https://github.com/servo/rust-mozjs#2a7acd8c04949796c71145db61b7868128e497f2"
 dependencies = [
- "green 0.0.1 (git+https://github.com/alexcrichton/green-rs)",
+ "green 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
  "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs)",
- "rustuv 0.0.1 (git+https://github.com/alexcrichton/green-rs)",
+ "rustuv 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
 ]
 
 [[package]]
@@ -357,7 +365,7 @@ source = "git+https://github.com/bjz/gl-rs.git#79cd3b3f9f19aa0e39f6af572fc8673a6
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#36bcefcdc791bd6fa4ab389f472e449ce2e1e159"
+source = "git+https://github.com/servo/rust-layers#84f6dd677aa681b03cfcbf89000d2c7b12684bd3"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
@@ -481,10 +489,10 @@ source = "git+https://github.com/netvl/rust-xml#d6c57380a300b94f7e7881979dbe5459
 [[package]]
 name = "rustuv"
 version = "0.0.1"
-source = "git+https://github.com/alexcrichton/green-rs#215f3c87bf545b36a90100b7fb209ba640f2f481"
+source = "git+https://github.com/servo/green-rs?ref=servo#332144c9d876e5df00235a72c0563b6b12473dcf"
 dependencies = [
- "green 0.0.1 (git+https://github.com/alexcrichton/green-rs)",
- "tls 0.0.1 (git+https://github.com/alexcrichton/green-rs)",
+ "green 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
+ "tls 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
 ]
 
 [[package]]
@@ -528,6 +536,23 @@ dependencies = [
 name = "semver"
 version = "0.1.0"
 source = "git+https://github.com/rust-lang/semver#7dca047a9cd40e929a4545b37a1917daff82f156"
+
+[[package]]
+name = "servo"
+version = "0.0.1"
+dependencies = [
+ "compositing 0.0.1",
+ "gfx 0.0.1",
+ "glfw_app 0.0.1",
+ "green 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
+ "layout 0.0.1",
+ "msg 0.0.1",
+ "net 0.0.1",
+ "rustuv 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
+ "script 0.0.1",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+ "util 0.0.1",
+]
 
 [[package]]
 name = "skia-sys"
@@ -585,7 +610,7 @@ version = "0.0.1"
 [[package]]
 name = "tls"
 version = "0.0.1"
-source = "git+https://github.com/alexcrichton/green-rs#215f3c87bf545b36a90100b7fb209ba640f2f481"
+source = "git+https://github.com/servo/green-rs?ref=servo#332144c9d876e5df00235a72c0563b6b12473dcf"
 
 [[package]]
 name = "url"
