@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
-use compositor_task::{Exit, ChangeReadyState, LoadComplete, Paint, ScrollFragmentPoint, SetIds};
-use compositor_task::{SetLayerOrigin, ShutdownComplete, ChangePaintState, PaintMsgDiscarded};
-use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout, FrameTreeUpdateMsg};
+use compositor_task::{GetGraphicsMetadata, ChangeLayerPipelineAndRemoveChildren};
+use compositor_task::{CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
+use compositor_task::{CreateRootLayerForPipeline, Exit, ChangeReadyState, LoadComplete, Paint};
+use compositor_task::{ScrollFragmentPoint, SetIds, SetLayerOrigin, ShutdownComplete};
+use compositor_task::{ChangePaintState, PaintMsgDiscarded, CompositorEventListener};
+use compositor_task::{CompositorReceiver, ScrollTimeout};
 use windowing::WindowEvent;
 
 use geom::scale_factor::ScaleFactor;
@@ -92,7 +94,11 @@ impl CompositorEventListener for NullCompositor {
                 response_chan.send(());
             }
 
-            FrameTreeUpdateMsg(_, response_channel) => {
+            ChangeLayerPipelineAndRemoveChildren(_, _, response_channel) => {
+                response_channel.send(());
+            }
+
+            CreateRootLayerForPipeline(_, _, _, response_channel) => {
                 response_channel.send(());
             }
 

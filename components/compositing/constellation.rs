@@ -4,7 +4,9 @@
 
 use pipeline::{Pipeline, CompositionPipeline};
 
-use compositor_task::{CompositorProxy, FrameTreeUpdateMsg, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
+use compositor_task::{ChangeLayerPipelineAndRemoveChildren, CompositorProxy};
+use compositor_task::{CreateRootLayerForPipeline, LoadComplete, ShutdownComplete};
+use compositor_task::{SetLayerOrigin, SetIds};
 use devtools_traits;
 use devtools_traits::DevtoolsControlChan;
 use geom::rect::{Rect, TypedRect};
@@ -107,36 +109,6 @@ impl FrameTree {
     fn add_child(&self, new_child: ChildFrameTree) {
         self.children.borrow_mut().push(new_child);
     }
-
-    fn update_child_pipeline(frame_tree: Rc<FrameTree>,
-                             new_pipeline: Rc<Pipeline>,
-                             old_subpage_id: SubpageId) {
-        let existing_tree = match frame_tree.find_with_subpage_id(Some(old_subpage_id)) {
-            Some(existing_tree) => existing_tree.clone(),
-            None => panic!("Tried to update non-existing frame tree with pipeline={} subpage={}",
-                           new_pipeline.id,
-                           old_subpage_id),
-        };
-
-        *existing_tree.pipeline.borrow_mut() = new_pipeline;
-    }
-
-    fn create_or_update_child_pipeline(frame_tree: Rc<FrameTree>,
-                                       new_pipeline: Rc<Pipeline>,
-                                       new_rect: Option<TypedRect<PagePx, f32>>,
-                                       old_subpage_id: Option<SubpageId>) {
-        match old_subpage_id {
-            Some(old_subpage_id) =>
-                FrameTree::update_child_pipeline(frame_tree.clone(), new_pipeline, old_subpage_id),
-            None => {
-                let new_frame_tree =
-                     Rc::new(FrameTree::new(new_pipeline,
-                                            Some(frame_tree.pipeline.borrow().clone())));
-                frame_tree.add_child(ChildFrameTree::new(new_frame_tree, new_rect));
-            }
-        }
-    }
-
 }
 
 #[deriving(Clone)]
@@ -169,16 +141,6 @@ pub struct SendableChildFrameTree {
 enum ReplaceResult {
     ReplacedNode(Rc<FrameTree>),
     OriginalNode(Rc<FrameTree>),
-}
-
-/// A struct that triggers the addition of a new frame to a previously existing frame tree.
-pub struct FrameTreeDiff {
-    /// The parent pipeline of the new frame.
-    pub parent_pipeline: CompositionPipeline,
-    /// The pipeline of the new frame itself.
-    pub pipeline: CompositionPipeline,
-    /// The frame rect of the new frame used for positioning its compositor layer.
-    pub rect: Option<TypedRect<PagePx, f32>>,
 }
 
 impl FrameTree {
@@ -561,7 +523,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             match idx {
                 Some(idx) => {
                     debug!("removing pending frame change for failed pipeline");
-                    force_pipeline_exit(&self.pending_frames[idx].after.pipeline.borrow());
+                    force_pipeline_exit(&*self.pending_frames[idx].after.pipeline.borrow());
                     self.pending_frames.remove(idx);
                 },
                 None => break,
@@ -681,6 +643,49 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
+    fn update_child_pipeline(&mut self,
+                             frame_tree: Rc<FrameTree>,
+                             new_pipeline: Rc<Pipeline>,
+                             old_subpage_id: SubpageId) {
+        let existing_tree = match frame_tree.find_with_subpage_id(Some(old_subpage_id)) {
+            Some(existing_tree) => existing_tree.clone(),
+            None => panic!("Tried to update non-existing frame tree with pipeline={} subpage={}",
+                           new_pipeline.id,
+                           old_subpage_id),
+        };
+
+        let old_pipeline = existing_tree.pipeline.borrow().clone();
+        *existing_tree.pipeline.borrow_mut() = new_pipeline.clone();
+
+        // If we have not yet sent this frame to the compositor for layer creation, we don't
+        // need to inform the compositor of updates to the pipeline.
+        if !existing_tree.has_compositor_layer.get() {
+            return;
+        }
+
+        let (chan, port) = channel();
+        self.compositor_proxy.send(ChangeLayerPipelineAndRemoveChildren(
+            old_pipeline.to_sendable(),
+            new_pipeline.to_sendable(),
+            chan));
+        let _ = port.recv_opt();
+    }
+
+    fn create_or_update_child_pipeline(&mut self,
+                                       frame_tree: Rc<FrameTree>,
+                                       new_pipeline: Rc<Pipeline>,
+                                       new_rect: Option<TypedRect<PagePx, f32>>,
+                                       old_subpage_id: Option<SubpageId>) {
+        match old_subpage_id {
+            Some(old_subpage_id) =>
+                self.update_child_pipeline(frame_tree.clone(), new_pipeline, old_subpage_id),
+            None => {
+                let child_tree = Rc::new(
+                    FrameTree::new(new_pipeline, Some(frame_tree.pipeline.borrow().clone())));
+                frame_tree.add_child(ChildFrameTree::new(child_tree, new_rect));
+            }
+        }
+    }
 
     // The script task associated with pipeline_id has loaded a URL in an iframe via script. This
     // will result in a new pipeline being spawned and a frame tree being added to
@@ -731,10 +736,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let rect = self.pending_sizes.remove(&(containing_page_pipeline_id, new_subpage_id));
         for frame_tree in frame_trees.iter() {
-            FrameTree::create_or_update_child_pipeline(frame_tree.clone(),
-                                                       pipeline.clone(),
-                                                       rect,
-                                                       old_subpage_id);
+            self.create_or_update_child_pipeline(frame_tree.clone(),
+                                                 pipeline.clone(),
+                                                 rect,
+                                                 old_subpage_id);
         }
         self.pipelines.insert(pipeline.id, pipeline);
     }
@@ -1045,14 +1050,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             return;
         }
 
-        let sendable_frame_tree_diff = FrameTreeDiff {
-            parent_pipeline: parent.pipeline.borrow().to_sendable(),
-            pipeline: child.frame_tree.pipeline.borrow().to_sendable(),
-            rect: child.rect,
-        };
-
         let (chan, port) = channel();
-        self.compositor_proxy.send(FrameTreeUpdateMsg(sendable_frame_tree_diff, chan));
+        self.compositor_proxy.send(CreateRootLayerForPipeline(
+            parent.pipeline.borrow().to_sendable(),
+            child.frame_tree.pipeline.borrow().to_sendable(),
+            child.rect,
+            chan));
         match port.recv_opt() {
             Ok(()) => {
                 child.frame_tree.has_compositor_layer.set(true);
