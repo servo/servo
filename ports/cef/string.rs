@@ -52,10 +52,12 @@ pub extern "C" fn cef_string_userfree_utf16_free(cs: *mut cef_string_userfree_ut
 #[no_mangle]
 pub extern "C" fn cef_string_utf8_clear(cs: *mut cef_string_utf8_t) {
     unsafe {
-        if (*cs).dtor.is_some() {
-            let dtor = (*cs).dtor.unwrap();
-            dtor((*cs).str);
-        }
+        match (*cs).dtor {
+            Some(dtor) => {
+                dtor((*cs).str);
+            },
+            None => ()
+        };
         (*cs).length = 0;
         (*cs).str = 0 as *mut u8;
         (*cs).dtor = mem::transmute(0 as *const u8);
@@ -134,10 +136,12 @@ pub extern "C" fn cef_string_utf16_to_utf8(src: *const u16, src_len: size_t, out
 #[no_mangle]
 pub extern "C" fn cef_string_utf16_clear(cs: *mut cef_string_utf16_t) {
     unsafe {
-        if (*cs).dtor.is_some() {
-            let dtor = (*cs).dtor.unwrap();
-            dtor((*cs).str);
-        }
+        match (*cs).dtor {
+            Some(dtor) => {
+                dtor((*cs).str);
+            },
+            None => ()
+        };
         (*cs).length = 0;
         (*cs).str = 0 as *mut c_ushort;
         (*cs).dtor = mem::transmute(0 as *const u8);
@@ -192,10 +196,12 @@ pub extern "C" fn cef_string_utf16_cmp(a: *const cef_string_utf16_t, b: *const c
 #[no_mangle]
 pub extern "C" fn cef_string_wide_clear(cs: *mut cef_string_wide_t) {
     unsafe {
-        if (*cs).dtor.is_some() {
-            let dtor = (*cs).dtor.unwrap();
-            dtor((*cs).str);
-        }
+        match (*cs).dtor {
+            Some(dtor) => {
+                dtor((*cs).str);
+            },
+            None => ()
+        };
         (*cs).length = 0;
         (*cs).str = 0 as *mut wchar_t;
         (*cs).dtor = mem::transmute(0 as *const u8);
