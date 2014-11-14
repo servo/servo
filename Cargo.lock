@@ -27,7 +27,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#612ffc4fbf80c1bd5faae4b86dfc539dda06fb0c"
+source = "git+https://github.com/servo/rust-azure#64853170e435d9320f3fd828b9e7d16bc4c260a3"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -203,7 +203,7 @@ source = "git+https://github.com/servo/rust-freetype#e55b06110fb2d74a2db68ead740
 [[package]]
 name = "freetype-sys"
 version = "2.4.11"
-source = "git+https://github.com/servo/libfreetype2#5b6499164106f094937565595c7b96d07de55521"
+source = "git+https://github.com/servo/libfreetype2#03522d7401669f220ad3fca5aa887577b0cf314e"
 
 [[package]]
 name = "geom"
@@ -532,7 +532,7 @@ source = "git+https://github.com/rust-lang/semver#7dca047a9cd40e929a4545b37a1917
 [[package]]
 name = "skia-sys"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#d92603043a9b7dd0b25c0b3b562099a0cc32ac6c"
+source = "git+https://github.com/servo/skia#63e40419e2570646a8d83fefb8914d6e1b786cfb"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
