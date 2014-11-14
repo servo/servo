@@ -101,7 +101,7 @@ pub struct Attr {
     value: DOMRefCell<AttrValue>,
     name: Atom,
     namespace: Namespace,
-    prefix: Option<DOMString>,
+    prefix: Option<Atom>,
 
     /// the element that owns this attribute.
     owner: MutNullableJS<Element>,
@@ -116,7 +116,7 @@ impl Attr {
             value: DOMRefCell::new(value),
             name: name,
             namespace: namespace,
-            prefix: prefix,
+            prefix: prefix.map(|prefix| Atom::from_slice(prefix.as_slice())),
             owner: MutNullableJS::new(owner),
         }
     }
@@ -141,7 +141,7 @@ impl Attr {
     }
 
     #[inline]
-    pub fn prefix<'a>(&'a self) -> &'a Option<DOMString> {
+    pub fn prefix<'a>(&'a self) -> &'a Option<Atom> {
         &self.prefix
     }
 }
@@ -205,7 +205,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 
     // https://dom.spec.whatwg.org/#dom-attr-prefix
     fn GetPrefix(self) -> Option<DOMString> {
-        self.prefix.clone()
+        self.prefix.as_ref().map(|prefix| prefix.as_slice().to_owned())
     }
 
     // https://dom.spec.whatwg.org/#dom-attr-ownerelement
