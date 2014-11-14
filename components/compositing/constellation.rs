@@ -104,6 +104,10 @@ impl FrameTree {
         }
     }
 
+    fn add_child(&self, new_child: ChildFrameTree) {
+        self.children.borrow_mut().push(new_child);
+    }
+
     fn update_child_pipeline(frame_tree: Rc<FrameTree>,
                              new_pipeline: Rc<Pipeline>,
                              old_subpage_id: SubpageId) {
@@ -128,8 +132,7 @@ impl FrameTree {
                 let new_frame_tree =
                      Rc::new(FrameTree::new(new_pipeline,
                                             Some(frame_tree.pipeline.borrow().clone())));
-                frame_tree.children.borrow_mut().push(ChildFrameTree::new(new_frame_tree,
-                                                                          new_rect));
+                frame_tree.add_child(ChildFrameTree::new(new_frame_tree, new_rect));
             }
         }
     }
@@ -901,8 +904,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                             let parent = next_frame_tree.find(parent.id).expect(
                                 "Constellation: pending frame has a parent frame that is not
                                 active. This is a bug.");
-                            parent.children.borrow_mut().push(ChildFrameTree::new(to_add.clone(),
-                                                              rect));
+                            parent.add_child(ChildFrameTree::new(to_add.clone(), rect));
                         }
                     }
                 }
