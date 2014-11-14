@@ -156,16 +156,6 @@ enum ReplaceResult {
     OriginalNode(Rc<FrameTree>),
 }
 
-/// A struct that triggers the addition of a new frame to a previously existing frame tree.
-pub struct FrameTreeDiff {
-    /// The parent pipeline of the new frame.
-    pub parent_pipeline: CompositionPipeline,
-    /// The pipeline of the new frame itself.
-    pub pipeline: CompositionPipeline,
-    /// The frame rect of the new frame used for positioning its compositor layer.
-    pub rect: Option<TypedRect<PagePx, f32>>,
-}
-
 impl FrameTree {
     fn to_sendable(&self) -> SendableFrameTree {
         SendableFrameTree {
@@ -699,7 +689,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
-    fn update_child_pipeline(frame_tree: Rc<FrameTree>,
+    fn update_child_pipeline(&mut self,
+                             frame_tree: Rc<FrameTree>,
                              new_pipeline: Rc<Pipeline>,
                              old_subpage_id: SubpageId) {
         let existing_tree = match frame_tree.find_with_subpage_id(Some(old_subpage_id)) {
@@ -709,7 +700,21 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                            old_subpage_id),
         };
 
-        *existing_tree.pipeline.borrow_mut() = new_pipeline;
+        let old_pipeline = existing_tree.pipeline.borrow().clone();
+        *existing_tree.pipeline.borrow_mut() = new_pipeline.clone();
+
+        // If we have not yet sent this frame to the compositor for layer creation, we don't
+        // need to inform the compositor of updates to the pipeline.
+        if !existing_tree.has_compositor_layer.get() {
+            return;
+        }
+
+        let (chan, port) = channel();
+        self.compositor_proxy.send(CompositorMsg::ChangeLayerPipelineAndRemoveChildren(
+            old_pipeline.to_sendable(),
+            new_pipeline.to_sendable(),
+            chan));
+        let _ = port.recv_opt();
     }
 
     fn create_or_update_child_pipeline(&mut self,
@@ -719,12 +724,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                        old_subpage_id: Option<SubpageId>) {
         match old_subpage_id {
             Some(old_subpage_id) =>
-                Constellation::update_child_pipeline(frame_tree.clone(), new_pipeline, old_subpage_id),
+                self.update_child_pipeline(frame_tree.clone(), new_pipeline, old_subpage_id),
             None => {
-                let new_frame_tree =
-                     Rc::new(FrameTree::new(self.get_next_frame_id(), new_pipeline,
-                                            Some(frame_tree.pipeline.borrow().clone())));
-                frame_tree.add_child(ChildFrameTree::new(new_frame_tree, new_rect));
+                let child_tree = Rc::new(
+                    FrameTree::new(self.get_next_frame_id(),
+                                   new_pipeline,
+                                   Some(frame_tree.pipeline.borrow().clone())));
+                frame_tree.add_child(ChildFrameTree::new(child_tree, new_rect));
             }
         }
     }
@@ -1112,14 +1118,12 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             return;
         }
 
-        let sendable_frame_tree_diff = FrameTreeDiff {
-            parent_pipeline: parent.pipeline.borrow().to_sendable(),
-            pipeline: child.frame_tree.pipeline.borrow().to_sendable(),
-            rect: child.rect,
-        };
-
         let (chan, port) = channel();
-        self.compositor_proxy.send(CompositorMsg::FrameTreeUpdate(sendable_frame_tree_diff, chan));
+        self.compositor_proxy.send(CompositorMsg::CreateRootLayerForPipeline(
+            parent.pipeline.borrow().to_sendable(),
+            child.frame_tree.pipeline.borrow().to_sendable(),
+            child.rect,
+            chan));
         match port.recv_opt() {
             Ok(()) => {
                 child.frame_tree.has_compositor_layer.set(true);

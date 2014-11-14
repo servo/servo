@@ -5,7 +5,7 @@
 //! Communication with the compositor task.
 
 pub use windowing;
-pub use constellation::{FrameId, SendableFrameTree, FrameTreeDiff};
+pub use constellation::{FrameId, SendableFrameTree};
 
 use compositor;
 use headless;
@@ -13,15 +13,17 @@ use windowing::{WindowEvent, WindowMethods};
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
 use geom::point::Point2D;
-use geom::rect::Rect;
+use geom::rect::{Rect, TypedRect};
 use geom::size::Size2D;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
+use pipeline::CompositionPipeline;
 use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, LoadData, PipelineId};
 use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use servo_util::cursor::Cursor;
+use servo_util::geometry::PagePx;
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
@@ -206,8 +208,10 @@ pub enum Msg {
     PaintMsgDiscarded,
     /// Replaces the current frame tree, typically called during main frame navigation.
     SetFrameTree(SendableFrameTree, Sender<()>, ConstellationChan),
-    /// Sends an updated version of the frame tree.
-    FrameTreeUpdate(FrameTreeDiff, Sender<()>),
+    /// Requests the compositor to create a root layer for a new frame.
+    CreateRootLayerForPipeline(CompositionPipeline, CompositionPipeline, Option<TypedRect<PagePx, f32>>, Sender<()>),
+    /// Requests the compositor to change a root layer's pipeline and remove all child layers.
+    ChangeLayerPipelineAndRemoveChildren(CompositionPipeline, CompositionPipeline, Sender<()>),
     /// The load of a page has completed.
     LoadComplete,
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
@@ -237,8 +241,9 @@ impl Show for Msg {
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             Msg::ChangePageLoadData(..) => write!(f, "ChangePageLoadData"),
             Msg::PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
-            Msg::FrameTreeUpdate(..) => write!(f, "FrameTreeUpdate"),
             Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
+            Msg::CreateRootLayerForPipeline(..) => write!(f, "CreateRootLayerForPipeline"),
+            Msg::ChangeLayerPipelineAndRemoveChildren(..) => write!(f, "ChangeLayerPipelineAndRemoveChildren"),
             Msg::LoadComplete => write!(f, "LoadComplete"),
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
