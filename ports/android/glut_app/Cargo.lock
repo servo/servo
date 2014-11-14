@@ -257,7 +257,7 @@ dependencies = [
 [[package]]
 name = "glut"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-glut#003a1ccbb66e1eea02922c2b9cc9634b2b32c478"
+source = "git+https://github.com/servo/rust-glut#63aa09161b6b2a8c5daac91449d1fc3b0c3e665f"
 dependencies = [
  "opengles 0.1.0 (git+https://github.com/servo/rust-opengles)",
 ]
