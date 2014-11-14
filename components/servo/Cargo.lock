@@ -88,6 +88,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cookie"
+version = "0.0.1"
+source = "git+https://github.com/alexcrichton/cookie-rs#9b579dd9b8cf0624eee1d013e9b48577acd3c40e"
+dependencies = [
+ "openssl 0.0.0 (git+https://github.com/sfackler/rust-openssl.git)",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+]
+
+[[package]]
 name = "core_foundation"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-core-foundation#6fa0b908f3912e20d081193e83bf5a9aa958fb83"
@@ -354,6 +363,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "hyper"
+version = "0.0.1"
+source = "git+https://github.com/hyperium/hyper?ref=servo#414a302f6333abd4b2ae38ea328bc41f8ca8fdbe"
+dependencies = [
+ "cookie 0.0.1 (git+https://github.com/alexcrichton/cookie-rs)",
+ "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
+ "move-acceptor 0.0.1 (git+https://github.com/reem/rust-move-acceptor)",
+ "openssl 0.0.0 (git+https://github.com/sfackler/rust-openssl.git)",
+ "typeable 0.0.1 (git+https://github.com/reem/rust-typeable)",
+ "unsafe-any 0.1.0 (git+https://github.com/reem/rust-unsafe-any)",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+]
+
+[[package]]
 name = "io_surface"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-io-surface#691cbccc320c4fb9b75e215da9b0b82539d729bd"
@@ -428,6 +451,16 @@ version = "0.1.0"
 source = "git+https://github.com/Kimundi/lazy-static.rs#62976cb611c5396e11315ae64c9c389576240eb7"
 
 [[package]]
+name = "mime"
+version = "0.0.1"
+source = "git+https://github.com/hyperium/mime.rs#467c271814d51659f12de88f87dcd3dc3280ee9b"
+
+[[package]]
+name = "move-acceptor"
+version = "0.0.1"
+source = "git+https://github.com/reem/rust-move-acceptor#25c5c33a83f605fdd0f3d37d2589e2b0b4e6cbd1"
+
+[[package]]
 name = "mozjs-sys"
 version = "0.0.0"
 source = "git+https://github.com/servo/mozjs#0dd618fcc78fe7aa64e4e2a3b0f7f0d8a2f0f08a"
@@ -451,7 +484,7 @@ name = "net"
 version = "0.0.1"
 dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo)",
+ "hyper 0.0.1 (git+https://github.com/hyperium/hyper?ref=servo)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
@@ -512,7 +545,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "html5ever 0.0.0 (git+https://github.com/servo/html5ever?ref=servo)",
- "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo)",
+ "hyper 0.0.1 (git+https://github.com/hyperium/hyper?ref=servo)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "msg 0.0.1",
  "net 0.0.1",
@@ -595,6 +628,16 @@ dependencies = [
 [[package]]
 name = "task_info"
 version = "0.0.1"
+
+
+name = "typeable"
+version = "0.0.1"
+source = "git+https://github.com/reem/rust-typeable#55154e1809db8ceec8f8519bdbb638c2fbd712f5"
+
+[[package]]
+name = "unsafe-any"
+version = "0.1.0"
+source = "git+https://github.com/reem/rust-unsafe-any#2863af363bbd83079b6773920bba5b736408db33"
 
 [[package]]
 name = "url"
