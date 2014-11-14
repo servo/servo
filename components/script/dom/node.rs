@@ -69,7 +69,7 @@ use std::iter::{FilterMap, Peekable};
 use std::mem;
 use std::sync::Arc;
 use uuid;
-use string_cache::QualName;
+use string_cache::{Atom, QualName};
 
 //
 // The basic Node structure
@@ -1734,7 +1734,7 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().as_ref().map(|p| (**p).to_owned()),
+                    element.prefix().as_ref().map(|p| Atom::from_slice(p.as_slice())),
                     document.r(), ElementCreator::ScriptCreated);
                 NodeCast::from_temporary(element)
             },
