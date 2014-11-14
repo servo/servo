@@ -37,7 +37,6 @@ use util::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, OpaqueNodeMetho
 use util::{PrivateLayoutData};
 
 use gfx::display_list::OpaqueNode;
-use script::dom::bindings::cell::{Ref, RefMut};
 use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
 use script::dom::bindings::codegen::InheritTypes::{TextCast};
@@ -61,6 +60,8 @@ use style::{AnyNamespace, AttrSelector, IntegerAttribute, LengthAttribute};
 use style::{PropertyDeclarationBlock, SpecificNamespace, TElement, TElementAttributes, TNode};
 use url::Url;
 use string_cache::{Atom, Namespace};
+
+use std::cell::{Ref, RefMut};
 
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {

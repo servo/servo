@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::AttrHelpers;
-use dom::bindings::cell::{DOMRefCell, Ref};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyStateValues;
@@ -65,7 +65,7 @@ use url::Url;
 use std::collections::HashMap;
 use std::collections::hash_map::{Vacant, Occupied};
 use std::ascii::AsciiExt;
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 use std::default::Default;
 use time;
 

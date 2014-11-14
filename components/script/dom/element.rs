@@ -7,7 +7,7 @@
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpers, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::namednodemap::NamedNodeMap;
-use dom::bindings::cell::{DOMRefCell, Ref, RefMut};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -41,6 +41,7 @@ use servo_util::namespace;
 use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
 use std::ascii::AsciiExt;
+use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
 use string_cache::{Atom, Namespace, QualName};
