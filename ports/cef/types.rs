@@ -5,30 +5,40 @@
 use libc::{c_uint, c_ushort, c_int, c_double, size_t, c_void, c_longlong};
 use libc::types::os::arch::c95::wchar_t;
 
-pub type cef_string_map_t = c_void;
-pub type cef_string_list_t = c_void;
-pub type cef_text_input_context_t = c_void;
-pub type cef_event_handle_t = c_void;
+pub enum cef_string_map_t {}
+pub enum cef_string_list_t {}
+pub enum cef_text_input_context_t {}
+pub enum cef_event_handle_t {}
 
 //these all need to be done...
-pub type cef_binary_value = *mut c_void;
-pub type cef_dictionary_value = *mut c_void;
-pub type cef_client_t = c_void;
-pub type cef_request_t = c_void;
-pub type cef_response_t = c_void;
-pub type cef_urlrequest_client_t = c_void;
-pub type cef_frame = *mut c_void;
-pub type cef_domnode = *mut c_void;
-pub type cef_load_handler = *mut c_void;
-pub type cef_request = *mut c_void;
-pub type cef_navigation_type = *mut c_void;
-pub type cef_request_context_t = c_void;
-pub type cef_window_info_t = c_void;
-pub type cef_browser_settings_t = c_void;
-pub type cef_v8context = *mut c_void;
-pub type cef_v8exception = *mut c_void;
-pub type cef_v8stack_trace = *mut c_void;
-pub type cef_window_handle_t = c_void; //FIXME: wtf is this
+pub enum cef_binary_value_val {}
+pub type cef_binary_value = *mut cef_binary_value_val;
+pub enum cef_dictionary_value_val {}
+pub type cef_dictionary_value = *mut cef_dictionary_value_val;
+pub enum cef_client_t {}
+pub enum cef_request_t {}
+pub enum cef_response_t {}
+pub enum cef_urlrequest_client_t {}
+pub enum cef_frame_val {}
+pub type cef_frame = *mut cef_frame_val;
+pub enum cef_domnode_val {}
+pub type cef_domnode = *mut cef_domnode_val;
+pub enum cef_load_handler_val {}
+pub type cef_load_handler = *mut cef_load_handler_val;
+pub enum cef_request_val {}
+pub type cef_request = *mut cef_request_val;
+pub enum cef_navigation_type_val {}
+pub type cef_navigation_type = *mut cef_navigation_type_val;
+pub enum cef_request_context_t {}
+pub enum cef_window_info_t {}
+pub enum cef_browser_settings_t {}
+pub enum cef_v8context_val {}
+pub type cef_v8context = *mut cef_v8context_val;
+pub enum cef_v8exception_val {}
+pub type cef_v8exception = *mut cef_v8exception_val;
+pub enum cef_v8stack_trace_val {}
+pub type cef_v8stack_trace = *mut cef_v8stack_trace_val;
+pub enum cef_window_handle_t {} //FIXME: wtf is this
 
 pub type cef_string_t = cef_string_utf8; //FIXME: this is #defined...
 pub type cef_string_userfree_t = cef_string_t; //FIXME: this is #defined...
