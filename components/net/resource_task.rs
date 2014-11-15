@@ -8,6 +8,7 @@ use about_loader;
 use data_loader;
 use file_loader;
 use http_loader;
+use sniffer_task;
 
 use std::comm::{channel, Receiver, Sender};
 use http::headers::content_type::MediaType;
@@ -177,7 +178,6 @@ struct ResourceManager {
     user_agent: Option<String>,
 }
 
-
 impl ResourceManager {
     fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>) -> ResourceManager {
         ResourceManager {
@@ -206,6 +206,12 @@ impl ResourceManager {
         let mut load_data = load_data;
         load_data.headers.user_agent = self.user_agent.clone();
 
+        // Create new communication channel, create new sniffer task,
+        // send all the data to the new sniffer task with the send
+        // end of the pipe, receive all the data.
+
+        let sniffer_task = sniffer_task::new_sniffer_task(start_chan.clone());
+
         let loader = match load_data.url.scheme.as_slice() {
             "file" => file_loader::factory,
             "http" | "https" => http_loader::factory,
@@ -219,7 +225,8 @@ impl ResourceManager {
             }
         };
         debug!("resource_task: loading url: {:s}", load_data.url.serialize());
-        loader(load_data, start_chan);
+
+        loader(load_data, sniffer_task);
     }
 }
 
