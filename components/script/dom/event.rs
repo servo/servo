@@ -245,3 +245,13 @@ impl Reflectable for Event {
         &self.reflector_
     }
 }
+
+pub trait EventHelpers {
+    fn set_trusted(self, trusted: bool);
+}
+
+impl<'a> EventHelpers for JSRef<'a, Event> {
+    fn set_trusted(self, trusted: bool) {
+        self.trusted.set(trusted);
+    }
+}
