@@ -46,7 +46,11 @@ pub struct PaintContext<'a> {
     /// rect used by the last display item. We cache the last value so that we avoid pushing and
     /// popping clip rects unnecessarily.
     pub transient_clip_rect: Option<Rect<Au>>,
-    /// The scale factor.
+    /// The factor by which this tile is zoomed in. Typically pinch zooming is the reason why this
+    /// will have a value other than 1.0.
+    ///
+    /// Unlike much of the rest of the graphics code, typed units aren't useful for this value
+    /// because it's only used in conjunction with the Azure API, which doesn't use typed units.
     pub scale: AzFloat,
 }
 

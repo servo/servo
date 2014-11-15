@@ -1241,7 +1241,7 @@ pub mod longhands {
         }
     </%self:single_component_value>
 
-    <%self:raw_longhand name="box-shadow">
+    <%self:longhand name="box-shadow">
         use cssparser;
 
         pub type SpecifiedValue = Vec<SpecifiedBoxShadow>;
@@ -1253,7 +1253,6 @@ pub mod longhands {
             pub blur_radius: specified::Length,
             pub spread_radius: specified::Length,
             pub color: Option<specified::CSSColor>,
-            pub inset: bool,
         }
 
         pub mod computed_value {
@@ -1269,7 +1268,6 @@ pub mod longhands {
                 pub blur_radius: Au,
                 pub spread_radius: Au,
                 pub color: computed::CSSColor,
-                pub inset: bool,
             }
         }
 
@@ -1278,20 +1276,14 @@ pub mod longhands {
             Vec::new()
         }
 
-        pub fn parse_specified(input: &[ComponentValue], _: &Url)
-                               -> Result<DeclaredValue<SpecifiedValue>,()> {
-            if input.len() == 1 {
-                match input[0] {
-                    Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => {
-                        return Ok(SpecifiedValue(Vec::new()))
-                    }
-                    _ => {}
+        pub fn parse(input: &[ComponentValue], _: &Url) -> Result<SpecifiedValue,()> {
+            match one_component_value(input) {
+                Ok(&Ident(ref value)) if value.as_slice().eq_ignore_ascii_case("none") => {
+                    return Ok(Vec::new())
                 }
+                _ => {}
             }
-            match parse_slice_comma_separated(input, parse_one_box_shadow) {
-                Ok(result) => Ok(SpecifiedValue(result)),
-                Err(()) => Err(()),
-            }
+            parse_slice_comma_separated(input, parse_one_box_shadow)
         }
 
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
@@ -1302,27 +1294,12 @@ pub mod longhands {
                     offset_y: computed::compute_Au(value.offset_y, context),
                     blur_radius: computed::compute_Au(value.blur_radius, context),
                     spread_radius: computed::compute_Au(value.spread_radius, context),
-                    color: match value.color {
-                        Some(color) => color,
-                        None => cssparser::RGBAColor(context.color),
-                    },
-                    inset: value.inset,
+                    color: value.color.unwrap_or(cssparser::CurrentColor),
                 }
             }).collect()
         }
 
         fn parse_one_box_shadow(iter: ParserIter) -> Result<SpecifiedBoxShadow,()> {
-            let inset = match iter.next() {
-                Some(&Ident(ref value)) if value.as_slice().eq_ignore_ascii_case("inset") => {
-                    true
-                }
-                Some(other) => {
-                    iter.push_back(other);
-                    false
-                }
-                None => return Err(()),
-            };
-
             let mut lengths = [specified::Au_(Au(0)), ..4];
             for (i, length) in lengths.iter_mut().enumerate() {
                 match iter.next() {
@@ -1368,11 +1345,9 @@ pub mod longhands {
                 blur_radius: lengths[2],
                 spread_radius: lengths[3],
                 color: color,
-                inset: inset,
             })
         }
-    </%self:raw_longhand>
->>>>>>> gfx: Implement most of `box-shadow` per CSS-BACKGROUNDS.
+    </%self:longhand>
 }
 
 
