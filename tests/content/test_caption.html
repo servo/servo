@@ -17,5 +17,8 @@
   t.caption = newCaption;
   is(newCaption.parentNode, t);
   is(t.caption, newCaption);
+
+  // Test for https://github.com/servo/servo/issues/3997
+  t.getBoundingClientRect();
 </script>
 </html>
