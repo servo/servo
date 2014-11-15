@@ -6,10 +6,6 @@ use libc::c_int;
 use std::slice;
 use std::str;
 
-pub fn fptr_is_null(fptr: *const u8) -> bool {
-    fptr.is_null()
-}
-
 pub fn slice_to_str(s: *const u8, l: uint, f: |&str| -> c_int) -> c_int {
     unsafe {
         slice::raw::buf_as_slice(s, l, |result| {
