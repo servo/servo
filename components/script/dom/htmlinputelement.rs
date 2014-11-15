@@ -23,7 +23,7 @@ use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::keyboardevent::KeyboardEvent;
-use dom::htmlformelement::{InputElement, FormOwner, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
+use dom::htmlformelement::{InputElement, FormControl, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use textinput::{Single, TextInput, TriggerDefaultAction, DispatchInput, Nothing};
@@ -150,6 +150,12 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
     make_bool_setter!(SetChecked, "checked")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-readonly
+    make_bool_getter!(ReadOnly)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-readonly
+    make_bool_setter!(SetReadOnly, "readonly")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-size
     make_uint_getter!(Size)
@@ -457,7 +463,7 @@ impl Reflectable for HTMLInputElement {
     }
 }
 
-impl<'a> FormOwner<'a> for JSRef<'a, HTMLInputElement> {
+impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
     // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
     //        but we need html5ever to do it correctly
     fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
@@ -484,5 +490,12 @@ impl<'a> FormOwner<'a> for JSRef<'a, HTMLInputElement> {
 
     fn to_element(self) -> JSRef<'a, Element> {
         ElementCast::from_ref(self)
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
+    fn mutable(self) -> bool {
+        // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-fe-mutable
+        // https://html.spec.whatwg.org/multipage/forms.html#the-readonly-attribute:concept-fe-mutable
+        !(self.Disabled() || self.ReadOnly())
     }
 }

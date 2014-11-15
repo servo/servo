@@ -32,7 +32,7 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString name;
   //         attribute DOMString pattern;
   //         attribute DOMString placeholder;
-  //         attribute boolean readOnly;
+           attribute boolean readOnly;
   //         attribute boolean required;
            attribute unsigned long size;
   //         attribute DOMString src;

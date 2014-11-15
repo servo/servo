@@ -410,7 +410,7 @@ impl<'a> FormSubmitter<'a> {
     }
 }
 
-pub trait FormOwner<'a> : Copy {
+pub trait FormControl<'a> : Copy {
     fn form_owner(self) -> Option<Temporary<HTMLFormElement>>;
     fn get_form_attribute(self,
                           attr: &Atom,
@@ -423,4 +423,6 @@ pub trait FormOwner<'a> : Copy {
         }
     }
     fn to_element(self) -> JSRef<'a, Element>;
+    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
+    fn mutable(self) -> bool;
 }
