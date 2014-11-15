@@ -95,7 +95,7 @@ flaky_cpu == linebreak_simple_a.html linebreak_simple_b.html
 == overflow_simple_a.html overflow_simple_b.html
 == noscript.html noscript_ref.html
 == pseudo_inherit.html pseudo_inherit_ref.html
-experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
+flaky_linux,experimental == vertical-lr-blocks.html vertical-lr-blocks_ref.html
 == float_intrinsic_height.html float_intrinsic_height_ref.html
 == table_auto_width.html table_auto_width_ref.html
 == inline_whitespace_b.html inline_whitespace_ref.html
