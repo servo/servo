@@ -2,26 +2,60 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
-use dom::bindings::js::JSRef;
-use dom::element::HTMLInputElementTypeId;
-use dom::htmlinputelement::HTMLInputElement;
-use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::element::{Element, ActivationElementHelpers};
+use dom::event::{Event, EventHelpers};
+use dom::eventtarget::{EventTarget, EventTargetHelpers};
+use dom::mouseevent::MouseEvent;
+use dom::node::window_from_node;
 
-pub trait Activatable {}
 
+/// Trait for elements with defined activation behavior
+pub trait Activatable : Copy {
+    fn as_element(&self) -> Temporary<Element>;
 
-/// Obtain an Activatable instance for a given Node-derived object,
-/// if it is activatable
-pub fn activation_vtable_for<'a>(node: &'a JSRef<'a, Node>) -> Option<&'a Activatable + 'a> {
-    match node.type_id() {
-        ElementNodeTypeId(HTMLInputElementTypeId) => {
-            let _element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(node).unwrap();
-            // Some(element as &'a VirtualMethods + 'a)
-            None
-        },
-        _ => {
-            None
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
+    fn pre_click_activation(&self);
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-canceled-activation-steps
+    fn canceled_activation(&self);
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
+    fn post_click_activation(&self);
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-synthetic-click-activation-steps
+    fn synthetic_click_activation(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
+        let element = self.as_element().root();
+        // Step 1
+        if element.click_in_progress() {
+            return;
         }
+        // Step 2
+        element.set_click_in_progress(true);
+        // Step 3
+        self.pre_click_activation();
+
+        // Step 4
+        // https://html.spec.whatwg.org/multipage/webappapis.html#fire-a-synthetic-mouse-event
+        let win = window_from_node(*element).root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(*element);
+        let mouse = MouseEvent::new(*win, "click".to_string(), false, false, Some(*win), 1,
+                                    0, 0, 0, 0, ctrlKey, shiftKey, altKey, metaKey,
+                                    0, None).root();
+        let event: JSRef<Event> = EventCast::from_ref(*mouse);
+        event.set_trusted(true);
+        target.dispatch_event_with_target(None, event).ok();
+
+        // Step 5
+        if event.DefaultPrevented() {
+            self.canceled_activation();
+        } else {
+            self.post_click_activation();
+        }
+
+        // Step 6
+        element.set_click_in_progress(false);
     }
 }
