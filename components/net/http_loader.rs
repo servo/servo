@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use http_cache::{MemoryCache, Uncacheable, CachedContentPending, NewCacheEntry};
+use http_cache::{MemoryCache, Uncacheable, CachedContentPending, NewCacheEntry, Revalidate};
 use http_cache::{CachedPendingResource, UncachedPendingResource, ResourceResponseTarget};
 use http_cache::{UncachedInProgressResource, CachedInProgressResource, ResourceProgressTarget};
+use http_cache::{ExpiryDate, Etag};
 use resource_task::{Metadata, Payload, Done, LoadResponse, LoadData, start_sending_opt};
 
 use log;
@@ -12,6 +13,7 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use http::client::{RequestWriter, NetworkStream};
 use http::headers::HeaderEnum;
+use http::status::NotModified;
 use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::Url;
@@ -57,7 +59,7 @@ fn send_error(url: Url, err: String, start_chan: &ResourceResponseTarget) {
     }
 }
 
-fn load(load_data: LoadData, start_chan: Sender<LoadResponse>, cache: Arc<Mutex<MemoryCache>>) {
+fn load(mut load_data: LoadData, start_chan: Sender<LoadResponse>, cache: Arc<Mutex<MemoryCache>>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -72,6 +74,20 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>, cache: Arc<Mutex<
         cache.process_pending_request(&load_data, start_chan.clone())
     };
 
+    let revalidating = match cache_result {
+        Revalidate(ref _key, ExpiryDate(ref last_fetched)) => {
+            load_data.headers.if_modified_since = Some(last_fetched.clone());
+            true
+        }
+
+        Revalidate(ref _key, Etag(ref etag)) => {
+            load_data.headers.if_none_match = Some(etag.clone());
+            true
+        }
+
+        _ => false
+    };
+
     let start_chan = match cache_result {
         Uncacheable(reason) => {
             info!("request for {} can't be cached: {}", url, reason);
@@ -80,6 +96,10 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>, cache: Arc<Mutex<
         CachedContentPending => return,
         NewCacheEntry(key) => {
             info!("new cache entry for {}", url);
+            CachedPendingResource(key, cache)
+        }
+        Revalidate(key, _) => {
+            info!("revalidating {}", url);
             CachedPendingResource(key, cache)
         }
     };
@@ -155,6 +175,21 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>, cache: Arc<Mutex<
             for header in response.headers.iter() {
                 info!(" - {:s}: {:s}", header.header_name(), header.header_value());
             }
+        }
+
+        if revalidating {
+            let (key, cache) = match start_chan {
+                CachedPendingResource(ref key, ref cache) => (key, cache),
+                UncachedPendingResource(..) => unreachable!(),
+            };
+
+            let mut cache = cache.lock();
+            if response.status == NotModified && revalidating {
+                cache.process_not_modified(key, &response.headers);
+                return;
+            }
+
+            cache.doom_request(key, "cache entry expired".to_string());
         }
 
         if 3 == (response.status.code() / 100) {

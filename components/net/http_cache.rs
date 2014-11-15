@@ -11,28 +11,32 @@ use resource_task::{Metadata, ProgressMsg, LoadResponse, LoadData, Payload, Done
 use servo_util::time::parse_http_timestamp;
 
 use http::headers::HeaderEnum;
+use http::headers::response::HeaderCollection as ResponseHeaderCollection;
 use http::method::Get;
 use http::status::Ok as StatusOk;
 
 use std::collections::HashMap;
 use std::comm::Sender;
 use std::iter::Map;
-use std::num::FromStrRadix;
+use std::num::{Bounded, FromStrRadix};
 use std::str::CharSplits;
 use std::sync::{Arc, Mutex};
 use std::time::duration::{MAX, Duration};
 use time;
-use time::Timespec;
+use time::{Tm, Timespec};
 use url::Url;
 
 //TODO: Store an Arc<Vec<u8>> instead?
-//TODO: Cache non-GET requests?
+//TODO: Cache HEAD requests
 //TODO: Doom responses with network errors
 //TODO: Send Err responses for doomed entries
 //TODO: Enable forced eviction of a request instead of retrieving the cached response
-//TODO: Evict items based on expiration time
-//TODO: Use If-Modified-Since, Etag, etc.
 //TODO: Doom incomplete entries
+//TODO: Cache-Control: must-revalidate
+//TODO: Last-Modified
+//TODO: Range requests
+//TODO: Revalidation rules for query strings
+//TODO: Vary
 
 /// The key used to differentiate requests in the cache.
 #[deriving(Clone, Hash, PartialEq, Eq)]
@@ -116,6 +120,16 @@ pub enum CacheOperationResult {
     CachedContentPending,
     /// The request is not present in the cache but will be cached with the given key.
     NewCacheEntry(CacheKey),
+    /// The request is in the cache but requires revalidation.
+    Revalidate(CacheKey, RevalidationMethod),
+}
+
+/// The means by which to revalidate stale cached content
+pub enum RevalidationMethod {
+    /// The result of a stored Last-Modified or Expires header
+    ExpiryDate(Tm),
+    /// The result of a stored Etag header
+    Etag(String),
 }
 
 /// Tokenize a header value.
@@ -160,27 +174,39 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     return true;
 }
 
-/// Determine the expiry date of the given response.
-fn get_response_expiry(metadata: &Metadata) -> Duration {
-    metadata.headers.as_ref().and_then(|headers| {
-        headers.cache_control.as_ref().and_then(|cache_control| {
-            for token in split_header(cache_control[]) {
-                let mut parts = token.split('=');
-                if parts.next().unwrap() == "max-age" {
-                    return parts.next()
-                                .and_then(|val| FromStrRadix::from_str_radix(val, 10))
-                                .map(|secs| Duration::seconds(secs));
-                }
+/// Determine the expiry date of the given response headers.
+fn get_response_expiry_from_headers(headers: &ResponseHeaderCollection) -> Duration {
+    headers.cache_control.as_ref().and_then(|cache_control| {
+        for token in split_header(cache_control[]) {
+            let mut parts = token.split('=');
+            if parts.next().unwrap() == "max-age" {
+                return parts.next()
+                    .and_then(|val| FromStrRadix::from_str_radix(val, 10))
+                    .map(|secs| Duration::seconds(secs));
             }
-            None
-        }).or_else(|| {
-            headers.expires.as_ref().and_then(|expires| {
-                parse_http_timestamp(expires[]).map(|t| {
-                    Duration::seconds(t.to_timespec().sec)
-                })
+        }
+        None
+    }).or_else(|| {
+        headers.expires.as_ref().and_then(|expires| {
+            parse_http_timestamp(expires[]).map(|t| {
+                // store the period of time from now until expiry
+                let desired = t.to_timespec();
+                let current = time::now().to_timespec();
+                if desired > current {
+                    desired - current
+                } else {
+                    Bounded::min_value()
+                }
             })
         })
-    }).unwrap_or(MAX)
+    }).unwrap_or(Bounded::max_value())
+}
+
+/// Determine the expiry date of the given response.
+fn get_response_expiry(metadata: &Metadata) -> Duration {
+    metadata.headers.as_ref().map(|headers| {
+        get_response_expiry_from_headers(headers)
+    }).unwrap_or(Bounded::max_value())
 }
 
 impl MemoryCache {
@@ -197,6 +223,11 @@ impl MemoryCache {
     /// an error message or a final body payload. The cache entry is immediately removed.
     pub fn doom_request(&mut self, key: &CacheKey, err: String) {
         info!("dooming entry for {}", key.url);
+        match self.complete_entries.remove(key) {
+            Some(_) => return,
+            None => (),
+        }
+
         let resource = self.pending_entries.remove(key).unwrap();
         match resource.consumers {
             AwaitingHeaders(ref consumers) => {
@@ -210,6 +241,14 @@ impl MemoryCache {
                 }
             }
         }
+    }
+
+    /// Handle a 304 response to a revalidation request. Updates the cached response
+    /// metadata with any new expiration data.
+    pub fn process_not_modified(&mut self, key: &CacheKey, headers: &ResponseHeaderCollection) {
+        info!("updating metadata for {}", key.url);
+        let resource = self.complete_entries.get_mut(key).unwrap();
+        resource.expires = get_response_expiry_from_headers(headers);
     }
 
     /// Handle the initial response metadata for an incomplete cached request.
@@ -303,17 +342,16 @@ impl MemoryCache {
         }
 
         let key = CacheKey::new(load_data.clone());
-        let expired = self.complete_entries.get(&key).map(|resource| {
-            self.base_time + resource.expires >= time::now().to_timespec()
-        });
+        match self.complete_entries.get(&key) {
+            Some(resource) => {
+                if self.base_time + resource.expires >= time::now().to_timespec() {
+                    return Revalidate(key, ExpiryDate(time::at(self.base_time + resource.expires)));
+                }
 
-        match expired {
-            Some(true) => {
-                info!("evicting existing entry for {}", load_data.url);
-                self.complete_entries.remove(&key);
-            }
+                //TODO: Revalidate if Etag present
+                //TODO: Revalidate if must-revalidate
+                //TODO: Revalidate once per session for response with no explicit expiry
 
-            Some(false) => {
                 self.send_complete_entry(key, start_chan);
                 return CachedContentPending;
             }
