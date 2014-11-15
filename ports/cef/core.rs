@@ -4,14 +4,12 @@
 
 
 use command_line::command_line_init;
-use eutil::fptr_is_null;
 use geom::size::TypedSize2D;
 use glfw_app;
 use libc::{c_int, c_void};
 use native;
 use servo::Browser;
 use servo_util::opts;
-use std::mem;
 use types::{cef_app_t, cef_main_args_t, cef_settings_t};
 
 #[no_mangle]
@@ -25,16 +23,12 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     }
     unsafe {
         command_line_init((*args).argc, (*args).argv);
-        let cb = (*application).get_browser_process_handler;
-        if !fptr_is_null(mem::transmute(cb)) {
-            let handler = cb(application);
-            if handler.is_not_null() {
-                let hcb = (*handler).on_context_initialized;
-                if !fptr_is_null(mem::transmute(hcb)) {
-                    hcb(handler);
+        (*application).get_browser_process_handler.map(|cb| {
+                let handler = cb(application);
+                if handler.is_not_null() {
+                    (*handler).on_context_initialized.map(|hcb| hcb(handler));
                 }
-            }
-        }
+        });
     }
     return 1
 }

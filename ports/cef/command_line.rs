@@ -35,7 +35,7 @@ pub fn command_line_init(argc: c_int, argv: *const *const u8) {
         let cl = command_line_new();
         (*cl).argc = argc;
         (*cl).argv = a;
-        (*cl).cl.get_switch_value = command_line_get_switch_value;
+        (*cl).cl.get_switch_value = Some(command_line_get_switch_value);
         GLOBAL_CMDLINE = Some(cl);
     }
 }
@@ -72,7 +72,7 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
 pub extern "C" fn cef_command_line_create() -> *mut cef_command_line_t {
         unsafe {
             let cl = command_line_new();
-            (*cl).cl.get_switch_value = command_line_get_switch_value;
+            (*cl).cl.get_switch_value = Some(command_line_get_switch_value);
             mem::transmute(cl)
         }
 }
