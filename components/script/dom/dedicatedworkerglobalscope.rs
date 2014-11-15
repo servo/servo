@@ -146,7 +146,7 @@ impl DedicatedWorkerGlobalScope {
                         Worker::handle_release(addr)
                     },
                     Ok(FireTimerMsg(FromWorker, timer_id)) => {
-                        scope.handle_fire_timer(timer_id, js_context.ptr);
+                        scope.handle_fire_timer(timer_id);
                     }
                     Ok(_) => panic!("Unexpected message"),
                     Err(_) => break,

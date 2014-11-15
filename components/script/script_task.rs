@@ -665,7 +665,7 @@ impl ScriptTask {
             pipeline ID not associated with this script task. This is a bug.");
         let frame = page.frame();
         let window = frame.as_ref().unwrap().window.root();
-        window.handle_fire_timer(timer_id, self.get_cx());
+        window.handle_fire_timer(timer_id);
     }
 
     /// Handles a notification that reflow completed.

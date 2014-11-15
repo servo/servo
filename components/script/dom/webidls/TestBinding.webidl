@@ -148,6 +148,8 @@ interface TestBinding {
   void passUnion2((Event or DOMString) data);
   void passUnion3((Blob or DOMString) data);
   void passAny(any arg);
+  void passCallbackFunction(Function fun);
+  void passCallbackInterface(EventListener listener);
 
   void passNullableBoolean(boolean? arg);
   void passNullableByte(byte? arg);
@@ -166,6 +168,8 @@ interface TestBinding {
   void passNullableInterface(Blob? arg);
   void passNullableUnion((HTMLElement or long)? arg);
   void passNullableUnion2((Event or DOMString)? data);
+  void passNullableCallbackFunction(Function? fun);
+  void passNullableCallbackInterface(EventListener? listener);
 
   void passOptionalBoolean(optional boolean arg);
   void passOptionalByte(optional byte arg);
@@ -185,6 +189,8 @@ interface TestBinding {
   void passOptionalUnion(optional (HTMLElement or long) arg);
   void passOptionalUnion2(optional (Event or DOMString) data);
   void passOptionalAny(optional any arg);
+  void passOptionalCallbackFunction(optional Function fun);
+  void passOptionalCallbackInterface(optional EventListener listener);
 
   void passOptionalNullableBoolean(optional boolean? arg);
   void passOptionalNullableByte(optional byte? arg);
@@ -203,6 +209,8 @@ interface TestBinding {
   void passOptionalNullableInterface(optional Blob? arg);
   void passOptionalNullableUnion(optional (HTMLElement or long)? arg);
   void passOptionalNullableUnion2(optional (Event or DOMString)? data);
+  void passOptionalNullableCallbackFunction(optional Function? fun);
+  void passOptionalNullableCallbackInterface(optional EventListener? listener);
 
   void passOptionalBooleanWithDefault(optional boolean arg = false);
   void passOptionalByteWithDefault(optional byte arg = 0);
@@ -233,6 +241,8 @@ interface TestBinding {
   void passOptionalNullableInterfaceWithDefault(optional Blob? arg = null);
   void passOptionalNullableUnionWithDefault(optional (HTMLElement or long)? arg = null);
   void passOptionalNullableUnion2WithDefault(optional (Event or DOMString)? data = null);
+  // void passOptionalNullableCallbackFunctionWithDefault(optional Function? fun = null);
+  void passOptionalNullableCallbackInterfaceWithDefault(optional EventListener? listener = null);
   void passOptionalAnyWithDefault(optional any arg = null);
 
   void passOptionalNullableBooleanWithNonNullDefault(optional boolean? arg = false);
