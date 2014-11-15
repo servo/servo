@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Done, Payload, Metadata, LoadData, LoadResponse, start_sending};
+use resource_task::{Done, Payload, Metadata, LoadData, TargetedLoadResponse, start_sending, ResponseSenders};
 
 use serialize::base64::FromBase64;
 
@@ -11,7 +11,7 @@ use http::headers::content_type::MediaType;
 use url::{percent_decode, NonRelativeSchemeData};
 
 
-pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     // NB: we don't spawn a new task.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
@@ -19,11 +19,16 @@ pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     load(load_data, start_chan)
 }
 
-fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     let url = load_data.url;
     assert!("data" == url.scheme.as_slice());
 
     let mut metadata = Metadata::default(url.clone());
+
+    let senders = ResponseSenders {
+        immediate_consumer: start_chan,
+        eventual_consumer: load_data.consumer,
+    };
 
     // Split out content type and data.
     let mut scheme_data = match url.scheme_data {
@@ -39,7 +44,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     }
     let parts: Vec<&str> = scheme_data.as_slice().splitn(1, ',').collect();
     if parts.len() != 2 {
-        start_sending(start_chan, metadata).send(Done(Err("invalid data uri".to_string())));
+        start_sending(senders, metadata).send(Done(Err("invalid data uri".to_string())));
         return;
     }
 
@@ -57,7 +62,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     let content_type: Option<MediaType> = from_stream_with_str(ct_str);
     metadata.set_content_type(&content_type);
 
-    let progress_chan = start_sending(start_chan, metadata);
+    let progress_chan = start_sending(senders, metadata);
     let bytes = percent_decode(parts[1].as_bytes());
 
     if is_base64 {
@@ -86,9 +91,11 @@ fn assert_parse(url:          &'static str,
                 data:         Option<Vec<u8>>) {
     use std::comm;
     use url::Url;
+    use sniffer_task;
 
     let (start_chan, start_port) = comm::channel();
-    load(LoadData::new(Url::parse(url).unwrap()), start_chan);
+    let sniffer_task = sniffer_task::new_sniffer_task();
+    load(LoadData::new(Url::parse(url).unwrap(), start_chan), sniffer_task);
 
     let response = start_port.recv();
     assert_eq!(&response.metadata.content_type, &content_type);
