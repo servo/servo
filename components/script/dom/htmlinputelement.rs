@@ -41,7 +41,9 @@ const DEFAULT_RESET_VALUE: &'static str = "Reset";
 #[deriving(PartialEq)]
 #[allow(dead_code)]
 enum InputType {
-    InputButton(Option<&'static str>),
+    InputSubmit,
+    InputReset,
+    InputButton,
     InputText,
     InputFile,
     InputImage,
@@ -110,9 +112,9 @@ impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
         match (*self.unsafe_get()).input_type.get() {
             InputCheckbox | InputRadio => "".to_string(),
             InputFile | InputImage => "".to_string(),
-            InputButton(ref default) => get_raw_attr_value(self)
-                                          .or_else(|| default.map(|v| v.to_string()))
-                                          .unwrap_or_else(|| "".to_string()),
+            InputButton => get_raw_attr_value(self).unwrap_or_else(|| "".to_string()),
+            InputSubmit => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_SUBMIT_VALUE.to_string()),
+            InputReset => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_RESET_VALUE.to_string()),
             InputPassword => {
                 let raw = get_raw_textinput_value(self);
                 String::from_char(raw.char_len(), '●')
@@ -305,9 +307,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             &atom!("type") => {
                 let value = attr.value();
                 self.input_type.set(match value.as_slice() {
-                    "button" => InputButton(None),
-                    "submit" => InputButton(Some(DEFAULT_SUBMIT_VALUE)),
-                    "reset" => InputButton(Some(DEFAULT_RESET_VALUE)),
+                    "button" => InputButton,
+                    "submit" => InputSubmit,
+                    "reset" => InputReset,
                     "file" => InputFile,
                     "radio" => InputRadio,
                     "checkbox" => InputCheckbox,
@@ -421,7 +423,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             match self.input_type.get() {
                 InputCheckbox => self.SetChecked(!self.checked.get()),
                 InputRadio => self.SetChecked(true),
-                InputButton(Some(DEFAULT_SUBMIT_VALUE)) => {
+                InputSubmit => {
                     self.form_owner().map(|o| {
                         o.root().submit(NotFromFormSubmitMethod, InputElement(self.clone()))
                     });
