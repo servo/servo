@@ -4,6 +4,7 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
@@ -223,8 +224,9 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.navigator.get().unwrap()
     }
 
-    fn SetTimeout(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
         self.timers.set_timeout_or_interval(callback,
+                                            args,
                                             timeout,
                                             false, // is_interval
                                             FromWindow(self.page.id.clone()),
@@ -235,8 +237,9 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.timers.clear_timeout_or_interval(handle);
     }
 
-    fn SetInterval(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
         self.timers.set_timeout_or_interval(callback,
+                                            args,
                                             timeout,
                                             true, // is_interval
                                             FromWindow(self.page.id.clone()),
@@ -317,7 +320,7 @@ pub trait WindowHelpers {
     fn wait_until_safe_to_modify_dom(self);
     fn init_browser_context(self, doc: JSRef<Document>);
     fn load_url(self, href: DOMString);
-    fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext);
+    fn handle_fire_timer(self, timer_id: TimerId);
     fn evaluate_js_with_result(self, code: &str) -> JSVal;
     fn evaluate_script_with_result(self, code: &str, filename: &str) -> JSVal;
 }
@@ -380,9 +383,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         }
     }
 
-    fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext) {
-        let this_value = self.reflector().get_jsobject();
-        self.timers.fire_timer(timer_id, this_value, cx);
+    fn handle_fire_timer(self, timer_id: TimerId) {
+        self.timers.fire_timer(timer_id, self.clone());
         self.flush_layout();
     }
 }
