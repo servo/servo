@@ -18,8 +18,8 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentHelpers, FromParser};
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
-use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
-use dom::event::{Event, Bubbles, DoesNotBubble, Cancelable, NotCancelable};
+use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId, ActivationElementHelpers};
+use dom::event::{Event, EventHelpers, Bubbles, DoesNotBubble, Cancelable, NotCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
@@ -1018,8 +1018,11 @@ impl ScriptTask {
                                     Event::new(global::Window(*window),
                                                "click".to_string(),
                                                Bubbles, Cancelable).root();
-                                let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(node);
-                                let _ = eventtarget.dispatch_event_with_target(None, *event);
+                                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
+                                event.set_trusted(true);
+                                // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
+                                let el = ElementCast::to_ref(node).unwrap(); // is_element() check already exists above
+                                el.authentic_click_activation(*event);
 
                                 doc.commit_focus_transaction();
                                 window.flush_layout();
