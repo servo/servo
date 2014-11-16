@@ -13,6 +13,7 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use flow::{mod, Flow};
+use flow::{IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
 use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment};
 use fragment::{ImageFragmentInfo, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
 use fragment::{ScannedTextFragment, ScannedTextFragmentInfo, TableFragment};
@@ -809,7 +810,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                          &self.base.clip_rect);
 
         for kid in self.base.children.iter_mut() {
-            if flow::base(kid).flags.is_absolutely_positioned() {
+            if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 // All absolute flows will be handled by their containing block.
                 continue
             }
@@ -846,7 +847,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let z_index = self.fragment.style().get_box().z_index.number_or_zero();
 
         if !self.base.absolute_position_info.layers_needed_for_positioned_flows &&
-                !self.base.flags.needs_layer() {
+                !self.base.flags.contains(NEEDS_LAYER) {
             // We didn't need a layer.
             self.base.display_list_building_result =
                 StackingContextResult(Arc::new(StackingContext::new(display_list,
