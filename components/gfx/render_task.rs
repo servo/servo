@@ -5,8 +5,7 @@
 //! The task that handles all rendering/painting.
 
 use buffer_map::BufferMap;
-use display_list::optimizer::DisplayListOptimizer;
-use display_list::DisplayList;
+use display_list::{mod, StackingContext};
 use font_cache_task::FontCacheTask;
 use font_context::FontContext;
 use render_context::RenderContext;
@@ -27,9 +26,9 @@ use servo_msg::compositor_msg::{LayerMetadata, RenderListener, RenderingRenderSt
 use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineId};
 use servo_msg::constellation_msg::{RendererReadyMsg};
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
-use servo_util::geometry;
+use servo_util::geometry::{Au, ZERO_POINT};
 use servo_util::opts;
-use servo_util::smallvec::{SmallVec, SmallVec1};
+use servo_util::smallvec::SmallVec;
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
 use servo_util::time::{TimeProfilerChan, profile};
@@ -39,19 +38,26 @@ use std::mem;
 use std::task::TaskBuilder;
 use sync::Arc;
 
-/// Information about a layer that layout sends to the painting task.
+/// Information about a hardware graphics layer that layout sends to the painting task.
 #[deriving(Clone)]
 pub struct RenderLayer {
     /// A per-pipeline ID describing this layer that should be stable across reflows.
     pub id: LayerId,
-    /// The display list describing the contents of this layer.
-    pub display_list: Arc<DisplayList>,
-    /// The position of the layer in pixels.
-    pub position: Rect<uint>,
     /// The color of the background in this layer. Used for unrendered content.
     pub background_color: Color,
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
+}
+
+impl RenderLayer {
+    /// Creates a new `RenderLayer`.
+    pub fn new(id: LayerId, background_color: Color, scroll_policy: ScrollPolicy) -> RenderLayer {
+        RenderLayer {
+            id: id,
+            background_color: background_color,
+            scroll_policy: scroll_policy,
+        }
+    }
 }
 
 pub struct RenderRequest {
@@ -62,7 +68,7 @@ pub struct RenderRequest {
 }
 
 pub enum Msg {
-    RenderInitMsg(SmallVec1<RenderLayer>),
+    RenderInitMsg(Arc<StackingContext>),
     RenderMsg(Vec<RenderRequest>),
     UnusedBufferMsg(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
@@ -102,8 +108,8 @@ pub struct RenderTask<C> {
     /// The native graphics context.
     native_graphics_context: Option<NativePaintingGraphicsContext>,
 
-    /// The layers to be rendered.
-    render_layers: SmallVec1<RenderLayer>,
+    /// The root stacking context sent to us by the layout thread.
+    root_stacking_context: Option<Arc<StackingContext>>,
 
     /// Permission to send paint messages to the compositor
     paint_permission: bool,
@@ -129,17 +135,36 @@ macro_rules! native_graphics_context(
 fn initialize_layers<C>(compositor: &mut C,
                         pipeline_id: PipelineId,
                         epoch: Epoch,
-                        render_layers: &[RenderLayer])
+                        root_stacking_context: &StackingContext)
                         where C: RenderListener {
-    let metadata = render_layers.iter().map(|render_layer| {
-        LayerMetadata {
-            id: render_layer.id,
-            position: render_layer.position,
-            background_color: render_layer.background_color,
-            scroll_policy: render_layer.scroll_policy,
-        }
-    }).collect();
+    let mut metadata = Vec::new();
+    build(&mut metadata, root_stacking_context, &ZERO_POINT);
     compositor.initialize_layers_for_pipeline(pipeline_id, metadata, epoch);
+
+    fn build(metadata: &mut Vec<LayerMetadata>,
+             stacking_context: &StackingContext,
+             page_position: &Point2D<Au>) {
+        let page_position = stacking_context.bounds.origin + *page_position;
+        match stacking_context.layer {
+            None => {}
+            Some(ref render_layer) => {
+                metadata.push(LayerMetadata {
+                    id: render_layer.id,
+                    position:
+                        Rect(Point2D(page_position.x.to_nearest_px() as uint,
+                                     page_position.y.to_nearest_px() as uint),
+                             Size2D(stacking_context.bounds.size.width.to_nearest_px() as uint,
+                                    stacking_context.bounds.size.height.to_nearest_px() as uint)),
+                    background_color: render_layer.background_color,
+                    scroll_policy: render_layer.scroll_policy,
+                })
+            }
+        }
+
+        for kid in stacking_context.display_list.children.iter() {
+            build(metadata, &**kid, &page_position)
+        }
+    }
 }
 
 impl<C> RenderTask<C> where C: RenderListener + Send {
@@ -170,11 +195,8 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                     compositor: compositor,
                     constellation_chan: constellation_chan,
                     time_profiler_chan: time_profiler_chan,
-
                     native_graphics_context: native_graphics_context,
-
-                    render_layers: SmallVec1::new(),
-
+                    root_stacking_context: None,
                     paint_permission: false,
                     epoch: Epoch(0),
                     buffer_map: BufferMap::new(10000000),
@@ -205,9 +227,9 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
 
         loop {
             match self.port.recv() {
-                RenderInitMsg(render_layers) => {
+                RenderInitMsg(stacking_context) => {
                     self.epoch.next();
-                    self.render_layers = render_layers;
+                    self.root_stacking_context = Some(stacking_context.clone());
 
                     if !self.paint_permission {
                         debug!("render_task: render ready msg");
@@ -219,7 +241,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                     initialize_layers(&mut self.compositor,
                                       self.id,
                                       self.epoch,
-                                      self.render_layers.as_slice());
+                                      &*stacking_context);
                 }
                 RenderMsg(requests) => {
                     if !self.paint_permission {
@@ -254,15 +276,15 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                 PaintPermissionGranted => {
                     self.paint_permission = true;
 
-                    // Here we assume that the main layer—the layer responsible for the page size—
-                    // is the first layer. This is a pretty fragile assumption. It will be fixed
-                    // once we use the layers-based scrolling infrastructure for all scrolling.
-                    if self.render_layers.len() > 1 {
-                        self.epoch.next();
-                        initialize_layers(&mut self.compositor,
-                                          self.id,
-                                          self.epoch,
-                                          self.render_layers.as_slice());
+                    match self.root_stacking_context {
+                        None => {}
+                        Some(ref stacking_context) => {
+                            self.epoch.next();
+                            initialize_layers(&mut self.compositor,
+                                              self.id,
+                                              self.epoch,
+                                              &**stacking_context);
+                        }
                     }
                 }
                 PaintPermissionRevoked => {
@@ -327,9 +349,15 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
               scale: f32,
               layer_id: LayerId) {
         time::profile(time::PaintingCategory, None, self.time_profiler_chan.clone(), || {
-            // Bail out if there is no appropriate render layer.
-            let render_layer = match self.render_layers.iter().find(|layer| layer.id == layer_id) {
-                Some(render_layer) => (*render_layer).clone(),
+            // Bail out if there is no appropriate stacking context.
+            let stacking_context = match self.root_stacking_context {
+                Some(ref stacking_context) => {
+                    match display_list::find_stacking_context_with_layer_id(stacking_context,
+                                                                            layer_id) {
+                        Some(stacking_context) => stacking_context,
+                        None => return,
+                    }
+                }
                 None => return,
             };
 
@@ -342,7 +370,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                 let layer_buffer = self.find_or_create_layer_buffer_for_tile(&tile, scale);
                 self.worker_threads[thread_id].paint_tile(tile,
                                                           layer_buffer,
-                                                          render_layer.clone(),
+                                                          stacking_context.clone(),
                                                           scale);
             }
             let new_buffers = Vec::from_fn(tile_count, |i| {
@@ -397,9 +425,9 @@ impl WorkerThreadProxy {
     fn paint_tile(&mut self,
                   tile: BufferRequest,
                   layer_buffer: Option<Box<LayerBuffer>>,
-                  render_layer: RenderLayer,
+                  stacking_context: Arc<StackingContext>,
                   scale: f32) {
-        self.sender.send(PaintTileMsgToWorkerThread(tile, layer_buffer, render_layer, scale))
+        self.sender.send(PaintTileMsgToWorkerThread(tile, layer_buffer, stacking_context, scale))
     }
 
     fn get_painted_tile_buffer(&mut self) -> Box<LayerBuffer> {
@@ -443,8 +471,8 @@ impl WorkerThread {
         loop {
             match self.receiver.recv() {
                 ExitMsgToWorkerThread => break,
-                PaintTileMsgToWorkerThread(tile, layer_buffer, render_layer, scale) => {
-                    let draw_target = self.optimize_and_paint_tile(&tile, render_layer, scale);
+                PaintTileMsgToWorkerThread(tile, layer_buffer, stacking_context, scale) => {
+                    let draw_target = self.optimize_and_paint_tile(&tile, stacking_context, scale);
                     let buffer = self.create_layer_buffer_for_painted_tile(&tile,
                                                                            layer_buffer,
                                                                            draw_target,
@@ -457,21 +485,9 @@ impl WorkerThread {
 
     fn optimize_and_paint_tile(&mut self,
                                tile: &BufferRequest,
-                               render_layer: RenderLayer,
+                               stacking_context: Arc<StackingContext>,
                                scale: f32)
                                -> DrawTarget {
-        // page_rect is in coordinates relative to the layer origin, but all display list
-        // components are relative to the page origin. We make page_rect relative to
-        // the page origin before passing it to the optimizer.
-        let page_rect = tile.page_rect.translate(&Point2D(render_layer.position.origin.x as f32,
-                                                          render_layer.position.origin.y as f32));
-        let page_rect_au = geometry::f32_rect_to_au_rect(page_rect);
-
-        // Optimize the display list for this tile.
-        let optimizer = DisplayListOptimizer::new(render_layer.display_list.clone(),
-                                                  page_rect_au);
-        let display_list = optimizer.optimize();
-
         let size = Size2D(tile.screen_rect.size.width as i32, tile.screen_rect.size.height as i32);
         let draw_target = if !opts::get().gpu_painting {
             DrawTarget::new(SkiaBackend, size, B8G8R8A8)
@@ -496,10 +512,11 @@ impl WorkerThread {
             };
 
             // Apply the translation to render the tile we want.
+            let tile_bounds = tile.page_rect;
             let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
             let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
-            let matrix = matrix.translate(-page_rect.origin.x as AzFloat,
-                                          -page_rect.origin.y as AzFloat);
+            let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,
+                                          -tile_bounds.origin.y as AzFloat);
 
             render_context.draw_target.set_transform(&matrix);
 
@@ -509,7 +526,10 @@ impl WorkerThread {
             // Draw the display list.
             profile(time::PaintingPerTileCategory, None, self.time_profiler_sender.clone(), || {
                 let mut clip_stack = Vec::new();
-                display_list.draw_into_context(&mut render_context, &matrix, &mut clip_stack);
+                stacking_context.optimize_and_draw_into_context(&mut render_context,
+                                                                &tile.page_rect,
+                                                                &matrix,
+                                                                &mut clip_stack);
                 render_context.draw_target.flush();
             });
         }
@@ -564,7 +584,7 @@ impl WorkerThread {
 
 enum MsgToWorkerThread {
     ExitMsgToWorkerThread,
-    PaintTileMsgToWorkerThread(BufferRequest, Option<Box<LayerBuffer>>, RenderLayer, f32),
+    PaintTileMsgToWorkerThread(BufferRequest, Option<Box<LayerBuffer>>, Arc<StackingContext>, f32),
 }
 
 enum MsgFromWorkerThread {

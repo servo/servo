@@ -2,52 +2,66 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use display_list::{DisplayItem, DisplayList};
+//! Transforms a display list to produce a visually-equivalent, but cheaper-to-render, one.
+
+use display_list::{DisplayItem, DisplayList, StackingContext};
 
 use collections::dlist::DList;
 use geom::rect::Rect;
-use servo_util::geometry::Au;
+use servo_util::geometry::{mod, Au};
 use sync::Arc;
 
+/// Transforms a display list to produce a visually-equivalent, but cheaper-to-render, one.
 pub struct DisplayListOptimizer {
-    display_list: Arc<DisplayList>,
     /// The visible rect in page coordinates.
     visible_rect: Rect<Au>,
 }
 
 impl DisplayListOptimizer {
-    /// `visible_rect` specifies the visible rect in page coordinates.
-    pub fn new(display_list: Arc<DisplayList>, visible_rect: Rect<Au>) -> DisplayListOptimizer {
+    /// Creates a new display list optimizer object. `visible_rect` specifies the visible rect in
+    /// page coordinates.
+    pub fn new(visible_rect: &Rect<f32>) -> DisplayListOptimizer {
         DisplayListOptimizer {
-            display_list: display_list,
-            visible_rect: visible_rect,
+            visible_rect: geometry::f32_rect_to_au_rect(*visible_rect),
         }
     }
 
-    pub fn optimize(self) -> DisplayList {
-        self.process_display_list(&*self.display_list)
+    /// Optimizes the given display list, returning an equivalent, but cheaper-to-paint, one.
+    pub fn optimize(self, display_list: &DisplayList) -> DisplayList {
+        let mut result = DisplayList::new();
+        self.add_in_bounds_display_items(&mut result.background_and_borders,
+                                         display_list.background_and_borders.iter());
+        self.add_in_bounds_display_items(&mut result.block_backgrounds_and_borders,
+                                         display_list.block_backgrounds_and_borders.iter());
+        self.add_in_bounds_display_items(&mut result.floats, display_list.floats.iter());
+        self.add_in_bounds_display_items(&mut result.content, display_list.content.iter());
+        self.add_in_bounds_stacking_contexts(&mut result.children, display_list.children.iter());
+        result
     }
 
-    fn process_display_list(&self, display_list: &DisplayList) -> DisplayList {
-        let mut result = DList::new();
-        for item in display_list.iter() {
-            match self.process_display_item(item) {
-                None => {}
-                Some(display_item) => result.push_back(display_item),
+    /// Adds display items that intersect the visible rect to `result_list`.
+    fn add_in_bounds_display_items<'a,I>(&self,
+                                         result_list: &mut DList<DisplayItem>,
+                                         mut display_items: I)
+                                         where I: Iterator<&'a DisplayItem> {
+        for display_item in display_items {
+            if self.visible_rect.intersects(&display_item.base().bounds) &&
+                    self.visible_rect.intersects(&display_item.base().clip_rect) {
+                result_list.push_back((*display_item).clone())
             }
         }
-        DisplayList {
-            list: result,
-        }
     }
 
-    fn process_display_item(&self, display_item: &DisplayItem) -> Option<DisplayItem> {
-        // Eliminate display items outside the visible region.
-        if !self.visible_rect.intersects(&display_item.base().bounds) ||
-                !self.visible_rect.intersects(&display_item.base().clip_rect) {
-            None
-        } else {
-            Some((*display_item).clone())
+    /// Adds child stacking contexts whose boundaries intersect the visible rect to `result_list`.
+    fn add_in_bounds_stacking_contexts<'a,I>(&self,
+                                             result_list: &mut DList<Arc<StackingContext>>,
+                                             mut stacking_contexts: I)
+                                             where I: Iterator<&'a Arc<StackingContext>> {
+        for stacking_context in stacking_contexts {
+            if self.visible_rect.intersects(&stacking_context.bounds) &&
+                    self.visible_rect.intersects(&stacking_context.clip_rect) {
+                result_list.push_back((*stacking_context).clone())
+            }
         }
     }
 }

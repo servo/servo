@@ -20,6 +20,7 @@ extern crate native;
 extern crate rustrt;
 extern crate stb_image;
 extern crate png;
+extern crate script_traits;
 extern crate serialize;
 extern crate unicode;
 #[phase(plugin)]

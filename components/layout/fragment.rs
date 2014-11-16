@@ -1481,11 +1481,31 @@ impl Fragment {
         self.style = (*new_style).clone()
     }
 
-    pub fn abs_bounds_from_origin(&self, fragment_origin: &Point2D<Au>) -> Rect<Au> {
+    /// Given the stacking-context-relative position of the containing flow, returns the boundaries
+    /// of this fragment relative to the parent stacking context.
+    pub fn stacking_relative_bounds(&self, stacking_relative_flow_origin: &Point2D<Au>)
+                                    -> Rect<Au> {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
-        self.border_box.to_physical(self.style.writing_mode, container_size)
-                        .translate(fragment_origin)
+        self.border_box
+            .to_physical(self.style.writing_mode, container_size)
+            .translate(stacking_relative_flow_origin)
+    }
+
+    /// Returns true if this fragment establishes a new stacking context and false otherwise.
+    pub fn establishes_stacking_context(&self) -> bool {
+        match self.style().get_box().position {
+            position::absolute | position::fixed => {
+                // FIXME(pcwalton): This should only establish a new stacking context when
+                // `z-index` is not `auto`. But this matches what we did before.
+                true
+            }
+            position::relative | position::static_ => {
+                // FIXME(pcwalton): `position: relative` establishes a new stacking context if
+                // `z-index` is not `auto`. But this matches what we did before.
+                false
+            }
+        }
     }
 }
 
