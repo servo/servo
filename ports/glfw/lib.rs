@@ -13,6 +13,7 @@ extern crate alert;
 extern crate cgl;
 extern crate compositing;
 extern crate geom;
+extern crate gleam;
 extern crate glfw;
 extern crate layers;
 extern crate libc;

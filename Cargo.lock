@@ -251,7 +251,7 @@ dependencies = [
 [[package]]
 name = "gleam"
 version = "0.0.1"
-source = "git+https://github.com/servo/gleam#8e77178eaebddfeae6557dfec2bcccbefaba93f3"
+source = "git+https://github.com/servo/gleam#aaea38be25ce9de6e1e8620fa5b554669ac6475c"
 dependencies = [
  "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
 ]
