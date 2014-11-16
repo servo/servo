@@ -30,9 +30,9 @@
 use construct::FlowConstructor;
 use context::LayoutContext;
 use css::node_style::StyledNode;
-use display_list_builder::{BlockFlowDisplayListBuilding, FragmentDisplayListBuilding};
+use display_list_builder::{BlockFlowDisplayListBuilding, BlockLevel, FragmentDisplayListBuilding};
 use floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, FloatLeft, Floats, PlacementInfo};
-use flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use flow::{AbsolutePositionInfo, BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
 use flow;
 use fragment::{Fragment, ImageFragment, InlineBlockFragment, FragmentBoundsIterator};
@@ -45,10 +45,9 @@ use table::ColumnInlineSize;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::Size2D;
-use gfx::display_list::BlockLevel;
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
-use servo_util::geometry::{Au, MAX_AU};
+use servo_util::geometry::{Au, MAX_AU, MAX_RECT, ZERO_POINT};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::cmp::{max, min};
@@ -1665,24 +1664,26 @@ impl Flow for BlockFlow {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
 
+        if self.is_root() {
+            self.base.clip_rect = MAX_RECT
+        }
+
         if self.base.flags.is_absolutely_positioned() {
             let position_start = self.base.position.start.to_physical(self.base.writing_mode,
                                                                       container_size);
-            self.base.absolute_position_info.absolute_containing_block_position =
-                if self.is_fixed() {
-                    // The viewport is initially at (0, 0).
-                    position_start
-                } else {
-                    // Absolute position of the containing block + position of absolute
-                    // flow w.r.t. the containing block.
-                    self.base.absolute_position_info.absolute_containing_block_position
-                        + position_start
-                };
 
-            // Set the absolute position, which will be passed down later as part
-            // of containing block details for absolute descendants.
-            self.base.abs_position =
-                self.base.absolute_position_info.absolute_containing_block_position;
+            // Compute our position relative to the nearest ancestor stacking context. This will be
+            // passed down later as part of containing block details for absolute descendants.
+            self.base.stacking_relative_position = if self.is_fixed() {
+                // The viewport is initially at (0, 0).
+                position_start
+            } else {
+                // Absolute position of the containing block + position of absolute
+                // flow w.r.t. the containing block.
+                self.base
+                    .absolute_position_info
+                    .stacking_relative_position_of_absolute_containing_block + position_start
+            }
         }
 
         // For relatively-positioned descendants, the containing block formed by a block is just
@@ -1693,32 +1694,52 @@ impl Flow for BlockFlow {
                                                  .absolute_position_info
                                                  .relative_containing_block_size);
         if self.is_positioned() {
-            self.base.absolute_position_info.absolute_containing_block_position =
-                self.base.abs_position
-                + (self.generated_containing_block_rect().start
-                   + relative_offset).to_physical(self.base.writing_mode, container_size)
+            self.base
+                .absolute_position_info
+                .stacking_relative_position_of_absolute_containing_block =
+                    self.base.stacking_relative_position +
+                    (self.generated_containing_block_rect().start +
+                     relative_offset).to_physical(self.base.writing_mode, container_size)
         }
 
         // Compute absolute position info for children.
-        let mut absolute_position_info = self.base.absolute_position_info;
-        absolute_position_info.relative_containing_block_size = self.fragment.content_box().size;
-        absolute_position_info.layers_needed_for_positioned_flows =
-            self.base.flags.layers_needed_for_descendants();
+        let absolute_position_info_for_children = AbsolutePositionInfo {
+            stacking_relative_position_of_absolute_containing_block:
+                if self.fragment.establishes_stacking_context() {
+                    let logical_border_width = self.fragment.style().logical_border_width();
+                    LogicalPoint::new(self.base.writing_mode,
+                                      logical_border_width.inline_start,
+                                      logical_border_width.block_start).to_physical(
+                                          self.base.writing_mode,
+                                          container_size)
+                } else {
+                    self.base
+                        .absolute_position_info
+                        .stacking_relative_position_of_absolute_containing_block
+                },
+            relative_containing_block_size: self.fragment.content_box().size,
+            layers_needed_for_positioned_flows: self.base.flags.layers_needed_for_descendants(),
+        };
 
-        // Compute the clipping rectangle for children.
-        let this_position = self.base.abs_position;
-        let clip_rect = self.fragment.clip_rect_for_children(self.base.clip_rect, this_position);
+        // Compute the origin and clipping rectangle for children.
+        let origin_for_children = if self.fragment.establishes_stacking_context() {
+            ZERO_POINT
+        } else {
+            self.base.stacking_relative_position
+        };
+        let clip_rect = self.fragment.clip_rect_for_children(self.base.clip_rect,
+                                                             origin_for_children);
 
         // Process children.
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter() {
             if !flow::base(kid).flags.is_absolutely_positioned() {
                 let kid_base = flow::mut_base(kid);
-                kid_base.abs_position =
-                    this_position +
+                kid_base.stacking_relative_position =
+                    origin_for_children +
                     (kid_base.position.start + relative_offset).to_physical(writing_mode,
                                                                             container_size);
-                kid_base.absolute_position_info = absolute_position_info
+                kid_base.absolute_position_info = absolute_position_info_for_children
             }
 
             flow::mut_base(kid).clip_rect = clip_rect
@@ -1726,7 +1747,8 @@ impl Flow for BlockFlow {
 
         // Process absolute descendant links.
         for absolute_descendant in self.base.abs_descendants.iter() {
-            flow::mut_base(absolute_descendant).absolute_position_info = absolute_position_info
+            flow::mut_base(absolute_descendant).absolute_position_info =
+                absolute_position_info_for_children
         }
     }
 
@@ -1816,9 +1838,10 @@ impl Flow for BlockFlow {
 
     fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
         if iterator.should_process(&self.fragment) {
-            let fragment_origin = self.base.child_fragment_absolute_position(&self.fragment);
+            let fragment_origin =
+                self.base.stacking_relative_position_of_child_fragment(&self.fragment);
             iterator.process(&self.fragment,
-                             self.fragment.abs_bounds_from_origin(&fragment_origin));
+                             self.fragment.stacking_relative_bounds(&fragment_origin));
         }
     }
 }

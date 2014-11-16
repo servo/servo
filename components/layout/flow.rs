@@ -28,6 +28,8 @@
 use css::node_style::StyledNode;
 use block::BlockFlow;
 use context::LayoutContext;
+use display_list_builder::{DisplayListBuildingResult, DisplayListResult};
+use display_list_builder::{NoDisplayListBuildingResult, StackingContextResult};
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
@@ -45,10 +47,7 @@ use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use wrapper::ThreadSafeLayoutNode;
 
-use collections::dlist::DList;
 use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::DisplayList;
-use gfx::render_task::RenderLayer;
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
@@ -681,8 +680,10 @@ pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
 
-    /// The position of the absolute containing block.
-    pub absolute_containing_block_position: Point2D<Au>,
+    /// The position of the absolute containing block relative to the nearest ancestor stacking
+    /// context. If the absolute containing block establishes the stacking context for this flow,
+    /// and this flow is not itself absolutely-positioned, then this is (0, 0).
+    pub stacking_relative_position_of_absolute_containing_block: Point2D<Au>,
 
     /// Whether the absolute containing block forces positioned descendants to be layerized.
     ///
@@ -696,7 +697,7 @@ impl AbsolutePositionInfo {
         // of the root layer.
         AbsolutePositionInfo {
             relative_containing_block_size: LogicalSize::zero(writing_mode),
-            absolute_containing_block_position: Zero::zero(),
+            stacking_relative_position_of_absolute_containing_block: Zero::zero(),
             layers_needed_for_positioned_flows: false,
         }
     }
@@ -742,8 +743,9 @@ pub struct BaseFlow {
     /// The collapsible margins for this flow, if any.
     pub collapsible_margins: CollapsibleMargins,
 
-    /// The position of this flow in page coordinates, computed during display list construction.
-    pub abs_position: Point2D<Au>,
+    /// The position of this flow relative to the start of the nearest ancestor stacking context.
+    /// This is computed during the top-down pass of display list construction.
+    pub stacking_relative_position: Point2D<Au>,
 
     /// Details about descendants with position 'absolute' or 'fixed' for which we are the
     /// containing block. This is in tree order. This includes any direct children.
@@ -779,11 +781,8 @@ pub struct BaseFlow {
     /// rectangles.
     pub clip_rect: Rect<Au>,
 
-    /// The unflattened display items for this flow.
-    pub display_list: DisplayList,
-
-    /// Any layers that we're bubbling up, in a linked list.
-    pub layers: DList<RenderLayer>,
+    /// The results of display list building for this flow.
+    pub display_list_building_result: DisplayListBuildingResult,
 
     /// The writing mode for this flow.
     pub writing_mode: WritingMode,
@@ -806,8 +805,12 @@ impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
     fn encode(&self, e: &mut S) -> Result<(), E> {
         e.emit_struct("base", 0, |e| {
             try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)))
-            try!(e.emit_struct_field("abs_position", 1, |e| self.abs_position.encode(e)))
-            try!(e.emit_struct_field("intrinsic_inline_sizes", 2, |e| self.intrinsic_inline_sizes.encode(e)))
+            try!(e.emit_struct_field("stacking_relative_position",
+                                     1,
+                                     |e| self.stacking_relative_position.encode(e)))
+            try!(e.emit_struct_field("intrinsic_inline_sizes",
+                                     2,
+                                     |e| self.intrinsic_inline_sizes.encode(e)))
             try!(e.emit_struct_field("position", 3, |e| self.position.encode(e)))
             e.emit_struct_field("children", 4, |e| {
                 e.emit_seq(self.children.len(), |e| {
@@ -893,15 +896,14 @@ impl BaseFlow {
             parallel: FlowParallelInfo::new(),
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
-            abs_position: Zero::zero(),
+            stacking_relative_position: Zero::zero(),
             abs_descendants: Descendants::new(),
             absolute_static_i_offset: Au(0),
             fixed_static_i_offset: Au(0),
             block_container_inline_size: Au(0),
             block_container_explicit_block_size: None,
             absolute_cb: ContainingBlockLink::new(),
-            display_list: DisplayList::new(),
-            layers: DList::new(),
+            display_list_building_result: NoDisplayListBuildingResult,
             absolute_position_info: AbsolutePositionInfo::new(writing_mode),
             clip_rect: Rect(Zero::zero(), Size2D(Au(0), Au(0))),
             flags: flags,
@@ -922,13 +924,23 @@ impl BaseFlow {
         p as uint
     }
 
+    /// Ensures that all display list items generated by this flow are within the flow's overflow
+    /// rect. This should only be used for debugging.
     pub fn validate_display_list_geometry(&self) {
         let position_with_overflow = self.position.union(&self.overflow);
-        let bounds = Rect(self.abs_position,
+        let bounds = Rect(self.stacking_relative_position,
                           Size2D(position_with_overflow.size.inline,
                                  position_with_overflow.size.block));
 
-        for item in self.display_list.iter() {
+        let all_items = match self.display_list_building_result {
+            NoDisplayListBuildingResult => Vec::new(),
+            StackingContextResult(ref stacking_context) => {
+                stacking_context.display_list.all_display_items()
+            }
+            DisplayListResult(ref display_list) => display_list.all_display_items(),
+        };
+
+        for item in all_items.iter() {
             let paint_bounds = match item.base().bounds.intersection(&item.base().clip_rect) {
                 None => continue,
                 Some(rect) => rect,
@@ -944,12 +956,15 @@ impl BaseFlow {
         }
     }
 
-    pub fn child_fragment_absolute_position(&self, fragment: &Fragment) -> Point2D<Au> {
+    /// Returns the position of the given fragment relative to the start of the nearest ancestor
+    /// stacking context. The fragment must be a child fragment of this flow.
+    pub fn stacking_relative_position_of_child_fragment(&self, fragment: &Fragment)
+                                                        -> Point2D<Au> {
         let relative_offset =
             fragment.relative_position(&self
                                        .absolute_position_info
                                        .relative_containing_block_size);
-        self.abs_position.add_size(&relative_offset.to_physical(self.writing_mode))
+        self.stacking_relative_position.add_size(&relative_offset.to_physical(self.writing_mode))
     }
 }
 
