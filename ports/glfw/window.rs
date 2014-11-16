@@ -20,6 +20,7 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use glfw::{mod, Context};
+use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
@@ -62,6 +63,8 @@ impl Window {
                                                        "Servo", glfw::Windowed)
             .expect("Failed to create GLFW window");
         glfw_window.make_current();
+
+        gl::load_with(|s| glfw_window.get_proc_address(s));
 
         // Create our window object.
         let window = Window {
