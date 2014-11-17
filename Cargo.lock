@@ -227,6 +227,7 @@ dependencies = [
  "net 0.0.1",
  "plugins 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
+ "script_traits 0.0.1",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "style 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
