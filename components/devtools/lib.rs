@@ -193,7 +193,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Err(_e) => { /* connection failed */ }
             Ok(stream) => {
                 let actors = actors.clone();
-		accepted_connections.push(stream.clone());
+                accepted_connections.push(stream.clone());
                 spawn_named("DevtoolsClientHandler", proc() {
                     // connection succeeded
                     handle_client(actors, stream.clone())
