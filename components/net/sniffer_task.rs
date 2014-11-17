@@ -10,37 +10,34 @@ use resource_task::{LoadResponse};
 pub type SnifferTask = Sender<LoadResponse>;
 
 pub fn new_sniffer_task(next_rx: Sender<LoadResponse>) -> SnifferTask {
-  let(sen, rec) = channel();
-  let builder = TaskBuilder::new().named("SnifferManager");
-  builder.spawn(proc(){
-    SnifferManager::new(rec).start(next_rx);
-  });
-  sen
+    let (sen, rec) = channel();
+    let builder = TaskBuilder::new().named("SnifferManager");
+    builder.spawn(proc() {
+        SnifferManager::new(rec).start(next_rx);
+    });
+    sen
 }
 
 struct SnifferManager {
-  data_receiver: Receiver<LoadResponse>,
+    data_receiver: Receiver<LoadResponse>,
 }
 
 impl SnifferManager {
-  fn new(data_receiver: Receiver <LoadResponse>) -> SnifferManager {
-    SnifferManager {
-      data_receiver: data_receiver,
-    }
-  }
-}
-
-impl SnifferManager {
-  fn start(&self, next_rx: Sender<LoadResponse>) {
-    loop {
-      match self.data_receiver.try_recv() {
-        Ok(snif_data) => next_rx.send(snif_data),
-        Err(e) => {
-          if e == Disconnected {
-            break
-          }
+    fn new(data_receiver: Receiver<LoadResponse>) -> SnifferManager {
+        SnifferManager {
+            data_receiver: data_receiver,
         }
-      }
     }
-  }
+}
+
+impl SnifferManager {
+    fn start(&self, next_rx: Sender<LoadResponse>) {
+        loop {
+            match self.data_receiver.try_recv() {
+                Ok(snif_data) => next_rx.send(snif_data),
+                Err(Disconnected) => break,
+                Err(_) => (),
+            }
+        }
+    }
 }
