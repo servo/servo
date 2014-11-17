@@ -6,11 +6,14 @@
 use command_line::command_line_init;
 use geom::size::TypedSize2D;
 use glfw_app;
+use libc::funcs::c95::string::strlen;
 use libc::{c_int, c_void};
 use native;
 use servo::Browser;
 use servo_util::opts;
 use servo_util::opts::OpenGL;
+use std::slice;
+use switches::{KPROCESSTYPE, KWAITFORDEBUGGER};
 use types::{cef_app_t, cef_main_args_t, cef_settings_t};
 
 #[no_mangle]
@@ -84,9 +87,31 @@ pub extern "C" fn cef_quit_message_loop() {
 }
 
 #[no_mangle]
-pub extern "C" fn cef_execute_process(_args: *const cef_main_args_t,
+pub extern "C" fn cef_execute_process(args: *const cef_main_args_t,
                                       _app: *mut cef_app_t,
                                       _windows_sandbox_info: *mut c_void)
                                       -> c_int {
+    unsafe {
+        if args.is_null() {
+            println!("args must be passed");
+            return -1;
+        }
+        for i in range(0u, (*args).argc as uint) {
+             let u = (*args).argv.offset(i as int) as *const u8;
+             slice::raw::buf_as_slice(u, strlen(u as *const i8) as uint, |s| {
+                 if s.starts_with("--".as_bytes()) {
+                     if s.slice_from(2) == KWAITFORDEBUGGER.as_bytes() {
+                         //FIXME: this is NOT functionally equivalent to chromium!
+
+                         //this should be a pause() call with an installed signal
+                         //handler callback, something which is impossible now in rust
+                     } else if s.slice_from(2) == KPROCESSTYPE.as_bytes() {
+                         //TODO: run other process now
+                     }
+                 }
+             });
+        }
+    }
+   //process type not specified, must be browser process (NOOP)
    -1
 }
