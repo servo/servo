@@ -85,6 +85,8 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
 
     let actors = Arc::new(Mutex::new(registry));
 
+    let mut accepted_connections: Vec<TcpStream> = Vec::new();
+
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
         println!("connection established to {}", stream.peer_name().unwrap());
@@ -154,9 +156,6 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
     //      from multiple script tasks simultaneously. Polling for new connections
     //      for 300ms and then checking the receiver is not a good compromise
     //      (and makes Servo hang on exit if there's an open connection, no less).
-
-    //TODO: make constellation send ServerExitMsg on shutdown.
-
     // accept connections and process them, spawning a new tasks for each one
     loop {
         match acceptor.accept() {
@@ -170,11 +169,17 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Err(_e) => { /* connection failed */ }
             Ok(stream) => {
                 let actors = actors.clone();
+                accepted_connections.push(stream.clone());
                 spawn_named("DevtoolsClientHandler", proc() {
                     // connection succeeded
                     handle_client(actors, stream.clone())
                 })
             }
         }
+    }
+
+    for connection in accepted_connections.iter_mut() {
+        let _read = connection.close_read();
+        let _write = connection.close_write();
     }
 }

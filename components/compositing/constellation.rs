@@ -5,6 +5,7 @@
 use pipeline::{Pipeline, CompositionPipeline};
 
 use compositor_task::{CompositorProxy, FrameTreeUpdateMsg, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
+use devtools_traits;
 use devtools_traits::DevtoolsControlChan;
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
@@ -466,6 +467,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
         self.image_cache_task.exit();
         self.resource_task.send(resource_task::Exit);
+        self.devtools_chan.as_ref().map(|chan| {
+            chan.send(devtools_traits::ServerExitMsg);
+        });
         self.font_cache_task.exit();
         self.compositor_proxy.send(ShutdownComplete);
     }
