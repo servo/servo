@@ -7,13 +7,12 @@
 use azure::azure::AzIntSize;
 use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GradientStop, Linear};
-use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, OverOp, SourceOp};
+use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, SourceOp};
 use azure::azure_hl::{StrokeOptions};
 use azure::scaled_font::ScaledFont;
 use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
-use display_list::{BOX_SHADOW_INFLATION_FACTOR, BorderRadii, SidewaysLeft, SidewaysRight};
-use display_list::{TextDisplayItem, Upright};
+use display_list::{SidewaysLeft, SidewaysRight, TextDisplayItem, Upright};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -754,50 +753,30 @@ impl<'a> PaintContext<'a>  {
     ///
     /// TODO(pcwalton): Add support for `inset`.
     pub fn draw_box_shadow(&self,
-                           bounds: &Rect<Au>,
+                           _: &Rect<Au>,
                            box_bounds: &Rect<Au>,
                            offset: &Point2D<Au>,
                            color: Color,
                            blur_radius: Au,
                            spread_radius: Au) {
-        let sigma = blur_radius.to_subpx() as f32 * 2.0;
-        let format = self.draw_target.get_format();
-        let scaled_box_size =
-            Size2D((bounds.size.width.to_subpx() as f32 * self.scale) as i32,
-                   (bounds.size.height.to_subpx() as f32 * self.scale) as i32);
-        let shadow_draw_target =
-            self.draw_target.create_shadow_draw_target(&scaled_box_size.to_azure_int_size(),
-                                                       format,
-                                                       sigma);
-        let matrix: Matrix2D<AzFloat> = Matrix2D::identity().scale(self.scale, self.scale);
-        shadow_draw_target.set_transform(&matrix);
+        let sigma = blur_radius.to_subpx() as f32;
 
-        let shadow_draw_target_offset =
-            Point2D((blur_radius + spread_radius) * BOX_SHADOW_INFLATION_FACTOR,
-                    (blur_radius + spread_radius) * BOX_SHADOW_INFLATION_FACTOR);
-        let shadow_draw_target_box_bounds = Rect(shadow_draw_target_offset, box_bounds.size);
+        let shadow_draw_target_box_bounds = box_bounds.translate(offset).inflate(spread_radius,
+                                                                                 spread_radius);
+        let path_builder = self.draw_target.create_path_builder();
+        path_builder.move_to(shadow_draw_target_box_bounds.origin.to_azure_point());
+        path_builder.line_to(Point2D(shadow_draw_target_box_bounds.max_x(),
+                                     shadow_draw_target_box_bounds.origin.y).to_azure_point());
+        path_builder.line_to(Point2D(shadow_draw_target_box_bounds.max_x(),
+                                     shadow_draw_target_box_bounds.max_y()).to_azure_point());
+        path_builder.line_to(Point2D(shadow_draw_target_box_bounds.origin.x,
+                                     shadow_draw_target_box_bounds.max_y()).to_azure_point());
 
-        // FIXME(pcwalton): This is a pretty ugly way to paint with a spread when a blur is
-        // present. We will need to add support for it to Azure to actually draw it well.
-        let shadow_draw_target_box_bounds = shadow_draw_target_box_bounds.inflate(spread_radius,
-                                                                                  spread_radius);
-
-        shadow_draw_target.fill_rect(&shadow_draw_target_box_bounds.to_azure_rect(),
-                                     ColorPatternRef(&ColorPattern::new(color)),
-                                     None);
-
-        let shadow_surface = shadow_draw_target.snapshot();
-        let shadow_origin = box_bounds.origin - shadow_draw_target_offset;
-        let transform = self.draw_target.get_transform();
-        let shadow_origin = transform.transform_point(&shadow_origin.to_azure_point());
-        let shadow_offset = matrix.transform_point(&offset.to_azure_point());
         self.push_clip_outside_rect(box_bounds);
-        self.draw_target.draw_surface_with_shadow(shadow_surface,
-                                                  &shadow_origin,
-                                                  &color,
-                                                  &shadow_offset,
-                                                  sigma,
-                                                  OverOp);
+        self.draw_target.fill_with_blur(&path_builder.finish(),
+                                        ColorPatternRef(&ColorPattern::new(color)),
+                                        sigma,
+                                        None);
         self.draw_target.pop_clip();
     }
 
