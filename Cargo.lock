@@ -203,7 +203,7 @@ source = "git+https://github.com/servo/rust-freetype#e55b06110fb2d74a2db68ead740
 [[package]]
 name = "freetype-sys"
 version = "2.4.11"
-source = "git+https://github.com/servo/libfreetype2#03522d7401669f220ad3fca5aa887577b0cf314e"
+source = "git+https://github.com/servo/libfreetype2#f5c49c0da1d5bc6b206c4176344012ac37524243"
 
 [[package]]
 name = "geom"
