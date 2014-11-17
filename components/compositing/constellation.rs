@@ -581,9 +581,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     match children.iter_mut().find(|child| subpage_eq(child)) {
                         None => {}
                         Some(child) => {
+                            let has_compositor_layer = child.frame_tree.has_compositor_layer.get();
                             update_child_rect(child,
                                               rect,
-                                              true,
+                                              has_compositor_layer,
                                               &mut already_sent,
                                               &mut self.compositor_proxy,
                                               self.window_size.device_pixel_ratio)
