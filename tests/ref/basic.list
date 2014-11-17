@@ -193,3 +193,5 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == box_shadow_default_color_a.html box_shadow_default_color_ref.html
 == box_shadow_paint_order_a.html box_shadow_paint_order_ref.html
 == box_shadow_spread_a.html box_shadow_spread_ref.html
+== box_shadow_inset_a.html box_shadow_inset_ref.html
+== box_shadow_inset_parsing_a.html box_shadow_inset_parsing_ref.html

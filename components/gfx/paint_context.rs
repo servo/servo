@@ -7,7 +7,7 @@
 use azure::azure::AzIntSize;
 use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GradientStop, Linear};
-use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, SourceOp};
+use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, Path, SourceOp};
 use azure::azure_hl::{StrokeOptions};
 use azure::scaled_font::ScaledFont;
 use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
@@ -750,37 +750,53 @@ impl<'a> PaintContext<'a>  {
     /// Draws a box shadow with the given boundaries, color, offset, blur radius, and spread
     /// radius. `bounds` is just a rectangle that must be large enough to encompass all the ink in
     /// this box shadow. `box_bounds` represents the boundaries of the box itself.
-    ///
-    /// TODO(pcwalton): Add support for `inset`.
     pub fn draw_box_shadow(&self,
                            _: &Rect<Au>,
                            box_bounds: &Rect<Au>,
                            offset: &Point2D<Au>,
                            color: Color,
                            blur_radius: Au,
-                           spread_radius: Au) {
-        let sigma = blur_radius.to_subpx() as f32;
+                           spread_radius: Au,
+                           inset: bool) {
+        let shadow_bounds = box_bounds.translate(offset).inflate(spread_radius, spread_radius);
 
-        let shadow_draw_target_box_bounds = box_bounds.translate(offset).inflate(spread_radius,
-                                                                                 spread_radius);
-        let path_builder = self.draw_target.create_path_builder();
-        path_builder.move_to(shadow_draw_target_box_bounds.origin.to_azure_point());
-        path_builder.line_to(Point2D(shadow_draw_target_box_bounds.max_x(),
-                                     shadow_draw_target_box_bounds.origin.y).to_azure_point());
-        path_builder.line_to(Point2D(shadow_draw_target_box_bounds.max_x(),
-                                     shadow_draw_target_box_bounds.max_y()).to_azure_point());
-        path_builder.line_to(Point2D(shadow_draw_target_box_bounds.origin.x,
-                                     shadow_draw_target_box_bounds.max_y()).to_azure_point());
+        let path;
+        if inset {
+            path = self.create_rectangular_border_path(&self.tile_rect(), &shadow_bounds);
+            self.draw_push_clip(box_bounds)
+        } else {
+            path = self.create_rectangular_path(&shadow_bounds);
+            self.push_clip_outside_rect(box_bounds)
+        }
 
-        self.push_clip_outside_rect(box_bounds);
-        self.draw_target.fill_with_blur(&path_builder.finish(),
+        self.draw_target.fill_with_blur(&path,
                                         ColorPatternRef(&ColorPattern::new(color)),
-                                        sigma,
+                                        blur_radius.to_subpx() as f32,
                                         None);
         self.draw_target.pop_clip();
     }
 
-    fn push_clip_outside_rect(&self, bounds: &Rect<Au>) {
+    /// Creates and returns a path that represents a rectangle.
+    fn create_rectangular_path(&self, rect: &Rect<Au>) -> Path {
+        let path_builder = self.draw_target.create_path_builder();
+        path_builder.move_to(rect.origin.to_azure_point());
+        path_builder.line_to(Point2D(rect.max_x(), rect.origin.y).to_azure_point());
+        path_builder.line_to(Point2D(rect.max_x(), rect.max_y()).to_azure_point());
+        path_builder.line_to(Point2D(rect.origin.x, rect.max_y()).to_azure_point());
+        path_builder.finish()
+    }
+
+    /// Creates and returns a path that represents a rectangular border. Like this:
+    ///
+    ///     +--------------------------------+
+    ///     |################################|
+    ///     |#######+---------------------+##|
+    ///     |#######|                     |##|
+    ///     |#######+---------------------+##|
+    ///     |################################|
+    ///     +--------------------------------+
+    fn create_rectangular_border_path(&self, outer_rect: &Rect<Au>, inner_rect: &Rect<Au>)
+                                      -> Path {
         // +-----------+
         // |2          |1
         // |           |
@@ -793,21 +809,30 @@ impl<'a> PaintContext<'a>  {
         // +-----------+
         //  3           4
 
-        let bounds = bounds.to_azure_rect();
-        let tile_rect = Rect(Point2D(Au(0), Au(0)), Size2D(MAX_AU, MAX_AU)).to_azure_rect();
-
+        let (outer_rect, inner_rect) = (outer_rect.to_azure_rect(), inner_rect.to_azure_rect());
         let path_builder = self.draw_target.create_path_builder();
-        path_builder.move_to(Point2D(tile_rect.max_x(), tile_rect.origin.y));   // 1
-        path_builder.line_to(Point2D(tile_rect.origin.x, tile_rect.origin.y));  // 2
-        path_builder.line_to(Point2D(tile_rect.origin.x, tile_rect.max_y()));   // 3
-        path_builder.line_to(Point2D(tile_rect.max_x(), tile_rect.max_y()));    // 4
-        path_builder.line_to(Point2D(tile_rect.max_x(), bounds.origin.y));      // 5
-        path_builder.line_to(Point2D(bounds.max_x(), bounds.origin.y));         // 6
-        path_builder.line_to(Point2D(bounds.max_x(), bounds.max_y()));          // 7
-        path_builder.line_to(Point2D(bounds.origin.x, bounds.max_y()));         // 8
-        path_builder.line_to(bounds.origin);                                    // 9
-        path_builder.line_to(Point2D(tile_rect.max_x(), tile_rect.origin.y));   // 10
-        self.draw_target.push_clip(&path_builder.finish());
+        path_builder.move_to(Point2D(outer_rect.max_x(), outer_rect.origin.y));     // 1
+        path_builder.line_to(Point2D(outer_rect.origin.x, outer_rect.origin.y));    // 2
+        path_builder.line_to(Point2D(outer_rect.origin.x, outer_rect.max_y()));     // 3
+        path_builder.line_to(Point2D(outer_rect.max_x(), outer_rect.max_y()));      // 4
+        path_builder.line_to(Point2D(outer_rect.max_x(), inner_rect.origin.y));     // 5
+        path_builder.line_to(Point2D(inner_rect.max_x(), inner_rect.origin.y));     // 6
+        path_builder.line_to(Point2D(inner_rect.max_x(), inner_rect.max_y()));      // 7
+        path_builder.line_to(Point2D(inner_rect.origin.x, inner_rect.max_y()));     // 8
+        path_builder.line_to(inner_rect.origin);                                    // 9
+        path_builder.line_to(Point2D(outer_rect.max_x(), outer_rect.origin.y));     // 10
+        path_builder.finish()
+    }
+
+    fn push_clip_outside_rect(&self, bounds: &Rect<Au>) {
+        self.draw_target.push_clip(&self.create_rectangular_border_path(&self.tile_rect(), bounds))
+    }
+
+    /// Returns an overapproximation of the boundaries of the tile.
+    ///
+    /// FIXME(pcwalton): This is a HUGE overapproximation.
+    fn tile_rect(&self) -> Rect<Au> {
+        Rect(Point2D(Au(0), Au(0)), Size2D(MAX_AU, MAX_AU))
     }
 }
 

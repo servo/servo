@@ -587,6 +587,9 @@ pub struct BoxShadowDisplayItem {
 
     /// The spread radius of this shadow.
     pub spread_radius: Au,
+
+    /// True if this shadow is inset; false if it's outset.
+    pub inset: bool,
 }
 
 pub enum DisplayItemIterator<'a> {
@@ -674,7 +677,8 @@ impl DisplayItem {
                                                &box_shadow.offset,
                                                box_shadow.color,
                                                box_shadow.blur_radius,
-                                               box_shadow.spread_radius)
+                                               box_shadow.spread_radius,
+                                               box_shadow.inset)
             }
 
             PseudoDisplayItemClass(_) => {}

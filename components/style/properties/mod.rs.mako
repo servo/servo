@@ -1253,6 +1253,7 @@ pub mod longhands {
             pub blur_radius: specified::Length,
             pub spread_radius: specified::Length,
             pub color: Option<specified::CSSColor>,
+            pub inset: bool,
         }
 
         pub mod computed_value {
@@ -1268,6 +1269,7 @@ pub mod longhands {
                 pub blur_radius: Au,
                 pub spread_radius: Au,
                 pub color: computed::CSSColor,
+                pub inset: bool,
             }
         }
 
@@ -1295,49 +1297,73 @@ pub mod longhands {
                     blur_radius: computed::compute_Au(value.blur_radius, context),
                     spread_radius: computed::compute_Au(value.spread_radius, context),
                     color: value.color.unwrap_or(cssparser::CurrentColor),
+                    inset: value.inset,
                 }
             }).collect()
         }
 
         fn parse_one_box_shadow(iter: ParserIter) -> Result<SpecifiedBoxShadow,()> {
             let mut lengths = [specified::Au_(Au(0)), ..4];
-            for (i, length) in lengths.iter_mut().enumerate() {
+            let mut lengths_parsed = 0;
+            let mut color = None;
+            let mut inset = false;
+
+            loop {
                 match iter.next() {
                     Some(value) => {
-                        match specified::Length::parse(value) {
-                            Ok(specified_length) => *length = specified_length,
-                            Err(()) => {
-                                iter.push_back(value);
-                                if i < 2 {
-                                    // The first two lengths must be specified.
-                                    return Err(())
+                        // Parse `inset`, if available.
+                        match get_ident_lower(value) {
+                            Ok(ref value) if value.as_slice() == "inset" && !inset => {
+                                inset = true;
+                                continue
+                            }
+                            _ => iter.push_back(value),
+                        }
+
+                        // Parse lengths.
+                        if lengths_parsed > 0 {
+                            break
+                        }
+
+                        loop {
+                            match iter.next() {
+                                Some(value) => {
+                                    match specified::Length::parse(value) {
+                                        Ok(the_length) if lengths_parsed < 4 => {
+                                            lengths[lengths_parsed] = the_length;
+                                            lengths_parsed += 1
+                                        }
+                                        Ok(_) => return Err(()),
+                                        Err(()) => {
+                                            iter.push_back(value);
+                                            break
+                                        }
+                                    }
                                 }
-                                break
+                                None => break,
                             }
                         }
-                    }
-                    None => {
-                        if i < 2 {
-                            // The first two lengths must be specified.
+
+                        // The first two lengths must be specified.
+                        if lengths_parsed < 2 {
                             return Err(())
                         }
-                        break
+
+                        // Parse the color.
+                        match iter.next() {
+                            Some(value) => {
+                                match specified::CSSColor::parse(value) {
+                                    Ok(the_color) => color = Some(the_color),
+                                    Err(()) => iter.push_back(value),
+                                }
+                            }
+                            None => {}
+                        }
                     }
+                    None => break,
                 }
             }
 
-            let color = match iter.next() {
-                Some(value) => {
-                    match specified::CSSColor::parse(value) {
-                        Ok(color) => Some(color),
-                        Err(()) => {
-                            iter.push_back(value);
-                            None
-                        }
-                    }
-                }
-                None => None,
-            };
 
             Ok(SpecifiedBoxShadow {
                 offset_x: lengths[0],
@@ -1345,6 +1371,7 @@ pub mod longhands {
                 blur_radius: lengths[2],
                 spread_radius: lengths[3],
                 color: color,
+                inset: inset,
             })
         }
     </%self:longhand>

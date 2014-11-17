@@ -441,6 +441,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 offset: Point2D(box_shadow.offset_x, box_shadow.offset_y),
                 blur_radius: box_shadow.blur_radius,
                 spread_radius: box_shadow.spread_radius,
+                inset: box_shadow.inset,
             }));
         }
     }
