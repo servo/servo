@@ -1,4 +1,5 @@
 CARGO_OPTS ?=
+RUST_ROOT ?= /usr/local
 
 .PHONY: all
 all: glut_app
@@ -7,7 +8,7 @@ all: glut_app
 		xargs -I {} cp -f {} libs/armeabi
 	find glut_app/target ! \( -type d -name dist -prune \) -name 'libglut_app-*.so' | \
 		xargs -I {} cp -f {} libs/armeabi/libservo.so
-	find ../../rust/lib/rustlib/arm-linux-androideabi/lib \
+	find $(RUST_ROOT)/lib/rustlib/arm-linux-androideabi/lib \
 		-name '*.so' -type f -size +1c | \
 		xargs -I {} cp -f {} libs/armeabi
 	$(ANDROID_SDK)/tools/android update project \
