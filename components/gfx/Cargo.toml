@@ -59,4 +59,6 @@ git = "https://github.com/servo/rust-core-graphics"
 [dependencies.core_text]
 git = "https://github.com/servo/rust-core-text"
 
+[dependencies.script_traits]
+path = "../script_traits"
 

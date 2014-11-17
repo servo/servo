@@ -273,7 +273,7 @@ dependencies = [
 [[package]]
 name = "green"
 version = "0.0.1"
-source = "git+https://github.com/servo/green-rs?ref=servo#332144c9d876e5df00235a72c0563b6b12473dcf"
+source = "git+https://github.com/servo/green-rs?ref=servo#9300d7e7dc73680c7446d78b10a309095636e64d"
 
 [[package]]
 name = "harfbuzz"
@@ -464,10 +464,10 @@ source = "git+https://github.com/netvl/rust-xml#d6c57380a300b94f7e7881979dbe5459
 [[package]]
 name = "rustuv"
 version = "0.0.1"
-source = "git+https://github.com/servo/green-rs?ref=servo#332144c9d876e5df00235a72c0563b6b12473dcf"
+source = "git+https://github.com/servo/green-rs?ref=servo#9300d7e7dc73680c7446d78b10a309095636e64d"
 dependencies = [
  "green 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
- "tls 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
+ "tls 0.0.1 (git+https://github.com/alexcrichton/tls-rs)",
 ]
 
 [[package]]
@@ -579,7 +579,7 @@ version = "0.0.1"
 [[package]]
 name = "tls"
 version = "0.0.1"
-source = "git+https://github.com/servo/green-rs?ref=servo#332144c9d876e5df00235a72c0563b6b12473dcf"
+source = "git+https://github.com/alexcrichton/tls-rs#2abeb8996f3795f1e870523b7684dcc2ce64fa85"
 
 [[package]]
 name = "url"
