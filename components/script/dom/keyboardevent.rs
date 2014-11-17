@@ -59,7 +59,7 @@ impl KeyboardEvent {
         }
     }
 
-    fn new_uninitialized(window: JSRef<Window>) -> Temporary<KeyboardEvent> {
+    pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<KeyboardEvent> {
         reflect_dom_object(box KeyboardEvent::new_inherited(),
                            &global::Window(window),
                            KeyboardEventBinding::Wrap)
