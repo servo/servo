@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![deny(missing_docs)]
+
 //! A non-validating memory cache that only evicts expired entries and grows
 //! without bound.
 
@@ -56,6 +58,7 @@ impl CacheKey {
         }
     }
 
+    /// Retrieve the URL associated with this key
     pub fn url(&self) -> Url {
         self.url.clone()
     }
