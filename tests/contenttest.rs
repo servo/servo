@@ -16,10 +16,12 @@ extern crate test;
 
 use test::{AutoColor, TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
 use getopts::{getopts, reqopt};
+use std::comm::channel;
 use std::{os, str};
 use std::io::fs;
 use std::io::Reader;
 use std::io::process::{Command, Ignored, CreatePipe, InheritFd, ExitStatus};
+use std::task;
 use regex::Regex;
 
 #[deriving(Clone)]
@@ -31,13 +33,49 @@ struct Config {
 fn main() {
     let args = os::args();
     let config = parse_config(args.into_iter().collect());
-    let opts = test_options(config.clone());
-    let tests = find_tests(config);
+    let opts = test_options(&config);
+    let serve = run_http_server(&config);
+    let tests = find_tests(&config, serve.clone());
     match run_tests_console(&opts, tests) {
         Ok(false) => os::set_exit_status(1), // tests failed
         Err(_) => os::set_exit_status(2),    // I/O-related failure
         _ => (),
     }
+    serve.send(Exit);
+}
+
+enum ServerMsg {
+    IsAlive(Sender<bool>),
+    Exit,
+}
+
+fn run_http_server(config: &Config) -> Sender<ServerMsg> {
+    let (tx, rx) = channel();
+    let source_dir = config.source_dir.clone();
+    task::spawn(proc() {
+        let mut prc = match Command::new("python")
+            .args(["../httpserver.py"])
+            .stdin(Ignored)
+            .stdout(Ignored)
+            .stderr(Ignored)
+            .cwd(&Path::new(source_dir))
+            .spawn()
+        {
+            Ok(p) => p,
+            _ => panic!("Unable to spawn server."),
+        };
+
+        loop {
+            match rx.recv() {
+                IsAlive(reply) => reply.send(prc.signal(0).is_ok()),
+                Exit => {
+                    let _ = prc.signal_exit();
+                    break;
+                }
+            }
+        }
+    });
+    tx
 }
 
 fn parse_config(args: Vec<String>) -> Config {
@@ -54,9 +92,9 @@ fn parse_config(args: Vec<String>) -> Config {
     }
 }
 
-fn test_options(config: Config) -> TestOpts {
+fn test_options(config: &Config) -> TestOpts {
     TestOpts {
-        filter: config.filter,
+        filter: config.filter.clone(),
         run_ignored: false,
         run_tests: true,
         run_benchmarks: false,
@@ -70,34 +108,38 @@ fn test_options(config: Config) -> TestOpts {
     }
 }
 
-fn find_tests(config: Config) -> Vec<TestDescAndFn> {
-    let files_res = fs::readdir(&Path::new(config.source_dir));
+fn find_tests(config: &Config, server: Sender<ServerMsg>) -> Vec<TestDescAndFn> {
+    let files_res = fs::readdir(&Path::new(config.source_dir.clone()));
     let mut files = match files_res {
         Ok(files) => files,
         _ => panic!("Error reading directory."),
     };
     files.retain(|file| file.extension_str() == Some("html") );
-    return files.iter().map(|file| make_test(format!("{}", file.display()))).collect();
+    return files.iter().map(|file| make_test(format!("{}", file.display()), server.clone())).collect();
 }
 
-fn make_test(file: String) -> TestDescAndFn {
+fn make_test(file: String, server: Sender<ServerMsg>) -> TestDescAndFn {
     TestDescAndFn {
         desc: TestDesc {
             name: DynTestName(file.clone()),
             ignore: false,
             should_fail: false
         },
-        testfn: DynTestFn(proc() { run_test(file) })
+        testfn: DynTestFn(proc() { run_test(file, server) })
     }
 }
 
-fn run_test(file: String) {
+fn run_test(file: String, server: Sender<ServerMsg>) {
     let path = os::make_absolute(&Path::new(file));
     // FIXME (#1094): not the right way to transform a path
-    let infile = format!("file://{}", path.display());
+    let infile = format!("http://localhost:8000/{}", path.filename_display());
     let stdout = CreatePipe(false, true);
     let stderr = InheritFd(2);
     let args = ["-z", "-f", infile.as_slice()];
+
+    let (tx, rx) = channel();
+    server.send(IsAlive(tx));
+    assert!(rx.recv(), "HTTP server must be running.");
 
     let mut prc = match Command::new("target/servo")
         .args(args)
