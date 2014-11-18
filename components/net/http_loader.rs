@@ -189,7 +189,7 @@ fn load(mut load_data: LoadData, start_chan: Sender<LoadResponse>, cache: Arc<Mu
                 return;
             }
 
-            cache.doom_request(key, "cache entry expired".to_string());
+            cache.process_revalidation_failed(key);
         }
 
         if 3 == (response.status.code() / 100) {

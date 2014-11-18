@@ -41,10 +41,34 @@ class CountingRequestHandler(SimpleHTTPRequestHandler):
             self.wfile.write(body)
             return
 
-        requests[self.path] += 1
+        header_list = []
+        status = None
+
         path = self.translate_path(self.path)
         headers = path + '^headers'
+
         if os.path.isfile(headers):
+            try:
+                h = open(headers, 'rb')
+            except IOError:
+                self.send_error(404, "Header file not found")
+                return
+
+            header_lines = h.readlines()
+            status = int(header_lines[0])
+            for header in header_lines[1:]:
+                parts = map(lambda x: x.strip(), header.split(':'))
+                header_list += [parts]
+
+        if self.headers.get('If-Modified-Since'):
+            self.send_response(304)
+            self.end_headers()
+            return
+
+        if not status or status == 200:
+            requests[self.path] += 1
+
+        if status or header_list:
             ctype = self.guess_type(path)
             try:
                 # Always read in binary mode. Opening files in text mode may cause
@@ -56,23 +80,14 @@ class CountingRequestHandler(SimpleHTTPRequestHandler):
                 return
 
             try:
-                try:
-                    h = open(headers, 'rb')
-                except IOError:
-                    self.send_error(404, "Header file not found")
-                    return
-
-                header_lines = h.readlines()
-
-                self.send_response(int(header_lines[0]))
+                self.send_response(status or 200)
                 self.send_header("Content-type", ctype)
                 fs = os.fstat(f.fileno())
                 self.send_header("Content-Length", str(fs[6]))
                 self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
 
-                for header in header_lines[1:]:
-                    parts = map(lambda x: x.strip(), header.split(':'))
-                    self.send_header(parts[0], parts[1])
+                for header in header_list:
+                    self.send_header(header[0], header[1])
 
                 self.end_headers()
 
