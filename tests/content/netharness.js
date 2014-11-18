@@ -12,9 +12,14 @@ function reset_stats() {
     is(x.status, 200, 'resetting stats should succeed');    
 }
 
-function fetch(url) {
+function fetch(url, headers) {
     var x = new XMLHttpRequest();
     x.open('GET', url, false);
+    if (headers) {
+	for (var i = 0; i < headers.length; i++) {
+	    x.setRequestHeader(headers[i][0], headers[i][1]);
+	}
+    }
     x.send();
     is(x.status, 200, 'fetching ' + url + ' should succeed ');    
 }
