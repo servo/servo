@@ -5,6 +5,7 @@ dependencies = [
  "compositing 0.0.1",
  "gfx 0.0.1",
  "glfw_app 0.0.1",
+ "glutin_app 0.0.1",
  "green 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
  "layout 0.0.1",
  "msg 0.0.1",
@@ -22,6 +23,14 @@ source = "git+https://github.com/servo/rust-alert#9bd18fc406683bae448bc6f5d54687
 dependencies = [
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
+]
+
+[[package]]
+name = "android_glue"
+version = "0.0.1"
+source = "git+https://github.com/tomaka/android-rs-glue#fe9acb5bd465da1df4561e2bd4ebcc6d305134a4"
+dependencies = [
+ "compile_msg 0.1.1 (git+https://github.com/huonw/compile_msg)",
 ]
 
 [[package]]
@@ -60,7 +69,17 @@ dependencies = [
 [[package]]
 name = "cocoa"
 version = "0.1.1"
+source = "git+https://github.com/DavidPartouche/rust-cocoa#0a951a6cdd5f1a175b929754c134f9443b105642"
+
+[[package]]
+name = "cocoa"
+version = "0.1.1"
 source = "git+https://github.com/servo/rust-cocoa#f926323d306401df33f528c9aeca8e582cad063b"
+
+[[package]]
+name = "compile_msg"
+version = "0.1.1"
+source = "git+https://github.com/huonw/compile_msg#f526abe54b49642bc1e969e6c2af1411798b6776"
 
 [[package]]
 name = "compositing"
@@ -279,7 +298,36 @@ dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "compositing 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
  "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "msg 0.0.1",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "glutin"
+version = "0.0.2"
+source = "git+https://github.com/tomaka/glutin#0dc5086efb29e84c48cd4dcc1da48ee9755842e3"
+dependencies = [
+ "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue)",
+ "cocoa 0.1.1 (git+https://github.com/DavidPartouche/rust-cocoa)",
+ "compile_msg 0.1.1 (git+https://github.com/huonw/compile_msg)",
+ "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
+ "gl_common 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+]
+
+[[package]]
+name = "glutin_app"
+version = "0.0.1"
+dependencies = [
+ "alert 0.1.0 (git+https://github.com/servo/rust-alert)",
+ "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
+ "compositing 0.0.1",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "glutin 0.0.2 (git+https://github.com/tomaka/glutin)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
  "util 0.0.1",
@@ -358,7 +406,7 @@ source = "git+https://github.com/bjz/gl-rs.git#79cd3b3f9f19aa0e39f6af572fc8673a6
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#84f6dd677aa681b03cfcbf89000d2c7b12684bd3"
+source = "git+https://github.com/servo/rust-layers#0f6edd58b3b572f2aac97567b752c15db5fa1982"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",

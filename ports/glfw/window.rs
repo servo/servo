@@ -301,21 +301,21 @@ impl Window {
 
         match self.ready_state.get() {
             Blank => {
-                self.glfw_window.set_title("blank — Servo")
+                self.glfw_window.set_title("blank — Servo [GLFW]")
             }
             Loading => {
-                self.glfw_window.set_title("Loading — Servo")
+                self.glfw_window.set_title("Loading — Servo [GLFW]")
             }
             PerformingLayout => {
-                self.glfw_window.set_title("Performing Layout — Servo")
+                self.glfw_window.set_title("Performing Layout — Servo [GLFW]")
             }
             FinishedLoading => {
                 match self.render_state.get() {
                     RenderingRenderState => {
-                        self.glfw_window.set_title("Rendering — Servo")
+                        self.glfw_window.set_title("Rendering — Servo [GLFW]")
                     }
                     IdleRenderState => {
-                        self.glfw_window.set_title("Servo")
+                        self.glfw_window.set_title("Servo [GLFW]")
                     }
                 }
             }
