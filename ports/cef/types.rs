@@ -1896,3 +1896,55 @@ pub struct cef_post_data {
   ///
   pub remove_elements: Option<extern "C" fn(post_data: *mut cef_post_data_t)>,
 }
+
+
+
+///
+// Implement this structure to handle events related to browser display state.
+// The functions of this structure will be called on the UI thread.
+///
+pub type cef_display_handler_t = cef_display_handler;
+pub struct cef_display_handler {
+  ///
+  // Base structure.
+  ///
+  pub base: cef_base_t,
+
+  ///
+  // Called when a frame's address has changed.
+  ///
+  pub on_address_change: Option<extern "C" fn(h: *mut cef_display_handler_t, browser: *mut cef_browser_t,
+                                              frame: *mut cef_frame_t, url: *const cef_string_t)>,
+
+  ///
+  // Called when the page title changes.
+  ///
+  pub on_title_change: Option<extern "C" fn(h: *mut cef_display_handler_t,
+      browser: *mut cef_browser_t, title: *const cef_string_t)>,
+
+  ///
+  // Called when the browser is about to display a tooltip. |text| contains the
+  // text that will be displayed in the tooltip. To handle the display of the
+  // tooltip yourself return true (1). Otherwise, you can optionally modify
+  // |text| and then return false (0) to allow the browser to display the
+  // tooltip. When window rendering is disabled the application is responsible
+  // for drawing tooltips and the return value is ignored.
+  ///
+  pub on_tooltip: Option<extern "C" fn(h: *mut cef_display_handler_t,
+      browser: *mut cef_browser_t, text: *mut cef_string_t) -> c_int>,
+
+  ///
+  // Called when the browser receives a status message. |value| contains the
+  // text that will be displayed in the status message.
+  ///
+  pub on_status_message: Option<extern "C" fn(h: *mut cef_display_handler_t,
+      browser: *mut cef_browser_t, value: *const cef_string_t)>,
+
+  ///
+  // Called to display a console message. Return true (1) to stop the message
+  // from being output to the console.
+  ///
+  pub on_console_message: Option<extern "C" fn(h: *mut cef_display_handler_t,
+      browser: *mut cef_browser_t, message: *const cef_string_t,
+      source: *const cef_string_t, line: c_int) -> c_int>
+}
