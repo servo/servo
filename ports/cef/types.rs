@@ -14,7 +14,6 @@ pub enum cef_event_handle_t {}
 //these all need to be done...
 pub enum cef_binary_value_t {}
 pub enum cef_dictionary_value_t {}
-pub enum cef_client_t {}
 pub enum cef_request_t {}
 pub enum cef_response_t {}
 pub enum cef_urlrequest_client_t {}
@@ -28,6 +27,16 @@ pub enum cef_v8context_t {}
 pub enum cef_v8exception_t {}
 pub enum cef_v8stack_trace_t {}
 pub enum cef_popup_features_t {}
+pub enum cef_context_menu_handler_t {}
+pub enum cef_dialog_handler_t {}
+pub enum cef_download_handler_t {}
+pub enum cef_drag_handler_t {}
+pub enum cef_focus_handler_t {}
+pub enum cef_geolocation_handler_t {}
+pub enum cef_jsdialog_handler_t {}
+pub enum cef_keyboard_handler_t {}
+pub enum cef_render_handler_t {}
+pub enum cef_request_handler_t {}
 pub enum cef_window_handle_t {} //FIXME: wtf is this
 
 pub type cef_string_t = cef_string_utf8; //FIXME: this is #defined...
@@ -2061,4 +2070,94 @@ pub struct cef_life_span_handler {
   // additional usage information.
   ///
   pub on_before_close: Option<extern "C" fn(h: *mut cef_life_span_handler_t, browser: *mut cef_browser_t)>,
+}
+
+///
+// Implement this structure to provide handler implementations.
+///
+pub type cef_client_t = cef_client;
+pub struct cef_client {
+  ///
+  // Base structure.
+  ///
+  pub base: cef_base_t,
+
+  ///
+  // Return the handler for context menus. If no handler is provided the default
+  // implementation will be used.
+  ///
+  pub get_context_menu_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_context_menu_handler_t>,
+
+  ///
+  // Return the handler for dialogs. If no handler is provided the default
+  // implementation will be used.
+  ///
+  pub get_dialog_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_dialog_handler_t>,
+
+  ///
+  // Return the handler for browser display state events.
+  ///
+  pub get_display_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_display_handler_t>,
+
+  ///
+  // Return the handler for download events. If no handler is returned downloads
+  // will not be allowed.
+  ///
+  pub get_download_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_download_handler_t>,
+
+  ///
+  // Return the handler for drag events.
+  ///
+  pub get_drag_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_drag_handler_t>,
+
+  ///
+  // Return the handler for focus events.
+  ///
+  pub get_focus_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_focus_handler_t>,
+
+  ///
+  // Return the handler for geolocation permissions requests. If no handler is
+  // provided geolocation access will be denied by default.
+  ///
+  pub get_geolocation_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_geolocation_handler_t>,
+
+  ///
+  // Return the handler for JavaScript dialogs. If no handler is provided the
+  // default implementation will be used.
+  ///
+  pub get_jsdialog_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_jsdialog_handler_t>,
+
+  ///
+  // Return the handler for keyboard events.
+  ///
+  pub get_keyboard_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_keyboard_handler_t>,
+
+  ///
+  // Return the handler for browser life span events.
+  ///
+  pub get_life_span_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_life_span_handler_t>,
+
+  ///
+  // Return the handler for browser load status events.
+  ///
+  pub get_load_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_load_handler_t>,
+
+  ///
+  // Return the handler for off-screen rendering events.
+  ///
+  pub get_render_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_render_handler_t>,
+
+  ///
+  // Return the handler for browser request events.
+  ///
+  pub get_request_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_request_handler_t>,
+
+  ///
+  // Called when a new message is received from a different process. Return true
+  // (1) if the message was handled or false (0) otherwise. Do not keep a
+  // reference to or attempt to access the message outside of this callback.
+  ///
+  pub on_process_message_received: Option<extern "C" fn(client: *mut cef_client_t,
+      browser: *mut cef_browser_t, source_process: cef_process_id_t,
+      message: *mut cef_process_message_t) -> c_int>,
 }
