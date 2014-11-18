@@ -222,3 +222,18 @@ pub extern "C" fn cef_string_wide_set(src: *const wchar_t, src_len: size_t, outp
     }
     return 1;
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_wide_cmp(a: *const cef_string_wide_t, b: *const cef_string_wide_t) -> c_int {
+    unsafe {
+       slice::raw::buf_as_slice((*a).str as *const wchar_t, (*a).length as uint, |astr:&[wchar_t]| {
+            slice::raw::buf_as_slice((*b).str as *const wchar_t, (*b).length as uint, |bstr:&[wchar_t]| {
+                  match astr.cmp(bstr) {
+                       Less => -1,
+                       Equal => 0,
+                       Greater => 1
+                  }
+            })
+       })
+    }
+}
