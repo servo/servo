@@ -1722,20 +1722,31 @@ impl Flow for BlockFlow {
         }
 
         // Compute absolute position info for children.
+        let stacking_relative_position_of_absolute_containing_block_for_children =
+            if self.fragment.establishes_stacking_context() {
+                let logical_border_width = self.fragment.style().logical_border_width();
+                let position = LogicalPoint::new(self.base.writing_mode,
+                                                 logical_border_width.inline_start,
+                                                 logical_border_width.block_start);
+                let position = position.to_physical(self.base.writing_mode, container_size);
+                if self.is_positioned() {
+                    position
+                } else {
+                    // We establish a stacking context but are not positioned. (This will happen
+                    // if, for example, the element has `position: static` but has `opacity` or
+                    // `transform` set.) In this case, absolutely-positioned children will not be
+                    // positioned relative to us but will instead be positioned relative to our
+                    // containing block.
+                    position - self.base.stacking_relative_position
+                }
+            } else {
+                self.base
+                    .absolute_position_info
+                    .stacking_relative_position_of_absolute_containing_block
+            };
         let absolute_position_info_for_children = AbsolutePositionInfo {
             stacking_relative_position_of_absolute_containing_block:
-                if self.fragment.establishes_stacking_context() {
-                    let logical_border_width = self.fragment.style().logical_border_width();
-                    LogicalPoint::new(self.base.writing_mode,
-                                      logical_border_width.inline_start,
-                                      logical_border_width.block_start).to_physical(
-                                          self.base.writing_mode,
-                                          container_size)
-                } else {
-                    self.base
-                        .absolute_position_info
-                        .stacking_relative_position_of_absolute_containing_block
-                },
+                stacking_relative_position_of_absolute_containing_block_for_children,
             relative_containing_block_size: self.fragment.content_box().size,
             layers_needed_for_positioned_flows: self.base
                                                     .flags
@@ -1760,16 +1771,10 @@ impl Flow for BlockFlow {
                     origin_for_children +
                     (kid_base.position.start + relative_offset).to_physical(writing_mode,
                                                                             container_size);
-                kid_base.absolute_position_info = absolute_position_info_for_children
             }
 
+            flow::mut_base(kid).absolute_position_info = absolute_position_info_for_children;
             flow::mut_base(kid).clip_rect = clip_rect
-        }
-
-        // Process absolute descendant links.
-        for absolute_descendant in self.base.abs_descendants.iter() {
-            flow::mut_base(absolute_descendant).absolute_position_info =
-                absolute_position_info_for_children
         }
     }
 

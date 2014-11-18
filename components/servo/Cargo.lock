@@ -27,7 +27,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#64853170e435d9320f3fd828b9e7d16bc4c260a3"
+source = "git+https://github.com/servo/rust-azure#d323c3c7c248d3d5a2d46a6a5ee61c6e92aec0b0"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -212,7 +212,7 @@ source = "git+https://github.com/servo/libfreetype2#f5c49c0da1d5bc6b206c41763440
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#e5e74911ac6d3201009879b72499d6c681302611"
+source = "git+https://github.com/servo/rust-geom#95e746133b4a35b53eb259304668b63ee8de42b8"
 
 [[package]]
 name = "gfx"
