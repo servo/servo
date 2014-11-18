@@ -27,6 +27,7 @@ pub enum cef_browser_settings_t {}
 pub enum cef_v8context_t {}
 pub enum cef_v8exception_t {}
 pub enum cef_v8stack_trace_t {}
+pub enum cef_popup_features_t {}
 pub enum cef_window_handle_t {} //FIXME: wtf is this
 
 pub type cef_string_t = cef_string_utf8; //FIXME: this is #defined...
@@ -1947,4 +1948,117 @@ pub struct cef_display_handler {
   pub on_console_message: Option<extern "C" fn(h: *mut cef_display_handler_t,
       browser: *mut cef_browser_t, message: *const cef_string_t,
       source: *const cef_string_t, line: c_int) -> c_int>
+}
+
+///
+// Implement this structure to handle events related to browser life span. The
+// functions of this structure will be called on the UI thread unless otherwise
+// indicated.
+///
+pub type cef_life_span_handler_t = cef_life_span_handler;
+pub struct cef_life_span_handler {
+  ///
+  // Base structure.
+  ///
+  pub base: cef_base_t,
+
+  ///
+  // Called on the IO thread before a new popup window is created. The |browser|
+  // and |frame| parameters represent the source of the popup request. The
+  // |target_url| and |target_frame_name| values may be NULL if none were
+  // specified with the request. The |popupFeatures| structure contains
+  // information about the requested popup window. To allow creation of the
+  // popup window optionally modify |windowInfo|, |client|, |settings| and
+  // |no_javascript_access| and return false (0). To cancel creation of the
+  // popup window return true (1). The |client| and |settings| values will
+  // default to the source browser's values. The |no_javascript_access| value
+  // indicates whether the new browser window should be scriptable and in the
+  // same process as the source browser.
+  pub on_before_popup: Option<extern "C" fn(h: *mut cef_life_span_handler_t,
+      browser: *mut cef_browser_t,  frame: *mut cef_frame_t,
+      target_url: *const cef_string_t, target_frame_name: *const cef_string_t,
+      popupFeatures: *const cef_popup_features_t,
+      windowInfo: *mut cef_window_info_t, client: *mut *mut cef_client_t,
+      settings: *mut cef_browser_settings_t, no_javascript_access: *mut c_int) -> c_int>,
+
+  ///
+  // Called after a new browser is created.
+  ///
+  pub on_after_created: Option<extern "C" fn(h: *mut cef_life_span_handler_t, browser: *mut cef_browser_t)>,
+
+  ///
+  // Called when a modal window is about to display and the modal loop should
+  // begin running. Return false (0) to use the default modal loop
+  // implementation or true (1) to use a custom implementation.
+  ///
+  pub run_modal: Option<extern "C" fn(h: *mut cef_life_span_handler_t, browser: *mut cef_browser_t) -> c_int>,
+
+  ///
+  // Called when a browser has recieved a request to close. This may result
+  // directly from a call to cef_browser_host_t::close_browser() or indirectly
+  // if the browser is a top-level OS window created by CEF and the user
+  // attempts to close the window. This function will be called after the
+  // JavaScript 'onunload' event has been fired. It will not be called for
+  // browsers after the associated OS window has been destroyed (for those
+  // browsers it is no longer possible to cancel the close).
+  //
+  // If CEF created an OS window for the browser returning false (0) will send
+  // an OS close notification to the browser window's top-level owner (e.g.
+  // WM_CLOSE on Windows, performClose: on OS-X and "delete_event" on Linux). If
+  // no OS window exists (window rendering disabled) returning false (0) will
+  // cause the browser object to be destroyed immediately. Return true (1) if
+  // the browser is parented to another window and that other window needs to
+  // receive close notification via some non-standard technique.
+  //
+  // If an application provides its own top-level window it should handle OS
+  // close notifications by calling cef_browser_host_t::CloseBrowser(false (0))
+  // instead of immediately closing (see the example below). This gives CEF an
+  // opportunity to process the 'onbeforeunload' event and optionally cancel the
+  // close before do_close() is called.
+  //
+  // The cef_life_span_handler_t::on_before_close() function will be called
+  // immediately before the browser object is destroyed. The application should
+  // only exit after on_before_close() has been called for all existing
+  // browsers.
+  //
+  // If the browser represents a modal window and a custom modal loop
+  // implementation was provided in cef_life_span_handler_t::run_modal() this
+  // callback should be used to restore the opener window to a usable state.
+  //
+  // By way of example consider what should happen during window close when the
+  // browser is parented to an application-provided top-level OS window. 1.
+  // User clicks the window close button which sends an OS close
+  //     notification (e.g. WM_CLOSE on Windows, performClose: on OS-X and
+  //     "delete_event" on Linux).
+  // 2.  Application's top-level window receives the close notification and:
+  //     A. Calls CefBrowserHost::CloseBrowser(false).
+  //     B. Cancels the window close.
+  // 3.  JavaScript 'onbeforeunload' handler executes and shows the close
+  //     confirmation dialog (which can be overridden via
+  //     CefJSDialogHandler::OnBeforeUnloadDialog()).
+  // 4.  User approves the close. 5.  JavaScript 'onunload' handler executes. 6.
+  // Application's do_close() handler is called. Application will:
+  //     A. Set a flag to indicate that the next close attempt will be allowed.
+  //     B. Return false.
+  // 7.  CEF sends an OS close notification. 8.  Application's top-level window
+  // receives the OS close notification and
+  //     allows the window to close based on the flag from #6B.
+  // 9.  Browser OS window is destroyed. 10. Application's
+  // cef_life_span_handler_t::on_before_close() handler is called and
+  //     the browser object is destroyed.
+  // 11. Application exits by calling cef_quit_message_loop() if no other
+  // browsers
+  //     exist.
+  ///
+  pub do_close: Option<extern "C" fn(h: *mut cef_life_span_handler_t, browser: *mut cef_browser_t) -> c_int>,
+
+  ///
+  // Called just before a browser is destroyed. Release all references to the
+  // browser object and do not attempt to execute any functions on the browser
+  // object after this callback returns. If this is a modal window and a custom
+  // modal loop implementation was provided in run_modal() this callback should
+  // be used to exit the custom modal loop. See do_close() documentation for
+  // additional usage information.
+  ///
+  pub on_before_close: Option<extern "C" fn(h: *mut cef_life_span_handler_t, browser: *mut cef_browser_t)>,
 }
