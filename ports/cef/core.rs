@@ -10,6 +10,7 @@ use libc::{c_int, c_void};
 use native;
 use servo::Browser;
 use servo_util::opts;
+use servo_util::opts::OpenGL;
 use types::{cef_app_t, cef_main_args_t, cef_settings_t};
 
 #[no_mangle]
@@ -68,6 +69,7 @@ pub extern "C" fn cef_run_message_loop() {
         user_agent: None,
         dump_flow_tree: false,
         validate_display_list_geometry: false,
+        render_api: OpenGL,
     });
     native::start(0, 0 as *const *const u8, proc() {
         let window = glfw_app::create_window();

@@ -13,8 +13,11 @@ extern crate native;
 extern crate time;
 extern crate "util" as servo_util;
 
-#[cfg(not(any(test,target_os="android")))]
-extern crate glfw_app;
+#[cfg(all(feature = "glutin",not(any(test,target_os="android"))))]
+extern crate "glutin_app" as app;
+#[cfg(all(feature = "glfw_app",not(any(test,target_os="android"))))]
+extern crate "glfw_app" as app;
+
 #[cfg(not(any(test,target_os="android")))]
 extern crate compositing;
 
@@ -34,7 +37,7 @@ use std::os;
 
 #[cfg(not(any(test,target_os="android")))]
 struct BrowserWrapper {
-    browser: Browser<glfw_app::window::Window>,
+    browser: Browser<app::window::Window>,
 }
 
 #[cfg(not(any(test,target_os="android")))]
@@ -46,7 +49,7 @@ fn start(argc: int, argv: *const *const u8) -> int {
             let window = if opts::get().headless {
                 None
             } else {
-                Some(glfw_app::create_window())
+                Some(app::create_window())
             };
 
             let mut browser = BrowserWrapper {
@@ -95,7 +98,7 @@ fn start(argc: int, argv: *const *const u8) -> int {
 }
 
 #[cfg(not(any(test,target_os="android")))]
-impl glfw_app::NestedEventLoopListener for BrowserWrapper {
+impl app::NestedEventLoopListener for BrowserWrapper {
     fn handle_event_from_nested_event_loop(&mut self, event: WindowEvent) -> bool {
         let is_resize = match event {
             ResizeWindowEvent(..) => true,
