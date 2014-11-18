@@ -81,7 +81,7 @@ fn load(mut load_data: LoadData, start_chan: Sender<LoadResponse>, cache: Arc<Mu
         }
 
         Revalidate(ref _key, Etag(ref etag)) => {
-            load_data.headers.if_none_match = Some(etag.clone());
+            load_data.headers.if_none_match = Some(etag.opaque_tag.clone());
             true
         }
 

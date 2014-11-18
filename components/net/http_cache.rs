@@ -12,6 +12,7 @@ use resource_task::{Metadata, ProgressMsg, LoadResponse, LoadData, Payload, Done
 
 use servo_util::time::parse_http_timestamp;
 
+use http::headers::etag::EntityTag;
 use http::headers::HeaderEnum;
 use http::headers::response::HeaderCollection as ResponseHeaderCollection;
 use http::method::Get;
@@ -79,6 +80,7 @@ struct PendingResource {
     consumers: PendingConsumers,
     expires: Duration,
     doomed: bool,
+    last_validated: Tm,
 }
 
 /// A complete cached resource.
@@ -86,6 +88,7 @@ struct CachedResource {
     metadata: Metadata,
     body: Vec<u8>,
     expires: Duration,
+    last_validated: Tm,
 }
 
 /// A memory cache that tracks incomplete and complete responses, differentiated by
@@ -132,13 +135,18 @@ pub enum RevalidationMethod {
     /// The result of a stored Last-Modified or Expires header
     ExpiryDate(Tm),
     /// The result of a stored Etag header
-    Etag(String),
+    Etag(EntityTag),
 }
 
 /// Tokenize a header value.
 fn split_header(header: &str) -> Map<&str, &str, CharSplits<char>> {
     header.split(',')
           .map(|v| v.trim())
+}
+
+/// Match any header value token.
+fn any_token_matches(header: &str, tokens: &[&str]) -> bool {
+    split_header(header).any(|token| tokens.iter().any(|&s| s == token))
 }
 
 /// Determine if a given response is cacheable based on the initial metadata received.
@@ -149,10 +157,6 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
 
     if metadata.headers.is_none() {
         return true;
-    }
-
-    fn any_token_matches(header: &str, tokens: &[&str]) -> bool {
-        split_header(header).any(|token| tokens.iter().any(|&s| s == token))
     }
 
     let headers = metadata.headers.as_ref().unwrap();
@@ -278,6 +282,7 @@ impl MemoryCache {
         }
 
         resource.expires = get_response_expiry(&metadata);
+        resource.last_validated = time::now();
         resource.consumers = AwaitingBody(metadata, vec!(), chans);
     }
 
@@ -327,6 +332,7 @@ impl MemoryCache {
             metadata: metadata,
             body: body,
             expires: resource.expires,
+            last_validated: resource.last_validated,
         };
         self.complete_entries.insert(key.clone(), complete);
     }
@@ -351,8 +357,21 @@ impl MemoryCache {
                     return Revalidate(key, ExpiryDate(time::at(self.base_time + resource.expires)));
                 }
 
-                //TODO: Revalidate if Etag present
-                //TODO: Revalidate if must-revalidate
+                let must_revalidate = resource.metadata.headers.as_ref().and_then(|headers| {
+                    headers.cache_control.as_ref().map(|header| {
+                        any_token_matches(header[], &["must-revalidate"])
+                    })
+                }).unwrap_or(false);
+
+                if must_revalidate {
+                    return Revalidate(key, ExpiryDate(resource.last_validated));
+                }
+
+                match resource.metadata.headers.as_ref().and_then(|headers| headers.etag.as_ref()) {
+                    Some(etag) => return Revalidate(key, Etag(etag.clone())),
+                    None => ()
+                }
+
                 //TODO: Revalidate once per session for response with no explicit expiry
 
                 self.send_complete_entry(key, start_chan);
@@ -382,6 +401,7 @@ impl MemoryCache {
         let resource = PendingResource {
             consumers: AwaitingHeaders(vec!(start_chan)),
             expires: MAX,
+            last_validated: time::now(),
             doomed: false,
         };
         info!("creating cache entry for {}", key.url);
