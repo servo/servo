@@ -256,7 +256,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
     }
 
     fn is_positioned(&self) -> bool {
-        self.is_relatively_positioned() || base(self).flags.is_absolutely_positioned()
+        self.is_relatively_positioned() || base(self).flags.contains(IS_ABSOLUTELY_POSITIONED)
     }
 
     fn is_relatively_positioned(&self) -> bool {
@@ -457,86 +457,66 @@ pub trait PostorderFlowTraversal {
     }
 }
 
-/// Flags used in flows, tightly packed to save space.
-#[deriving(Clone, Encodable)]
-pub struct FlowFlags(pub u16);
+bitflags! {
+    #[doc = "Flags used in flows."]
+    flags FlowFlags: u16 {
+        // floated descendants flags
+        #[doc = "Whether this flow has descendants that float left in the same block formatting"]
+        #[doc = "context."]
+        const HAS_LEFT_FLOATED_DESCENDANTS = 0b0000_0000_0000_0001,
+        #[doc = "Whether this flow has descendants that float right in the same block formatting"]
+        #[doc = "context."]
+        const HAS_RIGHT_FLOATED_DESCENDANTS = 0b0000_0000_0000_0010,
+        #[doc = "Whether this flow is impacted by floats to the left in the same block formatting"]
+        #[doc = "context (i.e. its height depends on some prior flows with `float: left`)."]
+        const IMPACTED_BY_LEFT_FLOATS = 0b0000_0000_0000_0100,
+        #[doc = "Whether this flow is impacted by floats to the right in the same block"]
+        #[doc = "formatting context (i.e. its height depends on some prior flows with `float:"]
+        #[doc = "right`)."]
+        const IMPACTED_BY_RIGHT_FLOATS = 0b0000_0000_0000_1000,
 
+        // text align flags
+        #[doc = "Whether this flow contains a flow that has its own layer within the same absolute"]
+        #[doc = "containing block."]
+        const LAYERS_NEEDED_FOR_DESCENDANTS = 0b0000_0000_0001_0000,
+        #[doc = "Whether this flow must have its own layer. Even if this flag is not set, it might"]
+        #[doc = "get its own layer if it's deemed to be likely to overlap flows with their own"]
+        #[doc = "layer."]
+        const NEEDS_LAYER = 0b0000_0000_0010_0000,
+        #[doc = "Whether this flow is absolutely positioned. This is checked all over layout, so a"]
+        #[doc = "virtual call is too expensive."]
+        const IS_ABSOLUTELY_POSITIONED = 0b0000_0000_0100_0000,
+        #[doc = "Whether this flow clears to the left. This is checked all over layout, so a"]
+        #[doc = "virtual call is too expensive."]
+        const CLEARS_LEFT = 0b0000_0000_1000_0000,
+        #[doc = "Whether this flow clears to the right. This is checked all over layout, so a"]
+        #[doc = "virtual call is too expensive."]
+        const CLEARS_RIGHT = 0b0000_0001_0000_0000,
+        #[doc = "Whether this flow is left-floated. This is checked all over layout, so a"]
+        #[doc = "virtual call is too expensive."]
+        const FLOATS_LEFT = 0b0000_0010_0000_0000,
+        #[doc = "Whether this flow is right-floated. This is checked all over layout, so a"]
+        #[doc = "virtual call is too expensive."]
+        const FLOATS_RIGHT = 0b0000_0100_0000_0000,
+        #[doc = "Text alignment."]
+        const TEXT_ALIGN = 0b0000_1000_0000_0000,
+    }
+}
+
+// NB: If you update this field, you must update the the floated descendants flags.
 /// The bitmask of flags that represent the `has_left_floated_descendants` and
 /// `has_right_floated_descendants` fields.
-///
-/// NB: If you update this field, you must update the bitfields below.
-static HAS_FLOATED_DESCENDANTS_BITMASK: u16 = 0b0000_0000_0000_0011;
 
-// Whether this flow has descendants that float left in the same block formatting context.
-bitfield!(FlowFlags,
-          has_left_floated_descendants,
-          set_has_left_floated_descendants,
-          0b0000_0000_0000_0001)
+static HAS_FLOATED_DESCENDANTS_BITMASK: FlowFlags = FlowFlags { bits: 0b0000_0011 };
 
-// Whether this flow has descendants that float right in the same block formatting context.
-bitfield!(FlowFlags,
-          has_right_floated_descendants,
-          set_has_right_floated_descendants,
-          0b0000_0000_0000_0010)
-
-// Whether this flow is impacted by floats to the left in the same block formatting context (i.e.
-// its block-size depends on some prior flows with `float: left`).
-bitfield!(FlowFlags,
-          impacted_by_left_floats,
-          set_impacted_by_left_floats,
-          0b0000_0000_0000_0100)
-
-// Whether this flow is impacted by floats to the right in the same block formatting context (i.e.
-// its block-size depends on some prior flows with `float: right`).
-bitfield!(FlowFlags, impacted_by_right_floats, set_impacted_by_right_floats, 0b0000_0000_0000_1000)
-
+// NB: If you update this field, you must update the the text align flags.
 /// The bitmask of flags that represent the text alignment field.
-///
-/// NB: If you update this field, you must update the bitfields below.
-static TEXT_ALIGN_BITMASK: u16 = 0b0000_0000_0011_0000;
+static TEXT_ALIGN_BITMASK: FlowFlags = FlowFlags { bits: 0b0011_0000 };
 
 /// The number of bits we must shift off to handle the text alignment field.
-///
-/// NB: If you update this field, you must update the bitfields below.
-static TEXT_ALIGN_SHIFT: u16 = 4;
-
-// Whether this flow contains a flow that has its own layer within the same absolute containing
-// block.
-bitfield!(FlowFlags,
-          layers_needed_for_descendants,
-          set_layers_needed_for_descendants,
-          0b0000_0000_0100_0000)
-
-// Whether this flow must have its own layer. Even if this flag is not set, it might get its own
-// layer if it's deemed to be likely to overlap flows with their own layer.
-bitfield!(FlowFlags, needs_layer, set_needs_layer, 0b0000_0000_1000_0000)
-
-// Whether this flow is absolutely positioned. This is checked all over layout, so a virtual call
-// is too expensive.
-bitfield!(FlowFlags, is_absolutely_positioned, set_is_absolutely_positioned, 0b0000_0001_0000_0000)
-
-// Whether this flow is left-floated. This is checked all over layout, so a virtual call is too
-// expensive.
-bitfield!(FlowFlags, floats_left, set_floats_left, 0b0000_0010_0000_0000)
-
-// Whether this flow is right-floated. This is checked all over layout, so a virtual call is too
-// expensive.
-bitfield!(FlowFlags, floats_right, set_floats_right, 0b0000_0100_0000_0000)
-
-// Whether this flow clears to the left. This is checked all over layout, so a virtual call is too
-// expensive.
-bitfield!(FlowFlags, clears_left, set_clears_left, 0b0000_1000_0000_0000)
-
-// Whether this flow clears to the right. This is checked all over layout, so a virtual call is too
-// expensive.
-bitfield!(FlowFlags, clears_right, set_clears_right, 0b0001_0000_0000_0000)
+static TEXT_ALIGN_SHIFT: uint = 4;
 
 impl FlowFlags {
-    /// Creates a new set of flow flags.
-    pub fn new() -> FlowFlags {
-        FlowFlags(0)
-    }
-
     /// Propagates text alignment flags from an appropriate parent flow per CSS 2.1.
     ///
     /// FIXME(#2265, pcwalton): It would be cleaner and faster to make this a derived CSS property
@@ -547,40 +527,43 @@ impl FlowFlags {
 
     #[inline]
     pub fn text_align(self) -> text_align::T {
-        let FlowFlags(ff) = self;
-        FromPrimitive::from_u16((ff & TEXT_ALIGN_BITMASK) >> TEXT_ALIGN_SHIFT as uint).unwrap()
+        FromPrimitive::from_u16((self & TEXT_ALIGN_BITMASK).bits() >> TEXT_ALIGN_SHIFT).unwrap()
     }
 
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
-        let FlowFlags(ff) = *self;
-        *self = FlowFlags((ff & !TEXT_ALIGN_BITMASK) | ((value as u16) << TEXT_ALIGN_SHIFT as uint))
+        *self = (*self & !TEXT_ALIGN_BITMASK) | FlowFlags::from_bits(value as u16 << TEXT_ALIGN_SHIFT).unwrap();
     }
 
     #[inline]
     pub fn set_text_align_override(&mut self, parent: FlowFlags) {
-        let FlowFlags(ff) = *self;
-        let FlowFlags(pff) = parent;
-        *self = FlowFlags(ff | (pff & TEXT_ALIGN_BITMASK))
+        self.insert(parent & TEXT_ALIGN_BITMASK);
     }
 
     #[inline]
     pub fn union_floated_descendants_flags(&mut self, other: FlowFlags) {
-        let FlowFlags(my_flags) = *self;
-        let FlowFlags(other_flags) = other;
-        *self = FlowFlags(my_flags | (other_flags & HAS_FLOATED_DESCENDANTS_BITMASK))
+        self.insert(other & HAS_FLOATED_DESCENDANTS_BITMASK);
     }
 
     #[inline]
     pub fn impacted_by_floats(&self) -> bool {
-        self.impacted_by_left_floats() || self.impacted_by_right_floats()
+        self.contains(IMPACTED_BY_LEFT_FLOATS) || self.contains(IMPACTED_BY_RIGHT_FLOATS)
+    }
+
+    #[inline]
+    pub fn set(&mut self, flags: FlowFlags, value: bool) {
+        if value {
+            self.insert(flags);
+        } else {
+            self.remove(flags);
+        }
     }
 
     #[inline]
     pub fn float_kind(&self) -> float::T {
-        if self.floats_left() {
+        if self.contains(FLOATS_LEFT) {
             float::left
-        } else if self.floats_right() {
+        } else if self.contains(FLOATS_RIGHT) {
             float::right
         } else {
             float::none
@@ -589,7 +572,7 @@ impl FlowFlags {
 
     #[inline]
     pub fn clears_floats(&self) -> bool {
-        self.clears_left() || self.clears_right()
+        self.contains(CLEARS_LEFT) || self.contains(CLEARS_RIGHT)
     }
 }
 
@@ -854,29 +837,29 @@ impl Drop for BaseFlow {
 impl BaseFlow {
     #[inline]
     pub fn new(node: Option<ThreadSafeLayoutNode>, writing_mode: WritingMode) -> BaseFlow {
-        let mut flags = FlowFlags::new();
+        let mut flags = FlowFlags::empty();
         match node {
             None => {}
             Some(node) => {
                 let node_style = node.style();
                 match node_style.get_box().position {
                     position::absolute | position::fixed => {
-                        flags.set_is_absolutely_positioned(true)
+                        flags.insert(IS_ABSOLUTELY_POSITIONED)
                     }
                     _ => {}
                 }
                 match node_style.get_box().float {
                     float::none => {}
-                    float::left => flags.set_floats_left(true),
-                    float::right => flags.set_floats_right(true),
+                    float::left => flags.insert(FLOATS_LEFT),
+                    float::right => flags.insert(FLOATS_RIGHT),
                 }
                 match node_style.get_box().clear {
                     clear::none => {}
-                    clear::left => flags.set_clears_left(true),
-                    clear::right => flags.set_clears_right(true),
+                    clear::left => flags.insert(CLEARS_LEFT),
+                    clear::right => flags.insert(CLEARS_RIGHT),
                     clear::both => {
-                        flags.set_clears_left(true);
-                        flags.set_clears_right(true);
+                        flags.insert(CLEARS_LEFT);
+                        flags.insert(CLEARS_RIGHT);
                     }
                 }
             }
@@ -1211,7 +1194,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
             let mut gives_absolute_offsets = true;
             if kid.is_block_like() {
                 let kid_block = kid.as_block();
-                if kid_block.is_fixed() || kid_block.base.flags.is_absolutely_positioned() {
+                if kid_block.is_fixed() || kid_block.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                     // It won't contribute any offsets for descendants because it would be the
                     // containing block for them.
                     gives_absolute_offsets = false;
