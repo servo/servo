@@ -568,7 +568,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             debug!("Not a valid element name");
             return Err(InvalidCharacter);
         }
-        let local_name = local_name.as_slice().to_ascii_lower();
+        let local_name = if self.is_html_document {
+            local_name.as_slice().to_ascii_lower()
+        } else {
+            local_name
+        };
         let name = QualName::new(ns!(HTML), Atom::from_slice(local_name.as_slice()));
         Ok(Element::create(name, None, self, ScriptCreated))
     }
