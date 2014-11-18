@@ -54,7 +54,7 @@ pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef
         if sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
         slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
-            match (*v).find(&String::from_str(result)) {
+            match (*v).get(&String::from_str(result)) {
                 Some(s) => {
                     cef_string_utf8_set((**s).str as *const u8, (**s).length, value, 1);
                     1
