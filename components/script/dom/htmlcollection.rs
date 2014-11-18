@@ -140,8 +140,8 @@ impl HTMLCollection {
             classes: Vec<Atom>
         }
         impl CollectionFilter for ClassNameFilter {
-            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
-                self.classes.iter().all(|class| elem.has_class(class))
+            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
+                (NodeCast::from_ref(elem) != root) && self.classes.iter().all(|class| elem.has_class(class))
             }
         }
         let filter = ClassNameFilter {
