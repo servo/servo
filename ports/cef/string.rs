@@ -270,3 +270,13 @@ pub extern "C" fn cef_string_ascii_to_utf16(src: *const u8, src_len: size_t, out
         cef_string_utf16_set(conv.as_ptr(), conv.len() as size_t, output, 1)
     })
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_ascii_to_wide(src: *const u8, src_len: size_t, output: *mut cef_string_wide_t) -> c_int {
+    unsafe {
+        slice::raw::buf_as_slice(src, src_len as uint, |ustr| {
+            let conv = ustr.iter().map(|&c| c as u8).collect::<Vec<u8>>();
+            cef_string_wide_set(conv.as_ptr() as *const wchar_t, conv.len() as size_t, output, 1)
+        })
+    }
+}
