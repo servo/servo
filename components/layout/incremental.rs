@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use flow::{mod, Flow};
+use flow::{IS_ABSOLUTELY_POSITIONED};
 
 use std::fmt;
 use std::sync::Arc;
@@ -183,13 +184,13 @@ pub trait LayoutDamageComputation {
 impl<'a> LayoutDamageComputation for &'a mut Flow+'a {
     fn compute_layout_damage(self) -> SpecialRestyleDamage {
         let mut special_damage = SpecialRestyleDamage::empty();
-        let is_absolutely_positioned = flow::base(self).flags.is_absolutely_positioned();
+        let is_absolutely_positioned = flow::base(self).flags.contains(IS_ABSOLUTELY_POSITIONED);
 
         {
             let self_base = flow::mut_base(self);
             for kid in self_base.children.iter_mut() {
                 let child_is_absolutely_positioned =
-                    flow::base(kid).flags.is_absolutely_positioned();
+                    flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
                 flow::mut_base(kid).restyle_damage
                                    .insert(self_base.restyle_damage.damage_for_child(
                                             is_absolutely_positioned,

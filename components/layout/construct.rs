@@ -19,6 +19,7 @@ use context::LayoutContext;
 use floats::FloatKind;
 use flow::{Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use flow::{Descendants, AbsDescendants};
+use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment};
@@ -527,7 +528,7 @@ impl<'a> FlowConstructor<'a> {
 
         // Set up the absolute descendants.
         let is_positioned = flow.as_block().is_positioned();
-        let is_absolutely_positioned = flow::base(&*flow).flags.is_absolutely_positioned();
+        let is_absolutely_positioned = flow::base(&*flow).flags.contains(IS_ABSOLUTELY_POSITIONED);
         if is_positioned {
             // This is the containing block for all the absolute descendants.
             flow.set_absolute_descendants(abs_descendants);
@@ -842,7 +843,7 @@ impl<'a> FlowConstructor<'a> {
         wrapper_flow.finish();
         let is_positioned = wrapper_flow.as_block().is_positioned();
         let is_fixed_positioned = wrapper_flow.as_block().is_fixed();
-        let is_absolutely_positioned = flow::base(&*wrapper_flow).flags.is_absolutely_positioned();
+        let is_absolutely_positioned = flow::base(&*wrapper_flow).flags.contains(IS_ABSOLUTELY_POSITIONED);
         if is_positioned {
             // This is the containing block for all the absolute descendants.
             wrapper_flow.set_absolute_descendants(abs_descendants);
