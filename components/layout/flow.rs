@@ -191,6 +191,9 @@ pub trait Flow: fmt::Show + ToString + Sync {
         panic!("assign_block_size not yet implemented")
     }
 
+    /// If this is a float, places it. The default implementation does nothing.
+    fn place_float_if_applicable<'a>(&mut self, _: &'a LayoutContext<'a>) {}
+
     /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
     /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true
     /// if this child was impacted by floats or false otherwise.
@@ -238,10 +241,6 @@ pub trait Flow: fmt::Show + ToString + Sync {
     }
 
     fn is_root(&self) -> bool {
-        false
-    }
-
-    fn is_float(&self) -> bool {
         false
     }
 
@@ -571,6 +570,11 @@ impl FlowFlags {
     }
 
     #[inline]
+    pub fn is_float(&self) -> bool {
+        self.contains(FLOATS_LEFT) || self.contains(FLOATS_RIGHT)
+    }
+
+    #[inline]
     pub fn clears_floats(&self) -> bool {
         self.contains(CLEARS_LEFT) || self.contains(CLEARS_RIGHT)
     }
@@ -834,9 +838,22 @@ impl Drop for BaseFlow {
     }
 }
 
+/// Whether a base flow should be forced to be nonfloated. This can affect e.g. `TableFlow`, which
+/// is never floated because the table wrapper flow is the floated one.
+#[deriving(Clone, PartialEq)]
+pub enum ForceNonfloatedFlag {
+    /// The flow should be floated if the node has a `float` property.
+    FloatIfNecessary,
+    /// The flow should be forced to be nonfloated.
+    ForceNonfloated,
+}
+
 impl BaseFlow {
     #[inline]
-    pub fn new(node: Option<ThreadSafeLayoutNode>, writing_mode: WritingMode) -> BaseFlow {
+    pub fn new(node: Option<ThreadSafeLayoutNode>,
+               writing_mode: WritingMode,
+               force_nonfloated: ForceNonfloatedFlag)
+               -> BaseFlow {
         let mut flags = FlowFlags::empty();
         match node {
             None => {}
@@ -848,11 +865,15 @@ impl BaseFlow {
                     }
                     _ => {}
                 }
-                match node_style.get_box().float {
-                    float::none => {}
-                    float::left => flags.insert(FLOATS_LEFT),
-                    float::right => flags.insert(FLOATS_RIGHT),
+
+                if force_nonfloated == FloatIfNecessary {
+                    match node_style.get_box().float {
+                        float::none => {}
+                        float::left => flags.insert(FLOATS_LEFT),
+                        float::right => flags.insert(FLOATS_RIGHT),
+                    }
                 }
+
                 match node_style.get_box().clear {
                     clear::none => {}
                     clear::left => flags.insert(CLEARS_LEFT),

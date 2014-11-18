@@ -8,7 +8,7 @@
 
 use context::LayoutContext;
 use css::node_style::StyledNode;
-use flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
+use flow::{BaseFlow, ForceNonfloated, TableColGroupFlowClass, FlowClass, Flow};
 use fragment::{Fragment, FragmentBoundsIterator, TableColumnFragment};
 use layout_debug;
 use wrapper::ThreadSafeLayoutNode;
@@ -44,7 +44,7 @@ impl TableColGroupFlow {
                                    -> TableColGroupFlow {
         let writing_mode = node.style().writing_mode;
         TableColGroupFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloated),
             fragment: Some(fragment),
             cols: fragments,
             inline_sizes: vec!(),

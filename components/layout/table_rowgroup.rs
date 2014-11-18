@@ -74,7 +74,10 @@ impl TableRowGroupFlow {
         let mut cur_y = block_start_offset;
 
         for kid in self.block_flow.base.child_iter() {
-            kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+            kid.place_float_if_applicable(layout_context);
+            if !flow::base(kid).flags.is_float() {
+                kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+            }
 
             let child_node = flow::mut_base(kid);
             child_node.position.start.b = cur_y;

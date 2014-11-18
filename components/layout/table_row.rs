@@ -79,7 +79,10 @@ impl TableRowFlow {
         // cells).
         let mut max_y = Au(0);
         for kid in self.block_flow.base.child_iter() {
-            kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+            kid.place_float_if_applicable(layout_context);
+            if !flow::base(kid).flags.is_float() {
+                kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+            }
 
             {
                 let child_fragment = kid.as_table_cell().fragment();
