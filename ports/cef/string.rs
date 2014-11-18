@@ -7,6 +7,7 @@ use eutil::slice_to_str;
 use libc::{size_t, c_int, c_ushort,c_void};
 use libc::types::os::arch::c95::wchar_t;
 use mem::{new0,newarray0,delete,deletearray};
+use std::char;
 use std::mem;
 use std::ptr;
 use std::slice;
@@ -247,4 +248,17 @@ pub extern "C" fn cef_string_utf8_to_wide(src: *const u8, src_len: size_t, outpu
         let conv = result.chars().map(|c| c as u32).collect::<Vec<u32>>();
         cef_string_wide_set(conv.as_ptr() as *const wchar_t, conv.len() as size_t, output, 1)
     })
+}
+
+#[no_mangle]
+pub extern "C" fn cef_string_wide_to_utf8(src: *const wchar_t, src_len: size_t, output: *mut cef_string_utf8_t) -> c_int {
+    if mem::size_of::<wchar_t>() == mem::size_of::<u16>() {
+         return cef_string_utf16_to_utf8(src as *const u16, src_len, output);
+    }
+    unsafe {
+       slice::raw::buf_as_slice(src, src_len as uint, |ustr| {
+            let conv = ustr.iter().map(|&c| char::from_u32(c as u32).unwrap_or('\uFFFD')).collect::<String>();
+            cef_string_utf8_set(conv.as_bytes().as_ptr(), conv.len() as size_t, output, 1)
+       })
+    }
 }
