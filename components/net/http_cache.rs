@@ -40,6 +40,7 @@ use url::Url;
 //TODO: Range requests
 //TODO: Revalidation rules for query strings
 //TODO: Vary
+//TODO: Fix race between multiple revalidations of same entry
 
 /// The key used to differentiate requests in the cache.
 #[deriving(Clone, Hash, PartialEq, Eq)]
@@ -229,7 +230,7 @@ impl MemoryCache {
     /// Mark a cached request as doomed. Any waiting consumers will immediately receive
     /// an error message or a final body payload. The cache entry is immediately removed.
     pub fn doom_request(&mut self, key: &CacheKey, err: String) {
-        info!("dooming entry for {}", key.url);
+        info!("dooming entry for {} ({})", key.url, err);
         match self.complete_entries.remove(key) {
             Some(_) => return,
             None => (),
@@ -353,7 +354,8 @@ impl MemoryCache {
         let key = CacheKey::new(load_data.clone());
         match self.complete_entries.get(&key) {
             Some(resource) => {
-                if self.base_time + resource.expires >= time::now().to_timespec() {
+                if self.base_time + resource.expires < time::now().to_timespec() {
+                    info!("entry for {} has expired", key.url());
                     return Revalidate(key, ExpiryDate(time::at(self.base_time + resource.expires)));
                 }
 
@@ -364,11 +366,15 @@ impl MemoryCache {
                 }).unwrap_or(false);
 
                 if must_revalidate {
+                    info!("entry for {} must be revalidated", key.url());
                     return Revalidate(key, ExpiryDate(resource.last_validated));
                 }
 
                 match resource.metadata.headers.as_ref().and_then(|headers| headers.etag.as_ref()) {
-                    Some(etag) => return Revalidate(key, Etag(etag.clone())),
+                    Some(etag) => {
+                        info!("entry for {} has an Etag", key.url());
+                        return Revalidate(key, Etag(etag.clone()));
+                    }
                     None => ()
                 }
 

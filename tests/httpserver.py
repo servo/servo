@@ -11,14 +11,27 @@ class CountingRequestHandler(SimpleHTTPRequestHandler):
     def __init__(self, req, client_addr, server):
         SimpleHTTPRequestHandler.__init__(self, req, client_addr, server)
 
-    def do_GET(self):
+    def do_POST(self):
         global requests
         parts = self.path.split('/')
-        if parts[1] == 'stats':
+
+        if parts[1] == 'reset':
+            requests = defaultdict(int)
             self.send_response(200)
             self.send_header('Content-Type', 'text/plain')
-            if parts[2]:
-                body = str(requests['/' + parts[2]])
+            self.send_header('Content-Length', 0)
+            self.end_headers()
+            self.wfile.write('')
+            return
+
+    def do_GET(self):
+        global requests
+        parts = self.path.split('?')
+        if parts[0] == '/stats':
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/plain')
+            if len(parts) > 1:
+                body = str(requests['/' + parts[1]])
             else:
                 body = ''
                 for key, value in requests.iteritems():
@@ -26,13 +39,6 @@ class CountingRequestHandler(SimpleHTTPRequestHandler):
             self.send_header('Content-Length', len(body))
             self.end_headers()
             self.wfile.write(body)
-            return
-
-        if parts[1] == 'reset':
-            requests = defaultdict(int)
-            self.send_response(200)
-            self.send_header('Content-Type', 'text/plain')
-            self.send_header('Content-Length', 0)
             return
 
         requests[self.path] += 1
