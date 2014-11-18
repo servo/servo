@@ -8,8 +8,8 @@
 use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
-use http::headers::request::HeaderCollection as RequestHeaderCollection;
-use http::method::{Method, Get};
+use hyper::header::Headers;
+use hyper::method::{Method, Get};
 use layers::geometry::DevicePixel;
 use servo_util::geometry::{PagePx, ViewportPx};
 use std::comm::{channel, Sender, Receiver};
@@ -214,7 +214,7 @@ pub enum Msg {
 pub struct LoadData {
     pub url: Url,
     pub method: Method,
-    pub headers: RequestHeaderCollection,
+    pub headers: Headers,
     pub data: Option<Vec<u8>>,
 }
 
@@ -223,7 +223,7 @@ impl LoadData {
         LoadData {
             url: url,
             method: Get,
-            headers: RequestHeaderCollection::new(),
+            headers: Headers::new(),
             data: None,
         }
     }
