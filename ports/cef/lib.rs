@@ -52,6 +52,7 @@ pub mod request;
 pub mod string;
 pub mod string_list;
 pub mod string_map;
+pub mod string_multimap;
 pub mod task;
 pub mod types;
 pub mod urlrequest;
