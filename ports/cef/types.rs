@@ -5,11 +5,11 @@
 use libc::{c_uint, c_ushort, c_int, c_double, size_t, c_void, c_longlong};
 use libc::types::os::arch::c95::wchar_t;
 
-pub type cef_string_map_t = c_void;
-pub type cef_string_multimap_t = c_void;
-pub type cef_string_list_t = c_void;
-pub type cef_text_input_context_t = c_void;
-pub type cef_event_handle_t = c_void;
+pub enum cef_string_map_t {}
+pub enum cef_string_multimap_t {}
+pub enum cef_string_list_t {}
+pub enum cef_text_input_context_t {}
+pub enum cef_event_handle_t {}
 
 //these all need to be done...
 pub enum cef_binary_value_val {}

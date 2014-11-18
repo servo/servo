@@ -5,6 +5,7 @@
 use eutil::slice_to_str;
 use libc::{c_int};
 use std::collections::TreeMap;
+use std::iter::AdditiveIterator;
 use std::mem;
 use std::string::String;
 use string::{cef_string_userfree_utf8_alloc,cef_string_userfree_utf8_free,cef_string_utf8_set};
@@ -28,12 +29,8 @@ pub extern "C" fn cef_string_multimap_alloc() -> *mut cef_string_multimap_t {
 pub extern "C" fn cef_string_multimap_size(smm: *mut cef_string_multimap_t) -> c_int {
     unsafe {
         if smm.is_null() { return 0; }
-        let mut c: c_int = 0;
         let v = string_multimap_to_treemap(smm);
-        for (_, val) in (*v).iter() {
-            c = c + (*val).len() as c_int;
-        }
-        c
+        (*v).values().map(|val| (*val).len()).sum() as c_int
     }
 }
 
@@ -44,9 +41,7 @@ pub extern "C" fn cef_string_multimap_find_count(smm: *mut cef_string_multimap_t
         let v = string_multimap_to_treemap(smm);
         slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
             match (*v).get(&String::from_str(result)) {
-                Some(s) => {
-                    s.len() as c_int
-                }
+                Some(s) =>  s.len() as c_int,
                 None => 0
             }
         })
@@ -63,16 +58,10 @@ pub extern "C" fn cef_string_multimap_append(smm: *mut cef_string_multimap_t, ke
             let csv = cef_string_userfree_utf8_alloc();
             cef_string_utf8_set((*value).str as *const u8, (*value).length, csv, 1);
             match (*v).get_mut(&s) {
-                Some(vc) => {
-                    (*vc).push(csv);
-                    1
-                }
-                None => {
-                    let vc = vec!(csv);
-                    (*v).insert(s, vc);
-                    1
-                }
+                Some(vc) => (*vc).push(csv),
+                None => { (*v).insert(s, vec!(csv)); }
             }
+            1
         })
     }
 }
@@ -108,7 +97,7 @@ pub extern "C" fn cef_string_multimap_key(smm: *mut cef_string_multimap_t, index
             if rem < (*val).len() {
                 return cef_string_utf8_set((*key).as_bytes().as_ptr(), (*key).len() as u64, value, 1);
             } else {
-                rem = rem - (*val).len();
+                rem -= (*val).len();
             }
         }
     }
@@ -122,12 +111,12 @@ pub extern "C" fn cef_string_multimap_value(smm: *mut cef_string_multimap_t, ind
         let v = string_multimap_to_treemap(smm);
         let mut rem = index as uint;
 
-        for (_, val) in (*v).values().enumerate() {
+        for val in (*v).values() {
             if rem < (*val).len() {
                 let cs = (*val)[rem as uint];
                 return cef_string_utf8_set((*cs).str as *const u8, (*cs).length, value, 1);
             } else {
-                rem = rem - (*val).len();
+                rem -= (*val).len();
             }
         }
     }
