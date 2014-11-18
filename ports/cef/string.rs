@@ -237,3 +237,14 @@ pub extern "C" fn cef_string_wide_cmp(a: *const cef_string_wide_t, b: *const cef
        })
     }
 }
+
+#[no_mangle]
+pub extern "C" fn cef_string_utf8_to_wide(src: *const u8, src_len: size_t, output: *mut cef_string_wide_t) -> c_int {
+    if mem::size_of::<wchar_t>() == mem::size_of::<u16>() {
+         return cef_string_utf8_to_utf16(src, src_len, output as *mut cef_string_utf16_t);
+    }
+    slice_to_str(src, src_len as uint, |result| {
+        let conv = result.chars().map(|c| c as u32).collect::<Vec<u32>>();
+        cef_string_wide_set(conv.as_ptr() as *const wchar_t, conv.len() as size_t, output, 1)
+    })
+}
