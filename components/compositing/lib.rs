@@ -13,7 +13,6 @@
 #[phase(plugin, link)]
 extern crate log;
 
-extern crate alert;
 extern crate azure;
 extern crate devtools_traits;
 extern crate geom;

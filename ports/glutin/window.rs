@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A windowing implementation using GLFW.
+//! A windowing implementation using glutin.
 
-use alert::{Alert, AlertMethods};
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent};
+use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass, ScrollWindowEvent};
 use compositing::windowing::{ZoomWindowEvent, PinchZoomWindowEvent, NavigationWindowEvent};
 use compositing::windowing::{FinishedWindowEvent, QuitWindowEvent, MouseWindowClickEvent};
@@ -339,9 +338,6 @@ impl Window {
     fn handle_key(&self, key: glutin::VirtualKeyCode) -> bool {
         match key {
             glutin::Escape => return true,
-            glutin::L if self.ctrl_pressed() => {
-                self.load_url(); // Ctrl+L
-            }
             glutin::Equals if self.ctrl_pressed() => { // Ctrl-+
                 self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
             }
@@ -396,19 +392,6 @@ impl Window {
             }
         };
         self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
-    }
-
-    /// Helper function to pop up an alert box prompting the user to load a URL.
-    fn load_url(&self) {
-        let mut alert: Alert = AlertMethods::new("Navigate to:");
-        alert.add_prompt();
-        alert.run();
-        let value = alert.prompt_value();
-        if "" == value.as_slice() {    // To avoid crashing on Linux.
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent("http://purple.com/".to_string()))
-        } else {
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent(value.clone()))
-        }
     }
 
     pub unsafe fn set_nested_event_loop_listener(

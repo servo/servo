@@ -6,10 +6,9 @@
 
 use NestedEventLoopListener;
 
-use alert::{Alert, AlertMethods};
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{Forward, Back};
-use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent};
+use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent};
 use compositing::windowing::{KeyEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass};
 use compositing::windowing::{MouseWindowMouseUpEvent, RefreshWindowEvent};
@@ -326,7 +325,6 @@ impl Window {
     fn handle_key(&self, key: glfw::Key, mods: glfw::Modifiers) {
         match key {
             glfw::KeyEscape => self.glfw_window.set_should_close(true),
-            glfw::KeyL if mods.contains(glfw::Control) => self.load_url(), // Ctrl+L
             glfw::KeyEqual if mods.contains(glfw::Control) => { // Ctrl-+
                 self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
             }
@@ -382,19 +380,6 @@ impl Window {
             _ => panic!("I cannot recognize the type of mouse action that occured. :-(")
         };
         self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
-    }
-
-    /// Helper function to pop up an alert box prompting the user to load a URL.
-    fn load_url(&self) {
-        let mut alert: Alert = AlertMethods::new("Navigate to:");
-        alert.add_prompt();
-        alert.run();
-        let value = alert.prompt_value();
-        if "" == value.as_slice() {    // To avoid crashing on Linux.
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent("http://purple.com/".to_string()))
-        } else {
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent(value.clone()))
-        }
     }
 }
 

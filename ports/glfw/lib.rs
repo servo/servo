@@ -8,7 +8,6 @@
 #![feature(macro_rules)]
 #![deny(unused_imports, unused_variables)]
 
-extern crate alert;
 #[cfg(target_os="macos")]
 extern crate cgl;
 extern crate compositing;
