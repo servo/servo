@@ -353,7 +353,7 @@ impl ToJSValConvertible for Reflector {
 }
 
 /// Returns whether the given `clasp` is one for a DOM object.
-fn is_dom_class(clasp: *const JSClass) -> bool {
+pub fn is_dom_class(clasp: *const JSClass) -> bool {
     unsafe {
         ((*clasp).flags & js::JSCLASS_IS_DOMJSCLASS) != 0
     }

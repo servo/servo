@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global::GlobalRef;
@@ -27,7 +28,7 @@ use page::Page;
 use script_task::{TimerSource, ScriptChan};
 use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
-use timers::{IsInterval, TimerId, TimerManager};
+use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::LoadData;
@@ -214,7 +215,16 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
-        self.timers.set_timeout_or_interval(callback,
+        self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
+                                            args,
+                                            timeout,
+                                            IsInterval::NonInterval,
+                                            TimerSource::FromWindow(self.page.id.clone()),
+                                            self.script_chan.clone())
+    }
+
+    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
@@ -227,7 +237,16 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
-        self.timers.set_timeout_or_interval(callback,
+        self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
+                                            args,
+                                            timeout,
+                                            IsInterval::Interval,
+                                            TimerSource::FromWindow(self.page.id.clone()),
+                                            self.script_chan.clone())
+    }
+
+    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
                                             IsInterval::Interval,
@@ -297,22 +316,25 @@ pub trait WindowHelpers {
     fn init_browser_context(self, doc: JSRef<Document>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
-    fn evaluate_js_with_result(self, code: &str) -> JSVal;
-    fn evaluate_script_with_result(self, code: &str, filename: &str) -> JSVal;
 }
 
+pub trait ScriptHelpers {
+    fn evaluate_js_on_global_with_result(self, code: &str) -> JSVal;
+    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str) -> JSVal;
+}
 
-impl<'a> WindowHelpers for JSRef<'a, Window> {
-    fn evaluate_js_with_result(self, code: &str) -> JSVal {
-        self.evaluate_script_with_result(code, "")
+impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
+    fn evaluate_js_on_global_with_result(self, code: &str) -> JSVal {
+        self.evaluate_script_on_global_with_result(code, "")
     }
 
-    fn evaluate_script_with_result(self, code: &str, filename: &str) -> JSVal {
-        let global = self.reflector().get_jsobject();
+    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str) -> JSVal {
+        let this = self.reflector().get_jsobject();
+        let cx = global_object_for_js_object(this).root().r().get_cx();
+        let global = global_object_for_js_object(this).root().r().reflector().get_jsobject();
         let code: Vec<u16> = code.as_slice().utf16_units().collect();
         let mut rval = UndefinedValue();
         let filename = filename.to_c_str();
-        let cx = self.get_cx();
 
         with_compartment(cx, global, || {
             unsafe {
@@ -325,7 +347,9 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             }
         })
     }
+}
 
+impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType) {
         self.page().flush_layout(goal, query);
     }
