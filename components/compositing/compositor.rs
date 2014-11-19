@@ -439,29 +439,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.ready_states.insert(frame_tree.pipeline.id, Blank);
         self.render_states.insert(frame_tree.pipeline.id, RenderingRenderState);
 
-        let layer_properties = LayerProperties {
-            pipeline_id: frame_tree.pipeline.id,
-            epoch: Epoch(0),
-            id: LayerId::null(),
-            rect: Rect::zero(),
-            background_color: azure_hl::Color::new(0., 0., 0., 0.),
-            scroll_policy: Scrollable,
-        };
-        let root_layer = CompositorData::new_layer(frame_tree.pipeline.clone(),
-                                                   layer_properties,
-                                                   WantsScrollEvents,
-                                                   opts::get().tile_size);
-
-        match frame_rect {
-            Some(ref frame_rect) => {
-                *root_layer.masks_to_bounds.borrow_mut() = true;
-
-                let frame_rect = frame_rect.to_untyped();
-                *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
-            }
-            None => {}
-        }
-
+        let root_layer = create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline, frame_rect);
         for kid in frame_tree.children.iter() {
             root_layer.add_child(self.create_frame_tree_root_layers(&kid.frame_tree, kid.rect));
         }
@@ -469,31 +447,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn update_frame_tree(&mut self, frame_tree_diff: &FrameTreeDiff) {
-        let layer_properties = LayerProperties {
-            pipeline_id: frame_tree_diff.pipeline.id,
-            epoch: Epoch(0),
-            id: LayerId::null(),
-            rect: Rect::zero(),
-            background_color: azure_hl::Color::new(0., 0., 0., 0.),
-            scroll_policy: Scrollable,
-        };
-        let root_layer = CompositorData::new_layer(frame_tree_diff.pipeline.clone(),
-                                                   layer_properties,
-                                                   WantsScrollEvents,
-                                                   opts::get().tile_size);
-
-        match frame_tree_diff.rect {
-            Some(ref frame_rect) => {
-                *root_layer.masks_to_bounds.borrow_mut() = true;
-
-                let frame_rect = frame_rect.to_untyped();
-                *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
-            }
-            None => {}
-        }
-
         let parent_layer = self.find_pipeline_root_layer(frame_tree_diff.parent_pipeline.id);
-        parent_layer.add_child(root_layer);
+        parent_layer.add_child(
+            create_root_layer_for_pipeline_and_rect(&frame_tree_diff.pipeline,
+                                                    frame_tree_diff.rect));
     }
 
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Rc<Layer<CompositorData>> {
@@ -1176,6 +1133,36 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
     }
 
     return None;
+}
+
+fn create_root_layer_for_pipeline_and_rect(pipeline: &CompositionPipeline,
+                                           frame_rect: Option<TypedRect<PagePx, f32>>)
+                                           -> Rc<Layer<CompositorData>> {
+    let layer_properties = LayerProperties {
+        pipeline_id: pipeline.id,
+        epoch: Epoch(0),
+        id: LayerId::null(),
+        rect: Rect::zero(),
+        background_color: azure_hl::Color::new(0., 0., 0., 0.),
+        scroll_policy: Scrollable,
+    };
+
+    let root_layer = CompositorData::new_layer(pipeline.clone(),
+                                               layer_properties,
+                                               WantsScrollEvents,
+                                               opts::get().tile_size);
+
+    match frame_rect {
+        Some(ref frame_rect) => {
+            *root_layer.masks_to_bounds.borrow_mut() = true;
+
+            let frame_rect = frame_rect.to_untyped();
+            *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
+        }
+        None => {}
+    }
+
+    return root_layer;
 }
 
 impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
