@@ -10,10 +10,11 @@
 #![feature(phase)]
 #[phase(plugin, link)]
 extern crate log;
+#[phase(plugin)]
+extern crate "plugins" as servo_plugins;
 
 extern crate rustuv;
 
-extern crate "plugins" as servo_plugins;
 extern crate servo;
 
 extern crate azure;
