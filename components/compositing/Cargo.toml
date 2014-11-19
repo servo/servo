@@ -31,9 +31,6 @@ path = "../devtools"
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
-[dependencies.alert]
-git = "https://github.com/servo/rust-alert"
-
 [dependencies.azure]
 git = "https://github.com/servo/rust-azure"
 

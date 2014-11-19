@@ -2,7 +2,6 @@
 name = "glut_app"
 version = "0.0.1"
 dependencies = [
- "alert 0.1.0 (git+https://github.com/servo/rust-alert)",
  "compositing 0.0.1",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
@@ -11,15 +10,6 @@ dependencies = [
  "msg 0.0.1",
  "servo 0.0.1",
  "util 0.0.1",
-]
-
-[[package]]
-name = "alert"
-version = "0.1.0"
-source = "git+https://github.com/servo/rust-alert#9bd18fc406683bae448bc6f5d546872970af252e"
-dependencies = [
- "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
 ]
 
 [[package]]
@@ -56,15 +46,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "cocoa"
-version = "0.1.1"
-source = "git+https://github.com/servo/rust-cocoa#f926323d306401df33f528c9aeca8e582cad063b"
-
-[[package]]
 name = "compositing"
 version = "0.0.1"
 dependencies = [
- "alert 0.1.0 (git+https://github.com/servo/rust-alert)",
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",

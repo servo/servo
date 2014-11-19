@@ -7,9 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "glutin_app"
 path = "lib.rs"
 
-[dependencies.alert]
-git = "https://github.com/servo/rust-alert"
-
 [dependencies.compositing]
 path = "../../components/compositing"
 

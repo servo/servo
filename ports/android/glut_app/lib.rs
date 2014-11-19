@@ -9,7 +9,6 @@
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 
-extern crate alert;
 extern crate compositing;
 extern crate egl;
 extern crate geom;

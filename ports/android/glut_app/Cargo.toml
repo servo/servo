@@ -8,9 +8,6 @@ name = "glut_app"
 path = "lib.rs"
 crate-type = ["dylib"]
 
-[dependencies.alert]
-git = "https://github.com/servo/rust-alert"
-
 [dependencies.compositing]
 path = "../../../components/compositing"
 

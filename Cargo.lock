@@ -17,15 +17,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "alert"
-version = "0.1.0"
-source = "git+https://github.com/servo/rust-alert#9bd18fc406683bae448bc6f5d546872970af252e"
-dependencies = [
- "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
- "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
-]
-
-[[package]]
 name = "android_glue"
 version = "0.0.1"
 source = "git+https://github.com/tomaka/android-rs-glue#fe9acb5bd465da1df4561e2bd4ebcc6d305134a4"
@@ -72,11 +63,6 @@ version = "0.1.1"
 source = "git+https://github.com/DavidPartouche/rust-cocoa#0a951a6cdd5f1a175b929754c134f9443b105642"
 
 [[package]]
-name = "cocoa"
-version = "0.1.1"
-source = "git+https://github.com/servo/rust-cocoa#f926323d306401df33f528c9aeca8e582cad063b"
-
-[[package]]
 name = "compile_msg"
 version = "0.1.1"
 source = "git+https://github.com/huonw/compile_msg#f526abe54b49642bc1e969e6c2af1411798b6776"
@@ -85,7 +71,6 @@ source = "git+https://github.com/huonw/compile_msg#f526abe54b49642bc1e969e6c2af1
 name = "compositing"
 version = "0.0.1"
 dependencies = [
- "alert 0.1.0 (git+https://github.com/servo/rust-alert)",
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
@@ -294,7 +279,6 @@ source = "git+https://github.com/servo/glfw?ref=cargo-3.0.4#765dace7e4125b87c764
 name = "glfw_app"
 version = "0.0.1"
 dependencies = [
- "alert 0.1.0 (git+https://github.com/servo/rust-alert)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "compositing 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
@@ -322,7 +306,6 @@ dependencies = [
 name = "glutin_app"
 version = "0.0.1"
 dependencies = [
- "alert 0.1.0 (git+https://github.com/servo/rust-alert)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "compositing 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",

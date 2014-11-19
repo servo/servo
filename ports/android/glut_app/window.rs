@@ -6,12 +6,11 @@
 
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
+use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, MouseWindowEventClass};
 use compositing::windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
 use compositing::windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 use compositing::windowing::{Forward, Back};
 
-use alert::{Alert, AlertMethods};
 use libc::{c_int, c_uchar};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -238,7 +237,6 @@ impl Window {
         debug!("got key: {}", key);
         let modifiers = glut::get_modifiers();
         match key {
-            42 => self.load_url(),
             43 => self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1)),
             45 => self.event_queue.borrow_mut().push(ZoomWindowEvent(0.909090909)),
             56 => self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0f32, 5.0f32),
@@ -283,19 +281,6 @@ impl Window {
             _ => panic!("I cannot recognize the type of mouse action that occured. :-(")
         };
         self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
-    }
-
-    /// Helper function to pop up an alert box prompting the user to load a URL.
-    fn load_url(&self) {
-        let mut alert: Alert = AlertMethods::new("Navigate to:");
-        alert.add_prompt();
-        alert.run();
-        let value = alert.prompt_value();
-        if "" == value.as_slice() {    // To avoid crashing on Linux.
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent("http://purple.com/".to_string()))
-        } else {
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent(value.clone()))
-        }
     }
 }
 
