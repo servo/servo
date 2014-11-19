@@ -324,7 +324,7 @@ class CGMethodCall(CGThing):
             # XXXbz Now we're supposed to check for distinguishingArg being
             # an array or a platform object that supports indexed
             # properties... skip that last for now.  It's a bit of a pain.
-            pickFirstSignature("%s.isObject() && IsArrayLike(cx, &%s.toObject())" %
+            pickFirstSignature("%s.is_object() && IsArrayLike(cx, &%s.to_object())" %
                                (distinguishingArg, distinguishingArg),
                                lambda s:
                                    (s[1][distinguishingIndex].type.isArray() or
@@ -333,14 +333,14 @@ class CGMethodCall(CGThing):
 
             # Check for Date objects
             # XXXbz Do we need to worry about security wrappers around the Date?
-            pickFirstSignature("%s.isObject() && JS_ObjectIsDate(cx, &%s.toObject())" %
+            pickFirstSignature("%s.is_object() && JS_ObjectIsDate(cx, &%s.to_object())" %
                                (distinguishingArg, distinguishingArg),
                                lambda s: (s[1][distinguishingIndex].type.isDate() or
                                           s[1][distinguishingIndex].type.isObject()))
 
             # Check for vanilla JS objects
             # XXXbz Do we need to worry about security wrappers?
-            pickFirstSignature("%s.isObject() && !IsPlatformObject(cx, &%s.toObject())" %
+            pickFirstSignature("%s.is_object() && !IsPlatformObject(cx, %s.to_object())" %
                                (distinguishingArg, distinguishingArg),
                                lambda s: (s[1][distinguishingIndex].type.isCallback() or
                                           s[1][distinguishingIndex].type.isCallbackInterface() or
@@ -4506,6 +4506,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
             'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
             'dom::bindings::utils::{HasPropertyOnPrototype, IntVal, UintVal}',
+            'dom::bindings::utils::{IsPlatformObject}',
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::{squirrel_away_unique}',
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
