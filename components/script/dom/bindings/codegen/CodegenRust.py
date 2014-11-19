@@ -3836,14 +3836,14 @@ if expando.is_not_null() {
             getIndexedOrExpando = getFromExpando + "\n"
 
         namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter and False: #XXXjdm unfinished
-            getNamed = ("if (JSID_IS_STRING(id)) {\n" +
+        if namedGetter:
+            getNamed = ("if (RUST_JSID_IS_STRING(id) != 0) {\n" +
                         "  let name = jsid_to_str(cx, id);\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         "  let this = JS::from_raw(this);\n" +
                         "  let this = this.root();\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
-                        "}\n") % (self.descriptor.concreteType)
+                        "}\n")
         else:
             getNamed = ""
 
