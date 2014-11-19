@@ -28,6 +28,8 @@ use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
+use servo_net::storage_task::StorageTask;
+use servo_net::storage_task;
 use servo_util::geometry::{PagePx, ViewportPx};
 use servo_util::opts;
 use servo_util::task::spawn_named;
@@ -59,6 +61,9 @@ pub struct Constellation<LTF, STF> {
 
     /// A channel through which messages can be sent to the developer tools.
     devtools_chan: Option<DevtoolsControlChan>,
+
+    /// A channel through which messages can be sent to the storage task.
+    storage_task: StorageTask,
 
     /// A list of all the pipelines. (See the `pipeline` module for more details.)
     pipelines: HashMap<PipelineId, Rc<Pipeline>>,
@@ -311,7 +316,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  image_cache_task: ImageCacheTask,
                  font_cache_task: FontCacheTask,
                  time_profiler_chan: TimeProfilerChan,
-                 devtools_chan: Option<DevtoolsControlChan>)
+                 devtools_chan: Option<DevtoolsControlChan>,
+                 storage_task: StorageTask)
                  -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
@@ -324,6 +330,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 resource_task: resource_task,
                 image_cache_task: image_cache_task,
                 font_cache_task: font_cache_task,
+                storage_task: storage_task,
                 pipelines: HashMap::new(),
                 navigation_context: NavigationContext::new(),
                 next_pipeline_id: PipelineId(0),
@@ -365,6 +372,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                     self.image_cache_task.clone(),
                                                     self.font_cache_task.clone(),
                                                     self.resource_task.clone(),
+                                                    self.storage_task.clone(),
                                                     self.time_profiler_chan.clone(),
                                                     self.window_size,
                                                     script_pipeline,
@@ -470,6 +478,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.devtools_chan.as_ref().map(|chan| {
             chan.send(devtools_traits::ServerExitMsg);
         });
+        self.storage_task.send(storage_task::Exit);
         self.font_cache_task.exit();
         self.compositor_proxy.send(ShutdownComplete);
     }
