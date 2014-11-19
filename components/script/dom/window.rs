@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerN
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, InvalidCharacter};
 use dom::bindings::global;
@@ -225,7 +226,16 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
-        self.timers.set_timeout_or_interval(callback,
+        self.timers.set_timeout_or_interval(callback.to_jsval(_cx),
+                                            args,
+                                            timeout,
+                                            false, // is_interval
+                                            FromWindow(self.page.id.clone()),
+                                            self.script_chan.clone())
+    }
+
+    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(callback.to_jsval(_cx),
                                             args,
                                             timeout,
                                             false, // is_interval
@@ -238,7 +248,16 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
-        self.timers.set_timeout_or_interval(callback,
+        self.timers.set_timeout_or_interval(callback.to_jsval(_cx),
+                                            args,
+                                            timeout,
+                                            true, // is_interval
+                                            FromWindow(self.page.id.clone()),
+                                            self.script_chan.clone())
+    }
+
+    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(callback.to_jsval(_cx),
                                             args,
                                             timeout,
                                             true, // is_interval
@@ -384,7 +403,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn handle_fire_timer(self, timer_id: TimerId) {
-        self.timers.fire_timer(timer_id, self.clone());
+        self.timers.fire_timer(self.get_cx(), timer_id, self.clone());
         self.flush_layout();
     }
 }
