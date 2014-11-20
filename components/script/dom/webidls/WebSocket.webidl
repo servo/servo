@@ -24,4 +24,4 @@ readonly attribute DOMString url;
     //void send(Blob data);
     //void send(ArrayBuffer data);
     //void send(ArrayBufferView data);
-}; 
+};
