@@ -64,9 +64,6 @@ pub struct Opts {
 
     pub nonincremental_layout: bool,
 
-    /// True to exit after the page load (`-x`).
-    pub exit_after_load: bool,
-
     pub output_file: Option<String>,
     pub headless: bool,
     pub hard_fail: bool,
@@ -168,7 +165,6 @@ fn default_opts() -> Opts {
         enable_experimental: false,
         layout_threads: 1,
         nonincremental_layout: false,
-        exit_after_load: false,
         output_file: None,
         headless: true,
         hard_fail: true,
@@ -321,7 +317,6 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         enable_experimental: opt_match.opt_present("e"),
         layout_threads: layout_threads,
         nonincremental_layout: nonincremental_layout,
-        exit_after_load: opt_match.opt_present("x"),
         output_file: opt_match.opt_str("o"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
