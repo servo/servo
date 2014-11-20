@@ -1615,9 +1615,7 @@ impl PropertyDeclaration {
                  result_list: &mut Vec<PropertyDeclaration>,
                  base_url: &Url,
                  seen: &mut PropertyBitField) -> PropertyDeclarationParseResult {
-        // FIXME: local variable to work around Rust #10683
-        let name_lower = name.as_slice().to_ascii_lower();
-        match name_lower.as_slice() {
+        match name.to_ascii_lower().as_slice() {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     "${property.name}" => {
