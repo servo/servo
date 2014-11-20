@@ -74,6 +74,16 @@ class MachCommands(CommandBase):
         for component in os.listdir("components"):
             ret = ret or cargo_test(component)
 
+        # XXX This is a workaround for issue #3928. For some reason, when
+        # cargo test is run, ./target/servo is deleted- breaking all subsequent
+        # tests if run with ./mach test (not to mention breaking ./mach run
+        # until you rebuild again). I would hope that there's a better solution
+        # to this (backing up the file before and moving it back after? some
+        # sort of cargo configuration?) but this is quick and easy for now.
+        print("Rebuilding servo...")
+        self.context.built_tests = False
+        self.ensure_built_tests()
+
         return ret
 
     @Command('test-ref',
