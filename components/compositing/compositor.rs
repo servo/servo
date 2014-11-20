@@ -14,7 +14,7 @@ use constellation::{SendableFrameTree, FrameTreeDiff};
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
 use windowing;
-use windowing::{FinishedWindowEvent, IdleWindowEvent, LoadUrlWindowEvent, MouseWindowClickEvent};
+use windowing::{IdleWindowEvent, LoadUrlWindowEvent, MouseWindowClickEvent};
 use windowing::{MouseWindowEvent, MouseWindowEventClass, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent, MouseWindowMoveEventClass, NavigationWindowEvent};
 use windowing::{QuitWindowEvent, RefreshWindowEvent, ResizeWindowEvent, ScrollWindowEvent};
@@ -668,16 +668,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_key_event(key, state, modifiers);
             }
 
-            FinishedWindowEvent => {
-                let exit = opts::get().exit_after_load;
-                if exit {
-                    debug!("shutting down the constellation for FinishedWindowEvent");
-                    let ConstellationChan(ref chan) = self.constellation_chan;
-                    chan.send(ExitMsg);
-                    self.shutdown_state = ShuttingDown;
-                }
-            }
-
             QuitWindowEvent => {
                 debug!("shutting down the constellation for QuitWindowEvent");
                 let ConstellationChan(ref chan) = self.constellation_chan;
@@ -1052,13 +1042,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.window.present();
 
         self.last_composite_time = precise_time_ns();
-
-        let exit = opts::get().exit_after_load;
-        if exit {
-            debug!("shutting down the constellation for exit_after_load");
-            let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ExitMsg);
-        }
 
         self.composition_request = NoCompositingNecessary;
         self.process_pending_scroll_events();

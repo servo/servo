@@ -7,7 +7,7 @@
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, MouseWindowEventClass};
-use compositing::windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
+use compositing::windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent};
 use compositing::windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 use compositing::windowing::{Forward, Back};
 
@@ -19,8 +19,8 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
-use msg::compositor_msg::{FinishedLoading, Blank, ReadyState};
+use msg::compositor_msg::{IdleRenderState, RenderState};
+use msg::compositor_msg::{Blank, ReadyState};
 use util::geometry::ScreenPx;
 
 use glut::glut::{ACTIVE_SHIFT, WindowHeight};
@@ -182,13 +182,6 @@ impl WindowMethods for Window {
 
     /// Sets the render state.
     fn set_render_state(&self, render_state: RenderState) {
-        if self.ready_state.get() == FinishedLoading &&
-            self.render_state.get() == RenderingRenderState &&
-            render_state == IdleRenderState {
-            // page loaded
-            self.event_queue.borrow_mut().push(FinishedWindowEvent);
-        }
-
         self.render_state.set(render_state);
         //FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily blocked.
         //self.update_window_title()

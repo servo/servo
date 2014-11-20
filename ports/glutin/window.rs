@@ -9,7 +9,7 @@ use compositing::windowing::{WindowEvent, WindowMethods};
 use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass, ScrollWindowEvent};
 use compositing::windowing::{ZoomWindowEvent, PinchZoomWindowEvent, NavigationWindowEvent};
-use compositing::windowing::{FinishedWindowEvent, QuitWindowEvent, MouseWindowClickEvent};
+use compositing::windowing::{QuitWindowEvent, MouseWindowClickEvent};
 use compositing::windowing::{MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 use compositing::windowing::{Forward, Back};
 use geom::point::{Point2D, TypedPoint2D};
@@ -175,13 +175,6 @@ impl WindowMethods for Window {
 
     /// Sets the render state.
     fn set_render_state(&self, render_state: RenderState) {
-        if self.ready_state.get() == FinishedLoading &&
-            self.render_state.get() == RenderingRenderState &&
-            render_state == IdleRenderState {
-            // page loaded
-            self.event_queue.borrow_mut().push(FinishedWindowEvent);
-        }
-
         self.render_state.set(render_state);
         self.update_window_title()
     }
