@@ -55,8 +55,6 @@ pub enum WindowEvent {
     PinchZoomWindowEvent(f32),
     /// Sent when the user uses chrome navigation (i.e. backspace or shift-backspace).
     NavigationWindowEvent(WindowNavigateMsg),
-    /// Sent when rendering is finished.
-    FinishedWindowEvent,
     /// Sent when the user quits the application
     QuitWindowEvent,
     /// Sent when a key input state changes
@@ -77,7 +75,6 @@ impl Show for WindowEvent {
             ZoomWindowEvent(..) => write!(f, "Zoom"),
             PinchZoomWindowEvent(..) => write!(f, "PinchZoom"),
             NavigationWindowEvent(..) => write!(f, "Navigation"),
-            FinishedWindowEvent => write!(f, "Finished"),
             QuitWindowEvent => write!(f, "Quit"),
         }
     }
