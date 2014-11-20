@@ -21,7 +21,6 @@ pub enum cef_frame_t {}
 pub enum cef_domnode_t {}
 pub enum cef_load_handler_t {}
 pub enum cef_request_context_t {}
-pub enum cef_window_info_t {}
 pub enum cef_browser_settings_t {}
 pub enum cef_v8context_t {}
 pub enum cef_v8exception_t {}
@@ -37,7 +36,12 @@ pub enum cef_jsdialog_handler_t {}
 pub enum cef_keyboard_handler_t {}
 pub enum cef_render_handler_t {}
 pub enum cef_request_handler_t {}
-pub enum cef_window_handle_t {} //FIXME: wtf is this
+#[cfg(target_os="linux")]
+pub type cef_window_handle_t = c_uint;
+#[cfg(target_os="macos")]
+pub enum cef_window_handle_t {} //NSView*
+//#[cfg(target_os="win")]
+//pub enum cef_window_handle_t {} //HWND
 
 pub type cef_string_t = cef_string_utf8; //FIXME: this is #defined...
 pub type cef_string_userfree_t = cef_string_t; //FIXME: this is #defined...
@@ -2160,4 +2164,45 @@ pub struct cef_client {
   pub on_process_message_received: Option<extern "C" fn(client: *mut cef_client_t,
       browser: *mut cef_browser_t, source_process: cef_process_id_t,
       message: *mut cef_process_message_t) -> c_int>,
+}
+
+///
+// Class representing window information.
+///
+pub type cef_window_info_t = cef_window_info;
+pub struct cef_window_info {
+  pub x: c_uint,
+  pub y: c_uint,
+  pub width: c_uint,
+  pub height: c_uint,
+
+  ///
+  // Pointer for the parent window.
+  ///
+  pub parent_window: cef_window_handle_t,
+
+  ///
+  // Set to true (1) to create the browser using windowless (off-screen)
+  // rendering. No window will be created for the browser and all rendering will
+  // occur via the CefRenderHandler interface. The |parent_window| value will be
+  // used to identify monitor info and to act as the parent window for dialogs,
+  // context menus, etc. If |parent_window| is not provided then the main screen
+  // monitor will be used and some functionality that requires a parent window
+  // may not function correctly. In order to create windowless browsers the
+  // CefSettings.windowless_rendering_enabled value must be set to true.
+  ///
+  pub windowless_rendering_enabled: c_int,
+
+  ///
+  // Set to true (1) to enable transparent painting in combination with
+  // windowless rendering. When this value is true a transparent background
+  // color will be used (RGBA=0x00000000). When this value is false the
+  // background will be white and opaque.
+  ///
+  pub transparent_painting_enabled: c_int,
+
+  ///
+  // Pointer for the new browser window. Only used with windowed rendering.
+  ///
+  pub window: cef_window_handle_t
 }
