@@ -11,6 +11,7 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::error::Error::DataClone;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
+use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::utils::Reflectable;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
@@ -110,7 +111,6 @@ impl DedicatedWorkerGlobalScope {
                 Ok(_) => (),
                 Err(_) => println!("evaluate_script failed")
             }
-            global.delayed_release_worker();
 
             let scope: JSRef<WorkerGlobalScope> =
                 WorkerGlobalScopeCast::from_ref(*global);
@@ -118,7 +118,7 @@ impl DedicatedWorkerGlobalScope {
                 EventTargetCast::from_ref(*global);
             loop {
                 match global.receiver.recv_opt() {
-                    Ok(ScriptMsg::DOMMessage(data, nbytes)) => {
+                    Ok(ScriptMsg::DOMMessage(_addr, data, nbytes)) => {
                         let mut message = UndefinedValue();
                         unsafe {
                             assert!(JS_ReadStructuredClone(
@@ -128,7 +128,6 @@ impl DedicatedWorkerGlobalScope {
                         }
 
                         MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message);
-                        global.delayed_release_worker();
                     },
                     Ok(ScriptMsg::RunnableMsg(runnable)) => {
                         runnable.handler()
@@ -136,9 +135,9 @@ impl DedicatedWorkerGlobalScope {
                     Ok(ScriptMsg::WorkerPostMessage(addr, data, nbytes)) => {
                         Worker::handle_message(addr, data, nbytes);
                     },
-                    Ok(ScriptMsg::WorkerRelease(addr)) => {
-                        Worker::handle_release(addr)
-                    },
+                    Ok(ScriptMsg::RefcountCleanup(addr)) => {
+                        LiveDOMReferences::cleanup(js_context.ptr, addr);
+                    }
                     Ok(ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id)) => {
                         scope.handle_fire_timer(timer_id);
                     }
@@ -164,22 +163,11 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
         }
 
         let ScriptChan(ref sender) = self.parent_sender;
-        sender.send(ScriptMsg::WorkerPostMessage(self.worker, data, nbytes));
+        sender.send(ScriptMsg::WorkerPostMessage(self.worker.clone(), data, nbytes));
         Ok(())
     }
 
     event_handler!(message, GetOnmessage, SetOnmessage)
-}
-
-trait PrivateDedicatedWorkerGlobalScopeHelpers {
-    fn delayed_release_worker(self);
-}
-
-impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
-    fn delayed_release_worker(self) {
-        let ScriptChan(ref sender) = self.parent_sender;
-        sender.send(ScriptMsg::WorkerRelease(self.worker));
-    }
 }
 
 impl DedicatedWorkerGlobalScopeDerived for EventTarget {

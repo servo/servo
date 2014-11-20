@@ -28,6 +28,7 @@
 //! a datatype.
 
 use dom::bindings::js::JS;
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use dom::node::{Node, TrustedNodeAddress};
 
@@ -203,6 +204,7 @@ no_jsmanaged_fields!(Receiver<T>)
 no_jsmanaged_fields!(Rect<T>)
 no_jsmanaged_fields!(ImageCacheTask, ScriptControlChan)
 no_jsmanaged_fields!(Atom, Namespace, Timer)
+no_jsmanaged_fields!(Trusted<T>)
 no_jsmanaged_fields!(PropertyDeclarationBlock)
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs

@@ -59,6 +59,7 @@ pub mod dom {
         pub mod cell;
         pub mod global;
         pub mod js;
+        pub mod refcounted;
         pub mod utils;
         pub mod callback;
         pub mod error;

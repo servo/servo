@@ -15,6 +15,7 @@ use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
+use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentSource};
@@ -70,6 +71,7 @@ use js::rust::{Cx, RtUtils};
 use js;
 use url::Url;
 
+use libc;
 use libc::size_t;
 use std::any::{Any, AnyRefExt};
 use std::comm::{channel, Sender, Receiver, Select};
@@ -111,13 +113,13 @@ pub enum ScriptMsg {
     ExitWindow(PipelineId),
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
-    DOMMessage(*mut u64, size_t),
+    DOMMessage(TrustedWorkerAddress, *mut u64, size_t),
     /// Posts a message to the Worker object (dispatched to all tasks).
     WorkerPostMessage(TrustedWorkerAddress, *mut u64, size_t),
-    /// Releases one reference to the Worker object (dispatched to all tasks).
-    WorkerRelease(TrustedWorkerAddress),
     /// Generic message that encapsulates event handling.
     RunnableMsg(Box<Runnable+Send>),
+    /// A DOM object's last pinned reference was removed (dispatched to all tasks).
+    RefcountCleanup(*const libc::c_void),
 }
 
 /// Encapsulates internal communication within the script task.
@@ -368,6 +370,7 @@ impl ScriptTask {
     }
 
     pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
+        LiveDOMReferences::initialize();
         let js_runtime = js::rust::rt();
         assert!({
             let ptr: *mut JSRuntime = (*js_runtime).ptr;
@@ -577,10 +580,10 @@ impl ScriptTask {
                 panic!("unexpected message"),
             ScriptMsg::WorkerPostMessage(addr, data, nbytes) =>
                 Worker::handle_message(addr, data, nbytes),
-            ScriptMsg::WorkerRelease(addr) =>
-                Worker::handle_release(addr),
             ScriptMsg::RunnableMsg(runnable) =>
                 runnable.handler(),
+            ScriptMsg::RefcountCleanup(addr) =>
+                LiveDOMReferences::cleanup(self.js_context.borrow().as_ref().unwrap().ptr, addr),
         }
     }
 
