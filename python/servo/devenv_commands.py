@@ -1,4 +1,5 @@
 from __future__ import print_function, unicode_literals
+from os import path
 
 import subprocess
 
@@ -8,7 +9,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase
+from servo.command_base import CommandBase, cd
 
 
 @CommandProvider
@@ -23,6 +24,24 @@ class MachCommands(CommandBase):
     def cargo(self, params):
         return subprocess.call(["cargo"] + params,
                                env=self.build_env())
+
+    @Command('update-cargo',
+             description='Update Cargo dependencies',
+             category='devenv',
+             allow_all_args=True)
+    @CommandArgument(
+        'params', default=None, nargs='...',
+        help='Command-line arguments to be passed through to cargo update')
+    def update_cargo(self, params):
+        cargo_paths = [path.join('.'),
+                       path.join('ports', 'cef'),
+                       path.join('ports', 'android', 'glut_app')]
+
+        for cargo_path in cargo_paths:
+            with cd(cargo_path):
+                print(cargo_path)
+                subprocess.call(["cargo", "update"] + params,
+                                env=self.build_env())
 
     @Command('rustc',
              description='Run the Rust compiler',
