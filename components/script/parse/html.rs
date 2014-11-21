@@ -28,41 +28,58 @@ use servo_util::task_state;
 use servo_util::task_state::IN_HTML_PARSER;
 use std::ascii::AsciiExt;
 use std::comm::channel;
+use std::fmt::{mod, Show};
 use std::str::MaybeOwned;
 use url::Url;
-use http::headers::HeaderEnum;
-use time;
+use time::{Tm, strptime};
 use html5ever::Attribute;
 use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText};
 use string_cache::QualName;
+use hyper::header::{Header, HeaderFormat};
+use hyper::header::common::util as header_util;
 
 pub enum HTMLInput {
     InputString(String),
     InputUrl(Url),
 }
 
-// Parses an RFC 2616 compliant date/time string, and returns a localized
-// date/time string in a format suitable for document.lastModified.
-fn parse_last_modified(timestamp: &str) -> String {
-    let format = "%m/%d/%Y %H:%M:%S";
+//FIXME(seanmonstar): uplift to Hyper
+#[deriving(Clone)]
+struct LastModified(pub Tm);
 
-    // RFC 822, updated by RFC 1123
-    match time::strptime(timestamp, "%a, %d %b %Y %T %Z") {
-        Ok(t) => return t.to_local().strftime(format).unwrap(),
-        Err(_) => ()
+impl Header for LastModified {
+    #[inline]
+    fn header_name(_: Option<LastModified>) -> &'static str {
+        "Last-Modified"
     }
 
-    // RFC 850, obsoleted by RFC 1036
-    match time::strptime(timestamp, "%A, %d-%b-%y %T %Z") {
-        Ok(t) => return t.to_local().strftime(format).unwrap(),
-        Err(_) => ()
+    // Parses an RFC 2616 compliant date/time string,
+    fn parse_header(raw: &[Vec<u8>]) -> Option<LastModified> {
+        header_util::from_one_raw_str(raw).and_then(|s: String| {
+            let s = s.as_slice();
+            strptime(s, "%a, %d %b %Y %T %Z").or_else(|_| {
+                strptime(s, "%A, %d-%b-%y %T %Z")
+            }).or_else(|_| {
+                strptime(s, "%c")
+            }).ok().map(|tm| LastModified(tm))
+        })
     }
+}
 
-    // ANSI C's asctime() format
-    match time::strptime(timestamp, "%c") {
-        Ok(t) => t.to_local().strftime(format).unwrap(),
-        Err(_) => String::from_str("")
+impl HeaderFormat for LastModified {
+    // a localized date/time string in a format suitable
+    // for document.lastModified.
+    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let LastModified(ref tm) = *self;
+        match tm.tm_gmtoff {
+            0 => tm.rfc822().fmt(f),
+            _ => tm.to_utc().rfc822().fmt(f)
+        }
     }
+}
+
+fn dom_last_modified(tm: &Tm) -> String {
+    tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap()
 }
 
 trait SinkHelpers {
@@ -211,15 +228,9 @@ pub fn parse_html(page: &Page,
             let load_response = input_port.recv();
 
             load_response.metadata.headers.as_ref().map(|headers| {
-                let header = headers.iter().find(|h|
-                    h.header_name().as_slice().to_ascii_lower() == "last-modified".to_string()
-                );
-
-                match header {
-                    Some(h) => document.set_last_modified(
-                        parse_last_modified(h.header_value().as_slice())),
-                    None => {},
-                };
+                headers.get().map(|&LastModified(ref tm)| {
+                    document.set_last_modified(dom_last_modified(tm));
+                });
             });
 
             let base_url = load_response.metadata.final_url.clone();

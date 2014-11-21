@@ -221,7 +221,7 @@ impl ResourceManager {
 
     fn load(&self, load_data: LoadData) {
         let mut load_data = load_data;
-        self.user_agent.map(|ref ua| load_data.headers.set(UserAgent(ua.clone())));
+        self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
         let senders = ResponseSenders {
             immediate_consumer: self.sniffer_task.clone(),
             eventual_consumer: load_data.consumer.clone(),

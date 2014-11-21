@@ -29,13 +29,11 @@ use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecodeReplace, Encoding, EncodingRef, EncodeReplace};
 
-use http::headers::response::HeaderCollection as ResponseHeaderCollection;
-use http::headers::request::HeaderCollection as RequestHeaderCollection;
-use http::headers::content_type::MediaType;
-use http::headers::{HeaderEnum, HeaderValueByteIterator};
-use http::headers::request::Header;
-use http::method::{Method, Get, Head, Connect, Trace, ExtensionMethod};
-use http::status::Status;
+use hyper::header::Headers;
+use hyper::header::common::{Accept, ContentLength, ContentType};
+use hyper::http::RawStatus;
+use hyper::mime::{mod, Mime};
+use hyper::method::{Method, Get, Head, Connect, Trace, Extension};
 
 use js::jsapi::{JS_AddObjectRoot, JS_ParseJSON, JS_RemoveObjectRoot, JSContext};
 use js::jsapi::JS_ClearPendingException;
@@ -54,7 +52,7 @@ use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::comm::{Sender, Receiver, channel};
 use std::default::Default;
-use std::io::{BufReader, MemWriter, Timer};
+use std::io::Timer;
 use std::from_str::FromStr;
 use std::time::duration::Duration;
 use std::num::Zero;
@@ -88,7 +86,7 @@ pub struct GenerationId(uint);
 
 pub enum XHRProgress {
     /// Notify that headers have been received
-    HeadersReceivedMsg(GenerationId, Option<ResponseHeaderCollection>, Option<Status>),
+    HeadersReceivedMsg(GenerationId, Option<Headers>, Option<RawStatus>),
     /// Partial progress (after receiving headers), containing portion of the response
     LoadingMsg(GenerationId, ByteString),
     /// Loading is done
@@ -131,12 +129,12 @@ pub struct XMLHttpRequest {
     response: DOMRefCell<ByteString>,
     response_type: Cell<XMLHttpRequestResponseType>,
     response_xml: MutNullableJS<Document>,
-    response_headers: DOMRefCell<ResponseHeaderCollection>,
+    response_headers: DOMRefCell<Headers>,
 
     // Associated concepts
     request_method: DOMRefCell<Method>,
     request_url: DOMRefCell<Option<Url>>,
-    request_headers: DOMRefCell<RequestHeaderCollection>,
+    request_headers: DOMRefCell<Headers>,
     request_body_len: Cell<uint>,
     sync: Cell<bool>,
     upload_complete: Cell<bool>,
@@ -165,11 +163,11 @@ impl XMLHttpRequest {
             response: DOMRefCell::new(ByteString::new(vec!())),
             response_type: Cell::new(_empty),
             response_xml: Default::default(),
-            response_headers: DOMRefCell::new(ResponseHeaderCollection::new()),
+            response_headers: DOMRefCell::new(Headers::new()),
 
             request_method: DOMRefCell::new(Get),
             request_url: DOMRefCell::new(None),
-            request_headers: DOMRefCell::new(RequestHeaderCollection::new()),
+            request_headers: DOMRefCell::new(Headers::new()),
             request_body_len: Cell::new(0),
             sync: Cell::new(false),
             send_flag: Cell::new(false),
@@ -345,28 +343,26 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     }
 
     fn Open(self, method: ByteString, url: DOMString) -> ErrorResult {
-        let uppercase_method = method.as_str().map(|s| {
-            let upper = s.to_ascii_upper();
-            match upper.as_slice() {
-                "DELETE" | "GET" | "HEAD" | "OPTIONS" |
-                "POST" | "PUT" | "CONNECT" | "TRACE" |
-                "TRACK" => upper,
-                _ => s.to_string()
-            }
-        });
-        let maybe_method: Option<Method> = uppercase_method.and_then(|s| {
-            // Note: rust-http tests against the uppercase versions
+        //FIXME(seanmonstar): use a Trie instead?
+        let maybe_method = method.as_str().and_then(|s| {
+            // Note: hyper tests against the uppercase versions
             // Since we want to pass methods not belonging to the short list above
             // without changing capitalization, this will actually sidestep rust-http's type system
             // since methods like "patch" or "PaTcH" will be considered extension methods
             // despite the there being a rust-http method variant for them
-            Method::from_str_or_new(s.as_slice())
+            let upper = s.to_ascii_upper();
+            match upper.as_slice() {
+                "DELETE" | "GET" | "HEAD" | "OPTIONS" |
+                "POST" | "PUT" | "CONNECT" | "TRACE" |
+                "TRACK" => from_str(upper.as_slice()),
+                _ => from_str(s)
+            }
         });
         // Step 2
         match maybe_method {
             // Step 4
             Some(Connect) | Some(Trace) => Err(Security),
-            Some(ExtensionMethod(ref t)) if t.as_slice() == "TRACK" => Err(Security),
+            Some(Extension(ref t)) if t.as_slice() == "TRACK" => Err(Security),
             Some(_) if method.is_token() => {
 
                 *self.request_method.borrow_mut() = maybe_method.unwrap();
@@ -389,7 +385,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
                 // Step 12
                 *self.request_url.borrow_mut() = Some(parsed_url);
-                *self.request_headers.borrow_mut() = RequestHeaderCollection::new();
+                *self.request_headers.borrow_mut() = Headers::new();
                 self.send_flag.set(false);
                 *self.status_text.borrow_mut() = ByteString::new(vec!());
                 self.status.set(0);
@@ -417,7 +413,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         if !name.is_token() || !value.is_field_value() {
             return Err(Syntax); // Step 3, 4
         }
-        let name_str = match name.to_lower().as_str() {
+        let name_lower = name.to_lower();
+        let name_str = match name_lower.as_str() {
             Some(s) => {
                 match s {
                     // Disallowed headers
@@ -431,48 +428,31 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                     "upgrade" | "user-agent" | "via" => {
                         return Ok(()); // Step 5
                     },
-                    _ => String::from_str(s)
+                    _ => s
                 }
             },
             None => return Err(Syntax)
         };
-        let mut collection = self.request_headers.borrow_mut();
+
+        debug!("SetRequestHeader: name={}, value={}", name.as_str(), value.as_str());
+        let mut headers = self.request_headers.borrow_mut();
 
 
         // Steps 6,7
-        let old_header = collection.iter().find(|ref h| -> bool {
-            // XXXManishearth following line waiting on the rust upgrade:
-            ByteString::new(h.header_name().into_bytes()).eq_ignore_case(&value)
-        });
-        match old_header {
-            Some(h) => {
-                unsafe {
-                    // By step 4, the value is a subset of valid utf8
-                    // So this unsafe block should never fail
-
-                    let mut buf = h.header_value();
-                    buf.as_mut_vec().push_all(&[0x2C, 0x20]);
-                    buf.as_mut_vec().push_all(value.as_slice());
-                    value = ByteString::new(buf.into_bytes());
-
-                }
+        match headers.get_raw(name_str) {
+            Some(raw) => {
+                debug!("SetRequestHeader: old value = {}", raw[0]);
+                let mut buf = raw[0].clone();
+                buf.push_all(b", ");
+                buf.push_all(value.as_slice());
+                debug!("SetRequestHeader: new value = {}", buf);
+                value = ByteString::new(buf);
             },
             None => {}
         }
 
-        let mut reader = BufReader::new(value.as_slice());
-        let maybe_header: Option<Header> = HeaderEnum::value_from_stream(
-                                                            name_str,
-                                                            &mut HeaderValueByteIterator::new(&mut reader));
-        match maybe_header {
-            Some(h) => {
-                // Overwrites existing headers, which we want since we have
-                // prepended the new header value with the old one already
-                collection.insert(h);
-                Ok(())
-            },
-            None => Err(Syntax)
-        }
+        headers.set_raw(name_str.into_string(), vec![value.as_slice().to_vec()]);
+        Ok(())
     }
     fn Timeout(self) -> u32 {
         self.timeout.get()
@@ -562,29 +542,37 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         load_data.data = extracted;
 
         // Default headers
-        let ref request_headers = self.request_headers;
-        if request_headers.borrow().content_type.is_none() {
-            let parameters = vec!((String::from_str("charset"), String::from_str("UTF-8")));
-            request_headers.borrow_mut().content_type = match data {
-                Some(eString(_)) =>
-                    Some(MediaType {
-                        type_: String::from_str("text"),
-                        subtype: String::from_str("plain"),
-                        parameters: parameters
-                    }),
-                Some(eURLSearchParams(_)) =>
-                    Some(MediaType {
-                        type_: String::from_str("application"),
-                        subtype: String::from_str("x-www-form-urlencoded"),
-                        parameters: parameters
-                    }),
-                None => None
+        {
+            #[inline]
+            fn join_raw(a: &str, b: &str) -> Vec<u8> {
+                let len = a.len() + b.len();
+                let mut vec = Vec::with_capacity(len);
+                vec.push_all(a.as_bytes());
+                vec.push_all(b.as_bytes());
+                vec
             }
-        }
+            let ref mut request_headers = self.request_headers.borrow_mut();
+            if !request_headers.has::<ContentType>() {
+                // XHR spec differs from http, and says UTF-8 should be in capitals,
+                // instead of "utf-8", which is what Hyper defaults to.
+                let params = ";charset=UTF-8";
+                let n = "content-type";
+                match data {
+                    Some(eString(_)) =>
+                        request_headers.set_raw(n, vec![join_raw("text/plain", params)]),
+                    Some(eURLSearchParams(_)) =>
+                        request_headers.set_raw(
+                            n, vec![join_raw("application/x-www-form-urlencoded", params)]),
+                    None => ()
+                }
+            }
 
-        if request_headers.borrow().accept.is_none() {
-            request_headers.borrow_mut().accept = Some(String::from_str("*/*"))
-        }
+
+            if !request_headers.has::<Accept>() {
+                request_headers.set(
+                    Accept(vec![Mime(mime::TopStar, mime::SubStar, vec![])]));
+            }
+        } // drops the borrow_mut
 
         load_data.headers = (*self.request_headers.borrow()).clone();
         load_data.method = (*self.request_method.borrow()).clone();
@@ -611,12 +599,14 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                     buf.push_str(format!("{:u}", p).as_slice());
                 });
                 referer_url.serialize_path().map(|ref h| buf.push_str(h.as_slice()));
-                self.request_headers.borrow_mut().referer = Some(buf);
+                self.request_headers.borrow_mut().set_raw("Referer".to_string(), vec![buf.into_bytes()]);
             },
             Ok(Some(ref req)) => self.insert_trusted_header("origin".to_string(),
                                                             format!("{}", req.origin)),
             _ => {}
         }
+
+        debug!("request_headers = {}", *self.request_headers.borrow());
 
         let gen_id = self.generation_id.get();
         if self.sync.get() {
@@ -678,22 +668,13 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     }
     fn GetResponseHeader(self, name: ByteString) -> Option<ByteString> {
         self.filter_response_headers().iter().find(|h| {
-            name.eq_ignore_case(&FromStr::from_str(h.header_name().as_slice()).unwrap())
+            name.eq_ignore_case(&FromStr::from_str(h.name()).unwrap())
         }).map(|h| {
-            // rust-http doesn't decode properly, we'll convert it back to bytes here
-            ByteString::new(h.header_value().as_slice().chars().map(|c| { assert!(c <= '\u00FF'); c as u8 }).collect())
+            ByteString::new(h.value_string().into_bytes())
         })
     }
     fn GetAllResponseHeaders(self) -> ByteString {
-        let mut writer = MemWriter::new();
-        self.filter_response_headers().write_all(&mut writer).ok().expect("Writing response headers failed");
-        let mut vec = writer.unwrap();
-
-        // rust-http appends an extra "\r\n" when using write_all
-        vec.pop();
-        vec.pop();
-
-        ByteString::new(vec)
+        ByteString::new(self.filter_response_headers().to_string().into_bytes())
     }
     fn ResponseType(self) -> XMLHttpRequestResponseType {
         self.response_type.get()
@@ -797,7 +778,7 @@ trait PrivateXMLHttpRequestHelpers {
     fn text_response(self) -> DOMString;
     fn set_timeout(self, timeout:u32);
     fn cancel_timeout(self);
-    fn filter_response_headers(self) -> ResponseHeaderCollection;
+    fn filter_response_headers(self) -> Headers;
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
@@ -876,17 +857,12 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
-                let status_text = status.as_ref().map_or(vec![], |s| s.reason().into_bytes());
-                let status_code = status.as_ref().map_or(0, |s| s.code());
+                status.map(|RawStatus(code, reason)| {
+                    self.status.set(code);
+                    *self.status_text.borrow_mut() = ByteString::new(reason.into_bytes());
+                });
+                headers.as_ref().map(|h| *self.response_headers.borrow_mut() = h.clone());
 
-                *self.status_text.borrow_mut() = ByteString::new(status_text);
-                self.status.set(status_code);
-                match headers {
-                    Some(ref h) => {
-                        *self.response_headers.borrow_mut() = h.clone();
-                    }
-                    None => {}
-                };
                 // Substep 3
                 if !self.sync.get() {
                     self.change_ready_state(HeadersReceived);
@@ -965,13 +941,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn insert_trusted_header(self, name: String, value: String) {
         // Insert a header without checking spec-compliance
         // Use for hardcoded headers
-        let mut collection = self.request_headers.borrow_mut();
-        let value_bytes = value.into_bytes();
-        let mut reader = BufReader::new(value_bytes.as_slice());
-        let maybe_header: Option<Header> = HeaderEnum::value_from_stream(
-                                                                String::from_str(name.as_slice()),
-                                                                &mut HeaderValueByteIterator::new(&mut reader));
-        collection.insert(maybe_header.unwrap());
+        self.request_headers.borrow_mut().set_raw(name, vec![value.into_bytes()]);
     }
 
     fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
@@ -999,7 +969,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_response_progress_event(self, type_: DOMString) {
         let len = self.response.borrow().len() as u64;
-        let total = self.response_headers.borrow().content_length.map(|x| {x as u64});
+        let total = self.response_headers.borrow().get::<ContentLength>().map(|x| {x.len() as u64});
         self.dispatch_progress_event(false, type_, len, total);
     }
     fn set_timeout(self, timeout: u32) {
@@ -1030,30 +1000,49 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn text_response(self) -> DOMString {
         let mut encoding = UTF_8 as EncodingRef;
-        match self.response_headers.borrow().content_type {
-            Some(ref x) => {
-                for &(ref name, ref value) in x.parameters.iter() {
-                    if name.as_slice().eq_ignore_ascii_case("charset") {
-                        encoding = encoding_from_whatwg_label(value.as_slice()).unwrap_or(encoding);
+        match self.response_headers.borrow().get() {
+            Some(&ContentType(mime::Mime(_, _, ref params))) => {
+                for &(ref name, ref value) in params.iter() {
+                    if name == &mime::Charset {
+                        encoding = encoding_from_whatwg_label(value.to_string().as_slice()).unwrap_or(encoding);
                     }
                 }
             },
             None => {}
         }
+
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
         encoding.decode(self.response.borrow().as_slice(), DecodeReplace).unwrap().to_string()
     }
-    fn filter_response_headers(self) -> ResponseHeaderCollection {
+    fn filter_response_headers(self) -> Headers {
         // http://fetch.spec.whatwg.org/#concept-response-header-list
-        let mut headers = ResponseHeaderCollection::new();
-        for header in self.response_headers.borrow().iter() {
-            match header.header_name().as_slice().to_ascii_lower().as_slice() {
-                "set-cookie" | "set-cookie2" => {},
-                // XXXManishearth additional CORS filtering goes here
-                _ => headers.insert(header)
-            };
+        use std::fmt;
+        use hyper::header::{Header, HeaderFormat};
+        use hyper::header::common::SetCookie;
+
+        // a dummy header so we can use headers.remove::<SetCookie2>()
+        #[deriving(Clone)]
+        struct SetCookie2;
+        impl Header for SetCookie2 {
+            fn header_name(_: Option<SetCookie2>) -> &'static str {
+                "set-cookie2"
+            }
+
+            fn parse_header(_: &[Vec<u8>]) -> Option<SetCookie2> {
+                unimplemented!()
+            }
         }
+        impl HeaderFormat for SetCookie2 {
+            fn fmt_header(&self, _f: &mut fmt::Formatter) -> fmt::Result {
+                unimplemented!()
+            }
+        }
+
+        let mut headers = self.response_headers.borrow().clone();
+        headers.remove::<SetCookie>();
+        headers.remove::<SetCookie2>();
+        // XXXManishearth additional CORS filtering goes here
         headers
     }
 }

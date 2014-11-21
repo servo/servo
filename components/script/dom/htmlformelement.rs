@@ -20,7 +20,7 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
-use http::method::Post;
+use hyper::method::Post;
 use servo_msg::constellation_msg::LoadData;
 use servo_util::str::DOMString;
 use script_task::{ScriptChan, TriggerLoadMsg};
