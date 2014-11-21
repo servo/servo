@@ -153,7 +153,7 @@ static FORCE_CPU_PAINTING: bool = true;
 #[cfg(not(target_os="android"))]
 static FORCE_CPU_PAINTING: bool = false;
 
-fn default_opts() -> Opts {
+pub fn default_opts() -> Opts {
     Opts {
         urls: vec!(),
         n_render_threads: 1,
