@@ -1893,20 +1893,6 @@ fn initial_writing_mode_is_empty() {
     assert_eq!(get_writing_mode(INITIAL_VALUES.get_inheritedbox()), WritingMode::empty())
 }
 
-
-/// This only exists to limit the scope of #[allow(experimental)]
-/// FIXME: remove this when Arc::make_unique() is not experimental anymore.
-trait ArcExperimental<T> {
-    fn make_unique_experimental<'a>(&'a mut self) -> &'a mut T;
-}
-impl<T: Send + Sync + Clone> ArcExperimental<T> for Arc<T> {
-    #[inline]
-    #[allow(experimental)]
-    fn make_unique_experimental<'a>(&'a mut self) -> &'a mut T {
-        self.make_unique()
-    }
-}
-
 /// Fast path for the function below. Only computes new inherited styles.
 #[allow(unused_mut)]
 fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock],
@@ -1957,7 +1943,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
                                                         .clone()
                                         }
                                     };
-                                    style_${style_struct.ident}.make_unique_experimental()
+                                    style_${style_struct.ident}.make_unique()
                                         .${property.ident} = computed_value;
                                 % endif
 
@@ -1969,7 +1955,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
                                     % endif
                                     % for derived in DERIVED_LONGHANDS[property.name]:
                                         style_${derived.style_struct.ident}
-                                            .make_unique_experimental()
+                                            .make_unique()
                                             .${derived.ident} =
                                             longhands::${derived.ident}
                                                      ::derive_from_${property.ident}(
@@ -2163,13 +2149,13 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                                                        .clone()
                                     }
                                 };
-                                style_${style_struct.ident}.make_unique_experimental()
+                                style_${style_struct.ident}.make_unique()
                                     .${property.ident} = computed_value;
 
                                 % if property.name in DERIVED_LONGHANDS:
                                     % for derived in DERIVED_LONGHANDS[property.name]:
                                         style_${derived.style_struct.ident}
-                                            .make_unique_experimental()
+                                            .make_unique()
                                             .${derived.ident} =
                                             longhands::${derived.ident}
                                                      ::derive_from_${property.ident}(
@@ -2191,7 +2177,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
 
     // The initial value of border-*-width may be changed at computed value time.
     {
-        let border = style_border.make_unique_experimental();
+        let border = style_border.make_unique();
         % for side in ["top", "right", "bottom", "left"]:
             // Like calling to_computed_value, which wouldn't type check.
             if !context.border_${side}_present {
@@ -2202,7 +2188,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
 
     // The initial value of display may be changed at computed value time.
     if !seen.get_display() {
-        let box_ = style_box_.make_unique_experimental();
+        let box_ = style_box_.make_unique();
         box_.display = longhands::display::to_computed_value(box_.display, &context);
     }
 
@@ -2236,7 +2222,7 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
         writing_mode: parent_style.writing_mode,
     };
     {
-        let border = result.border.make_unique_experimental();
+        let border = result.border.make_unique();
         % for side in ["top", "right", "bottom", "left"]:
             // Like calling to_computed_value, which wouldn't type check.
             border.border_${side}_width = Au(0);
