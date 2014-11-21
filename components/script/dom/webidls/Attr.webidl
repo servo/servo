@@ -15,6 +15,7 @@ interface Attr {
   readonly attribute DOMString name;
            attribute DOMString value;
            attribute DOMString textContent; // alias of .value
+           attribute DOMString nodeValue; // alias of .value
 
   readonly attribute Element? ownerElement;
 

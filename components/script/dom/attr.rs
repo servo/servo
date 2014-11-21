@@ -152,6 +152,14 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
         self.SetValue(value)
     }
 
+    fn NodeValue(self) -> DOMString {
+        self.Value()
+    }
+
+    fn SetNodeValue(self, value: DOMString) {
+        self.SetValue(value)
+    }
+
     fn Name(self) -> DOMString {
         self.name.as_slice().to_string()
     }
