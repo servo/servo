@@ -60,7 +60,7 @@ dependencies = [
 [[package]]
 name = "cocoa"
 version = "0.1.1"
-source = "git+https://github.com/DavidPartouche/rust-cocoa#0a951a6cdd5f1a175b929754c134f9443b105642"
+source = "git+https://github.com/servo/rust-cocoa#78b823bec1affcab20b6977e1057125088a6034c"
 
 [[package]]
 name = "compile_msg"
@@ -292,10 +292,10 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.2"
-source = "git+https://github.com/tomaka/glutin#0dc5086efb29e84c48cd4dcc1da48ee9755842e3"
+source = "git+https://github.com/tomaka/glutin#c95b778e2c077c0b410f366ad3c85a93c40c6095"
 dependencies = [
  "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue)",
- "cocoa 0.1.1 (git+https://github.com/DavidPartouche/rust-cocoa)",
+ "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
  "compile_msg 0.1.1 (git+https://github.com/huonw/compile_msg)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "gl_common 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
