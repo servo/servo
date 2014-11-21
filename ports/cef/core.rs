@@ -45,16 +45,17 @@ pub extern "C" fn cef_run_message_loop() {
             unsafe {
                 let browsers = refcellbrowsers.borrow();
                 let mut num = browsers.len();
-                for servobrowser in browsers.iter() {
-                    (**servobrowser).window = glfw_app::create_window();
-                    (**servobrowser).servo_browser = Some(Browser::new(Some((**servobrowser).window.clone())));
+                for active_browser in browsers.iter() {
+                    (**active_browser).window = glfw_app::create_window();
+                    (**active_browser).servo_browser = Some(Browser::new(Some((**active_browser).window.clone())));
+                    if !(**active_browser).callback_executed { browser_callback_after_created(*active_browser); }
                 }
                 while num > 0 {
-                    for servobrowser in browsers.iter().filter(|&servobrowser| (**servobrowser).servo_browser.is_some()) {
-                        let ref mut browser = **servobrowser;
-                        let mut optionlessservobrowser = browser.servo_browser.take().unwrap();
-                        if !optionlessservobrowser.handle_event(browser.window.wait_events()) {
-                            optionlessservobrowser.shutdown();
+                    for active_browser in browsers.iter().filter(|&active_browser| (**active_browser).servo_browser.is_some()) {
+                        let ref mut browser = **active_browser;
+                        let mut servobrowser = browser.servo_browser.take().unwrap();
+                        if !servobrowser.handle_event(browser.window.wait_events()) {
+                            servobrowser.shutdown();
                             num -= 1;
                         }
                     }

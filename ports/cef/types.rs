@@ -1214,7 +1214,7 @@ pub struct cef_run_file_dialog_callback {
   // will be NULL.
   ///
   pub cont: Option<extern "C" fn(run_file_dialog_callback: *mut cef_run_file_dialog_callback,
-                  browser_host: *mut cef_browser_host,
+                                            browser_host: *mut cef_browser_host,
                   file_paths: *mut cef_string_list_t)>,
 }
 
@@ -1638,7 +1638,7 @@ pub struct cef_render_process_handler {
   // cannot be modified in this callback.
   ///
   pub on_before_navigation: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
-                              browser: *mut cef_browser_t,
+                                                        browser: *mut cef_browser_t,
                               frame: *mut cef_frame_t,
                               request: *mut cef_request_t,
                               navigation_type: *mut cef_navigation_type_t,
@@ -1653,7 +1653,7 @@ pub struct cef_render_process_handler {
   // cef_v8context_t::get_task_runner() function.
   ///
   pub on_context_created: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
-                                browser: *mut cef_browser_t,
+                                                          browser: *mut cef_browser_t,
                                 frame: *mut cef_frame_t,
                                 context: *mut cef_v8context_t)>,
 
@@ -1662,7 +1662,7 @@ pub struct cef_render_process_handler {
   // references to the context should be kept after this function is called.
   ///
   pub on_context_released: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
-                                 browser: *mut cef_browser_t,
+                                                           browser: *mut cef_browser_t,
                                  frame: *mut cef_frame_t,
                                  context: *mut cef_v8context_t)>,
 
@@ -1672,7 +1672,7 @@ pub struct cef_render_process_handler {
   // CefSettings.uncaught_exception_stack_size  0.
   ///
   pub on_uncaught_exception: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
-                                 browser: *mut cef_browser_t,
+                                                           browser: *mut cef_browser_t,
                                  frame: *mut cef_frame_t,
                                  context: *mut cef_v8context_t,
                                  exception: *mut cef_v8exception_t,
@@ -1687,7 +1687,7 @@ pub struct cef_render_process_handler {
   // of this function.
   ///
   pub on_focused_node_changed: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
-                                 browser: *mut cef_browser_t,
+                                                           browser: *mut cef_browser_t,
                                  frame: *mut cef_frame_t,
                                  node: *mut cef_domnode_t)>,
 
@@ -1697,7 +1697,7 @@ pub struct cef_render_process_handler {
   // reference to or attempt to access the message outside of this callback.
   ///
   pub on_process_message_received: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
-                                 browser: *mut cef_browser_t,
+                                                           browser: *mut cef_browser_t,
                                  source_process: cef_process_id_t,
                                  message: *mut cef_process_message) ->c_int>,
 }
@@ -1934,7 +1934,7 @@ pub struct cef_display_handler {
   // Called when the page title changes.
   ///
   pub on_title_change: Option<extern "C" fn(h: *mut cef_display_handler_t,
-      browser: *mut cef_browser_t, title: *const cef_string_t)>,
+                                browser: *mut cef_browser_t, title: *const cef_string_t)>,
 
   ///
   // Called when the browser is about to display a tooltip. |text| contains the
@@ -1945,21 +1945,21 @@ pub struct cef_display_handler {
   // for drawing tooltips and the return value is ignored.
   ///
   pub on_tooltip: Option<extern "C" fn(h: *mut cef_display_handler_t,
-      browser: *mut cef_browser_t, text: *mut cef_string_t) -> c_int>,
+                                browser: *mut cef_browser_t, text: *mut cef_string_t) -> c_int>,
 
   ///
   // Called when the browser receives a status message. |value| contains the
   // text that will be displayed in the status message.
   ///
   pub on_status_message: Option<extern "C" fn(h: *mut cef_display_handler_t,
-      browser: *mut cef_browser_t, value: *const cef_string_t)>,
+                                browser: *mut cef_browser_t, value: *const cef_string_t)>,
 
   ///
   // Called to display a console message. Return true (1) to stop the message
   // from being output to the console.
   ///
   pub on_console_message: Option<extern "C" fn(h: *mut cef_display_handler_t,
-      browser: *mut cef_browser_t, message: *const cef_string_t,
+                                browser: *mut cef_browser_t, message: *const cef_string_t,
       source: *const cef_string_t, line: c_int) -> c_int>
 }
 
@@ -1988,7 +1988,7 @@ pub struct cef_life_span_handler {
   // indicates whether the new browser window should be scriptable and in the
   // same process as the source browser.
   pub on_before_popup: Option<extern "C" fn(h: *mut cef_life_span_handler_t,
-      browser: *mut cef_browser_t,  frame: *mut cef_frame_t,
+                                browser: *mut cef_browser_t,  frame: *mut cef_frame_t,
       target_url: *const cef_string_t, target_frame_name: *const cef_string_t,
       popupFeatures: *const cef_popup_features_t,
       windowInfo: *mut cef_window_info_t, client: *mut *mut cef_client_t,
@@ -2162,8 +2162,8 @@ pub struct cef_client {
   // reference to or attempt to access the message outside of this callback.
   ///
   pub on_process_message_received: Option<extern "C" fn(client: *mut cef_client_t,
-      browser: *mut cef_browser_t, source_process: cef_process_id_t,
-      message: *mut cef_process_message_t) -> c_int>,
+                                browser: *mut cef_browser_t, source_process: cef_process_id_t,
+                                message: *mut cef_process_message_t) -> c_int>,
 }
 
 ///
