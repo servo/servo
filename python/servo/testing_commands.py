@@ -150,6 +150,16 @@ class MachCommands(CommandBase):
     def test_wpt(self, params=None):
         if params is None:
             params = []
+        else:
+            # Allow the first argument to be a relative path from Servo's root
+            # directory, converting it to `--include some/wpt/test.html`
+            maybe_path = path.normpath(params[0])
+            wpt_path = path.join('tests', 'wpt', 'web-platform-tests')
+
+            if path.exists(maybe_path) and wpt_path in maybe_path:
+                params = ["--include",
+                          path.relpath(maybe_path, wpt_path)] + params[1:]
+
         return subprocess.call(
             ["bash", path.join("tests", "wpt", "run.sh")] + params,
             env=self.build_env())
