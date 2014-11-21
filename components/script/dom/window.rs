@@ -228,7 +228,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            NonInterval, // is_interval
+                                            NonInterval,
                                             FromWindow(self.page.id.clone()),
                                             self.script_chan.clone())
     }
@@ -241,7 +241,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            Interval, // is_interval
+                                            Interval,
                                             FromWindow(self.page.id.clone()),
                                             self.script_chan.clone())
     }

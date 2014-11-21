@@ -160,7 +160,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            NonInterval, // is_interval
+                                            NonInterval,
                                             FromWorker,
                                             self.script_chan.clone())
     }
@@ -173,7 +173,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            Interval, // is_interval
+                                            Interval,
                                             FromWorker,
                                             self.script_chan.clone())
     }
