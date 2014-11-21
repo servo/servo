@@ -563,6 +563,28 @@ pub fn FindEnumStringIndex(cx: *mut JSContext,
     }
 }
 
+/// Returns wether `obj` is a platform object 
+/// http://www.w3.org/TR/WebIDL/#dfn-platform-object
+pub fn IsPlatformObject(_: *mut JSContext, obj: *mut JSObject) -> bool {
+    unsafe {
+        // Fast-path the common case
+        let mut clasp = js::jsapi::JS_GetClass(obj);
+        if is_dom_class(&*clasp) {
+            return true;
+        }
+        // Now for simplicity check for security wrappers before anything else
+        if IsWrapper(obj) == 1 {
+            let unwrapped_obj = UnwrapObject(obj, /* stopAtOuter = */ 0, ptr::null_mut());
+            if unwrapped_obj.is_null() {
+                return false;
+            }
+            clasp = js::jsapi::JS_GetClass(obj);
+        }
+        // TODO also check if JS_IsArrayBufferObject
+        return is_dom_class(&*clasp);
+    }
+}
+
 /// Get the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(None)` if there was no property with the given name.

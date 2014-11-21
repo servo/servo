@@ -4,6 +4,7 @@
 
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{ErrorResult, Fallible, Syntax, Network, FailureUnknown};
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
@@ -157,7 +158,16 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
-        self.timers.set_timeout_or_interval(callback,
+        self.timers.set_timeout_or_interval(callback.to_jsval(_cx),
+                                            args,
+                                            timeout,
+                                            false, // is_interval
+                                            FromWorker,
+                                            self.script_chan.clone())
+    }
+
+    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(callback.to_jsval(_cx),
                                             args,
                                             timeout,
                                             false, // is_interval
@@ -170,7 +180,16 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
-        self.timers.set_timeout_or_interval(callback,
+        self.timers.set_timeout_or_interval(callback.to_jsval(_cx),
+                                            args,
+                                            timeout,
+                                            true, // is_interval
+                                            FromWorker,
+                                            self.script_chan.clone())
+    }
+
+    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(callback.to_jsval(_cx),
                                             args,
                                             timeout,
                                             true, // is_interval
@@ -190,7 +209,7 @@ pub trait WorkerGlobalScopeHelpers {
 impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
 
     fn handle_fire_timer(self, timer_id: TimerId) {
-        self.timers.fire_timer(timer_id, self.clone());
+        self.timers.fire_timer(self.get_cx(), timer_id, self.clone());
     }
 
 }
