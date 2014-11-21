@@ -14,7 +14,7 @@ path = "../util"
 git = "https://github.com/servo/rust-geom"
 
 [dependencies.hyper]
-git = "https://github.com/hyperium/hyper"
+git = "https://github.com/servo/hyper"
 branch = "servo"
 
 [dependencies.png]
