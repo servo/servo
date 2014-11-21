@@ -165,7 +165,14 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
             "!=" => Different,
             part => panic!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
         };
-        let base = file.dir_path();
+
+        // If we're running this directly, file.dir_path() might be relative.
+        // (see issue #3521)
+        let base = match file.dir_path().is_relative() {
+            true  => os::getcwd().join(file.dir_path()),
+            false => file.dir_path()
+        };
+
         let file_left =  base.join(test_line.file_left);
         let file_right = base.join(test_line.file_right);
 
