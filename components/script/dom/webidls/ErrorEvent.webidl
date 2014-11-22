@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 [Constructor(DOMString type, optional ErrorEventInit eventInitDict)/*, Exposed=(Window,Worker)*/]
 interface ErrorEvent : Event {
   readonly attribute DOMString message;
@@ -6,7 +10,7 @@ interface ErrorEvent : Event {
   readonly attribute unsigned long colno;
   readonly attribute any error;
 };
- 
+
 dictionary ErrorEventInit : EventInit {
   DOMString message;
   DOMString filename;
@@ -16,7 +20,14 @@ dictionary ErrorEventInit : EventInit {
 };
 
 partial interface ErrorEvent {
-// Deprecated in DOM Level 3
-void initErrorEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg, DOMString messageArg, DOMString filenameArg, 
-unsigned long linenoArg, unsigned long colnoArg, any errorArg);
+  // Deprecated in DOM Level 3
+  void initErrorEvent (
+    DOMString typeArg,
+    boolean bubblesArg,
+    boolean cancelableArg,
+    DOMString messageArg,
+    DOMString filenameArg,
+    unsigned long linenoArg,
+    unsigned long colnoArg,
+    any errorArg);
 };
