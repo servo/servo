@@ -235,7 +235,6 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
-        println!("=> {}", self.page().get_url());
         self.timers.set_timeout_or_interval(callback.to_jsval(_cx),
                                             args,
                                             timeout,
