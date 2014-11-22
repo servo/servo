@@ -30,12 +30,12 @@ class MachCommands(CommandBase):
         self.context.built_tests = True
 
     def find_test(self, prefix):
-        candidates = [
-            f for f in os.listdir(path.join(self.context.topdir, "target"))
-            if f.startswith(prefix + "-")]
-        if candidates:
-            return path.join(self.context.topdir, "target", candidates[0])
-        return None
+        target_contents = os.listdir(path.join(self.context.topdir, "target"))
+        for filename in target_contents:
+            if filename.startswith(prefix + "-"):
+                filepath = path.join(self.context.topdir, "target", filename)
+                if path.isfile(filepath) and os.access(filepath, os.X_OK):
+                    return filepath
 
     def run_test(self, prefix, args=[]):
         t = self.find_test(prefix)
