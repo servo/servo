@@ -4,11 +4,11 @@
 
 //! CSS table formatting contexts.
 
-#![deny(unsafe_block)]
+#![deny(unsafe_blocks)]
 
 use context::LayoutContext;
 use css::node_style::StyledNode;
-use flow::{BaseFlow, TableColGroupFlowClass, FlowClass, Flow};
+use flow::{BaseFlow, ForceNonfloated, TableColGroupFlowClass, FlowClass, Flow};
 use fragment::{Fragment, FragmentBoundsIterator, TableColumnFragment};
 use layout_debug;
 use wrapper::ThreadSafeLayoutNode;
@@ -44,7 +44,7 @@ impl TableColGroupFlow {
                                    -> TableColGroupFlow {
         let writing_mode = node.style().writing_mode;
         TableColGroupFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloated),
             fragment: Some(fragment),
             cols: fragments,
             inline_sizes: vec!(),
@@ -70,7 +70,7 @@ impl Flow for TableColGroupFlow {
             let inline_size = fragment.style().content_inline_size();
             let span: int = match fragment.specific {
                 TableColumnFragment(col_fragment) => max(col_fragment.span, 1),
-                _ => fail!("non-table-column fragment inside table column?!"),
+                _ => panic!("non-table-column fragment inside table column?!"),
             };
             for _ in range(0, span) {
                 self.inline_sizes.push(inline_size)

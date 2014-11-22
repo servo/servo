@@ -28,11 +28,13 @@
 use css::node_style::StyledNode;
 use block::BlockFlow;
 use context::LayoutContext;
+use display_list_builder::{DisplayListBuildingResult, DisplayListResult};
+use display_list_builder::{NoDisplayListBuildingResult, StackingContextResult};
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBoundsIterator, TableRowFragment, TableCellFragment};
-use incremental::{ReconstructFlow, Reflow, ReflowOutOfFlow, RestyleDamage};
+use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
 use parallel::FlowParallelInfo;
@@ -45,10 +47,7 @@ use table_rowgroup::TableRowGroupFlow;
 use table_wrapper::TableWrapperFlow;
 use wrapper::ThreadSafeLayoutNode;
 
-use collections::dlist::DList;
 use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::DisplayList;
-use gfx::render_task::RenderLayer;
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
@@ -59,7 +58,7 @@ use std::num::Zero;
 use std::fmt;
 use std::iter::Zip;
 use std::raw;
-use std::sync::atomics::{AtomicUint, SeqCst};
+use std::sync::atomic::{AtomicUint, SeqCst};
 use std::slice::MutItems;
 use style::computed_values::{clear, float, position, text_align};
 use style::ComputedValues;
@@ -80,94 +79,94 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// If this is a block flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_block<'a>(&'a self) -> &'a BlockFlow {
-        fail!("called as_immutable_block() on a non-block flow")
+        panic!("called as_immutable_block() on a non-block flow")
     }
 
     /// If this is a block flow, returns the underlying object. Fails otherwise.
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
         debug!("called as_block() on a flow of type {}", self.class());
-        fail!("called as_block() on a non-block flow")
+        panic!("called as_block() on a non-block flow")
     }
 
     /// If this is an inline flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_inline<'a>(&'a self) -> &'a InlineFlow {
-        fail!("called as_immutable_inline() on a non-inline flow")
+        panic!("called as_immutable_inline() on a non-inline flow")
     }
 
     /// If this is an inline flow, returns the underlying object. Fails otherwise.
     fn as_inline<'a>(&'a mut self) -> &'a mut InlineFlow {
-        fail!("called as_inline() on a non-inline flow")
+        panic!("called as_inline() on a non-inline flow")
     }
 
     /// If this is a table wrapper flow, returns the underlying object. Fails otherwise.
     fn as_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
-        fail!("called as_table_wrapper() on a non-tablewrapper flow")
+        panic!("called as_table_wrapper() on a non-tablewrapper flow")
     }
 
     /// If this is a table wrapper flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_wrapper<'a>(&'a self) -> &'a TableWrapperFlow {
-        fail!("called as_immutable_table_wrapper() on a non-tablewrapper flow")
+        panic!("called as_immutable_table_wrapper() on a non-tablewrapper flow")
     }
 
     /// If this is a table flow, returns the underlying object. Fails otherwise.
     fn as_table<'a>(&'a mut self) -> &'a mut TableFlow {
-        fail!("called as_table() on a non-table flow")
+        panic!("called as_table() on a non-table flow")
     }
 
     /// If this is a table flow, returns the underlying object, borrowed immutably. Fails otherwise.
     fn as_immutable_table<'a>(&'a self) -> &'a TableFlow {
-        fail!("called as_table() on a non-table flow")
+        panic!("called as_table() on a non-table flow")
     }
 
     /// If this is a table colgroup flow, returns the underlying object. Fails otherwise.
     fn as_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
-        fail!("called as_table_colgroup() on a non-tablecolgroup flow")
+        panic!("called as_table_colgroup() on a non-tablecolgroup flow")
     }
 
     /// If this is a table rowgroup flow, returns the underlying object. Fails otherwise.
     fn as_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {
-        fail!("called as_table_rowgroup() on a non-tablerowgroup flow")
+        panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
     }
 
     /// If this is a table rowgroup flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_rowgroup<'a>(&'a self) -> &'a TableRowGroupFlow {
-        fail!("called as_table_rowgroup() on a non-tablerowgroup flow")
+        panic!("called as_table_rowgroup() on a non-tablerowgroup flow")
     }
 
     /// If this is a table row flow, returns the underlying object. Fails otherwise.
     fn as_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
-        fail!("called as_table_row() on a non-tablerow flow")
+        panic!("called as_table_row() on a non-tablerow flow")
     }
 
     /// If this is a table row flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_row<'a>(&'a self) -> &'a TableRowFlow {
-        fail!("called as_table_row() on a non-tablerow flow")
+        panic!("called as_table_row() on a non-tablerow flow")
     }
 
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
     fn as_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {
-        fail!("called as_table_caption() on a non-tablecaption flow")
+        panic!("called as_table_caption() on a non-tablecaption flow")
     }
 
     /// If this is a table cell flow, returns the underlying object. Fails otherwise.
     fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
-        fail!("called as_table_cell() on a non-tablecell flow")
+        panic!("called as_table_cell() on a non-tablecell flow")
     }
 
     /// If this is a table cell flow, returns the underlying object, borrowed immutably. Fails
     /// otherwise.
     fn as_immutable_table_cell<'a>(&'a self) -> &'a TableCellFlow {
-        fail!("called as_table_cell() on a non-tablecell flow")
+        panic!("called as_table_cell() on a non-tablecell flow")
     }
 
     /// If this is a table row or table rowgroup or table flow, returns column inline-sizes.
     /// Fails otherwise.
     fn column_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnInlineSize> {
-        fail!("called column_inline_sizes() on non-table flow")
+        panic!("called column_inline_sizes() on non-table flow")
     }
 
     // Main methods
@@ -179,18 +178,21 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// This function must decide minimum/preferred inline-sizes based on its children's inline-
     /// sizes and the dimensions of any boxes it is responsible for flowing.
     fn bubble_inline_sizes(&mut self) {
-        fail!("bubble_inline_sizes not yet implemented")
+        panic!("bubble_inline_sizes not yet implemented")
     }
 
     /// Pass 2 of reflow: computes inline-size.
     fn assign_inline_sizes(&mut self, _ctx: &LayoutContext) {
-        fail!("assign_inline_sizes not yet implemented")
+        panic!("assign_inline_sizes not yet implemented")
     }
 
     /// Pass 3a of reflow: computes block-size.
     fn assign_block_size<'a>(&mut self, _ctx: &'a LayoutContext<'a>) {
-        fail!("assign_block_size not yet implemented")
+        panic!("assign_block_size not yet implemented")
     }
+
+    /// If this is a float, places it. The default implementation does nothing.
+    fn place_float_if_applicable<'a>(&mut self, _: &'a LayoutContext<'a>) {}
 
     /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
     /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true
@@ -201,7 +203,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
         let impacted = base(&*self).flags.impacted_by_floats();
         if impacted {
             self.assign_block_size(layout_context);
-            mut_base(&mut *self).restyle_damage.remove(ReflowOutOfFlow | Reflow);
+            mut_base(&mut *self).restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
         impacted
     }
@@ -242,10 +244,6 @@ pub trait Flow: fmt::Show + ToString + Sync {
         false
     }
 
-    fn is_float(&self) -> bool {
-        false
-    }
-
     /// The 'position' property of this flow.
     fn positioning(&self) -> position::T {
         position::static_
@@ -257,7 +255,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
     }
 
     fn is_positioned(&self) -> bool {
-        self.is_relatively_positioned() || base(self).flags.is_absolutely_positioned()
+        self.is_relatively_positioned() || base(self).flags.contains(IS_ABSOLUTELY_POSITIONED)
     }
 
     fn is_relatively_positioned(&self) -> bool {
@@ -285,7 +283,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// Return the dimensions of the containing block generated by this flow for absolutely-
     /// positioned descendants. For block flows, this is the padding box.
     fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        fail!("generated_containing_block_position not yet implemented for this flow")
+        panic!("generated_containing_block_position not yet implemented for this flow")
     }
 
     /// Returns a layer ID for the given fragment.
@@ -299,26 +297,6 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// Attempts to perform incremental fixup of this flow by replacing its fragment's style with
     /// the new style. This can only succeed if the flow has exactly one fragment.
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>);
-}
-
-impl<'a, E, S: Encoder<E>> Encodable<S, E> for &'a Flow + 'a {
-    fn encode(&self, e: &mut S) -> Result<(), E> {
-        e.emit_struct("flow", 0, |e| {
-            try!(e.emit_struct_field("class", 0, |e| self.class().encode(e)))
-            e.emit_struct_field("data", 1, |e| {
-                match self.class() {
-                    BlockFlowClass => self.as_immutable_block().encode(e),
-                    InlineFlowClass => self.as_immutable_inline().encode(e),
-                    TableFlowClass => self.as_immutable_table().encode(e),
-                    TableWrapperFlowClass => self.as_immutable_table_wrapper().encode(e),
-                    TableRowGroupFlowClass => self.as_immutable_table_rowgroup().encode(e),
-                    TableRowFlowClass => self.as_immutable_table_row().encode(e),
-                    TableCellFlowClass => self.as_immutable_table_cell().encode(e),
-                    _ => { Ok(()) }     // TODO: Support captions
-                }
-            })
-        })
-    }
 }
 
 // Base access
@@ -478,86 +456,66 @@ pub trait PostorderFlowTraversal {
     }
 }
 
-/// Flags used in flows, tightly packed to save space.
-#[deriving(Clone, Encodable)]
-pub struct FlowFlags(pub u16);
+bitflags! {
+    #[doc = "Flags used in flows."]
+    flags FlowFlags: u16 {
+        // floated descendants flags
+        #[doc = "Whether this flow has descendants that float left in the same block formatting"]
+        #[doc = "context."]
+        const HAS_LEFT_FLOATED_DESCENDANTS = 0b0000_0000_0000_0001,
+        #[doc = "Whether this flow has descendants that float right in the same block formatting"]
+        #[doc = "context."]
+        const HAS_RIGHT_FLOATED_DESCENDANTS = 0b0000_0000_0000_0010,
+        #[doc = "Whether this flow is impacted by floats to the left in the same block formatting"]
+        #[doc = "context (i.e. its height depends on some prior flows with `float: left`)."]
+        const IMPACTED_BY_LEFT_FLOATS = 0b0000_0000_0000_0100,
+        #[doc = "Whether this flow is impacted by floats to the right in the same block"]
+        #[doc = "formatting context (i.e. its height depends on some prior flows with `float:"]
+        #[doc = "right`)."]
+        const IMPACTED_BY_RIGHT_FLOATS = 0b0000_0000_0000_1000,
 
+        // text align flags
+        #[doc = "Whether this flow contains a flow that has its own layer within the same absolute"]
+        #[doc = "containing block."]
+        const LAYERS_NEEDED_FOR_DESCENDANTS = 0b0000_0000_0001_0000,
+        #[doc = "Whether this flow must have its own layer. Even if this flag is not set, it might"]
+        #[doc = "get its own layer if it's deemed to be likely to overlap flows with their own"]
+        #[doc = "layer."]
+        const NEEDS_LAYER = 0b0000_0000_0010_0000,
+        #[doc = "Whether this flow is absolutely positioned. This is checked all over layout, so a"]
+        #[doc = "virtual call is too expensive."]
+        const IS_ABSOLUTELY_POSITIONED = 0b0000_0000_0100_0000,
+        #[doc = "Whether this flow clears to the left. This is checked all over layout, so a"]
+        #[doc = "virtual call is too expensive."]
+        const CLEARS_LEFT = 0b0000_0000_1000_0000,
+        #[doc = "Whether this flow clears to the right. This is checked all over layout, so a"]
+        #[doc = "virtual call is too expensive."]
+        const CLEARS_RIGHT = 0b0000_0001_0000_0000,
+        #[doc = "Whether this flow is left-floated. This is checked all over layout, so a"]
+        #[doc = "virtual call is too expensive."]
+        const FLOATS_LEFT = 0b0000_0010_0000_0000,
+        #[doc = "Whether this flow is right-floated. This is checked all over layout, so a"]
+        #[doc = "virtual call is too expensive."]
+        const FLOATS_RIGHT = 0b0000_0100_0000_0000,
+        #[doc = "Text alignment."]
+        const TEXT_ALIGN = 0b0000_1000_0000_0000,
+    }
+}
+
+// NB: If you update this field, you must update the the floated descendants flags.
 /// The bitmask of flags that represent the `has_left_floated_descendants` and
 /// `has_right_floated_descendants` fields.
-///
-/// NB: If you update this field, you must update the bitfields below.
-static HAS_FLOATED_DESCENDANTS_BITMASK: u16 = 0b0000_0000_0000_0011;
 
-// Whether this flow has descendants that float left in the same block formatting context.
-bitfield!(FlowFlags,
-          has_left_floated_descendants,
-          set_has_left_floated_descendants,
-          0b0000_0000_0000_0001)
+static HAS_FLOATED_DESCENDANTS_BITMASK: FlowFlags = FlowFlags { bits: 0b0000_0011 };
 
-// Whether this flow has descendants that float right in the same block formatting context.
-bitfield!(FlowFlags,
-          has_right_floated_descendants,
-          set_has_right_floated_descendants,
-          0b0000_0000_0000_0010)
-
-// Whether this flow is impacted by floats to the left in the same block formatting context (i.e.
-// its block-size depends on some prior flows with `float: left`).
-bitfield!(FlowFlags,
-          impacted_by_left_floats,
-          set_impacted_by_left_floats,
-          0b0000_0000_0000_0100)
-
-// Whether this flow is impacted by floats to the right in the same block formatting context (i.e.
-// its block-size depends on some prior flows with `float: right`).
-bitfield!(FlowFlags, impacted_by_right_floats, set_impacted_by_right_floats, 0b0000_0000_0000_1000)
-
+// NB: If you update this field, you must update the the text align flags.
 /// The bitmask of flags that represent the text alignment field.
-///
-/// NB: If you update this field, you must update the bitfields below.
-static TEXT_ALIGN_BITMASK: u16 = 0b0000_0000_0011_0000;
+static TEXT_ALIGN_BITMASK: FlowFlags = FlowFlags { bits: 0b0011_0000 };
 
 /// The number of bits we must shift off to handle the text alignment field.
-///
-/// NB: If you update this field, you must update the bitfields below.
-static TEXT_ALIGN_SHIFT: u16 = 4;
-
-// Whether this flow contains a flow that has its own layer within the same absolute containing
-// block.
-bitfield!(FlowFlags,
-          layers_needed_for_descendants,
-          set_layers_needed_for_descendants,
-          0b0000_0000_0100_0000)
-
-// Whether this flow must have its own layer. Even if this flag is not set, it might get its own
-// layer if it's deemed to be likely to overlap flows with their own layer.
-bitfield!(FlowFlags, needs_layer, set_needs_layer, 0b0000_0000_1000_0000)
-
-// Whether this flow is absolutely positioned. This is checked all over layout, so a virtual call
-// is too expensive.
-bitfield!(FlowFlags, is_absolutely_positioned, set_is_absolutely_positioned, 0b0000_0001_0000_0000)
-
-// Whether this flow is left-floated. This is checked all over layout, so a virtual call is too
-// expensive.
-bitfield!(FlowFlags, floats_left, set_floats_left, 0b0000_0010_0000_0000)
-
-// Whether this flow is right-floated. This is checked all over layout, so a virtual call is too
-// expensive.
-bitfield!(FlowFlags, floats_right, set_floats_right, 0b0000_0100_0000_0000)
-
-// Whether this flow clears to the left. This is checked all over layout, so a virtual call is too
-// expensive.
-bitfield!(FlowFlags, clears_left, set_clears_left, 0b0000_1000_0000_0000)
-
-// Whether this flow clears to the right. This is checked all over layout, so a virtual call is too
-// expensive.
-bitfield!(FlowFlags, clears_right, set_clears_right, 0b0001_0000_0000_0000)
+static TEXT_ALIGN_SHIFT: uint = 4;
 
 impl FlowFlags {
-    /// Creates a new set of flow flags.
-    pub fn new() -> FlowFlags {
-        FlowFlags(0)
-    }
-
     /// Propagates text alignment flags from an appropriate parent flow per CSS 2.1.
     ///
     /// FIXME(#2265, pcwalton): It would be cleaner and faster to make this a derived CSS property
@@ -568,40 +526,43 @@ impl FlowFlags {
 
     #[inline]
     pub fn text_align(self) -> text_align::T {
-        let FlowFlags(ff) = self;
-        FromPrimitive::from_u16((ff & TEXT_ALIGN_BITMASK) >> TEXT_ALIGN_SHIFT as uint).unwrap()
+        FromPrimitive::from_u16((self & TEXT_ALIGN_BITMASK).bits() >> TEXT_ALIGN_SHIFT).unwrap()
     }
 
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
-        let FlowFlags(ff) = *self;
-        *self = FlowFlags((ff & !TEXT_ALIGN_BITMASK) | ((value as u16) << TEXT_ALIGN_SHIFT as uint))
+        *self = (*self & !TEXT_ALIGN_BITMASK) | FlowFlags::from_bits(value as u16 << TEXT_ALIGN_SHIFT).unwrap();
     }
 
     #[inline]
     pub fn set_text_align_override(&mut self, parent: FlowFlags) {
-        let FlowFlags(ff) = *self;
-        let FlowFlags(pff) = parent;
-        *self = FlowFlags(ff | (pff & TEXT_ALIGN_BITMASK))
+        self.insert(parent & TEXT_ALIGN_BITMASK);
     }
 
     #[inline]
     pub fn union_floated_descendants_flags(&mut self, other: FlowFlags) {
-        let FlowFlags(my_flags) = *self;
-        let FlowFlags(other_flags) = other;
-        *self = FlowFlags(my_flags | (other_flags & HAS_FLOATED_DESCENDANTS_BITMASK))
+        self.insert(other & HAS_FLOATED_DESCENDANTS_BITMASK);
     }
 
     #[inline]
     pub fn impacted_by_floats(&self) -> bool {
-        self.impacted_by_left_floats() || self.impacted_by_right_floats()
+        self.contains(IMPACTED_BY_LEFT_FLOATS) || self.contains(IMPACTED_BY_RIGHT_FLOATS)
+    }
+
+    #[inline]
+    pub fn set(&mut self, flags: FlowFlags, value: bool) {
+        if value {
+            self.insert(flags);
+        } else {
+            self.remove(flags);
+        }
     }
 
     #[inline]
     pub fn float_kind(&self) -> float::T {
-        if self.floats_left() {
+        if self.contains(FLOATS_LEFT) {
             float::left
-        } else if self.floats_right() {
+        } else if self.contains(FLOATS_RIGHT) {
             float::right
         } else {
             float::none
@@ -609,8 +570,13 @@ impl FlowFlags {
     }
 
     #[inline]
+    pub fn is_float(&self) -> bool {
+        self.contains(FLOATS_LEFT) || self.contains(FLOATS_RIGHT)
+    }
+
+    #[inline]
     pub fn clears_floats(&self) -> bool {
-        self.clears_left() || self.clears_right()
+        self.contains(CLEARS_LEFT) || self.contains(CLEARS_RIGHT)
     }
 }
 
@@ -701,8 +667,10 @@ pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
 
-    /// The position of the absolute containing block.
-    pub absolute_containing_block_position: Point2D<Au>,
+    /// The position of the absolute containing block relative to the nearest ancestor stacking
+    /// context. If the absolute containing block establishes the stacking context for this flow,
+    /// and this flow is not itself absolutely-positioned, then this is (0, 0).
+    pub stacking_relative_position_of_absolute_containing_block: Point2D<Au>,
 
     /// Whether the absolute containing block forces positioned descendants to be layerized.
     ///
@@ -716,7 +684,7 @@ impl AbsolutePositionInfo {
         // of the root layer.
         AbsolutePositionInfo {
             relative_containing_block_size: LogicalSize::zero(writing_mode),
-            absolute_containing_block_position: Zero::zero(),
+            stacking_relative_position_of_absolute_containing_block: Zero::zero(),
             layers_needed_for_positioned_flows: false,
         }
     }
@@ -762,8 +730,9 @@ pub struct BaseFlow {
     /// The collapsible margins for this flow, if any.
     pub collapsible_margins: CollapsibleMargins,
 
-    /// The position of this flow in page coordinates, computed during display list construction.
-    pub abs_position: Point2D<Au>,
+    /// The position of this flow relative to the start of the nearest ancestor stacking context.
+    /// This is computed during the top-down pass of display list construction.
+    pub stacking_relative_position: Point2D<Au>,
 
     /// Details about descendants with position 'absolute' or 'fixed' for which we are the
     /// containing block. This is in tree order. This includes any direct children.
@@ -799,11 +768,8 @@ pub struct BaseFlow {
     /// rectangles.
     pub clip_rect: Rect<Au>,
 
-    /// The unflattened display items for this flow.
-    pub display_list: DisplayList,
-
-    /// Any layers that we're bubbling up, in a linked list.
-    pub layers: DList<RenderLayer>,
+    /// The results of display list building for this flow.
+    pub display_list_building_result: DisplayListBuildingResult,
 
     /// The writing mode for this flow.
     pub writing_mode: WritingMode,
@@ -826,13 +792,34 @@ impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
     fn encode(&self, e: &mut S) -> Result<(), E> {
         e.emit_struct("base", 0, |e| {
             try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)))
-            try!(e.emit_struct_field("abs_position", 1, |e| self.abs_position.encode(e)))
-            try!(e.emit_struct_field("intrinsic_inline_sizes", 2, |e| self.intrinsic_inline_sizes.encode(e)))
+            try!(e.emit_struct_field("stacking_relative_position",
+                                     1,
+                                     |e| self.stacking_relative_position.encode(e)))
+            try!(e.emit_struct_field("intrinsic_inline_sizes",
+                                     2,
+                                     |e| self.intrinsic_inline_sizes.encode(e)))
             try!(e.emit_struct_field("position", 3, |e| self.position.encode(e)))
             e.emit_struct_field("children", 4, |e| {
                 e.emit_seq(self.children.len(), |e| {
                     for (i, c) in self.children.iter().enumerate() {
-                        try!(e.emit_seq_elt(i, |e| c.encode(e)))
+                        try!(e.emit_seq_elt(i, |e| {
+                            try!(e.emit_struct("flow", 0, |e| {
+                                try!(e.emit_struct_field("class", 0, |e| c.class().encode(e)))
+                                e.emit_struct_field("data", 1, |e| {
+                                    match c.class() {
+                                        BlockFlowClass => c.as_immutable_block().encode(e),
+                                        InlineFlowClass => c.as_immutable_inline().encode(e),
+                                        TableFlowClass => c.as_immutable_table().encode(e),
+                                        TableWrapperFlowClass => c.as_immutable_table_wrapper().encode(e),
+                                        TableRowGroupFlowClass => c.as_immutable_table_rowgroup().encode(e),
+                                        TableRowFlowClass => c.as_immutable_table_row().encode(e),
+                                        TableCellFlowClass => c.as_immutable_table_cell().encode(e),
+                                        _ => { Ok(()) }     // TODO: Support captions
+                                    }
+                                })
+                            }))
+                            Ok(())
+                        }))
                     }
                     Ok(())
                 })
@@ -846,37 +833,54 @@ impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
 impl Drop for BaseFlow {
     fn drop(&mut self) {
         if self.ref_count.load(SeqCst) != 0 {
-            fail!("Flow destroyed before its ref count hit zero—this is unsafe!")
+            panic!("Flow destroyed before its ref count hit zero—this is unsafe!")
         }
     }
 }
 
+/// Whether a base flow should be forced to be nonfloated. This can affect e.g. `TableFlow`, which
+/// is never floated because the table wrapper flow is the floated one.
+#[deriving(Clone, PartialEq)]
+pub enum ForceNonfloatedFlag {
+    /// The flow should be floated if the node has a `float` property.
+    FloatIfNecessary,
+    /// The flow should be forced to be nonfloated.
+    ForceNonfloated,
+}
+
 impl BaseFlow {
     #[inline]
-    pub fn new(node: Option<ThreadSafeLayoutNode>, writing_mode: WritingMode) -> BaseFlow {
-        let mut flags = FlowFlags::new();
+    pub fn new(node: Option<ThreadSafeLayoutNode>,
+               writing_mode: WritingMode,
+               force_nonfloated: ForceNonfloatedFlag)
+               -> BaseFlow {
+        let mut flags = FlowFlags::empty();
         match node {
             None => {}
             Some(node) => {
                 let node_style = node.style();
                 match node_style.get_box().position {
                     position::absolute | position::fixed => {
-                        flags.set_is_absolutely_positioned(true)
+                        flags.insert(IS_ABSOLUTELY_POSITIONED)
                     }
                     _ => {}
                 }
-                match node_style.get_box().float {
-                    float::none => {}
-                    float::left => flags.set_floats_left(true),
-                    float::right => flags.set_floats_right(true),
+
+                if force_nonfloated == FloatIfNecessary {
+                    match node_style.get_box().float {
+                        float::none => {}
+                        float::left => flags.insert(FLOATS_LEFT),
+                        float::right => flags.insert(FLOATS_RIGHT),
+                    }
                 }
+
                 match node_style.get_box().clear {
                     clear::none => {}
-                    clear::left => flags.set_clears_left(true),
-                    clear::right => flags.set_clears_right(true),
+                    clear::left => flags.insert(CLEARS_LEFT),
+                    clear::right => flags.insert(CLEARS_RIGHT),
                     clear::both => {
-                        flags.set_clears_left(true);
-                        flags.set_clears_right(true);
+                        flags.insert(CLEARS_LEFT);
+                        flags.insert(CLEARS_RIGHT);
                     }
                 }
             }
@@ -884,7 +888,7 @@ impl BaseFlow {
 
         // New flows start out as fully damaged.
         let mut damage = RestyleDamage::all();
-        damage.remove(ReconstructFlow);
+        damage.remove(RECONSTRUCT_FLOW);
 
         BaseFlow {
             ref_count: AtomicUint::new(1),
@@ -896,15 +900,14 @@ impl BaseFlow {
             parallel: FlowParallelInfo::new(),
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
-            abs_position: Zero::zero(),
+            stacking_relative_position: Zero::zero(),
             abs_descendants: Descendants::new(),
             absolute_static_i_offset: Au(0),
             fixed_static_i_offset: Au(0),
             block_container_inline_size: Au(0),
             block_container_explicit_block_size: None,
             absolute_cb: ContainingBlockLink::new(),
-            display_list: DisplayList::new(),
-            layers: DList::new(),
+            display_list_building_result: NoDisplayListBuildingResult,
             absolute_position_info: AbsolutePositionInfo::new(writing_mode),
             clip_rect: Rect(Zero::zero(), Size2D(Au(0), Au(0))),
             flags: flags,
@@ -925,13 +928,23 @@ impl BaseFlow {
         p as uint
     }
 
+    /// Ensures that all display list items generated by this flow are within the flow's overflow
+    /// rect. This should only be used for debugging.
     pub fn validate_display_list_geometry(&self) {
         let position_with_overflow = self.position.union(&self.overflow);
-        let bounds = Rect(self.abs_position,
+        let bounds = Rect(self.stacking_relative_position,
                           Size2D(position_with_overflow.size.inline,
                                  position_with_overflow.size.block));
 
-        for item in self.display_list.iter() {
+        let all_items = match self.display_list_building_result {
+            NoDisplayListBuildingResult => Vec::new(),
+            StackingContextResult(ref stacking_context) => {
+                stacking_context.display_list.all_display_items()
+            }
+            DisplayListResult(ref display_list) => display_list.all_display_items(),
+        };
+
+        for item in all_items.iter() {
             let paint_bounds = match item.base().bounds.intersection(&item.base().clip_rect) {
                 None => continue,
                 Some(rect) => rect,
@@ -947,12 +960,15 @@ impl BaseFlow {
         }
     }
 
-    pub fn child_fragment_absolute_position(&self, fragment: &Fragment) -> Point2D<Au> {
+    /// Returns the position of the given fragment relative to the start of the nearest ancestor
+    /// stacking context. The fragment must be a child fragment of this flow.
+    pub fn stacking_relative_position_of_child_fragment(&self, fragment: &Fragment)
+                                                        -> Point2D<Au> {
         let relative_offset =
             fragment.relative_position(&self
                                        .absolute_position_info
                                        .relative_containing_block_size);
-        self.abs_position.add_size(&relative_offset.to_physical(self.writing_mode))
+        self.stacking_relative_position.add_size(&relative_offset.to_physical(self.writing_mode))
     }
 }
 
@@ -1057,7 +1073,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
                 box TableCellFlow::from_node_and_fragment(node, fragment) as Box<Flow>
             },
             _ => {
-                fail!("no need to generate a missing child")
+                panic!("no need to generate a missing child")
             }
         };
         FlowRef::new(flow)
@@ -1199,7 +1215,7 @@ impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
             let mut gives_absolute_offsets = true;
             if kid.is_block_like() {
                 let kid_block = kid.as_block();
-                if kid_block.is_fixed() || kid_block.base.flags.is_absolutely_positioned() {
+                if kid_block.is_fixed() || kid_block.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                     // It won't contribute any offsets for descendants because it would be the
                     // containing block for them.
                     gives_absolute_offsets = false;
@@ -1283,7 +1299,7 @@ impl ContainingBlockLink {
     #[inline]
     pub fn generated_containing_block_rect(&mut self) -> LogicalRect<Au> {
         match self.link {
-            None => fail!("haven't done it"),
+            None => panic!("haven't done it"),
             Some(ref mut link) => link.generated_containing_block_rect(),
         }
     }

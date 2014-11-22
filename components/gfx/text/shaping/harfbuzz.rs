@@ -249,7 +249,7 @@ impl Shaper {
         } else {
             byte_to_glyph = Vec::from_elem(byte_max as uint, CONTINUATION_BYTE);
             for (i, _) in text.char_indices() {
-                *byte_to_glyph.get_mut(i) = NO_GLYPH;
+                byte_to_glyph[i] = NO_GLYPH;
             }
         }
 
@@ -259,7 +259,7 @@ impl Shaper {
             let loc = glyph_data.byte_offset_of_glyph(i);
             if loc < byte_max {
                 assert!(byte_to_glyph[loc as uint] != CONTINUATION_BYTE);
-                *byte_to_glyph.get_mut(loc as uint) = i as i32;
+                byte_to_glyph[loc as uint] = i as i32;
             } else {
                 debug!("ERROR: tried to set out of range byte_to_glyph: idx={}, glyph idx={}",
                        loc,
@@ -271,7 +271,7 @@ impl Shaper {
         debug!("text: {:s}", text);
         debug!("(char idx): char->(glyph index):");
         for (i, ch) in text.char_indices() {
-            debug!("{}: {} --> {:d}", i, ch, *byte_to_glyph.get(i) as int);
+            debug!("{}: {} --> {:d}", i, ch, *byte_to_glyph.get(i).unwrap() as int);
         }
 
         // some helpers

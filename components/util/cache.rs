@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
+use std::collections::hash_map::{Occupied, Vacant};
 use rand::Rng;
 use std::hash::{Hash, sip};
 use std::rand::task_rng;
@@ -36,14 +37,21 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
     }
 
     fn find(&mut self, key: &K) -> Option<V> {
-        match self.entries.find(key) {
+        match self.entries.get(key) {
             Some(v) => Some(v.clone()),
             None    => None,
         }
     }
 
     fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
-        self.entries.find_or_insert_with(key.clone(), blk).clone()
+        match self.entries.entry(key.clone()) {
+            Occupied(occupied) => {
+                (*occupied.get()).clone()
+            }
+            Vacant(vacant) => {
+                (*vacant.set(blk(key))).clone()
+            }
+        }
     }
 
     fn evict_all(&mut self) {
@@ -53,7 +61,7 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
 }
 
 impl<K,V> HashCache<K,V> where K: Clone + PartialEq + Eq + Hash, V: Clone {
-    pub fn find_equiv<'a,Q>(&'a self, key: &Q) -> Option<&'a V> where Q: Hash + Equiv<K> {
+    pub fn find_equiv<'a,Sized? Q>(&'a self, key: &Q) -> Option<&'a V> where Q: Hash + Equiv<K> {
         self.entries.find_equiv(key)
     }
 }
@@ -171,7 +179,7 @@ impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
 impl<K:Clone+PartialEq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
     fn insert(&mut self, key: K, value: V) {
         let bucket_index = self.bucket_for_key(&key);
-        *self.entries.get_mut(bucket_index) = Some((key, value));
+        self.entries[bucket_index] = Some((key, value));
     }
 
     fn find(&mut self, key: &K) -> Option<V> {

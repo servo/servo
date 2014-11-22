@@ -602,7 +602,7 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
-            &None => fail!("no layout data"),
+            &None => panic!("no layout data"),
             &Some(ref mut layout_data) => {
                 match self.type_id() {
                     Some(TextNodeTypeId) => {

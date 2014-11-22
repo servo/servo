@@ -5,6 +5,8 @@
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestBindingMethods;
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnum;
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnumValues::_empty;
+use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::UnionTypes::BlobOrString::BlobOrString;
 use dom::bindings::codegen::UnionTypes::EventOrString::{EventOrString, eString};
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::{HTMLElementOrLong, eLong};
@@ -164,6 +166,8 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassUnion2(self, _: EventOrString) {}
     fn PassUnion3(self, _: BlobOrString) {}
     fn PassAny(self, _: *mut JSContext, _: JSVal) {}
+    fn PassCallbackFunction(self, _: Function) {}
+    fn PassCallbackInterface(self, _: EventListener) {}
 
     fn PassNullableBoolean(self, _: Option<bool>) {}
     fn PassNullableByte(self, _: Option<i8>) {}
@@ -182,6 +186,8 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassNullableInterface(self, _: Option<JSRef<Blob>>) {}
     fn PassNullableUnion(self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(self, _: Option<EventOrString>) {}
+    fn PassNullableCallbackFunction(self, _: Option<Function>) {}
+    fn PassNullableCallbackInterface(self, _: Option<EventListener>) {}
 
     fn PassOptionalBoolean(self, _: Option<bool>) {}
     fn PassOptionalByte(self, _: Option<i8>) {}
@@ -201,6 +207,8 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalUnion(self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalUnion2(self, _: Option<EventOrString>) {}
     fn PassOptionalAny(self, _: *mut JSContext, _: JSVal) {}
+    fn PassOptionalCallbackFunction(self, _: Option<Function>) {}
+    fn PassOptionalCallbackInterface(self, _: Option<EventListener>) {}
 
     fn PassOptionalNullableBoolean(self, _: Option<Option<bool>>) {}
     fn PassOptionalNullableByte(self, _: Option<Option<i8>>) {}
@@ -219,6 +227,8 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalNullableInterface(self, _: Option<Option<JSRef<Blob>>>) {}
     fn PassOptionalNullableUnion(self, _: Option<Option<HTMLElementOrLong>>) {}
     fn PassOptionalNullableUnion2(self, _: Option<Option<EventOrString>>) {}
+    fn PassOptionalNullableCallbackFunction(self, _: Option<Option<Function>>) {}
+    fn PassOptionalNullableCallbackInterface(self, _: Option<Option<EventListener>>) {}
 
     fn PassOptionalBooleanWithDefault(self, _: bool) {}
     fn PassOptionalByteWithDefault(self, _: i8) {}
@@ -249,6 +259,8 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn PassOptionalNullableInterfaceWithDefault(self, _: Option<JSRef<Blob>>) {}
     fn PassOptionalNullableUnionWithDefault(self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(self, _: Option<EventOrString>) {}
+    // fn PassOptionalNullableCallbackFunctionWithDefault(self, _: Option<Function>) {}
+    fn PassOptionalNullableCallbackInterfaceWithDefault(self, _: Option<EventListener>) {}
     fn PassOptionalAnyWithDefault(self, _: *mut JSContext, _: JSVal) {}
 
     fn PassOptionalNullableBooleanWithNonNullDefault(self, _: Option<bool>) {}

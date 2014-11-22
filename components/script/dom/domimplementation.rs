@@ -165,4 +165,9 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         // Step 9.
         Temporary::from_rooted(*doc)
     }
+
+    // https://dom.spec.whatwg.org/#dom-domimplementation-hasfeature
+    fn HasFeature(self, _feature: DOMString, _version: DOMString) -> bool {
+        true
+    }
 }

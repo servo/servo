@@ -6,12 +6,12 @@
 // http://www.whatwg.org/html/#htmloptionelement
 //[NamedConstructor=Option(optional DOMString text = "", optional DOMString value, optional boolean defaultSelected = false, optional boolean selected = false)]
 interface HTMLOptionElement : HTMLElement {
-           attribute boolean disabled;
+             attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
-  //         attribute DOMString label;
+             attribute DOMString label;
   //         attribute boolean defaultSelected;
   //         attribute boolean selected;
-  //         attribute DOMString value;
+             attribute DOMString value;
 
              attribute DOMString text;
   //readonly attribute long index;

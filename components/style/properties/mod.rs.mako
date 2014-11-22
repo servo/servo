@@ -4,7 +4,7 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
-pub use std::ascii::StrAsciiExt;
+pub use std::ascii::AsciiExt;
 
 use servo_util::logical_geometry::{WritingMode, LogicalMargin};
 use sync::Arc;
@@ -160,7 +160,7 @@ pub mod longhands {
             ${caller.body()}
             pub mod computed_value {
                 #[allow(non_camel_case_types)]
-                #[deriving(PartialEq, Clone, FromPrimitive)]
+                #[deriving(PartialEq, Clone, FromPrimitive, Show)]
                 pub enum T {
                     % for value in values.split():
                         ${to_rust_ident(value)},
@@ -942,7 +942,7 @@ pub mod longhands {
             use super::super::Au;
             pub type T = Au;
         }
-        static MEDIUM_PX: int = 16;
+        const MEDIUM_PX: int = 16;
         #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(MEDIUM_PX)
         }
@@ -999,7 +999,8 @@ pub mod longhands {
         }
         pub mod computed_value {
             pub type T = super::SpecifiedValue;
-            pub static none: T = super::SpecifiedValue { underline: false, overline: false, line_through: false };
+            #[allow(non_upper_case_globals)]
+            pub const none: T = super::SpecifiedValue { underline: false, overline: false, line_through: false };
         }
         #[inline] pub fn get_initial_value() -> computed_value::T {
             none
@@ -1614,9 +1615,7 @@ impl PropertyDeclaration {
                  result_list: &mut Vec<PropertyDeclaration>,
                  base_url: &Url,
                  seen: &mut PropertyBitField) -> PropertyDeclarationParseResult {
-        // FIXME: local variable to work around Rust #10683
-        let name_lower = name.as_slice().to_ascii_lower();
-        match name_lower.as_slice() {
+        match name.to_ascii_lower().as_slice() {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     "${property.name}" => {
@@ -1845,27 +1844,27 @@ fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Writing
     match inheritedbox_style.direction {
         computed_values::direction::ltr => {},
         computed_values::direction::rtl => {
-            flags.insert(logical_geometry::FlagRTL);
+            flags.insert(logical_geometry::FLAG_RTL);
         },
     }
     match inheritedbox_style.writing_mode {
         computed_values::writing_mode::horizontal_tb => {},
         computed_values::writing_mode::vertical_rl => {
-            flags.insert(logical_geometry::FlagVertical);
+            flags.insert(logical_geometry::FLAG_VERTICAL);
         },
         computed_values::writing_mode::vertical_lr => {
-            flags.insert(logical_geometry::FlagVertical);
-            flags.insert(logical_geometry::FlagVerticalLR);
+            flags.insert(logical_geometry::FLAG_VERTICAL);
+            flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
     }
     match inheritedbox_style.text_orientation {
         computed_values::text_orientation::sideways_right => {},
         computed_values::text_orientation::sideways_left => {
-            flags.insert(logical_geometry::FlagSidewaysLeft);
+            flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
         computed_values::text_orientation::sideways => {
-            if flags.intersects(logical_geometry::FlagVerticalLR) {
-                flags.insert(logical_geometry::FlagSidewaysLeft);
+            if flags.intersects(logical_geometry::FLAG_VERTICAL_LR) {
+                flags.insert(logical_geometry::FLAG_SIDEWAYS_LEFT);
             }
         },
     }
@@ -1892,20 +1891,6 @@ lazy_static! {
 #[test]
 fn initial_writing_mode_is_empty() {
     assert_eq!(get_writing_mode(INITIAL_VALUES.get_inheritedbox()), WritingMode::empty())
-}
-
-
-/// This only exists to limit the scope of #[allow(experimental)]
-/// FIXME: remove this when Arc::make_unique() is not experimental anymore.
-trait ArcExperimental<T> {
-    fn make_unique_experimental<'a>(&'a mut self) -> &'a mut T;
-}
-impl<T: Send + Sync + Clone> ArcExperimental<T> for Arc<T> {
-    #[inline]
-    #[allow(experimental)]
-    fn make_unique_experimental<'a>(&'a mut self) -> &'a mut T {
-        self.make_unique()
-    }
 }
 
 /// Fast path for the function below. Only computes new inherited styles.
@@ -1958,7 +1943,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
                                                         .clone()
                                         }
                                     };
-                                    style_${style_struct.ident}.make_unique_experimental()
+                                    style_${style_struct.ident}.make_unique()
                                         .${property.ident} = computed_value;
                                 % endif
 
@@ -1970,7 +1955,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
                                     % endif
                                     % for derived in DERIVED_LONGHANDS[property.name]:
                                         style_${derived.style_struct.ident}
-                                            .make_unique_experimental()
+                                            .make_unique()
                                             .${derived.ident} =
                                             longhands::${derived.ident}
                                                      ::derive_from_${property.ident}(
@@ -2164,13 +2149,13 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                                                        .clone()
                                     }
                                 };
-                                style_${style_struct.ident}.make_unique_experimental()
+                                style_${style_struct.ident}.make_unique()
                                     .${property.ident} = computed_value;
 
                                 % if property.name in DERIVED_LONGHANDS:
                                     % for derived in DERIVED_LONGHANDS[property.name]:
                                         style_${derived.style_struct.ident}
-                                            .make_unique_experimental()
+                                            .make_unique()
                                             .${derived.ident} =
                                             longhands::${derived.ident}
                                                      ::derive_from_${property.ident}(
@@ -2192,7 +2177,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
 
     // The initial value of border-*-width may be changed at computed value time.
     {
-        let border = style_border.make_unique_experimental();
+        let border = style_border.make_unique();
         % for side in ["top", "right", "bottom", "left"]:
             // Like calling to_computed_value, which wouldn't type check.
             if !context.border_${side}_present {
@@ -2203,7 +2188,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
 
     // The initial value of display may be changed at computed value time.
     if !seen.get_display() {
-        let box_ = style_box_.make_unique_experimental();
+        let box_ = style_box_.make_unique();
         box_.display = longhands::display::to_computed_value(box_.display, &context);
     }
 
@@ -2237,7 +2222,7 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
         writing_mode: parent_style.writing_mode,
     };
     {
-        let border = result.border.make_unique_experimental();
+        let border = result.border.make_unique();
         % for side in ["top", "right", "bottom", "left"]:
             // Like calling to_computed_value, which wouldn't type check.
             border.border_${side}_width = Au(0);

@@ -68,7 +68,7 @@ pub trait FontTableMethods {
     fn with_buffer(&self, |*const u8, uint|);
 }
 
-#[deriving(Clone)]
+#[deriving(Clone, Show)]
 pub struct FontMetrics {
     pub underline_size:   Au,
     pub underline_offset: Au,
@@ -103,7 +103,7 @@ impl Font {
     pub fn shape_text(&mut self, text: &str, is_whitespace: bool) -> Arc<GlyphStore> {
         self.make_shaper();
         let shaper = &self.shaper;
-        match self.shape_cache.find_equiv(&text) {
+        match self.shape_cache.find_equiv(text) {
             None => {}
             Some(glyphs) => return (*glyphs).clone(),
         }

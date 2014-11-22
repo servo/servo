@@ -7,14 +7,12 @@
 
 #![feature(globs, phase, macro_rules)]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 #[phase(plugin, link)]
 extern crate log;
 
-extern crate debug;
-
-extern crate alert;
 extern crate azure;
 extern crate devtools_traits;
 extern crate geom;

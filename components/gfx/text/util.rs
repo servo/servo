@@ -48,7 +48,7 @@ pub fn transform_text(text: &str,
                     if ch != '\n' {
                         new_line_index = new_line_index + CharIndex(1);
                     }
-                    output_text.push_char(ch);
+                    output_text.push(ch);
                 }
             }
             text.len() > 0 && is_in_whitespace(text.char_at_reverse(0), mode)
@@ -67,14 +67,14 @@ pub fn transform_text(text: &str,
                         // TODO: record skipped char
                     } else {
                         // TODO: record kept char
-                        output_text.push_char(ch);
+                        output_text.push(ch);
                     }
                 } else { /* next_in_whitespace; possibly add a space char */
                     if in_whitespace {
                         // TODO: record skipped char
                     } else {
                         // TODO: record kept char
-                        output_text.push_char(' ');
+                        output_text.push(' ');
                     }
                 }
                 // save whitespace context for next char

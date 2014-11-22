@@ -11,6 +11,7 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
+use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use servo_msg::compositor_msg::{ReadyState, RenderState};
 use servo_util::geometry::ScreenPx;
 use std::fmt::{FormatError, Formatter, Show};
@@ -54,10 +55,10 @@ pub enum WindowEvent {
     PinchZoomWindowEvent(f32),
     /// Sent when the user uses chrome navigation (i.e. backspace or shift-backspace).
     NavigationWindowEvent(WindowNavigateMsg),
-    /// Sent when rendering is finished.
-    FinishedWindowEvent,
     /// Sent when the user quits the application
     QuitWindowEvent,
+    /// Sent when a key input state changes
+    KeyEvent(Key, KeyState, KeyModifiers),
 }
 
 impl Show for WindowEvent {
@@ -66,6 +67,7 @@ impl Show for WindowEvent {
             IdleWindowEvent => write!(f, "Idle"),
             RefreshWindowEvent => write!(f, "Refresh"),
             ResizeWindowEvent(..) => write!(f, "Resize"),
+            KeyEvent(..) => write!(f, "Key"),
             LoadUrlWindowEvent(..) => write!(f, "LoadUrl"),
             MouseWindowEventClass(..) => write!(f, "Mouse"),
             MouseWindowMoveEventClass(..) => write!(f, "MouseMove"),
@@ -73,7 +75,6 @@ impl Show for WindowEvent {
             ZoomWindowEvent(..) => write!(f, "Zoom"),
             PinchZoomWindowEvent(..) => write!(f, "PinchZoom"),
             NavigationWindowEvent(..) => write!(f, "Navigation"),
-            FinishedWindowEvent => write!(f, "Finished"),
             QuitWindowEvent => write!(f, "Quit"),
         }
     }

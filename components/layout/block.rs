@@ -25,19 +25,25 @@
 //!
 //!   http://dev.w3.org/csswg/css-sizing/
 
-#![deny(unsafe_block)]
+#![deny(unsafe_blocks)]
 
 use construct::FlowConstructor;
 use context::LayoutContext;
 use css::node_style::StyledNode;
-use display_list_builder::{BlockFlowDisplayListBuilding, FragmentDisplayListBuilding};
+use display_list_builder::{BlockFlowDisplayListBuilding, BlockLevel, FragmentDisplayListBuilding};
 use floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, FloatLeft, Floats, PlacementInfo};
-use flow::{BaseFlow, BlockFlowClass, FlowClass, Flow, ImmutableFlowUtils};
-use flow::{MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal, mut_base};
+use flow::{AbsolutePositionInfo, BaseFlow, BlockFlowClass, FloatIfNecessary, FlowClass, Flow};
+use flow::{ForceNonfloated, ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
+use flow::{PostorderFlowTraversal, mut_base};
+use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
+use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
+use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
+use flow::{IS_ABSOLUTELY_POSITIONED};
+use flow::{CLEARS_LEFT, CLEARS_RIGHT};
 use flow;
 use fragment::{Fragment, ImageFragment, InlineBlockFragment, FragmentBoundsIterator};
 use fragment::ScannedTextFragment;
-use incremental::{Reflow, ReflowOutOfFlow};
+use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{Auto, IntrinsicISizes, MarginCollapseInfo, MarginsCollapse, MarginsCollapseThrough};
 use model::{MaybeAuto, NoCollapsibleMargins, Specified, specified, specified_or_none};
@@ -45,10 +51,9 @@ use table::ColumnInlineSize;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::Size2D;
-use gfx::display_list::BlockLevel;
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
-use servo_util::geometry::{Au, MAX_AU, MAX_RECT};
+use servo_util::geometry::{Au, MAX_AU, MAX_RECT, ZERO_POINT};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::cmp::{max, min};
@@ -394,7 +399,7 @@ impl Iterator<MaybeAuto> for CandidateBSizeIterator {
                 Some(Specified(self.min_block_size))
             }
             FoundCandidateBSizeStatus => None,
-            InitialCandidateBSizeStatus => fail!(),
+            InitialCandidateBSizeStatus => panic!(),
         }
     }
 }
@@ -440,8 +445,8 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
             return;
         }
 
-        assert!(block_flow.base.flags.is_absolutely_positioned());
-        if !block_flow.base.restyle_damage.intersects(ReflowOutOfFlow | Reflow) {
+        assert!(block_flow.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
+        if !block_flow.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
         }
 
@@ -507,12 +512,12 @@ enum FormattingContextType {
 fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid: &mut Flow) {
     if kid.is_absolute_containing_block() {
         let kid_base = flow::mut_base(kid);
-        if kid_base.flags.needs_layer() {
+        if kid_base.flags.contains(NEEDS_LAYER) {
             *layers_needed_for_descendants = true
         }
     } else {
         let kid_base = flow::mut_base(kid);
-        if kid_base.flags.layers_needed_for_descendants() {
+        if kid_base.flags.contains(LAYERS_NEEDED_FOR_DESCENDANTS) {
             *layers_needed_for_descendants = true
         }
     }
@@ -551,7 +556,7 @@ pub struct BlockFlow {
 bitflags! {
     flags BlockFlowFlags: u8 {
         #[doc="If this is set, then this block flow is the root flow."]
-        static IsRoot = 0x01,
+        const IS_ROOT = 0x01,
     }
 }
 
@@ -565,7 +570,7 @@ impl BlockFlow {
     pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloated),
             fragment: Fragment::new(constructor, node),
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
@@ -579,7 +584,7 @@ impl BlockFlow {
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloated),
             fragment: fragment,
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
@@ -596,7 +601,7 @@ impl BlockFlow {
                            -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, FloatIfNecessary),
             fragment: Fragment::new(constructor, node),
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
@@ -613,7 +618,7 @@ impl BlockFlow {
                                         -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, FloatIfNecessary),
             fragment: fragment,
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
@@ -629,13 +634,13 @@ impl BlockFlow {
     /// This determines the algorithm used to calculate inline-size, block-size, and the
     /// relevant margins for this Block.
     pub fn block_type(&self) -> BlockType {
-        if self.base.flags.is_absolutely_positioned() {
+        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             if self.is_replaced_content() {
                 AbsoluteReplacedType
             } else {
                 AbsoluteNonReplacedType
             }
-        } else if self.is_float() {
+        } else if self.base.flags.is_float() {
             if self.is_replaced_content() {
                 FloatReplacedType
             } else {
@@ -705,7 +710,7 @@ impl BlockFlow {
     /// reference the CB.
     #[inline]
     pub fn containing_block_size(&mut self, viewport_size: Size2D<Au>) -> LogicalSize<Au> {
-        debug_assert!(self.base.flags.is_absolutely_positioned());
+        debug_assert!(self.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
         if self.is_fixed() {
             // Initial containing block is the CB for the root
             LogicalSize::from_physical(self.base.writing_mode, viewport_size)
@@ -787,7 +792,7 @@ impl BlockFlow {
         }
 
         let (block_start_margin_value, block_end_margin_value) = match self.base.collapsible_margins {
-            MarginsCollapseThrough(_) => fail!("Margins unexpectedly collapsed through root flow."),
+            MarginsCollapseThrough(_) => panic!("Margins unexpectedly collapsed through root flow."),
             MarginsCollapse(block_start_margin, block_end_margin) => {
                 (block_start_margin.collapse(), block_end_margin.collapse())
             }
@@ -827,13 +832,13 @@ impl BlockFlow {
                                             margins_may_collapse: MarginsMayCollapseFlag) {
         let _scope = layout_debug_scope!("assign_block_size_block_base {:x}", self.base.debug_id());
 
-        if self.base.restyle_damage.contains(Reflow) {
+        if self.base.restyle_damage.contains(REFLOW) {
             // Our current border-box position.
             let mut cur_b = Au(0);
 
             // Absolute positioning establishes a block formatting context. Don't propagate floats
             // in or out. (But do propagate them between kids.)
-            if self.base.flags.is_absolutely_positioned() ||
+            if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
                     margins_may_collapse != MarginsMayCollapse {
                 self.base.floats = Floats::new(self.fragment.style.writing_mode);
             }
@@ -848,7 +853,7 @@ impl BlockFlow {
 
             let can_collapse_block_start_margin_with_kids =
                 margins_may_collapse == MarginsMayCollapse &&
-                !self.base.flags.is_absolutely_positioned() &&
+                !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                 self.fragment.border_padding.block_start == Au(0);
             margin_collapse_info.initialize_block_start_margin(
                 &self.fragment,
@@ -858,11 +863,14 @@ impl BlockFlow {
             let mut floats = self.base.floats.clone();
             let mut layers_needed_for_descendants = false;
             for kid in self.base.child_iter() {
-                if flow::base(kid).flags.is_absolutely_positioned() {
+                if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                     // Assume that the *hypothetical box* for an absolute flow starts immediately
                     // after the block-end border edge of the previous flow.
                     kid.as_block().hypothetical_position.b = cur_b;
-                    kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+                    kid.place_float_if_applicable(layout_context);
+                    if !flow::base(kid).flags.is_float() {
+                        kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+                    }
                     propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
 
                     // Skip the collapsing and float processing for absolute flow kids and continue
@@ -873,7 +881,7 @@ impl BlockFlow {
                 // Assign block-size now for the child if it was impacted by floats and we couldn't
                 // before.
                 flow::mut_base(kid).floats = floats.clone();
-                if kid.is_float() {
+                if flow::base(kid).flags.is_float() {
                     flow::mut_base(kid).position.start.b = cur_b;
                     {
                         let kid_block = kid.as_block();
@@ -881,10 +889,7 @@ impl BlockFlow {
                             margin_collapse_info.current_float_ceiling();
                     }
                     propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
-
-                    let need_to_process_child_floats =
-                        kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
-                    assert!(need_to_process_child_floats);  // As it was a float itself...
+                    kid.place_float_if_applicable(layout_context);
 
                     let kid_base = flow::mut_base(kid);
                     floats = kid_base.floats.clone();
@@ -903,8 +908,12 @@ impl BlockFlow {
                 }
 
                 // Lay the child out if this was an in-order traversal.
-                let need_to_process_child_floats =
-                    kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
+                let need_to_process_child_floats = if flow::base(kid).flags.is_float() {
+                    kid.place_float_if_applicable(layout_context);
+                    true
+                } else {
+                    kid.assign_block_size_for_inorder_child_if_necessary(layout_context)
+                };
 
                 // Mark flows for layerization if necessary to handle painting order correctly.
                 propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
@@ -915,8 +924,8 @@ impl BlockFlow {
                 translate_including_floats(&mut cur_b, delta, &mut floats);
 
                 // Clear past the floats that came in, if necessary.
-                let clearance = match (flow::base(kid).flags.clears_left(),
-                                       flow::base(kid).flags.clears_right()) {
+                let clearance = match (flow::base(kid).flags.contains(CLEARS_LEFT),
+                                       flow::base(kid).flags.contains(CLEARS_RIGHT)) {
                     (false, false) => Au(0),
                     (true, false) => floats.clearance(ClearLeft),
                     (false, true) => floats.clearance(ClearRight),
@@ -948,7 +957,7 @@ impl BlockFlow {
 
             // Mark ourselves for layerization if that will be necessary to paint in the proper
             // order (CSS 2.1, Appendix E).
-            self.base.flags.set_layers_needed_for_descendants(layers_needed_for_descendants);
+            self.base.flags.set(LAYERS_NEEDED_FOR_DESCENDANTS, layers_needed_for_descendants);
 
             // Collect various offsets needed by absolutely positioned descendants.
             (&mut *self as &mut Flow).collect_static_block_offsets_from_children();
@@ -956,7 +965,7 @@ impl BlockFlow {
             // Add in our block-end margin and compute our collapsible margins.
             let can_collapse_block_end_margin_with_kids =
                 margins_may_collapse == MarginsMayCollapse &&
-                !self.base.flags.is_absolutely_positioned() &&
+                !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                 self.fragment.border_padding.block_end == Au(0);
             let (collapsible_margins, delta) =
                 margin_collapse_info.finish_and_compute_collapsible_margins(
@@ -978,16 +987,16 @@ impl BlockFlow {
             }
 
             if is_root || self.formatting_context_type() != NonformattingContext ||
-                    self.base.flags.is_absolutely_positioned() {
+                    self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 // The content block-size includes all the floats per CSS 2.1 § 10.6.7. The easiest
                 // way to handle this is to just treat it as clearance.
                 block_size = block_size + floats.clearance(ClearBoth);
             }
 
-            if self.base.flags.is_absolutely_positioned() {
+            if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 // Fixed position layers get layers.
                 if self.is_fixed() {
-                    self.base.flags.set_needs_layer(true)
+                    self.base.flags.insert(NEEDS_LAYER);
                 }
 
                 // Store the content block-size for use in calculating the absolute flow's
@@ -1030,7 +1039,7 @@ impl BlockFlow {
             self.fragment.border_box.size.block = cur_b;
             self.fragment.border_box.start.b = Au(0);
 
-            if !self.base.flags.is_absolutely_positioned() {
+            if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 self.base.position.size.block = cur_b;
             }
 
@@ -1062,9 +1071,10 @@ impl BlockFlow {
         // has not been calculated yet. (See `calculate_absolute_block_size_and_margins` for that.)
         // Also don't remove the dirty bits if we're a block formatting context since our inline
         // size has not yet been computed. (See `assign_inline_position_for_formatting_context()`.)
-        if !self.base.flags.is_absolutely_positioned() &&
-                self.formatting_context_type() == NonformattingContext {
-            self.base.restyle_damage.remove(ReflowOutOfFlow | Reflow);
+        if (self.base.flags.is_float() ||
+                self.formatting_context_type() == NonformattingContext) &&
+                !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
     }
 
@@ -1108,9 +1118,14 @@ impl BlockFlow {
                                               Au(0),
                                               self.fragment.margin.block_start);
 
-        if !self.base.flags.is_absolutely_positioned() {
-            self.base.position = self.base.position.translate(&float_offset)
-                                                   .translate(&margin_offset);
+        if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            let mut origin = LogicalPoint::new(self.base.writing_mode,
+                                               self.hypothetical_position.i,
+                                               self.base.position.start.b);
+            origin = origin.add_point(&float_offset).add_point(&margin_offset);
+            self.base.position = LogicalRect::from_point_size(self.base.writing_mode,
+                                                              origin,
+                                                              self.base.position.size);
         }
     }
 
@@ -1213,7 +1228,7 @@ impl BlockFlow {
         self.fragment.border_box.size.block = block_size;
         self.base.position.size.block = block_size;
 
-        self.base.restyle_damage.remove(ReflowOutOfFlow | Reflow);
+        self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
     // Our inline-size was set to the inline-size of the containing block by the flow's parent.
@@ -1221,7 +1236,7 @@ impl BlockFlow {
     pub fn propagate_and_compute_used_inline_size(&mut self, layout_context: &LayoutContext) {
         let containing_block_inline_size = self.base.block_container_inline_size;
         self.compute_used_inline_size(layout_context, containing_block_inline_size);
-        if self.is_float() {
+        if self.base.flags.is_float() {
             self.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size;
         }
     }
@@ -1249,8 +1264,8 @@ impl BlockFlow {
             content_inline_size: Au,
             optional_column_inline_sizes: Option<&[ColumnInlineSize]>) {
         // Keep track of whether floats could impact each child.
-        let mut inline_start_floats_impact_child = self.base.flags.impacted_by_left_floats();
-        let mut inline_end_floats_impact_child = self.base.flags.impacted_by_right_floats();
+        let mut inline_start_floats_impact_child = self.base.flags.contains(IMPACTED_BY_LEFT_FLOATS);
+        let mut inline_end_floats_impact_child = self.base.flags.contains(IMPACTED_BY_RIGHT_FLOATS);
 
         let absolute_static_i_offset = if self.is_positioned() {
             // This flow is the containing block. The static inline offset will be the inline-start
@@ -1317,7 +1332,8 @@ impl BlockFlow {
             // and its inline-size is our content inline-size.
             {
                 let kid_base = flow::mut_base(kid);
-                if !kid_base.flags.is_absolutely_positioned() {
+                if !kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
+                        !kid_base.flags.is_float() {
                     kid_base.position.start.i = inline_start_content_edge
                 }
                 kid_base.block_container_inline_size = content_inline_size;
@@ -1327,11 +1343,11 @@ impl BlockFlow {
             }
 
             // Determine float impaction.
-            if flow::base(kid).flags.clears_left() {
+            if flow::base(kid).flags.contains(CLEARS_LEFT) {
                 inline_start_floats_impact_child = false;
                 inline_size_of_preceding_left_floats = Au(0);
             }
-            if flow::base(kid).flags.clears_right() {
+            if flow::base(kid).flags.contains(CLEARS_RIGHT) {
                 inline_end_floats_impact_child = false;
                 inline_size_of_preceding_right_floats = Au(0);
             }
@@ -1339,11 +1355,11 @@ impl BlockFlow {
             {
                 let kid_base = flow::mut_base(kid);
                 inline_start_floats_impact_child = inline_start_floats_impact_child ||
-                    kid_base.flags.has_left_floated_descendants();
+                    kid_base.flags.contains(HAS_LEFT_FLOATED_DESCENDANTS);
                 inline_end_floats_impact_child = inline_end_floats_impact_child ||
-                    kid_base.flags.has_right_floated_descendants();
-                kid_base.flags.set_impacted_by_left_floats(inline_start_floats_impact_child);
-                kid_base.flags.set_impacted_by_right_floats(inline_end_floats_impact_child);
+                    kid_base.flags.contains(HAS_RIGHT_FLOATED_DESCENDANTS);
+                kid_base.flags.set(IMPACTED_BY_LEFT_FLOATS, inline_start_floats_impact_child);
+                kid_base.flags.set(IMPACTED_BY_RIGHT_FLOATS, inline_end_floats_impact_child);
             }
 
             if kid.is_block_flow() {
@@ -1405,16 +1421,16 @@ impl BlockFlow {
     fn assign_inline_position_for_formatting_context(&mut self) {
         debug_assert!(self.formatting_context_type() != NonformattingContext);
 
-        if !self.base.restyle_damage.intersects(ReflowOutOfFlow | Reflow) {
+        if !self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
         }
 
         let info = PlacementInfo {
-            size: LogicalSize::new(
-                self.fragment.style.writing_mode,
-                self.base.position.size.inline + self.fragment.margin.inline_start_end() +
-                    self.fragment.border_padding.inline_start_end(),
-                self.fragment.border_box.size.block),
+            size: LogicalSize::new(self.fragment.style.writing_mode,
+                                   self.base.position.size.inline +
+                                        self.fragment.margin.inline_start_end() +
+                                        self.fragment.border_padding.inline_start_end(),
+                                   self.fragment.border_box.size.block),
             ceiling: self.base.position.start.b,
             max_inline_size: MAX_AU,
             kind: FloatLeft,
@@ -1422,10 +1438,12 @@ impl BlockFlow {
 
         // Offset our position by whatever displacement is needed to not impact the floats.
         let rect = self.base.floats.place_between_floats(&info);
-        self.base.position.start.i = self.base.position.start.i + rect.start.i;
+        self.base.position.start.i = self.hypothetical_position.i + rect.start.i;
 
         // TODO(pcwalton): If the inline-size of this flow is different from the size we estimated
         // earlier, lay it out again.
+
+        self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
     }
 
     fn is_inline_block(&self) -> bool {
@@ -1469,8 +1487,8 @@ impl Flow for BlockFlow {
         let _scope = layout_debug_scope!("block::bubble_inline_sizes {:x}", self.base.debug_id());
 
         let mut flags = self.base.flags;
-        flags.set_has_left_floated_descendants(false);
-        flags.set_has_right_floated_descendants(false);
+        flags.remove(HAS_LEFT_FLOATED_DESCENDANTS);
+        flags.remove(HAS_RIGHT_FLOATED_DESCENDANTS);
 
         // If this block has a fixed width, just use that for the minimum
         // and preferred width, rather than bubbling up children inline
@@ -1485,7 +1503,7 @@ impl Flow for BlockFlow {
         let mut left_float_width = Au(0);
         let mut right_float_width = Au(0);
         for kid in self.base.child_iter() {
-            let is_absolutely_positioned = flow::base(kid).flags.is_absolutely_positioned();
+            let is_absolutely_positioned = flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
             let child_base = flow::mut_base(kid);
             let float_kind = child_base.flags.float_kind();
             if !is_absolutely_positioned && !fixed_width {
@@ -1524,8 +1542,8 @@ impl Flow for BlockFlow {
 
         match self.fragment.style().get_box().float {
             float::none => {}
-            float::left => flags.set_has_left_floated_descendants(true),
-            float::right => flags.set_has_right_floated_descendants(true),
+            float::left => flags.insert(HAS_LEFT_FLOATED_DESCENDANTS),
+            float::right => flags.insert(HAS_RIGHT_FLOATED_DESCENDANTS),
         }
         self.base.flags = flags
     }
@@ -1538,12 +1556,12 @@ impl Flow for BlockFlow {
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("block::assign_inline_sizes {:x}", self.base.debug_id());
 
-        if !self.base.restyle_damage.intersects(ReflowOutOfFlow | Reflow) {
+        if !self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
         }
 
         debug!("assign_inline_sizes({}): assigning inline_size for flow",
-               if self.is_float() {
+               if self.base.flags.is_float() {
                    "float"
                } else {
                    "block"
@@ -1558,8 +1576,8 @@ impl Flow for BlockFlow {
                 self.base.writing_mode, layout_context.shared.screen_size).inline;
 
             // The root element is never impacted by floats.
-            self.base.flags.set_impacted_by_left_floats(false);
-            self.base.flags.set_impacted_by_right_floats(false);
+            self.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
+            self.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
         }
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
@@ -1570,8 +1588,8 @@ impl Flow for BlockFlow {
         match self.formatting_context_type() {
             NonformattingContext => {}
             BlockFormattingContext => {
-                self.base.flags.set_impacted_by_left_floats(false);
-                self.base.flags.set_impacted_by_right_floats(false);
+                self.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
+                self.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
 
                 // We can't actually compute the inline-size of this block now, because floats
                 // might affect it. Speculate that its inline-size is equal to the inline-size
@@ -1582,8 +1600,8 @@ impl Flow for BlockFlow {
                     self.inline_size_of_preceding_right_floats;
             }
             OtherFormattingContext => {
-                self.base.flags.set_impacted_by_left_floats(false);
-                self.base.flags.set_impacted_by_right_floats(false);
+                self.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
+                self.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
             }
         }
 
@@ -1598,28 +1616,26 @@ impl Flow for BlockFlow {
                                                         None);
     }
 
-    /// Assigns block-sizes in-order; or, if this is a float, places the float. The default
-    /// implementation simply assigns block-sizes if this flow is impacted by floats. Returns true
-    /// if this child affected the floats in the flow somehow or false otherwise; thus, if true,
-    /// then the parent flow is expected to take the `floats` member of this flow into account.
-    ///
-    /// This is called on child flows by the parent. Hence, we can assume that `assign_block_size`
-    /// has already been called on the child (because of the bottom-up traversal).
+    fn place_float_if_applicable<'a>(&mut self, _: &'a LayoutContext<'a>) {
+        if self.base.flags.is_float() {
+            self.place_float();
+        }
+    }
+
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
                                                             layout_context: &'a LayoutContext<'a>)
                                                             -> bool {
-        if self.is_float() {
-            self.place_float();
-            return true
+        if self.base.flags.is_float() {
+            return false
         }
 
         let is_formatting_context = self.formatting_context_type() != NonformattingContext;
-        if !self.base.flags.is_absolutely_positioned() && is_formatting_context {
+        if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) && is_formatting_context {
             self.assign_inline_position_for_formatting_context();
         }
 
         if self.base.flags.impacted_by_floats() {
-            if self.base.restyle_damage.intersects(ReflowOutOfFlow | Reflow) {
+            if self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
                 self.assign_block_size(layout_context);
                 // Don't remove the restyle damage; `assign_block_size` decides whether that is
                 // appropriate (which in the case of e.g. absolutely-positioned flows, it is not).
@@ -1648,10 +1664,10 @@ impl Flow for BlockFlow {
             let containing_block_block_size =
                 self.base.block_container_explicit_block_size.unwrap_or(Au(0));
             self.fragment.assign_replaced_block_size_if_necessary(containing_block_block_size);
-            if !self.base.flags.is_absolutely_positioned() {
+            if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 self.base.position.size.block = self.fragment.border_box.size.block;
             }
-        } else if self.is_root() || self.is_float() || self.is_inline_block() {
+        } else if self.is_root() || self.base.flags.is_float() || self.is_inline_block() {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
             debug!("assign_block_size: assigning block_size for root flow");
             self.assign_block_size_block_base(ctx, MarginsMayNotCollapse);
@@ -1666,27 +1682,25 @@ impl Flow for BlockFlow {
         let container_size = Size2D::zero();
 
         if self.is_root() {
-            self.base.clip_rect = MAX_RECT;
+            self.base.clip_rect = MAX_RECT
         }
 
-        if self.base.flags.is_absolutely_positioned() {
+        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             let position_start = self.base.position.start.to_physical(self.base.writing_mode,
                                                                       container_size);
-            self.base.absolute_position_info.absolute_containing_block_position =
-                if self.is_fixed() {
-                    // The viewport is initially at (0, 0).
-                    position_start
-                } else {
-                    // Absolute position of the containing block + position of absolute
-                    // flow w.r.t. the containing block.
-                    self.base.absolute_position_info.absolute_containing_block_position
-                        + position_start
-                };
 
-            // Set the absolute position, which will be passed down later as part
-            // of containing block details for absolute descendants.
-            self.base.abs_position =
-                self.base.absolute_position_info.absolute_containing_block_position;
+            // Compute our position relative to the nearest ancestor stacking context. This will be
+            // passed down later as part of containing block details for absolute descendants.
+            self.base.stacking_relative_position = if self.is_fixed() {
+                // The viewport is initially at (0, 0).
+                position_start
+            } else {
+                // Absolute position of the containing block + position of absolute
+                // flow w.r.t. the containing block.
+                self.base
+                    .absolute_position_info
+                    .stacking_relative_position_of_absolute_containing_block + position_start
+            }
         }
 
         // For relatively-positioned descendants, the containing block formed by a block is just
@@ -1697,32 +1711,52 @@ impl Flow for BlockFlow {
                                                  .absolute_position_info
                                                  .relative_containing_block_size);
         if self.is_positioned() {
-            self.base.absolute_position_info.absolute_containing_block_position =
-                self.base.abs_position
-                + (self.generated_containing_block_rect().start
-                   + relative_offset).to_physical(self.base.writing_mode, container_size)
+            self.base
+                .absolute_position_info
+                .stacking_relative_position_of_absolute_containing_block =
+                    self.base.stacking_relative_position +
+                    (self.generated_containing_block_rect().start +
+                     relative_offset).to_physical(self.base.writing_mode, container_size)
         }
 
         // Compute absolute position info for children.
-        let mut absolute_position_info = self.base.absolute_position_info;
-        absolute_position_info.relative_containing_block_size = self.fragment.content_box().size;
-        absolute_position_info.layers_needed_for_positioned_flows =
-            self.base.flags.layers_needed_for_descendants();
+        let absolute_position_info_for_children = AbsolutePositionInfo {
+            stacking_relative_position_of_absolute_containing_block:
+                if self.fragment.establishes_stacking_context() {
+                    let logical_border_width = self.fragment.style().logical_border_width();
+                    LogicalPoint::new(self.base.writing_mode,
+                                      logical_border_width.inline_start,
+                                      logical_border_width.block_start).to_physical(
+                                          self.base.writing_mode,
+                                          container_size)
+                } else {
+                    self.base
+                        .absolute_position_info
+                        .stacking_relative_position_of_absolute_containing_block
+                },
+            relative_containing_block_size: self.fragment.content_box().size,
+            layers_needed_for_positioned_flows: self.base.flags.contains(LAYERS_NEEDED_FOR_DESCENDANTS),
+        };
 
-        // Compute the clipping rectangle for children.
-        let this_position = self.base.abs_position;
-        let clip_rect = self.fragment.clip_rect_for_children(self.base.clip_rect, this_position);
+        // Compute the origin and clipping rectangle for children.
+        let origin_for_children = if self.fragment.establishes_stacking_context() {
+            ZERO_POINT
+        } else {
+            self.base.stacking_relative_position
+        };
+        let clip_rect = self.fragment.clip_rect_for_children(self.base.clip_rect,
+                                                             origin_for_children);
 
         // Process children.
         let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter() {
-            if !flow::base(kid).flags.is_absolutely_positioned() {
+            if !flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 let kid_base = flow::mut_base(kid);
-                kid_base.abs_position =
-                    this_position +
+                kid_base.stacking_relative_position =
+                    origin_for_children +
                     (kid_base.position.start + relative_offset).to_physical(writing_mode,
                                                                             container_size);
-                kid_base.absolute_position_info = absolute_position_info
+                kid_base.absolute_position_info = absolute_position_info_for_children
             }
 
             flow::mut_base(kid).clip_rect = clip_rect
@@ -1730,27 +1764,24 @@ impl Flow for BlockFlow {
 
         // Process absolute descendant links.
         for absolute_descendant in self.base.abs_descendants.iter() {
-            flow::mut_base(absolute_descendant).absolute_position_info = absolute_position_info
+            flow::mut_base(absolute_descendant).absolute_position_info =
+                absolute_position_info_for_children
         }
     }
 
     fn mark_as_root(&mut self) {
-        self.flags.insert(IsRoot)
+        self.flags.insert(IS_ROOT)
     }
 
     /// Return true if store overflow is delayed for this flow.
     ///
     /// Currently happens only for absolutely positioned flows.
     fn is_store_overflow_delayed(&mut self) -> bool {
-        self.base.flags.is_absolutely_positioned()
+        self.base.flags.contains(IS_ABSOLUTELY_POSITIONED)
     }
 
     fn is_root(&self) -> bool {
-        self.flags.contains(IsRoot)
-    }
-
-    fn is_float(&self) -> bool {
-        self.float.is_some()
+        self.flags.contains(IS_ROOT)
     }
 
     /// The 'position' property of this flow.
@@ -1783,7 +1814,7 @@ impl Flow for BlockFlow {
     }
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
-        if self.base.flags.is_absolutely_positioned() &&
+        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                 self.fragment.style().logical_position().inline_start == LPA_Auto &&
                 self.fragment.style().logical_position().inline_end == LPA_Auto {
             self.base.position.start.i = inline_position
@@ -1791,7 +1822,7 @@ impl Flow for BlockFlow {
     }
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
-        if self.base.flags.is_absolutely_positioned() &&
+        if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                 self.fragment.style().logical_position().block_start == LPA_Auto &&
                 self.fragment.style().logical_position().block_end == LPA_Auto {
             self.base.position.start.b = block_position
@@ -1799,11 +1830,11 @@ impl Flow for BlockFlow {
     }
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        if self.is_float() {
+        if self.base.flags.is_float() {
             // TODO(#2009, pcwalton): This is a pseudo-stacking context. We need to merge `z-index:
             // auto` kids into the parent stacking context, when that is supported.
             self.build_display_list_for_floating_block(layout_context)
-        } else if self.base.flags.is_absolutely_positioned() {
+        } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             self.build_display_list_for_absolutely_positioned_block(layout_context)
         } else {
             self.build_display_list_for_block(layout_context, BlockLevel)
@@ -1820,9 +1851,10 @@ impl Flow for BlockFlow {
 
     fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
         if iterator.should_process(&self.fragment) {
-            let fragment_origin = self.base.child_fragment_absolute_position(&self.fragment);
+            let fragment_origin =
+                self.base.stacking_relative_position_of_child_fragment(&self.fragment);
             iterator.process(&self.fragment,
-                             self.fragment.abs_bounds_from_origin(&fragment_origin));
+                             self.fragment.stacking_relative_bounds(&fragment_origin));
         }
     }
 }
@@ -1990,7 +2022,6 @@ pub trait ISizeAndMarginsComputer {
         // We also resize the block itself, to ensure that overflow is not calculated
         // as the inline-size of our parent. We might be smaller and we might be larger if we
         // overflow.
-
         flow::mut_base(block).position.size.inline = inline_size + extra_inline_size_from_margin;
     }
 
@@ -2329,7 +2360,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
 
         let inline_size = match computed_inline_size {
             Specified(w) => w,
-            _ => fail!("{} {}",
+            _ => panic!("{} {}",
                        "The used value for inline_size for absolute replaced flow",
                        "should have already been calculated by now.")
         };
@@ -2440,7 +2471,7 @@ impl ISizeAndMarginsComputer for BlockReplaced {
                                      -> ISizeConstraintSolution {
         match input.computed_inline_size {
             Specified(_) => {},
-            Auto => fail!("BlockReplaced: inline_size should have been computed by now")
+            Auto => panic!("BlockReplaced: inline_size should have been computed by now")
         };
         self.solve_block_inline_size_constraints(block, input)
     }
@@ -2495,7 +2526,7 @@ impl ISizeAndMarginsComputer for FloatReplaced {
         let margin_inline_end = inline_end_margin.specified_or_zero();
         let inline_size = match computed_inline_size {
             Specified(w) => w,
-            Auto => fail!("FloatReplaced: inline_size should have been computed by now")
+            Auto => panic!("FloatReplaced: inline_size should have been computed by now")
         };
         debug!("assign_inline_sizes_float -- inline_size: {}", inline_size);
         ISizeConstraintSolution::new(inline_size, margin_inline_start, margin_inline_end)

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::iter::Iterator;
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
 use url::Url;
 
 use encoding::EncodingRef;
@@ -131,7 +131,7 @@ impl Stylesheet {
 
 pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut Vec<CSSRule>,
                         namespaces: &NamespaceMap, base_url: &Url) {
-    let QualifiedRule{location: location, prelude: prelude, block: block} = rule;
+    let QualifiedRule { location, prelude, block} = rule;
     // FIXME: avoid doing this for valid selectors
     let serialized = prelude.iter().to_css();
     match selectors::parse_selector_list(prelude.into_iter(), namespaces) {

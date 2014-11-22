@@ -7,7 +7,7 @@
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpers, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::namednodemap::NamedNodeMap;
-use dom::bindings::cell::{DOMRefCell, Ref, RefMut};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -26,7 +26,7 @@ use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
-use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
 use dom::htmlserializer::serialize;
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
@@ -40,7 +40,8 @@ use style;
 use servo_util::namespace;
 use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
+use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
 use string_cache::{Atom, Namespace, QualName};
@@ -231,17 +232,24 @@ pub trait RawLayoutElementHelpers {
                                                -> Option<i32>;
 }
 
+#[inline]
+#[allow(unrooted_must_root)]
+unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name: &Atom) -> Option<&'a JS<Attr>> {
+    // cast to point to T in RefCell<T> directly
+    let attrs: *const Vec<JS<Attr>> = mem::transmute(&elem.attrs);
+    (*attrs).iter().find(|attr: & &JS<Attr>| {
+        let attr = attr.unsafe_get();
+        *name == (*attr).local_name_atom_forever() &&
+        (*attr).namespace() == namespace
+    })
+}
+
 impl RawLayoutElementHelpers for Element {
     #[inline]
     #[allow(unrooted_must_root)]
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                           -> Option<&'a str> {
-        let attrs = self.attrs.borrow_for_layout();
-        (*attrs).iter().find(|attr: & &JS<Attr>| {
-            let attr = attr.unsafe_get();
-            *name == (*attr).local_name_atom_forever() &&
-            (*attr).namespace() == namespace
-        }).map(|attr| {
+        get_attr_for_layout(self, namespace, name).map(|attr| {
             let attr = attr.unsafe_get();
             (*attr).value_ref_forever()
         })
@@ -311,7 +319,7 @@ impl RawLayoutElementHelpers for Element {
         match length_attribute {
             WidthLengthAttribute => {
                 if !self.is_htmltablecellelement() {
-                    fail!("I'm not a table cell!")
+                    panic!("I'm not a table cell!")
                 }
                 let this: &HTMLTableCellElement = mem::transmute(self);
                 this.get_width()
@@ -326,7 +334,7 @@ impl RawLayoutElementHelpers for Element {
         match integer_attribute {
             SizeIntegerAttribute => {
                 if !self.is_htmlinputelement() {
-                    fail!("I'm not a form input!")
+                    panic!("I'm not a form input!")
                 }
                 let this: &HTMLInputElement = mem::transmute(self);
                 Some(this.get_size_for_layout() as i32)
@@ -337,6 +345,7 @@ impl RawLayoutElementHelpers for Element {
 
 pub trait LayoutElementHelpers {
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool;
+    unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
 }
 
 impl LayoutElementHelpers for JS<Element> {
@@ -348,6 +357,10 @@ impl LayoutElementHelpers for JS<Element> {
         }
         let node: JS<Node> = self.transmute_copy();
         node.owner_doc_for_layout().is_html_document_for_layout()
+    }
+
+    unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool {
+        get_attr_for_layout(&*self.unsafe_get(), namespace, name).is_some()
     }
 }
 
@@ -624,7 +637,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             Some(attribute) => {
                 match *attribute.value() {
                     UIntAttrValue(_, value) => value,
-                    _ => fail!("Expected a UIntAttrValue"),
+                    _ => panic!("Expected a UIntAttrValue"),
                 }
             }
             None => 0,
@@ -1131,7 +1144,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
             let attr = attr.root();
             match *attr.value() {
                 AtomAttrValue(ref val) => val.clone(),
-                _ => fail!("`id` attribute should be AtomAttrValue"),
+                _ => panic!("`id` attribute should be AtomAttrValue"),
             }
         })
     }

@@ -4,9 +4,9 @@
 
 #![feature(default_type_params, globs, phase)]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
-extern crate debug;
 extern crate collections;
 extern crate geom;
 extern crate http;
@@ -37,6 +37,7 @@ pub mod data_loader;
 pub mod image_cache_task;
 pub mod local_image_cache;
 pub mod resource_task;
+mod sniffer_task;
 
 /// An implementation of the [Fetch spec](http://fetch.spec.whatwg.org/)
 pub mod fetch {

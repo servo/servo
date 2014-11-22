@@ -4,7 +4,7 @@
 
 //! Timing functions.
 
-use collections::treemap::TreeMap;
+use collections::TreeMap;
 use std::comm::{Sender, channel, Receiver};
 use std::f64;
 use std::io::timer::sleep;
@@ -196,7 +196,7 @@ impl TimeProfiler {
     }
 
     fn find_or_insert(&mut self, k: (TimeProfilerCategory, Option<TimerMetadata>), t: f64) {
-        match self.buckets.find_mut(&k) {
+        match self.buckets.get_mut(&k) {
             None => {},
             Some(v) => { v.push(t); return; },
         }

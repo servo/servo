@@ -5,7 +5,7 @@
 //! Small vectors in various sizes. These store a certain number of elements inline and fall back
 //! to the heap for larger allocations.
 
-use std::mem::init as i;
+use std::mem::zeroed as i;
 use std::cmp;
 use std::fmt;
 use std::intrinsics;
@@ -153,7 +153,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
             let last_index = self.len() - 1;
 
             if (last_index as int) < 0 {
-                fail!("overflow")
+                panic!("overflow")
             }
             let end_ptr = self.begin().offset(last_index as int);
 
@@ -239,7 +239,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
     }
 
     fn fail_bounds_check(&self, index: uint) {
-        fail!("index {} beyond length ({})", index, self.len())
+        panic!("index {} beyond length ({})", index, self.len())
     }
 }
 

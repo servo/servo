@@ -13,7 +13,7 @@ pub type CSSFloat = f64;
 pub static DEFAULT_LINE_HEIGHT: CSSFloat = 1.14;
 
 pub mod specified {
-    use std::ascii::StrAsciiExt;
+    use std::ascii::AsciiExt;
     use std::f64::consts::PI;
     use url::Url;
     use cssparser::ast;
@@ -42,12 +42,12 @@ pub mod specified {
 //        Vmin(CSSFloat),
 //        Vmax(CSSFloat),
     }
-    static AU_PER_PX: CSSFloat = 60.;
-    static AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
-    static AU_PER_CM: CSSFloat = AU_PER_IN / 2.54;
-    static AU_PER_MM: CSSFloat = AU_PER_IN / 25.4;
-    static AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
-    static AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
+    const AU_PER_PX: CSSFloat = 60.;
+    const AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
+    const AU_PER_CM: CSSFloat = AU_PER_IN / 2.54;
+    const AU_PER_MM: CSSFloat = AU_PER_IN / 25.4;
+    const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
+    const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
     impl Length {
         #[inline]
         fn parse_internal(input: &ComponentValue, negative_ok: bool) -> Result<Length, ()> {

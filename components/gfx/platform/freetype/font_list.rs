@@ -75,13 +75,13 @@ pub fn get_variations_for_family(family_name: &str, callback: |String|) {
             let file = if FcPatternGetString(*font, FC_FILE.as_ptr() as *mut i8, 0, &mut file) == FcResultMatch {
                 string::raw::from_buf(file as *const i8 as *const u8)
             } else {
-                fail!();
+                panic!();
             };
             let mut index: libc::c_int = 0;
             let index = if FcPatternGetInteger(*font, FC_INDEX.as_ptr() as *mut i8, 0, &mut index) == FcResultMatch {
                 index
             } else {
-                fail!();
+                panic!();
             };
 
             debug!("variation file: {}", file);

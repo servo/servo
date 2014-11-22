@@ -58,7 +58,7 @@ impl LintPass for TransmutePass {
                             cx.span_lint(TRANSMUTE_TYPE_LINT, ex.span,
                                          format!("Transmute from {} to {} detected",
                                                  expr_ty(tcx, ex).repr(tcx),
-                                                 expr_ty(tcx, &**args.get(0)).repr(tcx)
+                                                 expr_ty(tcx, &**args.get(0).unwrap()).repr(tcx)
                                         ).as_slice());
                         }
                     }
@@ -75,7 +75,7 @@ impl LintPass for TransmutePass {
 // TODO (#3874, sort of): unwrap other types like Vec/Option/HashMap/etc
 fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
     match ty.node {
-        ast::TyBox(ref t) | ast::TyUniq(ref t) |
+        ast::TyUniq(ref t) |
         ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
         ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) => lint_unrooted_ty(cx, &**t, warning),
         ast::TyPath(_, _, id) => {
@@ -162,7 +162,7 @@ impl LintPass for UnrootedPass {
                 // We need not check arms individually since enum/struct fields are already
                 // linted in `check_struct_def` and `check_variant`
                 // (so there is no way of destructuring out a `#[must_root]` field)
-                ast::ExprMatch(ref e, _) |
+                ast::ExprMatch(ref e, _, _) |
                 // For loops allow you to bind a return value locally
                 ast::ExprForLoop(_, ref e, _, _) => &**e,
                 // XXXManishearth look into `if let` once it lands in our rustc

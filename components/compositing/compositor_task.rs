@@ -25,7 +25,6 @@ use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
 use std::fmt::{FormatError, Formatter, Show};
 use std::rc::Rc;
-use url::Url;
 
 /// Sends messages to the compositor. This is a trait supplied by the port because the method used
 /// to communicate with the compositor may have to kick OS event loops awake, communicate cross-
@@ -191,8 +190,8 @@ pub enum Msg {
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// Sends an updated version of the frame tree.
     FrameTreeUpdateMsg(FrameTreeDiff, Sender<()>),
-    /// The load of a page for a given URL has completed.
-    LoadComplete(PipelineId, Url),
+    /// The load of a page has completed.
+    LoadComplete,
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
     /// composite should happen. (See the `scrolling` module.)
     ScrollTimeout(u64),
@@ -214,7 +213,7 @@ impl Show for Msg {
             RenderMsgDiscarded(..) => write!(f, "RenderMsgDiscarded"),
             SetIds(..) => write!(f, "SetIds"),
             FrameTreeUpdateMsg(..) => write!(f, "FrameTreeUpdateMsg"),
-            LoadComplete(..) => write!(f, "LoadComplete"),
+            LoadComplete => write!(f, "LoadComplete"),
             ScrollTimeout(..) => write!(f, "ScrollTimeout"),
         }
     }

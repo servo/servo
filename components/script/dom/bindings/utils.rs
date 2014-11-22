@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![deny(missing_doc)]
+#![deny(missing_docs)]
 
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
@@ -19,7 +19,6 @@ use libc;
 use libc::c_uint;
 use std::cell::Cell;
 use std::mem;
-use std::cmp::PartialEq;
 use std::ptr;
 use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
 use js::glue::{UnwrapObject, GetProxyHandlerExtra};
@@ -167,23 +166,23 @@ pub unsafe fn squirrel_away_unique<T>(x: Box<T>) -> *const T {
 /// stored for non-proxy bindings.
 // We use slot 0 for holding the raw object.  This is safe for both
 // globals and non-globals.
-pub static DOM_OBJECT_SLOT: uint = 0;
-static DOM_PROXY_OBJECT_SLOT: uint = js::JSSLOT_PROXY_PRIVATE as uint;
+pub const DOM_OBJECT_SLOT: uint = 0;
+const DOM_PROXY_OBJECT_SLOT: uint = js::JSSLOT_PROXY_PRIVATE as uint;
 
 // NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
 // LSetDOMProperty. Those constants need to be changed accordingly if this value
 // changes.
-static DOM_PROTO_INSTANCE_CLASS_SLOT: u32 = 0;
+const DOM_PROTO_INSTANCE_CLASS_SLOT: u32 = 0;
 
 /// The index of the slot that contains a reference to the ProtoOrIfaceArray.
 // All DOM globals must have a slot at DOM_PROTOTYPE_SLOT.
-pub static DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
+pub const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 
 /// The flag set on the `JSClass`es for DOM global objects.
 // NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
 // LSetDOMProperty. Those constants need to be changed accordingly if this value
 // changes.
-pub static JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
+pub const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
 /// Representation of an IDL constant value.
 #[deriving(Clone)]
@@ -470,13 +469,11 @@ impl Reflector {
         self.object.set(object);
     }
 
-    /// Return a pointer to the memory location at which the JS reflector object is stored.
-    /// Used by Temporary values to root the reflector, as required by the JSAPI rooting
-    /// APIs.
-    pub fn rootable(&self) -> *mut *mut JSObject {
-        &self.object as *const Cell<*mut JSObject>
-                     as *mut Cell<*mut JSObject>
-                     as *mut *mut JSObject
+    /// Return a pointer to the memory location at which the JS reflector
+    /// object is stored. Used by Temporary values to root the reflector, as
+    /// required by the JSAPI rooting APIs.
+    pub unsafe fn rootable(&self) -> *mut *mut JSObject {
+        self.object.as_unsafe_cell().get()
     }
 
     /// Create an uninitialized `Reflector`.
@@ -677,7 +674,7 @@ pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
 
 /// Results of `xml_name_type`.
 #[deriving(PartialEq)]
-#[allow(missing_doc)]
+#[allow(missing_docs)]
 pub enum XMLName {
     QName,
     Name,
@@ -690,21 +687,21 @@ pub fn xml_name_type(name: &str) -> XMLName {
     fn is_valid_start(c: char) -> bool {
         match c {
             ':' |
-            'A' .. 'Z' |
+            'A' ... 'Z' |
             '_' |
-            'a' .. 'z' |
-            '\xC0' .. '\xD6' |
-            '\xD8' .. '\xF6' |
-            '\xF8' .. '\u02FF' |
-            '\u0370' .. '\u037D' |
-            '\u037F' .. '\u1FFF' |
-            '\u200C' .. '\u200D' |
-            '\u2070' .. '\u218F' |
-            '\u2C00' .. '\u2FEF' |
-            '\u3001' .. '\uD7FF' |
-            '\uF900' .. '\uFDCF' |
-            '\uFDF0' .. '\uFFFD' |
-            '\U00010000' .. '\U000EFFFF' => true,
+            'a' ... 'z' |
+            '\u00C0' ... '\u00D6' |
+            '\u00D8' ... '\u00F6' |
+            '\u00F8' ... '\u02FF' |
+            '\u0370' ... '\u037D' |
+            '\u037F' ... '\u1FFF' |
+            '\u200C' ... '\u200D' |
+            '\u2070' ... '\u218F' |
+            '\u2C00' ... '\u2FEF' |
+            '\u3001' ... '\uD7FF' |
+            '\uF900' ... '\uFDCF' |
+            '\uFDF0' ... '\uFFFD' |
+            '\U00010000' ... '\U000EFFFF' => true,
             _ => false,
         }
     }
@@ -713,10 +710,10 @@ pub fn xml_name_type(name: &str) -> XMLName {
         is_valid_start(c) || match c {
             '-' |
             '.' |
-            '0' .. '9' |
-            '\xB7' |
-            '\u0300' .. '\u036F' |
-            '\u203F' .. '\u2040' => true,
+            '0' ... '9' |
+            '\u00B7' |
+            '\u0300' ... '\u036F' |
+            '\u203F' ... '\u2040' => true,
             _ => false,
         }
     }

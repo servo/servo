@@ -11,7 +11,7 @@
 //!
 //! Hereafter this document is referred to as INTRINSIC.
 
-#![deny(unsafe_block)]
+#![deny(unsafe_blocks)]
 
 use block::{BlockFlow, BlockNonReplaced, FloatNonReplaced, ISizeAndMarginsComputer};
 use block::{MarginsMayNotCollapse};
@@ -19,6 +19,7 @@ use construct::FlowConstructor;
 use context::LayoutContext;
 use floats::FloatKind;
 use flow::{TableWrapperFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use fragment::{Fragment, FragmentBoundsIterator};
 use table::ColumnInlineSize;
 use wrapper::ThreadSafeLayoutNode;
@@ -190,7 +191,7 @@ impl TableWrapperFlow {
                                 layout_context: &LayoutContext,
                                 parent_flow_inline_size: Au) {
         // Delegate to the appropriate inline size computer to find the constraint inputs.
-        let input = if self.is_float() {
+        let input = if self.block_flow.base.flags.is_float() {
             FloatNonReplaced.compute_inline_size_constraint_inputs(&mut self.block_flow,
                                                                    parent_flow_inline_size,
                                                                    layout_context)
@@ -201,7 +202,7 @@ impl TableWrapperFlow {
         };
 
         // Delegate to the appropriate inline size computer to write the constraint solutions in.
-        if self.is_float() {
+        if self.block_flow.base.flags.is_float() {
             let solution = FloatNonReplaced.solve_inline_size_constraints(&mut self.block_flow,
                                                                           &input);
             FloatNonReplaced.set_inline_size_constraint_solutions(&mut self.block_flow, solution);
@@ -218,10 +219,6 @@ impl TableWrapperFlow {
 impl Flow for TableWrapperFlow {
     fn class(&self) -> FlowClass {
         TableWrapperFlowClass
-    }
-
-    fn is_float(&self) -> bool {
-        self.block_flow.is_float()
     }
 
     fn as_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
@@ -250,7 +247,7 @@ impl Flow for TableWrapperFlow {
 
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         debug!("assign_inline_sizes({}): assigning inline_size for flow",
-               if self.is_float() {
+               if self.block_flow.base.flags.is_float() {
                    "floated table_wrapper"
                } else {
                    "table_wrapper"
@@ -260,13 +257,13 @@ impl Flow for TableWrapperFlow {
 
         // Table wrappers are essentially block formatting contexts and are therefore never
         // impacted by floats.
-        self.block_flow.base.flags.set_impacted_by_left_floats(false);
-        self.block_flow.base.flags.set_impacted_by_right_floats(false);
+        self.block_flow.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
+        self.block_flow.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
 
         // Our inline-size was set to the inline-size of the containing block by the flow's parent.
         // Now compute the real value.
         let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
-        if self.is_float() {
+        if self.block_flow.base.flags.is_float() {
             self.block_flow.float.as_mut().unwrap().containing_inline_size =
                 containing_block_inline_size;
         }
@@ -304,10 +301,14 @@ impl Flow for TableWrapperFlow {
         self.block_flow.compute_absolute_position()
     }
 
+    fn place_float_if_applicable<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+        self.block_flow.place_float_if_applicable(layout_context)
+    }
+
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
                                                             layout_context: &'a LayoutContext<'a>)
                                                             -> bool {
-        if self.block_flow.is_float() {
+        if self.block_flow.base.flags.is_float() {
             self.block_flow.place_float();
             return true
         }
@@ -342,7 +343,7 @@ impl Flow for TableWrapperFlow {
 
 impl fmt::Show for TableWrapperFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.is_float() {
+        if self.block_flow.base.flags.is_float() {
             write!(f, "TableWrapperFlow(Float): {}", self.block_flow.fragment)
         } else {
             write!(f, "TableWrapperFlow: {}", self.block_flow.fragment)

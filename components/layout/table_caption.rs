@@ -4,7 +4,7 @@
 
 //! CSS table formatting contexts.
 
-#![deny(unsafe_block)]
+#![deny(unsafe_blocks)]
 
 use block::BlockFlow;
 use construct::FlowConstructor;
@@ -82,7 +82,7 @@ impl Flow for TableCaptionFlow {
     }
 
     fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
-        self.iterate_through_fragment_bounds(iterator);
+        self.block_flow.iterate_through_fragment_bounds(iterator);
     }
 }
 

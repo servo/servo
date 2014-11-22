@@ -78,7 +78,7 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
         match self.filter {
             FilterNone => None,
             FilterJS(nf) => Some(nf),
-            FilterNative(_) => fail!("Cannot convert native node filter to DOM NodeFilter")
+            FilterNative(_) => panic!("Cannot convert native node filter to DOM NodeFilter")
         }
     }
 
@@ -559,20 +559,20 @@ pub enum Filter {
 // FIXME: NodeFilterConstants will be defined in NodeFilterBindings.rs
 // when codegen supports a callback interface with constants (#3149).
 pub mod NodeFilterConstants {
-  pub static FILTER_ACCEPT: u16 = 1;
-  pub static FILTER_REJECT: u16 = 2;
-  pub static FILTER_SKIP: u16 = 3;
-  pub static SHOW_ALL: u32 = 4294967295;
-  pub static SHOW_ELEMENT: u32 = 1;
-  pub static SHOW_ATTRIBUTE: u32 = 2;
-  pub static SHOW_TEXT: u32 = 4;
-  pub static SHOW_CDATA_SECTION: u32 = 8;
-  pub static SHOW_ENTITY_REFERENCE: u32 = 16;
-  pub static SHOW_ENTITY: u32 = 32;
-  pub static SHOW_PROCESSING_INSTRUCTION: u32 = 64;
-  pub static SHOW_COMMENT: u32 = 128;
-  pub static SHOW_DOCUMENT: u32 = 256;
-  pub static SHOW_DOCUMENT_TYPE: u32 = 512;
-  pub static SHOW_DOCUMENT_FRAGMENT: u32 = 1024;
-  pub static SHOW_NOTATION: u32 = 2048;
+  pub const FILTER_ACCEPT: u16 = 1;
+  pub const FILTER_REJECT: u16 = 2;
+  pub const FILTER_SKIP: u16 = 3;
+  pub const SHOW_ALL: u32 = 4294967295;
+  pub const SHOW_ELEMENT: u32 = 1;
+  pub const SHOW_ATTRIBUTE: u32 = 2;
+  pub const SHOW_TEXT: u32 = 4;
+  pub const SHOW_CDATA_SECTION: u32 = 8;
+  pub const SHOW_ENTITY_REFERENCE: u32 = 16;
+  pub const SHOW_ENTITY: u32 = 32;
+  pub const SHOW_PROCESSING_INSTRUCTION: u32 = 64;
+  pub const SHOW_COMMENT: u32 = 128;
+  pub const SHOW_DOCUMENT: u32 = 256;
+  pub const SHOW_DOCUMENT_TYPE: u32 = 512;
+  pub const SHOW_DOCUMENT_FRAGMENT: u32 = 1024;
+  pub const SHOW_NOTATION: u32 = 2048;
 } // mod NodeFilterConstants

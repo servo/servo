@@ -13,13 +13,13 @@ pub use self::imp::{initialize, get, enter, exit};
 bitflags! {
     #[deriving(Show)]
     flags TaskState: u32 {
-        static Script        = 0x01,
-        static Layout        = 0x02,
-        static Render        = 0x04,
+        const SCRIPT          = 0x01,
+        const LAYOUT          = 0x02,
+        const RENDER          = 0x04,
 
-        static InWorker      = 0x0100,
-        static InGC          = 0x0200,
-        static InHTMLParser  = 0x0400,
+        const IN_WORKER       = 0x0100,
+        const IN_GC           = 0x0200,
+        const IN_HTML_PARSER  = 0x0400,
     }
 }
 
@@ -38,9 +38,9 @@ macro_rules! task_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
 ))
 
 task_types! {
-    is_script = Script;
-    is_layout = Layout;
-    is_render = Render;
+    is_script = SCRIPT;
+    is_layout = LAYOUT;
+    is_render = RENDER;
 }
 
 #[cfg(not(ndebug))]
@@ -52,14 +52,14 @@ mod imp {
     pub fn initialize(x: TaskState) {
         match STATE.replace(Some(x)) {
             None => (),
-            Some(s) => fail!("Task state already initialized as {}", s),
+            Some(s) => panic!("Task state already initialized as {}", s),
         };
         get(); // check the assertion below
     }
 
     pub fn get() -> TaskState {
         let state = match STATE.get() {
-            None => fail!("Task state not initialized"),
+            None => panic!("Task state not initialized"),
             Some(s) => *s,
         };
 

@@ -15,17 +15,16 @@ In particular, this folder contains:
 Running the tests
 =================
 
-The simplest way to run the tests in Servo is `./mach test` in the root
+The simplest way to run the tests in Servo is `./mach test-wpt` in the root
 directory. This will run the subset of JavaScript tests defined in
 `include.ini` and log the output to stdout.
 
-Options can be passed through to `run.sh` by using the `WPTARGS` environment
-variable. Some useful options are:
+Some of the arguments of `./mach test-wpt` include:
 
 * `--include`: specifies which test(s) to run.
   For example, `--include=/dom` runs all the DOM tests, `--include=/dom/errors`
   runs all the DOM error tests and
-  `--include=/dom/errors/DOMException-constants.html` runs one specific test.
+  `--include=/dom/errors/DOMException-constants.html` runs one specific test. Paths should be relative to the `web-platform-tests` submodule.
   (Note that this overrides `include.ini` completely.)
 * `--processes`: specifies the number of parallel processes to use (default 1).
   When this argument is passed, the runner will spawn multiple instances of

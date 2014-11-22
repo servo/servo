@@ -54,11 +54,11 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         #[jstraceable]
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
-            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
-                static tag_names: StaticStringVec = &["button", "fieldset", "input",
+            fn filter<'a>(&self, elem: JSRef<'a, Element>, root: JSRef<'a, Node>) -> bool {
+                static TAG_NAMES: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
                 let root: JSRef<Element> = ElementCast::to_ref(root).unwrap();
-                elem != root && tag_names.iter().any(|&tag_name| tag_name == elem.local_name().as_slice())
+                elem != root && TAG_NAMES.iter().any(|&tag_name| tag_name == elem.local_name().as_slice())
             }
         }
         let node: JSRef<Node> = NodeCast::from_ref(self);

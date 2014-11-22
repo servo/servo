@@ -5,6 +5,7 @@
 use pipeline::{Pipeline, CompositionPipeline};
 
 use compositor_task::{CompositorProxy, FrameTreeUpdateMsg, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
+use devtools_traits;
 use devtools_traits::DevtoolsControlChan;
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
@@ -13,7 +14,8 @@ use gfx::render_task;
 use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutTaskFactory, ExitNowMsg};
 use libc;
-use script_traits::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg};
+use script_traits;
+use script_traits::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg, SendEventMsg};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
@@ -21,6 +23,7 @@ use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLo
 use servo_msg::constellation_msg::{LoadCompleteMsg, LoadUrlMsg, LoadData, Msg, NavigateMsg};
 use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
 use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SubpageId, WindowSizeData};
+use servo_msg::constellation_msg::{KeyEvent, Key, KeyState, KeyModifiers};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
@@ -30,7 +33,7 @@ use servo_util::opts;
 use servo_util::task::spawn_named;
 use servo_util::time::TimeProfilerChan;
 use std::cell::{Cell, RefCell};
-use std::collections::hashmap::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::io;
 use std::mem::replace;
 use std::rc::Rc;
@@ -89,11 +92,8 @@ struct FrameTree {
 impl FrameTree {
     fn new(pipeline: Rc<Pipeline>, parent_pipeline: Option<Rc<Pipeline>>) -> FrameTree {
         FrameTree {
-            pipeline: pipeline.clone(),
-            parent: match parent_pipeline {
-                Some(ref pipeline) => RefCell::new(Some(pipeline.clone())),
-                None => RefCell::new(None),
-            },
+            pipeline: pipeline,
+            parent: RefCell::new(parent_pipeline),
             children: RefCell::new(vec!()),
             has_compositor_layer: Cell::new(false),
         }
@@ -144,15 +144,14 @@ pub struct FrameTreeDiff {
 
 impl FrameTree {
     fn to_sendable(&self) -> SendableFrameTree {
-        let sendable_frame_tree = SendableFrameTree {
+        SendableFrameTree {
             pipeline: self.pipeline.to_sendable(),
             children: self.children
                           .borrow()
                           .iter()
                           .map(|frame_tree| frame_tree.to_sendable())
                           .collect(),
-        };
-        sendable_frame_tree
+        }
     }
 }
 
@@ -178,11 +177,14 @@ impl FrameTreeTraversal for Rc<FrameTree> {
     fn replace_child(&self, id: PipelineId, new_child: Rc<FrameTree>) -> ReplaceResult {
         for frame_tree in self.iter() {
             let mut children = frame_tree.children.borrow_mut();
-            let mut child = children.iter_mut()
+            let child = children.iter_mut()
                 .find(|child| child.frame_tree.pipeline.id == id);
-            for child in child.iter_mut() {
-                *new_child.parent.borrow_mut() = child.frame_tree.parent.borrow().clone();
-                return ReplacedNode(replace(&mut child.frame_tree, new_child));
+            match child {
+                Some(child) => {
+                    *new_child.parent.borrow_mut() = child.frame_tree.parent.borrow().clone();
+                    return ReplacedNode(replace(&mut child.frame_tree, new_child));
+                }
+                None => (),
             }
         }
         OriginalNode(new_child)
@@ -213,14 +215,14 @@ struct FrameTreeIterator {
 
 impl Iterator<Rc<FrameTree>> for FrameTreeIterator {
     fn next(&mut self) -> Option<Rc<FrameTree>> {
-        if !self.stack.is_empty() {
-            let next = self.stack.pop();
-            for cft in next.as_ref().unwrap().children.borrow().iter() {
-                self.stack.push(cft.frame_tree.clone());
+        match self.stack.pop() {
+            Some(next) => {
+                for cft in next.children.borrow().iter() {
+                    self.stack.push(cft.frame_tree.clone());
+                }
+                Some(next)
             }
-            Some(next.unwrap())
-        } else {
-            None
+            None => None,
         }
     }
 }
@@ -267,12 +269,13 @@ impl NavigationContext {
 
     /// Loads a new set of page frames, returning all evicted frame trees
     fn load(&mut self, frame_tree: Rc<FrameTree>) -> Vec<Rc<FrameTree>> {
-        debug!("navigating to {:?}", frame_tree.pipeline.id);
+        debug!("navigating to {}", frame_tree.pipeline.id);
         let evicted = replace(&mut self.next, vec!());
-        if self.current.is_some() {
-            self.previous.push(self.current.take().unwrap());
+        match self.current.take() {
+            Some(current) => self.previous.push(current),
+            None => (),
         }
-        self.current = Some(frame_tree.clone());
+        self.current = Some(frame_tree);
         evicted
     }
 
@@ -387,11 +390,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     /// Returns both the navigation context and pending frame trees whose keys are pipeline_id.
     fn find_all(&mut self, pipeline_id: PipelineId) -> Vec<Rc<FrameTree>> {
-        let matching_navi_frames = self.navigation_context.find_all(pipeline_id);
-        let matching_pending_frames = self.pending_frames.iter().filter_map(|frame_change| {
+        let mut matching_navi_frames = self.navigation_context.find_all(pipeline_id);
+        matching_navi_frames.extend(self.pending_frames.iter().filter_map(|frame_change| {
             frame_change.after.find(pipeline_id)
-        });
-        matching_navi_frames.into_iter().chain(matching_pending_frames).collect()
+        }));
+        matching_navi_frames
     }
 
     /// Handles loading pages, navigation, and granting access to the compositor
@@ -432,9 +435,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
             // A page loaded through one of several methods above has completed all parsing,
             // script, and reflow messages have been sent.
-            LoadCompleteMsg(pipeline_id, url) => {
+            LoadCompleteMsg => {
                 debug!("constellation got load complete message");
-                self.compositor_proxy.send(LoadComplete(pipeline_id, url));
+                self.compositor_proxy.send(LoadComplete);
             }
             // Handle a forward or back request
             NavigateMsg(direction) => {
@@ -450,6 +453,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got window resize message");
                 self.handle_resized_window_msg(new_size);
             }
+            KeyEvent(key, state, modifiers) => {
+                debug!("constellation got key event message");
+                self.handle_key_msg(key, state, modifiers);
+            }
         }
         true
     }
@@ -460,12 +467,15 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
         self.image_cache_task.exit();
         self.resource_task.send(resource_task::Exit);
+        self.devtools_chan.as_ref().map(|chan| {
+            chan.send(devtools_traits::ServerExitMsg);
+        });
         self.font_cache_task.exit();
         self.compositor_proxy.send(ShutdownComplete);
     }
 
     fn handle_failure_msg(&mut self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>) {
-        debug!("handling failure message from pipeline {:?}, {:?}", pipeline_id, subpage_id);
+        debug!("handling failure message from pipeline {}, {}", pipeline_id, subpage_id);
 
         if opts::get().hard_fail {
             // It's quite difficult to make Servo exit cleanly if some tasks have failed.
@@ -476,7 +486,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             unsafe { libc::exit(1); }
         }
 
-        let old_pipeline = match self.pipelines.find(&pipeline_id) {
+        let old_pipeline = match self.pipelines.get(&pipeline_id) {
             None => {
                 debug!("no existing pipeline found; bailing out of failure recovery.");
                 return; // already failed?
@@ -498,13 +508,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let idx = self.pending_frames.iter().position(|pending| {
                 pending.after.pipeline.id == pipeline_id
             });
-            idx.map(|idx| {
-                debug!("removing pending frame change for failed pipeline");
-                force_pipeline_exit(&self.pending_frames[idx].after.pipeline);
-                self.pending_frames.remove(idx)
-            });
-            if idx.is_none() {
-                break;
+            match idx {
+                Some(idx) => {
+                    debug!("removing pending frame change for failed pipeline");
+                    force_pipeline_exit(&self.pending_frames[idx].after.pipeline);
+                    self.pending_frames.remove(idx);
+                },
+                None => break,
             }
         }
         debug!("creating replacement pipeline for about:failure");
@@ -536,7 +546,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn handle_frame_rect_msg(&mut self, pipeline_id: PipelineId, subpage_id: SubpageId,
                              rect: TypedRect<PagePx, f32>) {
-        debug!("Received frame rect {:?} from {:?}, {:?}", rect, pipeline_id, subpage_id);
+        debug!("Received frame rect {} from {}, {}", rect, pipeline_id, subpage_id);
         let mut already_sent = HashSet::new();
 
         // Returns true if a child frame tree's subpage id matches the given subpage id
@@ -635,16 +645,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // and add the new pipeline to their sub frames.
         let frame_trees = self.find_all(source_pipeline_id);
         if frame_trees.is_empty() {
-            fail!("Constellation: source pipeline id of ScriptLoadedURLInIFrameMsg is not in
-                   navigation context, nor is it in a pending frame. This should be
-                   impossible.");
+            panic!("Constellation: source pipeline id of ScriptLoadedURLInIFrameMsg is not in
+                    navigation context, nor is it in a pending frame. This should be
+                    impossible.");
         }
 
         let next_pipeline_id = self.get_next_pipeline_id();
 
         // Compare the pipeline's url to the new url. If the origin is the same,
         // then reuse the script task in creating the new pipeline
-        let source_pipeline = self.pipelines.find(&source_pipeline_id).expect("Constellation:
+        let source_pipeline = self.pipelines.get(&source_pipeline_id).expect("Constellation:
             source Id of ScriptLoadedURLInIFrameMsg does have an associated pipeline in
             constellation. This should be impossible.").clone();
 
@@ -655,10 +665,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
         // Reuse the script task if the URL is same-origin
         let script_pipeline = if same_script {
-            debug!("Constellation: loading same-origin iframe at {:?}", url);
+            debug!("Constellation: loading same-origin iframe at {}", url);
             Some(source_pipeline.clone())
         } else {
-            debug!("Constellation: loading cross-origin iframe at {:?}", url);
+            debug!("Constellation: loading cross-origin iframe at {}", url);
             None
         };
 
@@ -669,7 +679,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             LoadData::new(url)
         );
 
-        let rect = self.pending_sizes.pop(&(source_pipeline_id, subpage_id));
+        let rect = self.pending_sizes.remove(&(source_pipeline_id, subpage_id));
         for frame_tree in frame_trees.iter() {
             frame_tree.children.borrow_mut().push(ChildFrameTree::new(
                 Rc::new(FrameTree::new(pipeline.clone(), Some(source_pipeline.clone()))),
@@ -716,7 +726,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_navigate_msg(&mut self, direction: constellation_msg::NavigationDirection) {
-        debug!("received message to navigate {:?}", direction);
+        debug!("received message to navigate {}", direction);
 
         // TODO(tkuehn): what is the "critical point" beyond which pending frames
         // should not be cleared? Currently, the behavior is that forward/back
@@ -761,8 +771,15 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             .any(|current_frame| current_frame.contains(pipeline_id))
     }
 
+    fn handle_key_msg(&self, key: Key, state: KeyState, mods: KeyModifiers) {
+        self.current_frame().as_ref().map(|frame| {
+            let ScriptControlChan(ref chan) = frame.pipeline.script_chan;
+            chan.send(SendEventMsg(frame.pipeline.id, script_traits::KeyEvent(key, state, mods)));
+        });
+    }
+
     fn handle_renderer_ready_msg(&mut self, pipeline_id: PipelineId) {
-        debug!("Renderer {:?} ready to send paint msg", pipeline_id);
+        debug!("Renderer {} ready to send paint msg", pipeline_id);
         // This message could originate from a pipeline in the navigation context or
         // from a pending frame. The only time that we will grant paint permission is
         // when the message originates from a pending frame or the current frame.
@@ -780,67 +797,70 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let pending_index = self.pending_frames.iter().rposition(|frame_change| {
             frame_change.after.pipeline.id == pipeline_id
         });
-        for &pending_index in pending_index.iter() {
-            let frame_change = self.pending_frames.swap_remove(pending_index).unwrap();
-            let to_add = frame_change.after.clone();
+        match pending_index {
+            Some(pending_index) => {
+                let frame_change = self.pending_frames.swap_remove(pending_index).unwrap();
+                let to_add = frame_change.after.clone();
 
-            // Create the next frame tree that will be given to the compositor
-            let next_frame_tree = if to_add.parent.borrow().is_some() {
-                // NOTE: work around borrowchk issues
-                self.current_frame().as_ref().unwrap().clone()
-            } else {
-                to_add.clone()
-            };
+                // Create the next frame tree that will be given to the compositor
+                let next_frame_tree = if to_add.parent.borrow().is_some() {
+                    // NOTE: work around borrowchk issues
+                    self.current_frame().as_ref().unwrap().clone()
+                } else {
+                    to_add.clone()
+                };
 
-            // If there are frames to revoke permission from, do so now.
-            match frame_change.before {
-                Some(revoke_id) if self.current_frame().is_some() => {
-                    debug!("Constellation: revoking permission from {:?}", revoke_id);
-                    let current_frame = self.current_frame().as_ref().unwrap();
+                // If there are frames to revoke permission from, do so now.
+                match frame_change.before {
+                    Some(revoke_id) if self.current_frame().is_some() => {
+                        debug!("Constellation: revoking permission from {}", revoke_id);
+                        let current_frame = self.current_frame().as_ref().unwrap();
 
-                    let to_revoke = current_frame.find(revoke_id).expect(
-                        "Constellation: pending frame change refers to an old \
-                        frame not contained in the current frame. This is a bug");
+                        let to_revoke = current_frame.find(revoke_id).expect(
+                            "Constellation: pending frame change refers to an old \
+                            frame not contained in the current frame. This is a bug");
 
-                    for frame in to_revoke.iter() {
-                        frame.pipeline.revoke_paint_permission();
-                    }
+                        for frame in to_revoke.iter() {
+                            frame.pipeline.revoke_paint_permission();
+                        }
 
-                    // If to_add is not the root frame, then replace revoked_frame with it.
-                    // This conveniently keeps scissor rect size intact.
-                    // NOTE: work around borrowchk issue
-                    let mut flag = false;
-                    {
-                        if to_add.parent.borrow().is_some() {
-                            debug!("Constellation: replacing {:?} with {:?} in {:?}",
-                                   revoke_id, to_add.pipeline.id,
-                                   next_frame_tree.pipeline.id);
-                            flag = true;
+                        // If to_add is not the root frame, then replace revoked_frame with it.
+                        // This conveniently keeps scissor rect size intact.
+                        // NOTE: work around borrowchk issue
+                        let mut flag = false;
+                        {
+                            if to_add.parent.borrow().is_some() {
+                                debug!("Constellation: replacing {} with {} in {}",
+                                       revoke_id, to_add.pipeline.id,
+                                       next_frame_tree.pipeline.id);
+                                flag = true;
+                            }
+                        }
+                        if flag {
+                            next_frame_tree.replace_child(revoke_id, to_add);
                         }
                     }
-                    if flag {
-                        next_frame_tree.replace_child(revoke_id, to_add);
+
+                    _ => {
+                        // Add to_add to parent's children, if it is not the root
+                        let parent = &to_add.parent;
+                        for parent in parent.borrow().iter() {
+                            let subpage_id = to_add.pipeline.subpage_id
+                                .expect("Constellation:
+                                Child frame's subpage id is None. This should be impossible.");
+                            let rect = self.pending_sizes.remove(&(parent.id, subpage_id));
+                            let parent = next_frame_tree.find(parent.id).expect(
+                                "Constellation: pending frame has a parent frame that is not
+                                active. This is a bug.");
+                            parent.children.borrow_mut().push(ChildFrameTree::new(to_add.clone(),
+                                                              rect));
+                        }
                     }
                 }
 
-                _ => {
-                    // Add to_add to parent's children, if it is not the root
-                    let parent = &to_add.parent;
-                    for parent in parent.borrow().iter() {
-                        let subpage_id = to_add.pipeline.subpage_id
-                            .expect("Constellation:
-                            Child frame's subpage id is None. This should be impossible.");
-                        let rect = self.pending_sizes.pop(&(parent.id, subpage_id));
-                        let parent = next_frame_tree.find(parent.id).expect(
-                            "Constellation: pending frame has a parent frame that is not
-                            active. This is a bug.");
-                        parent.children.borrow_mut().push(ChildFrameTree::new(to_add.clone(),
-                                                          rect));
-                    }
-                }
-            }
-
-            self.grant_paint_permission(next_frame_tree, frame_change.navigation_type);
+                self.grant_paint_permission(next_frame_tree, frame_change.navigation_type);
+            },
+            None => (),
         }
     }
 
@@ -870,7 +890,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         for change in self.pending_frames.iter() {
             let frame_tree = &change.after;
             if frame_tree.parent.borrow().is_none() {
-                debug!("constellation sending resize message to pending outer frame ({:?})",
+                debug!("constellation sending resize message to pending outer frame ({})",
                        frame_tree.pipeline.id);
                 let ScriptControlChan(ref chan) = frame_tree.pipeline.script_chan;
                 let _ = chan.send_opt(ResizeMsg(frame_tree.pipeline.id, new_size));
@@ -891,9 +911,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_evicted_frames(&mut self, evicted: Vec<Rc<FrameTree>>) {
-        for frame_tree in evicted.iter() {
+        for frame_tree in evicted.into_iter() {
             if !self.navigation_context.contains(frame_tree.pipeline.id) {
-                self.close_pipelines(frame_tree.clone());
+                self.close_pipelines(frame_tree);
             } else {
                 let frames = frame_tree.children.borrow().iter()
                     .map(|child| child.frame_tree.clone()).collect();
@@ -962,8 +982,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             &None => return,
         };
 
-        let (child, parent) =
-            match self.find_child_parent_pair_in_frame_tree(current_frame_tree, pipeline_id) {
+        let pair = self.find_child_parent_pair_in_frame_tree(current_frame_tree,
+                                                             pipeline_id);
+        let (child, parent) = match pair {
             Some(pair) => pair,
             None => return,
         };
@@ -990,4 +1011,3 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 }
-

@@ -21,7 +21,7 @@ pub enum FloatKind {
 impl FloatKind {
     pub fn from_property(property: float::T) -> FloatKind {
         match property {
-            float::none => fail!("can't create a float type from an unfloated property"),
+            float::none => panic!("can't create a float type from an unfloated property"),
             float::left => FloatLeft,
             float::right => FloatRight,
         }
@@ -46,7 +46,7 @@ struct Float {
 
 impl fmt::Show for Float {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "bounds={} kind={:?}", self.bounds, self.kind)
+        write!(f, "bounds={} kind={}", self.bounds, self.kind)
     }
 }
 
@@ -95,7 +95,7 @@ pub struct PlacementInfo {
 impl fmt::Show for PlacementInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
-               "size={} ceiling={} max_inline_size={} kind={:?}",
+               "size={} ceiling={} max_inline_size={} kind={}",
                self.size,
                self.ceiling,
                self.max_inline_size,
@@ -232,7 +232,7 @@ impl Floats {
                 (max(block_start, r_block_start), r_block_end)
             }
             (None, None, None, None) => return None,
-            _ => fail!("Reached unreachable state when computing float area")
+            _ => panic!("Reached unreachable state when computing float area")
         };
 
         // FIXME(eatkinson): This assertion is too strong and fails in some cases. It is OK to
@@ -261,7 +261,7 @@ impl Floats {
             }
         }
 
-        debug!("add_float: added float with info {:?}", new_info);
+        debug!("add_float: added float with info {}", new_info);
 
         let new_float = Float {
             bounds: LogicalRect::from_point_size(
@@ -332,7 +332,7 @@ impl Floats {
             let maybe_location = self.available_rect(float_b,
                                                      info.size.block,
                                                      info.max_inline_size);
-            debug!("place_float: Got available rect: {:?} for y-pos: {}", maybe_location, float_b);
+            debug!("place_float: Got available rect: {} for y-pos: {}", maybe_location, float_b);
             match maybe_location {
                 // If there are no floats blocking us, return the current location
                 // TODO(eatkinson): integrate with overflow

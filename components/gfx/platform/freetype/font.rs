@@ -43,7 +43,7 @@ pub struct FontTable;
 
 impl FontTableMethods for FontTable {
     fn with_buffer(&self, _blk: |*const u8, uint|) {
-        fail!()
+        panic!()
     }
 }
 
@@ -61,7 +61,7 @@ impl Drop for FontHandle {
         assert!(self.face.is_not_null());
         unsafe {
             if !FT_Done_Face(self.face).succeeded() {
-                fail!("FT_Done_Face failed");
+                panic!("FT_Done_Face failed");
             }
         }
     }
@@ -139,15 +139,15 @@ impl FontHandleMethods for FontHandle {
                 if valid {
                     let weight =(*os2).usWeightClass;
                     match weight {
-                        1 | 100..199 => font_weight::Weight100,
-                        2 | 200..299 => font_weight::Weight200,
-                        3 | 300..399 => font_weight::Weight300,
-                        4 | 400..499 => font_weight::Weight400,
-                        5 | 500..599 => font_weight::Weight500,
-                        6 | 600..699 => font_weight::Weight600,
-                        7 | 700..799 => font_weight::Weight700,
-                        8 | 800..899 => font_weight::Weight800,
-                        9 | 900..999 => font_weight::Weight900,
+                        1 | 100...199 => font_weight::Weight100,
+                        2 | 200...299 => font_weight::Weight200,
+                        3 | 300...399 => font_weight::Weight300,
+                        4 | 400...499 => font_weight::Weight400,
+                        5 | 500...599 => font_weight::Weight500,
+                        6 | 600...699 => font_weight::Weight600,
+                        7 | 700...799 => font_weight::Weight700,
+                        8 | 800...899 => font_weight::Weight800,
+                        9 | 900...999 => font_weight::Weight900,
                         _ => default_weight
                     }
                 } else {
@@ -190,7 +190,6 @@ impl FontHandleMethods for FontHandle {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = mem::transmute(void_glyph);
                 assert!(slot.is_not_null());
-                debug!("metrics: {:?}", (*slot).metrics);
                 let advance = (*slot).metrics.horiAdvance;
                 debug!("h_advance for {} is {}", glyph, advance);
                 let advance = advance as i32;
@@ -255,7 +254,7 @@ impl FontHandleMethods for FontHandle {
             line_gap:         height,
         };
 
-        debug!("Font metrics (@{:f} pt): {:?}", geometry::to_pt(em_size), metrics);
+        debug!("Font metrics (@{:f} pt): {}", geometry::to_pt(em_size), metrics);
         return metrics;
     }
 
@@ -297,4 +296,3 @@ impl<'a> FontHandle {
         return geometry::from_frac_px(value * x_scale);
     }
 }
-

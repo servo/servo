@@ -25,12 +25,10 @@ use azure::AzFloat;
 use azure::azure_hl::SkiaBackend;
 use azure::scaled_font::ScaledFont;
 
-#[cfg(target_os="linux")]
-#[cfg(target_os="android")]
+#[cfg(any(target_os="linux", target_os = "android"))]
 use azure::scaled_font::FontData;
 
-#[cfg(target_os="linux")]
-#[cfg(target_os="android")]
+#[cfg(any(target_os="linux", target_os = "android"))]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
     ScaledFont::new(SkiaBackend, FontData(&template.bytes), pt_size.to_subpx() as AzFloat)
 }

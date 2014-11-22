@@ -7,9 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "glfw_app"
 path = "lib.rs"
 
-[dependencies.alert]
-git = "https://github.com/servo/rust-alert"
-
 [dependencies.compositing]
 path = "../../components/compositing"
 
@@ -31,3 +28,6 @@ path = "../../components/util"
 
 [dependencies.cgl]
 git = "https://github.com/servo/rust-cgl"
+
+[dependencies.gleam]
+git = "https://github.com/servo/gleam"

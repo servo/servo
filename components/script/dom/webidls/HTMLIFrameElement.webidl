@@ -14,7 +14,7 @@ interface HTMLIFrameElement : HTMLElement {
   //         attribute boolean allowFullscreen;
   //         attribute DOMString width;
   //         attribute DOMString height;
-  //readonly attribute Document? contentDocument;
+  readonly attribute Document? contentDocument;
   //readonly attribute WindowProxy? contentWindow;
   readonly attribute Window? contentWindow;
 

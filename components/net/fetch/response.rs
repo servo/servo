@@ -7,7 +7,7 @@ use http::status::{Status, UnregisteredStatus};
 use http::status::Ok as StatusOk;
 use http::headers::HeaderEnum;
 use http::headers::response::HeaderCollection;
-use std::ascii::OwnedStrAsciiExt;
+use std::ascii::OwnedAsciiExt;
 use std::comm::Receiver;
 
 /// [Response type](http://fetch.spec.whatwg.org/#concept-response-type)

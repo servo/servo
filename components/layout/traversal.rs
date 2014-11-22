@@ -11,7 +11,7 @@ use context::LayoutContext;
 use flow::{Flow, MutableFlowUtils};
 use flow::{PreorderFlowTraversal, PostorderFlowTraversal};
 use flow;
-use incremental::{RestyleDamage, BubbleISizes, Reflow, ReflowOutOfFlow};
+use incremental::{RestyleDamage, BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use wrapper::{layout_node_to_unsafe_layout_node, LayoutNode};
 use wrapper::{PostorderNodeMutTraversal, ThreadSafeLayoutNode, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
@@ -88,7 +88,7 @@ fn put_task_local_bloom_filter(bf: Box<BloomFilter>,
                                layout_context: &LayoutContext) {
     match style_bloom.replace(Some((bf, *unsafe_node, layout_context.shared.generation))) {
         None => {},
-        Some(_) => fail!("Putting into a never-taken task-local bloom filter"),
+        Some(_) => panic!("Putting into a never-taken task-local bloom filter"),
     }
 }
 
@@ -272,7 +272,7 @@ impl PreorderFlow for FlowTreeVerification {
         if !base.flags.is_leaf() && !base.flags.is_nonleaf() {
             println!("flow tree verification failed: flow wasn't a leaf or a nonleaf!");
             flow.dump();
-            fail!("flow tree verification failed")
+            panic!("flow tree verification failed")
         }
     }
 }
@@ -287,12 +287,12 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.bubble_inline_sizes();
-        flow::mut_base(flow).restyle_damage.remove(BubbleISizes);
+        flow::mut_base(flow).restyle_damage.remove(BUBBLE_ISIZES);
     }
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.contains(BubbleISizes)
+        flow::base(flow).restyle_damage.contains(BUBBLE_ISIZES)
     }
 }
 
@@ -309,7 +309,7 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.intersects(ReflowOutOfFlow | Reflow)
+        flow::base(flow).restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW)
     }
 }
 
@@ -342,7 +342,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {
 
     #[inline]
     fn should_process(&self, flow: &mut Flow) -> bool {
-        flow::base(flow).restyle_damage.intersects(ReflowOutOfFlow | Reflow)
+        flow::base(flow).restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW)
     }
 }
 

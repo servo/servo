@@ -5,7 +5,8 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 extern crate gfx;
 extern crate script_traits;

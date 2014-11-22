@@ -24,7 +24,7 @@ struct RawNode<T> {
 #[unsafe_destructor]
 impl<T> Drop for RawDList<T> {
     fn drop(&mut self) {
-        fail!("shouldn't happen")
+        panic!("shouldn't happen")
     }
 }
 
@@ -36,7 +36,7 @@ pub fn split<T>(list: &mut DList<T>) -> DList<T> {
     };
 
     if list.length == 0 {
-        fail!("split_dlist(): empty list")
+        panic!("split_dlist(): empty list")
     }
     let head_node = mem::replace(&mut list.head, ptr::null_mut());
     let head_list = RawDList {
@@ -92,6 +92,32 @@ pub fn append_from<T>(this: &mut DList<T>, other: &mut DList<T>) {
         (*this.tail).next = old_other_head;
 
         this.tail = mem::replace(&mut other.tail, ptr::null_mut());
+        this.length += other.length;
+        other.length = 0;
+    }
+}
+
+/// Prepends the items in the other list to this one, leaving the other list empty.
+#[inline]
+pub fn prepend_from<T>(this: &mut DList<T>, other: &mut DList<T>) {
+    unsafe {
+        let this = mem::transmute::<&mut DList<T>,&mut RawDList<T>>(this);
+        let other = mem::transmute::<&mut DList<T>,&mut RawDList<T>>(other);
+        if this.length == 0 {
+            this.head = mem::replace(&mut other.head, ptr::null_mut());
+            this.tail = mem::replace(&mut other.tail, ptr::null_mut());
+            this.length = mem::replace(&mut other.length, 0);
+            return
+        }
+
+        let old_other_tail = mem::replace(&mut other.tail, ptr::null_mut());
+        if old_other_tail.is_null() {
+            return
+        }
+        (*old_other_tail).next = this.head;
+        (*this.head).prev = old_other_tail;
+
+        this.head = mem::replace(&mut other.head, ptr::null_mut());
         this.length += other.length;
         other.length = 0;
     }

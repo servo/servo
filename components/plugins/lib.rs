@@ -14,7 +14,8 @@
 
 #![feature(macro_rules, plugin_registrar, quote, phase)]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 #[phase(plugin,link)]
 extern crate syntax;
@@ -34,7 +35,6 @@ use syntax::parse::token::intern;
 pub mod jstraceable;
 pub mod lints;
 
-mod macros;
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(intern("dom_struct"), Modifier(box jstraceable::expand_dom_struct));

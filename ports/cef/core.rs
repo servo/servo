@@ -2,16 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
+use browser::{GLOBAL_BROWSERS, browser_callback_after_created};
 use command_line::command_line_init;
-use eutil::fptr_is_null;
-use geom::size::TypedSize2D;
 use glfw_app;
+use libc::funcs::c95::string::strlen;
 use libc::{c_int, c_void};
 use native;
 use servo::Browser;
-use servo_util::opts;
-use std::mem;
+use std::slice;
+use switches::{KPROCESSTYPE, KWAITFORDEBUGGER};
 use types::{cef_app_t, cef_main_args_t, cef_settings_t};
 
 #[no_mangle]
@@ -25,16 +24,12 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     }
     unsafe {
         command_line_init((*args).argc, (*args).argv);
-        let cb = (*application).get_browser_process_handler;
-        if !fptr_is_null(mem::transmute(cb)) {
-            let handler = cb(application);
-            if handler.is_not_null() {
-                let hcb = (*handler).on_context_initialized;
-                if !fptr_is_null(mem::transmute(hcb)) {
-                    hcb(handler);
+        (*application).get_browser_process_handler.map(|cb| {
+                let handler = cb(application);
+                if handler.is_not_null() {
+                    (*handler).on_context_initialized.map(|hcb| hcb(handler));
                 }
-            }
-        }
+        });
     }
     return 1
 }
@@ -45,41 +40,28 @@ pub extern "C" fn cef_shutdown() {
 
 #[no_mangle]
 pub extern "C" fn cef_run_message_loop() {
-    let mut urls = Vec::new();
-    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".to_string());
-    opts::set_opts(opts::Opts {
-        urls: urls,
-        n_render_threads: 1,
-        gpu_painting: false,
-        tile_size: 512,
-        device_pixels_per_px: None,
-        time_profiler_period: None,
-        memory_profiler_period: None,
-        enable_experimental: false,
-        layout_threads: 1,
-        nonincremental_layout: false,
-        //layout_threads: cmp::max(rt::default_sched_threads() * 3 / 4, 1),
-        exit_after_load: false,
-        output_file: None,
-        headless: false,
-        hard_fail: false,
-        bubble_inline_sizes_separately: false,
-        show_debug_borders: false,
-        show_debug_fragment_borders: false,
-        enable_text_antialiasing: true,
-        trace_layout: false,
-        devtools_port: None,
-        initial_window_size: TypedSize2D(800, 600),
-        profile_tasks: false,
-        user_agent: None,
-        dump_flow_tree: false,
-        validate_display_list_geometry: false,
-    });
     native::start(0, 0 as *const *const u8, proc() {
-        let window = glfw_app::create_window();
-        let mut browser = Browser::new(Some(window.clone()));
-        while browser.handle_event(window.wait_events()) {}
-        browser.shutdown()
+        GLOBAL_BROWSERS.get().map(|refcellbrowsers| {
+            unsafe {
+                let browsers = refcellbrowsers.borrow();
+                let mut num = browsers.len();
+                for active_browser in browsers.iter() {
+                    (**active_browser).window = glfw_app::create_window();
+                    (**active_browser).servo_browser = Some(Browser::new(Some((**active_browser).window.clone())));
+                    if !(**active_browser).callback_executed { browser_callback_after_created(*active_browser); }
+                }
+                while num > 0 {
+                    for active_browser in browsers.iter().filter(|&active_browser| (**active_browser).servo_browser.is_some()) {
+                        let ref mut browser = **active_browser;
+                        let mut servobrowser = browser.servo_browser.take().unwrap();
+                        if !servobrowser.handle_event(browser.window.wait_events()) {
+                            servobrowser.shutdown();
+                            num -= 1;
+                        }
+                    }
+                }
+            }
+        });
     });
 }
 
@@ -88,9 +70,31 @@ pub extern "C" fn cef_quit_message_loop() {
 }
 
 #[no_mangle]
-pub extern "C" fn cef_execute_process(_args: *const cef_main_args_t,
+pub extern "C" fn cef_execute_process(args: *const cef_main_args_t,
                                       _app: *mut cef_app_t,
                                       _windows_sandbox_info: *mut c_void)
                                       -> c_int {
+    unsafe {
+        if args.is_null() {
+            println!("args must be passed");
+            return -1;
+        }
+        for i in range(0u, (*args).argc as uint) {
+             let u = (*args).argv.offset(i as int) as *const u8;
+             slice::raw::buf_as_slice(u, strlen(u as *const i8) as uint, |s| {
+                 if s.starts_with("--".as_bytes()) {
+                     if s.slice_from(2) == KWAITFORDEBUGGER.as_bytes() {
+                         //FIXME: this is NOT functionally equivalent to chromium!
+
+                         //this should be a pause() call with an installed signal
+                         //handler callback, something which is impossible now in rust
+                     } else if s.slice_from(2) == KPROCESSTYPE.as_bytes() {
+                         //TODO: run other process now
+                     }
+                 }
+             });
+        }
+    }
+   //process type not specified, must be browser process (NOOP)
    -1
 }

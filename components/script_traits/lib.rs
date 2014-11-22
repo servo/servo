@@ -5,7 +5,8 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 
 extern crate devtools_traits;
 extern crate geom;
@@ -24,7 +25,7 @@ extern crate serialize;
 use devtools_traits::DevtoolsControlChan;
 use libc::c_void;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
-use servo_msg::constellation_msg::{LoadData, SubpageId};
+use servo_msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
@@ -32,6 +33,7 @@ use servo_util::smallvec::SmallVec1;
 use std::any::Any;
 
 use geom::point::Point2D;
+use geom::rect::Rect;
 
 use serialize::{Encodable, Encoder};
 
@@ -62,6 +64,7 @@ pub enum ConstellationControlMsg {
     SendEventMsg(PipelineId, CompositorEvent),
     /// Notifies script that reflow is finished.
     ReflowCompleteMsg(PipelineId, uint),
+    ViewportMsg(PipelineId, Rect<f32>),
 }
 
 /// Events from the compositor that the script task needs to know about
@@ -71,7 +74,8 @@ pub enum CompositorEvent {
     ClickEvent(uint, Point2D<f32>),
     MouseDownEvent(uint, Point2D<f32>),
     MouseUpEvent(uint, Point2D<f32>),
-    MouseMoveEvent(Point2D<f32>)
+    MouseMoveEvent(Point2D<f32>),
+    KeyEvent(Key, KeyState, KeyModifiers),
 }
 
 /// An opaque wrapper around script<->layout channels to avoid leaking message types into

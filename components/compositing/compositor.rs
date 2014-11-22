@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositor_layer::{CompositorData, CompositorLayer, DoesntWantScrollEvents};
-use compositor_layer::{ScrollPositionChanged, WantsScrollEvents};
+use compositor_layer::WantsScrollEvents;
 use compositor_task::{ChangeReadyState, ChangeRenderState, CompositorEventListener};
 use compositor_task::{CompositorProxy, CompositorReceiver, CompositorTask};
 use compositor_task::{CreateOrUpdateDescendantLayer, CreateOrUpdateRootLayer, Exit};
@@ -14,12 +14,12 @@ use constellation::{SendableFrameTree, FrameTreeDiff};
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
 use windowing;
-use windowing::{FinishedWindowEvent, IdleWindowEvent, LoadUrlWindowEvent, MouseWindowClickEvent};
+use windowing::{IdleWindowEvent, LoadUrlWindowEvent, MouseWindowClickEvent};
 use windowing::{MouseWindowEvent, MouseWindowEventClass, MouseWindowMouseDownEvent};
 use windowing::{MouseWindowMouseUpEvent, MouseWindowMoveEventClass, NavigationWindowEvent};
 use windowing::{QuitWindowEvent, RefreshWindowEvent, ResizeWindowEvent, ScrollWindowEvent};
 use windowing::{WindowEvent, WindowMethods, WindowNavigateMsg, ZoomWindowEvent};
-use windowing::{PinchZoomWindowEvent};
+use windowing::{PinchZoomWindowEvent, KeyEvent};
 
 use azure::azure_hl;
 use std::cmp;
@@ -38,19 +38,23 @@ use layers::scene::Scene;
 use png;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
+use script_traits::{ViewportMsg, ScriptControlChan};
 use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerId};
 use servo_msg::compositor_msg::{ReadyState, RenderingRenderState, RenderState, Scrollable};
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg, NavigateMsg};
-use servo_msg::constellation_msg::{LoadData, PipelineId, ResizedWindowMsg, WindowSizeData};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg};
+use servo_msg::constellation_msg::{NavigateMsg, LoadData, PipelineId, ResizedWindowMsg};
+use servo_msg::constellation_msg::{WindowSizeData, KeyState, Key, KeyModifiers};
 use servo_msg::constellation_msg;
 use servo_util::geometry::{PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts;
 use servo_util::time::{profile, TimeProfilerChan};
 use servo_util::{memory, time};
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
+use std::collections::hash_map::{Occupied, Vacant};
 use std::path::Path;
 use std::rc::Rc;
+use std::slice::bytes::copy_memory;
 use time::{precise_time_ns, precise_time_s};
 use url::Url;
 
@@ -234,7 +238,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn handle_browser_message(&mut self, msg: Msg) -> bool {
         match (msg, self.shutdown_state) {
             (_, FinishedShuttingDown) =>
-                fail!("compositor shouldn't be handling messages after shutting down"),
+                panic!("compositor shouldn't be handling messages after shutting down"),
 
             (Exit(chan), _) => {
                 debug!("shutting down the constellation");
@@ -266,6 +270,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.set_frame_tree(&frame_tree,
                                     response_chan,
                                     new_constellation_chan);
+                self.send_viewport_rects_for_all_layers();
             }
 
             (FrameTreeUpdateMsg(frame_tree_diff, response_channel), NotShuttingDown) => {
@@ -329,9 +334,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn change_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
-        self.ready_states.insert_or_update_with(pipeline_id,
-                                                ready_state,
-                                                |_key, value| *value = ready_state);
+        match self.ready_states.entry(pipeline_id) {
+            Occupied(entry) => {
+                *entry.into_mut() = ready_state;
+            }
+            Vacant(entry) => {
+                entry.set(ready_state);
+            }
+        }
         self.window.set_ready_state(self.get_earliest_pipeline_ready_state());
 
         // If we're rendering in headless mode, schedule a recomposite.
@@ -349,9 +359,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn change_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
-        self.render_states.insert_or_update_with(pipeline_id,
-                                                 render_state,
-                                                 |_key, value| *value = render_state);
+        match self.render_states.entry(pipeline_id) {
+            Occupied(entry) => {
+                *entry.into_mut() = render_state;
+            }
+            Vacant(entry) => {
+                entry.set(render_state);
+            }
+        }
+
         self.window.set_render_state(render_state);
     }
 
@@ -423,29 +439,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.ready_states.insert(frame_tree.pipeline.id, Blank);
         self.render_states.insert(frame_tree.pipeline.id, RenderingRenderState);
 
-        let layer_properties = LayerProperties {
-            pipeline_id: frame_tree.pipeline.id,
-            epoch: Epoch(0),
-            id: LayerId::null(),
-            rect: Rect::zero(),
-            background_color: azure_hl::Color::new(0., 0., 0., 0.),
-            scroll_policy: Scrollable,
-        };
-        let root_layer = CompositorData::new_layer(frame_tree.pipeline.clone(),
-                                                   layer_properties,
-                                                   WantsScrollEvents,
-                                                   opts::get().tile_size);
-
-        match frame_rect {
-            Some(ref frame_rect) => {
-                *root_layer.masks_to_bounds.borrow_mut() = true;
-
-                let frame_rect = frame_rect.to_untyped();
-                *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
-            }
-            None => {}
-        }
-
+        let root_layer = create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline, frame_rect);
         for kid in frame_tree.children.iter() {
             root_layer.add_child(self.create_frame_tree_root_layers(&kid.frame_tree, kid.rect));
         }
@@ -453,37 +447,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn update_frame_tree(&mut self, frame_tree_diff: &FrameTreeDiff) {
-        let layer_properties = LayerProperties {
-            pipeline_id: frame_tree_diff.pipeline.id,
-            epoch: Epoch(0),
-            id: LayerId::null(),
-            rect: Rect::zero(),
-            background_color: azure_hl::Color::new(0., 0., 0., 0.),
-            scroll_policy: Scrollable,
-        };
-        let root_layer = CompositorData::new_layer(frame_tree_diff.pipeline.clone(),
-                                                   layer_properties,
-                                                   WantsScrollEvents,
-                                                   opts::get().tile_size);
-
-        match frame_tree_diff.rect {
-            Some(ref frame_rect) => {
-                *root_layer.masks_to_bounds.borrow_mut() = true;
-
-                let frame_rect = frame_rect.to_untyped();
-                *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
-            }
-            None => {}
-        }
-
         let parent_layer = self.find_pipeline_root_layer(frame_tree_diff.parent_pipeline.id);
-        parent_layer.add_child(root_layer);
+        parent_layer.add_child(
+            create_root_layer_for_pipeline_and_rect(&frame_tree_diff.pipeline,
+                                                    frame_tree_diff.rect));
     }
 
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Rc<Layer<CompositorData>> {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null()) {
             Some(ref layer) => layer.clone(),
-            None => fail!("Tried to create or update layer for unknown pipeline"),
+            None => panic!("Tried to create or update layer for unknown pipeline"),
         }
     }
 
@@ -575,7 +548,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match self.fragment_point.take() {
             Some(point) => {
                 if !self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
-                    fail!("Compositor: Tried to scroll to fragment with unknown layer.");
+                    panic!("Compositor: Tried to scroll to fragment with unknown layer.");
                 }
 
                 self.start_scrolling_timer_if_necessary();
@@ -603,7 +576,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(ref layer) => {
                 layer.bounds.borrow_mut().origin = Point2D::from_untyped(&new_origin)
             }
-            None => fail!("Compositor received SetLayerOrigin for nonexistent layer"),
+            None => panic!("Compositor received SetLayerOrigin for nonexistent layer"),
         };
 
         self.send_buffer_requests_for_all_layers();
@@ -633,7 +606,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // FIXME: This may potentially be triggered by a race condition where a
                 // buffers are being rendered but the layer is removed before rendering
                 // completes.
-                fail!("compositor given paint command for non-existent layer");
+                panic!("compositor given paint command for non-existent layer");
             }
         }
     }
@@ -691,14 +664,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_navigation_window_event(direction);
             }
 
-            FinishedWindowEvent => {
-                let exit = opts::get().exit_after_load;
-                if exit {
-                    debug!("shutting down the constellation for FinishedWindowEvent");
-                    let ConstellationChan(ref chan) = self.constellation_chan;
-                    chan.send(ExitMsg);
-                    self.shutdown_state = ShuttingDown;
-                }
+            KeyEvent(key, state, modifiers) => {
+                self.on_key_event(key, state, modifiers);
             }
 
             QuitWindowEvent => {
@@ -722,7 +689,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return;
         }
 
-        debug!("osmain: window resized to {:?}", new_size);
         self.window_size = new_size;
 
         self.scene.set_root_layer_size(new_size.as_f32());
@@ -734,7 +700,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.got_load_complete_message = false;
         let root_pipeline_id = match self.scene.root {
             Some(ref layer) => layer.extra_data.borrow().pipeline.id.clone(),
-            None => fail!("Compositor: Received LoadUrlWindowEvent without initialized compositor \
+            None => panic!("Compositor: Received LoadUrlWindowEvent without initialized compositor \
                            layers"),
         };
 
@@ -775,19 +741,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn process_pending_scroll_events(&mut self) {
+        let had_scroll_events = self.pending_scroll_events.len() > 0;
         for scroll_event in mem::replace(&mut self.pending_scroll_events, Vec::new()).into_iter() {
             let delta = scroll_event.delta / self.scene.scale;
             let cursor = scroll_event.cursor.as_f32() / self.scene.scale;
 
-            let scrolled = match self.scene.root {
+            match self.scene.root {
                 Some(ref mut layer) => {
-                    layer.handle_scroll_event(delta, cursor) == ScrollPositionChanged
+                    layer.handle_scroll_event(delta, cursor);
                 }
-                None => false,
-            };
+                None => {}
+            }
 
             self.start_scrolling_timer_if_necessary();
             self.send_buffer_requests_for_all_layers();
+        }
+
+        if had_scroll_events {
+            self.send_viewport_rects_for_all_layers();
         }
     }
 
@@ -845,6 +816,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => { }
         }
 
+        self.send_viewport_rects_for_all_layers();
         self.composite_if_necessary();
     }
 
@@ -857,6 +829,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         chan.send(NavigateMsg(direction))
     }
 
+    fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(constellation_msg::KeyEvent(key, state, modifiers))
+    }
+
     fn convert_buffer_requests_to_pipeline_requests_map(&self,
                                                         requests: Vec<(Rc<Layer<CompositorData>>,
                                                                        Vec<BufferRequest>)>) ->
@@ -867,10 +844,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             HashMap<PipelineId, (RenderChan, Vec<RenderRequest>)> = HashMap::new();
 
         for (layer, mut layer_requests) in requests.into_iter() {
-            let pipeline_id = layer.extra_data.borrow().pipeline.id;
-            let &(_, ref mut vec) = results.find_or_insert_with(pipeline_id, |_| {
-                (layer.extra_data.borrow().pipeline.render_chan.clone(), Vec::new())
-            });
+            let &(_, ref mut vec) =
+                match results.entry(layer.extra_data.borrow().pipeline.id) {
+                    Occupied(mut entry) => {
+                        *entry.get_mut() =
+                            (layer.extra_data.borrow().pipeline.render_chan.clone(), vec!());
+                        entry.into_mut()
+                    }
+                    Vacant(entry) => {
+                        entry.set((layer.extra_data.borrow().pipeline.render_chan.clone(), vec!()))
+                    }
+                };
 
             // All the BufferRequests are in layer/device coordinates, but the render task
             // wants to know the page coordinates. We scale them before sending them.
@@ -899,6 +883,27 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             },
             None => {}
+        }
+    }
+
+    fn send_viewport_rect_for_layer(&self, layer: Rc<Layer<CompositorData>>) {
+        if layer.extra_data.borrow().id == LayerId::null() {
+            let layer_rect = Rect(-layer.extra_data.borrow().scroll_offset.to_untyped(),
+                                  layer.bounds.borrow().size.to_untyped());
+            let pipeline = &layer.extra_data.borrow().pipeline;
+            let ScriptControlChan(ref chan) = pipeline.script_chan;
+            chan.send(ViewportMsg(pipeline.id.clone(), layer_rect));
+        }
+
+        for kid in layer.children().iter() {
+            self.send_viewport_rect_for_layer(kid.clone());
+        }
+    }
+
+    fn send_viewport_rects_for_all_layers(&self) {
+        match self.scene.root {
+            Some(ref root) => self.send_viewport_rect_for_layer(root.clone()),
+            None => {},
         }
     }
 
@@ -1015,11 +1020,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             for y in range(0, height) {
                 let dst_start = y * stride;
                 let src_start = (height - y - 1) * stride;
-                unsafe {
-                    let src_slice = orig_pixels.slice(src_start, src_start + stride);
-                    pixels.slice_mut(dst_start, dst_start + stride)
-                          .copy_memory(src_slice.slice_to(stride));
-                }
+                let src_slice = orig_pixels.slice(src_start, src_start + stride);
+                copy_memory(pixels.slice_mut(dst_start, dst_start + stride),
+                            src_slice.slice_to(stride));
             }
             let mut img = png::Image {
                 width: width as u32,
@@ -1039,13 +1042,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.window.present();
 
         self.last_composite_time = precise_time_ns();
-
-        let exit = opts::get().exit_after_load;
-        if exit {
-            debug!("shutting down the constellation for exit_after_load");
-            let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ExitMsg);
-        }
 
         self.composition_request = NoCompositingNecessary;
         self.process_pending_scroll_events();
@@ -1120,6 +1116,36 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
     }
 
     return None;
+}
+
+fn create_root_layer_for_pipeline_and_rect(pipeline: &CompositionPipeline,
+                                           frame_rect: Option<TypedRect<PagePx, f32>>)
+                                           -> Rc<Layer<CompositorData>> {
+    let layer_properties = LayerProperties {
+        pipeline_id: pipeline.id,
+        epoch: Epoch(0),
+        id: LayerId::null(),
+        rect: Rect::zero(),
+        background_color: azure_hl::Color::new(0., 0., 0., 0.),
+        scroll_policy: Scrollable,
+    };
+
+    let root_layer = CompositorData::new_layer(pipeline.clone(),
+                                               layer_properties,
+                                               WantsScrollEvents,
+                                               opts::get().tile_size);
+
+    match frame_rect {
+        Some(ref frame_rect) => {
+            *root_layer.masks_to_bounds.borrow_mut() = true;
+
+            let frame_rect = frame_rect.to_untyped();
+            *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
+        }
+        None => {}
+    }
+
+    return root_layer;
 }
 
 impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
@@ -1204,4 +1230,3 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         self.scrolling_timer.shutdown();
     }
 }
-

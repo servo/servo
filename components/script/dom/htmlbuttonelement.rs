@@ -18,7 +18,7 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, wind
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use std::ascii::OwnedStrAsciiExt;
+use std::ascii::OwnedAsciiExt;
 use servo_util::str::DOMString;
 use string_cache::Atom;
 

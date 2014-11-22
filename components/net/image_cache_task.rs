@@ -9,7 +9,8 @@ use resource_task::{LoadData, ResourceTask};
 use servo_util::task::spawn_named;
 use servo_util::taskpool::TaskPool;
 use std::comm::{channel, Receiver, Sender};
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
+use std::collections::hash_map::{Occupied, Vacant};
 use std::mem::replace;
 use std::result;
 use sync::{Arc, Mutex};
@@ -57,7 +58,7 @@ pub enum ImageResponseMsg {
 impl PartialEq for ImageResponseMsg {
     fn eq(&self, other: &ImageResponseMsg) -> bool {
         match (self, other) {
-            (&ImageReady(..), &ImageReady(..)) => fail!("unimplemented comparison"),
+            (&ImageReady(..), &ImageReady(..)) => panic!("unimplemented comparison"),
             (&ImageNotReady, &ImageNotReady) => true,
             (&ImageFailed, &ImageFailed) => true,
 
@@ -169,8 +170,6 @@ impl ImageCache {
         loop {
             let msg = self.port.recv();
 
-            debug!("image_cache_task: received: {:?}", msg);
-
             match msg {
                 Prefetch(url) => self.prefetch(url),
                 StorePrefetchedImageData(url, data) => {
@@ -231,7 +230,7 @@ impl ImageCache {
     }
 
     fn get_state(&self, url: &Url) -> ImageState {
-        match self.state_map.find(url) {
+        match self.state_map.get(url) {
             Some(state) => state.clone(),
             None => Init
         }
@@ -289,14 +288,14 @@ impl ImageCache {
           | Decoding
           | Decoded(..)
           | Failed => {
-            fail!("wrong state for storing prefetched image")
+            panic!("wrong state for storing prefetched image")
           }
         }
     }
 
     fn decode(&mut self, url: Url) {
         match self.get_state(&url) {
-            Init => fail!("decoding image before prefetch"),
+            Init => panic!("decoding image before prefetch"),
 
             Prefetching(DoNotDecode) => {
                 // We don't have the data yet, queue up the decode
@@ -350,16 +349,16 @@ impl ImageCache {
           | Prefetched(..)
           | Decoded(..)
           | Failed => {
-            fail!("incorrect state in store_image")
+            panic!("incorrect state in store_image")
           }
         }
 
     }
 
     fn purge_waiters(&mut self, url: Url, f: || -> ImageResponseMsg) {
-        match self.wait_map.pop(&url) {
+        match self.wait_map.remove(&url) {
             Some(waiters) => {
-                let mut items = waiters.lock();
+                let items = waiters.lock();
                 for response in items.iter() {
                     response.send(f());
                 }
@@ -370,9 +369,9 @@ impl ImageCache {
 
     fn get_image(&self, url: Url, response: Sender<ImageResponseMsg>) {
         match self.get_state(&url) {
-            Init => fail!("request for image before prefetch"),
+            Init => panic!("request for image before prefetch"),
             Prefetching(DoDecode) => response.send(ImageNotReady),
-            Prefetching(DoNotDecode) | Prefetched(..) => fail!("request for image before decode"),
+            Prefetching(DoNotDecode) | Prefetched(..) => panic!("request for image before decode"),
             Decoding => response.send(ImageNotReady),
             Decoded(image) => response.send(ImageReady(image)),
             Failed => response.send(ImageFailed),
@@ -381,15 +380,20 @@ impl ImageCache {
 
     fn wait_for_image(&mut self, url: Url, response: Sender<ImageResponseMsg>) {
         match self.get_state(&url) {
-            Init => fail!("request for image before prefetch"),
+            Init => panic!("request for image before prefetch"),
 
-            Prefetching(DoNotDecode) | Prefetched(..) => fail!("request for image before decode"),
+            Prefetching(DoNotDecode) | Prefetched(..) => panic!("request for image before decode"),
 
             Prefetching(DoDecode) | Decoding => {
                 // We don't have this image yet
-                self.wait_map.find_with_or_insert_with(url, response,
-                    |_, waiters, response| waiters.lock().push(response),
-                    |_, response| Arc::new(Mutex::new(vec!(response))));
+                match self.wait_map.entry(url) {
+                    Occupied(mut entry) => {
+                        entry.get_mut().lock().push(response);
+                    }
+                    Vacant(entry) => {
+                        entry.set(Arc::new(Mutex::new(vec!(response))));
+                    }
+                }
             }
 
             Decoded(image) => {
@@ -618,7 +622,7 @@ mod tests {
         mock_resource_task.send(resource_task::Exit);
         match url_requested.try_recv() {
             Err(_) => (),
-            Ok(_) => fail!(),
+            Ok(_) => panic!(),
         };
     }
 
@@ -660,7 +664,7 @@ mod tests {
         image_cache_task.send(GetImage(url, response_chan));
         match response_port.recv() {
           ImageReady(_) => (),
-          _ => fail!("bleh")
+          _ => panic!("bleh")
         }
 
         image_cache_task.exit();
@@ -687,7 +691,7 @@ mod tests {
             image_cache_task.send(GetImage(url.clone(), response_chan));
             match response_port.recv() {
               ImageReady(_) => (),
-              _ => fail!("bleh")
+              _ => panic!("bleh")
             }
         }
 
@@ -738,7 +742,7 @@ mod tests {
         // because it's already cached
         match image_bin_sent.try_recv() {
             Err(_) => (),
-            Ok(_) => fail!(),
+            Ok(_) => panic!(),
         }
     }
 
@@ -787,7 +791,7 @@ mod tests {
         // because it's already cached
         match image_bin_sent.try_recv() {
             Err(_) => (),
-            Ok(_) => fail!(),
+            Ok(_) => panic!(),
         }
     }
 
@@ -810,7 +814,7 @@ mod tests {
         image_cache_task.send(GetImage(url, response_chan));
         match response_port.recv() {
           ImageFailed => (),
-          _ => fail!("bleh")
+          _ => panic!("bleh")
         }
 
         image_cache_task.exit();
@@ -836,7 +840,7 @@ mod tests {
         image_cache_task.send(GetImage(url.clone(), response_chan));
         match response_port.recv() {
           ImageFailed => (),
-          _ => fail!("bleh")
+          _ => panic!("bleh")
         }
 
         // And ask again, we should get the same response
@@ -844,7 +848,7 @@ mod tests {
         image_cache_task.send(GetImage(url, response_chan));
         match response_port.recv() {
           ImageFailed => (),
-          _ => fail!("bleh")
+          _ => panic!("bleh")
         }
 
         image_cache_task.exit();
@@ -872,7 +876,7 @@ mod tests {
 
         match response_port.recv() {
           ImageFailed => (),
-          _ => fail!("bleh")
+          _ => panic!("bleh")
         }
 
         image_cache_task.exit();
@@ -898,7 +902,7 @@ mod tests {
         image_cache_task.send(WaitForImage(url, response_chan));
         match response_port.recv() {
           ImageReady(..) => (),
-          _ => fail!("bleh")
+          _ => panic!("bleh")
         }
 
         image_cache_task.exit();
@@ -924,7 +928,7 @@ mod tests {
 
         match response_port.recv() {
           ImageReady(..) => (),
-          _ => fail!("bleh")
+          _ => panic!("bleh")
         }
 
         image_cache_task.exit();
@@ -950,7 +954,7 @@ mod tests {
 
         match response_port.recv() {
           ImageFailed => (),
-          _ => fail!("bleh")
+          _ => panic!("bleh")
         }
 
         image_cache_task.exit();
@@ -971,7 +975,7 @@ mod tests {
         image_cache_task.send(GetImage(url, response_chan));
         match response_port.recv() {
           ImageReady(_) => (),
-          _ => fail!("bleh")
+          _ => panic!("bleh")
         }
 
         image_cache_task.exit();

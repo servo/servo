@@ -6,25 +6,26 @@
 
 use NestedEventLoopListener;
 
-use alert::{Alert, AlertMethods};
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{Forward, Back};
-use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent};
-use compositing::windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent};
+use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent};
+use compositing::windowing::{KeyEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass};
 use compositing::windowing::{MouseWindowMouseUpEvent, RefreshWindowEvent};
 use compositing::windowing::{NavigationWindowEvent, ScrollWindowEvent, ZoomWindowEvent};
 use compositing::windowing::{PinchZoomWindowEvent, QuitWindowEvent};
-use compositing::windowing::{WindowEvent, WindowMethods, FinishedWindowEvent};
+use compositing::windowing::{WindowEvent, WindowMethods};
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use glfw::{mod, Context};
+use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
 use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
 use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
+use msg::constellation_msg;
 use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
 use std::rc::Rc;
@@ -61,6 +62,8 @@ impl Window {
                                                        "Servo", glfw::Windowed)
             .expect("Failed to create GLFW window");
         glfw_window.make_current();
+
+        gl::load_with(|s| glfw_window.get_proc_address(s));
 
         // Create our window object.
         let window = Window {
@@ -158,13 +161,6 @@ impl WindowMethods for Window {
 
     /// Sets the render state.
     fn set_render_state(&self, render_state: RenderState) {
-        if self.ready_state.get() == FinishedLoading &&
-            self.render_state.get() == RenderingRenderState &&
-            render_state == IdleRenderState {
-            // page loaded
-            self.event_queue.borrow_mut().push(FinishedWindowEvent);
-        }
-
         self.render_state.set(render_state);
         self.update_window_title()
     }
@@ -207,8 +203,16 @@ impl Window {
         match event {
             glfw::KeyEvent(key, _, action, mods) => {
                 if action == glfw::Press {
-                    self.handle_key(key, mods)
+                    self.handle_key(key, mods);
                 }
+                let key = glfw_key_to_script_key(key);
+                let state = match action {
+                    glfw::Press => constellation_msg::Pressed,
+                    glfw::Release => constellation_msg::Released,
+                    glfw::Repeat => constellation_msg::Repeated,
+                };
+                let modifiers = glfw_mods_to_script_mods(mods);
+                self.event_queue.borrow_mut().push(KeyEvent(key, state, modifiers));
             },
             glfw::FramebufferSizeEvent(width, height) => {
                 self.event_queue.borrow_mut().push(
@@ -289,21 +293,21 @@ impl Window {
 
         match self.ready_state.get() {
             Blank => {
-                self.glfw_window.set_title("blank — Servo")
+                self.glfw_window.set_title("blank — Servo [GLFW]")
             }
             Loading => {
-                self.glfw_window.set_title("Loading — Servo")
+                self.glfw_window.set_title("Loading — Servo [GLFW]")
             }
             PerformingLayout => {
-                self.glfw_window.set_title("Performing Layout — Servo")
+                self.glfw_window.set_title("Performing Layout — Servo [GLFW]")
             }
             FinishedLoading => {
                 match self.render_state.get() {
                     RenderingRenderState => {
-                        self.glfw_window.set_title("Rendering — Servo")
+                        self.glfw_window.set_title("Rendering — Servo [GLFW]")
                     }
                     IdleRenderState => {
-                        self.glfw_window.set_title("Servo")
+                        self.glfw_window.set_title("Servo [GLFW]")
                     }
                 }
             }
@@ -314,7 +318,6 @@ impl Window {
     fn handle_key(&self, key: glfw::Key, mods: glfw::Modifiers) {
         match key {
             glfw::KeyEscape => self.glfw_window.set_should_close(true),
-            glfw::KeyL if mods.contains(glfw::Control) => self.load_url(), // Ctrl+L
             glfw::KeyEqual if mods.contains(glfw::Control) => { // Ctrl-+
                 self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
             }
@@ -367,22 +370,9 @@ impl Window {
                 }
                 MouseWindowMouseUpEvent(button as uint, TypedPoint2D(x as f32, y as f32))
             }
-            _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
+            _ => panic!("I cannot recognize the type of mouse action that occured. :-(")
         };
         self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
-    }
-
-    /// Helper function to pop up an alert box prompting the user to load a URL.
-    fn load_url(&self) {
-        let mut alert: Alert = AlertMethods::new("Navigate to:");
-        alert.add_prompt();
-        alert.run();
-        let value = alert.prompt_value();
-        if "" == value.as_slice() {    // To avoid crashing on Linux.
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent("http://purple.com/".to_string()))
-        } else {
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent(value.clone()))
-        }
     }
 }
 
@@ -428,3 +418,152 @@ extern "C" fn on_framebuffer_size(_glfw_window: *mut glfw::ffi::GLFWwindow,
     }
 }
 
+fn glfw_mods_to_script_mods(mods: glfw::Modifiers) -> constellation_msg::KeyModifiers {
+    let mut result = constellation_msg::KeyModifiers::from_bits(0).unwrap();
+    if mods.contains(glfw::Shift) {
+        result.insert(constellation_msg::SHIFT);
+    }
+    if mods.contains(glfw::Alt) {
+        result.insert(constellation_msg::ALT);
+    }
+    if mods.contains(glfw::Control) {
+        result.insert(constellation_msg::CONTROL);
+    }
+    if mods.contains(glfw::Super) {
+        result.insert(constellation_msg::SUPER);
+    }
+    result
+}
+
+macro_rules! glfw_keys_to_script_keys(
+    ($key:expr, $($name:ident),+) => (
+        match $key {
+            $(glfw::$name => constellation_msg::$name,)+
+        }
+    );
+)
+
+fn glfw_key_to_script_key(key: glfw::Key) -> constellation_msg::Key {
+    glfw_keys_to_script_keys!(key,
+                              KeySpace,
+                              KeyApostrophe,
+                              KeyComma,
+                              KeyMinus,
+                              KeyPeriod,
+                              KeySlash,
+                              Key0,
+                              Key1,
+                              Key2,
+                              Key3,
+                              Key4,
+                              Key5,
+                              Key6,
+                              Key7,
+                              Key8,
+                              Key9,
+                              KeySemicolon,
+                              KeyEqual,
+                              KeyA,
+                              KeyB,
+                              KeyC,
+                              KeyD,
+                              KeyE,
+                              KeyF,
+                              KeyG,
+                              KeyH,
+                              KeyI,
+                              KeyJ,
+                              KeyK,
+                              KeyL,
+                              KeyM,
+                              KeyN,
+                              KeyO,
+                              KeyP,
+                              KeyQ,
+                              KeyR,
+                              KeyS,
+                              KeyT,
+                              KeyU,
+                              KeyV,
+                              KeyW,
+                              KeyX,
+                              KeyY,
+                              KeyZ,
+                              KeyLeftBracket,
+                              KeyBackslash,
+                              KeyRightBracket,
+                              KeyGraveAccent,
+                              KeyWorld1,
+                              KeyWorld2,
+
+                              KeyEscape,
+                              KeyEnter,
+                              KeyTab,
+                              KeyBackspace,
+                              KeyInsert,
+                              KeyDelete,
+                              KeyRight,
+                              KeyLeft,
+                              KeyDown,
+                              KeyUp,
+                              KeyPageUp,
+                              KeyPageDown,
+                              KeyHome,
+                              KeyEnd,
+                              KeyCapsLock,
+                              KeyScrollLock,
+                              KeyNumLock,
+                              KeyPrintScreen,
+                              KeyPause,
+                              KeyF1,
+                              KeyF2,
+                              KeyF3,
+                              KeyF4,
+                              KeyF5,
+                              KeyF6,
+                              KeyF7,
+                              KeyF8,
+                              KeyF9,
+                              KeyF10,
+                              KeyF11,
+                              KeyF12,
+                              KeyF13,
+                              KeyF14,
+                              KeyF15,
+                              KeyF16,
+                              KeyF17,
+                              KeyF18,
+                              KeyF19,
+                              KeyF20,
+                              KeyF21,
+                              KeyF22,
+                              KeyF23,
+                              KeyF24,
+                              KeyF25,
+                              KeyKp0,
+                              KeyKp1,
+                              KeyKp2,
+                              KeyKp3,
+                              KeyKp4,
+                              KeyKp5,
+                              KeyKp6,
+                              KeyKp7,
+                              KeyKp8,
+                              KeyKp9,
+                              KeyKpDecimal,
+                              KeyKpDivide,
+                              KeyKpMultiply,
+                              KeyKpSubtract,
+                              KeyKpAdd,
+                              KeyKpEnter,
+                              KeyKpEqual,
+                              KeyLeftShift,
+                              KeyLeftControl,
+                              KeyLeftAlt,
+                              KeyLeftSuper,
+                              KeyRightShift,
+                              KeyRightControl,
+                              KeyRightAlt,
+                              KeyRightSuper,
+                              KeyMenu)
+}

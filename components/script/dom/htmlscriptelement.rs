@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::ascii::AsciiExt;
+
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -216,7 +218,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             },
             Some(ref s) => {
                 debug!("script type={:s}", *s);
-                SCRIPT_JS_MIMES.contains(&s.as_slice().trim_chars(HTML_SPACE_CHARACTERS))
+                SCRIPT_JS_MIMES.contains(&s.to_ascii_lower().as_slice().trim_chars(HTML_SPACE_CHARACTERS))
             },
             None => {
                 debug!("no script type");
@@ -229,7 +231,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                     },
                     Some(ref s) => {
                         debug!("script language={:s}", *s);
-                        SCRIPT_JS_MIMES.contains(&format!("text/{}", s).as_slice())
+                        SCRIPT_JS_MIMES.contains(&format!("text/{}", s).to_ascii_lower().as_slice())
                     },
                     None => {
                         debug!("no script type or language, inferring js");

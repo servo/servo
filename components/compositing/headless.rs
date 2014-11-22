@@ -104,7 +104,7 @@ impl CompositorEventListener for NullCompositor {
             CreateOrUpdateDescendantLayer(..) |
             SetLayerOrigin(..) | Paint(..) |
             ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
-            LoadComplete(..) | RenderMsgDiscarded(..) | ScrollTimeout(..) => ()
+            LoadComplete | RenderMsgDiscarded(..) | ScrollTimeout(..) => ()
         }
         true
     }

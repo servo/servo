@@ -11,7 +11,7 @@ use context::SharedLayoutContext;
 use flow::{mod, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBoundsIterator};
-use incremental::{LayoutDamageComputation, Reflow, ReflowEntireDocument, Repaint};
+use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use layout_debug;
 use parallel::UnsafeFlow;
 use parallel;
@@ -19,15 +19,13 @@ use sequential;
 use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 
-use collections::dlist::DList;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::scale_factor::ScaleFactor;
-use gfx::display_list::{ContentStackingLevel, DisplayItem, DisplayList};
-use gfx::display_list::{OpaqueNode};
+use gfx::display_list::{DisplayList, OpaqueNode, StackingContext};
 use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
 use gfx::{render_task, color};
 use layout_traits;
@@ -51,7 +49,6 @@ use gfx::font_cache_task::{FontCacheTask};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_net::resource_task::{ResourceTask, load_bytes_iter};
 use servo_util::geometry::Au;
-use servo_util::geometry;
 use servo_util::logical_geometry::LogicalPoint;
 use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
@@ -79,8 +76,8 @@ pub struct LayoutTaskData {
     /// The size of the viewport.
     pub screen_size: Size2D<Au>,
 
-    /// A cached display list.
-    pub display_list: Option<Arc<DisplayList>>,
+    /// The root stacking context.
+    pub stacking_context: Option<Arc<StackingContext>>,
 
     pub stylist: Box<Stylist>,
 
@@ -183,7 +180,7 @@ impl LayoutTaskFactory for LayoutTask {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("LayoutTask", task_state::Layout, proc() {
+        spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, proc() {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
                 let layout =
@@ -254,7 +251,7 @@ impl LayoutTask {
         let screen_size = Size2D(Au(0), Au(0));
         let device = Device::new(Screen, opts::get().initial_window_size.as_f32() * ScaleFactor(1.0));
         let parallel_traversal = if opts::get().layout_threads != 1 {
-            Some(WorkQueue::new("LayoutWorker", task_state::Layout,
+            Some(WorkQueue::new("LayoutWorker", task_state::LAYOUT,
                                 opts::get().layout_threads, ptr::null()))
         } else {
             None
@@ -277,7 +274,7 @@ impl LayoutTask {
                 LayoutTaskData {
                     local_image_cache: local_image_cache,
                     screen_size: screen_size,
-                    display_list: None,
+                    stacking_context: None,
                     stylist: box Stylist::new(device),
                     parallel_traversal: parallel_traversal,
                     dirty: Rect::zero(),
@@ -339,7 +336,7 @@ impl LayoutTask {
             } else if ret == port2.id() {
                 Pipeline
             } else {
-                fail!("invalid select result");
+                panic!("invalid select result");
             }
         };
 
@@ -443,7 +440,7 @@ impl LayoutTask {
                     break
                 }
                 _ => {
-                    fail!("layout: message that wasn't `ExitNowMsg` received after \
+                    panic!("layout: message that wasn't `ExitNowMsg` received after \
                            `PrepareToExitMsg`")
                 }
             }
@@ -559,7 +556,7 @@ impl LayoutTask {
         let _scope = layout_debug_scope!("solve_constraints_parallel");
 
         match rw_data.parallel_traversal {
-            None => fail!("solve_contraints_parallel() called with no parallel traversal ready"),
+            None => panic!("solve_contraints_parallel() called with no parallel traversal ready"),
             Some(ref mut traversal) => {
                 // NOTE: this currently computes borders, so any pruning should separate that
                 // operation out.
@@ -621,9 +618,11 @@ impl LayoutTask {
             shared_layout_ctx.dirty =
                 flow::base(layout_root.deref()).position.to_physical(writing_mode,
                                                                      rw_data.screen_size);
-            flow::mut_base(layout_root.deref_mut()).abs_position =
+            flow::mut_base(layout_root.deref_mut()).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              rw_data.screen_size);
+
+            flow::mut_base(layout_root.deref_mut()).clip_rect = data.page_clip_rect;
 
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
@@ -641,13 +640,7 @@ impl LayoutTask {
                 }
             }
 
-            debug!("Done building display list. Display List = {}",
-                   flow::base(layout_root.deref()).display_list);
-
-            flow::mut_base(layout_root.deref_mut()).display_list.flatten(ContentStackingLevel);
-            let display_list =
-                Arc::new(mem::replace(&mut flow::mut_base(layout_root.deref_mut()).display_list,
-                                      DisplayList::new()));
+            debug!("Done building display list.");
 
             // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
             // it with extreme prejudice.
@@ -663,12 +656,11 @@ impl LayoutTask {
                                                                          .background_color)
                                          .to_gfx_color()
                     };
-                    match element_bg_color {
-                        color::rgba(0., 0., 0., 0.) => {}
-                        _ => {
-                            color = element_bg_color;
-                            break;
-                       }
+                    // FIXME: Add equality operators for azure color type.
+                    if element_bg_color.r != 0.0 || element_bg_color.g != 0.0 ||
+                       element_bg_color.b != 0.0 || element_bg_color.a != 0.0 {
+                        color = element_bg_color;
+                        break;
                     }
                 }
             }
@@ -677,31 +669,23 @@ impl LayoutTask {
                 let root_flow = flow::base(layout_root.deref());
                 root_flow.position.size.to_physical(root_flow.writing_mode)
             };
-            let root_size = Size2D(root_size.width.to_nearest_px() as uint,
-                                   root_size.height.to_nearest_px() as uint);
-            let render_layer = RenderLayer {
-                id: layout_root.layer_id(0),
-                display_list: display_list.clone(),
-                position: Rect(Point2D(0u, 0u), root_size),
-                background_color: color,
-                scroll_policy: Scrollable,
-            };
+            let mut display_list = box DisplayList::new();
+            flow::mut_base(layout_root.deref_mut()).display_list_building_result
+                                                   .add_to(&mut *display_list);
+            let render_layer = Arc::new(RenderLayer::new(layout_root.layer_id(0),
+                                                         color,
+                                                         Scrollable));
+            let origin = Rect(Point2D(Au(0), Au(0)), root_size);
+            let stacking_context = Arc::new(StackingContext::new(display_list,
+                                                                 origin,
+                                                                 0,
+                                                                 Some(render_layer)));
 
-            rw_data.display_list = Some(display_list);
-
-            // TODO(pcwalton): Eventually, when we have incremental reflow, this will have to
-            // be smarter in order to handle retained layer contents properly from reflow to
-            // reflow.
-            let mut layers = SmallVec1::new();
-            layers.push(render_layer);
-            for layer in mem::replace(&mut flow::mut_base(layout_root.deref_mut()).layers,
-                                      DList::new()).into_iter() {
-                layers.push(layer)
-            }
+            rw_data.stacking_context = Some(stacking_context.clone());
 
             debug!("Layout done!");
 
-            self.render_chan.send(RenderInitMsg(layers));
+            self.render_chan.send(RenderInitMsg(stacking_context));
         });
     }
 
@@ -796,8 +780,8 @@ impl LayoutTask {
                 self.time_profiler_chan.clone(),
                 || {
             if opts::get().nonincremental_layout ||
-                    layout_root.compute_layout_damage().contains(ReflowEntireDocument) {
-                layout_root.reflow_entire_document()
+                    layout_root.deref_mut().compute_layout_damage().contains(REFLOW_ENTIRE_DOCUMENT) {
+                layout_root.deref_mut().reflow_entire_document()
             }
         });
 
@@ -882,7 +866,7 @@ impl LayoutTask {
     }
 
     fn reflow_all_nodes(flow: &mut Flow) {
-        flow::mut_base(flow).restyle_damage.insert(Reflow | Repaint);
+        flow::mut_base(flow).restyle_damage.insert(REFLOW | REPAINT);
 
         for child in flow::child_iter(flow) {
             LayoutTask::reflow_all_nodes(child);
@@ -928,31 +912,27 @@ impl LayoutRPC for LayoutRPCImpl {
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
     fn content_boxes(&self) -> ContentBoxesResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
-        let mut rw_data = rw_data.lock();
+        let rw_data = rw_data.lock();
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
     }
 
-    /// Requests the node containing the point of interest
+    /// Requests the node containing the point of interest.
     fn hit_test(&self, _: TrustedNodeAddress, point: Point2D<f32>) -> Result<HitTestResponse, ()> {
-        fn hit_test<'a,I>(point: Point2D<Au>, mut iterator: I)
-                          -> Option<HitTestResponse>
-                          where I: Iterator<&'a DisplayItem> {
-            for item in iterator {
-                // TODO(tikue): This check should really be performed by a method of `DisplayItem`.
-                if geometry::rect_contains_point(item.base().clip_rect, point) &&
-                        geometry::rect_contains_point(item.bounds(), point) {
-                    return Some(HitTestResponse(item.base().node.to_untrusted_node_address()))
-                }
-            }
-            None
-        }
         let point = Point2D(Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
         let resp = {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock();
-            match rw_data.display_list {
-                None => fail!("no display list!"),
-                Some(ref display_list) => hit_test(point, display_list.list.iter().rev()),
+            match rw_data.stacking_context {
+                None => panic!("no root stacking context!"),
+                Some(ref stacking_context) => {
+                    let mut result = Vec::new();
+                    stacking_context.hit_test(point, &mut result, true);
+                    if !result.is_empty() {
+                        Some(HitTestResponse(result[0]))
+                    } else {
+                        None
+                    }
+                }
             }
         };
 
@@ -964,29 +944,17 @@ impl LayoutRPC for LayoutRPCImpl {
 
     fn mouse_over(&self, _: TrustedNodeAddress, point: Point2D<f32>)
                   -> Result<MouseOverResponse, ()> {
-        fn mouse_over_test<'a,I>(point: Point2D<Au>,
-                                 mut iterator: I,
-                                 result: &mut Vec<UntrustedNodeAddress>)
-                                 where I: Iterator<&'a DisplayItem> {
-            for item in iterator {
-                // TODO(tikue): This check should really be performed by a method of `DisplayItem`.
-                if geometry::rect_contains_point(item.bounds(), point) {
-                    result.push(item.base().node.to_untrusted_node_address())
-                }
-            }
-        }
-
         let mut mouse_over_list: Vec<UntrustedNodeAddress> = vec!();
         let point = Point2D(Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
         {
             let &LayoutRPCImpl(ref rw_data) = self;
             let rw_data = rw_data.lock();
-            match rw_data.display_list {
-                None => fail!("no display list!"),
-                Some(ref display_list) => {
-                    mouse_over_test(point, display_list.list.iter().rev(), &mut mouse_over_list);
+            match rw_data.stacking_context {
+                None => panic!("no root stacking context!"),
+                Some(ref stacking_context) => {
+                    stacking_context.hit_test(point, &mut mouse_over_list, false);
                 }
-            };
+            }
         }
 
         if mouse_over_list.is_empty() {

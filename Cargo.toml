@@ -26,6 +26,7 @@ harness = false
 
 [features]
 default = ["glfw_app"]
+glutin = ["glutin_app"]
 
 [dependencies.compositing]
 path = "components/compositing"
@@ -52,5 +53,17 @@ path = "components/gfx"
 path = "ports/glfw"
 optional = true
 
+[dependencies.glutin_app]
+path = "ports/glutin"
+optional = true
+
 [dependencies.url]
 git = "https://github.com/servo/rust-url"
+
+[dependencies.green]
+git = "https://github.com/servo/green-rs"
+branch = "servo"
+
+[dependencies.rustuv]
+git = "https://github.com/servo/green-rs"
+branch = "servo"

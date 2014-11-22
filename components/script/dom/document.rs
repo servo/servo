@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::AttrHelpers;
-use dom::bindings::cell::{DOMRefCell, Ref};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyStateValues;
@@ -46,6 +46,7 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::location::Location;
 use dom::mouseevent::MouseEvent;
+use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers};
 use dom::node::{CloneChildren, DoNotCloneChildren};
 use dom::nodelist::NodeList;
@@ -62,9 +63,10 @@ use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use string_cache::{Atom, QualName};
 use url::Url;
 
-use std::collections::hashmap::HashMap;
-use std::ascii::StrAsciiExt;
-use std::cell::Cell;
+use std::collections::HashMap;
+use std::collections::hash_map::{Vacant, Occupied};
+use std::ascii::AsciiExt;
+use std::cell::{Cell, Ref};
 use std::default::Default;
 use time;
 
@@ -95,6 +97,10 @@ pub struct Document {
     anchors: MutNullableJS<HTMLCollection>,
     applets: MutNullableJS<HTMLCollection>,
     ready_state: Cell<DocumentReadyState>,
+    /// The element that has most recently requested focus for itself.
+    possibly_focused: MutNullableJS<Element>,
+    /// The element that currently has the document focus context.
+    focused: MutNullableJS<Element>,
 }
 
 impl DocumentDerived for EventTarget {
@@ -177,6 +183,10 @@ pub trait DocumentHelpers<'a> {
     fn load_anchor_href(self, href: DOMString);
     fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>>;
     fn set_ready_state(self, state: DocumentReadyState);
+    fn get_focused_element(self) -> Option<Temporary<Element>>;
+    fn begin_focus_transaction(self);
+    fn request_focus(self, elem: JSRef<Element>);
+    fn commit_focus_transaction(self);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -233,7 +243,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                                 to_unregister: JSRef<Element>,
                                 id: Atom) {
         let mut idmap = self.idmap.borrow_mut();
-        let is_empty = match idmap.find_mut(&id) {
+        let is_empty = match idmap.get_mut(&id) {
             None => false,
             Some(elements) => {
                 let position = elements.iter()
@@ -262,29 +272,35 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         let mut idmap = self.idmap.borrow_mut();
 
         let root = self.GetDocumentElement().expect("The element is in the document, so there must be a document element.").root();
-        idmap.find_with_or_insert_with(id, element,
-            |_key, elements, element| {
+
+        match idmap.entry(id) {
+            Vacant(entry) => {
+                entry.set(vec!(element.unrooted()));
+            }
+            Occupied(entry) => {
+                let elements = entry.into_mut();
+
                 let new_node: JSRef<Node> = NodeCast::from_ref(element);
-                let mut head : uint = 0u;
+                let mut head: uint = 0u;
                 let root: JSRef<Node> = NodeCast::from_ref(*root);
                 for node in root.traverse_preorder() {
                     let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
                     match elem {
+                        None => {},
                         Some(elem) => {
                             if *(*elements)[head].root() == elem {
-                                head = head + 1;
+                                head += 1;
                             }
                             if new_node == node || head == elements.len() {
                                 break;
                             }
                         }
-                        None => {}
                     }
                 }
+
                 elements.insert_unrooted(head, &element);
-            },
-            |_key, element| vec![element.unrooted()]
-        );
+            }
+        }
     }
 
     fn load_anchor_href(self, href: DOMString) {
@@ -319,6 +335,30 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                                DoesNotBubble, NotCancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         let _ = target.DispatchEvent(*event);
+    }
+
+    /// Return the element that currently has focus.
+    // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-focusevent-doc-focus
+    fn get_focused_element(self) -> Option<Temporary<Element>> {
+        self.focused.get()
+    }
+
+    /// Initiate a new round of checking for elements requesting focus. The last element to call
+    /// `request_focus` before `commit_focus_transaction` is called will receive focus.
+    fn begin_focus_transaction(self) {
+        self.possibly_focused.clear();
+    }
+
+    /// Request that the given element receive focus once the current transaction is complete.
+    fn request_focus(self, elem: JSRef<Element>) {
+        self.possibly_focused.assign(Some(elem))
+    }
+
+    /// Reassign the focus context to the element that last requested focus during this
+    /// transaction, or none if no elements requested it.
+    fn commit_focus_transaction(self) {
+        //TODO: dispatch blur, focus, focusout, and focusin events
+        self.focused.assign(self.possibly_focused.get());
     }
 }
 
@@ -383,6 +423,8 @@ impl Document {
             anchors: Default::default(),
             applets: Default::default(),
             ready_state: Cell::new(ready_state),
+            possibly_focused: Default::default(),
+            focused: Default::default(),
         }
     }
 
@@ -514,7 +556,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
     fn GetElementById(self, id: DOMString) -> Option<Temporary<Element>> {
         let id = Atom::from_slice(id.as_slice());
-        match self.idmap.borrow().find(&id) {
+        match self.idmap.borrow().get(&id) {
             None => None,
             Some(ref elements) => Some(Temporary::new((*elements)[0].clone())),
         }
@@ -526,7 +568,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             debug!("Not a valid element name");
             return Err(InvalidCharacter);
         }
-        let local_name = local_name.as_slice().to_ascii_lower();
+        let local_name = if self.is_html_document {
+            local_name.as_slice().to_ascii_lower()
+        } else {
+            local_name
+        };
         let name = QualName::new(ns!(HTML), Atom::from_slice(local_name.as_slice()));
         Ok(Element::create(name, None, self, ScriptCreated))
     }
@@ -652,6 +698,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 CustomEvent::new_uninitialized(&global::Window(*window)))),
             "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(
                 &global::Window(*window))),
+            "keyboardevent" | "keyevents" => Ok(EventCast::from_temporary(
+                KeyboardEvent::new_uninitialized(*window))),
             _ => Err(NotSupported)
         }
     }
@@ -660,7 +708,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn LastModified(self) -> DOMString {
         match *self.last_modified.borrow() {
             Some(ref t) => t.clone(),
-            None => time::now().strftime("%m/%d/%Y %H:%M:%S"),
+            None => time::now().strftime("%m/%d/%Y %H:%M:%S").unwrap(),
         }
     }
 

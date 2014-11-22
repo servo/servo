@@ -133,7 +133,7 @@ impl FontCache {
                             let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
                             match maybe_resource {
                                 Ok((_, bytes)) => {
-                                    let family = self.web_families.get_mut(&family_name);
+                                    let family = &mut self.web_families[family_name];
                                     family.add_template(url.to_string().as_slice(), Some(bytes));
                                 },
                                 Err(_) => {
@@ -142,7 +142,7 @@ impl FontCache {
                             }
                         }
                         LocalSource(ref local_family_name) => {
-                            let family = self.web_families.get_mut(&family_name);
+                            let family = &mut self.web_families[family_name];
                             get_variations_for_family(local_family_name.as_slice(), |path| {
                                 family.add_template(path.as_slice(), None);
                             });
@@ -170,7 +170,7 @@ impl FontCache {
     }
 
     fn transform_family(&self, family: &LowercaseString) -> LowercaseString {
-        match self.generic_fonts.find(family) {
+        match self.generic_fonts.get(family) {
             None => family.clone(),
             Some(mapped_family) => (*mapped_family).clone()
         }
@@ -182,7 +182,7 @@ impl FontCache {
         // look up canonical name
         if self.local_families.contains_key(family_name) {
             debug!("FontList: Found font family with name={:s}", family_name.to_string());
-            let s = self.local_families.get_mut(family_name);
+            let s = &mut self.local_families[*family_name];
 
             if s.templates.len() == 0 {
                 get_variations_for_family(family_name.as_slice(), |path| {
@@ -207,7 +207,7 @@ impl FontCache {
     fn find_font_in_web_family<'a>(&'a mut self, family_name: &LowercaseString, desc: &FontTemplateDescriptor)
                                 -> Option<Arc<FontTemplateData>> {
         if self.web_families.contains_key(family_name) {
-            let family = self.web_families.get_mut(family_name);
+            let family = &mut self.web_families[*family_name];
             let maybe_font = family.find_font_for_style(desc, &self.font_context);
             maybe_font
         } else {
@@ -237,7 +237,7 @@ impl FontCache {
             }
         }
 
-        fail!("Unable to find any fonts that match (do you have fallback fonts installed?)");
+        panic!("Unable to find any fonts that match (do you have fallback fonts installed?)");
     }
 }
 

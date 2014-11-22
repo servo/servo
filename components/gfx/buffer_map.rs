@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
+use std::collections::hash_map::{Occupied, Vacant};
 use geom::size::Size2D;
 use layers::platform::surface::NativePaintingGraphicsContext;
 use layers::layers::LayerBuffer;
@@ -85,10 +86,17 @@ impl BufferMap {
         self.mem += new_buffer.get_mem();
         // use lazy insertion function to prevent unnecessary allocation
         let counter = &self.counter;
-        self.map.find_or_insert_with(new_key, |_| BufferValue {
-            buffers: vec!(),
-            last_action: *counter
-        }).buffers.push(new_buffer);
+        match self.map.entry(new_key) {
+            Occupied(entry) => {
+                entry.into_mut().buffers.push(new_buffer);
+            }
+            Vacant(entry) => {
+                entry.set(BufferValue {
+                    buffers: vec!(new_buffer),
+                    last_action: *counter,
+                });
+            }
+        }
 
         let mut opt_key: Option<BufferKey> = None;
         while self.mem > self.max_mem {
@@ -97,19 +105,19 @@ impl BufferMap {
                 None => {
                     match self.map.iter().min_by(|&(_, x)| x.last_action) {
                         Some((k, _)) => *k,
-                        None => fail!("BufferMap: tried to delete with no elements in map"),
+                        None => panic!("BufferMap: tried to delete with no elements in map"),
                     }
                 }
             };
             if {
-                let list = &mut self.map.get_mut(&old_key).buffers;
+                let list = &mut self.map[old_key].buffers;
                 let condemned_buffer = list.pop().take().unwrap();
                 self.mem -= condemned_buffer.get_mem();
                 condemned_buffer.destroy(graphics_context);
                 list.is_empty()
             }
             { // then
-                self.map.pop(&old_key); // Don't store empty vectors!
+                self.map.remove(&old_key); // Don't store empty vectors!
                 opt_key = None;
             } else {
                 opt_key = Some(old_key);
@@ -121,7 +129,7 @@ impl BufferMap {
     pub fn find(&mut self, size: Size2D<uint>) -> Option<Box<LayerBuffer>> {
         let mut flag = false; // True if key needs to be popped after retrieval.
         let key = BufferKey::get(size);
-        let ret = match self.map.find_mut(&key) {
+        let ret = match self.map.get_mut(&key) {
             Some(ref mut buffer_val) => {
                 buffer_val.last_action = self.counter;
                 self.counter += 1;
@@ -137,7 +145,7 @@ impl BufferMap {
         };
 
         if flag {
-            self.map.pop(&key); // Don't store empty vectors!
+            self.map.remove(&key); // Don't store empty vectors!
         }
 
         ret

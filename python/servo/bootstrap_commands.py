@@ -119,8 +119,7 @@ class MachCommands(CommandBase):
         os.makedirs(cargo_dir)
 
         tgz_file = "cargo-nightly-%s.tar.gz" % host_triple()
-        # FIXME(#3582): use https.
-        nightly_url = "http://static.rust-lang.org/cargo-dist/%s/%s" % \
+        nightly_url = "https://static-rust-lang-org.s3.amazonaws.com/cargo-dist/%s/%s" % \
             (self.cargo_build_id(), tgz_file)
 
         download("Cargo nightly", nightly_url, tgz_file)

@@ -1,0 +1,33 @@
+[package]
+name = "glutin_app"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "glutin_app"
+path = "lib.rs"
+
+[dependencies.compositing]
+path = "../../components/compositing"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
+[dependencies.msg]
+path = "../../components/msg"
+
+[dependencies.util]
+path = "../../components/util"
+
+[dependencies.glutin]
+git = "https://github.com/tomaka/glutin"
+features = ["window", "headless"]
+
+[dependencies.gleam]
+git = "https://github.com/servo/gleam"
+
+[dependencies.cgl]
+git = "https://github.com/servo/rust-cgl"

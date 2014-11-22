@@ -9,7 +9,7 @@ macro_rules! make_getter(
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             #[allow(unused_imports)]
-            use std::ascii::StrAsciiExt;
+            use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             element.get_string_attribute(&Atom::from_slice($htmlname.to_ascii_lower().as_slice()))
         }
@@ -26,7 +26,7 @@ macro_rules! make_bool_getter(
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             #[allow(unused_imports)]
-            use std::ascii::StrAsciiExt;
+            use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.has_attribute(&Atom::from_slice($htmlname))
@@ -44,7 +44,7 @@ macro_rules! make_uint_getter(
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             #[allow(unused_imports)]
-            use std::ascii::StrAsciiExt;
+            use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.get_uint_attribute(&Atom::from_slice($htmlname))
@@ -62,7 +62,7 @@ macro_rules! make_url_getter(
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             #[allow(unused_imports)]
-            use std::ascii::StrAsciiExt;
+            use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
             element.get_url_attribute(&Atom::from_slice($htmlname))
@@ -81,7 +81,7 @@ macro_rules! make_url_or_base_getter(
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             #[allow(unused_imports)]
-            use std::ascii::StrAsciiExt;
+            use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             let url = element.get_url_attribute(&Atom::from_slice($htmlname));
             match url.as_slice() {
@@ -105,7 +105,7 @@ macro_rules! make_enumerated_getter(
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
             #[allow(unused_imports)]
-            use std::ascii::StrAsciiExt;
+            use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             let val = element.get_string_attribute(&Atom::from_slice($htmlname))
                              .into_ascii_lower();

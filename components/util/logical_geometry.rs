@@ -12,39 +12,39 @@ use std::num::Zero;
 bitflags!(
     #[deriving(Encodable)]
     flags WritingMode: u8 {
-        static FlagRTL = 1 << 0,
-        static FlagVertical = 1 << 1,
-        static FlagVerticalLR = 1 << 2,
-        static FlagSidewaysLeft = 1 << 3
+        const FLAG_RTL = 1 << 0,
+        const FLAG_VERTICAL = 1 << 1,
+        const FLAG_VERTICAL_LR = 1 << 2,
+        const FLAG_SIDEWAYS_LEFT = 1 << 3
     }
 )
 
 impl WritingMode {
     #[inline]
     pub fn is_vertical(&self) -> bool {
-        self.intersects(FlagVertical)
+        self.intersects(FLAG_VERTICAL)
     }
 
     /// Asuming .is_vertical(), does the block direction go left to right?
     #[inline]
     pub fn is_vertical_lr(&self) -> bool {
-        self.intersects(FlagVerticalLR)
+        self.intersects(FLAG_VERTICAL_LR)
     }
 
     /// Asuming .is_vertical(), does the inline direction go top to bottom?
     #[inline]
     pub fn is_inline_tb(&self) -> bool {
-        !(self.intersects(FlagSidewaysLeft) ^ self.intersects(FlagRTL))
+        !(self.intersects(FLAG_SIDEWAYS_LEFT) ^ self.intersects(FLAG_RTL))
     }
 
     #[inline]
     pub fn is_bidi_ltr(&self) -> bool {
-        !self.intersects(FlagRTL)
+        !self.intersects(FLAG_RTL)
     }
 
     #[inline]
     pub fn is_sideways_left(&self) -> bool {
-        self.intersects(FlagSidewaysLeft)
+        self.intersects(FLAG_SIDEWAYS_LEFT)
     }
 }
 
@@ -57,7 +57,7 @@ impl Show for WritingMode {
             } else {
                 try!(write!(formatter, " RL"));
             }
-            if self.intersects(FlagSidewaysLeft) {
+            if self.intersects(FLAG_SIDEWAYS_LEFT) {
                 try!(write!(formatter, " SidewaysL"));
             }
         } else {
@@ -968,15 +968,15 @@ impl<T: Add<T, T> + Sub<T, T>> Sub<LogicalMargin<T>, LogicalRect<T>> for Logical
 fn modes() -> [WritingMode, ..10] {
     [
         WritingMode::empty(),
-        FlagVertical,
-        FlagVertical | FlagVerticalLR,
-        FlagVertical | FlagVerticalLR | FlagSidewaysLeft,
-        FlagVertical | FlagSidewaysLeft,
-        FlagRTL,
-        FlagVertical | FlagRTL,
-        FlagVertical | FlagVerticalLR | FlagRTL,
-        FlagVertical | FlagVerticalLR | FlagSidewaysLeft | FlagRTL,
-        FlagVertical | FlagSidewaysLeft | FlagRTL,
+        FLAG_VERTICAL,
+        FLAG_VERTICAL | FLAG_VERTICAL_LR,
+        FLAG_VERTICAL | FLAG_VERTICAL_LR | FLAG_SIDEWAYS_LEFT,
+        FLAG_VERTICAL | FLAG_SIDEWAYS_LEFT,
+        FLAG_RTL,
+        FLAG_VERTICAL | FLAG_RTL,
+        FLAG_VERTICAL | FLAG_VERTICAL_LR | FLAG_RTL,
+        FLAG_VERTICAL | FLAG_VERTICAL_LR | FLAG_SIDEWAYS_LEFT | FLAG_RTL,
+        FLAG_VERTICAL | FLAG_SIDEWAYS_LEFT | FLAG_RTL,
     ]
 }
 

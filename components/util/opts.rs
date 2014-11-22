@@ -19,6 +19,12 @@ use std::os;
 use std::ptr;
 use std::rt;
 
+#[deriving(Clone)]
+pub enum RenderApi {
+    OpenGL,
+    Mesa,
+}
+
 /// Global flags for Servo, currently set on the command line.
 #[deriving(Clone)]
 pub struct Opts {
@@ -57,9 +63,6 @@ pub struct Opts {
     pub layout_threads: uint,
 
     pub nonincremental_layout: bool,
-
-    /// True to exit after the page load (`-x`).
-    pub exit_after_load: bool,
 
     pub output_file: Option<String>,
     pub headless: bool,
@@ -108,6 +111,8 @@ pub struct Opts {
 
     /// Whether to show an error when display list geometry escapes flow overflow regions.
     pub validate_display_list_geometry: bool,
+
+    pub render_api: RenderApi,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -148,7 +153,7 @@ static FORCE_CPU_PAINTING: bool = true;
 #[cfg(not(target_os="android"))]
 static FORCE_CPU_PAINTING: bool = false;
 
-fn default_opts() -> Opts {
+pub fn default_opts() -> Opts {
     Opts {
         urls: vec!(),
         n_render_threads: 1,
@@ -160,7 +165,6 @@ fn default_opts() -> Opts {
         enable_experimental: false,
         layout_threads: 1,
         nonincremental_layout: false,
-        exit_after_load: false,
         output_file: None,
         headless: true,
         hard_fail: true,
@@ -175,6 +179,7 @@ fn default_opts() -> Opts {
         dump_flow_tree: false,
         validate_display_list_geometry: false,
         profile_tasks: false,
+        render_api: OpenGL,
     }
 }
 
@@ -201,7 +206,8 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optopt("", "resolution", "Set window resolution.", "800x600"),
         getopts::optopt("u", "user-agent", "Set custom user agent string", "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)"),
         getopts::optopt("Z", "debug", "A comma-separated string of debug options. Pass help to show available options.", ""),
-        getopts::optflag("h", "help", "Print this message")
+        getopts::optflag("h", "help", "Print this message"),
+        getopts::optopt("r", "render-api", "Set the rendering API to use", "gl|mesa"),
     );
 
     let opt_match = match getopts::getopts(args, opts.as_slice()) {
@@ -291,6 +297,15 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         }
     };
 
+    let render_api = match opt_match.opt_str("r").unwrap_or("gl".to_string()).as_slice() {
+        "mesa" => Mesa,
+        "gl" => OpenGL,
+        _ => {
+            args_fail("Unknown render api specified");
+            return false;
+        }
+    };
+
     let opts = Opts {
         urls: urls,
         n_render_threads: n_render_threads,
@@ -302,7 +317,6 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         enable_experimental: opt_match.opt_present("e"),
         layout_threads: layout_threads,
         nonincremental_layout: nonincremental_layout,
-        exit_after_load: opt_match.opt_present("x"),
         output_file: opt_match.opt_str("o"),
         headless: opt_match.opt_present("z"),
         hard_fail: opt_match.opt_present("f"),
@@ -317,6 +331,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         enable_text_antialiasing: !debug_options.contains(&"disable-text-aa"),
         dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
         validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
+        render_api: render_api,
     };
 
     set_opts(opts);

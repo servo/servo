@@ -161,6 +161,10 @@ impl InstrumentedRuntime {
 }
 
 impl Runtime for InstrumentedRuntime {
+    fn stack_guard(&self) -> Option<uint> {
+        self.inner.as_ref().unwrap().stack_guard()
+    }
+
     fn yield_now(mut self: Box<InstrumentedRuntime>, cur_task: Box<Task>) {
         self.inner.take().unwrap().yield_now(cur_task);
         self.put(None)

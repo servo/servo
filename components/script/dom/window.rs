@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::{DOMRefCell, Ref, RefMut};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{OnErrorEventHandlerNonNull, EventHandlerNonNull};
+use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
@@ -40,6 +41,7 @@ use url::{Url, UrlParser};
 
 use libc;
 use serialize::base64::{FromBase64, ToBase64, STANDARD};
+use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::rc::Rc;
 use time;
@@ -222,8 +224,9 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.navigator.get().unwrap()
     }
 
-    fn SetTimeout(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
         self.timers.set_timeout_or_interval(callback,
+                                            args,
                                             timeout,
                                             false, // is_interval
                                             FromWindow(self.page.id.clone()),
@@ -234,8 +237,9 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.timers.clear_timeout_or_interval(handle);
     }
 
-    fn SetInterval(self, _cx: *mut JSContext, callback: JSVal, timeout: i32) -> i32 {
+    fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
         self.timers.set_timeout_or_interval(callback,
+                                            args,
                                             timeout,
                                             true, // is_interval
                                             FromWindow(self.page.id.clone()),
@@ -316,7 +320,7 @@ pub trait WindowHelpers {
     fn wait_until_safe_to_modify_dom(self);
     fn init_browser_context(self, doc: JSRef<Document>);
     fn load_url(self, href: DOMString);
-    fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext);
+    fn handle_fire_timer(self, timer_id: TimerId);
     fn evaluate_js_with_result(self, code: &str) -> JSVal;
     fn evaluate_script_with_result(self, code: &str, filename: &str) -> JSVal;
 }
@@ -367,7 +371,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
     fn load_url(self, href: DOMString) {
         let base_url = self.page().get_url();
-        debug!("current page url is {:?}", base_url);
+        debug!("current page url is {}", base_url);
         let url = UrlParser::new().base_url(&base_url).parse(href.as_slice());
         // FIXME: handle URL parse errors more gracefully.
         let url = url.unwrap();
@@ -379,9 +383,9 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         }
     }
 
-    fn handle_fire_timer(self, timer_id: TimerId, cx: *mut JSContext) {
-        let this_value = self.reflector().get_jsobject();
-        self.timers.fire_timer(timer_id, this_value, cx);
+    fn handle_fire_timer(self, timer_id: TimerId) {
+        self.timers.fire_timer(timer_id, self.clone());
+        self.flush_layout();
     }
 }
 

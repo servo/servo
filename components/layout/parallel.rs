@@ -25,7 +25,7 @@ use servo_util::time;
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::mem;
 use std::ptr;
-use std::sync::atomics::{AtomicInt, Relaxed, SeqCst};
+use std::sync::atomic::{AtomicInt, Relaxed, SeqCst};
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {
@@ -431,7 +431,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
     if opts::get().bubble_inline_sizes_separately {
         let layout_context = LayoutContext::new(shared_layout_context);
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
-        root.traverse_postorder(&bubble_inline_sizes);
+        root.deref_mut().traverse_postorder(&bubble_inline_sizes);
     }
 
     queue.data = shared_layout_context as *const _;

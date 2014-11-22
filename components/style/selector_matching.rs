@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::ascii::AsciiExt;
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::num::div_rem;
 use sync::Arc;
@@ -155,7 +155,7 @@ impl SelectorMap {
                                               where E: TElement<'a> + TElementAttributes,
                                                     N: TNode<'a,E>,
                                                     V: VecLike<DeclarationBlock> {
-        match hash.find(key) {
+        match hash.get(key) {
             Some(rules) => {
                 SelectorMap::get_matching_rules(node,
                                                 parent_bf,
@@ -813,11 +813,11 @@ fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
 
 bitflags! {
     flags CommonStyleAffectingAttributes: u8 {
-        static HiddenAttribute = 0x01,
-        static NoWrapAttribute = 0x02,
-        static AlignLeftAttribute = 0x04,
-        static AlignCenterAttribute = 0x08,
-        static AlignRightAttribute = 0x10,
+        const HIDDEN_ATTRIBUTE = 0x01,
+        const NO_WRAP_ATTRIBUTE = 0x02,
+        const ALIGN_LEFT_ATTRIBUTE = 0x04,
+        const ALIGN_CENTER_ATTRIBUTE = 0x08,
+        const ALIGN_RIGHT_ATTRIBUTE = 0x10,
     }
 }
 
@@ -837,23 +837,23 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
     [
         CommonStyleAffectingAttributeInfo {
             atom: atom!("hidden"),
-            mode: AttrIsPresentMode(HiddenAttribute),
+            mode: AttrIsPresentMode(HIDDEN_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("nowrap"),
-            mode: AttrIsPresentMode(NoWrapAttribute),
+            mode: AttrIsPresentMode(NO_WRAP_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("align"),
-            mode: AttrIsEqualMode("left", AlignLeftAttribute),
+            mode: AttrIsEqualMode("left", ALIGN_LEFT_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("align"),
-            mode: AttrIsEqualMode("center", AlignCenterAttribute),
+            mode: AttrIsEqualMode("center", ALIGN_CENTER_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("align"),
-            mode: AttrIsEqualMode("right", AlignRightAttribute),
+            mode: AttrIsEqualMode("right", ALIGN_RIGHT_ATTRIBUTE),
         }
     ]
 }
@@ -1176,7 +1176,7 @@ trait FindPush<K, V> {
 
 impl<K: Eq + Hash, V> FindPush<K, V> for HashMap<K, Vec<V>> {
     fn find_push(&mut self, key: K, value: V) {
-        match self.find_mut(&key) {
+        match self.get_mut(&key) {
             Some(vec) => {
                 vec.push(value);
                 return
@@ -1266,4 +1266,3 @@ mod tests {
         assert!(selector_map.class_hash.find(&Atom::from_slice("foo")).is_none());
     }
 }
-

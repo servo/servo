@@ -29,7 +29,7 @@ pub enum EventPhase {
 pub enum EventTypeId {
     CustomEventTypeId,
     HTMLEventTypeId,
-    KeyEventTypeId,
+    KeyboardEventTypeId,
     MessageEventTypeId,
     MouseEventTypeId,
     ProgressEventTypeId,
@@ -219,10 +219,11 @@ impl<'a> EventMethods for JSRef<'a, Event> {
                  type_: DOMString,
                  bubbles: bool,
                  cancelable: bool) {
-        self.initialized.set(true);
         if self.dispatching.get() {
             return;
         }
+
+        self.initialized.set(true);
         self.stop_propagation.set(false);
         self.stop_immediate.set(false);
         self.canceled.set(false);

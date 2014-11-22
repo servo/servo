@@ -91,6 +91,35 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#attr-option-value
+    fn Value(self) -> DOMString {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let attr = &atom!("value");
+        if element.has_attribute(attr) {
+            element.get_string_attribute(attr)
+        } else {
+            self.Text()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#attr-option-value
+    make_setter!(SetValue, "value")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#attr-option-label
+    fn Label(self) -> DOMString {
+        let element: JSRef<Element> = ElementCast::from_ref(self);
+        let attr = &atom!("label");
+        if element.has_attribute(attr) {
+            element.get_string_attribute(attr)
+        } else {
+            self.Text()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#attr-option-label
+    make_setter!(SetLabel, "label")
+
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
@@ -110,7 +139,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
-            },
+            }
             _ => ()
         }
     }

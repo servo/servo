@@ -80,7 +80,7 @@ impl SessionHistoryEntry {
     }
 }
 
-static proxy_handler: ProxyTraps = ProxyTraps {
+static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     getPropertyDescriptor: None,
     getOwnPropertyDescriptor: None,
     defineProperty: None,
@@ -114,6 +114,6 @@ static proxy_handler: ProxyTraps = ProxyTraps {
 
 pub fn new_window_proxy_handler() -> WindowProxyHandler {
     unsafe {
-        WindowProxyHandler(CreateWrapperProxyHandler(&proxy_handler))
+        WindowProxyHandler(CreateWrapperProxyHandler(&PROXY_HANDLER))
     }
 }

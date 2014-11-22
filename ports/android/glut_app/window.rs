@@ -6,12 +6,11 @@
 
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
-use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, LoadUrlWindowEvent, MouseWindowEventClass};
-use compositing::windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent, FinishedWindowEvent};
+use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, MouseWindowEventClass};
+use compositing::windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent};
 use compositing::windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 use compositing::windowing::{Forward, Back};
 
-use alert::{Alert, AlertMethods};
 use libc::{c_int, c_uchar};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -20,8 +19,8 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
-use msg::compositor_msg::{FinishedLoading, Blank, ReadyState};
+use msg::compositor_msg::{IdleRenderState, RenderState};
+use msg::compositor_msg::{Blank, ReadyState};
 use util::geometry::ScreenPx;
 
 use glut::glut::{ACTIVE_SHIFT, WindowHeight};
@@ -183,13 +182,6 @@ impl WindowMethods for Window {
 
     /// Sets the render state.
     fn set_render_state(&self, render_state: RenderState) {
-        if self.ready_state.get() == FinishedLoading &&
-            self.render_state.get() == RenderingRenderState &&
-            render_state == IdleRenderState {
-            // page loaded
-            self.event_queue.borrow_mut().push(FinishedWindowEvent);
-        }
-
         self.render_state.set(render_state);
         //FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily blocked.
         //self.update_window_title()
@@ -238,7 +230,6 @@ impl Window {
         debug!("got key: {}", key);
         let modifiers = glut::get_modifiers();
         match key {
-            42 => self.load_url(),
             43 => self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1)),
             45 => self.event_queue.borrow_mut().push(ZoomWindowEvent(0.909090909)),
             56 => self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0f32, 5.0f32),
@@ -280,22 +271,9 @@ impl Window {
                 }
                 MouseWindowMouseUpEvent(button as uint, TypedPoint2D(x as f32, y as f32))
             }
-            _ => fail!("I cannot recognize the type of mouse action that occured. :-(")
+            _ => panic!("I cannot recognize the type of mouse action that occured. :-(")
         };
         self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
-    }
-
-    /// Helper function to pop up an alert box prompting the user to load a URL.
-    fn load_url(&self) {
-        let mut alert: Alert = AlertMethods::new("Navigate to:");
-        alert.add_prompt();
-        alert.run();
-        let value = alert.prompt_value();
-        if "" == value.as_slice() {    // To avoid crashing on Linux.
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent("http://purple.com/".to_string()))
-        } else {
-            self.event_queue.borrow_mut().push(LoadUrlWindowEvent(value.clone()))
-        }
     }
 }
 

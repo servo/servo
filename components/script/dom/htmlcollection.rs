@@ -15,11 +15,11 @@ use dom::window::Window;
 use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
-use std::ascii::StrAsciiExt;
+use std::ascii::AsciiExt;
 use string_cache::{Atom, Namespace};
 
 pub trait CollectionFilter : JSTraceable {
-    fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool;
+    fn filter<'a>(&self, elem: JSRef<'a, Element>, root: JSRef<'a, Node>) -> bool;
 }
 
 #[jstraceable]
@@ -140,8 +140,8 @@ impl HTMLCollection {
             classes: Vec<Atom>
         }
         impl CollectionFilter for ClassNameFilter {
-            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
-                self.classes.iter().all(|class| elem.has_class(class))
+            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
+                (NodeCast::from_ref(elem) != root) && self.classes.iter().all(|class| elem.has_class(class))
             }
         }
         let filter = ClassNameFilter {

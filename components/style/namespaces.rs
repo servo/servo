@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::ast::*;
-use std::collections::hashmap::HashMap;
+use std::collections::HashMap;
 use servo_util::namespace;
 use errors::log_css_error;
 use string_cache::Namespace;
@@ -50,7 +50,7 @@ pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
     if iter.next().is_some() { syntax_error!() }
     match (prefix, ns) {
         (Some(prefix), Some(ns)) => {
-            if namespaces.prefix_map.swap(prefix, ns).is_some() {
+            if namespaces.prefix_map.insert(prefix, ns).is_some() {
                 log_css_error(location, "Duplicate @namespace rule");
             }
         },

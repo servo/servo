@@ -64,13 +64,11 @@ Window implements WindowEventHandlers;
 // http://www.whatwg.org/html/#windowtimers
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface WindowTimers {
-  //long setTimeout(Function handler, optional long timeout = 0, any... arguments);
+  long setTimeout(Function handler, optional long timeout = 0, any... arguments);
   //long setTimeout(DOMString handler, optional long timeout = 0, any... arguments);
-  long setTimeout(any handler, optional long timeout = 0);
   void clearTimeout(optional long handle = 0);
-  //long setInterval(Function handler, optional long timeout = 0, any... arguments);
+  long setInterval(Function handler, optional long timeout = 0, any... arguments);
   //long setInterval(DOMString handler, optional long timeout = 0, any... arguments);
-  long setInterval(any handler, optional long timeout = 0);
   void clearInterval(optional long handle = 0);
 };
 Window implements WindowTimers;

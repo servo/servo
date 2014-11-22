@@ -7,7 +7,8 @@
 
 #![feature(default_type_params, globs, macro_rules, struct_variant, phase, unsafe_destructor)]
 
-#![deny(unused_imports, unused_variable)]
+#![deny(unused_imports)]
+#![deny(unused_variables)]
 #![allow(non_snake_case)]
 
 #![doc="The script crate contains all matters DOM."]
@@ -15,7 +16,6 @@
 #[phase(plugin, link)]
 extern crate log;
 
-extern crate debug;
 extern crate devtools_traits;
 extern crate cssparser;
 extern crate collections;
@@ -178,6 +178,7 @@ pub mod dom {
     pub mod htmlulistelement;
     pub mod htmlvideoelement;
     pub mod htmlunknownelement;
+    pub mod keyboardevent;
     pub mod location;
     pub mod messageevent;
     pub mod mouseevent;
@@ -220,3 +221,4 @@ pub mod layout_interface;
 pub mod page;
 pub mod script_task;
 mod timers;
+pub mod textinput;

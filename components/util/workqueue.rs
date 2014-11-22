@@ -14,7 +14,7 @@ use libc::funcs::posix88::unistd::usleep;
 use rand::{Rng, XorShiftRng};
 use std::mem;
 use std::rand::weak_rng;
-use std::sync::atomics::{AtomicUint, SeqCst};
+use std::sync::atomic::{AtomicUint, SeqCst};
 use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 
 /// A unit of work.
@@ -82,7 +82,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
             // Wait for a start message.
             let (mut deque, ref_count, queue_data) = match self.port.recv() {
                 StartMsg(deque, ref_count, queue_data) => (deque, ref_count, queue_data),
-                StopMsg => fail!("unexpected stop message"),
+                StopMsg => panic!("unexpected stop message"),
                 ExitMsg => return,
             };
 
@@ -105,7 +105,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                         let mut should_continue = true;
                         loop {
                             let victim = (self.rng.next_u32() as uint) % self.other_deques.len();
-                            match self.other_deques.get_mut(victim).steal() {
+                            match self.other_deques[victim].steal() {
                                 Empty | Abort => {
                                     // Continue.
                                 }
@@ -130,7 +130,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                                         break
                                     }
                                     Ok(ExitMsg) => return,
-                                    Ok(_) => fail!("unexpected message"),
+                                    Ok(_) => panic!("unexpected message"),
                                     _ => {}
                                 }
 
@@ -239,7 +239,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         for i in range(0, thread_count) {
             for j in range(0, thread_count) {
                 if i != j {
-                    threads.get_mut(i).other_deques.push(infos[j].thief.clone())
+                    threads[i].other_deques.push(infos[j].thief.clone())
                 }
             }
             assert!(threads[i].other_deques.len() == thread_count - 1)
@@ -251,7 +251,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
             spawn_named_native(
                 format!("{} worker {}/{}", task_name, i+1, thread_count),
                 proc() {
-                    task_state::initialize(state | task_state::InWorker);
+                    task_state::initialize(state | task_state::IN_WORKER);
                     let mut thread = thread;
                     thread.start()
                 })
@@ -268,9 +268,10 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     /// Enqueues a block into the work queue.
     #[inline]
     pub fn push(&mut self, work_unit: WorkUnit<QueueData, WorkData>) {
-        match self.workers.get_mut(0).deque {
+        let deque = &mut self.workers[0].deque;
+        match *deque {
             None => {
-                fail!("tried to push a block but we don't have the deque?!")
+                panic!("tried to push a block but we don't have the deque?!")
             }
             Some(ref mut deque) => deque.push(work_unit),
         }
@@ -297,8 +298,8 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         // Get our deques back.
         for _ in range(0, self.workers.len()) {
             match self.port.recv() {
-                ReturnDequeMsg(index, deque) => self.workers.get_mut(index).deque = Some(deque),
-                FinishedMsg => fail!("unexpected finished message!"),
+                ReturnDequeMsg(index, deque) => self.workers[index].deque = Some(deque),
+                FinishedMsg => panic!("unexpected finished message!"),
             }
         }
     }
