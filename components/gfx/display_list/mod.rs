@@ -420,13 +420,6 @@ pub enum DisplayItem {
     BorderDisplayItemClass(Box<BorderDisplayItem>),
     GradientDisplayItemClass(Box<GradientDisplayItem>),
     LineDisplayItemClass(Box<LineDisplayItem>),
-
-    /// A pseudo-display item that exists only so that queries like `ContentBoxQuery` and
-    /// `ContentBoxesQuery` can be answered.
-    ///
-    /// FIXME(pcwalton): This is really bogus. Those queries should not consult the display list
-    /// but should instead consult the flow/box tree.
-    PseudoDisplayItemClass(Box<BaseDisplayItem>),
 }
 
 /// Information common to all display items.
@@ -639,8 +632,6 @@ impl DisplayItem {
                                           line.color,
                                           line.style)
             }
-
-            PseudoDisplayItemClass(_) => {}
         }
     }
 
@@ -652,7 +643,6 @@ impl DisplayItem {
             BorderDisplayItemClass(ref border) => &border.base,
             GradientDisplayItemClass(ref gradient) => &gradient.base,
             LineDisplayItemClass(ref line) => &line.base,
-            PseudoDisplayItemClass(ref base) => &**base,
         }
     }
 
@@ -664,7 +654,6 @@ impl DisplayItem {
             BorderDisplayItemClass(ref mut border) => &mut border.base,
             GradientDisplayItemClass(ref mut gradient) => &mut gradient.base,
             LineDisplayItemClass(ref mut line) => &mut line.base,
-            PseudoDisplayItemClass(ref mut base) => &mut **base,
         }
     }
 
@@ -691,7 +680,6 @@ impl fmt::Show for DisplayItem {
                 BorderDisplayItemClass(_) => "Border",
                 GradientDisplayItemClass(_) => "Gradient",
                 LineDisplayItemClass(_) => "Line",
-                PseudoDisplayItemClass(_) => "Pseudo",
             },
             self.base().bounds,
             self.base().node.id()

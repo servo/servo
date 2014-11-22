@@ -27,7 +27,7 @@ use gfx::color;
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass, DisplayItem};
 use gfx::display_list::{DisplayList, GradientDisplayItem, GradientDisplayItemClass, GradientStop};
 use gfx::display_list::{ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem, BorderRadii};
-use gfx::display_list::{LineDisplayItemClass, PseudoDisplayItemClass, SidewaysLeft, SidewaysRight};
+use gfx::display_list::{LineDisplayItemClass, SidewaysLeft, SidewaysRight};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, StackingContext};
 use gfx::display_list::{TextDisplayItem, TextDisplayItemClass, Upright};
 use gfx::paint_task::PaintLayer;
@@ -549,12 +549,6 @@ impl FragmentDisplayListBuilding for Fragment {
         if self.is_primary_fragment() {
             let level =
                 StackingLevel::from_background_and_border_level(background_and_border_level);
-
-            // Add a pseudo-display item for content box queries. This is a very bogus thing to do.
-            let base_display_item = box BaseDisplayItem::new(absolute_fragment_bounds,
-                                                             self.node,
-                                                             *clip_rect);
-            display_list.push(PseudoDisplayItemClass(base_display_item), level);
 
             // Add the background to the list, if applicable.
             match self.inline_context {
