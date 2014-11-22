@@ -5,7 +5,8 @@
 /// Liberally derived from the [Firefox JS implementation](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
 use devtools_traits::{GetRootNode, GetDocumentElement, GetChildren, DevtoolScriptControlMsg};
-use devtools_traits::{GetLayout, NodeInfo};
+use devtools_traits::{GetLayout, NodeInfo, ModifyAttribute};
+use devtools_traits::Modification;
 
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketSender;
@@ -39,6 +40,12 @@ struct HighlighterMsg {
 
 struct HighlighterActor {
     name: String,
+}
+
+pub struct NodeActor {
+    pub name: String,
+    script_chan: Sender<DevtoolScriptControlMsg>,
+    pipeline: PipelineId,
 }
 
 #[deriving(Encodable)]
@@ -75,6 +82,38 @@ impl Actor for HighlighterActor {
                     from: self.name(),
                 };
                 stream.write_json_packet(&msg);
+                true
+            }
+
+            _ => false,
+        }
+    }
+}
+
+impl Actor for NodeActor {
+        fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn handle_message(&self,
+                      _registry: &ActorRegistry,
+                      msg_type: &String,
+                      _msg: &json::JsonObject,
+                      stream: &mut TcpStream) -> bool {
+        match msg_type.as_slice() {
+            "modifyAttributes" => {
+                let target = _msg.find(&"to".to_string()).unwrap().as_string().unwrap();
+                let _mods = _msg.find(&"modifications".to_string()).unwrap().as_list().unwrap();
+
+                let mut modifications: Vec<Modification> = Vec::new();
+                for json_mod in _mods.iter() {
+                    let modification: Modification = json::decode(json_mod.to_string().as_slice()).unwrap();
+                    modifications.push(modification);
+                }
+
+                self.script_chan.send(ModifyAttribute(self.pipeline,
+                                                _registry.actor_to_script(target.to_string()),
+                                                modifications));
                 true
             }
 
@@ -131,14 +170,22 @@ struct NodeActorMsg {
 }
 
 trait NodeInfoToProtocol {
-    fn encode(self, actors: &ActorRegistry, display: bool) -> NodeActorMsg;
+    fn encode(self, actors: &ActorRegistry, display: bool,
+        script_chan: Sender<DevtoolScriptControlMsg>, pipeline: PipelineId) -> NodeActorMsg;
 }
 
 impl NodeInfoToProtocol for NodeInfo {
-    fn encode(self, actors: &ActorRegistry, display: bool) -> NodeActorMsg {
+    fn encode(self, actors: &ActorRegistry, display: bool,
+        script_chan: Sender<DevtoolScriptControlMsg>, pipeline: PipelineId) -> NodeActorMsg {
         let actor_name = if !actors.script_actor_registered(self.uniqueId.clone()) {
             let name = actors.new_name("node");
+            let node_actor = NodeActor {
+                name: name.clone(),
+                script_chan: script_chan,
+                pipeline: pipeline.clone(),
+            };
             actors.register_script_actor(self.uniqueId, name.clone());
+            actors.register_later(box node_actor);
             name
         } else {
             actors.script_to_actor(self.uniqueId)
@@ -232,8 +279,7 @@ impl Actor for WalkerActor {
                 let (tx, rx) = channel();
                 self.script_chan.send(GetDocumentElement(self.pipeline, tx));
                 let doc_elem_info = rx.recv();
-
-                let node = doc_elem_info.encode(registry, true);
+                let node = doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
 
                 let msg = DocumentElementReply {
                     from: self.name(),
@@ -263,7 +309,7 @@ impl Actor for WalkerActor {
                     hasFirst: true,
                     hasLast: true,
                     nodes: children.into_iter().map(|child| {
-                        child.encode(registry, true)
+                        child.encode(registry, true, self.script_chan.clone(), self.pipeline)
                     }).collect(),
                     from: self.name(),
                 };
@@ -452,7 +498,7 @@ impl Actor for InspectorActor {
                 self.script_chan.send(GetRootNode(self.pipeline, tx));
                 let root_info = rx.recv();
 
-                let node = root_info.encode(registry, false);
+                let node = root_info.encode(registry, false, self.script_chan.clone(), self.pipeline);
 
                 let msg = GetWalkerReply {
                     from: self.name(),
