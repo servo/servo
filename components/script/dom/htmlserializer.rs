@@ -18,8 +18,6 @@ use dom::node::{TextNodeTypeId, NodeHelpers};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 
-use string_cache::Atom;
-
 #[allow(unrooted_must_root)]
 pub fn serialize(iterator: &mut NodeIterator) -> String {
     let mut html = String::new();
@@ -141,7 +139,7 @@ fn serialize_attr(attr: JSRef<Attr>, html: &mut String) {
         html.push_str("xml:");
         html.push_str(attr.local_name().as_slice());
     } else if *attr.namespace() == ns!(XMLNS) &&
-        *attr.local_name() == Atom::from_slice("xmlns") {
+        *attr.local_name() == atom!("xmlns") {
         html.push_str("xmlns");
     } else if *attr.namespace() == ns!(XMLNS) {
         html.push_str("xmlns:");
