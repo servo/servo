@@ -3,17 +3,18 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::callback::ReportExceptions;
-use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
+use dom::bindings::callback::{WrapCallThisObject};
 
 use script_task::{FireTimerMsg, ScriptChan};
 use script_task::{TimerSource, FromWindow, FromWorker};
 
 use servo_util::task::spawn_named;
 
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::with_compartment;
+use js::jsapi::{JSContext, JS_CallFunctionValue, JS_ValueToString, JS_GetStringCharsZAndLength, JS_EvaluateUCScript};
 
 use std::cell::Cell;
 use std::cmp;
@@ -23,6 +24,8 @@ use std::comm::Select;
 use std::hash::{Hash, sip};
 use std::io::timer::Timer;
 use std::time::duration::Duration;
+
+use libc::{size_t, c_uint};
 
 #[deriving(PartialEq, Eq)]
 #[jstraceable]
@@ -75,7 +78,7 @@ impl Drop for TimerManager {
 #[deriving(Clone)]
 struct TimerData {
     is_interval: bool,
-    funval: Function,
+    funval: JSVal,
     args: Vec<JSVal>
 }
 
@@ -88,7 +91,7 @@ impl TimerManager {
     }
 
     pub fn set_timeout_or_interval(&self,
-                                  callback: Function,
+                                  callback: JSVal,
                                   arguments: Vec<JSVal>,
                                   timeout: i32,
                                   is_interval: bool,
@@ -157,19 +160,32 @@ impl TimerManager {
         let mut timer_handle = self.active_timers.borrow_mut().remove(&TimerId(handle));
         match timer_handle {
             Some(ref mut handle) => handle.cancel(),
-            None => { }
+            None => {}
         }
     }
 
-    pub fn fire_timer<T: Reflectable>(&self, timer_id: TimerId, this: JSRef<T>) {
+    pub fn fire_timer<T: Reflectable>(&self, cx: *mut JSContext, timer_id: TimerId, thisRef: JSRef<T>) {
 
         let data = match self.active_timers.borrow().get(&timer_id) {
             None => return,
             Some(timer_handle) => timer_handle.data.clone(),
         };
 
-        // TODO: Must handle rooting of funval and args when movable GC is turned on
-        let _ = data.funval.Call_(this, data.args, ReportExceptions);
+        let this = WrapCallThisObject(cx, thisRef);
+        let mut rval = UndefinedValue();
+        let mut argv = data.args.clone();
+
+        with_compartment(cx, this, || {
+            unsafe {
+                if data.funval.is_string() {
+                    let mut js_code_length: size_t = 0;
+                    let js_code_chars = JS_GetStringCharsZAndLength(cx, JS_ValueToString(cx, data.funval), &mut js_code_length);
+                    JS_EvaluateUCScript(cx, this, js_code_chars, js_code_length as c_uint, "".to_c_str().as_ptr(), 0, &mut rval);
+                } else {
+                    JS_CallFunctionValue(cx, this, data.funval, argv.len() as u32, argv.as_mut_ptr(), &mut rval);
+                }
+            }
+        });
 
         if !data.is_interval {
             self.active_timers.borrow_mut().remove(&timer_id);
