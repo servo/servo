@@ -72,6 +72,7 @@ use url::Url;
 
 use libc::size_t;
 use std::any::{Any, AnyRefExt};
+use std::collections::HashSet;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::fmt::{mod, Show};
 use std::mem::replace;
@@ -342,7 +343,13 @@ impl ScriptTask {
                              constellation_chan.clone(),
                              js_context.clone());
 
+        // Notify devtools that a new script global exists.
+        //FIXME: Move this into handle_load after we create a window instead.
         let (devtools_sender, devtools_receiver) = channel();
+        devtools_chan.as_ref().map(|chan| {
+            chan.send(NewGlobal(id, devtools_sender.clone()));
+        });
+
         ScriptTask {
             page: DOMRefCell::new(Rc::new(page)),
 
@@ -477,6 +484,8 @@ impl ScriptTask {
             }
         };
 
+        let mut needs_reflow = HashSet::new();
+
         // Squash any pending resize and reflow events in the queue.
         loop {
             match event {
@@ -528,6 +537,11 @@ impl ScriptTask {
                 MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                 MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
             }
+        }
+
+        // Now process any pending reflows.
+        for id in needs_reflow.into_iter() {
+            self.handle_event(id, ReflowEvent(SmallVec1::new()));
         }
 
         true
@@ -599,6 +613,21 @@ impl ScriptTask {
             ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&*self.page.borrow(), id, node_id, modifications),
         }
+
+        panic!("couldn't find node with unique id {:s}", node_id)
+    }
+
+    fn handle_get_children(&self, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {
+        let parent = self.find_node_by_unique_id(pipeline, node_id).root();
+        let children = parent.children().map(|child| child.summarize()).collect();
+        reply.send(children);
+    }
+
+    fn handle_get_layout(&self, pipeline: PipelineId, node_id: String, reply: Sender<(f32, f32)>) {
+        let node = self.find_node_by_unique_id(pipeline, node_id).root();
+        let elem: JSRef<Element> = ElementCast::to_ref(*node).expect("should be getting layout of element");
+        let rect = elem.GetBoundingClientRect().root();
+        reply.send((rect.Width(), rect.Height()));
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
@@ -650,6 +679,11 @@ impl ScriptTask {
         }
 
         self.compositor.borrow_mut().set_ready_state(pipeline_id, FinishedLoading);
+
+        if page.pending_reflows.get() > 0 {
+            page.pending_reflows.set(0);
+            self.force_reflow(&*page);
+        }
     }
 
     /// Handles a navigate forward or backward message.
@@ -747,6 +781,7 @@ impl ScriptTask {
         let last_url = replace(&mut *page.mut_url(), None).map(|(last_url, _)| last_url);
 
         let is_javascript = url.scheme.as_slice() == "javascript";
+        let last_url = last_loaded_url.map(|(ref loaded, _)| loaded.clone());
 
         let cx = self.js_context.borrow();
         let cx = cx.as_ref().unwrap();
@@ -773,6 +808,15 @@ impl ScriptTask {
         window.init_browser_context(*document);
 
         self.compositor.borrow_mut().set_ready_state(pipeline_id, Loading);
+
+        let parser_input = if !is_javascript {
+            InputUrl(url.clone())
+        } else {
+            let evalstr = load_data.url.non_relative_scheme_data().unwrap();
+            let jsval = window.evaluate_js_with_result(evalstr);
+            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval, Empty);
+            InputString(strval.unwrap_or("".to_string()))
+        };
 
         {
             // Create the root frame.
@@ -1089,6 +1133,7 @@ impl ScriptTask {
 
     fn handle_reflow_event(&self, pipeline_id: PipelineId) {
         debug!("script got reflow event");
+        assert_eq!(to_dirty.len(), 0);
         let page = get_page(&*self.page.borrow(), pipeline_id);
         let frame = page.frame();
         if frame.is_some() {
@@ -1154,6 +1199,7 @@ impl ScriptTask {
         let page = get_page(&*self.page.borrow(), pipeline_id);
         match page.get_nodes_under_mouse(&point) {
             Some(node_address) => {
+
                 let mut target_list = vec!();
                 let mut target_compare = false;
 
@@ -1169,6 +1215,7 @@ impl ScriptTask {
                 }
 
                 for node_address in node_address.iter() {
+
                     let temp_node =
                         node::from_untrusted_node_address(self.js_runtime.ptr, *node_address);
 
@@ -1176,6 +1223,7 @@ impl ScriptTask {
                     match maybe_node {
                         Some(node) => {
                             node.set_hover_state(true);
+
                             match *mouse_over_targets {
                                 Some(ref mouse_over_targets) if !target_compare => {
                                     target_compare =
@@ -1213,6 +1261,8 @@ impl ScriptTask {
 /// Shuts down layout for the given page tree.
 fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime) {
     for page in page_tree.iter() {
+        page.join_layout();
+
         // Tell the layout task to begin shutting down, and wait until it
         // processed this message.
         let (response_chan, response_port) = channel();
