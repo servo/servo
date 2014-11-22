@@ -31,10 +31,15 @@ impl SnifferManager {
 }
 
 impl SnifferManager {
-    fn start(&self, next_rx: Sender<LoadResponse>) {
+    fn start(self, next_rx: Sender<LoadResponse>) {
         loop {
             match self.data_receiver.try_recv() {
-                Ok(snif_data) => next_rx.send(snif_data),
+                Ok(snif_data) => {
+                    let result = next_rx.send_opt(snif_data);
+                    if result.is_err() {
+                        break;
+                    }
+                }
                 Err(Disconnected) => break,
                 Err(_) => (),
             }
