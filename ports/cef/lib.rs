@@ -18,6 +18,7 @@ extern crate rustuv;
 extern crate servo;
 
 extern crate azure;
+extern crate compositing;
 extern crate geom;
 extern crate gfx;
 extern crate glfw;

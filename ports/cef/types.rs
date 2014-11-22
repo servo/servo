@@ -12,34 +12,36 @@ pub enum cef_text_input_context_t {}
 pub enum cef_event_handle_t {}
 
 //these all need to be done...
-pub enum cef_binary_value_val {}
-pub type cef_binary_value = *mut cef_binary_value_val;
-pub enum cef_dictionary_value_val {}
-pub type cef_dictionary_value = *mut cef_dictionary_value_val;
-pub enum cef_client_t {}
+pub enum cef_binary_value_t {}
+pub enum cef_dictionary_value_t {}
 pub enum cef_request_t {}
 pub enum cef_response_t {}
 pub enum cef_urlrequest_client_t {}
-pub enum cef_frame_val {}
-pub type cef_frame = *mut cef_frame_val;
-pub enum cef_domnode_val {}
-pub type cef_domnode = *mut cef_domnode_val;
-pub enum cef_load_handler_val {}
-pub type cef_load_handler = *mut cef_load_handler_val;
-pub enum cef_request_val {}
-pub type cef_request = *mut cef_request_val;
-pub enum cef_navigation_type_val {}
-pub type cef_navigation_type = *mut cef_navigation_type_val;
+pub enum cef_frame_t {}
+pub enum cef_domnode_t {}
+pub enum cef_load_handler_t {}
 pub enum cef_request_context_t {}
-pub enum cef_window_info_t {}
 pub enum cef_browser_settings_t {}
-pub enum cef_v8context_val {}
-pub type cef_v8context = *mut cef_v8context_val;
-pub enum cef_v8exception_val {}
-pub type cef_v8exception = *mut cef_v8exception_val;
-pub enum cef_v8stack_trace_val {}
-pub type cef_v8stack_trace = *mut cef_v8stack_trace_val;
-pub enum cef_window_handle_t {} //FIXME: wtf is this
+pub enum cef_v8context_t {}
+pub enum cef_v8exception_t {}
+pub enum cef_v8stack_trace_t {}
+pub enum cef_popup_features_t {}
+pub enum cef_context_menu_handler_t {}
+pub enum cef_dialog_handler_t {}
+pub enum cef_download_handler_t {}
+pub enum cef_drag_handler_t {}
+pub enum cef_focus_handler_t {}
+pub enum cef_geolocation_handler_t {}
+pub enum cef_jsdialog_handler_t {}
+pub enum cef_keyboard_handler_t {}
+pub enum cef_render_handler_t {}
+pub enum cef_request_handler_t {}
+#[cfg(target_os="linux")]
+pub type cef_window_handle_t = c_uint;
+#[cfg(target_os="macos")]
+pub enum cef_window_handle_t {} //NSView*
+//#[cfg(target_os="win")]
+//pub enum cef_window_handle_t {} //HWND
 
 pub type cef_string_t = cef_string_utf8; //FIXME: this is #defined...
 pub type cef_string_userfree_t = cef_string_t; //FIXME: this is #defined...
@@ -534,7 +536,7 @@ pub struct cef_process_message {
   ///
   // Returns the list of arguments.
   ///
-  pub get_argument_list: Option<extern "C" fn(process_message: *mut cef_process_message) -> *mut cef_list_value>,
+  pub get_argument_list: Option<extern "C" fn(process_message: *mut cef_process_message) -> *mut cef_list_value_t>,
 }
 
 ///
@@ -984,7 +986,7 @@ pub struct cef_resource_bundle_handler {
   // string and return true (1). To use the default translation return false
   // (0). Supported message IDs are listed in cef_pack_strings.h.
   ///
-  pub get_localized_string: Option<extern "C" fn(bundle_handler: *mut cef_resource_bundle_handler,
+  pub get_localized_string: Option<extern "C" fn(bundle_handler: *mut cef_resource_bundle_handler_t,
                                   message_id: c_int, string: *mut cef_string_t) -> c_int>,
 
   ///
@@ -995,7 +997,7 @@ pub struct cef_resource_bundle_handler {
   // resident in memory. Supported resource IDs are listed in
   // cef_pack_resources.h.
   ///
-  pub get_data_resource: Option<extern "C" fn(bundle_handler: *mut cef_resource_bundle_handler,
+  pub get_data_resource: Option<extern "C" fn(bundle_handler: *mut cef_resource_bundle_handler_t,
                                resource_id: c_int, data: *mut *mut c_void, data_size: *mut size_t) -> c_int>,
 }
 
@@ -1015,115 +1017,115 @@ pub struct cef_list_value {
   // Returns true (1) if this object is valid. Do not call any other functions
   // if this function returns false (0).
   ///
-  pub is_valid: Option<extern "C" fn(list_value: *mut cef_list_value) -> c_int>,
+  pub is_valid: Option<extern "C" fn(list_value: *mut cef_list_value_t) -> c_int>,
 
   ///
   // Returns true (1) if this object is currently owned by another object.
   ///
-  pub is_owned: Option<extern "C" fn(list_value: *mut cef_list_value) -> c_int>,
+  pub is_owned: Option<extern "C" fn(list_value: *mut cef_list_value_t) -> c_int>,
 
   ///
   // Returns true (1) if the values of this object are read-only. Some APIs may
   // expose read-only objects.
   ///
-  pub is_read_only: Option<extern "C" fn(list_value: *mut cef_list_value) -> c_int>,
+  pub is_read_only: Option<extern "C" fn(list_value: *mut cef_list_value_t) -> c_int>,
 
   ///
   // Returns a writable copy of this object.
   ///
-  pub copy: Option<extern "C" fn(list_value: *mut cef_list_value) -> *mut cef_list_value>,
+  pub copy: Option<extern "C" fn(list_value: *mut cef_list_value_t) -> *mut cef_list_value_t>,
 
   ///
   // Sets the number of values. If the number of values is expanded all new
   // value slots will default to type null. Returns true (1) on success.
   ///
-  pub set_size: Option<extern "C" fn(list_value: *mut cef_list_value, size: size_t) -> c_int>,
+  pub set_size: Option<extern "C" fn(list_value: *mut cef_list_value_t, size: size_t) -> c_int>,
 
   ///
   // Returns the number of values.
   ///
-  pub get_size: Option<extern "C" fn(list_value: *mut cef_list_value) -> size_t>,
+  pub get_size: Option<extern "C" fn(list_value: *mut cef_list_value_t) -> size_t>,
 
   ///
   // Removes all values. Returns true (1) on success.
   ///
-  pub clear: Option<extern "C" fn(list_value: *mut cef_list_value) -> c_int>,
+  pub clear: Option<extern "C" fn(list_value: *mut cef_list_value_t) -> c_int>,
 
   ///
   // Removes the value at the specified index.
   ///
-  pub remove: Option<extern "C" fn(list_value: *mut cef_list_value) -> c_int>,
+  pub remove: Option<extern "C" fn(list_value: *mut cef_list_value_t) -> c_int>,
 
   ///
   // Returns the value type at the specified index.
   ///
-  pub get_type: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int) -> cef_value_type_t>,
+  pub get_type: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int) -> cef_value_type_t>,
 
   ///
   // Returns the value at the specified index as type bool.
   ///
-  pub get_bool: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int) -> c_int>,
+  pub get_bool: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int) -> c_int>,
 
   ///
   // Returns the value at the specified index as type int.
   ///
-  pub get_int: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int) -> c_int>,
+  pub get_int: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int) -> c_int>,
 
   ///
   // Returns the value at the specified index as type double.
   ///
-  pub get_double: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int) -> c_double>,
+  pub get_double: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int) -> c_double>,
 
   ///
   // Returns the value at the specified index as type string.
   ///
   // The resulting string must be freed by calling cef_string_userfree_free().
-  pub get_string: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int) -> *mut cef_string_userfree_t>,
+  pub get_string: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int) -> *mut cef_string_userfree_t>,
 
   ///
   // Returns the value at the specified index as type binary.
   ///
-  pub get_binary: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int) -> *mut cef_binary_value>,
+  pub get_binary: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int) -> *mut cef_binary_value_t>,
 
   ///
   // Returns the value at the specified index as type dictionary.
   ///
-  pub get_dictionary: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int) -> *mut cef_dictionary_value>,
+  pub get_dictionary: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int) -> *mut cef_dictionary_value_t>,
 
   ///
   // Returns the value at the specified index as type list.
   ///
-  pub get_list: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int) -> *mut cef_list_value>,
+  pub get_list: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int) -> *mut cef_list_value_t>,
 
   ///
   // Sets the value at the specified index as type null. Returns true (1) if the
   // value was set successfully.
   ///
-  pub set_null: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int) -> c_int>,
+  pub set_null: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int) -> c_int>,
 
   ///
   // Sets the value at the specified index as type bool. Returns true (1) if the
   // value was set successfully.
   ///
-  pub set_bool: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int, value: c_int) -> c_int>,
+  pub set_bool: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int, value: c_int) -> c_int>,
 
   ///
   // Sets the value at the specified index as type int. Returns true (1) if the
   // value was set successfully.
   ///
-  pub set_int: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int, value: c_int) -> c_int>,
+  pub set_int: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int, value: c_int) -> c_int>,
 
   ///
   // Sets the value at the specified index as type double. Returns true (1) if
   // the value was set successfully.
   ///
-  pub set_double: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int, value: c_double) -> c_int>,
+  pub set_double: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int, value: c_double) -> c_int>,
 
   ///
   // Sets the value at the specified index as type string. Returns true (1) if
   // the value was set successfully.
   ///
-  pub set_string: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int, value: *const cef_string_t) -> c_int>,
+  pub set_string: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int, value: *const cef_string_t) -> c_int>,
 
   ///
   // Sets the value at the specified index as type binary. Returns true (1) if
@@ -1133,7 +1135,7 @@ pub struct cef_list_value {
   // change. Otherwise, ownership will be transferred to this object and the
   // |value| reference will be invalidated.
   ///
-  pub set_binary: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int, value: *mut cef_binary_value) -> c_int>,
+  pub set_binary: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int, value: *mut cef_binary_value_t) -> c_int>,
 
   ///
   // Sets the value at the specified index as type dict. Returns true (1) if the
@@ -1143,7 +1145,7 @@ pub struct cef_list_value {
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
   ///
-  pub set_dictionary: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int, value: *mut cef_dictionary_value) -> c_int>,
+  pub set_dictionary: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int, value: *mut cef_dictionary_value_t) -> c_int>,
 
   ///
   // Sets the value at the specified index as type list. Returns true (1) if the
@@ -1153,7 +1155,7 @@ pub struct cef_list_value {
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
   ///
-  pub set_list: Option<extern "C" fn(list_value: *mut cef_list_value, index: c_int, value: *mut cef_list_value) -> c_int>,
+  pub set_list: Option<extern "C" fn(list_value: *mut cef_list_value_t, index: c_int, value: *mut cef_list_value_t) -> c_int>,
 }
 
 ///
@@ -1190,7 +1192,7 @@ pub struct cef_browser_process_handler {
   // cef_render_process_handler_t::on_render_thread_created() in the render
   // process. Do not keep a reference to |extra_info| outside of this function.
   ///
-  pub on_render_process_thread_created: Option<extern "C" fn(browser_handler: *mut cef_browser_process_handler, extra_info: *mut cef_list_value)>,
+  pub on_render_process_thread_created: Option<extern "C" fn(browser_handler: *mut cef_browser_process_handler, extra_info: *mut cef_list_value_t)>,
 }
 
 
@@ -1212,7 +1214,7 @@ pub struct cef_run_file_dialog_callback {
   // will be NULL.
   ///
   pub cont: Option<extern "C" fn(run_file_dialog_callback: *mut cef_run_file_dialog_callback,
-                  browser_host: *mut cef_browser_host,
+                                            browser_host: *mut cef_browser_host,
                   file_paths: *mut cef_string_list_t)>,
 }
 
@@ -1232,7 +1234,7 @@ pub struct cef_browser_host {
   ///
   // Returns the hosted browser object.
   ///
-  pub get_browser: Option<extern "C" fn(browser_host: *mut cef_browser_host) -> *mut cef_browser>,
+  pub get_browser: Option<extern "C" fn(browser_host: *mut cef_browser_host) -> *mut cef_browser_t>,
 
   ///
   // Call this function before destroying a contained browser window. This
@@ -1480,111 +1482,111 @@ pub struct cef_browser {
   // Returns the browser host object. This function can only be called in the
   // browser process.
   ///
-  pub get_host: Option<extern "C" fn(browser: *mut cef_browser) -> *mut cef_browser_host>,
+  pub get_host: Option<extern "C" fn(browser: *mut cef_browser_t) -> *mut cef_browser_host>,
 
   ///
   // Returns true (1) if the browser can navigate backwards.
   ///
-  pub can_go_back: Option<extern "C" fn(browser: *mut cef_browser) -> c_int>,
+  pub can_go_back: Option<extern "C" fn(browser: *mut cef_browser_t) -> c_int>,
 
   ///
   // Navigate backwards.
   ///
-  pub go_back: Option<extern "C" fn(browser: *mut cef_browser)>,
+  pub go_back: Option<extern "C" fn(browser: *mut cef_browser_t)>,
 
   ///
   // Returns true (1) if the browser can navigate forwards.
   ///
-  pub can_go_forward: Option<extern "C" fn(browser: *mut cef_browser) -> c_int>,
+  pub can_go_forward: Option<extern "C" fn(browser: *mut cef_browser_t) -> c_int>,
 
   ///
   // Navigate forwards.
   ///
-  pub go_forward: Option<extern "C" fn(browser: *mut cef_browser)>,
+  pub go_forward: Option<extern "C" fn(browser: *mut cef_browser_t)>,
 
   ///
   // Returns true (1) if the browser is currently loading.
   ///
-  pub is_loading: Option<extern "C" fn(browser: *mut cef_browser) -> c_int>,
+  pub is_loading: Option<extern "C" fn(browser: *mut cef_browser_t) -> c_int>,
 
   ///
   // Reload the current page.
   ///
-  pub reload: Option<extern "C" fn(browser: *mut cef_browser)>,
+  pub reload: Option<extern "C" fn(browser: *mut cef_browser_t)>,
 
   ///
   // Reload the current page ignoring any cached data.
   ///
-  pub reload_ignore_cache: Option<extern "C" fn(browser: *mut cef_browser)>,
+  pub reload_ignore_cache: Option<extern "C" fn(browser: *mut cef_browser_t)>,
 
   ///
   // Stop loading the page.
   ///
-  pub stop_load: Option<extern "C" fn(browser: *mut cef_browser)>,
+  pub stop_load: Option<extern "C" fn(browser: *mut cef_browser_t)>,
 
   ///
   // Returns the globally unique identifier for this browser.
   ///
-  pub get_identifier: Option<extern "C" fn(browser: *mut cef_browser) -> c_int>,
+  pub get_identifier: Option<extern "C" fn(browser: *mut cef_browser_t) -> c_int>,
 
   ///
   // Returns true (1) if this object is pointing to the same handle as |that|
   // object.
   ///
-  pub is_same: Option<extern "C" fn(browser: *mut cef_browser, that: *mut cef_browser) -> c_int>,
+  pub is_same: Option<extern "C" fn(browser: *mut cef_browser_t, that: *mut cef_browser_t) -> c_int>,
 
   ///
   // Returns true (1) if the window is a popup window.
   ///
-  pub is_popup: Option<extern "C" fn(browser: *mut cef_browser) -> c_int>,
+  pub is_popup: Option<extern "C" fn(browser: *mut cef_browser_t) -> c_int>,
 
   ///
   // Returns true (1) if a document has been loaded in the browser.
   ///
-  pub has_document: Option<extern "C" fn(browser: *mut cef_browser) -> c_int>,
+  pub has_document: Option<extern "C" fn(browser: *mut cef_browser_t) -> c_int>,
 
   ///
   // Returns the main (top-level) frame for the browser window.
   ///
-  pub get_main_frame: Option<extern "C" fn(browser: *mut cef_browser) -> *mut cef_frame>,
+  pub get_main_frame: Option<extern "C" fn(browser: *mut cef_browser_t) -> *mut cef_frame_t>,
 
   ///
   // Returns the focused frame for the browser window.
   ///
-  pub get_focused_frame: Option<extern "C" fn(browser: *mut cef_browser) -> *mut cef_frame>,
+  pub get_focused_frame: Option<extern "C" fn(browser: *mut cef_browser_t) -> *mut cef_frame_t>,
 
   ///
   // Returns the frame with the specified identifier, or NULL if not found.
   ///
-  pub get_frame_byident: Option<extern "C" fn(browser: *mut cef_browser, identifier: c_longlong) -> *mut cef_frame>,
+  pub get_frame_byident: Option<extern "C" fn(browser: *mut cef_browser_t, identifier: c_longlong) -> *mut cef_frame_t>,
 
   ///
   // Returns the frame with the specified name, or NULL if not found.
   ///
-  pub get_frame: Option<extern "C" fn(browser: *mut cef_browser, name: *const cef_string_t) -> *mut cef_frame>,
+  pub get_frame: Option<extern "C" fn(browser: *mut cef_browser_t, name: *const cef_string_t) -> *mut cef_frame_t>,
 
   ///
   // Returns the number of frames that currently exist.
   ///
-  pub get_frame_count: Option<extern "C" fn(browser: *mut cef_browser) -> size_t>,
+  pub get_frame_count: Option<extern "C" fn(browser: *mut cef_browser_t) -> size_t>,
 
   ///
   // Returns the identifiers of all existing frames.
   ///
-  pub get_frame_identifiers: Option<extern "C" fn(browser: *mut cef_browser,
+  pub get_frame_identifiers: Option<extern "C" fn(browser: *mut cef_browser_t,
                              identifiersCount: *mut size_t,
                              identifiers: *mut c_longlong)>,
 
   ///
   // Returns the names of all existing frames.
   ///
-  pub get_frame_names: Option<extern "C" fn(browser: *mut cef_browser, names: *mut cef_string_list_t)>,
+  pub get_frame_names: Option<extern "C" fn(browser: *mut cef_browser_t, names: *mut cef_string_list_t)>,
 
   //
   // Send a message to the specified |target_process|. Returns true (1) if the
   // message was sent successfully.
   ///
-  pub send_process_message: Option<extern "C" fn(browser: *mut cef_browser, target_process: cef_process_id_t,
+  pub send_process_message: Option<extern "C" fn(browser: *mut cef_browser_t, target_process: cef_process_id_t,
                              message: *mut cef_process_message) -> c_int>,
 }
 
@@ -1606,40 +1608,40 @@ pub struct cef_render_process_handler {
   // cef_browser_process_handler_t::on_render_process_thread_created(). Do not
   // keep a reference to |extra_info| outside of this function.
   ///
-  pub on_render_thread_created: Option<extern "C" fn(render_handler: *mut cef_render_process_handler, extra_info: *mut cef_list_value)>,
+  pub on_render_thread_created: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t, extra_info: *mut cef_list_value_t)>,
 
   ///
   // Called after WebKit has been initialized.
   ///
-  pub on_web_kit_initialized: Option<extern "C" fn(render_handler: *mut cef_render_process_handler)>,
+  pub on_web_kit_initialized: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t)>,
 
   ///
   // Called after a browser has been created. When browsing cross-origin a new
   // browser will be created before the old browser with the same identifier is
   // destroyed.
   ///
-  pub on_browser_created: Option<extern "C" fn(render_handler: *mut cef_render_process_handler, browser: *mut cef_browser)>,
+  pub on_browser_created: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t, browser: *mut cef_browser_t)>,
 
   ///
   // Called before a browser is destroyed.
   ///
-  pub on_browser_destroyed: Option<extern "C" fn(render_handler: *mut cef_render_process_handler, browser: *mut cef_browser)>,
+  pub on_browser_destroyed: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t, browser: *mut cef_browser_t)>,
 
   ///
   // Return the handler for browser load status events.
   ///
-  pub get_load_handler: Option<extern "C" fn(render_handler: *mut cef_render_process_handler) -> *mut cef_load_handler>,
+  pub get_load_handler: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t) -> *mut cef_load_handler_t>,
 
   ///
   // Called before browser navigation. Return true (1) to cancel the navigation
   // or false (0) to allow the navigation to proceed. The |request| object
   // cannot be modified in this callback.
   ///
-  pub on_before_navigation: Option<extern "C" fn(render_handler: *mut cef_render_process_handler,
-                              browser: *mut cef_browser,
-                              frame: *mut cef_frame,
-                              request: *mut cef_request,
-                              navigation_type: *mut cef_navigation_type,
+  pub on_before_navigation: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
+                                                        browser: *mut cef_browser_t,
+                              frame: *mut cef_frame_t,
+                              request: *mut cef_request_t,
+                              navigation_type: *mut cef_navigation_type_t,
                               is_redirect: c_int) -> c_int>,
 
   ///
@@ -1650,31 +1652,31 @@ pub struct cef_render_process_handler {
   // on the associated thread can be retrieved via the
   // cef_v8context_t::get_task_runner() function.
   ///
-  pub on_context_created: Option<extern "C" fn(render_handler: *mut cef_render_process_handler,
-                                browser: *mut cef_browser,
-                                frame: *mut cef_frame,
-                                context: *mut cef_v8context)>,
+  pub on_context_created: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
+                                                          browser: *mut cef_browser_t,
+                                frame: *mut cef_frame_t,
+                                context: *mut cef_v8context_t)>,
 
   ///
   // Called immediately before the V8 context for a frame is released. No
   // references to the context should be kept after this function is called.
   ///
-  pub on_context_released: Option<extern "C" fn(render_handler: *mut cef_render_process_handler,
-                                 browser: *mut cef_browser,
-                                 frame: *mut cef_frame,
-                                 context: *mut cef_v8context)>,
+  pub on_context_released: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
+                                                           browser: *mut cef_browser_t,
+                                 frame: *mut cef_frame_t,
+                                 context: *mut cef_v8context_t)>,
 
   ///
   // Called for global uncaught exceptions in a frame. Execution of this
   // callback is disabled by default. To enable set
   // CefSettings.uncaught_exception_stack_size  0.
   ///
-  pub on_uncaught_exception: Option<extern "C" fn(render_handler: *mut cef_render_process_handler,
-                                 browser: *mut cef_browser,
-                                 frame: *mut cef_frame,
-                                 context: *mut cef_v8context,
-                                 exception: *mut cef_v8exception,
-                                 stackTrace: *mut cef_v8stack_trace)>,
+  pub on_uncaught_exception: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
+                                                           browser: *mut cef_browser_t,
+                                 frame: *mut cef_frame_t,
+                                 context: *mut cef_v8context_t,
+                                 exception: *mut cef_v8exception_t,
+                                 stackTrace: *mut cef_v8stack_trace_t)>,
 
   ///
   // Called when a new node in the the browser gets focus. The |node| value may
@@ -1684,18 +1686,18 @@ pub struct cef_render_process_handler {
   // keep references to or attempt to access any DOM objects outside the scope
   // of this function.
   ///
-  pub on_focused_node_changed: Option<extern "C" fn(render_handler: *mut cef_render_process_handler,
-                                 browser: *mut cef_browser,
-                                 frame: *mut cef_frame,
-                                 node: *mut cef_domnode)>,
+  pub on_focused_node_changed: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
+                                                           browser: *mut cef_browser_t,
+                                 frame: *mut cef_frame_t,
+                                 node: *mut cef_domnode_t)>,
 
   ///
   // Called when a new message is received from a different process. Return true
   // (1) if the message was handled or false (0) otherwise. Do not keep a
   // reference to or attempt to access the message outside of this callback.
   ///
-  pub on_process_message_received: Option<extern "C" fn(render_handler: *mut cef_render_process_handler,
-                                 browser: *mut cef_browser,
+  pub on_process_message_received: Option<extern "C" fn(render_handler: *mut cef_render_process_handler_t,
+                                                           browser: *mut cef_browser_t,
                                  source_process: cef_process_id_t,
                                  message: *mut cef_process_message) ->c_int>,
 }
@@ -1738,7 +1740,7 @@ pub struct cef_app {
   // If no handler is returned resources will be loaded from pack files. This
   // function is called by the browser and render processes on multiple threads.
   ///
-  pub get_resource_bundle_handler: Option<extern "C" fn(app: *mut cef_app_t) -> *mut cef_resource_bundle_handler>,
+  pub get_resource_bundle_handler: Option<extern "C" fn(app: *mut cef_app_t) -> *mut cef_resource_bundle_handler_t>,
 
   ///
   // Return the handler for functionality specific to the browser process. This
@@ -1750,7 +1752,7 @@ pub struct cef_app {
   // Return the handler for functionality specific to the render process. This
   // function is called on the render process main thread.
   ///
-  pub get_render_process_handler: Option<extern "C" fn(app: *mut cef_app_t) -> *mut cef_render_process_handler>,
+  pub get_render_process_handler: Option<extern "C" fn(app: *mut cef_app_t) -> *mut cef_render_process_handler_t>,
 }
 
 
@@ -1877,34 +1879,330 @@ pub struct cef_post_data {
   ///
   // Returns true (1) if this object is read-only.
   ///
-  pub is_read_only: Option<extern "C" fn(post_data: *mut cef_post_data) -> c_int>,
+  pub is_read_only: Option<extern "C" fn(post_data: *mut cef_post_data_t) -> c_int>,
 
   ///
   // Returns the number of existing post data elements.
   ///
-  pub get_element_count: Option<extern "C" fn(post_data: *mut cef_post_data) -> size_t>,
+  pub get_element_count: Option<extern "C" fn(post_data: *mut cef_post_data_t) -> size_t>,
 
   ///
   // Retrieve the post data elements.
   ///
-  pub get_elements: Option<extern "C" fn(post_data: *mut cef_post_data,
+  pub get_elements: Option<extern "C" fn(post_data: *mut cef_post_data_t,
                           elements_count: *mut size_t, elements: *mut *mut cef_post_data_element)>,
 
   ///
   // Remove the specified post data element.  Returns true (1) if the removal
   // succeeds.
   ///
-  pub remove_element: Option<extern "C" fn(post_data: *mut cef_post_data,
+  pub remove_element: Option<extern "C" fn(post_data: *mut cef_post_data_t,
                             element: *mut cef_post_data_element) -> c_int>,
 
   ///
   // Add the specified post data element.  Returns true (1) if the add succeeds.
   ///
-  pub add_element: Option<extern "C" fn(post_data: *mut cef_post_data,
+  pub add_element: Option<extern "C" fn(post_data: *mut cef_post_data_t,
                             element: *mut cef_post_data_element) -> c_int>,
 
   ///
   // Remove all existing post data elements.
   ///
-  pub remove_elements: Option<extern "C" fn(post_data: *mut cef_post_data)>,
+  pub remove_elements: Option<extern "C" fn(post_data: *mut cef_post_data_t)>,
+}
+
+
+
+///
+// Implement this structure to handle events related to browser display state.
+// The functions of this structure will be called on the UI thread.
+///
+pub type cef_display_handler_t = cef_display_handler;
+pub struct cef_display_handler {
+  ///
+  // Base structure.
+  ///
+  pub base: cef_base_t,
+
+  ///
+  // Called when a frame's address has changed.
+  ///
+  pub on_address_change: Option<extern "C" fn(h: *mut cef_display_handler_t, browser: *mut cef_browser_t,
+                                              frame: *mut cef_frame_t, url: *const cef_string_t)>,
+
+  ///
+  // Called when the page title changes.
+  ///
+  pub on_title_change: Option<extern "C" fn(h: *mut cef_display_handler_t,
+                                browser: *mut cef_browser_t, title: *const cef_string_t)>,
+
+  ///
+  // Called when the browser is about to display a tooltip. |text| contains the
+  // text that will be displayed in the tooltip. To handle the display of the
+  // tooltip yourself return true (1). Otherwise, you can optionally modify
+  // |text| and then return false (0) to allow the browser to display the
+  // tooltip. When window rendering is disabled the application is responsible
+  // for drawing tooltips and the return value is ignored.
+  ///
+  pub on_tooltip: Option<extern "C" fn(h: *mut cef_display_handler_t,
+                                browser: *mut cef_browser_t, text: *mut cef_string_t) -> c_int>,
+
+  ///
+  // Called when the browser receives a status message. |value| contains the
+  // text that will be displayed in the status message.
+  ///
+  pub on_status_message: Option<extern "C" fn(h: *mut cef_display_handler_t,
+                                browser: *mut cef_browser_t, value: *const cef_string_t)>,
+
+  ///
+  // Called to display a console message. Return true (1) to stop the message
+  // from being output to the console.
+  ///
+  pub on_console_message: Option<extern "C" fn(h: *mut cef_display_handler_t,
+                                browser: *mut cef_browser_t, message: *const cef_string_t,
+      source: *const cef_string_t, line: c_int) -> c_int>
+}
+
+///
+// Implement this structure to handle events related to browser life span. The
+// functions of this structure will be called on the UI thread unless otherwise
+// indicated.
+///
+pub type cef_life_span_handler_t = cef_life_span_handler;
+pub struct cef_life_span_handler {
+  ///
+  // Base structure.
+  ///
+  pub base: cef_base_t,
+
+  ///
+  // Called on the IO thread before a new popup window is created. The |browser|
+  // and |frame| parameters represent the source of the popup request. The
+  // |target_url| and |target_frame_name| values may be NULL if none were
+  // specified with the request. The |popupFeatures| structure contains
+  // information about the requested popup window. To allow creation of the
+  // popup window optionally modify |windowInfo|, |client|, |settings| and
+  // |no_javascript_access| and return false (0). To cancel creation of the
+  // popup window return true (1). The |client| and |settings| values will
+  // default to the source browser's values. The |no_javascript_access| value
+  // indicates whether the new browser window should be scriptable and in the
+  // same process as the source browser.
+  pub on_before_popup: Option<extern "C" fn(h: *mut cef_life_span_handler_t,
+                                browser: *mut cef_browser_t,  frame: *mut cef_frame_t,
+      target_url: *const cef_string_t, target_frame_name: *const cef_string_t,
+      popupFeatures: *const cef_popup_features_t,
+      windowInfo: *mut cef_window_info_t, client: *mut *mut cef_client_t,
+      settings: *mut cef_browser_settings_t, no_javascript_access: *mut c_int) -> c_int>,
+
+  ///
+  // Called after a new browser is created.
+  ///
+  pub on_after_created: Option<extern "C" fn(h: *mut cef_life_span_handler_t, browser: *mut cef_browser_t)>,
+
+  ///
+  // Called when a modal window is about to display and the modal loop should
+  // begin running. Return false (0) to use the default modal loop
+  // implementation or true (1) to use a custom implementation.
+  ///
+  pub run_modal: Option<extern "C" fn(h: *mut cef_life_span_handler_t, browser: *mut cef_browser_t) -> c_int>,
+
+  ///
+  // Called when a browser has recieved a request to close. This may result
+  // directly from a call to cef_browser_host_t::close_browser() or indirectly
+  // if the browser is a top-level OS window created by CEF and the user
+  // attempts to close the window. This function will be called after the
+  // JavaScript 'onunload' event has been fired. It will not be called for
+  // browsers after the associated OS window has been destroyed (for those
+  // browsers it is no longer possible to cancel the close).
+  //
+  // If CEF created an OS window for the browser returning false (0) will send
+  // an OS close notification to the browser window's top-level owner (e.g.
+  // WM_CLOSE on Windows, performClose: on OS-X and "delete_event" on Linux). If
+  // no OS window exists (window rendering disabled) returning false (0) will
+  // cause the browser object to be destroyed immediately. Return true (1) if
+  // the browser is parented to another window and that other window needs to
+  // receive close notification via some non-standard technique.
+  //
+  // If an application provides its own top-level window it should handle OS
+  // close notifications by calling cef_browser_host_t::CloseBrowser(false (0))
+  // instead of immediately closing (see the example below). This gives CEF an
+  // opportunity to process the 'onbeforeunload' event and optionally cancel the
+  // close before do_close() is called.
+  //
+  // The cef_life_span_handler_t::on_before_close() function will be called
+  // immediately before the browser object is destroyed. The application should
+  // only exit after on_before_close() has been called for all existing
+  // browsers.
+  //
+  // If the browser represents a modal window and a custom modal loop
+  // implementation was provided in cef_life_span_handler_t::run_modal() this
+  // callback should be used to restore the opener window to a usable state.
+  //
+  // By way of example consider what should happen during window close when the
+  // browser is parented to an application-provided top-level OS window. 1.
+  // User clicks the window close button which sends an OS close
+  //     notification (e.g. WM_CLOSE on Windows, performClose: on OS-X and
+  //     "delete_event" on Linux).
+  // 2.  Application's top-level window receives the close notification and:
+  //     A. Calls CefBrowserHost::CloseBrowser(false).
+  //     B. Cancels the window close.
+  // 3.  JavaScript 'onbeforeunload' handler executes and shows the close
+  //     confirmation dialog (which can be overridden via
+  //     CefJSDialogHandler::OnBeforeUnloadDialog()).
+  // 4.  User approves the close. 5.  JavaScript 'onunload' handler executes. 6.
+  // Application's do_close() handler is called. Application will:
+  //     A. Set a flag to indicate that the next close attempt will be allowed.
+  //     B. Return false.
+  // 7.  CEF sends an OS close notification. 8.  Application's top-level window
+  // receives the OS close notification and
+  //     allows the window to close based on the flag from #6B.
+  // 9.  Browser OS window is destroyed. 10. Application's
+  // cef_life_span_handler_t::on_before_close() handler is called and
+  //     the browser object is destroyed.
+  // 11. Application exits by calling cef_quit_message_loop() if no other
+  // browsers
+  //     exist.
+  ///
+  pub do_close: Option<extern "C" fn(h: *mut cef_life_span_handler_t, browser: *mut cef_browser_t) -> c_int>,
+
+  ///
+  // Called just before a browser is destroyed. Release all references to the
+  // browser object and do not attempt to execute any functions on the browser
+  // object after this callback returns. If this is a modal window and a custom
+  // modal loop implementation was provided in run_modal() this callback should
+  // be used to exit the custom modal loop. See do_close() documentation for
+  // additional usage information.
+  ///
+  pub on_before_close: Option<extern "C" fn(h: *mut cef_life_span_handler_t, browser: *mut cef_browser_t)>,
+}
+
+///
+// Implement this structure to provide handler implementations.
+///
+pub type cef_client_t = cef_client;
+pub struct cef_client {
+  ///
+  // Base structure.
+  ///
+  pub base: cef_base_t,
+
+  ///
+  // Return the handler for context menus. If no handler is provided the default
+  // implementation will be used.
+  ///
+  pub get_context_menu_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_context_menu_handler_t>,
+
+  ///
+  // Return the handler for dialogs. If no handler is provided the default
+  // implementation will be used.
+  ///
+  pub get_dialog_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_dialog_handler_t>,
+
+  ///
+  // Return the handler for browser display state events.
+  ///
+  pub get_display_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_display_handler_t>,
+
+  ///
+  // Return the handler for download events. If no handler is returned downloads
+  // will not be allowed.
+  ///
+  pub get_download_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_download_handler_t>,
+
+  ///
+  // Return the handler for drag events.
+  ///
+  pub get_drag_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_drag_handler_t>,
+
+  ///
+  // Return the handler for focus events.
+  ///
+  pub get_focus_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_focus_handler_t>,
+
+  ///
+  // Return the handler for geolocation permissions requests. If no handler is
+  // provided geolocation access will be denied by default.
+  ///
+  pub get_geolocation_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_geolocation_handler_t>,
+
+  ///
+  // Return the handler for JavaScript dialogs. If no handler is provided the
+  // default implementation will be used.
+  ///
+  pub get_jsdialog_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_jsdialog_handler_t>,
+
+  ///
+  // Return the handler for keyboard events.
+  ///
+  pub get_keyboard_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_keyboard_handler_t>,
+
+  ///
+  // Return the handler for browser life span events.
+  ///
+  pub get_life_span_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_life_span_handler_t>,
+
+  ///
+  // Return the handler for browser load status events.
+  ///
+  pub get_load_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_load_handler_t>,
+
+  ///
+  // Return the handler for off-screen rendering events.
+  ///
+  pub get_render_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_render_handler_t>,
+
+  ///
+  // Return the handler for browser request events.
+  ///
+  pub get_request_handler: Option<extern "C" fn(client: *mut cef_client_t) -> *mut cef_request_handler_t>,
+
+  ///
+  // Called when a new message is received from a different process. Return true
+  // (1) if the message was handled or false (0) otherwise. Do not keep a
+  // reference to or attempt to access the message outside of this callback.
+  ///
+  pub on_process_message_received: Option<extern "C" fn(client: *mut cef_client_t,
+                                browser: *mut cef_browser_t, source_process: cef_process_id_t,
+                                message: *mut cef_process_message_t) -> c_int>,
+}
+
+///
+// Class representing window information.
+///
+pub type cef_window_info_t = cef_window_info;
+pub struct cef_window_info {
+  pub x: c_uint,
+  pub y: c_uint,
+  pub width: c_uint,
+  pub height: c_uint,
+
+  ///
+  // Pointer for the parent window.
+  ///
+  pub parent_window: cef_window_handle_t,
+
+  ///
+  // Set to true (1) to create the browser using windowless (off-screen)
+  // rendering. No window will be created for the browser and all rendering will
+  // occur via the CefRenderHandler interface. The |parent_window| value will be
+  // used to identify monitor info and to act as the parent window for dialogs,
+  // context menus, etc. If |parent_window| is not provided then the main screen
+  // monitor will be used and some functionality that requires a parent window
+  // may not function correctly. In order to create windowless browsers the
+  // CefSettings.windowless_rendering_enabled value must be set to true.
+  ///
+  pub windowless_rendering_enabled: c_int,
+
+  ///
+  // Set to true (1) to enable transparent painting in combination with
+  // windowless rendering. When this value is true a transparent background
+  // color will be used (RGBA=0x00000000). When this value is false the
+  // background will be white and opaque.
+  ///
+  pub transparent_painting_enabled: c_int,
+
+  ///
+  // Pointer for the new browser window. Only used with windowed rendering.
+  ///
+  pub window: cef_window_handle_t
 }

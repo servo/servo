@@ -2,16 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
+use browser::{GLOBAL_BROWSERS, browser_callback_after_created};
 use command_line::command_line_init;
-use geom::size::TypedSize2D;
 use glfw_app;
 use libc::funcs::c95::string::strlen;
 use libc::{c_int, c_void};
 use native;
 use servo::Browser;
-use servo_util::opts;
-use servo_util::opts::OpenGL;
 use std::slice;
 use switches::{KPROCESSTYPE, KWAITFORDEBUGGER};
 use types::{cef_app_t, cef_main_args_t, cef_settings_t};
@@ -43,41 +40,28 @@ pub extern "C" fn cef_shutdown() {
 
 #[no_mangle]
 pub extern "C" fn cef_run_message_loop() {
-    let mut urls = Vec::new();
-    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".to_string());
-    opts::set_opts(opts::Opts {
-        urls: urls,
-        n_render_threads: 1,
-        gpu_painting: false,
-        tile_size: 512,
-        device_pixels_per_px: None,
-        time_profiler_period: None,
-        memory_profiler_period: None,
-        enable_experimental: false,
-        layout_threads: 1,
-        nonincremental_layout: false,
-        //layout_threads: cmp::max(rt::default_sched_threads() * 3 / 4, 1),
-        output_file: None,
-        headless: false,
-        hard_fail: false,
-        bubble_inline_sizes_separately: false,
-        show_debug_borders: false,
-        show_debug_fragment_borders: false,
-        enable_text_antialiasing: true,
-        trace_layout: false,
-        devtools_port: None,
-        initial_window_size: TypedSize2D(800, 600),
-        profile_tasks: false,
-        user_agent: None,
-        dump_flow_tree: false,
-        validate_display_list_geometry: false,
-        render_api: OpenGL,
-    });
     native::start(0, 0 as *const *const u8, proc() {
-        let window = glfw_app::create_window();
-        let mut browser = Browser::new(Some(window.clone()));
-        while browser.handle_event(window.wait_events()) {}
-        browser.shutdown()
+        GLOBAL_BROWSERS.get().map(|refcellbrowsers| {
+            unsafe {
+                let browsers = refcellbrowsers.borrow();
+                let mut num = browsers.len();
+                for active_browser in browsers.iter() {
+                    (**active_browser).window = glfw_app::create_window();
+                    (**active_browser).servo_browser = Some(Browser::new(Some((**active_browser).window.clone())));
+                    if !(**active_browser).callback_executed { browser_callback_after_created(*active_browser); }
+                }
+                while num > 0 {
+                    for active_browser in browsers.iter().filter(|&active_browser| (**active_browser).servo_browser.is_some()) {
+                        let ref mut browser = **active_browser;
+                        let mut servobrowser = browser.servo_browser.take().unwrap();
+                        if !servobrowser.handle_event(browser.window.wait_events()) {
+                            servobrowser.shutdown();
+                            num -= 1;
+                        }
+                    }
+                }
+            }
+        });
     });
 }
 
