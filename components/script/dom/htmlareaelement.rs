@@ -3,22 +3,28 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
+use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLAreaElementDerived;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::codegen::InheritTypes::ElementCast;
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
+use dom::domtokenlist::DOMTokenList;
+use dom::element::Element;
 use dom::element::HTMLAreaElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 
+use std::default::Default;
 use servo_util::str::DOMString;
 
 #[jstraceable]
 #[must_root]
 #[privatize]
 pub struct HTMLAreaElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
+    rel_list: MutNullableJS<DOMTokenList>,
 }
 
 impl HTMLAreaElementDerived for EventTarget {
@@ -30,7 +36,8 @@ impl HTMLAreaElementDerived for EventTarget {
 impl HTMLAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAreaElement {
         HTMLAreaElement {
-            htmlelement: HTMLElement::new_inherited(HTMLAreaElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLAreaElementTypeId, localName, prefix, document),
+            rel_list: Default::default(),
         }
     }
 
@@ -44,5 +51,16 @@ impl HTMLAreaElement {
 impl Reflectable for HTMLAreaElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()
+    }
+}
+
+impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
+    fn RelList(self) -> Temporary<DOMTokenList> {
+        if self.rel_list.get().is_none() {
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let rel_list = DOMTokenList::new(element, &atom!("rel"));
+            self.rel_list.assign(Some(rel_list));
+        }
+        self.rel_list.get().unwrap()
     }
 }

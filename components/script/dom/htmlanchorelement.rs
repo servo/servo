@@ -9,9 +9,10 @@ use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElemen
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
-use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
+use dom::domtokenlist::DOMTokenList;
 use dom::element::{Element, AttributeHandlers, HTMLAnchorElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -19,11 +20,13 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
+use std::default::Default;
 use servo_util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
+    rel_list: MutNullableJS<DOMTokenList>,
 }
 
 impl HTMLAnchorElementDerived for EventTarget {
@@ -35,7 +38,8 @@ impl HTMLAnchorElementDerived for EventTarget {
 impl HTMLAnchorElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAnchorElement {
         HTMLAnchorElement {
-            htmlelement: HTMLElement::new_inherited(HTMLAnchorElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLAnchorElementTypeId, localName, prefix, document),
+            rel_list: Default::default(),
         }
     }
 
@@ -101,5 +105,14 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     fn SetText(self, value: DOMString) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
+    }
+
+    fn RelList(self) -> Temporary<DOMTokenList> {
+        if self.rel_list.get().is_none() {
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let rel_list = DOMTokenList::new(element, &atom!("rel"));
+            self.rel_list.assign(Some(rel_list));
+        }
+        self.rel_list.get().unwrap()
     }
 }

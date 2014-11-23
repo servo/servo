@@ -8,7 +8,7 @@ interface HTMLLinkElement : HTMLElement {
   //         attribute DOMString href;
   //         attribute DOMString crossOrigin;
   //         attribute DOMString rel;
-  //readonly attribute DOMTokenList relList;
+  readonly attribute DOMTokenList relList;
   //         attribute DOMString media;
   //         attribute DOMString hreflang;
   //         attribute DOMString type;
