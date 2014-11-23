@@ -82,7 +82,7 @@ pub struct Attr {
     prefix: Option<DOMString>,
 
     /// the element that owns this attribute.
-    owner: JS<Element>,
+    owner: Option<JS<Element>>,
 }
 
 impl Reflectable for Attr {
@@ -94,7 +94,7 @@ impl Reflectable for Attr {
 impl Attr {
     fn new_inherited(local_name: Atom, value: AttrValue,
                      name: Atom, namespace: Namespace,
-                     prefix: Option<DOMString>, owner: JSRef<Element>) -> Attr {
+                     prefix: Option<DOMString>, owner: Option<JSRef<Element>>) -> Attr {
         Attr {
             reflector_: Reflector::new(),
             local_name: local_name,
@@ -102,13 +102,13 @@ impl Attr {
             name: name,
             namespace: namespace,
             prefix: prefix,
-            owner: JS::from_rooted(owner),
+            owner: owner.map(|o| JS::from_rooted(o)),
         }
     }
 
     pub fn new(window: JSRef<Window>, local_name: Atom, value: AttrValue,
                name: Atom, namespace: Namespace,
-               prefix: Option<DOMString>, owner: JSRef<Element>) -> Temporary<Attr> {
+               prefix: Option<DOMString>, owner: Option<JSRef<Element>>) -> Temporary<Attr> {
         reflect_dom_object(box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
                            &global::Window(window), AttrBinding::Wrap)
     }
@@ -139,9 +139,16 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn SetValue(self, value: DOMString) {
-        let owner = self.owner.root();
-        let value = owner.parse_attribute(&self.namespace, self.local_name(), value);
-        self.set_value(ReplacedAttr, value);
+        match self.owner {
+            None => {
+                *self.value.borrow_mut() = StringAttrValue(value)
+            }
+            Some(o) => {
+                let owner = o.root();
+                let value = owner.parse_attribute(&self.namespace, self.local_name(), value);
+                self.set_value(ReplacedAttr, value, *owner);
+            }
+        }
     }
 
     fn TextContent(self) -> DOMString {
@@ -177,7 +184,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn GetOwnerElement(self) -> Option<Temporary<Element>> {
-        Some(Temporary::new(self.owner))
+        self.owner.map(|o| Temporary::new(o))
     }
 
     fn Specified(self) -> bool {
@@ -186,16 +193,17 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
 }
 
 pub trait AttrHelpers<'a> {
-    fn set_value(self, set_type: AttrSettingType, value: AttrValue);
+    fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: JSRef<Element>);
     fn value(self) -> Ref<'a, AttrValue>;
     fn local_name(self) -> &'a Atom;
     fn summarize(self) -> AttrInfo;
 }
 
 impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
-    fn set_value(self, set_type: AttrSettingType, value: AttrValue) {
-        let owner = self.owner.root();
-        let node: JSRef<Node> = NodeCast::from_ref(*owner);
+    fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: JSRef<Element>) {
+        assert!(Some(owner) == self.owner.map(|o| *o.root()));
+
+        let node: JSRef<Node> = NodeCast::from_ref(owner);
         let namespace_is_null = self.namespace == ns!("");
 
         match set_type {
