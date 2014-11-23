@@ -88,7 +88,10 @@ class MachCommands(CommandBase):
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
-    def build_cef(self, jobs=None, verbose=False):
+    @CommandArgument('--release', '-r',
+                     action='store_true',
+                     help='Build in release mode')
+    def build_cef(self, jobs=None, verbose=False, release=False):
         self.ensure_bootstrapped()
 
         ret = None
@@ -97,6 +100,8 @@ class MachCommands(CommandBase):
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
+        if release:
+            opts += ["--release"]
 
         build_start = time()
         with cd(path.join("ports", "cef")):
