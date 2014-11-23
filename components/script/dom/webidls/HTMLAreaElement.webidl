@@ -12,7 +12,7 @@ interface HTMLAreaElement : HTMLElement {
   //         attribute DOMString download;
   //[PutForwards=value] attribute DOMSettableTokenList ping;
   //         attribute DOMString rel;
-  //readonly attribute DOMTokenList relList;
+  readonly attribute DOMTokenList relList;
   //         attribute DOMString hreflang;
   //         attribute DOMString type;
 
