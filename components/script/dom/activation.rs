@@ -23,7 +23,7 @@ pub trait Activatable : Copy {
     fn canceled_activation(&self);
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
-    fn post_click_activation(&self);
+    fn activation_behavior(&self);
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-synthetic-click-activation-steps
     fn synthetic_click_activation(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
@@ -52,7 +52,8 @@ pub trait Activatable : Copy {
         if event.DefaultPrevented() {
             self.canceled_activation();
         } else {
-            self.post_click_activation();
+            // post click activation
+            self.activation_behavior();
         }
 
         // Step 6

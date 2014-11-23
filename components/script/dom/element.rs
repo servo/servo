@@ -1228,8 +1228,19 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
             .filter(|e| e.as_maybe_activatable().is_some()).next()
     }
 
-    // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
+    /// Please call this method *only* for real click events
+    ///
+    /// https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
+    ///
+    /// Use an element's synthetic click activation (or handle_event) for any script-triggered clicks.
+    /// If the spec says otherwise, check with Manishearth first
     fn authentic_click_activation<'b>(self, event: JSRef<'b, Event>) {
+        // Not explicitly part of the spec, however this helps enforce the invariants
+        // required to save state between pre-activation and post-activation
+        // Since we cannot nest authentic clicks (unlike synthetic click activation, where 
+        // the script can generate more click events from the handler)
+        assert!(!self.click_in_progress());
+
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         // Step 2 (requires canvas support)
         // Step 3
@@ -1246,7 +1257,8 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
             }
             el.as_maybe_activatable().map(|a| {
                 if event.DefaultPrevented() {
-                    a.post_click_activation();
+                    // post click activation
+                    a.activation_behavior();
                 } else {
                     a.canceled_activation();
                 }
