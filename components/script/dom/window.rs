@@ -25,7 +25,7 @@ use page::Page;
 use script_task::{ExitWindowMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
 use script_task::FromWindow;
 use script_traits::ScriptControlChan;
-use timers::{TimerId, TimerManager};
+use timers::{Interval, NonInterval, TimerId, TimerManager};
 
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::LoadData;
@@ -228,7 +228,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            false, // is_interval
+                                            NonInterval,
                                             FromWindow(self.page.id.clone()),
                                             self.script_chan.clone())
     }
@@ -241,7 +241,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            true, // is_interval
+                                            Interval,
                                             FromWindow(self.page.id.clone()),
                                             self.script_chan.clone())
     }
