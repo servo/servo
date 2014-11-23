@@ -509,13 +509,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => {
                 let window = window_from_node(self).root();
                 let attr = Attr::new(*window, local_name, value.clone(),
-                                     name, namespace.clone(), prefix, self);
+                                     name, namespace.clone(), prefix, Some(self));
                 self.attrs.borrow_mut().push_unrooted(&attr);
                 (self.attrs.borrow().len() - 1, FirstSetAttr)
             }
         };
 
-        (*self.attrs.borrow())[idx].root().set_value(set_type, value);
+        (*self.attrs.borrow())[idx].root().set_value(set_type, value, self);
     }
 
     fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
