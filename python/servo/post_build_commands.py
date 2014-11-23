@@ -26,8 +26,10 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to Servo")
     def run(self, params):
+        env = self.build_env()
+        env["RUST_BACKTRACE"] = "1"
         subprocess.check_call([path.join("target", "servo")] + params,
-                              env=self.build_env())
+                              env=env)
 
     @Command('doc',
              description='Generate documentation',
