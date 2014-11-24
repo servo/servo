@@ -16,8 +16,7 @@ from servo.command_base import CommandBase, cd
 class MachCommands(CommandBase):
     @Command('cargo',
              description='Run Cargo',
-             category='devenv',
-             allow_all_args=True)
+             category='devenv')
     @CommandArgument(
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to Cargo")
@@ -27,8 +26,7 @@ class MachCommands(CommandBase):
 
     @Command('update-cargo',
              description='Update Cargo dependencies',
-             category='devenv',
-             allow_all_args=True)
+             category='devenv')
     @CommandArgument(
         'params', default=None, nargs='...',
         help='Command-line arguments to be passed through to cargo update')
@@ -45,8 +43,7 @@ class MachCommands(CommandBase):
 
     @Command('rustc',
              description='Run the Rust compiler',
-             category='devenv',
-             allow_all_args=True)
+             category='devenv')
     @CommandArgument(
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to rustc")

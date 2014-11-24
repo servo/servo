@@ -20,10 +20,9 @@ from servo.command_base import CommandBase
 class MachCommands(CommandBase):
     @Command('run',
              description='Run Servo',
-             category='post-build',
-             allow_all_args=True)
+             category='post-build')
     @CommandArgument(
-        'params', default=None, nargs='...',
+        'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
     def run(self, params):
         env = self.build_env()
@@ -33,8 +32,7 @@ class MachCommands(CommandBase):
 
     @Command('doc',
              description='Generate documentation',
-             category='post-build',
-             allow_all_args=True)
+             category='post-build')
     @CommandArgument(
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
@@ -45,8 +43,7 @@ class MachCommands(CommandBase):
 
     @Command('serve-docs',
              description='Locally serve Servo and Rust documentation',
-             category='post-build',
-             allow_all_args=True)
+             category='post-build')
     @CommandArgument(
         'port', default=8888, nargs='?', type=int, metavar='PORT',
         help="Port to serve documentation at (default is 8888)")

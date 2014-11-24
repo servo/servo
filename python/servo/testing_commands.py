@@ -55,8 +55,7 @@ class MachCommands(CommandBase):
 
     @Command('test-unit',
              description='Run unit tests',
-             category='testing',
-             allow_all_args=True)
+             category='testing')
     @CommandArgument('test_name', default=None, nargs="...",
                      help="Only run tests that match this pattern")
     def test_unit(self, test_name=None):
@@ -113,8 +112,7 @@ class MachCommands(CommandBase):
 
     @Command('test-content',
              description='Run the content tests',
-             category='testing',
-             allow_all_args=True)
+             category='testing')
     @CommandArgument('test_name', default=None, nargs="?",
                      help="Only run tests that match this pattern")
     def test_content(self, test_name=None):
@@ -142,8 +140,7 @@ class MachCommands(CommandBase):
 
     @Command('test-wpt',
              description='Run the web platform tests',
-             category='testing',
-             allow_all_args=True)
+             category='testing')
     @CommandArgument(
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to wpt/run.sh")
