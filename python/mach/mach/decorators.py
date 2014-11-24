@@ -4,6 +4,7 @@
 
 from __future__ import unicode_literals
 
+import argparse
 import collections
 import inspect
 import types
@@ -56,8 +57,8 @@ def CommandProvider(cls):
         if not isinstance(value, types.FunctionType):
             continue
 
-        command_name, category, description, allow_all, conditions, parser = getattr(
-            value, '_mach_command', (None, None, None, None, None, None))
+        command_name, category, description, conditions, parser = getattr(
+            value, '_mach_command', (None, None, None, None, None))
 
         if command_name is None:
             continue
@@ -81,9 +82,11 @@ def CommandProvider(cls):
 
         arguments = getattr(value, '_mach_command_args', None)
 
+        argument_group_names = getattr(value, '_mach_command_arg_group_names', None)
+
         handler = MethodHandler(cls, attr, command_name, category=category,
-            description=description, allow_all_arguments=allow_all,
-            conditions=conditions, parser=parser, arguments=arguments,
+            description=description, conditions=conditions, parser=parser,
+            arguments=arguments, argument_group_names=argument_group_names,
             pass_context=pass_context)
 
         Registrar.register_command_handler(handler)
@@ -102,9 +105,6 @@ class Command(object):
 
          description -- A brief description of what the command does.
 
-         allow_all_args -- Bool indicating whether to allow unknown arguments
-             through to the command.
-
          parser -- an optional argparse.ArgumentParser instance to use as
              the basis for the command arguments.
 
@@ -114,18 +114,17 @@ class Command(object):
         def foo(self):
             pass
     """
-    def __init__(self, name, category=None, description=None,
-                 allow_all_args=False, conditions=None, parser=None):
+    def __init__(self, name, category=None, description=None, conditions=None,
+                 parser=None):
         self._name = name
         self._category = category
         self._description = description
-        self._allow_all_args = allow_all_args
         self._conditions = conditions
         self._parser = parser
 
     def __call__(self, func):
         func._mach_command = (self._name, self._category, self._description,
-                              self._allow_all_args, self._conditions, self._parser)
+                              self._conditions, self._parser)
 
         return func
 
@@ -145,6 +144,11 @@ class CommandArgument(object):
             pass
     """
     def __init__(self, *args, **kwargs):
+        if kwargs.get('nargs') == argparse.REMAINDER:
+            # These are the assertions we make in dispatcher.py about
+            # those types of CommandArguments.
+            assert len(args) == 1
+            assert all(k in ('default', 'nargs', 'help', 'group') for k in kwargs)
         self._command_args = (args, kwargs)
 
     def __call__(self, func):
@@ -153,6 +157,39 @@ class CommandArgument(object):
         command_args.insert(0, self._command_args)
 
         func._mach_command_args = command_args
+
+        return func
+
+
+class CommandArgumentGroup(object):
+    """Decorator for additional argument groups to mach subcommands.
+
+    This decorator should be used to add arguments groups to mach commands.
+    Arguments to the decorator are proxied to
+    ArgumentParser.add_argument_group().
+
+    For example:
+
+        @Command('foo', helps='Run the foo action')
+        @CommandArgumentGroup('group1')
+        @CommandArgument('-b', '--bar', group='group1', action='store_true',
+            default=False, help='Enable bar mode.')
+        def foo(self):
+            pass
+
+    The name should be chosen so that it makes sense as part of the phrase
+    'Command Arguments for <name>' because that's how it will be shown in the
+    help message.
+    """
+    def __init__(self, group_name):
+        self._group_name = group_name
+
+    def __call__(self, func):
+        command_arg_group_names = getattr(func, '_mach_command_arg_group_names', [])
+
+        command_arg_group_names.insert(0, self._group_name)
+
+        func._mach_command_arg_group_names = command_arg_group_names
 
         return func
 
