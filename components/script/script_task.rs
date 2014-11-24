@@ -893,9 +893,9 @@ impl ScriptTask {
                                           None, props.key_code).root();
         let event = EventCast::from_ref(*keyevent);
         let _ = target.DispatchEvent(event);
-
+        let mut prevented = event.DefaultPrevented();
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
-        if state != Released && props.is_printable() && !event.DefaultPrevented() {
+        if state != Released && props.is_printable() && !prevented {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
             let event = KeyboardEvent::new(*window, "keypress".to_string(), true, true, Some(*window),
                                            0, props.key.to_string(), props.code.to_string(),
@@ -904,9 +904,24 @@ impl ScriptTask {
                                            props.char_code, 0).root();
             let _ = target.DispatchEvent(EventCast::from_ref(*event));
 
+            let ev = EventCast::from_ref(*event);
+            prevented = ev.DefaultPrevented();
             // TODO: if keypress event is canceled, prevent firing input events
         }
 
+        // This behavior is unspecced
+        // We are supposed to dispatch synthetic click activation for Space and/or Return,
+        // however *when* we do it is up to us
+        // I'm dispatching it after the key event so the script has a chance to cancel it
+        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
+        match key {
+            Key::KeySpace | Key::KeyEnter if !prevented && state == Released => {
+                // TODO handle space and enter slightly differently
+                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
+                maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.synthetic_click_activation(ctrl, alt, shift, meta)));
+            }
+            _ => ()
+        }
         window.flush_layout();
     }
 
