@@ -824,7 +824,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
         let name = Atom::from_slice(name.as_slice());
         let local_name = Atom::from_slice(local_name);
-        let xmlns = Atom::from_slice("xmlns");      // TODO: Make this a static atom type
+        let xmlns = atom!("xmlns");
 
         // Step 7a.
         if xmlns == name && namespace != ns!(XMLNS) {
