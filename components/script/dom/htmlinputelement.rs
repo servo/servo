@@ -8,19 +8,21 @@ use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFormElementCast, HTMLInputElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
+use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, ResultRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
 use dom::element::RawLayoutElementHelpers;
-use dom::event::Event;
+use dom::event::{Event, Bubbles, NotCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::keyboardevent::KeyboardEvent;
@@ -34,6 +36,7 @@ use string_cache::Atom;
 
 use std::ascii::OwnedAsciiExt;
 use std::cell::Cell;
+use std::cell::RefCell;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -58,8 +61,25 @@ pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
     checked: Cell<bool>,
+    indeterminate: Cell<bool>,
     size: Cell<u32>,
     textinput: DOMRefCell<TextInput>,
+    activation_state: RefCell<InputActivationState>,
+}
+
+#[jstraceable]
+struct InputActivationState {
+    indeterminate: bool,
+    checked: bool
+}
+
+impl InputActivationState {
+    fn new() -> InputActivationState {
+        InputActivationState {
+            indeterminate: false,
+            checked: false
+        }
+    }
 }
 
 impl HTMLInputElementDerived for EventTarget {
@@ -76,8 +96,10 @@ impl HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, prefix, document),
             input_type: Cell::new(InputText),
             checked: Cell::new(false),
+            indeterminate: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
             textinput: DOMRefCell::new(TextInput::new(Single, "".to_string())),
+            activation_state: RefCell::new(InputActivationState::new())
         }
     }
 
@@ -203,7 +225,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_setter!(SetFormEnctype, "formenctype")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
-        make_enumerated_getter!(FormMethod, "get", "post" | "dialog")
+    make_enumerated_getter!(FormMethod, "get", "post" | "dialog")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
     make_setter!(SetFormMethod, "formmethod")
@@ -213,6 +235,17 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formtarget
     make_setter!(SetFormTarget, "formtarget")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-indeterminate
+    fn Indeterminate(self) -> bool {
+        self.indeterminate.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-indeterminate
+    fn SetIndeterminate(self, val: bool) {
+        // FIXME #4079 this should change the appearance
+        self.indeterminate.set(val)
+    }
 }
 
 pub trait HTMLInputElementHelpers {
@@ -428,7 +461,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 
         if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
             match self.input_type.get() {
-                InputCheckbox => self.SetChecked(!self.checked.get()),
                 InputRadio => self.SetChecked(true),
                 _ => {}
             }
@@ -507,6 +539,18 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         match self.input_type.get() {
             // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29
             // InputSubmit => (), // No behavior defined
+            InputCheckbox => {
+                // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-%28type=checkbox%29
+                if self.mutable() {
+                    // cache current values of `checked` and `indeterminate`
+                    // we may need to restore them later
+                    let mut cache = self.activation_state.borrow_mut();
+                    cache.indeterminate = self.Indeterminate();
+                    cache.checked = self.Checked();
+                    self.SetIndeterminate(false);
+                    self.SetChecked(!cache.checked);
+                }
+            },
             _ => ()
         }
     }
@@ -516,6 +560,12 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         match self.input_type.get() {
             // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29
             // InputSubmit => (), // No behavior defined
+            InputCheckbox => {
+                // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-%28type=checkbox%29
+                let cache = self.activation_state.borrow();
+                self.SetIndeterminate(cache.indeterminate);
+                self.SetChecked(cache.checked);
+            },
             _ => ()
         }
     }
@@ -525,12 +575,29 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         match self.input_type.get() {
             InputSubmit => {
                 // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29
-                // FIXME (Manishearth): 
+                // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 if self.mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
                         o.root().submit(NotFromFormSubmitMethod, InputElement(self.clone()))
                     });
                 }
+            },
+            InputCheckbox => {
+                // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-%28type=checkbox%29
+                let win = window_from_node(*self).root();
+                let event = Event::new(&Window(*win),
+                       "input".to_string(),
+                       Bubbles, NotCancelable).root();
+                event.set_trusted(true);
+                let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+                target.DispatchEvent(*event).ok();
+
+                let event = Event::new(&Window(*win),
+                       "change".to_string(),
+                       Bubbles, NotCancelable).root();
+                event.set_trusted(true);
+                let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+                target.DispatchEvent(*event).ok();
             },
             _ => ()
         }
