@@ -6,6 +6,7 @@ use dom::attr::Attr;
 use dom::attr::{AttrValue, StringAttrValue};
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLAreaElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLBodyElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLButtonElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementCast;
@@ -28,6 +29,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::element::ElementTypeId_;
 use dom::element::HTMLAnchorElementTypeId;
+use dom::element::HTMLAreaElementTypeId;
 use dom::element::HTMLBodyElementTypeId;
 use dom::element::HTMLButtonElementTypeId;
 use dom::element::HTMLCanvasElementTypeId;
@@ -47,6 +49,7 @@ use dom::element::HTMLTableHeaderCellElementTypeId;
 use dom::element::HTMLTextAreaElementTypeId;
 use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
+use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -158,6 +161,10 @@ pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a VirtualMethods + 'a {
     match node.type_id() {
         ElementNodeTypeId(HTMLAnchorElementTypeId) => {
             let element: &'a JSRef<'a, HTMLAnchorElement> = HTMLAnchorElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
+        }
+        ElementNodeTypeId(HTMLAreaElementTypeId) => {
+            let element: &'a JSRef<'a, HTMLAreaElement> = HTMLAreaElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(HTMLBodyElementTypeId) => {

@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
+use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
+use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeHandlers, Element, HTMLLinkElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
@@ -19,12 +21,14 @@ use layout_interface::{LayoutChan, LoadStylesheetMsg};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 use std::ascii::AsciiExt;
+use std::default::Default;
 use url::UrlParser;
 use string_cache::Atom;
 
 #[dom_struct]
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
+    rel_list: MutNullableJS<DOMTokenList>,
 }
 
 impl HTMLLinkElementDerived for EventTarget {
@@ -36,7 +40,8 @@ impl HTMLLinkElementDerived for EventTarget {
 impl HTMLLinkElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLinkElement {
         HTMLLinkElement {
-            htmlelement: HTMLElement::new_inherited(HTMLLinkElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLLinkElementTypeId, localName, prefix, document),
+            rel_list: Default::default(),
         }
     }
 
@@ -87,6 +92,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
         }
     }
 
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("rel") => AttrValue::from_tokenlist(value),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
+    }
+
     fn bind_to_tree(&self, tree_in_doc: bool) {
         match self.super_type() {
             Some(ref s) => s.bind_to_tree(tree_in_doc),
@@ -132,3 +144,13 @@ impl Reflectable for HTMLLinkElement {
     }
 }
 
+impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
+    fn RelList(self) -> Temporary<DOMTokenList> {
+        if self.rel_list.get().is_none() {
+            let element: JSRef<Element> = ElementCast::from_ref(self);
+            let rel_list = DOMTokenList::new(element, &atom!("rel"));
+            self.rel_list.assign(Some(rel_list));
+        }
+        self.rel_list.get().unwrap()
+    }
+}
