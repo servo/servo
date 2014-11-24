@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::activation::Activatable;
 use dom::attr::{Attr, AttrValue, UIntAttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
@@ -429,11 +430,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             match self.input_type.get() {
                 InputCheckbox => self.SetChecked(!self.checked.get()),
                 InputRadio => self.SetChecked(true),
-                InputSubmit => {
-                    self.form_owner().map(|o| {
-                        o.root().submit(NotFromFormSubmitMethod, InputElement(self.clone()))
-                    });
-                }
                 _ => {}
             }
 
@@ -497,5 +493,46 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
         // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/forms.html#the-readonly-attribute:concept-fe-mutable
         !(self.Disabled() || self.ReadOnly())
+    }
+}
+
+
+impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
+    fn as_element(&self) -> Temporary<Element> {
+        Temporary::from_rooted(ElementCast::from_ref(*self))
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
+    fn pre_click_activation(&self) {
+        match self.input_type.get() {
+            // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29
+            // InputSubmit => (), // No behavior defined
+            _ => ()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-canceled-activation-steps
+    fn canceled_activation(&self) {
+        match self.input_type.get() {
+            // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29
+            // InputSubmit => (), // No behavior defined
+            _ => ()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
+    fn activation_behavior(&self) {
+        match self.input_type.get() {
+            InputSubmit => {
+                // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29
+                // FIXME (Manishearth): 
+                if self.mutable() /* and document owner is fully active */ {
+                    self.form_owner().map(|o| {
+                        o.root().submit(NotFromFormSubmitMethod, InputElement(self.clone()))
+                    });
+                }
+            },
+            _ => ()
+        }
     }
 }

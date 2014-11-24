@@ -1202,9 +1202,8 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         match node.type_id() {
             ElementNodeTypeId(HTMLInputElementTypeId) => {
-                let _element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
-                // Some(element as &'a Activatable + 'a)
-                None
+                let element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
+                Some(element as &'a Activatable + 'a)
             },
             _ => {
                 None
@@ -1222,10 +1221,15 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
 
     // https://html.spec.whatwg.org/multipage/interaction.html#nearest-activatable-element
     fn nearest_activable_element(self) -> Option<JSRef<'a, Element>> {
-        let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.ancestors()
-            .filter_map(|node| ElementCast::to_ref(node))
-            .filter(|e| e.as_maybe_activatable().is_some()).next()
+        match self.as_maybe_activatable() {
+            Some(el) => Some(*el.as_element().root()),
+            None => {
+                let node: JSRef<Node> = NodeCast::from_ref(self);
+                node.ancestors()
+                    .filter_map(|node| ElementCast::to_ref(node))
+                    .filter(|e| e.as_maybe_activatable().is_some()).next()
+            }
+        }
     }
 
     /// Please call this method *only* for real click events
@@ -1252,11 +1256,8 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
         // Step 6
         target.dispatch_event_with_target(None, event).ok();
         e.map(|el| {
-            if NodeCast::from_ref(el).is_in_doc() {
-                return; // XXXManishearth do we need this check?
-            }
             el.as_maybe_activatable().map(|a| {
-                if event.DefaultPrevented() {
+                if !event.DefaultPrevented() {
                     // post click activation
                     a.activation_behavior();
                 } else {
