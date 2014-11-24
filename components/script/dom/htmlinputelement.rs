@@ -12,7 +12,6 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFormElementCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
@@ -28,6 +27,7 @@ use dom::htmlelement::HTMLElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::htmlformelement::{InputElement, FormControl, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
+use dom::nodelist::NodeListHelpers;
 use dom::virtualmethods::VirtualMethods;
 use textinput::{Single, TextInput, TriggerDefaultAction, DispatchInput, Nothing};
 
@@ -251,29 +251,19 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 pub trait HTMLInputElementHelpers {
     fn force_relayout(self);
     fn radio_group_updated(self, group: Option<&str>);
-    fn get_radio_group(self) -> Option<String>;
+    fn get_radio_group_name(self) -> Option<String>;
+    fn get_radio_group_all(self, group: Option<&str>) -> Vec<Temporary<HTMLInputElement>>;
     fn update_checked_state(self, checked: bool);
     fn get_size(&self) -> u32;
 }
 
 fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&str>) {
     //TODO: if not in document, use root ancestor instead of document
-    let doc = document_from_node(broadcaster).root();
-    let radios = doc.QuerySelectorAll("input[type=\"radio\"]".to_string()).unwrap().root();
-    let mut i = 0;
-    while i < radios.Length() {
-        let node = radios.Item(i).unwrap().root();
-        let radio: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(*node).unwrap();
-        if radio != broadcaster {
-            //TODO: determine form owner
-            let other_group = radio.get_radio_group();
-            //TODO: ensure compatibility caseless match (https://html.spec.whatwg.org/multipage/infrastructure.html#compatibility-caseless)
-            let group_matches = other_group.as_ref().map(|group| group.as_slice()) == group.as_ref().map(|&group| &*group);
-            if group_matches && radio.Checked() {
-                radio.SetChecked(false);
-            }
+    for r in broadcaster.get_radio_group_all(group).iter().filter(|r| *r.root() != broadcaster) {
+        let radio = r.root();
+        if radio.Checked() {
+            radio.SetChecked(false);
         }
-        i += 1;
     }
 }
 
@@ -290,8 +280,8 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#radio-button-group
-    fn get_radio_group(self) -> Option<String> {
+
+    fn get_radio_group_name(self) -> Option<String> {
         //TODO: determine form owner
         let elem: JSRef<Element> = ElementCast::from_ref(self);
         elem.get_attribute(ns!(""), &atom!("name"))
@@ -299,11 +289,32 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
             .map(|name| name.Value())
     }
 
+    // https://html.spec.whatwg.org/multipage/forms.html#radio-button-group
+    fn get_radio_group_all(self, group: Option<&str>) -> Vec<Temporary<HTMLInputElement>> {
+        assert!(self.input_type.get() == InputRadio);
+        //TODO: if not in document, use root ancestor instead of document
+        let doc = document_from_node(self).root();
+        // FIXME (#4082) instead of allocating a bunch of times, use a proper iterator
+        let radios = doc.QuerySelectorAll("input[type=\"radio\"]".to_string()).unwrap().root();
+        let owner = self.form_owner();
+        radios.into_vec().iter().filter_map(|t| HTMLInputElementCast::to_ref(*t.root())).filter(|r| {
+            r.input_type.get() == InputRadio &&
+            // TODO Both a and b are in the same home subtree.
+            r.form_owner() == owner &&
+            // TODO should be a unicode compatibility caseless match
+            match (r.get_radio_group_name(), group) {
+                (Some(ref s1), Some(s2)) if s1.as_slice() == s2 => true,
+                (None, None) => true,
+                _ => false
+            }
+        }).map(|r| Temporary::from_rooted(r)).collect()
+    }
+
     fn update_checked_state(self, checked: bool) {
         self.checked.set(checked);
         if self.input_type.get() == InputRadio && checked {
             broadcast_radio_checked(self,
-                                    self.get_radio_group()
+                                    self.get_radio_group_name()
                                         .as_ref()
                                         .map(|group| group.as_slice()));
         }
@@ -357,7 +368,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                     _ => InputText,
                 });
                 if self.input_type.get() == InputRadio {
-                    self.radio_group_updated(self.get_radio_group()
+                    self.radio_group_updated(self.get_radio_group_name()
                                                  .as_ref()
                                                  .map(|group| group.as_slice()));
                 }
@@ -400,7 +411,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             &atom!("type") => {
                 if self.input_type.get() == InputRadio {
                     broadcast_radio_checked(*self,
-                                            self.get_radio_group()
+                                            self.get_radio_group_name()
                                                 .as_ref()
                                                 .map(|group| group.as_slice()));
                 }
@@ -464,6 +475,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 InputRadio => self.SetChecked(true),
                 _ => {}
             }
+
+            // TODO: Dispatch events for non activatable inputs
+            // https://html.spec.whatwg.org/multipage/forms.html#common-input-element-events
 
             //TODO: set the editing position for text inputs
 
