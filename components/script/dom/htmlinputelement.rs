@@ -16,7 +16,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFor
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::Window;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, ResultRootable};
+use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable, ResultRootable, MutNullableJS};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
@@ -37,6 +37,7 @@ use string_cache::Atom;
 use std::ascii::OwnedAsciiExt;
 use std::cell::Cell;
 use std::cell::RefCell;
+use std::default::Default;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -68,16 +69,25 @@ pub struct HTMLInputElement {
 }
 
 #[jstraceable]
+#[must_root]
 struct InputActivationState {
     indeterminate: bool,
-    checked: bool
+    checked: bool,
+    checked_radio: MutNullableJS<HTMLInputElement>,
+    // In case mutability changed
+    was_mutable: bool,
+    // In case the type changed
+    old_type: InputType,
 }
 
 impl InputActivationState {
     fn new() -> InputActivationState {
         InputActivationState {
             indeterminate: false,
-            checked: false
+            checked: false,
+            checked_radio: Default::default(),
+            was_mutable: false,
+            old_type: InputText
         }
     }
 }
@@ -279,7 +289,6 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
             broadcast_radio_checked(self, group);
         }
     }
-
 
     fn get_radio_group_name(self) -> Option<String> {
         //TODO: determine form owner
@@ -550,45 +559,94 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
     fn pre_click_activation(&self) {
-        match self.input_type.get() {
-            // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29
-            // InputSubmit => (), // No behavior defined
-            InputCheckbox => {
-                // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-%28type=checkbox%29
-                if self.mutable() {
+        let mut cache = self.activation_state.borrow_mut();
+        let ty = self.input_type.get();
+        cache.old_type = ty;
+        if self.mutable() {
+            cache.was_mutable = true;
+            match ty {
+                // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
+                // InputSubmit => (), // No behavior defined
+                InputCheckbox => {
+                    // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):pre-click-activation-steps
                     // cache current values of `checked` and `indeterminate`
                     // we may need to restore them later
-                    let mut cache = self.activation_state.borrow_mut();
                     cache.indeterminate = self.Indeterminate();
                     cache.checked = self.Checked();
                     self.SetIndeterminate(false);
                     self.SetChecked(!cache.checked);
+                },
+                // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):pre-click-activation-steps
+                InputRadio => {
+                    cache.checked_radio.assign(self.get_radio_group_all(self.get_radio_group_name().as_ref()
+                                                                            .map(|s| s.as_slice()))
+                                                   .into_iter().find(|r| r.root().Checked()));
+                    self.SetChecked(true);
                 }
-            },
-            _ => ()
+                _ => ()
+            }
+        } else {
+            cache.was_mutable = false;
         }
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-canceled-activation-steps
     fn canceled_activation(&self) {
-        match self.input_type.get() {
-            // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29
+        let cache = self.activation_state.borrow();
+        let ty = self.input_type.get();
+        if cache.old_type != ty  {
+            // Type changed, abandon ship
+            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414
+            return;
+        }
+        match ty {
+            // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
             // InputSubmit => (), // No behavior defined
+            // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):canceled-activation-steps
             InputCheckbox => {
-                // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-%28type=checkbox%29
-                let cache = self.activation_state.borrow();
-                self.SetIndeterminate(cache.indeterminate);
-                self.SetChecked(cache.checked);
+                // We want to restore state only if the element had been changed in the first place
+                if cache.was_mutable {
+                    self.SetIndeterminate(cache.indeterminate);
+                    self.SetChecked(cache.checked);
+                }
             },
+            // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):canceled-activation-steps
+            InputRadio => {
+                // We want to restore state only if the element had been changed in the first place
+                if cache.was_mutable {
+                    let old_checked: Option<Root<HTMLInputElement>> = cache.checked_radio.get().root();
+                    let name = self.get_radio_group_name();
+                    old_checked.map_or_else(|| self.SetChecked(false),
+                        |o| {
+                            // Avoiding iterating through the whole tree here, instead
+                            // we can check if the conditions for radio group siblings apply
+                            if name != None && // unless  self no longer has a button group
+                               name == o.get_radio_group_name() && // TODO should be compatibility caseless
+                               self.form_owner() == o.form_owner() &&
+                               // TODO Both a and b are in the same home subtree
+                               o.input_type.get() == InputRadio {
+                                    o.SetChecked(true);
+                            } else {
+                                self.SetChecked(false);
+                            }
+                    });
+                }                
+            }
             _ => ()
         }
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
     fn activation_behavior(&self) {
-        match self.input_type.get() {
+        let ty = self.input_type.get();
+        if self.activation_state.borrow().old_type != ty  {
+            // Type changed, abandon ship
+            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414
+            return;
+        }
+        match ty {
             InputSubmit => {
-                // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29
+                // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 if self.mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
@@ -597,21 +655,42 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 }
             },
             InputCheckbox => {
-                // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-%28type=checkbox%29
-                let win = window_from_node(*self).root();
-                let event = Event::new(&Window(*win),
-                       "input".to_string(),
-                       Bubbles, NotCancelable).root();
-                event.set_trusted(true);
-                let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
-                target.DispatchEvent(*event).ok();
+                // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):activation-behavior
+                if self.mutable() {
+                    let win = window_from_node(*self).root();
+                    let event = Event::new(&Window(*win),
+                           "input".to_string(),
+                           Bubbles, NotCancelable).root();
+                    event.set_trusted(true);
+                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+                    target.DispatchEvent(*event).ok();
 
-                let event = Event::new(&Window(*win),
-                       "change".to_string(),
-                       Bubbles, NotCancelable).root();
-                event.set_trusted(true);
-                let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
-                target.DispatchEvent(*event).ok();
+                    let event = Event::new(&Window(*win),
+                           "change".to_string(),
+                           Bubbles, NotCancelable).root();
+                    event.set_trusted(true);
+                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+                    target.DispatchEvent(*event).ok();
+                }
+            },
+            InputRadio => {
+                // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):activation-behavior
+                if self.mutable() {
+                    let win = window_from_node(*self).root();
+                    let event = Event::new(&Window(*win),
+                           "input".to_string(),
+                           Bubbles, NotCancelable).root();
+                    event.set_trusted(true);
+                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+                    target.DispatchEvent(*event).ok();
+
+                    let event = Event::new(&Window(*win),
+                           "change".to_string(),
+                           Bubbles, NotCancelable).root();
+                    event.set_trusted(true);
+                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+                    target.DispatchEvent(*event).ok();
+                }
             },
             _ => ()
         }
