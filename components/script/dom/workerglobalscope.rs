@@ -14,7 +14,7 @@ use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, FromWorker};
-use timers::{TimerId, TimerManager};
+use timers::{Interval, NonInterval, TimerId, TimerManager};
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 use servo_util::str::DOMString;
@@ -160,7 +160,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            false, // is_interval
+                                            NonInterval,
                                             FromWorker,
                                             self.script_chan.clone())
     }
@@ -173,7 +173,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            true, // is_interval
+                                            Interval,
                                             FromWorker,
                                             self.script_chan.clone())
     }
