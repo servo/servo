@@ -915,10 +915,13 @@ impl ScriptTask {
         // I'm dispatching it after the key event so the script has a chance to cancel it
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
         match key {
-            Key::KeySpace | Key::KeyEnter if !prevented && state == Released => {
-                // TODO handle space and enter slightly differently
+            Key::KeySpace if !prevented && state == Released => {
                 let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
                 maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.synthetic_click_activation(ctrl, alt, shift, meta)));
+            }
+            Key::KeyEnter if !prevented && state == Released => {
+                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(target);
+                maybe_elem.map(|el| el.as_maybe_activatable().map(|a| a.implicit_submission(ctrl, alt, shift, meta)));
             }
             _ => ()
         }

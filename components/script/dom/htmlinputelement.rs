@@ -20,7 +20,7 @@ use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable, ResultRoot
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
-use dom::element::RawLayoutElementHelpers;
+use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
 use dom::event::{Event, Bubbles, NotCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
@@ -694,5 +694,20 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
             },
             _ => ()
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
+    fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
+        let doc = document_from_node(*self).root();
+        // FIXME (#4082) use a custom iterator
+        let submits = doc.QuerySelectorAll("input[type=submit]".to_string()).unwrap().root();
+        // XXXManishearth there may be a more efficient way of doing this (#3553)
+        let owner = self.form_owner();
+        if owner == None || ElementCast::from_ref(*self).click_in_progress() {
+            return;
+        }
+        submits.into_vec().iter()
+               .filter_map(|t| HTMLInputElementCast::to_ref(*t.root()))
+               .find(|r| r.form_owner() == owner).map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
     }
 }

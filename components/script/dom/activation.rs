@@ -25,6 +25,9 @@ pub trait Activatable : Copy {
     // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
     fn activation_behavior(&self);
 
+    // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
+    fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool);
+
     // https://html.spec.whatwg.org/multipage/interaction.html#run-synthetic-click-activation-steps
     fn synthetic_click_activation(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let element = self.as_element().root();
