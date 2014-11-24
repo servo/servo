@@ -90,6 +90,11 @@ impl Actor for HighlighterActor {
     }
 }
 
+#[deriving(Encodable)]
+struct ModifyAttributeReply{
+    to: String,
+}
+
 impl Actor for NodeActor {
         fn name(&self) -> String {
         self.name.clone()
@@ -104,7 +109,6 @@ impl Actor for NodeActor {
             "modifyAttributes" => {
                 let target = _msg.find(&"to".to_string()).unwrap().as_string().unwrap();
                 let _mods = _msg.find(&"modifications".to_string()).unwrap().as_list().unwrap();
-
                 let mut modifications: Vec<Modification> = Vec::new();
                 for json_mod in _mods.iter() {
                     let modification: Modification = json::decode(json_mod.to_string().as_slice()).unwrap();
@@ -114,6 +118,10 @@ impl Actor for NodeActor {
                 self.script_chan.send(ModifyAttribute(self.pipeline,
                                                 _registry.actor_to_script(target.to_string()),
                                                 modifications));
+                let msg = ModifyAttributeReply{
+                    to:target.to_string(),
+                };
+                stream.write_json_packet(&msg);
                 true
             }
 
