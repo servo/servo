@@ -90,10 +90,13 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     // http://dom.spec.whatwg.org/#dom-domtokenlist-contains
     fn Contains(self, token: DOMString) -> Fallible<bool> {
         self.check_token_exceptions(token.as_slice()).map(|slice| {
-            self.attribute().root().and_then(|attr| attr.value().tokens().map(|tokens| {
+            self.attribute().root().map(|attr| {
+                let value = attr.value();
+                let tokens = value.tokens()
+                                  .expect("Should have parsed this attribute");
                 let atom = Atom::from_slice(slice);
                 tokens.iter().any(|token| *token == atom)
-            })).unwrap_or(false)
+            }).unwrap_or(false)
         })
     }
 }
