@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
@@ -21,6 +22,7 @@ use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use std::default::Default;
+use string_cache::Atom;
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -87,6 +89,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
             None => {}
         }
         self.handle_event_impl(event);
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("id") => AttrValue::from_atomic(value),
+            &atom!("rel") => AttrValue::from_tokenlist(value),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
     }
 }
 

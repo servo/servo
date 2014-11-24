@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
@@ -90,6 +90,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
                 }
             }
             (_, _) => ()
+        }
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("id") => AttrValue::from_atomic(value),
+            &atom!("rel") => AttrValue::from_tokenlist(value),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
 
