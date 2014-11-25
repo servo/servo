@@ -4,14 +4,17 @@
 
 use browser::{GLOBAL_BROWSERS, browser_callback_after_created};
 use command_line::command_line_init;
+use interfaces::cef_app_t;
+use eutil::Downcast;
+use switches::{KPROCESSTYPE, KWAITFORDEBUGGER};
+use types::{cef_main_args_t, cef_settings_t};
+
 use glfw_app;
 use libc::funcs::c95::string::strlen;
 use libc::{c_int, c_void};
 use native;
 use servo::Browser;
 use std::slice;
-use switches::{KPROCESSTYPE, KWAITFORDEBUGGER};
-use types::{cef_app_t, cef_main_args_t, cef_settings_t};
 
 #[no_mangle]
 pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
@@ -42,22 +45,36 @@ pub extern "C" fn cef_shutdown() {
 pub extern "C" fn cef_run_message_loop() {
     native::start(0, 0 as *const *const u8, proc() {
         GLOBAL_BROWSERS.get().map(|refcellbrowsers| {
-            unsafe {
-                let browsers = refcellbrowsers.borrow();
-                let mut num = browsers.len();
-                for active_browser in browsers.iter() {
-                    (**active_browser).window = glfw_app::create_window();
-                    (**active_browser).servo_browser = Some(Browser::new(Some((**active_browser).window.clone())));
-                    if !(**active_browser).callback_executed { browser_callback_after_created(*active_browser); }
+            let browsers = refcellbrowsers.borrow();
+            let mut num = browsers.len();
+            for active_browser in browsers.iter() {
+                *active_browser.downcast().window.borrow_mut() =
+                    Some(glfw_app::create_window());
+                *active_browser.downcast().servo_browser.borrow_mut() =
+                    Some(Browser::new((*active_browser.downcast()
+                                                      .window
+                                                      .borrow()).clone()));
+                if !active_browser.downcast().callback_executed.get() {
+                    browser_callback_after_created((*active_browser).clone());
                 }
-                while num > 0 {
-                    for active_browser in browsers.iter().filter(|&active_browser| (**active_browser).servo_browser.is_some()) {
-                        let ref mut browser = **active_browser;
-                        let mut servobrowser = browser.servo_browser.take().unwrap();
-                        if !servobrowser.handle_event(browser.window.wait_events()) {
-                            servobrowser.shutdown();
-                            num -= 1;
-                        }
+            }
+            while num > 0 {
+                for active_browser in browsers.iter()
+                                              .filter(|&active_browser| {
+                                                  active_browser.downcast()
+                                                                .servo_browser
+                                                                .borrow()
+                                                                .is_some()
+                                              }) {
+                    let ref mut browser = active_browser.downcast();
+                    let mut servobrowser = browser.servo_browser.borrow_mut().take().unwrap();
+                    if !servobrowser.handle_event(browser.window
+                                                         .borrow_mut()
+                                                         .as_ref()
+                                                         .unwrap()
+                                                         .wait_events()) {
+                        servobrowser.shutdown();
+                        num -= 1;
                     }
                 }
             }
