@@ -11,6 +11,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary};
 use js::jsapi::JSContext;
+use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, ErrorEventTypeId};
@@ -65,9 +66,9 @@ impl ErrorEvent {
                lineno: u32,
                colno: u32,
                error: JSVal) -> Temporary<ErrorEvent> {
-        let ev = ErrorEvent::new_uninitialized(window).root();
-        ev.InitErrorEvent(global.get_cx(),type_, can_bubble, cancelable, message, filename, lineno, colno, error);
-        Temporary::from_rooted(*ev)
+        //let ev = ErrorEvent::new_uninitialized(window).root();
+        //ev.InitErrorEvent(global.get_cx(),type_, can_bubble, cancelable, message, filename, lineno, colno, error);
+        //Temporary::from_rooted(*ev)
     }
 
     pub fn Constructor(global: &GlobalRef,
@@ -116,7 +117,25 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
     fn Error(self, _cx: *mut JSContext) -> JSVal {
         self.error.get()
     }
-
+/*
+    fn InitErrorEvent(self,
+                      _cx: *mut JSContext,
+                      type_: DOMString,
+                      can_bubble: bool,
+                      cancelable: bool,
+                      message: DOMString,
+                      filename: DOMString,
+                      lineno: u32,
+                      colno: u32,
+                      error: JSVal) {
+        let event: JSRef<Event> = EventCast::from_ref(self);
+        event.InitEvent(type_, can_bubble, cancelable);
+        *self.message.borrow_mut() = message;
+        *self.filename.borrow_mut() = filename;
+        self.lineno.set(lineno);
+        self.colno.set(colno);
+        self.error.set(error);
+    }  */
 }
 
 impl Reflectable for ErrorEvent {
