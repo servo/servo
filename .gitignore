@@ -1,3 +1,4 @@
+/.cargo/config
 /target
 /rust
 /cargo
