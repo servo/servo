@@ -58,7 +58,7 @@ dependencies = [
 [[package]]
 name = "cocoa"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-cocoa#78b823bec1affcab20b6977e1057125088a6034c"
+source = "git+https://github.com/servo/rust-cocoa#084f8e1baf40391eb12819d16765af25ca96c7ec"
 
 [[package]]
 name = "compile_msg"
@@ -394,7 +394,7 @@ source = "git+https://github.com/bjz/gl-rs.git#79cd3b3f9f19aa0e39f6af572fc8673a6
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#b068d2a96d54bf173b548aece36f5ea4ef9353cf"
+source = "git+https://github.com/servo/rust-layers#63d1093f2a01a6fb9599ea6d932aadf79598451f"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",

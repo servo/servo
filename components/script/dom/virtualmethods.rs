@@ -24,6 +24,7 @@ use dom::bindings::codegen::InheritTypes::HTMLSelectElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLStyleElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTableCellElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLTextAreaElementCast;
+use dom::bindings::codegen::InheritTypes::HTMLTitleElementCast;
 use dom::bindings::js::JSRef;
 use dom::document::Document;
 use dom::element::Element;
@@ -47,6 +48,7 @@ use dom::element::HTMLStyleElementTypeId;
 use dom::element::HTMLTableDataCellElementTypeId;
 use dom::element::HTMLTableHeaderCellElementTypeId;
 use dom::element::HTMLTextAreaElementTypeId;
+use dom::element::HTMLTitleElementTypeId;
 use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlareaelement::HTMLAreaElement;
@@ -67,6 +69,7 @@ use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId, CloneChildrenFlag};
 
 use servo_util::str::DOMString;
@@ -230,6 +233,11 @@ pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a VirtualMethods + 'a {
         }
         ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
             let element: &'a JSRef<'a, HTMLTextAreaElement> = HTMLTextAreaElementCast::to_borrowed_ref(node).unwrap();
+            element as &'a VirtualMethods + 'a
+        }
+        ElementNodeTypeId(HTMLTitleElementTypeId) => {
+            let element: &'a JSRef<'a, HTMLTitleElement> =
+                HTMLTitleElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
         ElementNodeTypeId(ElementTypeId_) => {

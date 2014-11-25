@@ -11,8 +11,8 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers};
-use servo_msg::compositor_msg::{ReadyState, PaintState};
+use servo_msg::compositor_msg::{PaintState, ReadyState};
+use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
 use servo_util::geometry::ScreenPx;
 use std::fmt::{FormatError, Formatter, Show};
 use std::rc::Rc;
@@ -37,8 +37,12 @@ pub enum WindowEvent {
     /// It's possible that this should be something like
     /// `CompositorMessageWindowEvent(compositor_task::Msg)` instead.
     IdleWindowEvent,
-    /// Sent when part of the window is marked dirty and needs to be redrawn.
+    /// Sent when part of the window is marked dirty and needs to be redrawn. Before sending this
+    /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.
     RefreshWindowEvent,
+    /// Sent to initialize the GL context. The windowing system must have a valid, current GL
+    /// context when this message is sent.
+    InitializeCompositingWindowEvent,
     /// Sent when the window is resized.
     ResizeWindowEvent(TypedSize2D<DevicePixel, uint>),
     /// Sent when a new URL is to be loaded.
@@ -47,7 +51,8 @@ pub enum WindowEvent {
     MouseWindowEventClass(MouseWindowEvent),
     /// Sent when a mouse move.
     MouseWindowMoveEventClass(TypedPoint2D<DevicePixel, f32>),
-    /// Sent when the user scrolls. Includes the current cursor position.
+    /// Sent when the user scrolls. The first point is the delta and the second point is the
+    /// origin.
     ScrollWindowEvent(TypedPoint2D<DevicePixel, f32>, TypedPoint2D<DevicePixel, i32>),
     /// Sent when the user zooms.
     ZoomWindowEvent(f32),
@@ -66,6 +71,7 @@ impl Show for WindowEvent {
         match *self {
             IdleWindowEvent => write!(f, "Idle"),
             RefreshWindowEvent => write!(f, "Refresh"),
+            InitializeCompositingWindowEvent => write!(f, "InitializeCompositing"),
             ResizeWindowEvent(..) => write!(f, "Resize"),
             KeyEvent(..) => write!(f, "Key"),
             LoadUrlWindowEvent(..) => write!(f, "LoadUrl"),
@@ -92,6 +98,12 @@ pub trait WindowMethods {
     fn set_ready_state(&self, ready_state: ReadyState);
     /// Sets the paint state of the current page.
     fn set_paint_state(&self, paint_state: PaintState);
+    /// Sets the page title for the current page.
+    fn set_page_title(&self, title: Option<String>);
+    /// Sets the load data for the current page.
+    fn set_page_load_data(&self, load_data: LoadData);
+    /// Called when the browser is done loading a frame.
+    fn load_end(&self);
 
     /// Returns the hidpi factor of the monitor.
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;
@@ -106,5 +118,10 @@ pub trait WindowMethods {
     /// magic to wake the up window's event loop.
     fn create_compositor_channel(_: &Option<Rc<Self>>)
                                  -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>);
+
+    /// Requests that the window system prepare a composite. Typically this will involve making
+    /// some type of platform-specific graphics context current. Returns true if the composite may
+    /// proceed and false if it should not.
+    fn prepare_for_composite(&self) -> bool;
 }
 

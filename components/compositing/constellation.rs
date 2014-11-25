@@ -4,7 +4,8 @@
 
 use pipeline::{Pipeline, CompositionPipeline};
 
-use compositor_task::{CompositorProxy, FrameTreeUpdateMsg, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
+use compositor_task::{ChangePageLoadData, ChangePageTitle, CompositorProxy, FrameTreeUpdateMsg};
+use compositor_task::{LoadComplete, SetLayerOrigin, SetIds, ShutdownComplete};
 use devtools_traits;
 use devtools_traits::DevtoolsControlChan;
 use geom::rect::{Rect, TypedRect};
@@ -14,16 +15,16 @@ use gfx::paint_task;
 use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutTaskFactory, ExitNowMsg};
 use libc;
-use script_traits;
-use script_traits::{ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg, SendEventMsg};
+use script_traits::{mod, GetTitleMsg, ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg, SendEventMsg};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
+use servo_msg::constellation_msg::{GetPipelineTitleMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
-use servo_msg::constellation_msg::{LoadCompleteMsg, LoadUrlMsg, LoadData, Msg, NavigateMsg};
-use servo_msg::constellation_msg::{NavigationType, PipelineId, PainterReadyMsg, ResizedWindowMsg};
+use servo_msg::constellation_msg::{KeyEvent, Key, KeyState, KeyModifiers, LoadCompleteMsg};
+use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, Msg, NavigateMsg, NavigationType};
+use servo_msg::constellation_msg::{PainterReadyMsg, PipelineId, ResizedWindowMsg};
 use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SubpageId, WindowSizeData};
-use servo_msg::constellation_msg::{KeyEvent, Key, KeyState, KeyModifiers};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
@@ -76,6 +77,10 @@ pub struct Constellation<LTF, STF> {
     /// The next free ID to assign to a pipeline.
     next_pipeline_id: PipelineId,
 
+    /// The next free ID to assign to a frame.
+    next_frame_id: FrameId,
+
+    /// Navigation operations that are in progress.
     pending_frames: Vec<FrameChange>,
 
     pending_sizes: HashMap<(PipelineId, SubpageId), TypedRect<PagePx, f32>>,
@@ -86,17 +91,28 @@ pub struct Constellation<LTF, STF> {
     pub window_size: WindowSizeData,
 }
 
-/// Stores the Id of the outermost frame's pipeline, along with a vector of children frames
+/// A unique ID used to identify a frame.
+pub struct FrameId(u32);
+
+/// One frame in the hierarchy.
 struct FrameTree {
+    /// The ID of this frame.
+    pub id: FrameId,
+    /// The pipeline for this frame.
     pub pipeline: Rc<Pipeline>,
+    /// The parent frame's pipeline.
     pub parent: RefCell<Option<Rc<Pipeline>>>,
+    /// A vector of child frames.
     pub children: RefCell<Vec<ChildFrameTree>>,
+    /// Whether this frame has a compositor layer.
     pub has_compositor_layer: Cell<bool>,
 }
 
 impl FrameTree {
-    fn new(pipeline: Rc<Pipeline>, parent_pipeline: Option<Rc<Pipeline>>) -> FrameTree {
+    fn new(id: FrameId, pipeline: Rc<Pipeline>, parent_pipeline: Option<Rc<Pipeline>>)
+           -> FrameTree {
         FrameTree {
+            id: id,
             pipeline: pipeline,
             parent: RefCell::new(parent_pipeline),
             children: RefCell::new(vec!()),
@@ -234,16 +250,19 @@ impl Iterator<Rc<FrameTree>> for FrameTreeIterator {
 
 /// Represents the portion of a page that is changing in navigating.
 struct FrameChange {
+    /// The old pipeline ID.
     pub before: Option<PipelineId>,
+    /// The resulting frame tree after navigation.
     pub after: Rc<FrameTree>,
+    /// The kind of navigation that is occurring.
     pub navigation_type: NavigationType,
 }
 
 /// Stores the Id's of the pipelines previous and next in the browser's history
 struct NavigationContext {
-    pub previous: Vec<Rc<FrameTree>>,
-    pub next: Vec<Rc<FrameTree>>,
-    pub current: Option<Rc<FrameTree>>,
+    previous: Vec<Rc<FrameTree>>,
+    next: Vec<Rc<FrameTree>>,
+    current: Option<Rc<FrameTree>>,
 }
 
 impl NavigationContext {
@@ -258,29 +277,30 @@ impl NavigationContext {
     /* Note that the following two methods can fail. They should only be called  *
      * when it is known that there exists either a previous page or a next page. */
 
-    fn back(&mut self) -> Rc<FrameTree> {
+    fn back(&mut self, compositor_proxy: &mut CompositorProxy) -> Rc<FrameTree> {
         self.next.push(self.current.take().unwrap());
         let prev = self.previous.pop().unwrap();
-        self.current = Some(prev.clone());
+        self.set_current(prev.clone(), compositor_proxy);
         prev
     }
 
-    fn forward(&mut self) -> Rc<FrameTree> {
+    fn forward(&mut self, compositor_proxy: &mut CompositorProxy) -> Rc<FrameTree> {
         self.previous.push(self.current.take().unwrap());
         let next = self.next.pop().unwrap();
-        self.current = Some(next.clone());
+        self.set_current(next.clone(), compositor_proxy);
         next
     }
 
     /// Loads a new set of page frames, returning all evicted frame trees
-    fn load(&mut self, frame_tree: Rc<FrameTree>) -> Vec<Rc<FrameTree>> {
+    fn load(&mut self, frame_tree: Rc<FrameTree>, compositor_proxy: &mut CompositorProxy)
+            -> Vec<Rc<FrameTree>> {
         debug!("navigating to {}", frame_tree.pipeline.id);
         let evicted = replace(&mut self.next, vec!());
         match self.current.take() {
             Some(current) => self.previous.push(current),
             None => (),
         }
-        self.current = Some(frame_tree);
+        self.set_current(frame_tree, compositor_proxy);
         evicted
     }
 
@@ -308,6 +328,14 @@ impl NavigationContext {
             frame_tree.contains(pipeline_id)
         })
     }
+
+    /// Always use this method to set the currently-displayed frame. It correctly informs the
+    /// compositor of the new URLs.
+    fn set_current(&mut self, new_frame: Rc<FrameTree>, compositor_proxy: &mut CompositorProxy) {
+        self.current = Some(new_frame.clone());
+        compositor_proxy.send(ChangePageLoadData(new_frame.id,
+                                                 new_frame.pipeline.load_data.clone()));
+    }
 }
 
 impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
@@ -334,6 +362,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 pipelines: HashMap::new(),
                 navigation_context: NavigationContext::new(),
                 next_pipeline_id: PipelineId(0),
+                next_frame_id: FrameId(0),
                 pending_frames: vec!(),
                 pending_sizes: HashMap::new(),
                 time_profiler_chan: time_profiler_chan,
@@ -358,34 +387,41 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     /// Helper function for creating a pipeline
-    fn new_pipeline(&self,
+    fn new_pipeline(&mut self,
                     id: PipelineId,
                     subpage_id: Option<SubpageId>,
                     script_pipeline: Option<Rc<Pipeline>>,
                     load_data: LoadData)
                     -> Rc<Pipeline> {
-            let pipe = Pipeline::create::<LTF, STF>(id,
-                                                    subpage_id,
-                                                    self.chan.clone(),
-                                                    self.compositor_proxy.clone_compositor_proxy(),
-                                                    self.devtools_chan.clone(),
-                                                    self.image_cache_task.clone(),
-                                                    self.font_cache_task.clone(),
-                                                    self.resource_task.clone(),
-                                                    self.storage_task.clone(),
-                                                    self.time_profiler_chan.clone(),
-                                                    self.window_size,
-                                                    script_pipeline,
-                                                    load_data);
-            pipe.load();
-            Rc::new(pipe)
+        let pipe = Pipeline::create::<LTF, STF>(id,
+                                                subpage_id,
+                                                self.chan.clone(),
+                                                self.compositor_proxy.clone_compositor_proxy(),
+                                                self.devtools_chan.clone(),
+                                                self.image_cache_task.clone(),
+                                                self.font_cache_task.clone(),
+                                                self.resource_task.clone(),
+                                                self.storage_task.clone(),
+                                                self.time_profiler_chan.clone(),
+                                                self.window_size,
+                                                script_pipeline,
+                                                load_data.clone());
+        pipe.load();
+        Rc::new(pipe)
     }
 
-
-    /// Helper function for getting a unique pipeline Id
+    /// Helper function for getting a unique pipeline ID.
     fn get_next_pipeline_id(&mut self) -> PipelineId {
         let id = self.next_pipeline_id;
         let PipelineId(ref mut i) = self.next_pipeline_id;
+        *i += 1;
+        id
+    }
+
+    /// Helper function for getting a unique frame ID.
+    fn get_next_frame_id(&mut self) -> FrameId {
+        let id = self.next_frame_id;
+        let FrameId(ref mut i) = self.next_frame_id;
         *i += 1;
         id
     }
@@ -465,6 +501,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got key event message");
                 self.handle_key_msg(key, state, modifiers);
             }
+            GetPipelineTitleMsg(pipeline_id) => {
+                debug!("constellation got get-pipeline-title message");
+                self.handle_get_pipeline_title_msg(pipeline_id);
+            }
         }
         true
     }
@@ -529,27 +569,38 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         debug!("creating replacement pipeline for about:failure");
 
         let new_id = self.get_next_pipeline_id();
+        let new_frame_id = self.get_next_frame_id();
         let pipeline = self.new_pipeline(new_id, subpage_id, None,
                                          LoadData::new(Url::parse("about:failure").unwrap()));
 
-        self.pending_frames.push(FrameChange{
-            before: Some(pipeline_id),
-            after: Rc::new(FrameTree::new(pipeline.clone(), None)),
-            navigation_type: constellation_msg::Load,
-        });
+        self.browse(Some(pipeline_id),
+                    Rc::new(FrameTree::new(new_frame_id, pipeline.clone(), None)),
+                    constellation_msg::Load);
 
         self.pipelines.insert(new_id, pipeline);
     }
 
+    /// Performs navigation. This pushes a `FrameChange` object onto the list of pending frames.
+    ///
+    /// TODO(pcwalton): Send a `BeforeBrowse` message to the embedder and allow cancellation.
+    fn browse(&mut self,
+              before: Option<PipelineId>,
+              after: Rc<FrameTree>,
+              navigation_type: NavigationType) {
+        self.pending_frames.push(FrameChange {
+            before: before,
+            after: after,
+            navigation_type: navigation_type,
+        });
+    }
+
     fn handle_init_load(&mut self, url: Url) {
         let next_pipeline_id = self.get_next_pipeline_id();
+        let next_frame_id = self.get_next_frame_id();
         let pipeline = self.new_pipeline(next_pipeline_id, None, None, LoadData::new(url));
-
-        self.pending_frames.push(FrameChange {
-            before: None,
-            after: Rc::new(FrameTree::new(pipeline.clone(), None)),
-            navigation_type: constellation_msg::Load,
-        });
+        self.browse(None,
+                    Rc::new(FrameTree::new(next_frame_id, pipeline.clone(), None)),
+                    constellation_msg::Load);
         self.pipelines.insert(pipeline.id, pipeline);
     }
 
@@ -690,15 +741,19 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let rect = self.pending_sizes.remove(&(source_pipeline_id, subpage_id));
         for frame_tree in frame_trees.iter() {
+            let next_frame_id = self.get_next_frame_id();
             frame_tree.children.borrow_mut().push(ChildFrameTree::new(
-                Rc::new(FrameTree::new(pipeline.clone(), Some(source_pipeline.clone()))),
+                Rc::new(FrameTree::new(next_frame_id,
+                                       pipeline.clone(),
+                                       Some(source_pipeline.clone()))),
                 rect));
         }
         self.pipelines.insert(pipeline.id, pipeline);
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, load_data: LoadData) {
-        debug!("Constellation: received message to load {:s}", load_data.url.to_string());
+        let url = load_data.url.to_string();
+        debug!("Constellation: received message to load {:s}", url);
         // Make sure no pending page would be overridden.
         let source_frame = self.current_frame().as_ref().unwrap().find(source_id).expect(
             "Constellation: received a LoadUrlMsg from a pipeline_id associated
@@ -723,14 +778,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let parent = source_frame.parent.clone();
         let subpage_id = source_frame.pipeline.subpage_id;
         let next_pipeline_id = self.get_next_pipeline_id();
-
+        let next_frame_id = self.get_next_frame_id();
         let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, None, load_data);
-
-        self.pending_frames.push(FrameChange {
-            before: Some(source_id),
-            after: Rc::new(FrameTree::new(pipeline.clone(), parent.borrow().clone())),
-            navigation_type: constellation_msg::Load,
-        });
+        self.browse(Some(source_id),
+                    Rc::new(FrameTree::new(next_frame_id,
+                                           pipeline.clone(),
+                                           parent.borrow().clone())),
+                    constellation_msg::Load);
         self.pipelines.insert(pipeline.id, pipeline);
     }
 
@@ -752,7 +806,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                         frame.pipeline.revoke_paint_permission();
                     }
                 }
-                self.navigation_context.forward()
+                self.navigation_context.forward(&mut *self.compositor_proxy)
             }
             constellation_msg::Back => {
                 if self.navigation_context.previous.is_empty() {
@@ -764,7 +818,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                         frame.pipeline.revoke_paint_permission();
                     }
                 }
-                self.navigation_context.back()
+                self.navigation_context.back(&mut *self.compositor_proxy)
             }
         };
 
@@ -785,6 +839,16 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             let ScriptControlChan(ref chan) = frame.pipeline.script_chan;
             chan.send(SendEventMsg(frame.pipeline.id, script_traits::KeyEvent(key, state, mods)));
         });
+    }
+
+    fn handle_get_pipeline_title_msg(&mut self, pipeline_id: PipelineId) {
+        match self.pipelines.get(&pipeline_id) {
+            None => self.compositor_proxy.send(ChangePageTitle(pipeline_id, None)),
+            Some(pipeline) => {
+                let ScriptControlChan(ref script_channel) = pipeline.script_chan;
+                script_channel.send(GetTitleMsg(pipeline_id));
+            }
+        }
     }
 
     fn handle_painter_ready_msg(&mut self, pipeline_id: PipelineId) {
@@ -941,7 +1005,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         match navigation_type {
             constellation_msg::Load => {
                 debug!("evicting old frames due to load");
-                let evicted = self.navigation_context.load(frame_tree);
+                let evicted = self.navigation_context.load(frame_tree,
+                                                           &mut *self.compositor_proxy);
                 self.handle_evicted_frames(evicted);
             }
             _ => {

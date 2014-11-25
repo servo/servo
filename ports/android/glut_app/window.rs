@@ -19,8 +19,8 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use msg::compositor_msg::{IdlePaintState, PaintState};
-use msg::compositor_msg::{Blank, ReadyState};
+use msg::compositor_msg::{Blank, IdlePaintState, PaintState, ReadyState};
+use msg::constellation_msg::LoadData;
 use util::geometry::ScreenPx;
 
 use glut::glut::{ACTIVE_SHIFT, WindowHeight};
@@ -176,19 +176,23 @@ impl WindowMethods for Window {
     /// Sets the ready state.
     fn set_ready_state(&self, ready_state: ReadyState) {
         self.ready_state.set(ready_state);
-        //FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily blocked.
-        //self.update_window_title()
+        // FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily
+        // blocked.
+        //
+        // self.update_window_title()
     }
 
     /// Sets the paint state.
     fn set_paint_state(&self, paint_state: PaintState) {
         self.paint_state.set(paint_state);
-        //FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily blocked.
-        //self.update_window_title()
+        // FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily
+        // blocked.
+        //
+        // self.update_window_title()
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
-        //FIXME: Do nothing in GLUT now.
+        // FIXME: Do nothing in GLUT now.
         ScaleFactor(1.0)
     }
 
@@ -197,6 +201,22 @@ impl WindowMethods for Window {
         NativeGraphicsMetadata {
             display: GetCurrentDisplay(),
         }
+    }
+
+    fn set_page_title(&self, _: Option<String>) {
+        // TODO(pcwalton)
+    }
+
+    fn set_page_load_data(&self, _: LoadData) {
+        // TODO(pcwalton)
+    }
+
+    fn load_end(&self) {
+        // TODO(pcwalton)
+    }
+
+    fn prepare_for_composite(&self) -> bool {
+        true
     }
 }
 

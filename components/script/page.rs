@@ -21,7 +21,6 @@ use script_traits::{UntrustedNodeAddress, ScriptControlChan};
 
 use geom::{Point2D, Rect, Size2D};
 use js::rust::Cx;
-use servo_msg::compositor_msg::PerformingLayout;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
@@ -266,6 +265,17 @@ impl Page {
         // because it was built for infinite clip (MAX_RECT).
         had_clip_rect
     }
+
+    pub fn send_title_to_compositor(&self) {
+        match *self.frame() {
+            None => {}
+            Some(ref frame) => {
+                let window = frame.window.root();
+                let document = frame.document.root();
+                window.compositor().set_title(self.id, Some(document.Title()));
+            }
+        }
+    }
 }
 
 impl Iterator<Rc<Page>> for PageIterator {
@@ -356,7 +366,7 @@ impl Page {
     pub fn reflow(&self,
                   goal: ReflowGoal,
                   script_chan: ScriptControlChan,
-                  compositor: &mut ScriptListener,
+                  _: &mut ScriptListener,
                   query_type: ReflowQueryType) {
         let root = match *self.frame() {
             None => return,
@@ -375,9 +385,6 @@ impl Page {
 
                 // Now, join the layout so that they will see the latest changes we have made.
                 self.join_layout();
-
-                // Tell the user that we're performing layout.
-                compositor.set_ready_state(self.id, PerformingLayout);
 
                 // Layout will let us know when it's done.
                 let (join_chan, join_port) = channel();

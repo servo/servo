@@ -2,38 +2,90 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use interfaces::{CefBrowser, CefClient, CefRequestContext, cef_browser_t, cef_client_t};
-use interfaces::{cef_request_context_t};
-use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t};
-
+use browser_host::{ServoCefBrowserHost, ServoCefBrowserHostExtensions};
+use core::{mod, OffScreenGlobals, OnScreenGlobals, globals};
 use eutil::Downcast;
+use frame::ServoCefFrame;
+use interfaces::{CefBrowser, CefBrowserHost, CefClient, CefFrame, CefRequestContext};
+use interfaces::{cef_browser_t, cef_browser_host_t, cef_client_t, cef_frame_t};
+use interfaces::{cef_request_context_t};
+use servo::Browser;
+use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t};
+use window;
+
+use compositing::windowing::{Back, Forward, NavigationWindowEvent};
 use glfw_app;
 use libc::c_int;
-use servo::Browser;
 use servo_util::opts;
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
+
+cef_class_impl! {
+    ServoCefBrowser : CefBrowser, cef_browser_t {
+        fn get_host(&this) -> *mut cef_browser_host_t {
+            this.downcast().host.clone()
+        }
+
+        fn go_back(&_this) -> () {
+            core::send_window_event(NavigationWindowEvent(Back));
+        }
+
+        fn go_forward(&_this) -> () {
+            core::send_window_event(NavigationWindowEvent(Forward));
+        }
+
+        // Returns the main (top-level) frame for the browser window.
+        fn get_main_frame(&this) -> *mut cef_frame_t {
+            this.downcast().frame.clone()
+        }
+    }
+}
 
 pub struct ServoCefBrowser {
+    /// A reference to the browser's primary frame.
+    pub frame: CefFrame,
+    /// A reference to the browser's host.
+    pub host: CefBrowserHost,
+    /// A reference to the browser client.
     pub client: CefClient,
-    pub servo_browser: RefCell<Option<Browser<glfw_app::window::Window>>>,
-    pub window: RefCell<Option<Rc<glfw_app::window::Window>>>,
+    /// Whether the on-created callback has fired yet.
     pub callback_executed: Cell<bool>,
 }
 
 impl ServoCefBrowser {
-    pub fn new(client: CefClient) -> ServoCefBrowser {
+    pub fn new(window_info: &cef_window_info_t, client: CefClient) -> ServoCefBrowser {
+        let frame = ServoCefFrame::new().as_cef_interface();
+        let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
+        if window_info.windowless_rendering_enabled == 0 {
+            let glfw_window = glfw_app::create_window();
+            globals.replace(Some(OnScreenGlobals(RefCell::new(glfw_window.clone()),
+                                                 RefCell::new(Browser::new(Some(glfw_window))))));
+        }
+
         ServoCefBrowser {
+            frame: frame,
+            host: host,
             client: client,
-            servo_browser: RefCell::new(None),
-            window: RefCell::new(None),
             callback_executed: Cell::new(false),
         }
     }
 }
 
-cef_class_impl! {
-    ServoCefBrowser : CefBrowser, cef_browser_t {}
+trait ServoCefBrowserExtensions {
+    fn init(&self, window_info: &cef_window_info_t);
+}
+
+impl ServoCefBrowserExtensions for CefBrowser {
+    fn init(&self, window_info: &cef_window_info_t) {
+        if window_info.windowless_rendering_enabled != 0 {
+            let window = window::Window::new();
+            let servo_browser = Browser::new(Some(window.clone()));
+            window.set_browser(self.clone());
+            globals.replace(Some(OffScreenGlobals(RefCell::new(window),
+                                                  RefCell::new(servo_browser))));
+        }
+
+        self.downcast().host.set_browser((*self).clone());
+    }
 }
 
 local_data_key!(pub GLOBAL_BROWSERS: RefCell<Vec<CefBrowser>>)
@@ -50,12 +102,16 @@ pub fn browser_callback_after_created(browser: CefBrowser) {
     browser.downcast().callback_executed.set(true);
 }
 
-fn browser_host_create(client: CefClient, callback_executed: bool) -> CefBrowser {
+fn browser_host_create(window_info: &cef_window_info_t,
+                       client: CefClient,
+                       callback_executed: bool)
+                       -> CefBrowser {
     let mut urls = Vec::new();
     urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".to_string());
     let mut opts = opts::default_opts();
     opts.urls = urls;
-    let browser = ServoCefBrowser::new(client).as_cef_interface();
+    let browser = ServoCefBrowser::new(window_info, client).as_cef_interface();
+    browser.init(window_info);
     if callback_executed {
         browser_callback_after_created(browser.clone());
     }
@@ -73,32 +129,30 @@ fn browser_host_create(client: CefClient, callback_executed: bool) -> CefBrowser
 }
 
 cef_static_method_impls! {
-    fn cef_browser_host_create_browser(_window_info: *const cef_window_info_t,
+    fn cef_browser_host_create_browser(window_info: *const cef_window_info_t,
                                        client: *mut cef_client_t,
                                        _url: *const cef_string_t,
                                        _browser_settings: *const cef_browser_settings_t,
                                        _request_context: *mut cef_request_context_t)
                                        -> c_int {
-        let _window_info: &cef_window_info_t = _window_info;
         let client: CefClient = client;
         let _url: &[u16] = _url;
         let _browser_settings: &cef_browser_settings_t = _browser_settings;
         let _request_context: CefRequestContext = _request_context;
-        browser_host_create(client, false);
+        browser_host_create(window_info, client, false);
         1i32
     }
-
-    fn cef_browser_host_create_browser_sync(_window_info: *const cef_window_info_t,
+    fn cef_browser_host_create_browser_sync(window_info: *const cef_window_info_t,
                                             client: *mut cef_client_t,
                                             _url: *const cef_string_t,
                                             _browser_settings: *const cef_browser_settings_t,
                                             _request_context: *mut cef_request_context_t)
                                             -> *mut cef_browser_t {
-        let _window_info: &cef_window_info_t = _window_info;
         let client: CefClient = client;
         let _url: &[u16] = _url;
         let _browser_settings: &cef_browser_settings_t = _browser_settings;
         let _request_context: CefRequestContext = _request_context;
-        browser_host_create(client, true)
+        browser_host_create(window_info, client, true)
     }
 }
+

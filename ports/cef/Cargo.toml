@@ -65,3 +65,6 @@ git = "https://github.com/servo/rust-core-graphics"
 
 [dependencies.core_text]
 git = "https://github.com/servo/rust-core-text"
+
+[dependencies.cocoa]
+git = "https://github.com/servo/rust-cocoa"
