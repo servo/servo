@@ -203,6 +203,7 @@ pub mod dom {
     pub mod urlsearchparams;
     pub mod validitystate;
     pub mod virtualmethods;
+    pub mod websocket;
     pub mod window;
     pub mod worker;
     pub mod workerglobalscope;
