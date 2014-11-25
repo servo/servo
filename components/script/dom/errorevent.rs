@@ -130,7 +130,6 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
     pub fn event<'a>(&'a self) -> &'a Event {
         &self.event
     }
-
 }
 
 impl Reflectable for ErrorEvent {
