@@ -29,5 +29,5 @@ partial interface ErrorEvent {
     DOMString filenameArg,
     unsigned long linenoArg,
     unsigned long colnoArg,
-    any errorArg); */
+    any errorArg);*/
 };

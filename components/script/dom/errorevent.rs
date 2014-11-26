@@ -23,6 +23,9 @@ use std::cell::{Cell};
 use js::jsval::{JSVal, NullValue};
 
 #[dom_struct]
+#[privatize]
+#[must_root]
+#[jstraceable]
 pub struct ErrorEvent {
     event: Event,
     message: DOMRefCell<DOMString>,
@@ -56,7 +59,7 @@ impl ErrorEvent {
                            ErrorEventBinding::Wrap)
     }
 
-    pub fn new(window: JSRef<Window>,
+    /*pub fn new(window: JSRef<Window>,
                global: &GlobalRef,
                type_: DOMString,
                can_bubble: bool,
@@ -69,14 +72,14 @@ impl ErrorEvent {
         //let ev = ErrorEvent::new_uninitialized(window).root();
         //ev.InitErrorEvent(global.get_cx(),type_, can_bubble, cancelable, message, filename, lineno, colno, error);
         //Temporary::from_rooted(*ev)
-    }
+    }*/
 
     pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Temporary<ErrorEvent>>{
         let msg = match init.message.as_ref() {
-            None => "".to_string(),
             Some(message) => message.clone(),
+            None => "".to_string(),
         };
 
         let file_name = match init.filename.as_ref() {
@@ -88,10 +91,19 @@ impl ErrorEvent {
 
         let col_num = init.colno.unwrap_or(0);
 
-        let event = ErrorEvent::new(global.as_window(), global, type_,
+        /*let event = ErrorEvent::new(global.as_window(), global, type_,
                                 init.parent.bubbles, init.parent.cancelable,
                                 msg, file_name,
-                                line_num, col_num, init.error);
+                                line_num, col_num, init.error);*/
+        let ev = ErrorEvent::new_uninitialized(global.as_window()).root();
+        let event: JSRef<Event> = EventCast::from_ref(ev);
+        event.InitEvent(type_, init.parent.bubbles, init.parent.cancelable);
+        *ev.message.borrow_mut() = msg;
+        *ev.filename.borrow_mut() = file_name;
+        ev.lineno.set(line_num);
+        ev.colno.set(col_num);
+        ev.error.set(init.error);
+        let event = Temporary::from_rooted(*ev);
         Ok(event)
     }
 
@@ -117,8 +129,8 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
     fn Error(self, _cx: *mut JSContext) -> JSVal {
         self.error.get()
     }
-/*
-    fn InitErrorEvent(self,
+
+    /*fn InitErrorEvent(self,
                       _cx: *mut JSContext,
                       type_: DOMString,
                       can_bubble: bool,
@@ -135,7 +147,7 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
         self.lineno.set(lineno);
         self.colno.set(colno);
         self.error.set(error);
-    }  */
+    }*/
 }
 
 impl Reflectable for ErrorEvent {
@@ -143,4 +155,3 @@ impl Reflectable for ErrorEvent {
         self.event.reflector()
     }
 }
-
