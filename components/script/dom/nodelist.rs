@@ -81,17 +81,3 @@ impl Reflectable for NodeList {
         &self.reflector_
     }
 }
-
-pub trait NodeListHelpers {
-    fn into_vec(self) -> Vec<Temporary<Node>>;
-}
-
-
-impl<'a> NodeListHelpers for JSRef<'a, NodeList> {
-    fn into_vec(self) -> Vec<Temporary<Node>> {
-        match self.list_type {
-            Simple(ref elems) => elems.iter().map(|j| Temporary::new(*j)).collect(),
-            Children(ref node) => vec![Temporary::new(*node)]
-        }
-    }
-}
