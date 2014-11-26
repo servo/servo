@@ -92,6 +92,7 @@ macro_rules! cef_static_method_impls(
         )*
     ) => (
         $(
+            #[no_mangle]
             pub extern "C" fn $method_name($($method_arg_name: $method_arg_type),*)
                                            -> $method_return_type {
                 $(

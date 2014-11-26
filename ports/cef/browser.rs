@@ -87,6 +87,7 @@ cef_static_method_impls! {
         browser_host_create(client, false);
         1i32
     }
+
     fn cef_browser_host_create_browser_sync(_window_info: *const cef_window_info_t,
                                             client: *mut cef_client_t,
                                             _url: *const cef_string_t,
