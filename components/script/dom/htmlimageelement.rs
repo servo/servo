@@ -15,7 +15,7 @@ use dom::element::{Element, HTMLImageElementTypeId};
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, NodeHelpers, window_from_node};
+use dom::node::{Node, ElementNodeTypeId, NodeHelpers, OtherNodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use servo_net::image_cache_task;
 use servo_util::geometry::to_px;
@@ -112,7 +112,14 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     }
 
     fn Width(self) -> u32 {
+        // FIXME(pcwalton): This is a really nasty thing to do, but the interaction between the
+        // image cache task, the reflow messages that it sends to us via layout, and the image
+        // holders seem to just plain be racy, and this works around it by ensuring that we
+        // recreate the flow (picking up image changes on the way). The image cache task needs a
+        // rewrite to modern Rust.
         let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.dirty(OtherNodeDamage);
+
         let rect = node.get_bounding_content_box();
         to_px(rect.size.width) as u32
     }
@@ -123,7 +130,14 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
     }
 
     fn Height(self) -> u32 {
+        // FIXME(pcwalton): This is a really nasty thing to do, but the interaction between the
+        // image cache task, the reflow messages that it sends to us via layout, and the image
+        // holders seem to just plain be racy, and this works around it by ensuring that we
+        // recreate the flow (picking up image changes on the way). The image cache task needs a
+        // rewrite to modern Rust.
         let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.dirty(OtherNodeDamage);
+
         let rect = node.get_bounding_content_box();
         to_px(rect.size.height) as u32
     }

@@ -55,7 +55,7 @@ use servo_net::resource_task::{ResourceTask, Load};
 use servo_net::resource_task::LoadData as NetLoadData;
 use servo_net::storage_task::StorageTask;
 use servo_util::geometry::to_frac_px;
-use servo_util::smallvec::{SmallVec1, SmallVec};
+use servo_util::smallvec::SmallVec;
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
 
@@ -72,7 +72,6 @@ use url::Url;
 
 use libc::size_t;
 use std::any::{Any, AnyRefExt};
-use std::collections::HashSet;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::fmt::{mod, Show};
 use std::mem::replace;
@@ -478,8 +477,6 @@ impl ScriptTask {
             }
         };
 
-        let mut needs_reflow = HashSet::new();
-
         // Squash any pending resize and reflow events in the queue.
         loop {
             match event {
@@ -494,14 +491,12 @@ impl ScriptTask {
                     let page = page.find(id).expect("resize sent to nonexistent pipeline");
                     page.resize_event.set(Some(size));
                 }
-                FromConstellation(SendEventMsg(id, ReflowEvent(_))) => {
-                    needs_reflow.insert(id);
-                }
                 FromConstellation(ViewportMsg(id, rect)) => {
                     let page = self.page.borrow_mut();
                     let inner_page = page.find(id).expect("Page rect message sent to nonexistent pipeline");
                     if inner_page.set_page_clip_rect_with_new_viewport(rect) {
-                        needs_reflow.insert(id);
+                        let page = get_page(&*self.page.borrow(), id);
+                        self.force_reflow(&*page);
                     }
                 }
                 _ => {
@@ -533,11 +528,6 @@ impl ScriptTask {
                 FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                 FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
             }
-        }
-
-        // Now process any pending reflows.
-        for id in needs_reflow.into_iter() {
-            self.handle_event(id, ReflowEvent(SmallVec1::new()));
         }
 
         true
@@ -906,9 +896,27 @@ impl ScriptTask {
               self.handle_resize_event(pipeline_id, new_size);
             }
 
-            // FIXME(pcwalton): This reflows the entire document and is not incremental-y.
-            ReflowEvent(to_dirty) => {
-              self.handle_reflow_event(pipeline_id, to_dirty);
+            ReflowEvent(nodes) => {
+                // FIXME(pcwalton): This event seems to only be used by the image cache task, and
+                // the interaction between it and the image holder is really racy. I think that, in
+                // order to fix this race, we need to rewrite the image cache task to make the
+                // image holder responsible for the lifecycle of image loading instead of having
+                // the image holder and layout task both be observers. Then we can have the DOM
+                // image element observe the state of the image holder and have it send reflows
+                // via the normal dirtying mechanism, and ultimately remove this event.
+                //
+                // See the implementation of `Width()` and `Height()` in `HTMLImageElement` for
+                // fallout of this problem.
+                for node in nodes.iter() {
+                    let node_to_dirty = node::from_untrusted_node_address(self.js_runtime.ptr,
+                                                                          *node).root();
+                    let page = get_page(&*self.page.borrow(), pipeline_id);
+                    let frame = page.frame();
+                    let document = frame.as_ref().unwrap().document.root();
+                    document.content_changed(*node_to_dirty, OtherNodeDamage);
+                }
+
+                self.handle_reflow_event(pipeline_id);
             }
 
             ClickEvent(_button, point) => {
@@ -1068,9 +1076,8 @@ impl ScriptTask {
         }
     }
 
-    fn handle_reflow_event(&self, pipeline_id: PipelineId, to_dirty: SmallVec1<UntrustedNodeAddress>) {
+    fn handle_reflow_event(&self, pipeline_id: PipelineId) {
         debug!("script got reflow event");
-        assert_eq!(to_dirty.len(), 0);
         let page = get_page(&*self.page.borrow(), pipeline_id);
         let frame = page.frame();
         if frame.is_some() {
