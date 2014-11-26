@@ -11,10 +11,18 @@ use types::{cef_main_args_t, cef_settings_t};
 
 use glfw_app;
 use libc::funcs::c95::string::strlen;
-use libc::{c_int, c_void};
+use libc::{c_char, c_int, c_void};
 use native;
 use servo::Browser;
 use std::slice;
+
+static CEF_API_HASH_UNIVERSAL: &'static [u8] = b"8efd129f4afc344bd04b2feb7f73a149b6c4e27f\0";
+#[cfg(target_os="windows")]
+static CEF_API_HASH_PLATFORM: &'static [u8] = b"5c7f3e50ff5265985d11dc1a466513e25748bedd\0";
+#[cfg(target_os="macos")]
+static CEF_API_HASH_PLATFORM: &'static [u8] = b"6813214accbf2ebfb6bdcf8d00654650b251bf3d\0";
+#[cfg(target_os="linux")]
+static CEF_API_HASH_PLATFORM: &'static [u8] = b"2bc564c3871965ef3a2531b528bda3e17fa17a6d\0";
 
 #[no_mangle]
 pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
@@ -115,3 +123,13 @@ pub extern "C" fn cef_execute_process(args: *const cef_main_args_t,
    //process type not specified, must be browser process (NOOP)
    -1
 }
+
+#[no_mangle]
+pub extern "C" fn cef_api_hash(entry: c_int) -> *const c_char {
+    if entry == 0 {
+        &CEF_API_HASH_PLATFORM[0] as *const u8 as *const c_char
+    } else {
+        &CEF_API_HASH_UNIVERSAL[0] as *const u8 as *const c_char
+    }
+}
+
