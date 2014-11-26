@@ -72,7 +72,7 @@ pub struct _cef_file_dialog_callback_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  ref_count: uint,
+  pub ref_count: uint,
 
   //
   // Extra data. This will only be present for Rust instances!
@@ -238,7 +238,7 @@ pub struct _cef_dialog_handler_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  ref_count: uint,
+  pub ref_count: uint,
 
   //
   // Extra data. This will only be present for Rust instances!

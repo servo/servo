@@ -43,8 +43,13 @@ macro_rules! cef_class_impl(
         impl $class_name {
             pub fn as_cef_interface(self) -> $interface_name {
                 let cef_object = unsafe {
+                    // Calculate the offset of the reference count. This is the size of the
+                    // structure.
+                    let null: *const $c_interface_name = ::std::ptr::null();
+                    let offset: *const uint = &(*null).ref_count;
+                    let size = (offset as ::libc::size_t) - (null as ::libc::size_t);
                     $interface_name::from_c_object_addref(
-                        ::eutil::create_cef_object::<$c_interface_name,$class_name>())
+                        ::eutil::create_cef_object::<$c_interface_name,$class_name>(size))
                 };
                 unsafe {
                     $((*cef_object.c_object()).$method_name = Some($method_name);)*

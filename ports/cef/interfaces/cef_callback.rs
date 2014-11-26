@@ -68,7 +68,7 @@ pub struct _cef_callback_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  ref_count: uint,
+  pub ref_count: uint,
 
   //
   // Extra data. This will only be present for Rust instances!
@@ -218,7 +218,7 @@ pub struct _cef_completion_callback_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  ref_count: uint,
+  pub ref_count: uint,
 
   //
   // Extra data. This will only be present for Rust instances!

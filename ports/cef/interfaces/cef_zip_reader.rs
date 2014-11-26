@@ -140,7 +140,7 @@ pub struct _cef_zip_reader_t {
   //
   // The reference count. This will only be present for Rust instances!
   //
-  ref_count: uint,
+  pub ref_count: uint,
 
   //
   // Extra data. This will only be present for Rust instances!

@@ -133,3 +133,8 @@ pub extern "C" fn cef_api_hash(entry: c_int) -> *const c_char {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn cef_get_min_log_level() -> c_int {
+    0
+}
+

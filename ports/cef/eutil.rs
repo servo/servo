@@ -30,11 +30,10 @@ pub fn slice_to_str(s: *const u8, l: uint, f: |&str| -> c_int) -> c_int {
 /// Creates a new raw CEF object of the given type and sets up its reference counting machinery.
 /// All fields are initialized to zero. It is the caller's responsibility to ensure that the given
 /// type is a CEF type with `cef_base_t` as its first member.
-pub unsafe fn create_cef_object<Base,Extra>() -> *mut Base {
-    let size = (mem::size_of::<Base>() as size_t) + (mem::size_of::<Extra>() as size_t) - 1;
-    println!("allocating CEF object with size {}", size);
-    let object = libc::calloc(1, size) as *mut cef_base_t;
-    (*object).size = size - mem::size_of::<uint>() as u64; // Subtract out the refcount.
+pub unsafe fn create_cef_object<Base,Extra>(size: size_t) -> *mut Base {
+    let object = libc::calloc(1, (mem::size_of::<Base>() + mem::size_of::<Extra>()) as u64) as
+        *mut cef_base_t;
+    (*object).size = size;
     (*object).add_ref = Some(servo_add_ref);
     (*object).release = Some(servo_release);
     *ref_count(object) = 1;
@@ -72,7 +71,6 @@ extern "C" fn servo_release(object: *mut cef_base_t) -> c_int {
 }
 
 unsafe fn servo_free(object: *mut cef_base_t) {
-    println!("freeing Servo-created CEF object!");
     libc::free(object as *mut c_void);
 }
 
