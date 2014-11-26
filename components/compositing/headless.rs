@@ -5,7 +5,7 @@
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{Exit, ChangeReadyState, LoadComplete, Paint, ScrollFragmentPoint, SetIds};
 use compositor_task::{SetLayerOrigin, ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
-use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout};
+use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout, FrameTreeUpdateMsg};
 use windowing::WindowEvent;
 
 use geom::scale_factor::ScaleFactor;
@@ -90,6 +90,10 @@ impl CompositorEventListener for NullCompositor {
 
             SetIds(_, response_chan, _) => {
                 response_chan.send(());
+            }
+
+            FrameTreeUpdateMsg(_, response_channel) => {
+                response_channel.send(());
             }
 
             // Explicitly list ignored messages so that when we add a new one,
