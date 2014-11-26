@@ -101,6 +101,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
             _ => ()
         }
         let element: JSRef<Element> = ElementCast::from_ref(self);
+        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
         element.as_maybe_activatable().map(|a| a.synthetic_click_activation(false, false, false, false));
     }
 }

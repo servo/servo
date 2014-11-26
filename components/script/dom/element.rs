@@ -10,9 +10,9 @@ use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::namednodemap::NamedNodeMap;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLInputElementDerived, HTMLTableCellElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, NodeCast, EventTargetCast, ElementCast};
@@ -60,6 +60,9 @@ pub struct Element {
     style_attribute: DOMRefCell<Option<style::PropertyDeclarationBlock>>,
     attr_list: MutNullableJS<NamedNodeMap>,
     class_list: MutNullableJS<DOMTokenList>,
+    // TODO: find a better place to keep this (#4105)
+    // https://critic.hoppipolla.co.uk/showcomment?chain=8873
+    // Perhaps using a Set in Document?
     click_in_progress: Cell<bool>,
 }
 
@@ -1193,7 +1196,7 @@ pub trait ActivationElementHelpers<'a> {
     fn as_maybe_activatable(&'a self) -> Option<&'a Activatable + 'a>;
     fn click_in_progress(self) -> bool;
     fn set_click_in_progress(self, click: bool);
-    fn nearest_activable_element(self) -> Option<JSRef<'a, Element>>;
+    fn nearest_activable_element(self) -> Option<Temporary<Element>>;
     fn authentic_click_activation<'b>(self, event: JSRef<'b, Event>);
 }
 
@@ -1220,14 +1223,15 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#nearest-activatable-element
-    fn nearest_activable_element(self) -> Option<JSRef<'a, Element>> {
+    fn nearest_activable_element(self) -> Option<Temporary<Element>> {
         match self.as_maybe_activatable() {
-            Some(el) => Some(*el.as_element().root()),
+            Some(el) => Some(Temporary::from_rooted(*el.as_element().root())),
             None => {
                 let node: JSRef<Node> = NodeCast::from_ref(self);
                 node.ancestors()
                     .filter_map(|node| ElementCast::to_ref(node))
                     .filter(|e| e.as_maybe_activatable().is_some()).next()
+                    .map(|r| Temporary::from_rooted(r))
             }
         }
     }
@@ -1241,7 +1245,7 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
     fn authentic_click_activation<'b>(self, event: JSRef<'b, Event>) {
         // Not explicitly part of the spec, however this helps enforce the invariants
         // required to save state between pre-activation and post-activation
-        // Since we cannot nest authentic clicks (unlike synthetic click activation, where 
+        // since we cannot nest authentic clicks (unlike synthetic click activation, where
         // the script can generate more click events from the handler)
         assert!(!self.click_in_progress());
 
@@ -1250,21 +1254,26 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
         // Step 3
         self.set_click_in_progress(true);
         // Step 4
-        let e = self.nearest_activable_element();
-        // Step 5
-        e.map(|a| a.as_maybe_activatable().map(|el| el.pre_click_activation()));
-        // Step 6
-        target.dispatch_event_with_target(None, event).ok();
-        e.map(|el| {
-            el.as_maybe_activatable().map(|a| {
-                if !event.DefaultPrevented() {
-                    // post click activation
-                    a.activation_behavior();
-                } else {
-                    a.canceled_activation();
+        let e = self.nearest_activable_element().root();
+        match e {
+            Some (el) => match el.as_maybe_activatable() {
+                Some(elem) => {
+                    // Step 5-6
+                    elem.pre_click_activation();
+                    target.dispatch_event_with_target(None, event).ok();
+                    if !event.DefaultPrevented() {
+                        // post click activation
+                        elem.activation_behavior();
+                    } else {
+                        elem.canceled_activation();
+                    }
                 }
-            });
-        });
+                // Step 6
+                None => {target.dispatch_event_with_target(None, event).ok();}
+            },
+            // Step 6
+            None => {target.dispatch_event_with_target(None, event).ok();}
+        }
         // Step 7
         self.set_click_in_progress(false);
     }

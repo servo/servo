@@ -894,6 +894,7 @@ impl ScriptTask {
         let event = EventCast::from_ref(*keyevent);
         let _ = target.DispatchEvent(event);
         let mut prevented = event.DefaultPrevented();
+
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
         if state != Released && props.is_printable() && !prevented {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
@@ -925,6 +926,7 @@ impl ScriptTask {
             }
             _ => ()
         }
+        
         window.flush_layout();
     }
 

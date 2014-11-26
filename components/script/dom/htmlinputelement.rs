@@ -8,8 +8,8 @@ use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFormElementCast, HTMLInputElementCast, NodeCast};
@@ -36,7 +36,6 @@ use string_cache::Atom;
 
 use std::ascii::OwnedAsciiExt;
 use std::cell::Cell;
-use std::cell::RefCell;
 use std::default::Default;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
@@ -65,7 +64,7 @@ pub struct HTMLInputElement {
     indeterminate: Cell<bool>,
     size: Cell<u32>,
     textinput: DOMRefCell<TextInput>,
-    activation_state: RefCell<InputActivationState>,
+    activation_state: DOMRefCell<InputActivationState>,
 }
 
 #[jstraceable]
@@ -109,7 +108,7 @@ impl HTMLInputElement {
             indeterminate: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
             textinput: DOMRefCell::new(TextInput::new(Single, "".to_string())),
-            activation_state: RefCell::new(InputActivationState::new())
+            activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }
 
@@ -262,14 +261,14 @@ pub trait HTMLInputElementHelpers {
     fn force_relayout(self);
     fn radio_group_updated(self, group: Option<&str>);
     fn get_radio_group_name(self) -> Option<String>;
-    fn get_radio_group_all(self, group: Option<&str>) -> Vec<Temporary<HTMLInputElement>>;
+    fn get_radio_group_members(self, group: Option<&str>) -> Vec<Temporary<HTMLInputElement>>;
     fn update_checked_state(self, checked: bool);
     fn get_size(&self) -> u32;
 }
 
 fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&str>) {
     //TODO: if not in document, use root ancestor instead of document
-    for r in broadcaster.get_radio_group_all(group).iter().filter(|r| *r.root() != broadcaster) {
+    for r in broadcaster.get_radio_group_members(group).iter().filter(|r| *r.root() != broadcaster) {
         let radio = r.root();
         if radio.Checked() {
             radio.SetChecked(false);
@@ -299,7 +298,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#radio-button-group
-    fn get_radio_group_all(self, group: Option<&str>) -> Vec<Temporary<HTMLInputElement>> {
+    fn get_radio_group_members(self, group: Option<&str>) -> Vec<Temporary<HTMLInputElement>> {
         assert!(self.input_type.get() == InputRadio);
         //TODO: if not in document, use root ancestor instead of document
         let doc = document_from_node(self).root();
@@ -312,7 +311,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
             r.form_owner() == owner &&
             // TODO should be a unicode compatibility caseless match
             match (r.get_radio_group_name(), group) {
-                (Some(ref s1), Some(s2)) if s1.as_slice() == s2 => true,
+                (Some(ref s1), Some(s2)) => s1.as_slice() == s2,
                 (None, None) => true,
                 _ => false
             }
@@ -562,8 +561,8 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         let mut cache = self.activation_state.borrow_mut();
         let ty = self.input_type.get();
         cache.old_type = ty;
-        if self.mutable() {
-            cache.was_mutable = true;
+        cache.was_mutable = self.mutable();
+        if cache.was_mutable {
             match ty {
                 // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
                 // InputSubmit => (), // No behavior defined
@@ -578,15 +577,14 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 },
                 // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):pre-click-activation-steps
                 InputRadio => {
-                    cache.checked_radio.assign(self.get_radio_group_all(self.get_radio_group_name().as_ref()
-                                                                            .map(|s| s.as_slice()))
-                                                   .into_iter().find(|r| r.root().Checked()));
+                    let members = self.get_radio_group_members(self.get_radio_group_name().as_ref()
+                                                                   .map(|s| s.as_slice()));
+                    let checked_member = members.into_iter().find(|r| r.root().Checked());
+                    cache.checked_radio.assign(checked_member);
                     self.SetChecked(true);
                 }
                 _ => ()
             }
-        } else {
-            cache.was_mutable = false;
         }
     }
 
@@ -616,8 +614,8 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 if cache.was_mutable {
                     let old_checked: Option<Root<HTMLInputElement>> = cache.checked_radio.get().root();
                     let name = self.get_radio_group_name();
-                    old_checked.map_or_else(|| self.SetChecked(false),
-                        |o| {
+                    match old_checked {
+                        Some(o) => {
                             // Avoiding iterating through the whole tree here, instead
                             // we can check if the conditions for radio group siblings apply
                             if name != None && // unless  self no longer has a button group
@@ -629,8 +627,10 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                             } else {
                                 self.SetChecked(false);
                             }
-                    });
-                }                
+                        },
+                        None => self.SetChecked(false)
+                    };
+                }
             }
             _ => ()
         }
@@ -639,7 +639,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
     fn activation_behavior(&self) {
         let ty = self.input_type.get();
-        if self.activation_state.borrow().old_type != ty  {
+        if self.activation_state.borrow().old_type != ty {
             // Type changed, abandon ship
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414
             return;
@@ -654,26 +654,8 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     });
                 }
             },
-            InputCheckbox => {
+            InputCheckbox | InputRadio => {
                 // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):activation-behavior
-                if self.mutable() {
-                    let win = window_from_node(*self).root();
-                    let event = Event::new(&Window(*win),
-                           "input".to_string(),
-                           Bubbles, NotCancelable).root();
-                    event.set_trusted(true);
-                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
-                    target.DispatchEvent(*event).ok();
-
-                    let event = Event::new(&Window(*win),
-                           "change".to_string(),
-                           Bubbles, NotCancelable).root();
-                    event.set_trusted(true);
-                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
-                    target.DispatchEvent(*event).ok();
-                }
-            },
-            InputRadio => {
                 // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):activation-behavior
                 if self.mutable() {
                     let win = window_from_node(*self).root();
@@ -700,14 +682,16 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let doc = document_from_node(*self).root();
         // FIXME (#4082) use a custom iterator
-        let submits = doc.QuerySelectorAll("input[type=submit]".to_string()).unwrap().root();
-        // XXXManishearth there may be a more efficient way of doing this (#3553)
-        let owner = self.form_owner();
-        if owner == None || ElementCast::from_ref(*self).click_in_progress() {
-            return;
-        }
-        submits.into_vec().iter()
-               .filter_map(|t| HTMLInputElementCast::to_ref(*t.root()))
-               .find(|r| r.form_owner() == owner).map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+        doc.QuerySelectorAll("input[type=submit]".to_string()).root().map(|submits| {
+            // XXXManishearth there may be a more efficient way of doing this (#3553)
+            let owner = self.form_owner();
+            if owner == None || ElementCast::from_ref(*self).click_in_progress() {
+                return;
+            }
+            submits.into_vec().iter()
+                   .filter_map(|t| HTMLInputElementCast::to_ref(*t.root()))
+                   .find(|r| r.form_owner() == owner)
+                   .map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+        });
     }
 }
