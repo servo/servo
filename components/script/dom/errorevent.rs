@@ -21,6 +21,9 @@ use std::cell::{Cell};
 use js::jsval::{JSVal, NullValue};
 
 #[dom_struct]
+#[privatize]
+#[must_root]
+#[jstraceable]
 pub struct ErrorEvent {
     event: Event,
     message: DOMRefCell<DOMString>,
@@ -54,7 +57,12 @@ impl ErrorEvent {
                            ErrorEventBinding::Wrap)
     }
 
+<<<<<<< HEAD
     pub fn new(global: &GlobalRef,
+=======
+    /*pub fn new(window: JSRef<Window>,
+               global: &GlobalRef,
+>>>>>>> moving init in constrictor
                type_: DOMString,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
@@ -63,6 +71,7 @@ impl ErrorEvent {
                lineno: u32,
                colno: u32,
                error: JSVal) -> Temporary<ErrorEvent> {
+<<<<<<< HEAD
         let ev = ErrorEvent::new_uninitialized(global).root();
         let event: JSRef<Event> = EventCast::from_ref(*ev);
         event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
@@ -74,6 +83,12 @@ impl ErrorEvent {
         ev.error.set(error);
         Temporary::from_rooted(*ev)
     }
+=======
+        //let ev = ErrorEvent::new_uninitialized(window).root();
+        //ev.InitErrorEvent(global.get_cx(),type_, can_bubble, cancelable, message, filename, lineno, colno, error);
+        //Temporary::from_rooted(*ev)
+    }*/
+>>>>>>> moving init in constrictor
 
     pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
@@ -100,6 +115,15 @@ impl ErrorEvent {
                                 bubbles, cancelable,
                                 msg, file_name,
                                 line_num, col_num, init.error);
+        let ev = ErrorEvent::new_uninitialized(global.as_window()).root();
+        let event: JSRef<Event> = EventCast::from_ref(ev);
+        event.InitEvent(type_, init.parent.bubbles, init.parent.cancelable);
+        *ev.message.borrow_mut() = msg;
+        *ev.filename.borrow_mut() = file_name;
+        ev.lineno.set(line_num);
+        ev.colno.set(col_num);
+        ev.error.set(init.error);
+        let event = Temporary::from_rooted(*ev);
         Ok(event)
     }
 
