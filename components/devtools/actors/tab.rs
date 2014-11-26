@@ -7,6 +7,7 @@
 /// Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
 use actor::{Actor, ActorRegistry};
+use actors::console::ConsoleActor;
 use protocol::JsonPacketSender;
 
 use serialize::json;
@@ -95,6 +96,8 @@ impl Actor for TabActor {
                     javascriptEnabled: true,
                     traits: TabTraits,
                 };
+                let console_actor = _registry.find::<ConsoleActor>(self.console.clone().as_slice());
+                console_actor.streams.borrow_mut().push((*stream).clone());
                 stream.write_json_packet(&msg);
                 true
             }
@@ -104,6 +107,8 @@ impl Actor for TabActor {
                     from: self.name(),
                     __type__: "detached".to_string(),
                 };
+                let console_actor = _registry.find::<ConsoleActor>(self.console.clone().as_slice());
+                console_actor.streams.borrow_mut().pop( );
                 stream.write_json_packet(&msg);
                 true
             }
