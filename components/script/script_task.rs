@@ -926,7 +926,7 @@ impl ScriptTask {
             }
             _ => ()
         }
-        
+
         window.flush_layout();
     }
 

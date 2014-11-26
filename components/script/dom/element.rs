@@ -32,7 +32,7 @@ use dom::htmlcollection::HTMLCollection;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
 use dom::htmlserializer::serialize;
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
-use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
+use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node, CLICK_IN_PROGRESS};
 use dom::node::{window_from_node, LayoutNodeHelpers};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -44,7 +44,7 @@ use servo_util::namespace;
 use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
 use std::ascii::AsciiExt;
-use std::cell::{Cell, Ref, RefMut};
+use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
 use string_cache::{Atom, Namespace, QualName};
@@ -60,10 +60,6 @@ pub struct Element {
     style_attribute: DOMRefCell<Option<style::PropertyDeclarationBlock>>,
     attr_list: MutNullableJS<NamedNodeMap>,
     class_list: MutNullableJS<DOMTokenList>,
-    // TODO: find a better place to keep this (#4105)
-    // https://critic.hoppipolla.co.uk/showcomment?chain=8873
-    // Perhaps using a Set in Document?
-    click_in_progress: Cell<bool>,
 }
 
 impl ElementDerived for EventTarget {
@@ -182,7 +178,6 @@ impl Element {
             attr_list: Default::default(),
             class_list: Default::default(),
             style_attribute: DOMRefCell::new(None),
-            click_in_progress: Cell::new(false),
         }
     }
 
@@ -1215,11 +1210,13 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     fn click_in_progress(self) -> bool {
-        self.click_in_progress.get()
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.get_flag(CLICK_IN_PROGRESS)
     }
 
     fn set_click_in_progress(self, click: bool) {
-        self.click_in_progress.set(click)
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.set_flag(CLICK_IN_PROGRESS, click)
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#nearest-activatable-element

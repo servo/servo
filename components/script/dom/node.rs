@@ -124,7 +124,7 @@ impl NodeDerived for EventTarget {
 bitflags! {
     #[doc = "Flags for node items."]
     #[jstraceable]
-    flags NodeFlags: u8 {
+    flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
         #[doc = "Specifies whether this node is in hover state."]
@@ -143,6 +143,12 @@ bitflags! {
         #[doc = "Specifies whether this node has descendants (inclusive of itself) which \
                  have changed since the last reflow."]
         const HAS_DIRTY_DESCENDANTS = 0x80,
+        // TODO: find a better place to keep this (#4105)
+        // https://critic.hoppipolla.co.uk/showcomment?chain=8873
+        // Perhaps using a Set in Document?
+        #[doc = "Specifies whether or not there is an authentic click in progress on \
+                 this element."]
+        const CLICK_IN_PROGRESS = 0x100,
     }
 }
 
@@ -744,7 +750,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     /// Get an iterator over all nodes which match a set of selectors
-    /// Be careful not to do anything which may manipulate the DOM tree whilst iterating, otherwise 
+    /// Be careful not to do anything which may manipulate the DOM tree whilst iterating, otherwise
     /// the iterator may be invalidated
     unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator<'a>> {
         // Step 1.
