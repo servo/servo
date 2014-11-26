@@ -17,7 +17,7 @@ use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, ResultRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId, LayoutElementHelpers};
+use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
 use dom::element::RawLayoutElementHelpers;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
@@ -97,12 +97,8 @@ pub trait RawLayoutHTMLInputElementHelpers {
 impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
     #[allow(unrooted_must_root)]
     unsafe fn get_value_for_layout(self) -> String {
-        unsafe fn get_raw_textinput_value(input: JS<HTMLInputElement>) -> Option<String> {
-            let elem: JS<Element> = input.transmute_copy();
-            if !elem.has_attr_for_layout(&ns!(""), &atom!("value")) {
-                return None;
-            }
-            Some((*input.unsafe_get()).textinput.borrow_for_layout().get_content())
+        unsafe fn get_raw_textinput_value(input: JS<HTMLInputElement>) -> String {
+            (*input.unsafe_get()).textinput.borrow_for_layout().get_content()
         }
 
         unsafe fn get_raw_attr_value(input: JS<HTMLInputElement>) -> Option<String> {
@@ -118,10 +114,10 @@ impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
                                           .or_else(|| default.map(|v| v.to_string()))
                                           .unwrap_or_else(|| "".to_string()),
             InputPassword => {
-                let raw = get_raw_textinput_value(self).unwrap_or_else(|| "".to_string());
+                let raw = get_raw_textinput_value(self);
                 String::from_char(raw.len(), '●')
             }
-            _ => get_raw_textinput_value(self).unwrap_or_else(|| "".to_string()),
+            _ => get_raw_textinput_value(self),
         }
     }
 
