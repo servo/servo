@@ -639,7 +639,7 @@ impl CefRequestHandler {
   // the new URL and can be changed if desired.
   //
   pub fn on_resource_redirect(&self, browser: interfaces::CefBrowser,
-      frame: interfaces::CefFrame, old_url: &str,
+      frame: interfaces::CefFrame, old_url: &[u16],
       new_url: *mut types::cef_string_t) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -663,8 +663,8 @@ impl CefRequestHandler {
   // information is available. Return false (0) to cancel the request.
   //
   pub fn get_auth_credentials(&self, browser: interfaces::CefBrowser,
-      frame: interfaces::CefFrame, isProxy: libc::c_int, host: &str,
-      port: libc::c_int, realm: &str, scheme: &str,
+      frame: interfaces::CefFrame, isProxy: libc::c_int, host: &[u16],
+      port: libc::c_int, realm: &[u16], scheme: &[u16],
       callback: interfaces::CefAuthCallback) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -693,7 +693,7 @@ impl CefRequestHandler {
   // false (0) to cancel the request.
   //
   pub fn on_quota_request(&self, browser: interfaces::CefBrowser,
-      origin_url: &str, new_size: i64,
+      origin_url: &[u16], new_size: i64,
       callback: interfaces::CefQuotaCallback) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -717,7 +717,7 @@ impl CefRequestHandler {
   // OTHER URL ANALYSIS BEFORE ALLOWING OS EXECUTION.
   //
   pub fn on_protocol_execution(&self, browser: interfaces::CefBrowser,
-      url: &str, allow_os_execution: &mut libc::c_int) -> () {
+      url: &[u16], allow_os_execution: &mut libc::c_int) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -742,7 +742,7 @@ impl CefRequestHandler {
   // be accepted without calling this function.
   //
   pub fn on_certificate_error(&self, cert_error: types::cef_errorcode_t,
-      request_url: &str,
+      request_url: &[u16],
       callback: interfaces::CefAllowCertificateErrorCallback) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -762,7 +762,7 @@ impl CefRequestHandler {
   // true (1) to block loading of the plugin.
   //
   pub fn on_before_plugin_load(&self, browser: interfaces::CefBrowser,
-      url: &str, policy_url: &str,
+      url: &[u16], policy_url: &[u16],
       info: interfaces::CefWebPluginInfo) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -783,7 +783,7 @@ impl CefRequestHandler {
   // |plugin_path| is the path of the plugin that crashed.
   //
   pub fn on_plugin_crashed(&self, browser: interfaces::CefBrowser,
-      plugin_path: &str) -> () {
+      plugin_path: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

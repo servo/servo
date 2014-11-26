@@ -504,7 +504,7 @@ impl CefWebPluginUnstableCallback {
   // true (1) if the plugin has reached the crash count threshold of 3 times in
   // 120 seconds.
   //
-  pub fn is_unstable(&self, path: &str, unstable: libc::c_int) -> () {
+  pub fn is_unstable(&self, path: &[u16], unstable: libc::c_int) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

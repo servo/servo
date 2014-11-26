@@ -496,7 +496,7 @@ impl CefDragData {
   //
   // Set the link URL that is being dragged.
   //
-  pub fn set_link_url(&self, url: &str) -> () {
+  pub fn set_link_url(&self, url: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -511,7 +511,7 @@ impl CefDragData {
   //
   // Set the title associated with the link being dragged.
   //
-  pub fn set_link_title(&self, title: &str) -> () {
+  pub fn set_link_title(&self, title: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -526,7 +526,7 @@ impl CefDragData {
   //
   // Set the metadata associated with the link being dragged.
   //
-  pub fn set_link_metadata(&self, data: &str) -> () {
+  pub fn set_link_metadata(&self, data: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -541,7 +541,7 @@ impl CefDragData {
   //
   // Set the plain text fragment that is being dragged.
   //
-  pub fn set_fragment_text(&self, text: &str) -> () {
+  pub fn set_fragment_text(&self, text: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -556,7 +556,7 @@ impl CefDragData {
   //
   // Set the text/html fragment that is being dragged.
   //
-  pub fn set_fragment_html(&self, html: &str) -> () {
+  pub fn set_fragment_html(&self, html: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -571,7 +571,7 @@ impl CefDragData {
   //
   // Set the base URL that the fragment came from.
   //
-  pub fn set_fragment_base_url(&self, base_url: &str) -> () {
+  pub fn set_fragment_base_url(&self, base_url: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -602,7 +602,7 @@ impl CefDragData {
   //
   // Add a file that is being dragged into the webview.
   //
-  pub fn add_file(&self, path: &str, display_name: &str) -> () {
+  pub fn add_file(&self, path: &[u16], display_name: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

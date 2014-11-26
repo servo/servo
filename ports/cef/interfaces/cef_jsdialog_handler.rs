@@ -148,7 +148,7 @@ impl CefJSDialogCallback {
   // Continue the JS dialog request. Set |success| to true (1) if the OK button
   // was pressed. The |user_input| value should be specified for prompt dialogs.
   //
-  pub fn cont(&self, success: libc::c_int, user_input: &str) -> () {
+  pub fn cont(&self, success: libc::c_int, user_input: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -348,9 +348,9 @@ impl CefJSDialogHandler {
   // the application must execute |callback| once the custom dialog is
   // dismissed.
   //
-  pub fn on_jsdialog(&self, browser: interfaces::CefBrowser, origin_url: &str,
-      accept_lang: &str, dialog_type: types::cef_jsdialog_type_t,
-      message_text: &str, default_prompt_text: &str,
+  pub fn on_jsdialog(&self, browser: interfaces::CefBrowser, origin_url: &[u16],
+      accept_lang: &[u16], dialog_type: types::cef_jsdialog_type_t,
+      message_text: &[u16], default_prompt_text: &[u16],
       callback: interfaces::CefJSDialogCallback,
       suppress_message: &mut libc::c_int) -> libc::c_int {
     if self.c_object.is_null() {
@@ -380,7 +380,7 @@ impl CefJSDialogHandler {
   // dialog is dismissed.
   //
   pub fn on_before_unload_dialog(&self, browser: interfaces::CefBrowser,
-      message_text: &str, is_reload: libc::c_int,
+      message_text: &[u16], is_reload: libc::c_int,
       callback: interfaces::CefJSDialogCallback) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")

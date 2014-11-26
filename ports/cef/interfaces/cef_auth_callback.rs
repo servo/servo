@@ -152,7 +152,7 @@ impl CefAuthCallback {
   //
   // Continue the authentication request.
   //
-  pub fn cont(&self, username: &str, password: &str) -> () {
+  pub fn cont(&self, username: &[u16], password: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

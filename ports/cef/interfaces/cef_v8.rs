@@ -344,7 +344,7 @@ impl CefV8Context {
   // function will return true (1). On failure |exception| will be set to the
   // exception, if any, and the function will return false (0).
   //
-  pub fn eval(&self, code: &str, retval: interfaces::CefV8Value,
+  pub fn eval(&self, code: &[u16], retval: interfaces::CefV8Value,
       exception: interfaces::CefV8Exception) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -533,7 +533,7 @@ impl CefV8Handler {
   // function return value. If execution fails set |exception| to the exception
   // that will be thrown. Return true (1) if execution was handled.
   //
-  pub fn execute(&self, name: &str, object: interfaces::CefV8Value,
+  pub fn execute(&self, name: &[u16], object: interfaces::CefV8Value,
       arguments_count: libc::size_t, arguments: *const interfaces::CefV8Value,
       retval: interfaces::CefV8Value,
       exception: *mut types::cef_string_t) -> libc::c_int {
@@ -706,7 +706,7 @@ impl CefV8Accessor {
   // exception that will be thrown. Return true (1) if accessor retrieval was
   // handled.
   //
-  pub fn get(&self, name: &str, object: interfaces::CefV8Value,
+  pub fn get(&self, name: &[u16], object: interfaces::CefV8Value,
       retval: interfaces::CefV8Value,
       exception: *mut types::cef_string_t) -> libc::c_int {
     if self.c_object.is_null() {
@@ -730,7 +730,7 @@ impl CefV8Accessor {
   // exception that will be thrown. Return true (1) if accessor assignment was
   // handled.
   //
-  pub fn set(&self, name: &str, object: interfaces::CefV8Value,
+  pub fn set(&self, name: &[u16], object: interfaces::CefV8Value,
       value: interfaces::CefV8Value,
       exception: *mut types::cef_string_t) -> libc::c_int {
     if self.c_object.is_null() {
@@ -1874,7 +1874,7 @@ impl CefV8Value {
   //
   // Returns true (1) if the object has a value with the specified identifier.
   //
-  pub fn has_value_bykey(&self, key: &str) -> libc::c_int {
+  pub fn has_value_bykey(&self, key: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1907,7 +1907,7 @@ impl CefV8Value {
   // exception is thrown. For read-only and don't-delete values this function
   // will return true (1) even though deletion failed.
   //
-  pub fn delete_value_bykey(&self, key: &str) -> libc::c_int {
+  pub fn delete_value_bykey(&self, key: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1941,7 +1941,7 @@ impl CefV8Value {
   // Returns the value with the specified identifier on success. Returns NULL if
   // this function is called incorrectly or an exception is thrown.
   //
-  pub fn get_value_bykey(&self, key: &str) -> interfaces::CefV8Value {
+  pub fn get_value_bykey(&self, key: &[u16]) -> interfaces::CefV8Value {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1976,7 +1976,7 @@ impl CefV8Value {
   // exception is thrown. For read-only values this function will return true
   // (1) even though assignment failed.
   //
-  pub fn set_value_bykey(&self, key: &str, value: interfaces::CefV8Value,
+  pub fn set_value_bykey(&self, key: &[u16], value: interfaces::CefV8Value,
       attribute: types::cef_v8_propertyattribute_t) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -2018,7 +2018,7 @@ impl CefV8Value {
   // function is called incorrectly or an exception is thrown. For read-only
   // values this function will return true (1) even though assignment failed.
   //
-  pub fn set_value_byaccessor(&self, key: &str,
+  pub fn set_value_byaccessor(&self, key: &[u16],
       settings: types::cef_v8_accesscontrol_t,
       attribute: types::cef_v8_propertyattribute_t) -> libc::c_int {
     if self.c_object.is_null() {
@@ -2304,7 +2304,7 @@ impl CefV8Value {
   //
   // Create a new cef_v8value_t object of type string.
   //
-  pub fn create_string(value: &str) -> interfaces::CefV8Value {
+  pub fn create_string(value: &[u16]) -> interfaces::CefV8Value {
     unsafe {
       CefWrap::to_rust(
         ::v8::cef_v8value_create_string(
@@ -2350,7 +2350,7 @@ impl CefV8Value {
   // cef_v8handler_t or cef_v8accessor_t callback, or in combination with
   // calling enter() and exit() on a stored cef_v8context_t reference.
   //
-  pub fn create_function(name: &str,
+  pub fn create_function(name: &[u16],
       handler: interfaces::CefV8Handler) -> interfaces::CefV8Value {
     unsafe {
       CefWrap::to_rust(

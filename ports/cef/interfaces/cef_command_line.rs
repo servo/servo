@@ -350,7 +350,7 @@ impl CefCommandLine {
   // Initialize the command line with the string returned by calling
   // GetCommandLineW(). This function is only supported on Windows.
   //
-  pub fn init_from_string(&self, command_line: &str) -> () {
+  pub fn init_from_string(&self, command_line: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -427,7 +427,7 @@ impl CefCommandLine {
   //
   // Set the program part of the command line string (the first item).
   //
-  pub fn set_program(&self, program: &str) -> () {
+  pub fn set_program(&self, program: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -456,7 +456,7 @@ impl CefCommandLine {
   //
   // Returns true (1) if the command line contains the given switch.
   //
-  pub fn has_switch(&self, name: &str) -> libc::c_int {
+  pub fn has_switch(&self, name: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -473,7 +473,7 @@ impl CefCommandLine {
   // value or isn't present this function returns the NULL string.
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
-  pub fn get_switch_value(&self, name: &str) -> String {
+  pub fn get_switch_value(&self, name: &[u16]) -> String {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -505,7 +505,7 @@ impl CefCommandLine {
   // Add a switch to the end of the command line. If the switch has no value
   // pass an NULL value string.
   //
-  pub fn append_switch(&self, name: &str) -> () {
+  pub fn append_switch(&self, name: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -520,7 +520,7 @@ impl CefCommandLine {
   //
   // Add a switch with the specified value to the end of the command line.
   //
-  pub fn append_switch_with_value(&self, name: &str, value: &str) -> () {
+  pub fn append_switch_with_value(&self, name: &[u16], value: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -565,7 +565,7 @@ impl CefCommandLine {
   //
   // Add an argument to the end of the command line.
   //
-  pub fn append_argument(&self, argument: &str) -> () {
+  pub fn append_argument(&self, argument: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -581,7 +581,7 @@ impl CefCommandLine {
   // Insert a command before the current command. Common for debuggers, like
   // "valgrind" or "gdb --args".
   //
-  pub fn prepend_wrapper(&self, wrapper: &str) -> () {
+  pub fn prepend_wrapper(&self, wrapper: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

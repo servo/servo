@@ -151,7 +151,7 @@ impl CefBeforeDownloadCallback {
   // suggested name and the default temp directory. Set |show_dialog| to true
   // (1) if you do wish to show the default "Save As" dialog.
   //
-  pub fn cont(&self, download_path: &str, show_dialog: libc::c_int) -> () {
+  pub fn cont(&self, download_path: &[u16], show_dialog: libc::c_int) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -453,7 +453,7 @@ impl CefDownloadHandler {
   // this function.
   //
   pub fn on_before_download(&self, browser: interfaces::CefBrowser,
-      download_item: interfaces::CefDownloadItem, suggested_name: &str,
+      download_item: interfaces::CefDownloadItem, suggested_name: &[u16],
       callback: interfaces::CefBeforeDownloadCallback) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")

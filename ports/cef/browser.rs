@@ -81,7 +81,7 @@ cef_static_method_impls! {
                                        -> c_int {
         let _window_info: &cef_window_info_t = _window_info;
         let client: CefClient = client;
-        let _url: &str = _url;
+        let _url: &[u16] = _url;
         let _browser_settings: &cef_browser_settings_t = _browser_settings;
         let _request_context: CefRequestContext = _request_context;
         browser_host_create(client, false);
@@ -96,7 +96,7 @@ cef_static_method_impls! {
                                             -> *mut cef_browser_t {
         let _window_info: &cef_window_info_t = _window_info;
         let client: CefClient = client;
-        let _url: &str = _url;
+        let _url: &[u16] = _url;
         let _browser_settings: &cef_browser_settings_t = _browser_settings;
         let _request_context: CefRequestContext = _request_context;
         browser_host_create(client, true)

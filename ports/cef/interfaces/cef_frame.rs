@@ -472,7 +472,7 @@ impl CefFrame {
   //
   // Load the specified |url|.
   //
-  pub fn load_url(&self, url: &str) -> () {
+  pub fn load_url(&self, url: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -489,7 +489,7 @@ impl CefFrame {
   // should have a standard scheme (for example, http scheme) or behaviors like
   // link clicks and web security restrictions may not behave as expected.
   //
-  pub fn load_string(&self, string_val: &str, url: &str) -> () {
+  pub fn load_string(&self, string_val: &[u16], url: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -509,7 +509,7 @@ impl CefFrame {
   // error.  The |start_line| parameter is the base line number to use for error
   // reporting.
   //
-  pub fn execute_java_script(&self, code: &str, script_url: &str,
+  pub fn execute_java_script(&self, code: &[u16], script_url: &[u16],
       start_line: libc::c_int) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")

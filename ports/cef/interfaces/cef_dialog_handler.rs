@@ -328,8 +328,8 @@ impl CefDialogHandler {
   // return false (0).
   //
   pub fn on_file_dialog(&self, browser: interfaces::CefBrowser,
-      mode: types::cef_file_dialog_mode_t, title: &str,
-      default_file_name: &str, accept_types: Vec<String>,
+      mode: types::cef_file_dialog_mode_t, title: &[u16],
+      default_file_name: &[u16], accept_types: Vec<String>,
       callback: interfaces::CefFileDialogCallback) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")

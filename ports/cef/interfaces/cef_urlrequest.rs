@@ -553,8 +553,8 @@ impl CefURLRequestClient {
   // function will only be called for requests initiated from the browser
   // process.
   //
-  pub fn get_auth_credentials(&self, isProxy: libc::c_int, host: &str,
-      port: libc::c_int, realm: &str, scheme: &str,
+  pub fn get_auth_credentials(&self, isProxy: libc::c_int, host: &[u16],
+      port: libc::c_int, realm: &[u16], scheme: &[u16],
       callback: interfaces::CefAuthCallback) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")

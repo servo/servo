@@ -260,8 +260,8 @@ impl CefLifeSpanHandler {
   // indicates whether the new browser window should be scriptable and in the
   // same process as the source browser.
   pub fn on_before_popup(&self, browser: interfaces::CefBrowser,
-      frame: interfaces::CefFrame, target_url: &str, target_frame_name: &str,
-      popupFeatures: &interfaces::CefPopupFeatures,
+      frame: interfaces::CefFrame, target_url: &[u16],
+      target_frame_name: &[u16], popupFeatures: &interfaces::CefPopupFeatures,
       windowInfo: &mut interfaces::CefWindowInfo,
       client: interfaces::CefClient,
       settings: &mut interfaces::CefBrowserSettings,

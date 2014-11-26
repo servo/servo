@@ -646,7 +646,7 @@ impl CefDictionaryValue {
   //
   // Returns true (1) if the current dictionary has a value for the given key.
   //
-  pub fn has_key(&self, key: &str) -> libc::c_int {
+  pub fn has_key(&self, key: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -677,7 +677,7 @@ impl CefDictionaryValue {
   // Removes the value at the specified key. Returns true (1) is the value was
   // removed successfully.
   //
-  pub fn remove(&self, key: &str) -> libc::c_int {
+  pub fn remove(&self, key: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -692,7 +692,7 @@ impl CefDictionaryValue {
   //
   // Returns the value type for the specified key.
   //
-  pub fn get_type(&self, key: &str) -> interfaces::CefValueType {
+  pub fn get_type(&self, key: &[u16]) -> interfaces::CefValueType {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -707,7 +707,7 @@ impl CefDictionaryValue {
   //
   // Returns the value at the specified key as type bool.
   //
-  pub fn get_bool(&self, key: &str) -> libc::c_int {
+  pub fn get_bool(&self, key: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -722,7 +722,7 @@ impl CefDictionaryValue {
   //
   // Returns the value at the specified key as type int.
   //
-  pub fn get_int(&self, key: &str) -> libc::c_int {
+  pub fn get_int(&self, key: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -737,7 +737,7 @@ impl CefDictionaryValue {
   //
   // Returns the value at the specified key as type double.
   //
-  pub fn get_double(&self, key: &str) -> libc::c_double {
+  pub fn get_double(&self, key: &[u16]) -> libc::c_double {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -753,7 +753,7 @@ impl CefDictionaryValue {
   // Returns the value at the specified key as type string.
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
-  pub fn get_string(&self, key: &str) -> String {
+  pub fn get_string(&self, key: &[u16]) -> String {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -768,7 +768,7 @@ impl CefDictionaryValue {
   //
   // Returns the value at the specified key as type binary.
   //
-  pub fn get_binary(&self, key: &str) -> interfaces::CefBinaryValue {
+  pub fn get_binary(&self, key: &[u16]) -> interfaces::CefBinaryValue {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -783,7 +783,7 @@ impl CefDictionaryValue {
   //
   // Returns the value at the specified key as type dictionary.
   //
-  pub fn get_dictionary(&self, key: &str) -> interfaces::CefDictionaryValue {
+  pub fn get_dictionary(&self, key: &[u16]) -> interfaces::CefDictionaryValue {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -798,7 +798,7 @@ impl CefDictionaryValue {
   //
   // Returns the value at the specified key as type list.
   //
-  pub fn get_list(&self, key: &str) -> interfaces::CefListValue {
+  pub fn get_list(&self, key: &[u16]) -> interfaces::CefListValue {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -814,7 +814,7 @@ impl CefDictionaryValue {
   // Sets the value at the specified key as type null. Returns true (1) if the
   // value was set successfully.
   //
-  pub fn set_null(&self, key: &str) -> libc::c_int {
+  pub fn set_null(&self, key: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -830,7 +830,7 @@ impl CefDictionaryValue {
   // Sets the value at the specified key as type bool. Returns true (1) if the
   // value was set successfully.
   //
-  pub fn set_bool(&self, key: &str, value: libc::c_int) -> libc::c_int {
+  pub fn set_bool(&self, key: &[u16], value: libc::c_int) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -847,7 +847,7 @@ impl CefDictionaryValue {
   // Sets the value at the specified key as type int. Returns true (1) if the
   // value was set successfully.
   //
-  pub fn set_int(&self, key: &str, value: libc::c_int) -> libc::c_int {
+  pub fn set_int(&self, key: &[u16], value: libc::c_int) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -864,7 +864,7 @@ impl CefDictionaryValue {
   // Sets the value at the specified key as type double. Returns true (1) if the
   // value was set successfully.
   //
-  pub fn set_double(&self, key: &str, value: libc::c_double) -> libc::c_int {
+  pub fn set_double(&self, key: &[u16], value: libc::c_double) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -881,7 +881,7 @@ impl CefDictionaryValue {
   // Sets the value at the specified key as type string. Returns true (1) if the
   // value was set successfully.
   //
-  pub fn set_string(&self, key: &str, value: &str) -> libc::c_int {
+  pub fn set_string(&self, key: &[u16], value: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -901,7 +901,7 @@ impl CefDictionaryValue {
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
   //
-  pub fn set_binary(&self, key: &str,
+  pub fn set_binary(&self, key: &[u16],
       value: interfaces::CefBinaryValue) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -923,7 +923,7 @@ impl CefDictionaryValue {
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
   //
-  pub fn set_dictionary(&self, key: &str,
+  pub fn set_dictionary(&self, key: &[u16],
       value: interfaces::CefDictionaryValue) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -945,7 +945,7 @@ impl CefDictionaryValue {
   // Otherwise, ownership will be transferred to this object and the |value|
   // reference will be invalidated.
   //
-  pub fn set_list(&self, key: &str,
+  pub fn set_list(&self, key: &[u16],
       value: interfaces::CefListValue) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -1568,7 +1568,7 @@ impl CefListValue {
   // Sets the value at the specified index as type string. Returns true (1) if
   // the value was set successfully.
   //
-  pub fn set_string(&self, index: libc::c_int, value: &str) -> libc::c_int {
+  pub fn set_string(&self, index: libc::c_int, value: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

@@ -264,7 +264,7 @@ impl CefLoadHandler {
   //
   pub fn on_load_error(&self, browser: interfaces::CefBrowser,
       frame: interfaces::CefFrame, errorCode: types::cef_errorcode_t,
-      errorText: &str, failedUrl: &str) -> () {
+      errorText: &[u16], failedUrl: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

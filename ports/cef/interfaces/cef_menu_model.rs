@@ -526,7 +526,8 @@ impl CefMenuModel {
   //
   // Add an item to the menu. Returns true (1) on success.
   //
-  pub fn add_item(&self, command_id: libc::c_int, label: &str) -> libc::c_int {
+  pub fn add_item(&self, command_id: libc::c_int,
+      label: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -543,7 +544,7 @@ impl CefMenuModel {
   // Add a check item to the menu. Returns true (1) on success.
   //
   pub fn add_check_item(&self, command_id: libc::c_int,
-      label: &str) -> libc::c_int {
+      label: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -560,7 +561,7 @@ impl CefMenuModel {
   // Add a radio item to the menu. Only a single item with the specified
   // |group_id| can be checked at a time. Returns true (1) on success.
   //
-  pub fn add_radio_item(&self, command_id: libc::c_int, label: &str,
+  pub fn add_radio_item(&self, command_id: libc::c_int, label: &[u16],
       group_id: libc::c_int) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -579,7 +580,7 @@ impl CefMenuModel {
   // Add a sub-menu to the menu. The new sub-menu is returned.
   //
   pub fn add_sub_menu(&self, command_id: libc::c_int,
-      label: &str) -> interfaces::CefMenuModel {
+      label: &[u16]) -> interfaces::CefMenuModel {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -613,7 +614,7 @@ impl CefMenuModel {
   // success.
   //
   pub fn insert_item_at(&self, index: libc::c_int, command_id: libc::c_int,
-      label: &str) -> libc::c_int {
+      label: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -632,7 +633,7 @@ impl CefMenuModel {
   // on success.
   //
   pub fn insert_check_item_at(&self, index: libc::c_int,
-      command_id: libc::c_int, label: &str) -> libc::c_int {
+      command_id: libc::c_int, label: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -652,7 +653,7 @@ impl CefMenuModel {
   // (1) on success.
   //
   pub fn insert_radio_item_at(&self, index: libc::c_int,
-      command_id: libc::c_int, label: &str,
+      command_id: libc::c_int, label: &[u16],
       group_id: libc::c_int) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -673,7 +674,7 @@ impl CefMenuModel {
   // returned.
   //
   pub fn insert_sub_menu_at(&self, index: libc::c_int, command_id: libc::c_int,
-      label: &str) -> interfaces::CefMenuModel {
+      label: &[u16]) -> interfaces::CefMenuModel {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -803,7 +804,8 @@ impl CefMenuModel {
   //
   // Sets the label for the specified |command_id|. Returns true (1) on success.
   //
-  pub fn set_label(&self, command_id: libc::c_int, label: &str) -> libc::c_int {
+  pub fn set_label(&self, command_id: libc::c_int,
+      label: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -819,7 +821,7 @@ impl CefMenuModel {
   //
   // Set the label at the specified |index|. Returns true (1) on success.
   //
-  pub fn set_label_at(&self, index: libc::c_int, label: &str) -> libc::c_int {
+  pub fn set_label_at(&self, index: libc::c_int, label: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

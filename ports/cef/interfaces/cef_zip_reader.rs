@@ -254,7 +254,7 @@ impl CefZipReader {
   // is true (1) then the search will be case sensitive. Returns true (1) if the
   // cursor position was set successfully.
   //
-  pub fn move_to_file(&self, fileName: &str,
+  pub fn move_to_file(&self, fileName: &[u16],
       caseSensitive: libc::c_int) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -333,7 +333,7 @@ impl CefZipReader {
   // Opens the file for reading of uncompressed data. A read password may
   // optionally be specified.
   //
-  pub fn open_file(&self, password: &str) -> libc::c_int {
+  pub fn open_file(&self, password: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

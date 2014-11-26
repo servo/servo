@@ -460,7 +460,7 @@ impl CefDOMDocument {
   //
   // Returns the document element with the specified ID value.
   //
-  pub fn get_element_by_id(&self, id: &str) -> interfaces::CefDOMNode {
+  pub fn get_element_by_id(&self, id: &[u16]) -> interfaces::CefDOMNode {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -606,7 +606,7 @@ impl CefDOMDocument {
   // partial URL.
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
-  pub fn get_complete_url(&self, partialURL: &str) -> String {
+  pub fn get_complete_url(&self, partialURL: &[u16]) -> String {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1032,7 +1032,7 @@ impl CefDOMNode {
   //
   // Set the value of this node. Returns true (1) on success.
   //
-  pub fn set_value(&self, value: &str) -> libc::c_int {
+  pub fn set_value(&self, value: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1192,7 +1192,7 @@ impl CefDOMNode {
   //
   // Returns true (1) if this element has an attribute named |attrName|.
   //
-  pub fn has_element_attribute(&self, attrName: &str) -> libc::c_int {
+  pub fn has_element_attribute(&self, attrName: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1208,7 +1208,7 @@ impl CefDOMNode {
   // Returns the element attribute named |attrName|.
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
-  pub fn get_element_attribute(&self, attrName: &str) -> String {
+  pub fn get_element_attribute(&self, attrName: &[u16]) -> String {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1239,8 +1239,8 @@ impl CefDOMNode {
   // Set the value for the element attribute named |attrName|. Returns true (1)
   // on success.
   //
-  pub fn set_element_attribute(&self, attrName: &str,
-      value: &str) -> libc::c_int {
+  pub fn set_element_attribute(&self, attrName: &[u16],
+      value: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

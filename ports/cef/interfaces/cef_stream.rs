@@ -478,7 +478,7 @@ impl CefStreamReader {
   //
   // Create a new cef_stream_reader_t object from a file.
   //
-  pub fn create_for_file(fileName: &str) -> interfaces::CefStreamReader {
+  pub fn create_for_file(fileName: &[u16]) -> interfaces::CefStreamReader {
     unsafe {
       CefWrap::to_rust(
         ::stream::cef_stream_reader_create_for_file(
@@ -972,7 +972,7 @@ impl CefStreamWriter {
   //
   // Create a new cef_stream_writer_t object for a file.
   //
-  pub fn create_for_file(fileName: &str) -> interfaces::CefStreamWriter {
+  pub fn create_for_file(fileName: &[u16]) -> interfaces::CefStreamWriter {
     unsafe {
       CefWrap::to_rust(
         ::stream::cef_stream_writer_create_for_file(

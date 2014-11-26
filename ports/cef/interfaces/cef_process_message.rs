@@ -244,7 +244,7 @@ impl CefProcessMessage {
   //
   // Create a new cef_process_message_t object with the specified name.
   //
-  pub fn create(name: &str) -> interfaces::CefProcessMessage {
+  pub fn create(name: &[u16]) -> interfaces::CefProcessMessage {
     unsafe {
       CefWrap::to_rust(
         ::process_message::cef_process_message_create(

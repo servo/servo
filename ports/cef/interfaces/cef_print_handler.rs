@@ -506,7 +506,7 @@ impl CefPrintHandler {
   // completed. Return true (1) if the job will proceed or false (0) to cancel
   // the job immediately.
   //
-  pub fn on_print_job(&self, document_name: &str, pdf_file_path: &str,
+  pub fn on_print_job(&self, document_name: &[u16], pdf_file_path: &[u16],
       callback: interfaces::CefPrintJobCallback) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")

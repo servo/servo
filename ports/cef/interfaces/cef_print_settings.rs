@@ -381,7 +381,7 @@ impl CefPrintSettings {
   //
   // Set the device name.
   //
-  pub fn set_device_name(&self, name: &str) -> () {
+  pub fn set_device_name(&self, name: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

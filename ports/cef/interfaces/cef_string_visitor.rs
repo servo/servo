@@ -144,7 +144,7 @@ impl CefStringVisitor {
   //
   // Method that will be executed.
   //
-  pub fn visit(&self, string: &str) -> () {
+  pub fn visit(&self, string: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

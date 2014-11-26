@@ -251,7 +251,7 @@ impl CefCookieManager {
   // ordered by longest path, then by earliest creation date. Returns false (0)
   // if cookies cannot be accessed.
   //
-  pub fn visit_url_cookies(&self, url: &str, includeHttpOnly: libc::c_int,
+  pub fn visit_url_cookies(&self, url: &[u16], includeHttpOnly: libc::c_int,
       visitor: interfaces::CefCookieVisitor) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -274,7 +274,7 @@ impl CefCookieManager {
   // setting the cookie if such characters are found. This function must be
   // called on the IO thread.
   //
-  pub fn set_cookie(&self, url: &str,
+  pub fn set_cookie(&self, url: &[u16],
       cookie: &interfaces::CefCookie) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -297,7 +297,8 @@ impl CefCookieManager {
   // non- NULL invalid URL is specified or if cookies cannot be accessed. This
   // function must be called on the IO thread.
   //
-  pub fn delete_cookies(&self, url: &str, cookie_name: &str) -> libc::c_int {
+  pub fn delete_cookies(&self, url: &[u16],
+      cookie_name: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -319,7 +320,7 @@ impl CefCookieManager {
   // browsers do not persist them. Returns false (0) if cookies cannot be
   // accessed.
   //
-  pub fn set_storage_path(&self, path: &str,
+  pub fn set_storage_path(&self, path: &[u16],
       persist_session_cookies: libc::c_int) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -371,7 +372,7 @@ impl CefCookieManager {
   // generally intended to be transient and most Web browsers do not persist
   // them. Returns NULL if creation fails.
   //
-  pub fn create_manager(path: &str,
+  pub fn create_manager(path: &[u16],
       persist_session_cookies: libc::c_int) -> interfaces::CefCookieManager {
     unsafe {
       CefWrap::to_rust(

@@ -231,7 +231,7 @@ impl CefSchemeRegistrar {
   // per unique |scheme_name| value. If |scheme_name| is already registered or
   // if an error occurs this function will return false (0).
   //
-  pub fn add_custom_scheme(&self, scheme_name: &str, is_standard: libc::c_int,
+  pub fn add_custom_scheme(&self, scheme_name: &[u16], is_standard: libc::c_int,
       is_local: libc::c_int,
       is_display_isolated: libc::c_int) -> libc::c_int {
     if self.c_object.is_null() {
@@ -391,7 +391,7 @@ impl CefSchemeHandlerFactory {
   // passed to this function will not contain cookie data.
   //
   pub fn create(&self, browser: interfaces::CefBrowser,
-      frame: interfaces::CefFrame, scheme_name: &str,
+      frame: interfaces::CefFrame, scheme_name: &[u16],
       request: interfaces::CefRequest) -> interfaces::CefResourceHandler {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")

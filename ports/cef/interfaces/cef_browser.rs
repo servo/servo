@@ -497,7 +497,7 @@ impl CefBrowser {
   //
   // Returns the frame with the specified name, or NULL if not found.
   //
-  pub fn get_frame(&self, name: &str) -> interfaces::CefFrame {
+  pub fn get_frame(&self, name: &[u16]) -> interfaces::CefFrame {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1368,7 +1368,7 @@ impl CefBrowserHost {
   // the UI thread.
   //
   pub fn run_file_dialog(&self, mode: types::cef_file_dialog_mode_t,
-      title: &str, default_file_name: &str, accept_types: Vec<String>,
+      title: &[u16], default_file_name: &[u16], accept_types: Vec<String>,
       callback: interfaces::CefRunFileDialogCallback) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
@@ -1388,7 +1388,7 @@ impl CefBrowserHost {
   //
   // Download the file at |url| using cef_download_handler_t.
   //
-  pub fn start_download(&self, url: &str) -> () {
+  pub fn start_download(&self, url: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1421,7 +1421,7 @@ impl CefBrowserHost {
   // be case-sensitive. |findNext| indicates whether this is the first request
   // or a follow-up.
   //
-  pub fn find(&self, identifier: libc::c_int, searchText: &str,
+  pub fn find(&self, identifier: libc::c_int, searchText: &[u16],
       forward: libc::c_int, matchCase: libc::c_int, findNext: libc::c_int) -> (
       ) {
     if self.c_object.is_null() {
@@ -1523,7 +1523,7 @@ impl CefBrowserHost {
   // If a misspelled word is currently selected in an editable node calling this
   // function will replace it with the specified |word|.
   //
-  pub fn replace_misspelling(&self, word: &str) -> () {
+  pub fn replace_misspelling(&self, word: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1538,7 +1538,7 @@ impl CefBrowserHost {
   //
   // Add the specified |word| to the spelling dictionary.
   //
-  pub fn add_word_to_dictionary(&self, word: &str) -> () {
+  pub fn add_word_to_dictionary(&self, word: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -1949,7 +1949,7 @@ impl CefBrowserHost {
   // process thread and will not block.
   //
   pub fn create_browser(windowInfo: &interfaces::CefWindowInfo,
-      client: interfaces::CefClient, url: &str,
+      client: interfaces::CefClient, url: &[u16],
       settings: &interfaces::CefBrowserSettings,
       request_context: interfaces::CefRequestContext) -> libc::c_int {
     unsafe {
@@ -1969,7 +1969,7 @@ impl CefBrowserHost {
   // be used. This function can only be called on the browser process UI thread.
   //
   pub fn create_browser_sync(windowInfo: &interfaces::CefWindowInfo,
-      client: interfaces::CefClient, url: &str,
+      client: interfaces::CefClient, url: &[u16],
       settings: &interfaces::CefBrowserSettings,
       request_context: interfaces::CefRequestContext) -> interfaces::CefBrowser {
     unsafe {

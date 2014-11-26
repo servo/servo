@@ -153,7 +153,7 @@ impl CefEndTracingCallback {
   // the path at which tracing data was written. The client is responsible for
   // deleting |tracing_file|.
   //
-  pub fn on_end_tracing_complete(&self, tracing_file: &str) -> () {
+  pub fn on_end_tracing_complete(&self, tracing_file: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

@@ -185,7 +185,7 @@ impl CefDisplayHandler {
   // Called when a frame's address has changed.
   //
   pub fn on_address_change(&self, browser: interfaces::CefBrowser,
-      frame: interfaces::CefFrame, url: &str) -> () {
+      frame: interfaces::CefFrame, url: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -203,7 +203,7 @@ impl CefDisplayHandler {
   // Called when the page title changes.
   //
   pub fn on_title_change(&self, browser: interfaces::CefBrowser,
-      title: &str) -> () {
+      title: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -243,7 +243,7 @@ impl CefDisplayHandler {
   // text that will be displayed in the status message.
   //
   pub fn on_status_message(&self, browser: interfaces::CefBrowser,
-      value: &str) -> () {
+      value: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -261,7 +261,7 @@ impl CefDisplayHandler {
   // from being output to the console.
   //
   pub fn on_console_message(&self, browser: interfaces::CefBrowser,
-      message: &str, source: &str, line: libc::c_int) -> libc::c_int {
+      message: &[u16], source: &[u16], line: libc::c_int) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

@@ -261,7 +261,7 @@ impl CefResponse {
   //
   // Set the response status text.
   //
-  pub fn set_status_text(&self, statusText: &str) -> () {
+  pub fn set_status_text(&self, statusText: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -291,7 +291,7 @@ impl CefResponse {
   //
   // Set the response mime type.
   //
-  pub fn set_mime_type(&self, mimeType: &str) -> () {
+  pub fn set_mime_type(&self, mimeType: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -307,7 +307,7 @@ impl CefResponse {
   // Get the value for the specified response header field.
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
-  pub fn get_header(&self, name: &str) -> String {
+  pub fn get_header(&self, name: &[u16]) -> String {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }

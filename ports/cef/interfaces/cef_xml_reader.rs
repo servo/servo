@@ -636,7 +636,7 @@ impl CefXmlReader {
   // Returns the value of the attribute with the specified qualified name.
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
-  pub fn get_attribute_byqname(&self, qualifiedName: &str) -> String {
+  pub fn get_attribute_byqname(&self, qualifiedName: &[u16]) -> String {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -653,8 +653,8 @@ impl CefXmlReader {
   // namespace URI.
   //
   // The resulting string must be freed by calling cef_string_userfree_free().
-  pub fn get_attribute_bylname(&self, localName: &str,
-      namespaceURI: &str) -> String {
+  pub fn get_attribute_bylname(&self, localName: &[u16],
+      namespaceURI: &[u16]) -> String {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -737,7 +737,8 @@ impl CefXmlReader {
   // Moves the cursor to the attribute with the specified qualified name.
   // Returns true (1) if the cursor position was set successfully.
   //
-  pub fn move_to_attribute_byqname(&self, qualifiedName: &str) -> libc::c_int {
+  pub fn move_to_attribute_byqname(&self,
+      qualifiedName: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -754,8 +755,8 @@ impl CefXmlReader {
   // namespace URI. Returns true (1) if the cursor position was set
   // successfully.
   //
-  pub fn move_to_attribute_bylname(&self, localName: &str,
-      namespaceURI: &str) -> libc::c_int {
+  pub fn move_to_attribute_bylname(&self, localName: &[u16],
+      namespaceURI: &[u16]) -> libc::c_int {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -819,7 +820,7 @@ impl CefXmlReader {
   //
   pub fn create(stream: interfaces::CefStreamReader,
       encodingType: types::cef_xml_encoding_type_t,
-      URI: &str) -> interfaces::CefXmlReader {
+      URI: &[u16]) -> interfaces::CefXmlReader {
     unsafe {
       CefWrap::to_rust(
         ::xml_reader::cef_xml_reader_create(

@@ -195,7 +195,7 @@ impl CefApp {
   // modify command-line arguments for non-browser processes as this may result
   // in undefined behavior including crashes.
   //
-  pub fn on_before_command_line_processing(&self, process_type: &str,
+  pub fn on_before_command_line_processing(&self, process_type: &[u16],
       command_line: interfaces::CefCommandLine) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")

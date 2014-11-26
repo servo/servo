@@ -312,7 +312,7 @@ impl CefGeolocationHandler {
   // request immediately.
   //
   pub fn on_request_geolocation_permission(&self,
-      browser: interfaces::CefBrowser, requesting_url: &str,
+      browser: interfaces::CefBrowser, requesting_url: &[u16],
       request_id: libc::c_int,
       callback: interfaces::CefGeolocationCallback) -> libc::c_int {
     if self.c_object.is_null() {
@@ -335,7 +335,7 @@ impl CefGeolocationHandler {
   // ID for the permission request.
   //
   pub fn on_cancel_geolocation_permission(&self,
-      browser: interfaces::CefBrowser, requesting_url: &str,
+      browser: interfaces::CefBrowser, requesting_url: &[u16],
       request_id: libc::c_int) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")

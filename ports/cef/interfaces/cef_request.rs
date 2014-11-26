@@ -277,7 +277,7 @@ impl CefRequest {
   //
   // Set the fully qualified URL.
   //
-  pub fn set_url(&self, url: &str) -> () {
+  pub fn set_url(&self, url: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -308,7 +308,7 @@ impl CefRequest {
   //
   // Set the request function type.
   //
-  pub fn set_method(&self, method: &str) -> () {
+  pub fn set_method(&self, method: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -382,8 +382,9 @@ impl CefRequest {
   //
   // Set all values at one time.
   //
-  pub fn set(&self, url: &str, method: &str, postData: interfaces::CefPostData,
-      headerMap: HashMap<String,Vec<String>>) -> () {
+  pub fn set(&self, url: &[u16], method: &[u16],
+      postData: interfaces::CefPostData, headerMap: HashMap<String,
+      Vec<String>>) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -449,7 +450,7 @@ impl CefRequest {
   // Get the URL to the first party for cookies used in combination with
   // cef_urlrequest_t.
   //
-  pub fn set_first_party_for_cookies(&self, url: &str) -> () {
+  pub fn set_first_party_for_cookies(&self, url: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
@@ -961,7 +962,7 @@ impl CefPostDataElement {
   //
   // The post data element will represent a file.
   //
-  pub fn set_to_file(&self, fileName: &str) -> () {
+  pub fn set_to_file(&self, fileName: &[u16]) -> () {
     if self.c_object.is_null() {
       panic!("called a CEF method on a null object")
     }
