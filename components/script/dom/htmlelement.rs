@@ -75,7 +75,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     make_bool_getter!(Hidden)
     make_bool_setter!(SetHidden, "hidden")
 
-    event_handler!(click, GetOnclick, SetOnclick)
+    global_event_handlers!(NoOnload)
 
     fn GetOnload(self) -> Option<EventHandlerNonNull> {
         if self.is_body_or_frameset() {

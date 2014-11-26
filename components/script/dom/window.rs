@@ -270,8 +270,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.performance.or_init(|| Performance::new(self))
     }
 
-    event_handler!(click, GetOnclick, SetOnclick)
-    event_handler!(load, GetOnload, SetOnload)
+    global_event_handlers!()
     event_handler!(unload, GetOnunload, SetOnunload)
     error_event_handler!(error, GetOnerror, SetOnerror)
 

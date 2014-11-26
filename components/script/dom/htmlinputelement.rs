@@ -633,8 +633,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                         Some(o) => {
                             // Avoiding iterating through the whole tree here, instead
                             // we can check if the conditions for radio group siblings apply
-                            if name != None && // unless  self no longer has a button group
-                               name == o.get_radio_group_name() && // TODO should be compatibility caseless
+                            if name == o.get_radio_group_name() && // TODO should be compatibility caseless
                                self.form_owner() == o.form_owner() &&
                                // TODO Both a and b are in the same home subtree
                                o.input_type.get() == InputRadio {
