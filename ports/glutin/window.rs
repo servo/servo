@@ -15,7 +15,6 @@ use compositing::windowing::{Forward, Back};
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
-use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
@@ -28,14 +27,14 @@ use util::opts::{RenderApi, Mesa, OpenGL};
 use glutin;
 use NestedEventLoopListener;
 
+#[cfg(not(target_os="android"))]
+use gleam::gl;
+
 #[cfg(target_os="linux")]
 use std::ptr;
 
 struct HeadlessContext {
-    // Although currently unused, this context needs to be stored.
-    // Otherwise, its drop() is called, deleting the mesa context
-    // before it can be used.
-    _context: glutin::HeadlessContext,
+    context: glutin::HeadlessContext,
     size: TypedSize2D<DevicePixel, uint>,
 }
 
@@ -72,6 +71,28 @@ pub struct Window {
     last_title_set_time: Cell<Timespec>,
 }
 
+#[cfg(not(target_os="android"))]
+fn load_gl_functions(glutin: &WindowHandle) {
+    match glutin {
+        &Windowed(ref window) => gl::load_with(|s| window.get_proc_address(s)),
+        &Headless(ref headless) => gl::load_with(|s| headless.context.get_proc_address(s)),
+    }
+}
+
+#[cfg(target_os="android")]
+fn load_gl_functions(_glutin: &WindowHandle) {
+}
+
+#[cfg(not(target_os="android"))]
+fn gl_version() -> (uint, uint) {
+    (3, 0)
+}
+
+#[cfg(target_os="android")]
+fn gl_version() -> (uint, uint) {
+    (2, 0)
+}
+
 impl Window {
     /// Creates a new window.
     pub fn new(is_foreground: bool, size: TypedSize2D<DevicePixel, uint>, render_api: RenderApi)
@@ -85,13 +106,11 @@ impl Window {
                 let glutin_window = glutin::WindowBuilder::new()
                                     .with_title("Servo [glutin]".to_string())
                                     .with_dimensions(window_size.width, window_size.height)
-                                    .with_gl_version((3, 0))
+                                    .with_gl_version(gl_version())
                                     .with_visibility(is_foreground)
                                     .build()
                                     .unwrap();
                 unsafe { glutin_window.make_current() };
-
-                gl::load_with(|s| glutin_window.get_proc_address(s));
 
                 Windowed(glutin_window)
             }
@@ -101,14 +120,14 @@ impl Window {
                 let headless_context = headless_builder.build().unwrap();
                 unsafe { headless_context.make_current() };
 
-                gl::load_with(|s| headless_context.get_proc_address(s));
-
                 Headless(HeadlessContext {
-                    _context: headless_context,
+                    context: headless_context,
                     size: size,
                 })
             }
         };
+
+        load_gl_functions(&glutin);
 
         let window = Window {
             glutin: glutin,
@@ -207,6 +226,14 @@ impl WindowMethods for Window {
             NativeGraphicsMetadata {
                 pixel_format: CGLGetPixelFormat(CGLGetCurrentContext()),
             }
+        }
+    }
+
+    #[cfg(target_os="android")]
+    fn native_metadata(&self) -> NativeGraphicsMetadata {
+        use egl::egl::GetCurrentDisplay;
+        NativeGraphicsMetadata {
+            display: GetCurrentDisplay(),
         }
     }
 }
@@ -452,4 +479,28 @@ impl CompositorProxy for GlutinCompositorProxy {
             sender: self.sender.clone(),
         } as Box<CompositorProxy+Send>
     }
+}
+
+// These functions aren't actually called. They are here as a link
+// hack because Skia references them.
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn glBindVertexArrayOES(_array: uint)
+{
+    unimplemented!()
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn glDeleteVertexArraysOES(_n: int, _arrays: *const ())
+{
+    unimplemented!()
+}
+
+#[allow(non_snake_case)]
+#[no_mangle]
+pub extern "C" fn glGenVertexArraysOES(_n: int, _arrays: *const ())
+{
+    unimplemented!()
 }

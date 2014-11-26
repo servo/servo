@@ -1,0 +1,2 @@
+[target.arm-linux-androideabi]
+linker = "_apk_builder/apk-builder/target/apk-builder"

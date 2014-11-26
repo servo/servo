@@ -46,6 +46,8 @@ class MachCommands(CommandBase):
             android = self.config["build"]["android"]
 
         opts = []
+        features = []
+
         if release:
             opts += ["--release"]
         if target:
@@ -54,8 +56,12 @@ class MachCommands(CommandBase):
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
+        if android:
+            # FIXME: This can be simplified when glutin becomes the default
+            #        and glfw has been removed.
+            opts += ["--target", "arm-linux-androideabi", "--no-default-features"]
+            features += ["glutin"]
 
-        features = []
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
 
@@ -63,17 +69,9 @@ class MachCommands(CommandBase):
             opts += ["--features", "%s" % ' '.join(features)]
 
         build_start = time()
-        if android:
-            make_opts = []
-            if opts:
-                make_opts += ["CARGO_OPTS=" + " ".join(opts)]
-            status = subprocess.call(
-                ["make", "-C", "ports/android"] + make_opts,
-                env=self.build_env())
-        else:
-            status = subprocess.call(
-                ["cargo", "build"] + opts,
-                env=self.build_env())
+        status = subprocess.call(
+            ["cargo", "build"] + opts,
+            env=self.build_env())
         elapsed = time() - build_start
 
         print("Build completed in %0.2fs" % elapsed)

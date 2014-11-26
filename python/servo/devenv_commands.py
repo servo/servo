@@ -32,8 +32,7 @@ class MachCommands(CommandBase):
         help='Command-line arguments to be passed through to cargo update')
     def update_cargo(self, params):
         cargo_paths = [path.join('.'),
-                       path.join('ports', 'cef'),
-                       path.join('ports', 'android', 'glut_app')]
+                       path.join('ports', 'cef')]
 
         for cargo_path in cargo_paths:
             with cd(cargo_path):
