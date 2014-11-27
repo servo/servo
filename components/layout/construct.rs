@@ -24,6 +24,7 @@ use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, IframeFragmentInfo};
 use fragment::ImageFragmentInfo;
+use fragment::CanvasFragmentInfo;
 use fragment::InlineAbsoluteHypotheticalFragmentInfo;
 use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo};
 use fragment::TableColumnFragmentInfo;
@@ -272,6 +273,9 @@ impl<'a> FlowConstructor<'a> {
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement))) |
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement))) => SpecificFragmentInfo::TableRow,
             Some(NodeTypeId::Text) => SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new(node)),
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement))) => {
+                SpecificFragmentInfo::Canvas(box CanvasFragmentInfo::new(node))
+            }
             _ => {
                 // This includes pseudo-elements.
                 SpecificFragmentInfo::Generic
@@ -1145,7 +1149,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             }
         };
 
-        debug!("building flow for node: {} {}", display, float);
+        debug!("building flow for node: {} {} {}", display, float, node.type_id());
 
         // Switch on display and floatedness.
         match (display, float, positioning) {
@@ -1288,6 +1292,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             None |
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement))) => true,
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement))) => self.has_object_data(),
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement))) => true,
             Some(NodeTypeId::Element(_)) => false,
         }
     }
