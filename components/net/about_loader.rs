@@ -19,7 +19,7 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 content_type: Some(("text".to_string(), "html".to_string())),
                 charset: Some("utf-8".to_string()),
                 headers: None,
-                status: StatusOk,
+                status: Some(StatusOk),
             });
             chan.send(Done(Ok(())));
             return

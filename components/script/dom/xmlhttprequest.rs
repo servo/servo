@@ -88,7 +88,7 @@ pub struct GenerationId(uint);
 
 pub enum XHRProgress {
     /// Notify that headers have been received
-    HeadersReceivedMsg(GenerationId, Option<ResponseHeaderCollection>, Status),
+    HeadersReceivedMsg(GenerationId, Option<ResponseHeaderCollection>, Option<Status>),
     /// Partial progress (after receiving headers), containing portion of the response
     LoadingMsg(GenerationId, ByteString),
     /// Loading is done
@@ -874,8 +874,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
-                *self.status_text.borrow_mut() = ByteString::new(status.reason().into_bytes());
-                self.status.set(status.code());
+                let status_text = status.as_ref().map_or(vec![], |s| s.reason().into_bytes());
+                let status_code = status.as_ref().map_or(0, |s| s.code());
+
+                *self.status_text.borrow_mut() = ByteString::new(status_text);
+                self.status.set(status_code);
                 match headers {
                     Some(ref h) => {
                         *self.response_headers.borrow_mut() = h.clone();

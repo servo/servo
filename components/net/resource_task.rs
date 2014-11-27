@@ -72,7 +72,7 @@ pub struct Metadata {
     pub headers: Option<ResponseHeaderCollection>,
 
     /// HTTP Status
-    pub status: Status
+    pub status: Option<Status>
 }
 
 impl Metadata {
@@ -83,7 +83,7 @@ impl Metadata {
             content_type: None,
             charset:      None,
             headers: None,
-            status: StatusOk // http://fetch.spec.whatwg.org/#concept-response-status-message
+            status: Some(StatusOk) // http://fetch.spec.whatwg.org/#concept-response-status-message
         }
     }
 

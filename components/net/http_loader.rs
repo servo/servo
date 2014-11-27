@@ -17,7 +17,10 @@ pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
 }
 
 fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
-    match start_sending_opt(start_chan, Metadata::default(url)) {
+    let mut metadata = Metadata::default(url);
+    metadata.status = None;
+
+    match start_sending_opt(start_chan, metadata) {
         Ok(p) => p.send(Done(Err(err))),
         _ => {}
     };
@@ -133,7 +136,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let mut metadata = Metadata::default(url);
         metadata.set_content_type(&response.headers.content_type);
         metadata.headers = Some(response.headers.clone());
-        metadata.status = response.status.clone();
+        metadata.status = Some(response.status.clone());
 
         let progress_chan = match start_sending_opt(start_chan, metadata) {
             Ok(p) => p,
