@@ -256,6 +256,9 @@ impl<'a> CSS2PropertiesMethods for JSRef<'a, CSS2Properties> {
     css_getter!(Right, "right")
     css_setter!(SetRight, "right")
 
+    css_getter!(ZIndex, "z-index")
+    css_setter!(SetZIndex, "z-index")
+
     fn IndexedGetter(self, index: u32, found: &mut bool) -> DOMString {
         let decl: JSRef<CSSStyleDeclaration> = CSSStyleDeclarationCast::from_ref(self);
         decl.IndexedGetter(index, found)

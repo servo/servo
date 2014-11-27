@@ -100,4 +100,6 @@ interface CSS2Properties : CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString width;
   [TreatNullAs=EmptyString] attribute DOMString minWidth;
   [TreatNullAs=EmptyString] attribute DOMString maxWidth;
+
+  [TreatNullAs=EmptyString] attribute DOMString zIndex;
 };
