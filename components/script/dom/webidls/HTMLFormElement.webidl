@@ -22,7 +22,7 @@ interface HTMLFormElement : HTMLElement {
   //getter (RadioNodeList or Element) (DOMString name);
 
   void submit();
-  //void reset();
+  void reset();
   //boolean checkValidity();
   //boolean reportValidity();
 

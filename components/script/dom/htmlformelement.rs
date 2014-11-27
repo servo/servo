@@ -15,6 +15,7 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, HTMLFormElementTypeId, HTMLTextAreaElementTypeId, HTMLDataListElementTypeId};
 use dom::element::{HTMLInputElementTypeId, HTMLButtonElementTypeId, HTMLObjectElementTypeId, HTMLSelectElementTypeId};
+use dom::element::{HTMLOutputElementTypeId};
 use dom::event::{Event, EventHelpers, Bubbles, Cancelable};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
@@ -117,6 +118,11 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     fn Submit(self) {
         self.submit(FromFormSubmitMethod, FormElement(self));
     }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-reset
+    fn Reset(self) {
+        self.reset(FromFormResetMethod);
+    }
 }
 
 pub enum SubmittedFrom {
@@ -124,11 +130,18 @@ pub enum SubmittedFrom {
     NotFromFormSubmitMethod
 }
 
+pub enum ResetFrom {
+    FromFormResetMethod,
+    NotFromFormResetMethod
+}
+
 pub trait HTMLFormElementHelpers {
     // https://html.spec.whatwg.org/multipage/forms.html#concept-form-submit
     fn submit(self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter);
     // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
     fn get_form_dataset(self, submitter: Option<FormSubmitter>) -> Vec<FormDatum>;
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-reset
+    fn reset(self, submit_method_flag: ResetFrom);
 }
 
 impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
@@ -315,6 +328,65 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             }
         };
         ret
+    }
+
+    fn reset(self, _reset_method_flag: ResetFrom) {
+        let win = window_from_node(self).root();
+        let event = Event::new(Window(*win),
+                               "reset".to_string(),
+                               Bubbles, Cancelable).root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        target.DispatchEvent(*event).ok();
+        if event.DefaultPrevented() {
+            return;
+        }
+
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+
+        // TODO: This is an incorrect way of getting controls owned
+        //       by the form, but good enough until html5ever lands
+        for child in node.traverse_preorder() {
+            // TODO This is the wrong place to do this. Each resettable
+            // element should implement its own reset method (trait?)
+            //
+            // List of resettable elements:
+            // https://html.spec.whatwg.org/multipage/forms.html#category-reset
+            match child.type_id() {
+                ElementNodeTypeId(HTMLInputElementTypeId) => {
+                    let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child)
+                                                                               .unwrap();
+                    let ty = input.Type();
+
+                    match ty.as_slice() {
+                        "radio" | "checkbox" => {
+                            // TODO Reset radios/checkboxes here
+                        },
+                        "image" => (),
+                        _ => ()
+                    }
+
+                    input.SetValue(input.DefaultValue());
+                }
+                // TODO HTMLKeygenElement unimplemented
+                /*ElementNodeTypeID(HTMLKeygenElementTypeId) => {
+                    // Unimplemented
+                    {}
+                }*/
+                ElementNodeTypeId(HTMLSelectElementTypeId) => {
+                    // Unimplemented
+                    {}
+                }
+                ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
+                    // Unimplemented
+                    {}
+                }
+                ElementNodeTypeId(HTMLOutputElementTypeId) => {
+                    // Unimplemented
+                    {}
+                }
+                _ => {}
+            }
+        };
     }
 }
 
