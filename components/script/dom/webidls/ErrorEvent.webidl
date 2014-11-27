@@ -21,13 +21,4 @@ dictionary ErrorEventInit : EventInit {
 
 partial interface ErrorEvent {
   // Deprecated in DOM Level 3
-  /*void initErrorEvent (
-    DOMString typeArg,
-    boolean bubblesArg,
-    boolean cancelableArg,	
-    DOMString messageArg,
-    DOMString filenameArg,
-    unsigned long linenoArg,
-    unsigned long colnoArg,
-    any errorArg);*/
 };
