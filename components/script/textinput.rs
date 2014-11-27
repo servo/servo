@@ -295,6 +295,12 @@ impl TextInput {
             vec!(content)
         };
         self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
-        self.edit_point.index = min(self.edit_point.index, self.current_line_length() - 1);
+
+        if self.current_line_length() == 0 {
+            self.edit_point.index = 0;
+        }
+        else {
+            self.edit_point.index = min(self.edit_point.index, self.current_line_length() - 1);
+        }
     }
 }
