@@ -23,7 +23,7 @@ fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
     };
 }
 
-fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+pub fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
