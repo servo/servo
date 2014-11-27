@@ -57,12 +57,7 @@ impl ErrorEvent {
                            ErrorEventBinding::Wrap)
     }
 
-<<<<<<< HEAD
     pub fn new(global: &GlobalRef,
-=======
-    /*pub fn new(window: JSRef<Window>,
-               global: &GlobalRef,
->>>>>>> moving init in constrictor
                type_: DOMString,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
@@ -71,7 +66,6 @@ impl ErrorEvent {
                lineno: u32,
                colno: u32,
                error: JSVal) -> Temporary<ErrorEvent> {
-<<<<<<< HEAD
         let ev = ErrorEvent::new_uninitialized(global).root();
         let event: JSRef<Event> = EventCast::from_ref(*ev);
         event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
@@ -83,12 +77,6 @@ impl ErrorEvent {
         ev.error.set(error);
         Temporary::from_rooted(*ev)
     }
-=======
-        //let ev = ErrorEvent::new_uninitialized(window).root();
-        //ev.InitErrorEvent(global.get_cx(),type_, can_bubble, cancelable, message, filename, lineno, colno, error);
-        //Temporary::from_rooted(*ev)
-    }*/
->>>>>>> moving init in constrictor
 
     pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
