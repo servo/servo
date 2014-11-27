@@ -25,7 +25,7 @@ impl WorkerNavigator {
 
     pub fn new(global: JSRef<WorkerGlobalScope>) -> Temporary<WorkerNavigator> {
         reflect_dom_object(box WorkerNavigator::new_inherited(),
-                           &Worker(global),
+                           Worker(global),
                            WorkerNavigatorBinding::Wrap)
     }
 }

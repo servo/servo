@@ -139,7 +139,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         let base = doc.url();
         // TODO: Handle browsing contexts
         // TODO: Handle validation
-        let event = Event::new(&Window(*win),
+        let event = Event::new(Window(*win),
                                "submit".to_string(),
                                Bubbles, Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);

@@ -210,7 +210,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn Console(self) -> Temporary<Console> {
         if self.console.get().is_none() {
-            let console = Console::new(&global::Window(self));
+            let console = Console::new(global::Window(self));
             self.console.assign(Some(console));
         }
         self.console.get().unwrap()

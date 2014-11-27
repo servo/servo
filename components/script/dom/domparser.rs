@@ -29,7 +29,7 @@ impl DOMParser {
     }
 
     pub fn new(window: JSRef<Window>) -> Temporary<DOMParser> {
-        reflect_dom_object(box DOMParser::new_inherited(window), &global::Window(window),
+        reflect_dom_object(box DOMParser::new_inherited(window), global::Window(window),
                            DOMParserBinding::Wrap)
     }
 

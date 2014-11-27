@@ -35,7 +35,7 @@ impl DOMRect {
                top: Au, bottom: Au,
                left: Au, right: Au) -> Temporary<DOMRect> {
         reflect_dom_object(box DOMRect::new_inherited(top, bottom, left, right),
-                           &global::Window(window), DOMRectBinding::Wrap)
+                           global::Window(window), DOMRectBinding::Wrap)
     }
 }
 

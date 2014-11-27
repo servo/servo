@@ -1118,7 +1118,7 @@ impl Node {
              wrap_fn:   extern "Rust" fn(*mut JSContext, &GlobalRef, Box<N>) -> Temporary<N>)
              -> Temporary<N> {
         let window = document.window().root();
-        reflect_dom_object(node, &global::Window(*window), wrap_fn)
+        reflect_dom_object(node, global::Window(*window), wrap_fn)
     }
 
     pub fn new_inherited(type_id: NodeTypeId, doc: JSRef<Document>) -> Node {

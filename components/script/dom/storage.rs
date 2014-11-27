@@ -21,7 +21,7 @@ impl Storage {
         }
     }
 
-    pub fn new(global: &GlobalRef) -> Temporary<Storage> {
+    pub fn new(global: GlobalRef) -> Temporary<Storage> {
         reflect_dom_object(box Storage::new_inherited(), global, StorageBinding::Wrap)
     }
 }

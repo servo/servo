@@ -43,7 +43,7 @@ impl MessageEvent {
         }
     }
 
-    pub fn new(global: &GlobalRef, type_: DOMString,
+    pub fn new(global: GlobalRef, type_: DOMString,
                bubbles: bool, cancelable: bool,
                data: JSVal, origin: DOMString, lastEventId: DOMString)
                -> Temporary<MessageEvent> {
@@ -59,7 +59,7 @@ impl MessageEvent {
                        type_: DOMString,
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Temporary<MessageEvent>> {
-        let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
+        let ev = MessageEvent::new(*global, type_, init.parent.bubbles, init.parent.cancelable,
                                    init.data, init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
     }
@@ -67,7 +67,7 @@ impl MessageEvent {
 
 impl MessageEvent {
     pub fn dispatch_jsval(target: JSRef<EventTarget>,
-                          scope: &GlobalRef,
+                          scope: GlobalRef,
                           message: JSVal) {
         let messageevent = MessageEvent::new(
             scope, "message".to_string(), false, false, message,
