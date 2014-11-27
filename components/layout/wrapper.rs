@@ -39,7 +39,7 @@ use util::{PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
-use script::dom::bindings::codegen::InheritTypes::{TextCast};
+use script::dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
@@ -508,7 +508,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 
     fn get_link(self) -> Option<&'le str> {
         // FIXME: This is HTML only.
-        match self.element.node().type_id_for_layout() {
+        match NodeCast::from_actual(self.element).type_id_for_layout() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
             ElementNodeTypeId(HTMLAnchorElementTypeId) |
@@ -525,7 +525,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
     fn get_hover_state(self) -> bool {
         unsafe {
-            self.element.node().get_hover_state_for_layout()
+            NodeCast::from_actual(self.element).get_hover_state_for_layout()
         }
     }
 
@@ -539,14 +539,14 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
     fn get_disabled_state(self) -> bool {
         unsafe {
-            self.element.node().get_disabled_state_for_layout()
+            NodeCast::from_actual(self.element).get_disabled_state_for_layout()
         }
     }
 
     #[inline]
     fn get_enabled_state(self) -> bool {
         unsafe {
-            self.element.node().get_enabled_state_for_layout()
+            NodeCast::from_actual(self.element).get_enabled_state_for_layout()
         }
     }
 
