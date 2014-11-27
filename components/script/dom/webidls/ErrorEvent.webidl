@@ -18,7 +18,3 @@ dictionary ErrorEventInit : EventInit {
   unsigned long colno;
   any error;
 };
-
-partial interface ErrorEvent {
-  // Deprecated in DOM Level 3
-};
