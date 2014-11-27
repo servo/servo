@@ -223,7 +223,16 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
-    make_setter!(SetValue, "value")
+    fn SetValue(self, value: DOMString) {
+        self.textinput.borrow_mut().set_content(value);
+        self.force_relayout();
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultvalue
+    make_getter!(DefaultValue, "value")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultvalue
+    make_setter!(SetDefaultValue, "value")
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
     make_getter!(Name)
