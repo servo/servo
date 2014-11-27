@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(default_type_params, globs, phase)]
+#![feature(default_type_params, globs, phase, slicing_syntax)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
@@ -32,6 +32,7 @@ pub mod image {
 
 pub mod about_loader;
 pub mod file_loader;
+pub mod http_cache;
 pub mod http_loader;
 pub mod data_loader;
 pub mod image_cache_task;
