@@ -8,14 +8,14 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::global;
+//use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary};
 use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, ErrorEventTypeId};
-use dom::window::Window;
+//use dom::window::Window;
 use servo_util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
@@ -53,9 +53,9 @@ impl ErrorEvent {
         }
     }
 
-    pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<ErrorEvent> {
+    pub fn new_uninitialized(global: &GlobalRef) -> Temporary<ErrorEvent> {
         reflect_dom_object(box ErrorEvent::new_inherited(ErrorEventTypeId),
-                           &global::Window(window),
+                           global,
                            ErrorEventBinding::Wrap)
     }
 
@@ -68,7 +68,7 @@ impl ErrorEvent {
                lineno: u32,
                colno: u32,
                error: JSVal) -> Temporary<ErrorEvent> {
-        let ev = ErrorEvent::new_uninitialized(global.as_window()).root();
+        let ev = ErrorEvent::new_uninitialized(global).root();
         let event: JSRef<Event> = EventCast::from_ref(*ev);
         event.InitEvent(type_, can_bubble, cancelable);
         *ev.message.borrow_mut() = message;
