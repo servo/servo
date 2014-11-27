@@ -17,6 +17,7 @@ extern crate test;
 use test::{AutoColor, TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
 use getopts::{getopts, reqopt};
 use std::comm::channel;
+use std::from_str::FromStr;
 use std::{os, str};
 use std::io::fs;
 use std::io::Reader;
@@ -34,14 +35,12 @@ fn main() {
     let args = os::args();
     let config = parse_config(args.into_iter().collect());
     let opts = test_options(&config);
-    let serve = run_http_server(&config);
-    let tests = find_tests(&config, serve.clone());
+    let tests = find_tests(&config);
     match run_tests_console(&opts, tests) {
         Ok(false) => os::set_exit_status(1), // tests failed
         Err(_) => os::set_exit_status(2),    // I/O-related failure
         _ => (),
     }
-    serve.send(Exit);
 }
 
 enum ServerMsg {
@@ -49,14 +48,14 @@ enum ServerMsg {
     Exit,
 }
 
-fn run_http_server(config: &Config) -> Sender<ServerMsg> {
+fn run_http_server(source_dir: String) -> (Sender<ServerMsg>, u16) {
     let (tx, rx) = channel();
-    let source_dir = config.source_dir.clone();
+    let (port_sender, port_receiver) = channel();
     task::spawn(proc() {
         let mut prc = match Command::new("python")
             .args(["../httpserver.py"])
             .stdin(Ignored)
-            .stdout(Ignored)
+            .stdout(CreatePipe(false, true))
             .stderr(Ignored)
             .cwd(&Path::new(source_dir))
             .spawn()
@@ -64,6 +63,20 @@ fn run_http_server(config: &Config) -> Sender<ServerMsg> {
             Ok(p) => p,
             _ => panic!("Unable to spawn server."),
         };
+
+        let mut bytes = vec!();
+        loop {
+            let byte = prc.stdout.as_mut().unwrap().read_byte().unwrap();
+            if byte == '\n' as u8 {
+                break;
+            } else {
+                bytes.push(byte);
+            }
+        }
+
+        let mut words = str::from_utf8(bytes.as_slice()).unwrap().split(' ');
+        let port = FromStr::from_str(words.last().unwrap()).unwrap();
+        port_sender.send(port);
 
         loop {
             match rx.recv() {
@@ -75,7 +88,7 @@ fn run_http_server(config: &Config) -> Sender<ServerMsg> {
             }
         }
     });
-    tx
+    (tx, port_receiver.recv())
 }
 
 fn parse_config(args: Vec<String>) -> Config {
@@ -108,31 +121,34 @@ fn test_options(config: &Config) -> TestOpts {
     }
 }
 
-fn find_tests(config: &Config, server: Sender<ServerMsg>) -> Vec<TestDescAndFn> {
+fn find_tests(config: &Config) -> Vec<TestDescAndFn> {
     let files_res = fs::readdir(&Path::new(config.source_dir.clone()));
     let mut files = match files_res {
         Ok(files) => files,
         _ => panic!("Error reading directory."),
     };
     files.retain(|file| file.extension_str() == Some("html") );
-    return files.iter().map(|file| make_test(format!("{}", file.display()), server.clone())).collect();
+    return files.iter().map(|file| make_test(format!("{}", file.display()),
+                                             config.source_dir.clone())).collect();
 }
 
-fn make_test(file: String, server: Sender<ServerMsg>) -> TestDescAndFn {
+fn make_test(file: String, source_dir: String) -> TestDescAndFn {
     TestDescAndFn {
         desc: TestDesc {
             name: DynTestName(file.clone()),
             ignore: false,
             should_fail: false
         },
-        testfn: DynTestFn(proc() { run_test(file, server) })
+        testfn: DynTestFn(proc() { run_test(file, source_dir) })
     }
 }
 
-fn run_test(file: String, server: Sender<ServerMsg>) {
+fn run_test(file: String, source_dir: String) {
+    let (server, port) = run_http_server(source_dir);
+
     let path = os::make_absolute(&Path::new(file));
     // FIXME (#1094): not the right way to transform a path
-    let infile = format!("http://localhost:8000/{}", path.filename_display());
+    let infile = format!("http://localhost:{}/{}", port, path.filename_display());
     let stdout = CreatePipe(false, true);
     let stderr = InheritFd(2);
     let args = ["-z", "-f", infile.as_slice()];
@@ -162,6 +178,8 @@ fn run_test(file: String, server: Sender<ServerMsg>) {
             _ => break
         }
     }
+
+    server.send(Exit);
 
     let out = str::from_utf8(output.as_slice());
     let lines: Vec<&str> = out.unwrap().split('\n').collect();

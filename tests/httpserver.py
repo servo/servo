@@ -1,9 +1,10 @@
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 import SocketServer
 import os
+import sys
 from collections import defaultdict
 
-PORT = 8000
+PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 0
 
 requests = defaultdict(int)
 
@@ -106,6 +107,9 @@ class MyTCPServer(SocketServer.TCPServer):
     allow_reuse_address = True
 
 httpd = MyTCPServer(("", PORT), CountingRequestHandler)
+if not PORT:
+    ip, PORT = httpd.server_address
 
 print "serving at port", PORT
+sys.stdout.flush()
 httpd.serve_forever()
