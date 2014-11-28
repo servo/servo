@@ -1,7 +1,5 @@
 /.cargo/config
-/target
-/rust
-/cargo
+/components/servo/target
 /ports/cef/target
 /ports/android/bin
 /ports/android/libs
@@ -16,7 +14,7 @@
 /components/script/dom/bindings/codegen/UnionTypes.h
 /components/script/dom/bindings/codegen/UnionConversions.h
 /.servobuild
-/_virtualenv
+/tests/wpt/_virtualenv
 *~
 *#
 *.o

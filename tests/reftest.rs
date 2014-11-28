@@ -248,7 +248,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 
 fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     let png_filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
-    let mut command = Command::new("target/servo");
+    let mut command = Command::new("components/servo/target/servo");
     command
         .args(reftest.servo_args.as_slice())
         // Allows pixel perfect rendering of Ahem font for reftests.

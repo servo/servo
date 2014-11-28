@@ -22,7 +22,7 @@ class MachCommands(CommandBase):
         help="Command-line arguments to be passed through to Cargo")
     def cargo(self, params):
         return subprocess.call(["cargo"] + params,
-                               env=self.build_env())
+                               env=self.build_env(), cwd="components/servo")
 
     @Command('update-cargo',
              description='Update Cargo dependencies',

@@ -17,11 +17,15 @@ pub fn resources_dir_path() -> Path {
 
 #[cfg(not(target_os = "android"))]
 pub fn resources_dir_path() -> Path {
-    // FIXME: Find a way to not rely on the executable being under `<servo source>/target`.
+    // FIXME: Find a way to not rely on the executable being
+    // under `<servo source>/components/servo/target`
+    // or `<servo source>/components/servo/target/release`.
     let mut path = os::self_exe_path().expect("can't get exe path");
     path.pop();
+    path.pop();
+    path.pop();
     path.push("resources");
-    if !path.is_dir() {
+    if !path.is_dir() {  // self_exe_path() is probably in .../target/release
         path.pop();
         path.pop();
         path.push("resources");

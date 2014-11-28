@@ -6,22 +6,24 @@ authors = ["The Servo Project Developers"]
 
 [lib]
 name = "servo"
+path = "lib.rs"
 crate-type = ["rlib"]
 
 [[bin]]
 name = "servo"
+path = "main.rs"
 test = false
 doc = false
 bench = false
 
 [[test]]
 name = "reftest"
-path = "tests/reftest.rs"
+path = "../../tests/reftest.rs"
 harness = false
 
 [[test]]
 name = "contenttest"
-path = "tests/contenttest.rs"
+path = "../../tests/contenttest.rs"
 harness = false
 
 [features]
@@ -29,32 +31,32 @@ default = ["glfw_app"]
 glutin = ["glutin_app"]
 
 [dependencies.compositing]
-path = "components/compositing"
+path = "../compositing"
 
 [dependencies.net]
-path = "components/net"
+path = "../net"
 
 [dependencies.msg]
-path = "components/msg"
+path = "../msg"
 
 [dependencies.util]
-path = "components/util"
+path = "../util"
 
 [dependencies.script]
-path = "components/script"
+path = "../script"
 
 [dependencies.layout]
-path = "components/layout"
+path = "../layout"
 
 [dependencies.gfx]
-path = "components/gfx"
+path = "../gfx"
 
 [dependencies.glfw_app]
-path = "ports/glfw"
+path = "../../ports/glfw"
 optional = true
 
 [dependencies.glutin_app]
-path = "ports/glutin"
+path = "../../ports/glutin"
 optional = true
 
 [dependencies.url]

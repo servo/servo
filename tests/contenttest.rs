@@ -99,7 +99,7 @@ fn run_test(file: String) {
     let stderr = InheritFd(2);
     let args = ["-z", "-f", infile.as_slice()];
 
-    let mut prc = match Command::new("target/servo")
+    let mut prc = match Command::new("components/servo/target/servo")
         .args(args)
         .stdin(Ignored)
         .stdout(stdout)

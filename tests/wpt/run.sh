@@ -4,22 +4,22 @@
 
 set -e
 
-servo_root=$(pwd)
+wpt_root=$(dirname $0)
 
 PYTHON=$(which python2 2> /dev/null || echo python)
 VIRTUALENV=$(which virtualenv2 2> /dev/null || echo virtualenv)
 
-test -d _virtualenv || $VIRTUALENV _virtualenv -p $PYTHON
-test -d $servo_root/tests/wpt/metadata || mkdir -p $servo_root/tests/wpt/metadata
-test -d $servo_root/tests/wpt/prefs || mkdir -p $servo_root/tests/wpt/prefs
-source _virtualenv/bin/activate
+test -d $wpt_root/_virtualenv || $VIRTUALENV $wpt_root/_virtualenv -p $PYTHON
+test -d $wpt_root/metadata || mkdir -p $wpt_root/metadata
+test -d $wpt_root/prefs || mkdir -p $wpt_root/prefs
+source $wpt_root/_virtualenv/bin/activate
 if [[ $* == *--update-manifest* ]]; then
     (python -c "import html5lib" &>/dev/null) || pip install html5lib
 fi
 (python -c "import wptrunner"  &>/dev/null) || pip install 'wptrunner==1.7'
 
-python $servo_root/tests/wpt/run.py \
-  --config $servo_root/tests/wpt/config.ini \
-  --binary target/servo \
+python $wpt_root/run.py \
+  --config $wpt_root/config.ini \
+  --binary $wpt_root/../../components/servo/target/servo \
   --log-mach - \
   "$@"
