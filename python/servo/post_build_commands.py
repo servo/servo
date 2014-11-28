@@ -66,7 +66,7 @@ class MachCommands(CommandBase):
              description='Generate documentation',
              category='post-build')
     @CommandArgument(
-        'params', default=None, nargs='...',
+        'params', nargs='...',
         help="Command-line arguments to be passed through to cargo doc")
     def doc(self, params):
         self.ensure_bootstrapped()
