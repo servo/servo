@@ -1487,26 +1487,19 @@ mod property_bit_field {
         fn set(&mut self, bit: uint) {
             self.storage[bit / uint::BITS] |= 1 << (bit % uint::BITS)
         }
-        #[inline]
-        fn clear(&mut self, bit: uint) {
-            self.storage[bit / uint::BITS] &= !(1 << (bit % uint::BITS))
-        }
         % for i, property in enumerate(LONGHANDS):
-            #[allow(non_snake_case)]
-            #[inline]
-            pub fn get_${property.ident}(&self) -> bool {
-                self.get(${i})
-            }
-            #[allow(non_snake_case)]
-            #[inline]
-            pub fn set_${property.ident}(&mut self) {
-                self.set(${i})
-            }
-            #[allow(non_snake_case)]
-            #[inline]
-            pub fn clear_${property.ident}(&mut self) {
-                self.clear(${i})
-            }
+            % if property.derived_from is None:
+                #[allow(non_snake_case)]
+                #[inline]
+                pub fn get_${property.ident}(&self) -> bool {
+                    self.get(${i})
+                }
+                #[allow(non_snake_case)]
+                #[inline]
+                pub fn set_${property.ident}(&mut self) {
+                    self.set(${i})
+                }
+            % endif
         % endfor
     }
 }
