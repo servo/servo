@@ -102,18 +102,11 @@ class MachCommands(CommandBase):
         return subprocess.call(["cargo", "doc"] + params,
                                env=self.build_env(), cwd=self.servo_crate())
 
-    @Command('serve-docs',
-             description='Locally serve Servo and Rust documentation',
+    @Command('browse-doc',
+             description='Generate documentation and open it in a web browser',
              category='post-build')
-    @CommandArgument(
-        'port', default=8888, nargs='?', type=int, metavar='PORT',
-        help="Port to serve documentation at (default is 8888)")
-    def serve_docs(self, port):
+    def serve_docs(self):
         self.doc([])
-        chdir(path.join("components", "servo", "target", "doc"))
-        Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
-
-        httpd = SocketServer.TCPServer(("", port), Handler)
-
-        print("serving at port", port)
-        httpd.serve_forever()
+        import webbrowser
+        webbrowser.open("file://" + path.abspath(path.join(
+            "target", "doc", "servo", "index.html")))
