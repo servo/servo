@@ -22,7 +22,7 @@ interface HTMLElement : Element {
   //         attribute any itemValue; // acts as DOMString on setting
 
   // user interaction
-  //         attribute boolean hidden;
+           attribute boolean hidden;
   //void click();
   //         attribute long tabIndex;
   //void focus();
