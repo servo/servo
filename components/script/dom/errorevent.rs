@@ -8,14 +8,12 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-//use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary};
 use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId, ErrorEventTypeId};
-//use dom::window::Window;
 use servo_util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
