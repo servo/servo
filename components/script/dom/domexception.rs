@@ -107,28 +107,30 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
 
     // http://dom.spec.whatwg.org/#error-names-0
     fn Message(self) -> DOMString {
-        match self.code {
-            IndexSizeError => "The index is not in the allowed range.".to_string(),
-            HierarchyRequestError => "The operation would yield an incorrect node tree.".to_string(),
-            WrongDocumentError => "The object is in the wrong document.".to_string(),
-            InvalidCharacterError => "The string contains invalid characters.".to_string(),
-            NoModificationAllowedError => "The object can not be modified.".to_string(),
-            NotFoundError => "The object can not be found here.".to_string(),
-            NotSupportedError => "The operation is not supported.".to_string(),
-            InvalidStateError => "The object is in an invalid state.".to_string(),
-            SyntaxError => "The string did not match the expected pattern.".to_string(),
-            InvalidModificationError => "The object can not be modified in this way.".to_string(),
-            NamespaceError => "The operation is not allowed by Namespaces in XML.".to_string(),
-            InvalidAccessError => "The object does not support the operation or argument.".to_string(),
-            SecurityError => "The operation is insecure.".to_string(),
-            NetworkError => "A network error occurred.".to_string(),
-            AbortError => "The operation was aborted.".to_string(),
-            URLMismatchError => "The given URL does not match another URL.".to_string(),
-            QuotaExceededError => "The quota has been exceeded.".to_string(),
-            TimeoutError => "The operation timed out.".to_string(),
-            InvalidNodeTypeError => "The supplied node is incorrect or has an incorrect ancestor for this operation.".to_string(),
-            DataCloneError => "The object can not be cloned.".to_string(),
-            EncodingError => "The encoding operation (either encoded or decoding) failed.".to_string()
-        }
+        let message = match self.code {
+            IndexSizeError => "The index is not in the allowed range.",
+            HierarchyRequestError => "The operation would yield an incorrect node tree.",
+            WrongDocumentError => "The object is in the wrong document.",
+            InvalidCharacterError => "The string contains invalid characters.",
+            NoModificationAllowedError => "The object can not be modified.",
+            NotFoundError => "The object can not be found here.",
+            NotSupportedError => "The operation is not supported.",
+            InvalidStateError => "The object is in an invalid state.",
+            SyntaxError => "The string did not match the expected pattern.",
+            InvalidModificationError => "The object can not be modified in this way.",
+            NamespaceError => "The operation is not allowed by Namespaces in XML.",
+            InvalidAccessError => "The object does not support the operation or argument.",
+            SecurityError => "The operation is insecure.",
+            NetworkError => "A network error occurred.",
+            AbortError => "The operation was aborted.",
+            URLMismatchError => "The given URL does not match another URL.",
+            QuotaExceededError => "The quota has been exceeded.",
+            TimeoutError => "The operation timed out.",
+            InvalidNodeTypeError => "The supplied node is incorrect or has an incorrect ancestor for this operation.",
+            DataCloneError => "The object can not be cloned.",
+            EncodingError => "The encoding operation (either encoded or decoding) failed."
+        };
+
+        message.to_string()
     }
 }
