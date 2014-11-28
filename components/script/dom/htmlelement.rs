@@ -50,11 +50,6 @@ impl HTMLElement {
         let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
-
-    #[inline]
-    pub fn element<'a>(&'a self) -> &'a Element {
-        &self.element
-    }
 }
 
 trait PrivateHTMLElementHelpers {

@@ -66,11 +66,6 @@ impl UIEvent {
                                  init.view.root_ref(), init.detail);
         Ok(event)
     }
-
-    #[inline]
-    pub fn event<'a>(&'a self) -> &'a Event {
-        &self.event
-    }
 }
 
 impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
