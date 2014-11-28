@@ -5185,7 +5185,8 @@ class GlobalGenRoots():
                      CGGeneric("use dom::bindings::js::{JS, JSRef, Temporary};\n"),
                      CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
                      CGGeneric("use dom::bindings::utils::Reflectable;\n"),
-                     CGGeneric("use js::jsapi::JSTracer;\n\n")]
+                     CGGeneric("use js::jsapi::JSTracer;\n\n"),
+                     CGGeneric("use std::mem;\n\n")]
         for descriptor in descriptors:
             name = descriptor.name
             protos = [CGGeneric('pub trait %s {}\n' % (name + 'Base'))]
@@ -5199,13 +5200,13 @@ class GlobalGenRoots():
                 delegate = string.Template('''impl ${selfName} for ${baseName} {
   #[inline]
   fn ${fname}(&self) -> bool {
-    self.${parentName}().${fname}()
+    ${parentName}Cast::from_actual(self).${fname}()
   }
 }
 ''').substitute({'fname': 'is_' + name.lower(),
                  'selfName': name + 'Derived',
                  'baseName': protoDescriptor.concreteType,
-                 'parentName': protoDescriptor.prototypeChain[-2].lower()})
+                 'parentName': protoDescriptor.prototypeChain[-2]})
                 derived += [CGGeneric(delegate)]
             derived += [CGGeneric('\n')]
 
@@ -5250,6 +5251,11 @@ class GlobalGenRoots():
   #[inline(always)]
   fn from_temporary<T: ${fromBound}+Reflectable>(derived: Temporary<T>) -> Temporary<Self> {
     unsafe { derived.transmute() }
+  }
+
+  #[inline(always)]
+  fn from_actual<'a, T: ${fromBound}+Reflectable>(derived: &T) -> &'a Self {
+    unsafe { mem::transmute(derived) }
   }
 }
 ''').substitute({'checkFn': 'is_' + name.lower(),

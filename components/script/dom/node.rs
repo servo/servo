@@ -1150,11 +1150,6 @@ impl Node {
     }
 
     #[inline]
-    pub fn eventtarget<'a>(&'a self) -> &'a EventTarget {
-        &self.eventtarget
-    }
-
-    #[inline]
     pub fn layout_data(&self) -> Ref<Option<LayoutData>> {
         self.layout_data.borrow()
     }

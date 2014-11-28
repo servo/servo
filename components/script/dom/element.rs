@@ -184,11 +184,6 @@ impl Element {
     }
 
     #[inline]
-    pub fn node<'a>(&'a self) -> &'a Node {
-        &self.node
-    }
-
-    #[inline]
     pub fn local_name<'a>(&'a self) -> &'a Atom {
         &self.local_name
     }
