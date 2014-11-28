@@ -33,6 +33,7 @@ pub mod image {
 pub mod about_loader;
 pub mod file_loader;
 pub mod http_loader;
+pub mod ws_loader;
 pub mod data_loader;
 pub mod image_cache_task;
 pub mod local_image_cache;

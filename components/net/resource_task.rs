@@ -16,6 +16,7 @@ use http::headers::response::HeaderCollection as ResponseHeaderCollection;
 use http::headers::request::HeaderCollection as RequestHeaderCollection;
 use http::method::{Method, Get};
 use url::Url;
+use ws_loader;
 
 use http::status::Ok as StatusOk;
 use http::status::Status;
@@ -215,6 +216,7 @@ impl ResourceManager {
         let loader = match load_data.url.scheme.as_slice() {
             "file" => file_loader::factory,
             "http" | "https" => http_loader::factory,
+            "ws" => ws_loader::factory,
             "data" => data_loader::factory,
             "about" => about_loader::factory,
             _ => {
