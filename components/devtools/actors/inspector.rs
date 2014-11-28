@@ -116,7 +116,7 @@ impl Actor for NodeActor {
                                                       registry.actor_to_script(target.to_string()),
                                                       modifications));
                 let reply = ModifyAttributeReply{
-                    from:self.name(),
+                    from: self.name(),
                 };
                 stream.write_json_packet(&reply);
                 true

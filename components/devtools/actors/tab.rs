@@ -102,7 +102,7 @@ impl Actor for TabActor {
                 true
             }
 
-            //FIXME: The current implemnetation won't work for multiple connections. Need to ensure
+            //FIXME: The current implementation won't work for multiple connections. Need to ensure
             //       that the correct stream is removed.
             "detach" => {
                 let msg = TabDetachedReply {
