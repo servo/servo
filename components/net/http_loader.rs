@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Metadata, Payload, Done, LoadResponse, LoadData, start_sending_opt};
+use resource_task::{Metadata, Payload, Done, TargetedLoadResponse, LoadData, start_sending_opt, ResponseSenders};
 
 use log;
 use std::collections::HashSet;
@@ -12,21 +12,21 @@ use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::Url;
 
-pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     spawn_named("http_loader", proc() load(load_data, start_chan))
 }
 
-fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
+fn send_error(url: Url, err: String, senders: ResponseSenders) {
     let mut metadata = Metadata::default(url);
     metadata.status = None;
 
-    match start_sending_opt(start_chan, metadata) {
+    match start_sending_opt(senders, metadata) {
         Ok(p) => p.send(Done(Err(err))),
         _ => {}
     };
 }
 
-fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
+fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -35,17 +35,22 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
 
+    let senders = ResponseSenders {
+        immediate_consumer: start_chan,
+        eventual_consumer: load_data.consumer
+    };
+
     // Loop to handle redirects.
     loop {
         iters = iters + 1;
 
         if iters > max_redirects {
-            send_error(url, "too many redirects".to_string(), start_chan);
+            send_error(url, "too many redirects".to_string(), senders);
             return;
         }
 
         if redirected_to.contains(&url) {
-            send_error(url, "redirect loop".to_string(), start_chan);
+            send_error(url, "redirect loop".to_string(), senders);
             return;
         }
 
@@ -55,7 +60,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
             "http" | "https" => {}
             _ => {
                 let s = format!("{:s} request, but we don't support that scheme", url.scheme);
-                send_error(url, s, start_chan);
+                send_error(url, s, senders);
                 return;
             }
         }
@@ -66,7 +71,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let mut writer = match request {
             Ok(w) => box w,
             Err(e) => {
-                send_error(url, e.desc.to_string(), start_chan);
+                send_error(url, e.desc.to_string(), senders);
                 return;
             }
         };
@@ -84,7 +89,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 writer.headers.content_length = Some(data.len());
                 match writer.write(data.as_slice()) {
                     Err(e) => {
-                        send_error(url, e.desc.to_string(), start_chan);
+                        send_error(url, e.desc.to_string(), senders);
                         return;
                     }
                     _ => {}
@@ -95,7 +100,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         let mut response = match writer.read_response() {
             Ok(r) => r,
             Err((_, e)) => {
-                send_error(url, e.desc.to_string(), start_chan);
+                send_error(url, e.desc.to_string(), senders);
                 return;
             }
         };
@@ -116,7 +121,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                         Some(ref c) => {
                             if c.preflight {
                                 // The preflight lied
-                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), start_chan);
+                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), senders);
                                 return;
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
@@ -138,7 +143,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         metadata.headers = Some(response.headers.clone());
         metadata.status = Some(response.status.clone());
 
-        let progress_chan = match start_sending_opt(start_chan, metadata) {
+        let progress_chan = match start_sending_opt(senders, metadata) {
             Ok(p) => p,
             _ => return
         };

@@ -5,25 +5,25 @@
 //! A task that sniffs data
 use std::comm::{channel, Receiver, Sender, Disconnected};
 use std::task::TaskBuilder;
-use resource_task::{LoadResponse};
+use resource_task::{TargetedLoadResponse};
 
-pub type SnifferTask = Sender<LoadResponse>;
+pub type SnifferTask = Sender<TargetedLoadResponse>;
 
-pub fn new_sniffer_task(next_rx: Sender<LoadResponse>) -> SnifferTask {
-    let (sen, rec) = channel();
+pub fn new_sniffer_task() -> SnifferTask {
+    let(sen, rec) = channel();
     let builder = TaskBuilder::new().named("SnifferManager");
     builder.spawn(proc() {
-        SnifferManager::new(rec).start(next_rx);
+        SnifferManager::new(rec).start();
     });
     sen
 }
 
 struct SnifferManager {
-    data_receiver: Receiver<LoadResponse>,
+    data_receiver: Receiver<TargetedLoadResponse>,
 }
 
 impl SnifferManager {
-    fn new(data_receiver: Receiver<LoadResponse>) -> SnifferManager {
+    fn new(data_receiver: Receiver <TargetedLoadResponse>) -> SnifferManager {
         SnifferManager {
             data_receiver: data_receiver,
         }
@@ -31,11 +31,11 @@ impl SnifferManager {
 }
 
 impl SnifferManager {
-    fn start(self, next_rx: Sender<LoadResponse>) {
+    fn start(self) {
         loop {
             match self.data_receiver.try_recv() {
                 Ok(snif_data) => {
-                    let result = next_rx.send_opt(snif_data);
+                    let result = snif_data.consumer.send_opt(snif_data.load_response);
                     if result.is_err() {
                         break;
                     }

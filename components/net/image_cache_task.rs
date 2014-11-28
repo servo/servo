@@ -443,7 +443,7 @@ impl ImageCacheTask {
 
 fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()> {
     let (response_chan, response_port) = channel();
-    resource_task.send(resource_task::Load(LoadData::new(url), response_chan));
+    resource_task.send(resource_task::Load(LoadData::new(url, response_chan)));
 
     let mut image_data = vec!();
 
@@ -481,7 +481,8 @@ mod tests {
     use super::*;
 
     use resource_task;
-    use resource_task::{ResourceTask, Metadata, start_sending};
+    use resource_task::{ResourceTask, Metadata, start_sending, ResponseSenders};
+    use sniffer_task;
     use image::base::test_image_bin;
     use servo_util::taskpool::TaskPool;
     use std::comm;
@@ -557,8 +558,13 @@ mod tests {
         spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
-                    resource_task::Load(_, response) => {
-                        let chan = start_sending(response, Metadata::default(
+                    resource_task::Load(response) => {
+                        let sniffer_task = sniffer_task::new_sniffer_task();
+                        let senders = ResponseSenders {
+                            immediate_consumer: sniffer_task,
+                            eventual_consumer: response.consumer.clone(),
+                        };
+                        let chan = start_sending(senders, Metadata::default(
                             Url::parse("file:///fake").unwrap()));
                         on_load.invoke(chan);
                     }
@@ -708,8 +714,13 @@ mod tests {
         let mock_resource_task = spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
-                    resource_task::Load(_, response) => {
-                        let chan = start_sending(response, Metadata::default(
+                    resource_task::Load(response) => {
+                        let sniffer_task = sniffer_task::new_sniffer_task();
+                        let senders = ResponseSenders {
+                            immediate_consumer: sniffer_task,
+                            eventual_consumer: response.consumer.clone(),
+                        };
+                        let chan = start_sending(senders, Metadata::default(
                             Url::parse("file:///fake").unwrap()));
                         chan.send(resource_task::Payload(test_image_bin()));
                         chan.send(resource_task::Done(Ok(())));
@@ -755,8 +766,13 @@ mod tests {
         let mock_resource_task = spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
-                    resource_task::Load(_, response) => {
-                        let chan = start_sending(response, Metadata::default(
+                    resource_task::Load(response) => {
+                        let sniffer_task = sniffer_task::new_sniffer_task();
+                        let senders = ResponseSenders {
+                            immediate_consumer: sniffer_task,
+                            eventual_consumer: response.consumer.clone(),
+                        };
+                        let chan = start_sending(senders, Metadata::default(
                             Url::parse("file:///fake").unwrap()));
                         chan.send(resource_task::Payload(test_image_bin()));
                         chan.send(resource_task::Done(Err("".to_string())));
