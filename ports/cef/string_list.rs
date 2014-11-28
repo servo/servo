@@ -4,7 +4,7 @@
 
 use libc::{c_int};
 use std::mem;
-use string::{cef_string_userfree_utf8_alloc,cef_string_userfree_utf8_free,cef_string_utf8_set};
+use string::{cef_string_userfree_utf16_alloc,cef_string_userfree_utf16_free,cef_string_utf16_set};
 use types::{cef_string_list_t,cef_string_t};
 
 
@@ -36,8 +36,8 @@ pub extern "C" fn cef_string_list_append(lt: *mut cef_string_list_t, value: *con
     unsafe {
         if lt.is_null() { return; }
         let v = string_list_to_vec(lt);
-        let cs = cef_string_userfree_utf8_alloc();
-        cef_string_utf8_set(mem::transmute((*value).str), (*value).length, cs, 1);
+        let cs = cef_string_userfree_utf16_alloc();
+        cef_string_utf16_set(mem::transmute((*value).str), (*value).length, cs, 1);
         (*v).push(cs);
     }
 }
@@ -49,7 +49,7 @@ pub extern "C" fn cef_string_list_value(lt: *mut cef_string_list_t, index: c_int
         let v = string_list_to_vec(lt);
         if index as uint > (*v).len() - 1 { return 0; }
         let cs = (*v)[index as uint];
-        cef_string_utf8_set(mem::transmute((*cs).str), (*cs).length, value, 1)
+        cef_string_utf16_set(mem::transmute((*cs).str), (*cs).length, value, 1)
     }
 }
 
@@ -62,7 +62,7 @@ pub extern "C" fn cef_string_list_clear(lt: *mut cef_string_list_t) {
         let mut cs;
         while (*v).len() != 0 {
             cs = (*v).pop();
-            cef_string_userfree_utf8_free(cs.unwrap());
+            cef_string_userfree_utf16_free(cs.unwrap());
         }
     }
 }

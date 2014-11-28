@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use interfaces::cef_command_line_t;
+
 use libc::{calloc, c_int, size_t};
 use std::mem;
 use std::string;
 use std::c_vec::CVec;
-use string::{cef_string_userfree_utf16_alloc, cef_string_utf16_set};
-use types::{cef_command_line_t, cef_string_t, cef_string_userfree_t, cef_string_utf16_t};
+use string as cef_string;
+use string::cef_string_utf16_set;
+use types::{cef_string_t, cef_string_userfree_t, cef_string_utf16_t};
 
 type command_line_t = command_line;
 struct command_line {
@@ -41,9 +44,9 @@ pub fn command_line_init(argc: c_int, argv: *const *const u8) {
 }
 
 #[no_mangle]
-pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, name: *const cef_string_t) -> *mut cef_string_userfree_t {
+pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, name: *const cef_string_t) -> cef_string_userfree_t {
     if cmd.is_null() || name.is_null() {
-        return 0 as *mut cef_string_userfree_t;
+        return cef_string::empty_utf16_string()
     }
     unsafe {
         //technically cef_string_t can be any type of character size
@@ -56,16 +59,19 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
             let o = s.as_slice().trim_left_chars('-');
             //debug!("arg: {}", o);
             if o.as_slice().starts_with(opt.as_slice()) {
-                let string = cef_string_userfree_utf16_alloc() as *mut cef_string_utf16_t;
+                let mut string = mem::uninitialized();
                 let arg = o.slice_from(opt.len() + 1).as_bytes();
                 arg.with_c_str(|c_str| {
-                    cef_string_utf16_set(mem::transmute(c_str), arg.len() as size_t, string, 1);
+                    cef_string_utf16_set(mem::transmute(c_str),
+                                         arg.len() as size_t,
+                                         &mut string,
+                                         1);
                 });
-                return string as *mut cef_string_userfree_t
+                return string
             }
         }
     }
-    return 0 as *mut cef_string_userfree_t;
+    return cef_string::empty_utf16_string()
 }
 
 #[no_mangle]
@@ -90,3 +96,9 @@ pub extern "C" fn cef_command_line_get_global() -> *mut cef_command_line_t {
         }
     }
 }
+
+cef_stub_static_method_impls! {
+    fn cef_command_line_create_command_line() -> *mut cef_command_line_t;
+    fn cef_command_line_get_global_command_line() -> *mut cef_command_line_t;
+}
+
