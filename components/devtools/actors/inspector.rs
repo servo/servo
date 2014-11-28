@@ -6,7 +6,6 @@
 
 use devtools_traits::{GetRootNode, GetDocumentElement, GetChildren, DevtoolScriptControlMsg};
 use devtools_traits::{GetLayout, NodeInfo, ModifyAttribute};
-use devtools_traits::Modification;
 
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketSender;
@@ -59,7 +58,7 @@ struct HideBoxModelReply {
 }
 
 impl Actor for HighlighterActor {
-        fn name(&self) -> String {
+    fn name(&self) -> String {
         self.name.clone()
     }
 
@@ -92,7 +91,7 @@ impl Actor for HighlighterActor {
 
 #[deriving(Encodable)]
 struct ModifyAttributeReply{
-    to: String,
+    from: String,
 }
 
 impl Actor for NodeActor {
@@ -101,27 +100,25 @@ impl Actor for NodeActor {
     }
 
     fn handle_message(&self,
-                      _registry: &ActorRegistry,
+                      registry: &ActorRegistry,
                       msg_type: &String,
-                      _msg: &json::JsonObject,
+                      msg: &json::JsonObject,
                       stream: &mut TcpStream) -> bool {
         match msg_type.as_slice() {
             "modifyAttributes" => {
-                let target = _msg.find(&"to".to_string()).unwrap().as_string().unwrap();
-                let _mods = _msg.find(&"modifications".to_string()).unwrap().as_list().unwrap();
-                let mut modifications: Vec<Modification> = Vec::new();
-                for json_mod in _mods.iter() {
-                    let modification: Modification = json::decode(json_mod.to_string().as_slice()).unwrap();
-                    modifications.push(modification);
-                }
+                let target = msg.find(&"to".to_string()).unwrap().as_string().unwrap();
+                let mods = msg.find(&"modifications".to_string()).unwrap().as_list().unwrap();
+                let modifications = mods.iter().map(|json_mod| {
+                    json::decode(json_mod.to_string().as_slice()).unwrap()
+                }).collect();
 
                 self.script_chan.send(ModifyAttribute(self.pipeline,
-                                                _registry.actor_to_script(target.to_string()),
-                                                modifications));
-                let msg = ModifyAttributeReply{
-                    to:target.to_string(),
+                                                      registry.actor_to_script(target.to_string()),
+                                                      modifications));
+                let reply = ModifyAttributeReply{
+                    from:self.name(),
                 };
-                stream.write_json_packet(&msg);
+                stream.write_json_packet(&reply);
                 true
             }
 
@@ -178,13 +175,19 @@ struct NodeActorMsg {
 }
 
 trait NodeInfoToProtocol {
-    fn encode(self, actors: &ActorRegistry, display: bool,
-        script_chan: Sender<DevtoolScriptControlMsg>, pipeline: PipelineId) -> NodeActorMsg;
+    fn encode(self,
+              actors: &ActorRegistry,
+              display: bool,
+              script_chan: Sender<DevtoolScriptControlMsg>,
+              pipeline: PipelineId) -> NodeActorMsg;
 }
 
 impl NodeInfoToProtocol for NodeInfo {
-    fn encode(self, actors: &ActorRegistry, display: bool,
-        script_chan: Sender<DevtoolScriptControlMsg>, pipeline: PipelineId) -> NodeActorMsg {
+    fn encode(self,
+              actors: &ActorRegistry,
+              display: bool,
+              script_chan: Sender<DevtoolScriptControlMsg>,
+              pipeline: PipelineId) -> NodeActorMsg {
         let actor_name = if !actors.script_actor_registered(self.uniqueId.clone()) {
             let name = actors.new_name("node");
             let node_actor = NodeActor {

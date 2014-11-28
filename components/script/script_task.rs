@@ -13,7 +13,6 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast, ElementCast};
 use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
-use dom::bindings::error::Error;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
@@ -630,18 +629,12 @@ impl ScriptTask {
         let node = self.find_node_by_unique_id(pipeline, node_id).root();
         let elem: JSRef<Element> = ElementCast::to_ref(*node).expect("should be getting layout of element");
 
-        for _modification in modifications.iter(){
-            match _modification.newValue {
+        for modification in modifications.iter(){
+            match modification.newValue {
                 Some(ref string) => {
-                    let result: Result<(), Error> = elem.SetAttribute(_modification.attributeName.clone(), string.clone());
-                    let result = match result {
-                        Ok(result) => result,
-                        Err(e) => {
-                          //TBD: Error handling
-                        },
-                    };
+                    let _ = elem.SetAttribute(modification.attributeName.clone(), string.clone());
                 },
-                None => elem.RemoveAttribute(_modification.attributeName.clone()),
+                None => elem.RemoveAttribute(modification.attributeName.clone()),
             }
         }
     }

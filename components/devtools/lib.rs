@@ -91,7 +91,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
 
     let mut accepted_connections: Vec<TcpStream> = Vec::new();
 
-    let mut _actor_pipelines: HashMap<PipelineId, String> = HashMap::new();
+    let mut actor_pipelines: HashMap<PipelineId, String> = HashMap::new();
 
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
@@ -142,7 +142,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
     fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
                          pipeline: PipelineId,
                          sender: Sender<DevtoolScriptControlMsg>,
-                         mut actor_pipelines: HashMap<PipelineId, String>) {
+                         actor_pipelines: &mut HashMap<PipelineId, String>) {
         let mut actors = actors.lock();
         //TODO: move all this actor creation into a constructor method on TabActor
         let (tab, console, inspector) = {
@@ -191,7 +191,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Err(ref e) if e.kind == TimedOut => {
                 match receiver.try_recv() {
                     Ok(ServerExitMsg) | Err(Disconnected) => break,
-                    Ok(NewGlobal(id, sender)) => handle_new_global(actors.clone(), id, sender, _actor_pipelines.clone()),
+                    Ok(NewGlobal(id, sender)) => handle_new_global(actors.clone(), id, sender, &mut actor_pipelines),
                     Err(Empty) => acceptor.set_timeout(Some(POLL_TIMEOUT)),
                 }
             }
