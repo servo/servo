@@ -46,7 +46,7 @@ pub use properties::{cascade, cascade_anonymous, computed};
 pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style_structs};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
-pub use properties::{longhands, Angle, AngleOrCorner, AngleAoc, CornerAoc};
+pub use properties::{Angle, AngleOrCorner, AngleAoc, CornerAoc};
 pub use properties::{Left, Right, Bottom, Top};
 pub use node::{TElement, TElementAttributes, TNode};
 pub use selectors::{PseudoElement, Before, After, SelectorList, parse_selector_list_from_str};
