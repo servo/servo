@@ -200,13 +200,13 @@ pub fn parse_html(page: &Page,
         InputUrl(ref url) => {
             // Wait for the LoadResponse so that the parser knows the final URL.
             let (input_chan, input_port) = channel();
-            let mut load_data = LoadData::new(url.clone());
+            let mut load_data = LoadData::new(url.clone(), input_chan);
             msg_load_data.map(|m| {
                 load_data.headers = m.headers;
                 load_data.method = m.method;
                 load_data.data = m.data;
             });
-            resource_task.send(Load(load_data, input_chan));
+            resource_task.send(Load(load_data));
 
             let load_response = input_port.recv();
 
