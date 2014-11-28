@@ -75,6 +75,10 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     make_getter!(Lang)
     make_setter!(SetLang, "lang")
 
+    // http://html.spec.whatwg.org/multipage/#dom-hidden
+    make_bool_getter!(Hidden)
+    make_bool_setter!(SetHidden, "hidden")
+
     event_handler!(click, GetOnclick, SetOnclick)
 
     fn GetOnload(self) -> Option<EventHandlerNonNull> {
