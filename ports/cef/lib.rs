@@ -44,19 +44,34 @@ extern crate core_graphics;
 #[cfg(target_os="macos")]
 extern crate core_text;
 
+// Must come first.
+pub mod macros;
+
 pub mod browser;
 pub mod command_line;
+pub mod cookie;
 pub mod core;
+pub mod drag_data;
 pub mod eutil;
-#[cfg(any(target_os="linux",target_os="macos"))]
-pub mod mem;
+pub mod interfaces;
+pub mod print_settings;
+pub mod process_message;
 pub mod request;
+pub mod request_context;
+pub mod response;
+pub mod stream;
 pub mod string;
 pub mod string_list;
 pub mod string_map;
 pub mod string_multimap;
+pub mod stubs;
 pub mod switches;
 pub mod task;
 pub mod types;
 pub mod urlrequest;
+pub mod values;
+pub mod v8;
+pub mod wrappers;
+pub mod xml_reader;
+pub mod zip_reader;
 
