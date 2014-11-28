@@ -95,7 +95,7 @@ struct ModifyAttributeReply{
 }
 
 impl Actor for NodeActor {
-        fn name(&self) -> String {
+    fn name(&self) -> String {
         self.name.clone()
     }
 
