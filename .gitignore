@@ -1,4 +1,6 @@
 /.cargo/config
+/Cargo.lock
+/target
 /components/servo/target
 /ports/cef/target
 /ports/android/bin

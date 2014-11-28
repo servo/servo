@@ -1,0 +1,10 @@
+[package]
+
+name = "not-the-toml-you-re-looking-for"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+build = "support/not-the-toml-you-re-looking-for.rs"
+
+[lib]
+name = "not-the-toml-you-re-looking-for"
