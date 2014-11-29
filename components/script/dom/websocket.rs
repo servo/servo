@@ -9,7 +9,10 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, JSRef};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::eventtarget::{EventTarget, WebSocketTypeId};
+use servo_net::resource_task::{Load, LoadData};
 use servo_util::str::DOMString;
+use std::comm::channel;
+use url::Url;
 
 #[dom_struct]
 pub struct WebSocket {
@@ -26,9 +29,16 @@ impl WebSocket {
     }
 
     pub fn new(global: &GlobalRef, url: DOMString) -> Temporary<WebSocket> {
+            
+            let resource_task = global.resource_task();    
+            let ws_url= Url::parse(url.as_slice()).unwrap();
+            let(start_chan, start_port) = channel();
+            resource_task.send(Load(LoadData::new(ws_url), start_chan));
+            start_port.recv();
         reflect_dom_object(box WebSocket::new_inherited(url),
                            global,
                            WebSocketBinding::Wrap)
+            
     }
 
     pub fn Constructor(global: &GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
