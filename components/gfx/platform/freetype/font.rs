@@ -41,6 +41,7 @@ use freetype_rs::ffi::{FT_KERNING_DEFAULT, FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_B
 use freetype_rs::ffi::{FT_SizeRec, FT_UInt, FT_Size_Metrics, FT_Vector};
 
 //use freetype::freetype::{ft_sfnt_os2};
+use freetype_rs::ffi::{ft_sfnt_os2};
 
 use freetype_rs::tt_os2::TT_OS2;
 
