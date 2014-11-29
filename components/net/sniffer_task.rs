@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A task that sniffs data
-use std::comm::{channel, Receiver, Sender, Disconnected};
+use std::comm::{channel, Receiver, Sender};
 use std::task::TaskBuilder;
 use resource_task::{TargetedLoadResponse};
 
@@ -33,15 +33,11 @@ impl SnifferManager {
 impl SnifferManager {
     fn start(self) {
         loop {
-            match self.data_receiver.try_recv() {
+            match self.data_receiver.recv_opt() {
                 Ok(snif_data) => {
-                    let result = snif_data.consumer.send_opt(snif_data.load_response);
-                    if result.is_err() {
-                        break;
-                    }
+                    let _ = snif_data.consumer.send_opt(snif_data.load_response);
                 }
-                Err(Disconnected) => break,
-                Err(_) => (),
+                Err(_) => break,
             }
         }
     }
