@@ -23,7 +23,7 @@ interface HTMLTextAreaElement : HTMLElement {
 
   readonly attribute DOMString type;
            attribute DOMString defaultValue;
-  //[TreatNullAs=EmptyString] attribute DOMString value;
+  [TreatNullAs=EmptyString] attribute DOMString value;
   //readonly attribute unsigned long textLength;
 
   //readonly attribute boolean willValidate;

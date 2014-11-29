@@ -4,18 +4,24 @@
 
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
+use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
+use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, HTMLTextAreaElementTypeId};
+use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId};
+use dom::keyboardevent::KeyboardEvent;
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node};
+use textinput::{Multiple, TextInput, TriggerDefaultAction, DispatchInput, Nothing};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::DOMString;
@@ -24,6 +30,7 @@ use string_cache::Atom;
 #[dom_struct]
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
+    textinput: DOMRefCell<TextInput>,
 }
 
 impl HTMLTextAreaElementDerived for EventTarget {
@@ -32,10 +39,22 @@ impl HTMLTextAreaElementDerived for EventTarget {
     }
 }
 
+pub trait LayoutHTMLTextAreaElementHelpers {
+    unsafe fn get_value_for_layout(self) -> String;
+}
+
+impl LayoutHTMLTextAreaElementHelpers for JS<HTMLTextAreaElement> {
+    #[allow(unrooted_must_root)]
+    unsafe fn get_value_for_layout(self) -> String {
+        (*self.unsafe_get()).textinput.borrow_for_layout().get_content()
+    }
+}
+
 impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, prefix, document),
+            textinput: DOMRefCell::new(TextInput::new(Multiple, "".to_string())),
         }
     }
 
@@ -108,6 +127,28 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
     }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-value
+    fn Value(self) -> DOMString {
+        self.textinput.borrow().get_content()
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-value
+    fn SetValue(self, value: DOMString) {
+        self.textinput.borrow_mut().set_content(value);
+    }
+}
+
+pub trait HTMLTextAreaElementHelpers {
+    fn force_relayout(self);
+}
+
+impl<'a> HTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
+    fn force_relayout(self) {
+        let doc = document_from_node(self).root();
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        doc.content_changed(node)
+    }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
@@ -170,6 +211,47 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
             node.check_disabled_attribute();
+        }
+    }
+
+    fn child_inserted(&self, child: JSRef<Node>) {
+        match self.super_type() {
+            Some(s) => {
+                s.child_inserted(child);
+            }
+            _ => (),
+        }
+
+        if child.is_text() {
+            self.SetValue(child.GetTextContent().unwrap());
+        }
+    }
+
+    // copied and modified from htmlinputelement.rs
+    fn handle_event(&self, event: JSRef<Event>) {
+        match self.super_type() {
+            Some(s) => {
+                s.handle_event(event);
+            }
+            _ => (),
+        }
+
+        if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
+            //TODO: set the editing position for text inputs
+
+            let doc = document_from_node(*self).root();
+            doc.request_focus(ElementCast::from_ref(*self));
+        } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() {
+                let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
+                keyevent.map(|event| {
+                    match self.textinput.borrow_mut().handle_keydown(event) {
+                        TriggerDefaultAction => (),
+                        DispatchInput => {
+                            self.force_relayout();
+                        }
+                        Nothing => (),
+                    }
+                });
         }
     }
 }
