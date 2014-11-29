@@ -1315,4 +1315,14 @@ impl HeaderFormat for LastModified {
 
 fn dom_last_modified(tm: &Tm) -> String {
     format!("{}", tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap())
+pub unsafe fn set_logging_error_reporter() {
+    
+    }
+pub unsafe fn reportError(_cx: *mut JSContext, msg: *const c_char, report: *mut JSErrorReport) {
+    error!("MyError called\n");
+    let fnptr = (*report).filename;
+    let fname = if fnptr.is_not_null() {string::raw::from_buf(fnptr as *const i8 as *const u8)} else {"none".to_string()};
+    let lineno = (*report).lineno;
+    let msg = string::raw::from_buf(msg as *const i8 as *const u8);
+    error!("MyError at {:s}:{}: {:s}\n", fname, lineno, msg);
 }
