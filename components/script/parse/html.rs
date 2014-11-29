@@ -98,8 +98,8 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
         let elem: JSRef<Element> = ElementCast::to_ref(*node)
             .expect("tried to get name of non-Element in HTML parsing");
         QualName {
-            ns: elem.get_namespace().clone(),
-            local: elem.get_local_name().clone(),
+            ns: elem.namespace().clone(),
+            local: elem.local_name().clone(),
         }
     }
 
