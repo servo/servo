@@ -7,6 +7,7 @@ use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -46,15 +47,66 @@ impl HTMLTextAreaElement {
 }
 
 impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
+    // TODO A few of these attributes have default values and additional
+    // constraints
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-cols
+    make_uint_getter!(Cols)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-cols
+    make_uint_setter!(SetCols, "cols")
+
     // http://www.whatwg.org/html/#dom-fe-disabled
     make_bool_getter!(Disabled)
 
     // http://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled")
 
+    // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
+    make_getter!(Name)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
+    make_setter!(SetName, "name")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-placeholder
+    make_getter!(Placeholder)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-placeholder
+    make_setter!(SetPlaceholder, "placeholder")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-required
+    make_bool_getter!(Required)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-required
+    make_bool_setter!(SetRequired, "required")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-rows
+    make_uint_getter!(Rows)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-rows
+    make_uint_setter!(SetRows, "rows")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-wrap
+    make_getter!(Wrap)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-wrap
+    make_setter!(SetWrap, "wrap")
+
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-type
     fn Type(self) -> DOMString {
         "textarea".to_string()
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-defaultvalue
+    fn DefaultValue(self) -> DOMString {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.GetTextContent().unwrap()
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-defaultvalue
+    fn SetDefaultValue(self, value: DOMString) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.SetTextContent(Some(value))
     }
 }
 
