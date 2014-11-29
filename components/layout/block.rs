@@ -1264,8 +1264,10 @@ impl BlockFlow {
             content_inline_size: Au,
             optional_column_inline_sizes: Option<&[ColumnInlineSize]>) {
         // Keep track of whether floats could impact each child.
-        let mut inline_start_floats_impact_child = self.base.flags.contains(IMPACTED_BY_LEFT_FLOATS);
-        let mut inline_end_floats_impact_child = self.base.flags.contains(IMPACTED_BY_RIGHT_FLOATS);
+        let mut inline_start_floats_impact_child =
+            self.base.flags.contains(IMPACTED_BY_LEFT_FLOATS);
+        let mut inline_end_floats_impact_child =
+            self.base.flags.contains(IMPACTED_BY_RIGHT_FLOATS);
 
         let absolute_static_i_offset = if self.is_positioned() {
             // This flow is the containing block. The static inline offset will be the inline-start
@@ -1332,7 +1334,7 @@ impl BlockFlow {
             // and its inline-size is our content inline-size.
             {
                 let kid_base = flow::mut_base(kid);
-                if !kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
+                if !kid_base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                         !kid_base.flags.is_float() {
                     kid_base.position.start.i = inline_start_content_edge
                 }

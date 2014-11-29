@@ -66,6 +66,14 @@ impl Drop for TimerManager {
     }
 }
 
+// Enum allowing more descriptive values for the is_interval field
+#[jstraceable]
+#[deriving(PartialEq, Clone)]
+pub enum IsInterval {
+    Interval,
+    NonInterval,
+}
+
 // Holder for the various JS values associated with setTimeout
 // (ie. function value to invoke and all arguments to pass
 //      to the function when calling it)
@@ -74,7 +82,7 @@ impl Drop for TimerManager {
 #[privatize]
 #[deriving(Clone)]
 struct TimerData {
-    is_interval: bool,
+    is_interval: IsInterval,
     funval: Function,
     args: Vec<JSVal>
 }
@@ -91,7 +99,7 @@ impl TimerManager {
                                   callback: Function,
                                   arguments: Vec<JSVal>,
                                   timeout: i32,
-                                  is_interval: bool,
+                                  is_interval: IsInterval,
                                   source: TimerSource,
                                   script_chan: ScriptChan)
                                   -> i32 {
@@ -104,15 +112,15 @@ impl TimerManager {
         let tm = Timer::new().unwrap();
         let (cancel_chan, cancel_port) = channel();
         let spawn_name = match source {
-            FromWindow(_) if is_interval => "Window:SetInterval",
-            FromWorker if is_interval => "Worker:SetInterval",
+            FromWindow(_) if is_interval == IsInterval::Interval => "Window:SetInterval",
+            FromWorker if is_interval == IsInterval::Interval => "Worker:SetInterval",
             FromWindow(_) => "Window:SetTimeout",
             FromWorker => "Worker:SetTimeout",
         };
         spawn_named(spawn_name, proc() {
             let mut tm = tm;
             let duration = Duration::milliseconds(timeout as i64);
-            let timeout_port = if is_interval {
+            let timeout_port = if is_interval == IsInterval::Interval {
                 tm.periodic(duration)
             } else {
                 tm.oneshot(duration)
@@ -131,7 +139,7 @@ impl TimerManager {
                     timeout_port.recv();
                     let ScriptChan(ref chan) = script_chan;
                     chan.send(FireTimerMsg(source, TimerId(handle)));
-                    if !is_interval {
+                    if is_interval == IsInterval::NonInterval {
                         break;
                     }
                 } else if id == cancel_handle.id() {
@@ -171,7 +179,7 @@ impl TimerManager {
         // TODO: Must handle rooting of funval and args when movable GC is turned on
         let _ = data.funval.Call_(this, data.args, ReportExceptions);
 
-        if !data.is_interval {
+        if data.is_interval == IsInterval::NonInterval {
             self.active_timers.borrow_mut().remove(&timer_id);
         }
     }

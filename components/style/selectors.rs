@@ -719,8 +719,8 @@ mod tests {
                 simple_selectors: vec!(),
                 next: Some((box CompoundSelector {
                     simple_selectors: vec!(LocalNameSelector(LocalName {
-                        name: Atom::from_slice("div"),
-                        lower_name: Atom::from_slice("div") })),
+                        name: atom!("div"),
+                        lower_name: atom!("div") })),
                     next: None,
                 }, Descendant)),
             }),

@@ -36,6 +36,9 @@ interface Document : Node {
   ProcessingInstruction createProcessingInstruction(DOMString target, DOMString data);
 
   [Throws]
+  Attr createAttribute(DOMString localName);
+
+  [Throws]
   Node importNode(Node node, optional boolean deep = false);
   [Throws]
   Node adoptNode(Node node);

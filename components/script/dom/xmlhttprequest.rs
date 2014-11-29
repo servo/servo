@@ -44,7 +44,7 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use libc;
 use libc::c_void;
 
-use net::resource_task::{ResourceTask, ResourceCORSData, Load, LoadData, Payload, Done};
+use net::resource_task::{ResourceTask, ResourceCORSData, Load, LoadData, LoadResponse, Payload, Done};
 use cors::{allow_cross_origin_request, CORSRequest, CORSMode, ForcedPreflightMode};
 use script_task::{ScriptChan, XHRProgressMsg, XHRReleaseMsg};
 use servo_util::str::DOMString;
@@ -88,7 +88,7 @@ pub struct GenerationId(uint);
 
 pub enum XHRProgress {
     /// Notify that headers have been received
-    HeadersReceivedMsg(GenerationId, Option<ResponseHeaderCollection>, Status),
+    HeadersReceivedMsg(GenerationId, Option<ResponseHeaderCollection>, Option<Status>),
     /// Partial progress (after receiving headers), containing portion of the response
     LoadingMsg(GenerationId, ByteString),
     /// Loading is done
@@ -207,7 +207,8 @@ impl XMLHttpRequest {
 
     fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
              mut load_data: LoadData, terminate_receiver: Receiver<TerminateReason>,
-             cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId) -> ErrorResult {
+             cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId,
+             start_port: Receiver<LoadResponse>) -> ErrorResult {
 
         fn notify_partial_progress(fetch_type: &SyncOrAsync, msg: XHRProgress) {
             match *fetch_type {
@@ -277,8 +278,7 @@ impl XMLHttpRequest {
         }
 
         // Step 10, 13
-        let (start_chan, start_port) = channel();
-        resource_task.send(Load(load_data, start_chan));
+        resource_task.send(Load(load_data));
 
 
         let progress_port;
@@ -557,7 +557,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         let global = self.global.root();
         let resource_task = global.root_ref().resource_task();
-        let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap());
+        let (start_chan, start_port) = channel();
+        let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap(), start_chan);
         load_data.data = extracted;
 
         // Default headers
@@ -620,7 +621,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         let gen_id = self.generation_id.get();
         if self.sync.get() {
             return XMLHttpRequest::fetch(&mut Sync(self), resource_task, load_data,
-                                         terminate_receiver, cors_request, gen_id);
+                                         terminate_receiver, cors_request, gen_id, start_port);
         } else {
             self.fetch_time.set(time::now().to_timespec().sec);
             let script_chan = global.root_ref().script_chan().clone();
@@ -638,7 +639,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                                               load_data,
                                               terminate_receiver,
                                               cors_request,
-                                              gen_id);
+                                              gen_id,
+                                              start_port);
                 let ScriptChan(ref chan) = script_chan;
                 chan.send(XHRReleaseMsg(addr));
             });
@@ -874,8 +876,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Part of step 13, send() (processing response)
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
-                *self.status_text.borrow_mut() = ByteString::new(status.reason().into_bytes());
-                self.status.set(status.code());
+                let status_text = status.as_ref().map_or(vec![], |s| s.reason().into_bytes());
+                let status_code = status.as_ref().map_or(0, |s| s.code());
+
+                *self.status_text.borrow_mut() = ByteString::new(status_text);
+                self.status.set(status_code);
                 match headers {
                     Some(ref h) => {
                         *self.response_headers.borrow_mut() = h.clone();

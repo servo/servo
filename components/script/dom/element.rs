@@ -184,11 +184,6 @@ impl Element {
     }
 
     #[inline]
-    pub fn node<'a>(&'a self) -> &'a Node {
-        &self.node
-    }
-
-    #[inline]
     pub fn local_name<'a>(&'a self) -> &'a Atom {
         &self.local_name
     }
@@ -509,13 +504,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             None => {
                 let window = window_from_node(self).root();
                 let attr = Attr::new(*window, local_name, value.clone(),
-                                     name, namespace.clone(), prefix, self);
+                                     name, namespace.clone(), prefix, Some(self));
                 self.attrs.borrow_mut().push_unrooted(&attr);
                 (self.attrs.borrow().len() - 1, FirstSetAttr)
             }
         };
 
-        (*self.attrs.borrow())[idx].root().set_value(set_type, value);
+        (*self.attrs.borrow())[idx].root().set_value(set_type, value, self);
     }
 
     fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
@@ -824,7 +819,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
         let name = Atom::from_slice(name.as_slice());
         let local_name = Atom::from_slice(local_name);
-        let xmlns = Atom::from_slice("xmlns");      // TODO: Make this a static atom type
+        let xmlns = atom!("xmlns");
 
         // Step 7a.
         if xmlns == name && namespace != ns!(XMLNS) {

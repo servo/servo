@@ -1150,11 +1150,6 @@ impl Node {
     }
 
     #[inline]
-    pub fn eventtarget<'a>(&'a self) -> &'a EventTarget {
-        &self.eventtarget
-    }
-
-    #[inline]
     pub fn layout_data(&self) -> Ref<Option<LayoutData>> {
         self.layout_data.borrow()
     }
@@ -1558,7 +1553,7 @@ impl Node {
                         &Attr::new(*window,
                                    attr.local_name().clone(), attr.value().clone(),
                                    attr.name().clone(), attr.namespace().clone(),
-                                   attr.prefix().clone(), copy_elem));
+                                   attr.prefix().clone(), Some(copy_elem)));
                 }
             },
             _ => ()

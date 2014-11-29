@@ -30,22 +30,57 @@ class MachCommands(CommandBase):
         self.context.built_tests = True
 
     def find_test(self, prefix):
-        candidates = [
-            f for f in os.listdir(path.join(self.context.topdir, "target"))
-            if f.startswith(prefix + "-")]
-        if candidates:
-            return path.join(self.context.topdir, "target", candidates[0])
-        return None
+        target_contents = os.listdir(path.join(self.context.topdir, "target"))
+        for filename in target_contents:
+            if filename.startswith(prefix + "-"):
+                filepath = path.join(self.context.topdir, "target", filename)
+                if path.isfile(filepath) and os.access(filepath, os.X_OK):
+                    return filepath
 
     def run_test(self, prefix, args=[]):
         t = self.find_test(prefix)
         if t:
             return subprocess.call([t] + args, env=self.build_env())
 
+    def infer_test_by_dir(self, params):
+        maybe_path = path.normpath(params[0])
+        mach_command = path.join(self.context.topdir, "mach")
+        args = None
+
+        if not path.exists(maybe_path):
+            print("%s is not a valid file or directory" % maybe_path)
+            return 1
+
+        test_dirs = [
+            (path.join("tests", "content"), "test-content"),
+            (path.join("tests", "wpt"), "test-wpt"),
+        ]
+
+        if path.join("tests", "ref") in maybe_path:
+            # test-ref is the outcast here in that it does not accept
+            # individual files as arguments.
+            args = [mach_command, "test-ref"] + params[1:]
+        else:
+            for test_dir, test_name in test_dirs:
+                if test_dir in maybe_path:
+                    args = [mach_command, test_name, maybe_path] + params[1:]
+                    break
+            else:
+                print("%s is not a valid test file or directory" % maybe_path)
+                return 1
+
+        return subprocess.call(args, env=self.build_env())
+
     @Command('test',
              description='Run all Servo tests',
              category='testing')
-    def test(self):
+    @CommandArgument('params', default=None, nargs="...",
+                     help="Optionally select test based on "
+                          "test file directory")
+    def test(self, params):
+        if params:
+            return self.infer_test_by_dir(params)
+
         test_start = time()
         for t in ["tidy", "unit", "ref", "content", "wpt"]:
             Registrar.dispatch("test-%s" % t, context=self.context)
@@ -55,8 +90,7 @@ class MachCommands(CommandBase):
 
     @Command('test-unit',
              description='Run unit tests',
-             category='testing',
-             allow_all_args=True)
+             category='testing')
     @CommandArgument('test_name', default=None, nargs="...",
                      help="Only run tests that match this pattern")
     def test_unit(self, test_name=None):
@@ -113,8 +147,7 @@ class MachCommands(CommandBase):
 
     @Command('test-content',
              description='Run the content tests',
-             category='testing',
-             allow_all_args=True)
+             category='testing')
     @CommandArgument('test_name', default=None, nargs="?",
                      help="Only run tests that match this pattern")
     def test_content(self, test_name=None):
@@ -142,8 +175,7 @@ class MachCommands(CommandBase):
 
     @Command('test-wpt',
              description='Run the web platform tests',
-             category='testing',
-             allow_all_args=True)
+             category='testing')
     @CommandArgument(
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to wpt/run.sh")
