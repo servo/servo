@@ -274,8 +274,7 @@ impl<'a> FlowConstructor<'a> {
                 TableColumnFragment(TableColumnFragmentInfo::new(node))
             }
             Some(ElementNodeTypeId(HTMLTableDataCellElementTypeId)) |
-            Some(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId)) |
-            Some(ElementNodeTypeId(HTMLTextAreaElementTypeId)) => TableCellFragment,
+            Some(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId)) => TableCellFragment,
             Some(ElementNodeTypeId(HTMLTableRowElementTypeId)) |
             Some(ElementNodeTypeId(HTMLTableSectionElementTypeId)) => TableRowFragment,
             Some(TextNodeTypeId) => UnscannedTextFragment(UnscannedTextFragmentInfo::new(node)),

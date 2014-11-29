@@ -139,11 +139,11 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 }
 
-pub trait HTMLTextAreaElementHelpers {
+trait PrivateHTMLTextAreaElementHelpers {
     fn force_relayout(self);
 }
 
-impl<'a> HTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
+impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
     fn force_relayout(self) {
         let doc = document_from_node(self).root();
         let node: JSRef<Node> = NodeCast::from_ref(self);
@@ -223,7 +223,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
         }
 
         if child.is_text() {
-            self.SetValue(child.GetTextContent().unwrap());
+            self.SetValue(self.DefaultValue());
         }
     }
 

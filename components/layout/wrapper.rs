@@ -184,16 +184,14 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     fn text(&self) -> String {
         unsafe {
-            let text_opt: Option<JS<Text>> = TextCast::to_js(self.get_jsmanaged());
-            match text_opt {
-                Some(text) => (*text.unsafe_get()).characterdata().data_for_layout().to_string(),
-                None => match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
-                    Some(input) => input.get_value_for_layout(),
-                    None => match HTMLTextAreaElementCast::to_js(self.get_jsmanaged()) {
-                        Some(area) => area.get_value_for_layout(),
-                        None => panic!("not text!")
-                    }
-                }
+            if let Some(text) = TextCast::to_js(self.get_jsmanaged()) {
+                (*text.unsafe_get()).characterdata().data_for_layout().to_string()
+            } else if let Some(input) = HTMLInputElementCast::to_js(self.get_jsmanaged()) {
+                input.get_value_for_layout()
+            } else if let Some(area) = HTMLTextAreaElementCast::to_js(self.get_jsmanaged()) {
+                area.get_value_for_layout()
+            } else {
+                panic!("not text!")
             }
         }
     }
