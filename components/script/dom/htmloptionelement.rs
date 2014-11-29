@@ -15,7 +15,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, HTMLOptionElementTypeId};
+use dom::element::{AttributeHandlers, Element, ElementHelpers, HTMLOptionElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId};
