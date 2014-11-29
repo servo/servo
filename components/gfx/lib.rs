@@ -43,7 +43,7 @@ extern crate harfbuzz;
 extern crate fontconfig;
 
 #[cfg(any(target_os="linux", target_os = "android"))]
-extern crate freetype;
+extern crate freetype_rs;
 
 // Mac OS-specific library dependencies
 #[cfg(target_os="macos")] extern crate core_foundation;

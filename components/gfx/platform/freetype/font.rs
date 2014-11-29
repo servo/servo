@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-extern crate freetype;
+extern crate freetype_rs;
+//extern crate freetype-rs;
 
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
@@ -14,16 +15,34 @@ use text::util::{float_to_fixed, fixed_to_float};
 use style::computed_values::font_weight;
 use platform::font_template::FontTemplateData;
 
-use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
-use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
-use freetype::freetype::{FT_Get_Kerning, FT_Get_Sfnt_Table};
-use freetype::freetype::{FT_New_Memory_Face, FT_Done_Face};
-use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
-use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
-use freetype::freetype::{FT_KERNING_DEFAULT, FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_BOLD};
-use freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics, struct_FT_Vector_};
-use freetype::freetype::{ft_sfnt_os2};
-use freetype::tt_os2::TT_OS2;
+//use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
+use freetype_rs::ffi::{FT_Get_Char_Index, FT_Get_Postscript_Name}; // freetype-rs
+
+//use freetype::freetype::{FT_Load_Glyph, FT_Set_Char_Size};
+use freetype_rs::ffi::{FT_Load_Glyph, FT_Set_Char_Size}; // freetype-rs
+
+//use freetype::freetype::{FT_Get_Kerning, FT_Get_Sfnt_Table};
+use freetype_rs::ffi::{FT_Get_Kerning, FT_Get_Sfnt_Table}; // freetype-rs
+
+//use freetype::freetype::{FT_New_Memory_Face, FT_Done_Face};
+use freetype_rs::ffi::{FT_New_Memory_Face, FT_Done_Face}; // freetype-rs
+
+//use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
+use freetype_rs::ffi::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec}; // freetype-rs
+// TODO FTErrorMethods has a succeeded fn that returns true if value of err==0. Look for alternative
+
+//use freetype::freetype::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
+use freetype_rs::ffi::{FT_GlyphSlot, FT_Library, FT_Long, FT_ULong};
+
+//use freetype::freetype::{FT_KERNING_DEFAULT, FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_BOLD};
+use freetype_rs::ffi::{FT_KERNING_DEFAULT, FT_STYLE_FLAG_ITALIC, FT_STYLE_FLAG_BOLD};
+
+//use freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics, struct_FT_Vector_};
+use freetype_rs::ffi::{FT_SizeRec, FT_UInt, FT_Size_Metrics, FT_Vector};
+
+//use freetype::freetype::{ft_sfnt_os2};
+
+use freetype_rs::tt_os2::TT_OS2;
 
 use std::mem;
 use std::ptr;
@@ -174,7 +193,7 @@ impl FontHandleMethods for FontHandle {
     fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId)
                         -> FractionalPixel {
         assert!(self.face.is_not_null());
-        let mut delta = struct_FT_Vector_ { x: 0, y: 0 };
+        let mut delta = FT_Vector { x: 0, y: 0 };
         unsafe {
             FT_Get_Kerning(self.face, first_glyph, second_glyph, FT_KERNING_DEFAULT, &mut delta);
         }

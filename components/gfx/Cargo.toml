@@ -35,6 +35,9 @@ git = "https://github.com/servo/rust-layers"
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
 
+[dependencies.image]
+git = "https://github.com/PistonDevelopers/image"
+
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
@@ -47,8 +50,8 @@ git = "https://github.com/servo/rust-harfbuzz"
 [dependencies.fontconfig]
 git = "https://github.com/servo/rust-fontconfig"
 
-[dependencies.freetype]
-git = "https://github.com/servo/rust-freetype"
+[dependencies.freetype-rs]
+path = "../../../freetype-rs"
 
 [dependencies.core_foundation]
 git = "https://github.com/servo/rust-core-foundation"

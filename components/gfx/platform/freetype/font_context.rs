@@ -2,13 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use freetype::freetype::FTErrorMethods;
-use freetype::freetype::FT_Add_Default_Modules;
-use freetype::freetype::FT_Done_FreeType;
-use freetype::freetype::FT_Library;
-use freetype::freetype::FT_Memory;
-use freetype::freetype::FT_New_Library;
-use freetype::freetype::struct_FT_MemoryRec_;
+//use freetype::freetype::FTErrorMethods;
+use freetype_rs::ffi::FTErrorMethods;
+
+//use freetype::freetype::FT_Add_Default_Modules;
+use freetype_rs::ffi::FT_Add_Default_Modules;
+
+//use freetype::freetype::FT_Done_FreeType;
+use freetype_rs::ffi::FT_Done_FreeType;
+
+//use freetype::freetype::FT_Library;
+use freetype_rs::ffi::FT_Library;
+
+//use freetype::freetype::FT_Memory;
+use freetype_rs::ffi::FT_Memory;
+
+//use freetype::freetype::FT_New_Library;
+use freetype_rs::ffi::FT_New_Library;
+
+//use freetype::freetype::struct_FT_MemoryRec_;
+use freetype_rs::ffi::FT_MemoryRec;
 
 use std::ptr;
 use std::rc::Rc;
@@ -58,9 +71,9 @@ impl FontContextHandle {
     pub fn new() -> FontContextHandle {
         unsafe {
 
-            let ptr = libc::malloc(mem::size_of::<struct_FT_MemoryRec_>() as size_t);
-            let allocator: &mut struct_FT_MemoryRec_ = mem::transmute(ptr);
-            ptr::write(allocator, struct_FT_MemoryRec_ {
+            let ptr = libc::malloc(mem::size_of::<FT_MemoryRec>() as size_t);
+            let allocator: &mut FT_MemoryRec = mem::transmute(ptr);
+            ptr::write(allocator, FT_MemoryRec {
                 user: ptr::null_mut(),
                 alloc: ft_alloc,
                 free: ft_free,
