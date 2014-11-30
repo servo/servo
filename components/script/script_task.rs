@@ -16,6 +16,7 @@ use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
+use dom::bindings::global::global_object_for_js_object;
 use dom::document::{Document, HTMLDocument, DocumentHelpers};
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
@@ -57,6 +58,7 @@ use geom::point::Point2D;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
+use js::jsapi::{JS_GetGlobalObject};
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
 use js;
@@ -1138,4 +1140,9 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
     let lineno = (*report).lineno;
     let msg = string::raw::from_buf(msg as *const i8 as *const u8);
     error!("MyError at {:s}:{}: {:s}\n", fname, lineno, msg);
+    //asfaf
+    let global = JS_GetGlobalObject(_cx);
+    let errorWindow = global_object_for_js_object(global);
+    let e1 = errorWindow.root();
+    //let e1 = errorWindow.root();
 }
