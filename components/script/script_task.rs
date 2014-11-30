@@ -365,7 +365,7 @@ impl ScriptTask {
         });
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
-        js_context.set_error_reporter(reportError());
+        js_context.set_error_reporter(reportError);
         unsafe {
             JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
         }
