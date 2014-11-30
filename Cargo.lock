@@ -207,6 +207,7 @@ source = "git+https://github.com/servo/rust-freetype#e55b06110fb2d74a2db68ead740
 [[package]]
 name = "freetype-rs"
 version = "0.0.0"
+source = "git+https://github.com/ankit3005/freetype-rs#5e55fccf39178eebceecc43397f37c9ed1d6828a"
 
 [[package]]
 name = "freetype-sys"
@@ -227,7 +228,7 @@ dependencies = [
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
  "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig)",
- "freetype-rs 0.0.0",
+ "freetype-rs 0.0.0 (git+https://github.com/ankit3005/freetype-rs)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "harfbuzz 0.1.0 (git+https://github.com/servo/rust-harfbuzz)",
  "image 0.1.0 (git+https://github.com/PistonDevelopers/image)",
