@@ -20,7 +20,7 @@ use geom::size::Size2D;
 use libc::size_t;
 use libc::types::common::c99::{uint16_t, uint32_t};
 use png::{RGB8, RGBA8, K8, KA8};
-use servo_net::image::base::Image;
+use servo_net::image::base::DynamicImage;
 use servo_util::geometry::Au;
 use servo_util::opts;
 use servo_util::range::Range;
@@ -109,7 +109,7 @@ impl<'a> RenderContext<'a>  {
         self.draw_target.pop_clip();
     }
 
-    pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<Image>>) {
+    pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<DynamicImage>>) {
         let size = Size2D(image.width as i32, image.height as i32);
         let (pixel_width, pixels, source_format) = match image.pixels {
             RGBA8(ref pixels) => (4, pixels.as_slice(), B8G8R8A8),

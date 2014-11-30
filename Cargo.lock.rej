@@ -1,0 +1,22 @@
+--- Cargo.lock
++++ Cargo.lock
+@@ -361,6 +361,11 @@
+ ]
+ 
+ [[package]]
++name = "image"
++version = "0.1.0"
++source = "git+https://github.com/PistonDevelopers/image#3a398831adb22f1200cb68682e446ede187d23b9"
++
++[[package]]
+ name = "io_surface"
+ version = "0.1.0"
+ source = "git+https://github.com/servo/rust-io-surface#691cbccc320c4fb9b75e215da9b0b82539d729bd"
+@@ -461,6 +466,7 @@
+ dependencies = [
+  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+  "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo)",
++ "image 0.1.0 (git+https://github.com/PistonDevelopers/image)",
+  "png 0.1.0 (git+https://github.com/servo/rust-png)",
+  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
+  "url 0.1.0 (git+https://github.com/servo/rust-url)",

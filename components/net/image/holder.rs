@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use image::base::Image;
+use image::base::DynamicImage;
 use image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
 use local_image_cache::LocalImageCache;
 
@@ -10,6 +10,7 @@ use geom::size::Size2D;
 use std::mem;
 use sync::{Arc, Mutex};
 use url::Url;
+
 
 // FIXME: Nasty coupling here This will be a problem if we want to factor out image handling from
 // the network stack. This should probably be factored out into an interface and use dependency
@@ -20,7 +21,7 @@ use url::Url;
 #[deriving(Clone)]
 pub struct ImageHolder<NodeAddress> {
     url: Url,
-    image: Option<Arc<Box<Image>>>,
+    image: Option<Arc<Box<DynamicImage>>>,
     cached_size: Size2D<int>,
     local_image_cache: Arc<Mutex<LocalImageCache<NodeAddress>>>,
 }
@@ -63,19 +64,21 @@ impl<NodeAddress: Send> ImageHolder<NodeAddress> {
     /// Query and update the current image size.
     pub fn get_size(&mut self, node_address: NodeAddress) -> Option<Size2D<int>> {
         debug!("get_size() {}", self.url.serialize());
+
         self.get_image(node_address).map(|img| {
-            self.cached_size = Size2D(img.width as int,
-                                      img.height as int);
+	let (img_width,img_height) = img.dimensions();
+            self.cached_size = Size2D(img_width as int,
+                                      img_height as int);
             self.cached_size.clone()
         })
     }
 
-    pub fn get_image_if_present(&self) -> Option<Arc<Box<Image>>> {
+    pub fn get_image_if_present(&self) -> Option<Arc<Box<DynamicImage>>> {
         debug!("get_image_if_present() {}", self.url.serialize());
         self.image.clone()
     }
 
-    pub fn get_image(&mut self, node_address: NodeAddress) -> Option<Arc<Box<Image>>> {
+    pub fn get_image(&mut self, node_address: NodeAddress) -> Option<Arc<Box<DynamicImage>>> {
         debug!("get_image() {}", self.url.serialize());
 
         // If this is the first time we've called this function, load

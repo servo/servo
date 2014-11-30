@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use image::base::{Image, load_from_memory};
+use image::base::{DynamicImage, load_from_memory};
 use resource_task;
 use resource_task::{LoadData, ResourceTask};
 
@@ -39,7 +39,7 @@ pub enum Msg {
     StorePrefetchedImageData(Url, Result<Vec<u8>, ()>),
 
     /// Used by the decoder tasks to post decoded images back to the cache
-    StoreImage(Url, Option<Arc<Box<Image>>>),
+    StoreImage(Url, Option<Arc<Box<DynamicImage>>>),
 
     /// For testing
     WaitForStore(Sender<()>),
@@ -50,7 +50,7 @@ pub enum Msg {
 
 #[deriving(Clone)]
 pub enum ImageResponseMsg {
-    ImageReady(Arc<Box<Image>>),
+    ImageReady(Arc<Box<DynamicImage>>),
     ImageNotReady,
     ImageFailed
 }
@@ -78,7 +78,7 @@ impl<E, S: Encoder<E>> Encodable<S, E> for ImageCacheTask {
     }
 }
 
-type DecoderFactory = fn() -> (proc(&[u8]) : 'static -> Option<Image>);
+type DecoderFactory = fn() -> (proc(&[u8]) : 'static -> Option<DynamicImage>);
 
 impl ImageCacheTask {
     pub fn new(resource_task: ResourceTask, task_pool: TaskPool) -> ImageCacheTask {
@@ -152,7 +152,7 @@ enum ImageState {
     Prefetching(AfterPrefetch),
     Prefetched(Vec<u8>),
     Decoding,
-    Decoded(Arc<Box<Image>>),
+    Decoded(Arc<Box<DynamicImage>>),
     Failed
 }
 
@@ -328,7 +328,7 @@ impl ImageCache {
         }
     }
 
-    fn store_image(&mut self, url: Url, image: Option<Arc<Box<Image>>>) {
+    fn store_image(&mut self, url: Url, image: Option<Arc<Box<DynamicImage>>>) {
 
         match self.get_state(&url) {
           Decoding => {

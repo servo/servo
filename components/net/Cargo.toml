@@ -25,3 +25,6 @@ git = "https://github.com/servo/rust-stb-image"
 
 [dependencies.url]
 git = "https://github.com/servo/rust-url"
+
+[dependencies.image]
+git = "https://github.com/PistonDevelopers/image"

@@ -3,12 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::iter::range_step;
-use stb_image::image as stb_image;
-use png;
+//use stb_image::image as stb_image;
+use servo_image;
+//use png;
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
-pub type Image = png::Image;
+pub type DynamicImage = servo_image::DynamicImage;
 
 
 static TEST_IMAGE: &'static [u8] = include_bin!("test.jpeg");
@@ -41,48 +42,19 @@ fn byte_swap_and_premultiply(data: &mut [u8]) {
     }
 }
 
-pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
+pub fn load_from_memory(buffer: &[u8]) -> Option<DynamicImage> {
     if buffer.len() == 0 {
         return None;
     }
+   else {
+	let result = servo_image::load_from_memory(buffer,servo_image::ImageFormat::JPEG);
+	if (result.is_ok()) {
+  	let v = result.unwrap();
+  	return Some(v);
+	}
+	else  {	
+	return None;
+		
+    }}
 
-    if png::is_png(buffer) {
-        match png::load_png_from_memory(buffer) {
-            Ok(mut png_image) => {
-                match png_image.pixels {
-                    png::RGB8(ref mut data) => byte_swap(data.as_mut_slice()),
-                    png::RGBA8(ref mut data) => {
-                        byte_swap_and_premultiply(data.as_mut_slice())
-                    }
-                    _ => {}
-                }
-                Some(png_image)
-            }
-            Err(_err) => None,
-        }
-    } else {
-        // For non-png images, we use stb_image
-        // Can't remember why we do this. Maybe it's what cairo wants
-        static FORCE_DEPTH: uint = 4;
-
-        match stb_image::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
-            stb_image::ImageU8(mut image) => {
-                assert!(image.depth == 4);
-                byte_swap(image.data.as_mut_slice());
-                Some(png::Image {
-                    width: image.width as u32,
-                    height: image.height as u32,
-                    pixels: png::RGBA8(image.data)
-                })
-            }
-            stb_image::ImageF32(_image) => {
-                error!("HDR images not implemented");
-                None
-            }
-            stb_image::Error(e) => {
-                error!("stb_image failed: {}", e);
-                None
-            }
-        }
-    }
 }

@@ -27,7 +27,7 @@ use libc::uintptr_t;
 use render_task::RenderLayer;
 use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::LayerId;
-use servo_net::image::base::Image;
+use servo_net::image::base::DynamicImage;
 use servo_util::dlist as servo_dlist;
 use servo_util::geometry::{mod, Au};
 use servo_util::range::Range;
@@ -447,7 +447,7 @@ pub enum TextOrientation {
 #[deriving(Clone)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
-    pub image: Arc<Box<Image>>,
+    pub image: Arc<Box<DynamicImage>>,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
