@@ -27,10 +27,15 @@ use dom::virtualmethods::VirtualMethods;
 use servo_util::str::DOMString;
 use string_cache::Atom;
 
+use std::cell::Cell;
+
 #[dom_struct]
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     textinput: DOMRefCell<TextInput>,
+
+    // https://html.spec.whatwg.org/multipage/forms.html#concept-textarea-dirty
+    value_changed: Cell<bool>,
 }
 
 impl HTMLTextAreaElementDerived for EventTarget {
@@ -55,6 +60,7 @@ impl HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(Multiple, "".to_string())),
+            value_changed: Cell::new(false),
         }
     }
 
@@ -125,7 +131,13 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-defaultvalue
     fn SetDefaultValue(self, value: DOMString) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.SetTextContent(Some(value))
+        node.SetTextContent(Some(value));
+
+        // if the element's dirty value flag is false, then the element's
+        // raw value must be set to the value of the element's textContent IDL attribute
+        if !self.value_changed.get() {
+            self.SetValue(node.GetTextContent().unwrap());
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-value
@@ -136,6 +148,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-value
     fn SetValue(self, value: DOMString) {
         self.textinput.borrow_mut().set_content(value);
+        self.force_relayout();
     }
 }
 
@@ -242,16 +255,17 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             let doc = document_from_node(*self).root();
             doc.request_focus(ElementCast::from_ref(*self));
         } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() {
-                let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
-                keyevent.map(|event| {
-                    match self.textinput.borrow_mut().handle_keydown(event) {
-                        TriggerDefaultAction => (),
-                        DispatchInput => {
-                            self.force_relayout();
-                        }
-                        Nothing => (),
+            let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
+            keyevent.map(|event| {
+                match self.textinput.borrow_mut().handle_keydown(event) {
+                    TriggerDefaultAction => (),
+                    DispatchInput => {
+                        self.force_relayout();
+                        self.value_changed.set(true);
                     }
-                });
+                    Nothing => (),
+                }
+            });
         }
     }
 }
