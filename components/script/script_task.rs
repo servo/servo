@@ -20,6 +20,9 @@ use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentSource};
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
+use dom::bindings::global::global_object_for_js_object;
+use dom::element::{HTMLButtonElementTypeId, HTMLInputElementTypeId};
+use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
@@ -65,7 +68,7 @@ use hyper::header::common::util as header_util;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
-use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
+use js::jsapi::{JS_GetGlobalObject};
 use js::rust::{Cx, RtUtils};
 use js;
 use url::Url;
@@ -1328,4 +1331,9 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
     let lineno = (*report).lineno;
     let msg = string::raw::from_buf(msg as *const i8 as *const u8);
     error!("MyError at {:s}:{}: {:s}\n", fname, lineno, msg);
+    //asfaf
+    let global = JS_GetGlobalObject(_cx);
+    let errorWindow = global_object_for_js_object(global);
+    let e1 = errorWindow.root();
+    //let e1 = errorWindow.root();
 }
