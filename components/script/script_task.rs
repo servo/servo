@@ -1281,7 +1281,6 @@ pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
          This is a bug.")
 }
 
-<<<<<<< HEAD
 //FIXME(seanmonstar): uplift to Hyper
 #[deriving(Clone)]
 struct LastModified(pub Tm);
@@ -1322,9 +1321,7 @@ fn dom_last_modified(tm: &Tm) -> String {
 pub unsafe fn set_logging_error_reporter() {
     
     }
-=======
->>>>>>> added reportError()
-pub unsafe fn reportError(_cx: *mut JSContext, msg: *const c_char, report: *mut JSErrorReport) {
+pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report: *mut JSErrorReport) {
     error!("MyError called\n");
     let fnptr = (*report).filename;
     let fname = if fnptr.is_not_null() {string::raw::from_buf(fnptr as *const i8 as *const u8)} else {"none".to_string()};
