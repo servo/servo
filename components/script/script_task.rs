@@ -55,7 +55,7 @@ use servo_util::task::spawn_named_with_send_on_failure;
 
 use geom::point::Point2D;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
-use js::jsapi::{JSContext, JSRuntime, JSTracer};
+use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
@@ -63,6 +63,7 @@ use js;
 use url::Url;
 
 use libc::size_t;
+use libc::c_char;
 use std::any::{Any, AnyRefExt};
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -70,6 +71,7 @@ use std::comm::{channel, Sender, Receiver, Select};
 use std::mem::replace;
 use std::rc::Rc;
 use std::u32;
+use std::string;
 
 local_data_key!(pub StackRoots: *const RootCollection)
 
@@ -363,6 +365,7 @@ impl ScriptTask {
         });
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
+        js_context.set_error_reporter(reportError());
         unsafe {
             JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
         }
@@ -1127,9 +1130,7 @@ fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
         message for a layout channel that is not associated with this script task.\
          This is a bug.")
 }
-pub unsafe fn set_logging_error_reporter() {
-    
-    }
+
 pub unsafe fn reportError(_cx: *mut JSContext, msg: *const c_char, report: *mut JSErrorReport) {
     error!("MyError called\n");
     let fnptr = (*report).filename;
