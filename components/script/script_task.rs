@@ -63,7 +63,7 @@ use geom::point::Point2D;
 use hyper::header::{Header, HeaderFormat};
 use hyper::header::common::util as header_util;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
-use js::jsapi::{JSContext, JSRuntime, JSTracer};
+use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
 use js::rust::{Cx, RtUtils};
@@ -71,6 +71,7 @@ use js;
 use url::Url;
 
 use libc::size_t;
+use libc::c_char;
 use std::any::{Any, AnyRefExt};
 use std::comm::{channel, Sender, Receiver, Select};
 use std::fmt::{mod, Show};
@@ -78,6 +79,7 @@ use std::mem::replace;
 use std::rc::Rc;
 use std::u32;
 use time::{Tm, strptime};
+use std::string;
 
 local_data_key!(pub StackRoots: *const RootCollection)
 
@@ -390,6 +392,7 @@ impl ScriptTask {
         });
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
+        js_context.set_error_reporter(reportError());
         unsafe {
             JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
         }
@@ -1278,6 +1281,7 @@ pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
          This is a bug.")
 }
 
+<<<<<<< HEAD
 //FIXME(seanmonstar): uplift to Hyper
 #[deriving(Clone)]
 struct LastModified(pub Tm);
@@ -1318,6 +1322,8 @@ fn dom_last_modified(tm: &Tm) -> String {
 pub unsafe fn set_logging_error_reporter() {
     
     }
+=======
+>>>>>>> added reportError()
 pub unsafe fn reportError(_cx: *mut JSContext, msg: *const c_char, report: *mut JSErrorReport) {
     error!("MyError called\n");
     let fnptr = (*report).filename;
