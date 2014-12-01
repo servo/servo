@@ -15,9 +15,10 @@ readonly attribute DOMString url;
     //readonly attribute unsigned short readyState;
     //readonly attribute unsigned long bufferedAmount;
     //networking
-    //attribute EventHandler onopen;
-    //attribute EventHandler onerror;
-    //attribute EventHandler onclose;
+    attribute EventHandler onopen;
+    attribute EventHandler onerror;
+    attribute EventHandler onclose;
+    attribute EventHandler onmessage;
     //readonly attribute DOMString extensions;
     //readonly attribute DOMString protocol;
     //void send(USVString data);

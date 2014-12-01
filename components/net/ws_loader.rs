@@ -14,24 +14,27 @@ pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
 }
 
 fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
-
-   let(sen,rec)=channel();
-   http_loader::load(load_data, sen);
-   let response=rec.recv();
-
-   response.metadata.headers.as_ref().map(|headers| {
-     headers.iter().find(|h|h.header_name().as_slice().to_ascii_lower().to_string() == "upgrade".to_string() && h.header_value().as_slice().to_ascii_lower().to_string() == "websocket".to_string()
-    );
- 
-  /* match header {
-                     Some(h) =>{}
-                     None => {},
-                 };
-
-*/
-});
-
-start_chan.send(response);
-
-
+    
+    let(sen,rec)=channel();
+    http_loader::load(load_data, sen);
+    let response=rec.recv();
+    let mut flag: int = 0;
+    response.metadata.headers.as_ref().map(|headers| {
+        let header = headers.iter().find(|h|
+            h.header_name().as_slice().to_ascii_lower() == "upgrade".to_string()
+        );
+        
+        match header {
+            Some(h) => {    if h.header_value().as_slice().to_ascii_lower() == "websocket".to_string()
+                            {
+                                flag = flag + 1 
+                            }
+                       },
+            None => {}
+        }
+    });
+    if flag == 1
+    {
+       start_chan.send(response);
+    }
 }

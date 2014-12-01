@@ -48,6 +48,7 @@ use script_traits::ScriptControlChan;
 use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::ConstellationChan;
+use servo_net::resource_task::LoadResponse;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::str::LengthOrPercentageOrAuto;
 use std::cell::{Cell, RefCell};
@@ -194,7 +195,6 @@ impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
     }
 }
 
-
 no_jsmanaged_fields!(bool, f32, f64, String, Url)
 no_jsmanaged_fields!(uint, u8, u16, u32, u64)
 no_jsmanaged_fields!(int, i8, i16, i32, i64)
@@ -215,6 +215,7 @@ no_jsmanaged_fields!(LayoutChan)
 no_jsmanaged_fields!(WindowProxyHandler)
 no_jsmanaged_fields!(UntrustedNodeAddress)
 no_jsmanaged_fields!(LengthOrPercentageOrAuto)
+no_jsmanaged_fields!(LoadResponse)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]
