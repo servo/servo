@@ -11,9 +11,10 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
-use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::conversions::{FromJSValConvertible, Empty};
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
@@ -24,6 +25,7 @@ use dom::bindings::global::global_object_for_js_object;
 use dom::element::{HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
 use dom::uievent::UIEvent;
+use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
@@ -1284,6 +1286,7 @@ pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
          This is a bug.")
 }
 
+<<<<<<< HEAD
 //FIXME(seanmonstar): uplift to Hyper
 #[deriving(Clone)]
 struct LastModified(pub Tm);
@@ -1324,16 +1327,30 @@ fn dom_last_modified(tm: &Tm) -> String {
 pub unsafe fn set_logging_error_reporter() {
     
     }
+=======
+#[allow(unrooted_must_root)]
+>>>>>>> Creating ErrorEvent
 pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report: *mut JSErrorReport) {
     error!("MyError called\n");
     let fnptr = (*report).filename;
     let fname = if fnptr.is_not_null() {string::raw::from_buf(fnptr as *const i8 as *const u8)} else {"none".to_string()};
     let lineno = (*report).lineno;
+    let colno = (*report).column;
     let msg = string::raw::from_buf(msg as *const i8 as *const u8);
-    error!("MyError at {:s}:{}: {:s}\n", fname, lineno, msg);
-    //asfaf
+    error!("MyError at {:s}:{}: {}: {:s}\n", fname, lineno, colno, msg);
+
+    let Dnb = true;   // DoesNotBubble : How to get this value ?
+    let Cncl = true;  // Cancelable: How to get this value?
+
     let global = JS_GetGlobalObject(_cx);
     let errorWindow = global_object_for_js_object(global);
-    let e1 = errorWindow.root();
+
+    let event = ErrorEvent::new(&global.root_ref(),
+                           "OnErrorEventHandler".to_string(),
+                           Dnb, Cncl,
+                           msg, fname, lineno, colno, /*FIXME How to get JSval Event attribute (no such attri in report) ?*/).root();
+    let target: JSRef<EventTarget> = EventTargetCast::from_ref(_cx);
+    target.dispatch_event_with_target(None, *event).ok();
+    //let e1 = errorWindow.root();
     //let e1 = errorWindow.root();
 }

@@ -6,6 +6,8 @@
 <caption id="tcaption">old caption</caption>
 </table>
 <script>
+  var x;
+  x[5] = 'test';
   var t = document.getElementById("t");
   var tcaption = document.getElementById("tcaption");
   is(t.caption, tcaption);
