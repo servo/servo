@@ -69,6 +69,7 @@ use hyper::header::{Header, HeaderFormat};
 use hyper::header::common::util as header_util;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
+use js::jsapi::JSType;
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_GetGlobalObject};
 use js::rust::{Cx, RtUtils};
@@ -1348,8 +1349,8 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
     let event = ErrorEvent::new(&global.root_ref(),
                            "OnErrorEventHandler".to_string(),
                            Dnb, Cncl,
-                           msg, fname, lineno, colno, /*FIXME How to get JSval Event attribute (no such attri in report) ?*/).root();
-    let target: JSRef<EventTarget> = EventTargetCast::from_ref(_cx);
+                           msg, fname, lineno, colno, "".to_string()/*FIXME How to get JSval Error attribute (no such attri in rep*/).root();
+    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*event);
     target.dispatch_event_with_target(None, *event).ok();
     //let e1 = errorWindow.root();
     //let e1 = errorWindow.root();
