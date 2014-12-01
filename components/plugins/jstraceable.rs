@@ -37,7 +37,9 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
                 explicit_self: ty::borrowed_explicit_self(),
                 args: vec!(ty::Ptr(box ty::Literal(ty::Path::new(vec!("js","jsapi","JSTracer"))), ty::Raw(ast::MutMutable))),
                 ret_ty: ty::nil_ty(),
-                attributes: vec!(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("inline")))),
+                attributes: vec!(attr::mk_attr_outer(attr::mk_attr_id(),
+                                                     attr::mk_name_value_item_str(InternedString::new("inline"),
+                                                                                  InternedString::new("always")))),
                 combine_substructure: combine_substructure(|a, b, c| {
                     jstraceable_substructure(a, b, c)
                 })
