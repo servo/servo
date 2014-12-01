@@ -33,6 +33,7 @@ extern crate style;
 extern crate sync;
 extern crate time;
 extern crate url;
+extern crate "image" as servo_image;
 
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, this is a hard dependency.

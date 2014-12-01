@@ -5,10 +5,11 @@
 use std::iter::range_step;
 //use stb_image::image as stb_image;
 use servo_image;
-//use png;
+use png;
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
+pub type Image = png::Image;
 pub type DynamicImage = servo_image::DynamicImage;
 
 
@@ -49,12 +50,12 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<DynamicImage> {
    else {
 	let result = servo_image::load_from_memory(buffer,servo_image::ImageFormat::JPEG);
 	if (result.is_ok()) {
-  	let v = result.unwrap();
-  	return Some(v);
+  	    let v = result.unwrap();
+  	    return Some(v);
 	}
 	else  {	
-	return None;
-		
-    }}
+	    return None;
+	}		
+   }
 
 }

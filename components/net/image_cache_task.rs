@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use image::base::{DynamicImage, load_from_memory};
+use image::base::{Image, DynamicImage, load_from_memory};
 use resource_task;
 use resource_task::{LoadData, ResourceTask};
 
@@ -78,7 +78,7 @@ impl<E, S: Encoder<E>> Encodable<S, E> for ImageCacheTask {
     }
 }
 
-type DecoderFactory = fn() -> (proc(&[u8]) : 'static -> Option<DynamicImage>);
+type DecoderFactory = fn() -> (proc(&[u8]) : 'static -> Option<Image>);
 
 impl ImageCacheTask {
     pub fn new(resource_task: ResourceTask, task_pool: TaskPool) -> ImageCacheTask {

@@ -35,9 +35,6 @@ git = "https://github.com/servo/rust-layers"
 [dependencies.stb_image]
 git = "https://github.com/servo/rust-stb-image"
 
-[dependencies.image]
-git = "https://github.com/PistonDevelopers/image"
-
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
@@ -64,4 +61,3 @@ git = "https://github.com/servo/rust-core-text"
 
 [dependencies.script_traits]
 path = "../script_traits"
-

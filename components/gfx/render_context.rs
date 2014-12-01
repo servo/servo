@@ -20,7 +20,8 @@ use geom::size::Size2D;
 use libc::size_t;
 use libc::types::common::c99::{uint16_t, uint32_t};
 use png::{RGB8, RGBA8, K8, KA8};
-use servo_net::image::base::DynamicImage;
+//use servo_image::{ImageLuma8, ImageLumaA8, ImageRgb8, ImageRgba8};
+use servo_net::image::base::{Image,DynamicImage};
 use servo_util::geometry::Au;
 use servo_util::opts;
 use servo_util::range::Range;
@@ -30,6 +31,7 @@ use style::computed_values::border_style;
 use sync::Arc;
 use text::TextRun;
 use text::glyph::CharIndex;
+use servo_image::GenericImage;
 
 pub struct RenderContext<'a> {
     pub draw_target: &'a DrawTarget,
@@ -110,14 +112,15 @@ impl<'a> RenderContext<'a>  {
     }
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<DynamicImage>>) {
-        let size = Size2D(image.width as i32, image.height as i32);
-        let (pixel_width, pixels, source_format) = match image.pixels {
-            RGBA8(ref pixels) => (4, pixels.as_slice(), B8G8R8A8),
+	let (image_width, image_height) = image.dimensions();
+        let size = Size2D(image_width as i32, image_height as i32);
+        let (pixel_width, pixels, source_format) = match image.pixels() {
+            Rgba8(ref pixels) => (4, pixels.as_slice(), B8G8R8A8),
             K8(ref pixels) => (1, pixels.as_slice(), A8),
             RGB8(_) => panic!("RGB8 color type not supported"),
             KA8(_) => panic!("KA8 color type not supported"),
         };
-        let stride = image.width * pixel_width;
+        let stride = image_width * pixel_width;
 
         self.draw_target.make_current();
         let draw_target_ref = &self.draw_target;
@@ -126,7 +129,7 @@ impl<'a> RenderContext<'a>  {
                                                                             stride as i32,
                                                                             source_format);
         let source_rect = Rect(Point2D(0u as AzFloat, 0u as AzFloat),
-                               Size2D(image.width as AzFloat, image.height as AzFloat));
+                               Size2D(image_width as AzFloat, image_height as AzFloat));
         let dest_rect = bounds.to_azure_rect();
         let draw_surface_options = DrawSurfaceOptions::new(Linear, true);
         let draw_options = DrawOptions::new(1.0f64 as AzFloat, 0);

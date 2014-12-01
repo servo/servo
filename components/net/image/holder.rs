@@ -11,6 +11,8 @@ use std::mem;
 use sync::{Arc, Mutex};
 use url::Url;
 
+use servo_image::GenericImage;
+
 
 // FIXME: Nasty coupling here This will be a problem if we want to factor out image handling from
 // the network stack. This should probably be factored out into an interface and use dependency
