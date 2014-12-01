@@ -346,9 +346,12 @@ pub fn reflect_dom_object<T: Reflectable>
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
-#[allow(raw_pointer_deriving, unrooted_must_root)]
+// Allowing unused_attribute because the lint sometimes doesn't run in order
+#[allow(raw_pointer_deriving, unrooted_must_root, unused_attributes)]
 #[deriving(PartialEq)]
 #[must_root]
+#[servo_lang = "reflector"]
+// If you're renaming or moving this field, update the path in plugins::reflector as well
 pub struct Reflector {
     object: Cell<*mut JSObject>,
 }

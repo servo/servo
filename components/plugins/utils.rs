@@ -2,10 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use rustc::lint::Context;
+use rustc::middle::{ty, def};
+
 use syntax::ptr::P;
+use syntax::ast;
 use syntax::ast::{TyPath, Path, AngleBracketedParameters, PathSegment, Ty};
+use syntax::attr::mark_used;
 
 /// Matches a type with a provided string, and returns its type parameters if successful
+///
+/// Try not to use this for types defined in crates you own, use match_lang_ty instead (for lint passes)
 pub fn match_ty_unwrap<'a>(ty: &'a Ty, segments: &[&str]) -> Option<&'a [P<Ty>]> {
     match ty.node {
         TyPath(Path {segments: ref seg, ..}, _, _) => {
@@ -26,4 +33,30 @@ pub fn match_ty_unwrap<'a>(ty: &'a Ty, segments: &[&str]) -> Option<&'a [P<Ty>]>
         },
         _ => None
     }
+}
+
+/// Checks if a type has a #[servo_lang = "str"] attribute
+pub fn match_lang_ty(cx: &Context, ty: &Ty, value: &str) -> bool {
+    let mut found = false;
+    if let TyPath(_, _, ty_id) = ty.node {
+        if let Some(def::DefTy(def_id, _)) = cx.tcx.def_map.borrow().find_copy(&ty_id) {
+            // Iterating through attributes is hard because of cross-crate defs
+            ty::each_attr(cx.tcx, def_id, |attr| {
+                if let ast::MetaNameValue(ref name, ref val) = attr.node.value.node {
+                    if name.get() == "servo_lang" {
+                        if let ast::LitStr(ref v, _) = val.node {
+                            if v.get() == value {
+                                mark_used(attr);
+                                found = true;
+                                // We're done with the loop
+                                return false;
+                            }
+                        }
+                    }
+                }
+                true
+            });
+        };
+    }
+    found
 }

@@ -240,3 +240,12 @@ impl<'a> EventMethods for JSRef<'a, Event> {
     }
 }
 
+pub trait EventHelpers {
+    fn set_trusted(self, trusted: bool);
+}
+
+impl<'a> EventHelpers for JSRef<'a, Event> {
+    fn set_trusted(self, trusted: bool) {
+        self.trusted.set(trusted);
+    }
+}
