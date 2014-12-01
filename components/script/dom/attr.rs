@@ -85,7 +85,6 @@ pub struct Attr {
     owner: Option<JS<Element>>,
 }
 
-
 impl Attr {
     fn new_inherited(local_name: Atom, value: AttrValue,
                      name: Atom, namespace: Namespace,

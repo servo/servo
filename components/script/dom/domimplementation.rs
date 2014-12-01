@@ -47,7 +47,6 @@ impl DOMImplementation {
     }
 }
 
-
 // http://dom.spec.whatwg.org/#domimplementation
 impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     // http://dom.spec.whatwg.org/#dom-domimplementation-createdocumenttype

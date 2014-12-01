@@ -482,7 +482,6 @@ pub trait NodeHelpers<'a> {
     fn summarize(self) -> NodeInfo;
 }
 
-
 impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     /// Dumps the subtree rooted at this node, for debugging.
     fn dump(self) {

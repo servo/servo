@@ -119,7 +119,6 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
     }
 }
 
-
 type NodeAdvancer<'a> = |node: JSRef<'a, Node>|: 'a -> Option<Temporary<Node>>;
 
 trait PrivateTreeWalkerHelpers<'a> {

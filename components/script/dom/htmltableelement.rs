@@ -57,7 +57,6 @@ impl HTMLTableElement {
     }
 }
 
-
 impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     //  http://www.whatwg.org/html/#dom-table-caption
     fn GetCaption(self) -> Option<Temporary<HTMLTableCaptionElement>> {

@@ -93,7 +93,6 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
     }
 }
 
-
 pub trait URLSearchParamsHelpers {
     fn serialize(&self, encoding: Option<EncodingRef>) -> Vec<u8>;
     fn update_steps(&self);

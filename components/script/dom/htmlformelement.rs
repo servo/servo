@@ -389,7 +389,6 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
     }
 }
 
-
 // TODO: add file support
 pub struct FormDatum {
     pub ty: DOMString,

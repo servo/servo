@@ -107,7 +107,6 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
 }
 
-
 trait PrivateFormDataHelpers{
   fn get_file_from_blob(&self, value: JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File>;
 }

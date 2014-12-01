@@ -240,7 +240,6 @@ impl XMLHttpRequest {
             }
         }
 
-
         macro_rules! notify_error_and_return(
             ($err:expr) => ({
                 notify_partial_progress(fetch_type, XHRProgress::Errored(gen_id, $err));

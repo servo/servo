@@ -222,4 +222,3 @@ pub fn create_element(name: QualName, prefix: Option<DOMString>,
     }
 }
 
-

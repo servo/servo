@@ -137,7 +137,6 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
     }
 }
 
-
 impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
     make_url_getter!(Href)
     make_setter!(SetHref, "href")

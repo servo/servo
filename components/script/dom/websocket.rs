@@ -36,7 +36,6 @@ impl WebSocket {
     }
 }
 
-
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     fn Url(self) -> DOMString {
         self.url.clone()

@@ -40,7 +40,6 @@ impl DOMTokenList {
     }
 }
 
-
 trait PrivateDOMTokenListHelpers {
     fn attribute(self) -> Option<Temporary<Attr>>;
     fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<&'a str>;

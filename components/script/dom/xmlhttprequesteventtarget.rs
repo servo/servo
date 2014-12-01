@@ -43,7 +43,6 @@ impl XMLHttpRequestEventTargetDerived for EventTarget {
 
 }
 
-
 impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarget> {
     event_handler!(loadstart,GetOnloadstart, SetOnloadstart)
     event_handler!(progress, GetOnprogress, SetOnprogress)

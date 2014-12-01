@@ -98,7 +98,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
     }
 }
 
-
 impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     fn Text(self) -> DOMString {
         let node: JSRef<Node> = NodeCast::from_ref(self);

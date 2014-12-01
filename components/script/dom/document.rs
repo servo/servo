@@ -472,7 +472,6 @@ impl Document {
     }
 }
 
-
 trait PrivateDocumentHelpers {
     fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList>;
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>>;

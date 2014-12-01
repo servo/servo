@@ -64,7 +64,6 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     }
 }
 
-
 #[unsafe_destructor]
 impl Drop for CanvasRenderingContext2D {
     fn drop(&mut self) {

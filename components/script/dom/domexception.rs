@@ -83,7 +83,6 @@ impl DOMException {
     }
 }
 
-
 impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
     // http://dom.spec.whatwg.org/#dom-domexception-code
     fn Code(self) -> u16 {

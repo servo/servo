@@ -85,7 +85,6 @@ impl ElementDerived for EventTarget {
     }
 }
 
-
 #[deriving(PartialEq, Show)]
 #[jstraceable]
 pub enum ElementTypeId {

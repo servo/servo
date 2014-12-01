@@ -570,7 +570,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
     }
 }
 
-
 impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
     fn to_element(self) -> JSRef<'a, Element> {
         ElementCast::from_ref(self)
