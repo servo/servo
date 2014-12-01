@@ -115,7 +115,7 @@ impl<'a> RenderContext<'a>  {
 	let (image_width, image_height) = image.dimensions();
         let size = Size2D(image_width as i32, image_height as i32);
         let (pixel_width, pixels, source_format) = match image.pixels() {
-            Rgba8(ref pixels) => (4, pixels.as_slice(), B8G8R8A8),
+            RGBA8(ref pixels) => (4, pixels.as_slice(), B8G8R8A8),
             K8(ref pixels) => (1, pixels.as_slice(), A8),
             RGB8(_) => panic!("RGB8 color type not supported"),
             KA8(_) => panic!("KA8 color type not supported"),
