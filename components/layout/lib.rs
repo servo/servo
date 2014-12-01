@@ -27,6 +27,7 @@ extern crate "net" as servo_net;
 extern crate "msg" as servo_msg;
 #[phase(plugin, link)]
 extern crate "util" as servo_util;
+extern crate "image" as servo_image;
 
 #[phase(plugin)]
 extern crate string_cache_macros;

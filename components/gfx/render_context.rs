@@ -19,9 +19,9 @@ use geom::side_offsets::SideOffsets2D;
 use geom::size::Size2D;
 use libc::size_t;
 use libc::types::common::c99::{uint16_t, uint32_t};
-use png::{RGB8, RGBA8, K8, KA8};
-//use servo_image::{ImageLuma8, ImageLumaA8, ImageRgb8, ImageRgba8};
-use servo_net::image::base::{Image,DynamicImage};
+//use png::{RGB8, RGBA8, K8, KA8};
+use servo_image::{Grey, RGB, GreyA, RGBA, Palette};
+use servo_net::image::base::{DynamicImage};
 use servo_util::geometry::Au;
 use servo_util::opts;
 use servo_util::range::Range;
@@ -31,7 +31,7 @@ use style::computed_values::border_style;
 use sync::Arc;
 use text::TextRun;
 use text::glyph::CharIndex;
-use servo_image::GenericImage;
+use servo_image::{GenericImage, ImageDecoder};
 
 pub struct RenderContext<'a> {
     pub draw_target: &'a DrawTarget,
@@ -114,11 +114,13 @@ impl<'a> RenderContext<'a>  {
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<DynamicImage>>) {
 	let (image_width, image_height) = image.dimensions();
         let size = Size2D(image_width as i32, image_height as i32);
-        let (pixel_width, pixels, source_format) = match image.pixels() {
-            RGBA8(ref pixels) => (4, pixels.as_slice(), B8G8R8A8),
-            K8(ref pixels) => (1, pixels.as_slice(), A8),
-            RGB8(_) => panic!("RGB8 color type not supported"),
-            KA8(_) => panic!("KA8 color type not supported"),
+	let raw_pixels = image.raw_pixels();
+        let (pixel_width, pixels, source_format) = match image.color() {
+            RGBA(_) => (4, raw_pixels.as_slice(), B8G8R8A8),
+            Grey(_) => (1, raw_pixels.as_slice(), A8),
+            RGB(_) => panic!("RGB8 color type not supported"),
+            GreyA(_) => panic!("KA8 color type not supported"),
+	    Palette(_) => panic!("Palette color type not supported"),
         };
         let stride = image_width * pixel_width;
 

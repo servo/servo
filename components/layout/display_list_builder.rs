@@ -45,6 +45,7 @@ use style::computed_values::{visibility};
 use style::{ComputedValues, Bottom, Left, RGBA, Right, Top};
 use sync::Arc;
 use url::Url;
+use servo_image::GenericImage;
 
 /// The results of display list building for a single flow.
 pub enum DisplayListBuildingResult {
@@ -218,8 +219,10 @@ impl FragmentDisplayListBuilding for Fragment {
         };
         debug!("(building display list) building background image");
 
-        let image_width = Au::from_px(image.width as int);
-        let image_height = Au::from_px(image.height as int);
+	let (img_width, img_height) = image.dimensions();
+
+        let image_width = Au::from_px(img_width as int);
+        let image_height = Au::from_px(img_height as int);
         let mut bounds = *absolute_bounds;
 
         // Clip.
@@ -258,19 +261,19 @@ impl FragmentDisplayListBuilding for Fragment {
                 bounds.origin.y = abs_y;
                 bounds.size.height = image_height;
                 ImageFragmentInfo::tile_image(&mut bounds.origin.x, &mut bounds.size.width,
-                                                abs_x, image.width);
+                                                abs_x, img_width);
             }
             background_repeat::repeat_y => {
                 bounds.origin.x = abs_x;
                 bounds.size.width = image_width;
                 ImageFragmentInfo::tile_image(&mut bounds.origin.y, &mut bounds.size.height,
-                                                abs_y, image.height);
+                                                abs_y, img_height);
             }
             background_repeat::repeat => {
                 ImageFragmentInfo::tile_image(&mut bounds.origin.x, &mut bounds.size.width,
-                                                abs_x, image.width);
+                                                abs_x, img_width);
                 ImageFragmentInfo::tile_image(&mut bounds.origin.y, &mut bounds.size.height,
-                                                abs_y, image.height);
+                                                abs_y, img_height);
             }
         };
 
@@ -278,8 +281,8 @@ impl FragmentDisplayListBuilding for Fragment {
         display_list.push(ImageDisplayItemClass(box ImageDisplayItem {
             base: BaseDisplayItem::new(bounds, self.node, clip_rect),
             image: image.clone(),
-            stretch_size: Size2D(Au::from_px(image.width as int),
-                                 Au::from_px(image.height as int)),
+            stretch_size: Size2D(Au::from_px(img_width as int),
+                                 Au::from_px(img_height as int)),
         }), level);
     }
 
