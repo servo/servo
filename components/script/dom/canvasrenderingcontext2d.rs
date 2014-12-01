@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 
 use geom::point::Point2D;
@@ -64,11 +64,6 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     }
 }
 
-impl Reflectable for CanvasRenderingContext2D {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}
 
 #[unsafe_destructor]
 impl Drop for CanvasRenderingContext2D {

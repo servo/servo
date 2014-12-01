@@ -10,7 +10,6 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::IndexSize;
 use dom::bindings::js::JSRef;
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
@@ -122,8 +121,3 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 }
 
-impl Reflectable for CharacterData {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-}

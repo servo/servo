@@ -11,7 +11,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{InvalidCharacter, NamespaceError};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
@@ -47,11 +47,6 @@ impl DOMImplementation {
     }
 }
 
-impl Reflectable for DOMImplementation {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}
 
 // http://dom.spec.whatwg.org/#domimplementation
 impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {

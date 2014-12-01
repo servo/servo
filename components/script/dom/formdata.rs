@@ -11,7 +11,7 @@ use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
@@ -107,11 +107,6 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
 }
 
-impl Reflectable for FormData {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}
 
 trait PrivateFormDataHelpers{
   fn get_file_from_blob(&self, value: JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File>;

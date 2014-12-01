@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -58,11 +57,6 @@ impl HTMLTableElement {
     }
 }
 
-impl Reflectable for HTMLTableElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}
 
 impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     //  http://www.whatwg.org/html/#dom-table-caption

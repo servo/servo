@@ -6,7 +6,6 @@ use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -47,55 +46,6 @@ impl HTMLTableSectionElement {
                -> Temporary<HTMLTableSectionElement> {
         let element = HTMLTableSectionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableSectionElementBinding::Wrap)
-    }
-}
-
-impl Reflectable for HTMLTableSectionElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}
-
-pub trait HTMLTableSectionElementHelpers {
-    fn get_background_color(&self) -> Option<RGBA>;
-}
-
-impl HTMLTableSectionElementHelpers for HTMLTableSectionElement {
-    fn get_background_color(&self) -> Option<RGBA> {
-        self.background_color.get()
-    }
-}
-
-impl<'a> VirtualMethods for JSRef<'a, HTMLTableSectionElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
-        Some(htmlelement as &VirtualMethods)
-    }
-
-    fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
-        }
-
-        match attr.local_name() {
-            &atom!("bgcolor") => {
-                self.background_color.set(str::parse_legacy_color(attr.value().as_slice()).ok())
-            }
-            _ => {}
-        }
-    }
-
-    fn before_remove_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(attr),
-            _ => ()
-        }
-
-        match attr.local_name() {
-            &atom!("bgcolor") => self.background_color.set(None),
-            _ => {}
-        }
     }
 }
 

@@ -12,7 +12,6 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDeriv
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast, HTMLFormElementCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, ElementTypeId};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
@@ -390,11 +389,6 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
     }
 }
 
-impl Reflectable for HTMLFormElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}
 
 // TODO: add file support
 pub struct FormDatum {

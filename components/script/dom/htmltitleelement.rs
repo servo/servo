@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{TextCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -62,27 +61,6 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
     fn SetText(self, value: DOMString) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.SetTextContent(Some(value))
-    }
-}
-
-impl Reflectable for HTMLTitleElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}
-
-impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
-        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
-        Some(htmlelement as &VirtualMethods)
-    }
-
-    fn bind_to_tree(&self, is_in_doc: bool) {
-        let node: JSRef<Node> = NodeCast::from_ref(*self);
-        if is_in_doc {
-            let document = node.owner_doc().root();
-            document.send_title_to_compositor()
-        }
     }
 }
 

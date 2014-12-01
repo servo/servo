@@ -11,7 +11,6 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLSelectElementDerived
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -139,8 +138,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
     }
 }
 
-impl Reflectable for HTMLSelectElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

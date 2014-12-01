@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethod
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use servo_util::str::DOMString;
 use std::cell::Cell;
@@ -240,18 +240,3 @@ impl<'a> EventMethods for JSRef<'a, Event> {
     }
 }
 
-impl Reflectable for Event {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}
-
-pub trait EventHelpers {
-    fn set_trusted(self, trusted: bool);
-}
-
-impl<'a> EventHelpers for JSRef<'a, Event> {
-    fn set_trusted(self, trusted: bool) {
-        self.trusted.set(trusted);
-    }
-}

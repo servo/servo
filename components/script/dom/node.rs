@@ -27,7 +27,8 @@ use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils;
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
@@ -2169,11 +2170,6 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 }
 
 
-impl Reflectable for Node {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-}
 
 /// The address of a node known to be valid. These are sent from script to layout,
 /// and are also used in the HTML parser interface.

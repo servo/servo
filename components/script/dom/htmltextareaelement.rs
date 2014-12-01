@@ -13,7 +13,6 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCas
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, ElementTypeId};
 use dom::event::Event;
@@ -330,26 +329,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 }
 
-impl Reflectable for HTMLTextAreaElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}
-
-impl<'a> FormControl<'a> for JSRef<'a, HTMLTextAreaElement> {
-    fn to_element(self) -> JSRef<'a, Element> {
-        ElementCast::from_ref(self)
-    }
-
-    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
-    fn mutable(self) -> bool {
-        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-fe-mutable
-        !(self.Disabled() || self.ReadOnly())
-    }
-
-    fn reset(self) {
-        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-form-reset-control
-        self.SetValue(self.DefaultValue());
-        self.value_changed.set(false);
-    }
-}

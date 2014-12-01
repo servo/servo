@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, ElementTypeId};
 use dom::element::AttributeHandlers;
@@ -215,8 +214,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
     }
 }
 
-impl Reflectable for HTMLImageElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

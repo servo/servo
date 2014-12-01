@@ -9,7 +9,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::window_from_node;
 
@@ -40,11 +40,6 @@ impl DOMTokenList {
     }
 }
 
-impl Reflectable for DOMTokenList {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}
 
 trait PrivateDOMTokenListHelpers {
     fn attribute(self) -> Option<Temporary<Attr>>;

@@ -307,8 +307,3 @@ impl TestBinding {
     pub fn ReceiveVoidStatic() {}
 }
 
-impl Reflectable for TestBinding {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector
-    }
-}

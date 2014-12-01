@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::HTMLDivElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDivElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -38,8 +37,3 @@ impl HTMLDivElement {
     }
 }
 
-impl Reflectable for HTMLDivElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

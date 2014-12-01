@@ -25,7 +25,6 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, Root};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
 use dom::create::create_element;
@@ -86,11 +85,6 @@ impl ElementDerived for EventTarget {
     }
 }
 
-impl Reflectable for Element {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-}
 
 #[deriving(PartialEq, Show)]
 #[jstraceable]

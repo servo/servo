@@ -25,7 +25,7 @@ use dom::bindings::error::Error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
 use dom::comment::Comment;
@@ -472,11 +472,6 @@ impl Document {
     }
 }
 
-impl Reflectable for Document {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-}
 
 trait PrivateDocumentHelpers {
     fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList>;

@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, MouseEventDer
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary, OptionalSettable};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
@@ -179,8 +179,3 @@ impl<'a> MouseEventMethods for JSRef<'a, MouseEvent> {
     }
 }
 
-impl Reflectable for MouseEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.uievent.reflector()
-    }
-}

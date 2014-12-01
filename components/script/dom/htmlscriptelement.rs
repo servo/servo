@@ -15,7 +15,6 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCas
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{ElementTypeId, Element, AttributeHandlers, ElementCreator};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
@@ -330,8 +329,3 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
     }
 }
 
-impl Reflectable for HTMLScriptElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

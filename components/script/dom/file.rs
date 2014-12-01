@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::FileBinding;
 use dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::blob::{Blob, BlobTypeId};
 use servo_util::str::DOMString;
 
@@ -44,8 +44,3 @@ impl<'a> FileMethods for JSRef<'a, File> {
     }
 }
 
-impl Reflectable for File {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.blob.reflector()
-    }
-}

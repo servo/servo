@@ -11,7 +11,7 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::error::Error::DataClone;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::Reflectable;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use dom::worker::{Worker, TrustedWorkerAddress};
@@ -182,11 +182,6 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
     }
 }
 
-impl Reflectable for DedicatedWorkerGlobalScope {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.workerglobalscope.reflector()
-    }
-}
 
 impl DedicatedWorkerGlobalScopeDerived for EventTarget {
     fn is_dedicatedworkerglobalscope(&self) -> bool {

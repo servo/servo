@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElemen
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -138,8 +137,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
     }
 }
 
-impl Reflectable for HTMLButtonElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

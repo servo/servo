@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestEventTargetBinding::XMLHttpR
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetDerived;
 use dom::bindings::js::JSRef;
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 
 #[deriving(PartialEq)]
@@ -44,11 +43,6 @@ impl XMLHttpRequestEventTargetDerived for EventTarget {
 
 }
 
-impl Reflectable for XMLHttpRequestEventTarget {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-}
 
 impl<'a> XMLHttpRequestEventTargetMethods for JSRef<'a, XMLHttpRequestEventTarget> {
     event_handler!(loadstart,GetOnloadstart, SetOnloadstart)

@@ -10,7 +10,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eURLSearchPara
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 use servo_util::str::DOMString;
 
@@ -93,11 +93,6 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
     }
 }
 
-impl Reflectable for URLSearchParams {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}
 
 pub trait URLSearchParamsHelpers {
     fn serialize(&self, encoding: Option<EncodingRef>) -> Vec<u8>;

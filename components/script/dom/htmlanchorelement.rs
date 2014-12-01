@@ -11,7 +11,6 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{Element, AttributeHandlers, ElementTypeId};
@@ -99,11 +98,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
     }
 }
 
-impl Reflectable for HTMLAnchorElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}
 
 impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     fn Text(self) -> DOMString {

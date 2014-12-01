@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::FailureUnknown;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::window::Window;
@@ -74,8 +74,3 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
     }
 }
 
-impl Reflectable for DOMParser {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

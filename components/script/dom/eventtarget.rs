@@ -301,11 +301,6 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
     }
 }
 
-impl Reflectable for EventTarget {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}
 
 impl<'a> VirtualMethods for JSRef<'a, EventTarget> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {

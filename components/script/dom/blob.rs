@@ -5,7 +5,7 @@
 use dom::bindings::codegen::InheritTypes::FileDerived;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -123,11 +123,6 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
     //fn Close(self) {
     //    TODO
     //}
-}
-impl Reflectable for Blob {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
 }
 
 impl FileDerived for Blob {

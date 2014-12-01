@@ -12,7 +12,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::Reflectable;
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
 use dom::document::Document;
@@ -293,11 +293,6 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 }
 
-impl Reflectable for Window {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-}
 
 pub trait WindowHelpers {
     fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType);
