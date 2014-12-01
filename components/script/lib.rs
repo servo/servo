@@ -226,3 +226,6 @@ pub mod script_task;
 mod timers;
 pub mod textinput;
 mod devtools;
+
+#[cfg(test)]
+mod tests;
