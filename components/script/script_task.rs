@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, EventCast, ElementCast};
 use dom::bindings::conversions;
 use dom::bindings::conversions::{FromJSValConvertible, Empty};
+//use jsval::{NullValue};
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
@@ -22,6 +23,7 @@ use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
 use dom::event::{Event, Bubbles, DoesNotBubble, Cancelable, NotCancelable};
 use dom::uievent::UIEvent;
+use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::node;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
@@ -1133,16 +1135,28 @@ fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
          This is a bug.")
 }
 
+#[allow(unrooted_must_root)]
 pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report: *mut JSErrorReport) {
     error!("MyError called\n");
     let fnptr = (*report).filename;
     let fname = if fnptr.is_not_null() {string::raw::from_buf(fnptr as *const i8 as *const u8)} else {"none".to_string()};
     let lineno = (*report).lineno;
+    let colno = (*report).column;
     let msg = string::raw::from_buf(msg as *const i8 as *const u8);
-    error!("MyError at {:s}:{}: {:s}\n", fname, lineno, msg);
-    //asfaf
+    error!("MyError at {:s}:{}: {}: {:s}\n", fname, lineno, colno, msg);
+
+    let Dnb = true;   // DoesNotBubble : How to get this value ?
+    let Cncl = true;  // Cancelable: How to get this value?
+
     let global = JS_GetGlobalObject(_cx);
     let errorWindow = global_object_for_js_object(global);
-    let e1 = errorWindow.root();
+
+    let event = ErrorEvent::new(&global.root_ref(),
+                           "OnErrorEventHandler".to_string(),
+                           Dnb, Cncl,
+                           msg, fname, lineno, colno, /*FIXME How to get JSval Event attribute (no such attri in report) ?*/).root();
+    let target: JSRef<EventTarget> = EventTargetCast::from_ref(_cx);
+    target.dispatch_event_with_target(None, *event).ok();
+    //let e1 = errorWindow.root();
     //let e1 = errorWindow.root();
 }
