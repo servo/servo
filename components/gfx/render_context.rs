@@ -118,7 +118,7 @@ impl<'a> RenderContext<'a>  {
         let (pixel_width, pixels, source_format) = match image.color() {
             RGBA(_) => (4, raw_pixels.as_slice(), B8G8R8A8),
             Grey(_) => (1, raw_pixels.as_slice(), A8),
-            RGB(_) => panic!("RGB8 color type not supported"),
+            RGB(_) => (4, raw_pixels.as_slice(), B8G8R8A8),
             GreyA(_) => panic!("KA8 color type not supported"),
 	    Palette(_) => panic!("Palette color type not supported"),
         };
