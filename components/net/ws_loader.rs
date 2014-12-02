@@ -17,7 +17,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     
     let(sen,rec)=channel();
     http_loader::load(load_data, sen);
-    let mut response=rec.recv();
+    let response=rec.recv();
     let mut flag: int = 0;
 
     response.metadata.headers.as_ref().map(|headers| {
@@ -34,18 +34,13 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         }
     });
 
-    let(sen2, rec2) = channel();
-    let response2 = rec2.recv();
-    let progress_chan = start_sending(sen2, response2.metadata);
-    response.progress_port = response2.progress_port;
+    let progress_chan = start_sending(start_chan, response.metadata);
     if flag == 1
     {
-       start_chan.send(response);
        progress_chan.send(Done(Ok(()))); 
     }
     else
     {
-       start_chan.send(response);
        progress_chan.send(Done(Err("invalid upgrade header value".to_string())));
     }
 }
