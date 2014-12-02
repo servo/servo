@@ -37,7 +37,7 @@ use timers::TimerId;
 use devtools_traits;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, NodeInfo, GetRootNode};
 use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, EvaluateJSReply, GetDocumentElement};
-use devtools_traits::{GetChildren, GetLayout, ModifyAttribute};
+use devtools_traits::{GetChildren, GetLayout, ModifyAttribute, GetCachedMessages, CachedMessageType};
 use devtools_traits::Modification;
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
@@ -544,6 +544,7 @@ impl ScriptTask {
                 FromDevtools(GetChildren(id, node_id, reply)) => self.handle_get_children(id, node_id, reply),
                 FromDevtools(GetLayout(id, node_id, reply)) => self.handle_get_layout(id, node_id, reply),
                 FromDevtools(ModifyAttribute(id, node_id, modifications)) => self.handle_modify_attribute(id, node_id, modifications),
+                FromDevtools(GetCachedMessages(message_types, reply)) => self.handle_get_cached_messages(message_types, reply),
             }
         }
 
@@ -637,6 +638,14 @@ impl ScriptTask {
                 None => elem.RemoveAttribute(modification.attributeName.clone()),
             }
         }
+    }
+
+    fn handle_get_cached_messages(&self, _message_types: Vec<String>, reply: Sender<Vec<CachedMessageType>>) {
+        //TODO: check the messageTypes against a global Cache for console messages and page exceptions
+        let messages: Vec<CachedMessageType> = Vec::new();
+        //For each string in _message_types, search for the corresponding struct in the enum.
+        //Include the corresponding messages in the vector messages. Send messages.
+        reply.send(messages);
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {

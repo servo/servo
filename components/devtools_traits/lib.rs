@@ -75,6 +75,7 @@ pub enum DevtoolScriptControlMsg {
     GetChildren(PipelineId, String, Sender<Vec<NodeInfo>>),
     GetLayout(PipelineId, String, Sender<(f32, f32)>),
     ModifyAttribute(PipelineId, String, Vec<Modification>),
+    GetCachedMessages(Vec<String>, Sender<Vec<CachedMessageType>>)
 }
 
 /// Messages to instruct devtools server to update its state relating to a particular
@@ -102,4 +103,26 @@ impl<D:Decoder<E>, E> Decodable<D, E> for Modification {
             })
         )
     }
+}
+
+#[deriving(Encodable)]
+pub struct ConsoleAPIMessage {
+    _type: String,
+}
+
+#[deriving(Encodable)]
+pub struct PageErrorMessage {
+    _type: String,
+}
+
+#[deriving(Encodable)]
+pub struct LogMessage {
+    _type: String,
+}
+
+#[deriving(Encodable)]
+pub enum CachedMessageType {
+    ConsoleAPIType(ConsoleAPIMessage),
+    PageErrorType(PageErrorMessage),
+    LogMessageType(LogMessage),
 }
