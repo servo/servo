@@ -30,7 +30,7 @@ impl FontFamily {
         }
     }
 
-    /// Find a font in this family that matches a given desriptor.
+    /// Find a font in this family that matches a given descriptor.
     fn find_font_for_style<'a>(&'a mut self, desc: &FontTemplateDescriptor, fctx: &FontContextHandle)
                                -> Option<Arc<FontTemplateData>> {
         // TODO(Issue #189): optimize lookup for

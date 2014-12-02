@@ -274,7 +274,7 @@ impl CefWrap<*mut cef_context_menu_handler_t> for Option<CefContextMenuHandler> 
 
 
 //
-// Provides information about the context menu state. The ethods of this
+// Provides information about the context menu state. The methods of this
 // structure can only be accessed on browser process the UI thread.
 //
 #[repr(C)]
@@ -438,7 +438,7 @@ pub type cef_context_menu_params_t = _cef_context_menu_params_t;
 
 
 //
-// Provides information about the context menu state. The ethods of this
+// Provides information about the context menu state. The methods of this
 // structure can only be accessed on browser process the UI thread.
 //
 pub struct CefContextMenuParams {

@@ -56,7 +56,7 @@ impl CORSRequest {
             return Ok(None); // Not cross-origin, proceed with a normal fetch
         }
         match destination.scheme.as_slice() {
-            // Todo: If the request's same origin data url flag is set (which isn't the case for XHR)
+            // TODO: If the request's same origin data url flag is set (which isn't the case for XHR)
             // we can fetch a data URL normally. about:blank can also be fetched by XHR
             "http" | "https" => {
                 let mut req = CORSRequest::new(referer, destination, mode, method, headers);

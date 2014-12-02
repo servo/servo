@@ -213,11 +213,11 @@ impl FontHandleMethods for FontHandle {
         let max_advance = self.font_units_to_au(face.max_advance_width as f64);
 
         // 'leading' is supposed to be the vertical distance between two baselines,
-        // reflected by the height attibute in freetype.  On OS X (w/ CTFont),
+        // reflected by the height attribute in freetype.  On OS X (w/ CTFont),
         // leading represents the distance between the bottom of a line descent to
         // the top of the next line's ascent or: (line_height - ascent - descent),
         // see http://stackoverflow.com/a/5635981 for CTFont implementation.
-        // Convert using a formular similar to what CTFont returns for consistency.
+        // Convert using a formula similar to what CTFont returns for consistency.
         let height = self.font_units_to_au(face.height as f64);
         let leading = height - (ascent + descent);
 

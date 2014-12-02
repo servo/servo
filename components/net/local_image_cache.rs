@@ -124,7 +124,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
                 // Need to reflow when the image is available
                 // FIXME: Instead we should be just passing a Future
                 // to the caller, then to the display list. Finally,
-                // the compositor should be resonsible for waiting
+                // the compositor should be responsible for waiting
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
                 assert!(self.on_image_available.is_some());

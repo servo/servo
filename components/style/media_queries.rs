@@ -262,7 +262,7 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
             }
 
             // Add the media query if it was valid and no trailing tokens were found.
-            // Otherwse, create a 'not all' media query, that will never match.
+            // Otherwise, create a 'not all' media query, that will never match.
             let media_query = match (media_query_result, trailing_tokens) {
                 (Ok(media_query), false) => media_query,
                 _ => MediaQuery::new(Some(Not), All, vec!()),

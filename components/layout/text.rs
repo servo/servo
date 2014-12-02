@@ -250,7 +250,7 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
         None => {}
     }
 
-    // In vertical sideways or horizontal upgright text,
+    // In vertical sideways or horizontal upright text,
     // the "width" of text metrics is always inline
     // This will need to be updated when other text orientations are supported.
     LogicalSize::new(

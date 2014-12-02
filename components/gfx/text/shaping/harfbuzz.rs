@@ -156,7 +156,7 @@ impl Drop for Shaper {
 impl Shaper {
     pub fn new(font: &mut Font) -> Shaper {
         unsafe {
-            // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
+            // Indirection for Rust Issue #6248, dynamic freeze scope artificially extended
             let font_ptr = font as *mut Font;
             let hb_face: *mut hb_face_t = hb_face_create_for_tables(get_font_table_func,
                                                                     font_ptr as *mut c_void,
@@ -282,7 +282,7 @@ impl Shaper {
         let mut y_pos = Au(0);
 
         // main loop over each glyph. each iteration usually processes 1 glyph and 1+ chars.
-        // in cases with complex glyph-character assocations, 2+ glyphs and 1+ chars can be
+        // in cases with complex glyph-character associations, 2+ glyphs and 1+ chars can be
         // processed.
         while glyph_span.begin() < glyph_count {
             // start by looking at just one glyph.
