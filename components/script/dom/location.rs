@@ -31,7 +31,7 @@ impl Location {
 
     pub fn new(window: JSRef<Window>, page: Rc<Page>) -> Temporary<Location> {
         reflect_dom_object(box Location::new_inherited(page),
-                           &global::Window(window),
+                           global::Window(window),
                            LocationBinding::Wrap)
     }
 }

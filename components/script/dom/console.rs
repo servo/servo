@@ -21,7 +21,7 @@ impl Console {
         }
     }
 
-    pub fn new(global: &GlobalRef) -> Temporary<Console> {
+    pub fn new(global: GlobalRef) -> Temporary<Console> {
         reflect_dom_object(box Console::new_inherited(), global, ConsoleBinding::Wrap)
     }
 }

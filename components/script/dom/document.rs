@@ -331,7 +331,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.ready_state.set(state);
 
         let window = self.window.root();
-        let event = Event::new(&global::Window(*window), "readystatechange".to_string(),
+        let event = Event::new(global::Window(*window), "readystatechange".to_string(),
                                DoesNotBubble, NotCancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         let _ = target.DispatchEvent(*event);
@@ -440,7 +440,7 @@ impl Document {
                source: DocumentSource) -> Temporary<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window, url, doctype,
                                                                       content_type, source),
-                                          &global::Window(window),
+                                          global::Window(window),
                                           DocumentBinding::Wrap).root();
 
         let node: JSRef<Node> = NodeCast::from_ref(*document);
@@ -711,9 +711,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(
                 MouseEvent::new_uninitialized(*window))),
             "customevent" => Ok(EventCast::from_temporary(
-                CustomEvent::new_uninitialized(&global::Window(*window)))),
+                CustomEvent::new_uninitialized(global::Window(*window)))),
             "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(
-                &global::Window(*window))),
+                global::Window(*window))),
             "keyboardevent" | "keyevents" => Ok(EventCast::from_temporary(
                 KeyboardEvent::new_uninitialized(*window))),
             _ => Err(NotSupported)

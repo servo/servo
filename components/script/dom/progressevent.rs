@@ -36,7 +36,7 @@ impl ProgressEvent {
             total: total
         }
     }
-    pub fn new(global: &GlobalRef, type_: DOMString,
+    pub fn new(global: GlobalRef, type_: DOMString,
                can_bubble: bool, cancelable: bool,
                length_computable: bool, loaded: u64, total: u64) -> Temporary<ProgressEvent> {
         let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
@@ -50,7 +50,7 @@ impl ProgressEvent {
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Temporary<ProgressEvent>> {
-        let ev = ProgressEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
+        let ev = ProgressEvent::new(*global, type_, init.parent.bubbles, init.parent.cancelable,
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }
