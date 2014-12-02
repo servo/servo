@@ -11,7 +11,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDer
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, HTMLFieldSetElementTypeId, HTMLButtonElementTypeId};
+use dom::element::{AttributeHandlers, Element, ElementHelpers, HTMLFieldSetElementTypeId, HTMLButtonElementTypeId};
 use dom::element::{HTMLInputElementTypeId, HTMLSelectElementTypeId, HTMLTextAreaElementTypeId};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};

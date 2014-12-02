@@ -182,36 +182,6 @@ impl Element {
         Node::reflect_node(box Element::new_inherited(ElementTypeId_, local_name, namespace, prefix, document),
                            document, ElementBinding::Wrap)
     }
-
-    #[inline]
-    pub fn local_name<'a>(&'a self) -> &'a Atom {
-        &self.local_name
-    }
-
-    #[inline]
-    pub fn namespace<'a>(&'a self) -> &'a Namespace {
-        &self.namespace
-    }
-
-    #[inline]
-    pub fn prefix<'a>(&'a self) -> &'a Option<DOMString> {
-        &self.prefix
-    }
-
-    #[inline]
-    pub fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
-        self.attrs.borrow()
-    }
-
-    #[inline]
-    pub fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>> {
-        self.attrs.borrow_mut()
-    }
-
-    #[inline]
-    pub fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>> {
-        &self.style_attribute
-    }
 }
 
 pub trait RawLayoutElementHelpers {
@@ -225,6 +195,9 @@ pub trait RawLayoutElementHelpers {
                                               -> LengthOrPercentageOrAuto;
     unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
                                                -> Option<i32>;
+    fn local_name<'a>(&'a self) -> &'a Atom;
+    fn namespace<'a>(&'a self) -> &'a Namespace;
+    fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>>;
 }
 
 #[inline]
@@ -336,6 +309,20 @@ impl RawLayoutElementHelpers for Element {
             }
         }
     }
+
+    // Getters used in components/layout/wrapper.rs
+
+    fn local_name<'a>(&'a self) -> &'a Atom {
+        &self.local_name
+    }
+
+    fn namespace<'a>(&'a self) -> &'a Namespace {
+        &self.namespace
+    }
+
+    fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>> {
+        &self.style_attribute
+    }
 }
 
 pub trait LayoutElementHelpers {
@@ -361,8 +348,12 @@ impl LayoutElementHelpers for JS<Element> {
 
 pub trait ElementHelpers<'a> {
     fn html_element_in_html_document(self) -> bool;
-    fn get_local_name(self) -> &'a Atom;
-    fn get_namespace(self) -> &'a Namespace;
+    fn local_name(self) -> &'a Atom;
+    fn namespace(self) -> &'a Namespace;
+    fn prefix(self) -> &'a Option<DOMString>;
+    fn attrs(&self) -> Ref<Vec<JS<Attr>>>;
+    fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>>;
+    fn style_attribute(self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>>;
     fn summarize(self) -> Vec<AttrInfo>;
     fn is_void(self) -> bool;
 }
@@ -373,12 +364,28 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         self.namespace == ns!(HTML) && node.is_in_html_doc()
     }
 
-    fn get_local_name(self) -> &'a Atom {
+    fn local_name(self) -> &'a Atom {
         &self.extended_deref().local_name
     }
 
-    fn get_namespace(self) -> &'a Namespace {
+    fn namespace(self) -> &'a Namespace {
         &self.extended_deref().namespace
+    }
+
+    fn prefix(self) -> &'a Option<DOMString> {
+        &self.extended_deref().prefix
+    }
+
+    fn attrs(&self) -> Ref<Vec<JS<Attr>>> {
+        self.extended_deref().attrs.borrow()
+    }
+
+    fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>> {
+        self.extended_deref().attrs.borrow_mut()
+    }
+
+    fn style_attribute(self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>> {
+        &self.extended_deref().style_attribute
     }
 
     fn summarize(self) -> Vec<AttrInfo> {
@@ -393,7 +400,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         summarized
     }
 
-   fn is_void(self) -> bool {
+    fn is_void(self) -> bool {
         if self.namespace != ns!(HTML) {
             return false
         }
@@ -1116,7 +1123,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
         fn get_local_name<'a, T: ElementHelpers<'a>>(this: T) -> &'a Atom {
-            this.get_local_name()
+            this.local_name()
         }
 
         get_local_name(self)
@@ -1125,7 +1132,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
         fn get_namespace<'a, T: ElementHelpers<'a>>(this: T) -> &'a Namespace {
-            this.get_namespace()
+            this.namespace()
         }
 
         get_namespace(self)

@@ -1737,7 +1737,9 @@ impl Flow for BlockFlow {
                         .stacking_relative_position_of_absolute_containing_block
                 },
             relative_containing_block_size: self.fragment.content_box().size,
-            layers_needed_for_positioned_flows: self.base.flags.contains(LAYERS_NEEDED_FOR_DESCENDANTS),
+            layers_needed_for_positioned_flows: self.base
+                                                    .flags
+                                                    .contains(LAYERS_NEEDED_FOR_DESCENDANTS),
         };
 
         // Compute the origin and clipping rectangle for children.

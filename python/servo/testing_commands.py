@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 
+import argparse
 import os
 import os.path as path
 import subprocess
@@ -58,8 +59,9 @@ class MachCommands(CommandBase):
 
         if path.join("tests", "ref") in maybe_path:
             # test-ref is the outcast here in that it does not accept
-            # individual files as arguments.
-            args = [mach_command, "test-ref"] + params[1:]
+            # individual files as arguments unless passed through with --name
+            args = [mach_command, "test-ref",
+                    "--name", maybe_path] + params[1:]
         else:
             for test_dir, test_name in test_dirs:
                 if test_dir in maybe_path:
@@ -115,12 +117,14 @@ class MachCommands(CommandBase):
              category='testing')
     @CommandArgument('--kind', '-k', default=None,
                      help="'cpu' or 'gpu' (default both)")
-    @CommandArgument('test_name', default=None, nargs="?",
-                     help="Only run tests that match this pattern")
+    @CommandArgument('--name', default=None,
+                     help="Only run tests that match this pattern. If the "
+                          "path to the ref test directory is included, it "
+                          "will automatically be trimmed out.")
     @CommandArgument(
-        'servo_params', default=None, nargs="...",
+        'servo_params', default=None, nargs=argparse.REMAINDER,
         help="Command-line arguments to be passed through to Servo")
-    def test_ref(self, kind=None, test_name=None, servo_params=None):
+    def test_ref(self, kind=None, name=None, servo_params=None):
         self.ensure_bootstrapped()
         self.ensure_built_tests()
 
@@ -132,8 +136,17 @@ class MachCommands(CommandBase):
         for k in kinds:
             print("Running %s reftests..." % k)
             test_args = [k, test_path]
-            if test_name is not None:
-                test_args.append(test_name)
+            if name is not None:
+                maybe_path = path.normpath(name)
+                ref_path = path.join("tests", "ref")
+
+                # Check to see if we were passed something leading with the
+                # path to the ref test directory, and trim it so that reftest
+                # knows how to filter it.
+                if ref_path in maybe_path:
+                    test_args.append(path.relpath(maybe_path, ref_path))
+                else:
+                    test_args.append(name)
             if servo_params is not None:
                 test_args += ["--"] + servo_params
             ret = self.run_test("reftest", test_args)
