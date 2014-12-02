@@ -70,6 +70,26 @@ class MachCommands(CommandBase):
 
         subprocess.check_call(args, env=env)
 
+    @Command('rr-record',
+             description='Run Servo whilst recording execution with rr',
+             category='post-build')
+    @CommandArgument(
+        'params', nargs='...',
+        help="Command-line arguments to be passed through to Servo")
+    def rr_record(self, params):
+        env = self.build_env()
+        env["RUST_BACKTRACE"] = "1"
+
+        servo_cmd = [path.join('target', 'servo')] + params
+        rr_cmd = ['rr', '--fatal-errors', 'record']
+        subprocess.check_call(rr_cmd + servo_cmd)
+
+    @Command('rr-replay',
+             description='Replay the most recent execution of Servo that was recorded with rr',
+             category='post-build')
+    def rr_replay(self):
+        subprocess.check_call(['rr', '--fatal-errors', 'replay'])
+
     @Command('doc',
              description='Generate documentation',
              category='post-build')
