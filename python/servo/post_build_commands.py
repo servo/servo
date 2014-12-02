@@ -71,7 +71,7 @@ class MachCommands(CommandBase):
     def doc(self, params):
         self.ensure_bootstrapped()
         return subprocess.call(["cargo", "doc"] + params,
-                               env=self.build_env(), cwd="components/servo")
+                               env=self.build_env(), cwd=self.servo_crate())
 
     @Command('serve-docs',
              description='Locally serve Servo and Rust documentation',

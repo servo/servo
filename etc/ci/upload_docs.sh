@@ -6,6 +6,8 @@
 
 set -e
 
+cd "$(dirname $0)/../.."
+
 mkdir -p components/servo/target/doc
 ./mach bootstrap-rust
 # Ordered so that:
