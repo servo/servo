@@ -30,6 +30,13 @@ def read_file(filename, if_exists=False):
 
 @CommandProvider
 class MachCommands(CommandBase):
+
+    def get_binary_path(self, release):
+        base_path = path.join("components", "servo", "target")
+        if release:
+            return path.join(base_path, "release", "servo")
+        return path.join(base_path, "servo")
+
     @Command('run',
              description='Run Servo',
              category='post-build')
@@ -49,10 +56,7 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        if release:
-            args = [path.join("components", "servo", "target", "release", "servo")]
-        else:
-            args = [path.join("components", "servo", "target", "servo")]
+        args = self.get_binary_path(release)
 
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
@@ -81,6 +85,40 @@ class MachCommands(CommandBase):
             if e.errno == 2:
                 print("Servo Binary can't be found! Run './mach build'"
                      " and try again!")
+            else:
+                raise e
+
+    @Command('rr-record',
+             description='Run Servo whilst recording execution with rr',
+             category='post-build')
+    @CommandArgument('--release', '-r', action='store_true',
+                     help='Running release builds')
+    @CommandArgument(
+        'params', nargs='...',
+        help="Command-line arguments to be passed through to Servo")
+    def rr_record(self, release=False, params=[]):
+        env = self.build_env()
+        env["RUST_BACKTRACE"] = "1"
+
+        servo_cmd = [self.get_binary_path(release)] + params
+        rr_cmd = ['rr', '--fatal-errors', 'record']
+        try:
+            subprocess.check_call(rr_cmd + servo_cmd)
+        except OSError as e:
+            if e.errno == 2:
+                print("rr binary can't be found!")
+            else:
+                raise e
+
+    @Command('rr-replay',
+             description='Replay the most recent execution of Servo that was recorded with rr',
+             category='post-build')
+    def rr_replay(self):
+        try:
+            subprocess.check_call(['rr', '--fatal-errors', 'replay'])
+        except OSError as e:
+            if e.errno == 2:
+                print("rr binary can't be found!")
             else:
                 raise e
 
