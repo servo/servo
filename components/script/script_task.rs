@@ -62,6 +62,7 @@ use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
 use js::jsapi::JSType;
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_GetGlobalObject};
+use js::jsval::{UndefinedValue};
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
 use js;
@@ -1146,16 +1147,16 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
     let msg = string::raw::from_buf(msg as *const i8 as *const u8);
     error!("MyError at {:s}:{}: {}: {:s}\n", fname, lineno, colno, msg);
 
-    let Dnb = true;   // DoesNotBubble : How to get this value ?
-    let Cncl = true;  // Cancelable: How to get this value?
+    //let Dnb = true;   // DoesNotBubble : How to get this value ?
+    //let Cncl = true;  // Cancelable: How to get this value?
 
     let global = JS_GetGlobalObject(_cx);
     let errorWindow = global_object_for_js_object(global);
 
     let event = ErrorEvent::new(&global.root_ref(),
-                           "OnErrorEventHandler".to_string(),
-                           Dnb, Cncl,
-                           msg, fname, lineno, colno, "".to_string()/*FIXME How to get JSval Error attribute (no such attri in rep*/).root();
+                           "error".to_string(),
+                           DoesNotBubble, Cancelable,
+                           msg, fname, lineno, colno, UndefinedValue()/*FIXME How to get JSval Error attribute (no such attri in rep*/).root();
     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*event);
     target.dispatch_event_with_target(None, *event).ok();
     //let e1 = errorWindow.root();
