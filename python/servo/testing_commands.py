@@ -53,23 +53,22 @@ class MachCommands(CommandBase):
             return 1
 
         test_dirs = [
-            (path.join("tests", "content"), "test-content"),
-            (path.join("tests", "wpt"), "test-wpt"),
+            # path, mach test command, optional flag for path argument
+            (path.join("tests", "content"), "test-content", None),
+            (path.join("tests", "wpt"), "test-wpt", None),
+            (path.join("tests", "ref"), "test-ref", ["--name"]),
         ]
 
-        if path.join("tests", "ref") in maybe_path:
-            # test-ref is the outcast here in that it does not accept
-            # individual files as arguments unless passed through with --name
-            args = [mach_command, "test-ref",
-                    "--name", maybe_path] + params[1:]
+        for test_dir, test_name, path_flag in test_dirs:
+            if not path_flag:
+                path_arg = []
+            if test_dir in maybe_path:
+                args = ([mach_command, test_name] + path_flag +
+                        [maybe_path] + params[1:])
+                break
         else:
-            for test_dir, test_name in test_dirs:
-                if test_dir in maybe_path:
-                    args = [mach_command, test_name, maybe_path] + params[1:]
-                    break
-            else:
-                print("%s is not a valid test file or directory" % maybe_path)
-                return 1
+            print("%s is not a valid test file or directory" % maybe_path)
+            return 1
 
         return subprocess.call(args, env=self.build_env())
 
