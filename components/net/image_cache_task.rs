@@ -313,7 +313,12 @@ impl ImageCache {
                 self.task_pool.execute(proc() {
                     let url = url_clone;
                     debug!("image_cache_task: started image decode for {:s}", url.serialize());
-                    let image = load_from_memory(data.as_slice());
+                     let s=url.serialize();
+                let mut ext="";
+                for x in s.as_slice().split('.') { ext=x; }
+                println!("{}",ext);
+	
+                    let image = load_from_memory(data.as_slice(),ext);
                     let image = image.map(|image| Arc::new(box image));
                     to_cache.send(StoreImage(url.clone(), image));
                     debug!("image_cache_task: ended image decode for {:s}", url.serialize());
@@ -980,7 +985,7 @@ mod tests {
     #[test]
     fn sync_cache_should_wait_for_images() {
         let mock_resource_task = mock_resource_task(box SendTestImage);
-
+       
         let image_cache_task = ImageCacheTask::new_sync(mock_resource_task.clone(), TaskPool::new(4));
         let url = Url::parse("file:///").unwrap();
 
