@@ -181,7 +181,8 @@ cef_unimplemented_wrapper!(cef_string_t, String)
 impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
     fn to_c(buffer: &'a [u16]) -> *const cef_string_t {
         unsafe {
-            let ptr: *mut c_ushort = mem::transmute(libc::malloc(((buffer.len() * 2) + 1) as u64));
+            let ptr: *mut c_ushort =
+                mem::transmute(libc::calloc(1, ((buffer.len() * 2) + 1) as u64));
             ptr::copy_memory(ptr, mem::transmute(buffer.as_ptr()), (buffer.len() * 2) as uint);
             *ptr.offset(buffer.len() as int) = 0;
 
