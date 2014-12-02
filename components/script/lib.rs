@@ -227,5 +227,5 @@ mod timers;
 pub mod textinput;
 mod devtools;
 
-#[cfg(test)]
+#[cfg(all(test, target_word_size = "64"))]
 mod tests;
