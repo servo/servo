@@ -7,7 +7,7 @@
 
 #![feature(globs, macro_rules, struct_variant, phase, unsafe_destructor)]
 
-#![deny(unused_imports, unused_variable)]
+#![warning(unused_imports, unused_variable)]
 #![allow(non_snake_case)]
 
 #![doc="The script crate contains all matters DOM."]

@@ -168,6 +168,21 @@ pub extern "C" fn cef_string_utf16_set(src: *const c_ushort, src_len: size_t, ou
 }
 
 #[no_mangle]
+pub extern "C" fn cef_string_utf16_cmp(a: *const cef_string_utf16_t, b: *const cef_string_utf16_t) -> c_int {
+    unsafe {
+       slice::raw::buf_as_slice(mem::transmute((*a).str), (*a).length as uint, |astr:&[u16]| {
+            slice::raw::buf_as_slice(mem::transmute((*b).str), (*b).length as uint, |bstr:&[u16]| {
+                  match astr.cmp(&bstr) {
+                       Less => -1,
+                       Equal => 0,
+                       Greater => 1
+                  }
+            })
+       })
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn cef_string_wide_clear(cs: *mut cef_string_wide_t) {
     unsafe {
         if !fptr_is_null(mem::transmute((*cs).dtor)) {

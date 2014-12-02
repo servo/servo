@@ -5,6 +5,8 @@
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
 
+use servo_util::str::DOMString;
+use js::jsval::JSVal;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -97,6 +99,16 @@ pub enum ScriptMsg {
     DOMMessage(*mut u64, size_t),
     /// Posts a message to the Worker object (dispatched to all tasks).
     WorkerPostMessage(TrustedWorkerAddress, *mut u64, size_t),
+    /// Sends a message to the Worker object (dispatched to all tasks) regarding error.
+    WorkerDispatchErrorEvent(TrustedWorkerAddress, 
+               DOMString,
+               bool,
+               bool,
+               DOMString,
+               DOMString,
+               u32,
+               u32,
+               JSVal),
     /// Releases one reference to the Worker object (dispatched to all tasks).
     WorkerRelease(TrustedWorkerAddress),
 }
@@ -507,6 +519,13 @@ impl ScriptTask {
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
                 FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
+                FromScript(WorkerDispatchErrorEvent(addr, 
+						type_,bubbles, cancelable,
+					        msg, file_name,
+					        line_num, col_num, error)) => Worker::handle_error_message(addr, 
+						type_,bubbles, cancelable,
+					        msg, file_name,
+					        line_num, col_num, error),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
                 FromDevtools(EvaluateJS(id, s, reply)) => self.handle_evaluate_js(id, s, reply),
                 FromDevtools(GetRootNode(id, reply)) => self.handle_get_root_node(id, reply),

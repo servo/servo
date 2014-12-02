@@ -20,6 +20,8 @@ use dom::bindings::cell::DOMRefCell;
 use std::cell::{Cell};
 use js::jsval::{JSVal, NullValue};
 
+#[must_root]
+#[jstraceable]
 #[dom_struct]
 pub struct ErrorEvent {
     event: Event,
