@@ -29,14 +29,14 @@ impl Blob {
         }
     }
 
-    pub fn new(global: &GlobalRef) -> Temporary<Blob> {
+    pub fn new(global: GlobalRef) -> Temporary<Blob> {
         reflect_dom_object(box Blob::new_inherited(),
                            global,
                            BlobBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Blob>> {
-        Ok(Blob::new(global))
+        Ok(Blob::new(*global))
     }
 }
 

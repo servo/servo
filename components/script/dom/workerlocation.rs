@@ -30,7 +30,7 @@ impl WorkerLocation {
 
     pub fn new(global: JSRef<WorkerGlobalScope>, url: Url) -> Temporary<WorkerLocation> {
         reflect_dom_object(box WorkerLocation::new_inherited(url),
-                           &Worker(global),
+                           Worker(global),
                            WorkerLocationBinding::Wrap)
     }
 }

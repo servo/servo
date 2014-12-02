@@ -22,7 +22,7 @@ impl XMLHttpRequestUpload {
             eventtarget:XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestUploadTypeId)
         }
     }
-    pub fn new(global: &GlobalRef) -> Temporary<XMLHttpRequestUpload> {
+    pub fn new(global: GlobalRef) -> Temporary<XMLHttpRequestUpload> {
         reflect_dom_object(box XMLHttpRequestUpload::new_inherited(),
                            global,
                            XMLHttpRequestUploadBinding::Wrap)

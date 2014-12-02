@@ -20,7 +20,7 @@ impl NodeIterator {
         }
     }
 
-    pub fn new(global: &GlobalRef) -> Temporary<NodeIterator> {
+    pub fn new(global: GlobalRef) -> Temporary<NodeIterator> {
         reflect_dom_object(box NodeIterator::new_inherited(), global, NodeIteratorBinding::Wrap)
     }
 }

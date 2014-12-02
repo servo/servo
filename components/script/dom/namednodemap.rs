@@ -27,7 +27,7 @@ impl NamedNodeMap {
 
     pub fn new(window: JSRef<Window>, elem: JSRef<Element>) -> Temporary<NamedNodeMap> {
         reflect_dom_object(box NamedNodeMap::new_inherited(elem),
-                           &global::Window(window), NamedNodeMapBinding::Wrap)
+                           global::Window(window), NamedNodeMapBinding::Wrap)
     }
 }
 

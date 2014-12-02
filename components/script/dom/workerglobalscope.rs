@@ -142,7 +142,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
 
     fn Console(self) -> Temporary<Console> {
         if self.console.get().is_none() {
-            let console = Console::new(&global::Worker(self));
+            let console = Console::new(global::Worker(self));
             self.console.assign(Some(console));
         }
         self.console.get().unwrap()

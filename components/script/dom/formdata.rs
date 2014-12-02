@@ -46,7 +46,7 @@ impl FormData {
 
     pub fn new(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> Temporary<FormData> {
         reflect_dom_object(box FormData::new_inherited(form, global),
-                           global, FormDataBinding::Wrap)
+                           *global, FormDataBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalRef, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
@@ -121,6 +121,6 @@ impl PrivateFormDataHelpers for FormData {
         let global = self.global.root();
         let f: Option<JSRef<File>> = FileCast::to_ref(value);
         let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".to_string()));
-        File::new(&global.root_ref(), value, name)
+        File::new(global.root_ref(), value, name)
     }
 }

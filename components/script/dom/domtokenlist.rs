@@ -34,7 +34,7 @@ impl DOMTokenList {
     pub fn new(element: JSRef<Element>, local_name: &Atom) -> Temporary<DOMTokenList> {
         let window = window_from_node(element).root();
         reflect_dom_object(box DOMTokenList::new_inherited(element, local_name.clone()),
-                           &Window(*window),
+                           Window(*window),
                            DOMTokenListBinding::Wrap)
     }
 }

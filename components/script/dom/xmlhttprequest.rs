@@ -158,7 +158,7 @@ impl XMLHttpRequest {
             ready_state: Cell::new(Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
-            upload: JS::from_rooted(XMLHttpRequestUpload::new(global)),
+            upload: JS::from_rooted(XMLHttpRequestUpload::new(*global)),
             response_url: "".to_string(),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
@@ -187,7 +187,7 @@ impl XMLHttpRequest {
     }
     pub fn new(global: &GlobalRef) -> Temporary<XMLHttpRequest> {
         reflect_dom_object(box XMLHttpRequest::new_inherited(global),
-                           global,
+                           *global,
                            XMLHttpRequestBinding::Wrap)
     }
     pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<XMLHttpRequest>> {
@@ -832,7 +832,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         assert!(self.ready_state.get() != rs)
         self.ready_state.set(rs);
         let global = self.global.root();
-        let event = Event::new(&global.root_ref(),
+        let event = Event::new(global.root_ref(),
                                "readystatechange".to_string(),
                                DoesNotBubble, Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
@@ -977,7 +977,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
         let upload_target = *self.upload.root();
-        let progressevent = ProgressEvent::new(&global.root_ref(),
+        let progressevent = ProgressEvent::new(global.root_ref(),
                                                type_, false, false,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0)).root();

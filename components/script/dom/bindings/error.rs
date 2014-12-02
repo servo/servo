@@ -49,7 +49,7 @@ pub type ErrorResult = Fallible<()>;
 pub fn throw_dom_exception(cx: *mut JSContext, global: &GlobalRef,
                            result: Error) {
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
-    let exception = DOMException::new_from_error(global, result).root();
+    let exception = DOMException::new_from_error(*global, result).root();
     let thrown = exception.to_jsval(cx);
     unsafe {
         JS_SetPendingException(cx, thrown);

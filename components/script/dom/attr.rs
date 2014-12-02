@@ -110,7 +110,7 @@ impl Attr {
                name: Atom, namespace: Namespace,
                prefix: Option<DOMString>, owner: Option<JSRef<Element>>) -> Temporary<Attr> {
         reflect_dom_object(box Attr::new_inherited(local_name, value, name, namespace, prefix, owner),
-                           &global::Window(window), AttrBinding::Wrap)
+                           global::Window(window), AttrBinding::Wrap)
     }
 
     #[inline]

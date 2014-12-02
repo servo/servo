@@ -30,7 +30,7 @@ impl PerformanceTiming {
     pub fn new(window: JSRef<Window>) -> Temporary<PerformanceTiming> {
         let timing = PerformanceTiming::new_inherited(window.navigation_start(),
                                                       window.navigation_start_precise());
-        reflect_dom_object(box timing, &global::Window(window),
+        reflect_dom_object(box timing, global::Window(window),
                            PerformanceTimingBinding::Wrap)
     }
 }

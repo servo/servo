@@ -35,7 +35,7 @@ impl CanvasRenderingContext2D {
 
     pub fn new(global: &GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>) -> Temporary<CanvasRenderingContext2D> {
         reflect_dom_object(box CanvasRenderingContext2D::new_inherited(global, canvas, size),
-                           global, CanvasRenderingContext2DBinding::Wrap)
+                           *global, CanvasRenderingContext2DBinding::Wrap)
     }
 
     pub fn recreate(&self, size: Size2D<i32>) {
