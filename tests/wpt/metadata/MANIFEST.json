@@ -1217,6 +1217,9 @@
         "url": "/dom/nodes/DOMImplementation-createHTMLDocument.js"
       },
       {
+        "url": "/dom/nodes/Document-Element-getElementsByTagName.js"
+      },
+      {
         "url": "/dom/nodes/Document-contentType/resources/blob.txt"
       },
       {
@@ -11130,6 +11133,9 @@
         "url": "/dom/nodes/Element-getElementsByClassName.html"
       },
       {
+        "url": "/dom/nodes/Element-getElementsByTagName.html"
+      },
+      {
         "url": "/dom/nodes/Element-lastElementChild.html"
       },
       {
@@ -11416,9 +11422,6 @@
       },
       {
         "url": "/encoding/iso-2022-jp-encoder.html"
-      },
-      {
-        "url": "/encoding/single-byte-decoder.html"
       },
       {
         "url": "/eventsource/dedicated-worker/eventsource-close.htm"
@@ -12241,6 +12244,9 @@
       },
       {
         "url": "/html/dom/elements/global-attributes/classlist-nonstring.html"
+      },
+      {
+        "url": "/html/dom/elements/global-attributes/custom-attrs.html"
       },
       {
         "url": "/html/dom/elements/global-attributes/data_unicode_attr.html"
@@ -15582,6 +15588,9 @@
         "url": "/vibration/api-is-present.html"
       },
       {
+        "url": "/vibration/idl.html"
+      },
+      {
         "url": "/vibration/invalid-values.html"
       },
       {
@@ -15892,6 +15901,9 @@
       },
       {
         "url": "/webmessaging/without-ports/028.html"
+      },
+      {
+        "url": "/webmessaging/without-ports/029.html"
       },
       {
         "url": "/webrtc/simplecall.html"
@@ -17258,6 +17270,10 @@
       },
       {
         "timeout": "long",
+        "url": "/encoding/single-byte-decoder.html"
+      },
+      {
+        "timeout": "long",
         "url": "/eventsource/dedicated-worker/eventsource-constructor-non-same-origin.htm"
       },
       {
@@ -17691,6 +17707,6 @@
     "deleted": [],
     "items": {}
   },
-  "rev": "d917e4056a6a126e8edfc266db124923579bb441",
+  "rev": "a467a3312ae3730e9e1ce0fd1cc200a2dbeadbe6",
   "url_base": "/"
 }
