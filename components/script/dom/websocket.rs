@@ -33,7 +33,7 @@ impl WebSocket {
         }
     }
 
-    pub fn new(global: &GlobalRef, url: DOMString) -> Temporary<WebSocket> {    
+    pub fn new(global: &GlobalRef, url: DOMString) -> Temporary<WebSocket> {
         let resource_task = global.resource_task();
         let ws_url = Url::parse(url.as_slice()).unwrap();
         let(start_chan, start_port) = channel();
@@ -41,7 +41,7 @@ impl WebSocket {
         let resp = start_port.recv();
         reflect_dom_object(box WebSocket::new_inherited(url, resp),
                            global,
-                           WebSocketBinding::Wrap) 
+                           WebSocketBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
@@ -56,10 +56,10 @@ impl Reflectable for WebSocket {
 }
 
 impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
-event_handler!(open,GetOnopen, SetOnopen)
-event_handler!(error, GetOnerror, SetOnerror)
-event_handler!(close, GetOnclose, SetOnclose)
-event_handler!(message, GetOnmessage, SetOnmessage)
+    event_handler!(open, GetOnopen, SetOnopen)
+    event_handler!(error, GetOnerror, SetOnerror)
+    event_handler!(close, GetOnclose, SetOnclose)
+    event_handler!(message, GetOnmessage, SetOnmessage)
 
     fn Url(self) -> DOMString {
         self.url.clone()

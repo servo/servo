@@ -13,9 +13,8 @@ pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     spawn_named("ws_loader", proc() load(load_data, start_chan))
 }
 
-fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
-    
-    let(sen,rec)=channel();
+fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {    
+    let(sen, rec) = channel();
     http_loader::load(load_data, sen);
     let response=rec.recv();
     let mut flag: int = 0;
@@ -27,7 +26,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         match header {
             Some(h) => {    if h.header_value().as_slice().to_ascii_lower() == "websocket".to_string()
                             {
-                                flag = flag + 1 
+                                flag = flag + 1
                             }
                        },
             None => {}
@@ -38,9 +37,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     if flag == 1
     {
        progress_chan.send(Done(Ok(()))); 
-    }
-    else
-    {
+    } else {
        progress_chan.send(Done(Err("invalid upgrade header value".to_string())));
     }
 }
