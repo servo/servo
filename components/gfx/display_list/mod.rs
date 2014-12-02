@@ -474,16 +474,33 @@ pub struct GradientDisplayItem {
 /// Renders a border.
 #[deriving(Clone)]
 pub struct BorderDisplayItem {
+    /// Fields common to all display items.
     pub base: BaseDisplayItem,
 
-    /// The border widths
-    pub border: SideOffsets2D<Au>,
+    /// Border widths.
+    pub border_widths: SideOffsets2D<Au>,
 
-    /// The border colors.
+    /// Border colors.
     pub color: SideOffsets2D<Color>,
 
-    /// The border styles.
-    pub style: SideOffsets2D<border_style::T>
+    /// Border styles.
+    pub style: SideOffsets2D<border_style::T>,
+
+    /// Border radii.
+    ///
+    /// TODO(pcwalton): Elliptical radii.
+    pub radius: BorderRadii<Au>,
+}
+
+/// Information about the border radii.
+///
+/// TODO(pcwalton): Elliptical radii.
+#[deriving(Clone, Default, Show)]
+pub struct BorderRadii<T> {
+    pub top_left:     T,
+    pub top_right:    T,
+    pub bottom_right: T,
+    pub bottom_left:  T,
 }
 
 /// Renders a line segment.
@@ -565,7 +582,8 @@ impl DisplayItem {
 
             BorderDisplayItemClass(ref border) => {
                 render_context.draw_border(&border.base.bounds,
-                                           border.border,
+                                           border.border_widths,
+                                           &border.radius,
                                            border.color,
                                            border.style)
             }
@@ -658,4 +676,3 @@ impl OpaqueNodeMethods for OpaqueNode {
         }
     }
 }
-

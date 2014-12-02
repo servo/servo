@@ -27,7 +27,7 @@ use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
 use gfx::display_list::{BaseDisplayItem, BorderDisplayItem, BorderDisplayItemClass, DisplayItem};
 use gfx::display_list::{DisplayList, GradientDisplayItem, GradientDisplayItemClass, GradientStop};
-use gfx::display_list::{ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem};
+use gfx::display_list::{ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem, BorderRadii};
 use gfx::display_list::{LineDisplayItemClass, PseudoDisplayItemClass, SidewaysLeft, SidewaysRight};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, StackingContext};
 use gfx::display_list::{TextDisplayItem, TextDisplayItemClass, Upright};
@@ -38,11 +38,13 @@ use servo_net::image::holder::ImageHolder;
 use servo_util::geometry::{mod, Au, ZERO_POINT, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, WritingMode};
 use servo_util::opts;
+use std::default::Default;
 use style::computed::{AngleAoc, CornerAoc, LP_Length, LP_Percentage, LengthOrPercentage};
 use style::computed::{LinearGradient, LinearGradientImage, UrlImage};
 use style::computed_values::{background_attachment, background_repeat, border_style, overflow};
 use style::computed_values::{visibility};
 use style::{ComputedValues, Bottom, Left, RGBA, Right, Top};
+use style::style_structs::Border;
 use sync::Arc;
 use url::Url;
 
@@ -147,6 +149,19 @@ pub trait FragmentDisplayListBuilding {
 
     fn clip_rect_for_children(&self, current_clip_rect: Rect<Au>, flow_origin: Point2D<Au>)
                               -> Rect<Au>;
+}
+
+fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &Border) -> BorderRadii<Au> {
+    // TODO(cgaebel): Support border radii even in the case of multiple border widths.
+    // This is an extennsion of supporting elliptical radii. For now, all percentage
+    // radii will be relative to the width.
+
+    BorderRadii {
+        top_left:     model::specified(border_style.border_top_left_radius.radius,     abs_bounds.size.width),
+        top_right:    model::specified(border_style.border_top_right_radius.radius,    abs_bounds.size.width),
+        bottom_right: model::specified(border_style.border_bottom_right_radius.radius, abs_bounds.size.width),
+        bottom_left:  model::specified(border_style.border_bottom_left_radius.radius,  abs_bounds.size.width),
+    }
 }
 
 impl FragmentDisplayListBuilding for Fragment {
@@ -412,7 +427,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Append the border to the display list.
         display_list.push(BorderDisplayItemClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(*abs_bounds, self.node, *clip_rect),
-            border: border.to_physical(style.writing_mode),
+            border_widths: border.to_physical(style.writing_mode),
             color: SideOffsets2D::new(top_color.to_gfx_color(),
                                       right_color.to_gfx_color(),
                                       bottom_color.to_gfx_color(),
@@ -420,7 +435,8 @@ impl FragmentDisplayListBuilding for Fragment {
             style: SideOffsets2D::new(style.get_border().border_top_style,
                                       style.get_border().border_right_style,
                                       style.get_border().border_bottom_style,
-                                      style.get_border().border_left_style)
+                                      style.get_border().border_left_style),
+            radius: build_border_radius(abs_bounds, style.get_border()),
         }), level);
     }
 
@@ -440,9 +456,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // Compute the text fragment bounds and draw a border surrounding them.
         display_list.content.push_back(BorderDisplayItemClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(absolute_fragment_bounds, self.node, *clip_rect),
-            border: SideOffsets2D::new_all_same(Au::from_px(1)),
+            border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
-            style: SideOffsets2D::new_all_same(border_style::solid)
+            style: SideOffsets2D::new_all_same(border_style::solid),
+            radius: Default::default(),
         }));
 
         // Draw a rectangle representing the baselines.
@@ -476,9 +493,10 @@ impl FragmentDisplayListBuilding for Fragment {
         // This prints a debug border around the border of this fragment.
         display_list.content.push_back(BorderDisplayItemClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(absolute_fragment_bounds, self.node, *clip_rect),
-            border: SideOffsets2D::new_all_same(Au::from_px(1)),
+            border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
-            style: SideOffsets2D::new_all_same(border_style::solid)
+            style: SideOffsets2D::new_all_same(border_style::solid),
+            radius: Default::default(),
         }));
     }
 
@@ -956,4 +974,3 @@ impl StackingContextConstruction for DisplayList {
         }
     }
 }
-
