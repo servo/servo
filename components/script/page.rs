@@ -26,6 +26,7 @@ use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
+use servo_net::storage_task::StorageTask;
 use servo_util::geometry::{Au, MAX_RECT};
 use servo_util::geometry;
 use servo_util::str::DOMString;
@@ -86,6 +87,9 @@ pub struct Page {
     /// Associated resource task for use by DOM objects like XMLHttpRequest
     pub resource_task: ResourceTask,
 
+    /// A handle for communicating messages to the storage task.
+    pub storage_task: StorageTask,
+
     /// A handle for communicating messages to the constellation task.
     pub constellation_chan: ConstellationChan,
 
@@ -137,6 +141,7 @@ impl Page {
            layout_chan: LayoutChan,
            window_size: WindowSizeData,
            resource_task: ResourceTask,
+           storage_task: StorageTask,
            constellation_chan: ConstellationChan,
            js_context: Rc<Cx>) -> Page {
         let js_info = JSPageInfo {
@@ -165,6 +170,7 @@ impl Page {
             fragment_name: DOMRefCell::new(None),
             last_reflow_id: Cell::new(0),
             resource_task: resource_task,
+            storage_task: storage_task,
             constellation_chan: constellation_chan,
             children: DOMRefCell::new(vec!()),
             damaged: Cell::new(false),

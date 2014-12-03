@@ -55,6 +55,7 @@ use servo_msg::constellation_msg::{Released};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
+use servo_net::storage_task::StorageTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::task::spawn_named_with_send_on_failure;
@@ -262,6 +263,7 @@ impl ScriptTaskFactory for ScriptTask {
                  constellation_chan: ConstellationChan,
                  failure_msg: Failure,
                  resource_task: ResourceTask,
+                 storage_task: StorageTask,
                  image_cache_task: ImageCacheTask,
                  devtools_chan: Option<DevtoolsControlChan>,
                  window_size: WindowSizeData)
@@ -279,6 +281,7 @@ impl ScriptTaskFactory for ScriptTask {
                                               control_port,
                                               constellation_chan,
                                               resource_task,
+                                              storage_task,
                                               image_cache_task,
                                               devtools_chan,
                                               window_size);
@@ -310,6 +313,7 @@ impl ScriptTask {
                control_port: Receiver<ConstellationControlMsg>,
                constellation_chan: ConstellationChan,
                resource_task: ResourceTask,
+               storage_task: StorageTask,
                img_cache_task: ImageCacheTask,
                devtools_chan: Option<DevtoolsControlChan>,
                window_size: WindowSizeData)
@@ -332,6 +336,7 @@ impl ScriptTask {
 
         let page = Page::new(id, None, layout_chan, window_size,
                              resource_task.clone(),
+                             storage_task,
                              constellation_chan.clone(),
                              js_context.clone());
 
@@ -652,6 +657,7 @@ impl ScriptTask {
                       LayoutChan(layout_chan.downcast_ref::<Sender<layout_interface::Msg>>().unwrap().clone()),
                       window_size,
                       parent_page.resource_task.clone(),
+                      parent_page.storage_task.clone(),
                       self.constellation_chan.clone(),
                       self.js_context.borrow().as_ref().unwrap().clone())
         };
