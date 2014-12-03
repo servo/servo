@@ -130,7 +130,7 @@ impl<'a> RenderContext<'a>  {
             RGBA(_) => (4, raw_pixels.as_slice(), B8G8R8A8),
             Grey(_) => (1, raw_pixels.as_slice(), A8),
             RGB(_) => (3, raw_pixels.as_slice(), B8G8R8X8),
-            GreyA(_) => (2, raw_pixels.as_slice(), A8)
+            GreyA(_) => (2, raw_pixels.as_slice(), A8),
 	    Palette(_) => panic!("Palette color type not supported"),
         };
         let stride = image_width * pixel_width;
