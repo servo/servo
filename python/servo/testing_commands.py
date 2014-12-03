@@ -31,10 +31,12 @@ class MachCommands(CommandBase):
         self.context.built_tests = True
 
     def find_test(self, prefix):
-        target_contents = os.listdir(path.join(self.context.topdir, "target"))
+        target_contents = os.listdir(path.join(
+            self.context.topdir, "components", "servo", "target"))
         for filename in target_contents:
             if filename.startswith(prefix + "-"):
-                filepath = path.join(self.context.topdir, "target", filename)
+                filepath = path.join(
+                    self.context.topdir, "components", "servo", "target", filename)
                 if path.isfile(filepath) and os.access(filepath, os.X_OK):
                     return filepath
 
@@ -104,10 +106,12 @@ class MachCommands(CommandBase):
 
         def cargo_test(component):
             return 0 != subprocess.call(
-                ["cargo", "test", "-p", component] + test_name, env=self.build_env())
+                ["cargo", "test", "-p", component] + test_name,
+                env=self.build_env(), cwd=self.servo_crate())
 
         for component in os.listdir("components"):
-            ret = ret or cargo_test(component)
+            if component != "servo":
+                ret = ret or cargo_test(component)
 
         return ret
 

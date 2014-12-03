@@ -112,7 +112,8 @@ fn run(test_opts: TestOpts, all_tests: Vec<TestDescAndFn>,
     // Verify that we're passing in valid servo arguments. Otherwise, servo
     // will exit before we've run any tests, and it will appear to us as if
     // all the tests are failing.
-    let mut command = match Command::new("target/servo").args(servo_args.as_slice()).spawn() {
+    let mut command = match Command::new(os::self_exe_path().unwrap().join("servo"))
+                            .args(servo_args.as_slice()).spawn() {
         Ok(p) => p,
         Err(e) => panic!("failed to execute process: {}", e),
     };
@@ -248,7 +249,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 
 fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     let png_filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
-    let mut command = Command::new("target/servo");
+    let mut command = Command::new(os::self_exe_path().unwrap().join("servo"));
     command
         .args(reftest.servo_args.as_slice())
         // Allows pixel perfect rendering of Ahem font for reftests.

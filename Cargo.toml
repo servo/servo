@@ -1,69 +1,10 @@
 [package]
 
-name = "servo"
+name = "not-the-toml-you-re-looking-for"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 
+build = "support/not-the-toml-you-re-looking-for.rs"
+
 [lib]
-name = "servo"
-crate-type = ["rlib"]
-
-[[bin]]
-name = "servo"
-test = false
-doc = false
-bench = false
-
-[[test]]
-name = "reftest"
-path = "tests/reftest.rs"
-harness = false
-
-[[test]]
-name = "contenttest"
-path = "tests/contenttest.rs"
-harness = false
-
-[features]
-default = ["glfw_app"]
-glutin = ["glutin_app"]
-
-[dependencies.compositing]
-path = "components/compositing"
-
-[dependencies.net]
-path = "components/net"
-
-[dependencies.msg]
-path = "components/msg"
-
-[dependencies.util]
-path = "components/util"
-
-[dependencies.script]
-path = "components/script"
-
-[dependencies.layout]
-path = "components/layout"
-
-[dependencies.gfx]
-path = "components/gfx"
-
-[dependencies.glfw_app]
-path = "ports/glfw"
-optional = true
-
-[dependencies.glutin_app]
-path = "ports/glutin"
-optional = true
-
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
-
-[dependencies.green]
-git = "https://github.com/servo/green-rs"
-branch = "servo"
-
-[dependencies.rustuv]
-git = "https://github.com/servo/green-rs"
-branch = "servo"
+name = "not-the-toml-you-re-looking-for"

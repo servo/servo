@@ -9,7 +9,7 @@ path = "lib.rs"
 crate-type = ["dylib"]
 
 [dependencies.servo]
-path = "../.."
+path = "../../components/servo"
 
 [dependencies.glfw_app]
 path = "../glfw"

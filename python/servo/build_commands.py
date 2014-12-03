@@ -73,7 +73,7 @@ class MachCommands(CommandBase):
         else:
             status = subprocess.call(
                 ["cargo", "build"] + opts,
-                env=self.build_env())
+                env=self.build_env(), cwd=self.servo_crate())
         elapsed = time() - build_start
 
         print("Build completed in %0.2fs" % elapsed)
@@ -105,7 +105,8 @@ class MachCommands(CommandBase):
 
         build_start = time()
         with cd(path.join("ports", "cef")):
-            ret = subprocess.call(["cargo", "build"], env=self.build_env())
+            ret = subprocess.call(["cargo", "build"],
+                                  env=self.build_env(), cwd=self.servo_crate())
         elapsed = time() - build_start
 
         print("CEF build completed in %0.2fs" % elapsed)
@@ -124,7 +125,8 @@ class MachCommands(CommandBase):
         if jobs is not None:
             opts += ["-j", jobs]
         return subprocess.call(
-            ["cargo", "test", "--no-run"], env=self.build_env())
+            ["cargo", "test", "--no-run"],
+            env=self.build_env(), cwd=self.servo_crate())
 
     @Command('clean',
              description='Clean the build directory.',
@@ -144,4 +146,5 @@ class MachCommands(CommandBase):
         if verbose:
             opts += ["-v"]
 
-        return subprocess.call(["cargo", "clean"] + opts, env=self.build_env())
+        return subprocess.call(["cargo", "clean"] + opts,
+                               env=self.build_env(), cwd=self.servo_crate())
