@@ -4,7 +4,7 @@
 
 //! Painting of display lists using Moz2D/Azure.
 
-use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
+use azure::azure_hl::{B8G8R8A8, B8G8R8X8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GradientStop, Linear};
 use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, SourceOp, StrokeOptions};
 use azure::scaled_font::ScaledFont;
@@ -113,17 +113,33 @@ impl<'a> RenderContext<'a>  {
 
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<DynamicImage>>) {
 	let (image_width, image_height) = image.dimensions();
+	//ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
+	println!("Height is {} and width is {}", image_height, image_width);
         let size = Size2D(image_width as i32, image_height as i32);
+	//ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
+	println!("Size is {}", size);
 	let raw_pixels = image.raw_pixels();
+	//let option_img_pixels = image.as_rgb8();
+	//let img_pixels = match option_img_pixels {
+        //	Some(pixels) => pixels,
+        //	None => {return;}
+	//};
+	//ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
+	println!("Color is {}", image.color().to_string());
         let (pixel_width, pixels, source_format) = match image.color() {
             RGBA(_) => (4, raw_pixels.as_slice(), B8G8R8A8),
             Grey(_) => (1, raw_pixels.as_slice(), A8),
-            RGB(_) => (4, raw_pixels.as_slice(), B8G8R8A8),
-            GreyA(_) => panic!("KA8 color type not supported"),
+            RGB(_) => (3, raw_pixels.as_slice(), B8G8R8X8),
+            GreyA(_) => (2, raw_pixels.as_slice(), A8)
 	    Palette(_) => panic!("Palette color type not supported"),
         };
         let stride = image_width * pixel_width;
-
+	//ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ	
+	println!("pixel_width is {}", pixel_width);
+	println!("Stride is {} and first 200 pixels are:", stride);
+	for e in range(0i as uint, 200i as uint) {
+	    print!("{} ", pixels[e]);         
+	}
         self.draw_target.make_current();
         let draw_target_ref = &self.draw_target;
         let azure_surface = draw_target_ref.create_source_surface_from_data(pixels,
