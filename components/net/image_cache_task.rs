@@ -16,6 +16,8 @@ use std::result;
 use sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
 use url::Url;
+use servo_util::time::{profile, TimeProfilerChan};
+use servo_util::time;
 
 pub enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
@@ -94,6 +96,7 @@ impl ImageCacheTask {
                 wait_map: HashMap::new(),
                 need_exit: None,
                 task_pool: task_pool,
+                time_profiler_chan: None,
             };
             cache.run();
         });
@@ -144,6 +147,7 @@ struct ImageCache {
     wait_map: HashMap<Url, Arc<Mutex<Vec<Sender<ImageResponseMsg>>>>>,
     need_exit: Option<Sender<()>>,
     task_pool: TaskPool,
+    time_profiler_chan: Option<TimeProfilerChan>,
 }
 
 #[deriving(Clone)]
@@ -309,16 +313,21 @@ impl ImageCache {
             Prefetched(data) => {
                 let to_cache = self.chan.clone();
                 let url_clone = url.clone();
+                //let ref prof_chan = self.time_profiler_chan;
+                let time_profiler_chan_clone = self.time_profiler_chan.as_ref().unwrap().clone();
 
                 self.task_pool.execute(proc() {
                     let url = url_clone;
                     debug!("image_cache_task: started image decode for {:s}", url.serialize());
-                     let s=url.serialize();
-                let mut ext="";
-                for x in s.as_slice().split('.') { ext=x; }
-                println!("{}",ext);
+                    let s=url.serialize();
+                    let mut ext="";
+                    for x in s.as_slice().split('.') { ext=x; }
+                    println!("{}",ext);
 	
-                    let image = load_from_memory(data.as_slice(),ext);
+                    let image = profile(time::ImageDecodingCategory, None, time_profiler_chan_clone, || {
+                        load_from_memory(data.as_slice(),ext)
+                        });
+
                     let image = image.map(|image| Arc::new(box image));
                     to_cache.send(StoreImage(url.clone(), image));
                     debug!("image_cache_task: ended image decode for {:s}", url.serialize());

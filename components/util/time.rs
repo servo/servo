@@ -85,6 +85,7 @@ pub enum TimeProfilerCategory {
     PaintingPerTileCategory,
     PaintingPrepBuffCategory,
     PaintingCategory,
+    ImageDecodingCategory,
 }
 
 impl Formatable for TimeProfilerCategory {
@@ -122,6 +123,7 @@ impl Formatable for TimeProfilerCategory {
             PaintingPerTileCategory => "Painting Per Tile",
             PaintingPrepBuffCategory => "Buffer Prep",
             PaintingCategory => "Painting",
+            ImageDecodingCategory => "Image Decoding",
         };
         format!("{:s}{}", padding, name)
     }
