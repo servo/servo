@@ -104,7 +104,7 @@ class MachCommands(CommandBase):
 
         def cargo_test(component):
             return 0 != subprocess.call(
-                ["cargo", "test", "-p", component], env=self.build_env())
+                ["cargo", "test", "-p", component] + test_name, env=self.build_env())
 
         for component in os.listdir("components"):
             ret = ret or cargo_test(component)
