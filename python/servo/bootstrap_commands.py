@@ -130,6 +130,30 @@ class MachCommands(CommandBase):
         extract(tgz_file, cargo_dir, movedir=nightly_dir)
         print("Cargo ready.")
 
+    @Command('bootstrap-android',
+             description='Download the android apk builder tool',
+             category='bootstrap')
+    @CommandArgument('--force', '-f',
+                     action='store_true',
+                     help='Force download even if apk builder already exists')
+    def bootstrap_android(self, force=False):
+        apk_builder_dir = '_apk_builder'
+        if not force and path.exists(apk_builder_dir):
+            print("APK builder already downloaded.", end=" ")
+            print("Use |bootstrap-android --force| to download again.")
+            return
+
+        if path.isdir(apk_builder_dir):
+            shutil.rmtree(apk_builder_dir)
+        os.makedirs(apk_builder_dir)
+
+        subprocess.call(["git", "clone", "https://github.com/servo/android-rs-glue", apk_builder_dir])
+
+        with cd(path.join(apk_builder_dir, "apk-builder")):
+            subprocess.call(["cargo", "build"], env=self.build_env())
+
+        print("APK builder ready.")
+
     @Command('update-submodules',
              description='Update submodules',
              category='bootstrap')

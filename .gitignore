@@ -1,4 +1,3 @@
-/.cargo/config
 /target
 /rust
 /cargo
@@ -17,6 +16,7 @@
 /components/script/dom/bindings/codegen/UnionConversions.h
 /.servobuild
 /_virtualenv
+/_apk_builder
 *~
 *#
 *.o

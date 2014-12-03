@@ -69,6 +69,7 @@ class CommandBase(object):
         self.config["tools"].setdefault("system-cargo", False)
         self.config["tools"].setdefault("rust-root", "")
         self.config["tools"].setdefault("cargo-root", "")
+
         if not self.config["tools"]["system-rust"]:
             self.config["tools"]["rust-root"] = path.join(
                 context.sharedir, "rust", *self.rust_snapshot_path().split("/"))
@@ -140,6 +141,15 @@ class CommandBase(object):
         if self.config["android"]["toolchain"]:
             env["ANDROID_TOOLCHAIN"] = self.config["android"]["toolchain"]
 
+        # FIXME: These are set because they are the variable names that
+        # android-rs-glue expects. However, other submodules have makefiles that
+        # reference the env var names above. Once glutin is enabled and set as
+        # the default, we could modify the subproject makefiles to use the names
+        # below and remove the vars above, to avoid duplication.
+        env["ANDROID_HOME"] = env["ANDROID_SDK"]
+        env["NDK_HOME"] = env["ANDROID_NDK"]
+        env["NDK_STANDALONE"] = env["ANDROID_TOOLCHAIN"]
+
         return env
 
     def ensure_bootstrapped(self):
@@ -163,5 +173,7 @@ class CommandBase(object):
            not path.exists(path.join(
                 self.config["tools"]["cargo-root"], "bin", "cargo")):
             Registrar.dispatch("bootstrap-cargo", context=self.context)
+        if not path.exists(path.join("_apk_builder", "apk-builder", "target", "apk-builder")):
+            Registrar.dispatch("bootstrap-android", context=self.context)
 
         self.context.bootstrapped = True
