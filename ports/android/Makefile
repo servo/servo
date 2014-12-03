@@ -18,10 +18,21 @@ all: glut_app
 	ant debug
 
 .PHONY: glut_app
-glut_app:
+glut_app: openssl
 	cd glut_app; \
-	../../../mach cargo build --target=arm-linux-androideabi $(CARGO_OPTS)
+	OPENSSL_PATH=`pwd`/../openssl-1.0.1j ../../../mach cargo build --target=arm-linux-androideabi $(CARGO_OPTS)
 
 .PHONY: install
 install:
 	$(ANDROID_SDK)/platform-tools/adb install -r bin/ServoAndroid-debug.apk
+
+# From http://wiki.openssl.org/index.php/Android
+.PHONY: openssl
+openssl: openssl-1.0.1j/libssl.so
+
+openssl-1.0.1j/libssl.so: openssl-1.0.1j/Configure
+	bash openssl.sh ${ANDROID_NDK}
+
+openssl-1.0.1j/Configure:
+	wget https://www.openssl.org/source/openssl-1.0.1j.tar.gz
+	tar -zxvf openssl-1.0.1j.tar.gz
