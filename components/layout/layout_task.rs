@@ -25,27 +25,27 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::scale_factor::ScaleFactor;
+use gfx::color;
 use gfx::display_list::{DisplayList, OpaqueNode, StackingContext};
-use gfx::render_task::{RenderInitMsg, RenderChan, RenderLayer};
-use gfx::{render_task, color};
+use gfx::font_cache_task::FontCacheTask;
+use gfx::render_task::{mod, RenderInitMsg, RenderChan, RenderLayer};
 use layout_traits;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
 use script::dom::bindings::js::JS;
 use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
 use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
-use script::layout_interface::{
-    AddStylesheetMsg, ContentBoxResponse, ContentBoxesResponse, ContentBoxesQuery,
-    ContentBoxQuery, ExitNowMsg, GetRPCMsg, HitTestResponse, LayoutChan, LayoutRPC,
-    LoadStylesheetMsg, MouseOverResponse, Msg, NoQuery, PrepareToExitMsg, ReapLayoutDataMsg,
-    Reflow, ReflowForDisplay, ReflowMsg, ScriptLayoutChan, TrustedNodeAddress,
-};
+use script::layout_interface::{AddStylesheetMsg, ContentBoxResponse, ContentBoxesResponse};
+use script::layout_interface::{ContentBoxesQuery, ContentBoxQuery, ExitNowMsg, GetRPCMsg};
+use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, LoadStylesheetMsg};
+use script::layout_interface::{MouseOverResponse, Msg, NoQuery, PrepareToExitMsg};
+use script::layout_interface::{ReapLayoutDataMsg, Reflow, ReflowForDisplay, ReflowMsg};
+use script::layout_interface::{ScriptLayoutChan, TrustedNodeAddress};
 use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
-use gfx::font_cache_task::{FontCacheTask};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_net::resource_task::{ResourceTask, load_bytes_iter};
 use servo_util::geometry::Au;
@@ -679,6 +679,7 @@ impl LayoutTask {
             let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                  origin,
                                                                  0,
+                                                                 1.0,
                                                                  Some(render_layer)));
 
             rw_data.stacking_context = Some(stacking_context.clone());

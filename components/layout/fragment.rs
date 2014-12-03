@@ -1494,6 +1494,9 @@ impl Fragment {
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     pub fn establishes_stacking_context(&self) -> bool {
+        if self.style().get_effects().opacity != 1.0 {
+            return true
+        }
         match self.style().get_box().position {
             position::absolute | position::fixed => {
                 // FIXME(pcwalton): This should only establish a new stacking context when

@@ -20,7 +20,7 @@ use model::IntrinsicISizesContribution;
 use text;
 
 use collections::{RingBuf};
-use geom::{Rect, Size2D};
+use geom::Size2D;
 use gfx::display_list::DisplayList;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
@@ -1141,9 +1141,10 @@ impl Flow for InlineFlow {
             let stacking_relative_position = match fragment.specific {
                 InlineBlockFragment(ref mut info) => {
                     let block_flow = info.flow_ref.as_block();
+                    block_flow.base.absolute_position_info = self.base.absolute_position_info;
+
                     // FIXME(#2795): Get the real container size
                     let container_size = Size2D::zero();
-
                     block_flow.base.stacking_relative_position =
                         self.base.stacking_relative_position +
                         fragment.border_box.start.to_physical(self.base.writing_mode,
@@ -1152,6 +1153,8 @@ impl Flow for InlineFlow {
                 }
                 InlineAbsoluteHypotheticalFragment(ref mut info) => {
                     let block_flow = info.flow_ref.as_block();
+                    block_flow.base.absolute_position_info = self.base.absolute_position_info;
+
                     // FIXME(#2795): Get the real container size
                     let container_size = Size2D::zero();
                     block_flow.base.stacking_relative_position =
@@ -1184,15 +1187,6 @@ impl Flow for InlineFlow {
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        let size = self.base.position.size.to_physical(self.base.writing_mode);
-        if !Rect(self.base.stacking_relative_position, size).intersects(&layout_context.shared
-                                                                                       .dirty) {
-            debug!("inline block (stacking relative pos {}, size {}) didn't intersect dirty rect",
-                   self.base.stacking_relative_position,
-                   size);
-            return
-        }
-
         // TODO(#228): Once we form lines and have their cached bounds, we can be smarter and
         // not recurse on a line if nothing in it can intersect the dirty region.
         debug!("Flow: building display list for {:u} inline fragments", self.fragments.len());
@@ -1207,6 +1201,11 @@ impl Flow for InlineFlow {
                                         &self.base.clip_rect);
             match fragment.specific {
                 InlineBlockFragment(ref mut block_flow) => {
+                    let block_flow = block_flow.flow_ref.deref_mut();
+                    flow::mut_base(block_flow).display_list_building_result
+                                              .add_to(&mut *display_list)
+                }
+                InlineAbsoluteHypotheticalFragment(ref mut block_flow) => {
                     let block_flow = block_flow.flow_ref.deref_mut();
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
