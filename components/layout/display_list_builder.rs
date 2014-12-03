@@ -12,8 +12,7 @@
 
 use block::BlockFlow;
 use context::LayoutContext;
-use flow::{mod, Flow};
-use flow::{IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
+use flow::{mod, Flow, NEEDS_LAYER};
 use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment};
 use fragment::{ImageFragmentInfo, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
 use fragment::{ScannedTextFragment, ScannedTextFragmentInfo, TableFragment};
@@ -811,6 +810,10 @@ pub trait BlockFlowDisplayListBuilding {
     fn build_display_list_for_absolutely_positioned_block(&mut self,
                                                           layout_context: &LayoutContext);
     fn build_display_list_for_floating_block(&mut self, layout_context: &LayoutContext);
+    fn create_stacking_context(&self,
+                               display_list: Box<DisplayList>,
+                               layer: Option<Arc<RenderLayer>>)
+                               -> Arc<StackingContext>;
 }
 
 impl BlockFlowDisplayListBuilding for BlockFlow {
@@ -828,18 +831,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                          &self.base.clip_rect);
 
         for kid in self.base.children.iter_mut() {
-            if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
-                // All absolute flows will be handled by their containing block.
-                continue
-            }
-
             flow::mut_base(kid).display_list_building_result.add_to(display_list);
-        }
-
-        // Process absolute descendant links.
-        for abs_descendant_link in self.base.abs_descendants.iter() {
-            // TODO(pradeep): Send in our absolute position directly.
-            flow::mut_base(abs_descendant_link).display_list_building_result.add_to(display_list);
         }
     }
 
@@ -850,7 +842,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         self.build_display_list_for_block_base(&mut *display_list,
                                                layout_context,
                                                background_border_level);
-        self.base.display_list_building_result = DisplayListResult(display_list);
+
+        self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
+            StackingContextResult(self.create_stacking_context(display_list, None))
+        } else {
+            DisplayListResult(display_list)
+        }
     }
 
     fn build_display_list_for_absolutely_positioned_block(&mut self,
@@ -860,18 +857,11 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                layout_context,
                                                RootOfStackingContextLevel);
 
-        let bounds = Rect(self.base.stacking_relative_position,
-                          self.base.overflow.size.to_physical(self.base.writing_mode));
-        let z_index = self.fragment.style().get_box().z_index.number_or_zero();
-
         if !self.base.absolute_position_info.layers_needed_for_positioned_flows &&
                 !self.base.flags.contains(NEEDS_LAYER) {
             // We didn't need a layer.
             self.base.display_list_building_result =
-                StackingContextResult(Arc::new(StackingContext::new(display_list,
-                                                                    bounds,
-                                                                    z_index,
-                                                                    None)));
+                StackingContextResult(self.create_stacking_context(display_list, None));
             return
         }
 
@@ -884,13 +874,10 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
         let transparent = color::rgba(1.0, 1.0, 1.0, 0.0);
         let stacking_context =
-            Arc::new(StackingContext::new(display_list,
-                                          bounds,
-                                          z_index,
-                                          Some(Arc::new(RenderLayer::new(self.layer_id(0),
-                                                                         transparent,
-                                                                         scroll_policy)))));
-
+            self.create_stacking_context(display_list,
+                                         Some(Arc::new(RenderLayer::new(self.layer_id(0),
+                                                                        transparent,
+                                                                        scroll_policy))));
         self.base.display_list_building_result = StackingContextResult(stacking_context)
     }
 
@@ -900,7 +887,23 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                layout_context,
                                                RootOfStackingContextLevel);
         display_list.form_float_pseudo_stacking_context();
-        self.base.display_list_building_result = DisplayListResult(display_list);
+
+        self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
+            StackingContextResult(self.create_stacking_context(display_list, None))
+        } else {
+            DisplayListResult(display_list)
+        }
+    }
+
+    fn create_stacking_context(&self,
+                               display_list: Box<DisplayList>,
+                               layer: Option<Arc<RenderLayer>>)
+                               -> Arc<StackingContext> {
+        let bounds = Rect(self.base.stacking_relative_position,
+                          self.base.overflow.size.to_physical(self.base.writing_mode));
+        let z_index = self.fragment.style().get_box().z_index.number_or_zero();
+        let opacity = self.fragment.style().get_effects().opacity as f32;
+        Arc::new(StackingContext::new(display_list, bounds, z_index, opacity, layer))
     }
 }
 
