@@ -80,9 +80,10 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
 
         rust_docs = path.join(self.config["tools"]["rust-root"], "doc")
-        docs = path.join("components", "servo", "target", "doc")
+        docs = path.join(
+            self.context.topdir, "components", "servo", "target", "doc")
         if not path.exists(docs):
-            os.mkdir(docs)
+            os.makedirs(docs)
 
         if read_file(path.join(docs, "version_info.html"), if_exists=True) != \
                 read_file(path.join(rust_docs, "version_info.html")):
