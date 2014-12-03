@@ -110,4 +110,4 @@ class MachCommands(CommandBase):
         self.doc([])
         import webbrowser
         webbrowser.open("file://" + path.abspath(path.join(
-            "target", "doc", "servo", "index.html")))
+            self.servo_crate(), "target", "doc", "servo", "index.html")))
