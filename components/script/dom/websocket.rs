@@ -15,6 +15,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, WebSocketTypeId};
 use servo_net::resource_task::{Load, LoadData, LoadResponse};
 use servo_util::str::DOMString;
+use std::ascii::IntoBytes;
 use std::comm::channel;
 use url::Url;
 
@@ -64,6 +65,20 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     event_handler!(error, GetOnerror, SetOnerror)
     event_handler!(close, GetOnclose, SetOnclose)
     event_handler!(message, GetOnmessage, SetOnmessage)
+
+    fn Send(self, message: DOMString) -> ()
+    {
+        let message1: Vec<u8>;
+        message1=message.to_string().into_bytes();  
+        let payload_len = message.len() as u8;
+        let entry1=129 as u8; 
+        let mut payload: Vec<u8> = Vec::with_capacity(2+message1.len());
+        payload.push(entry1);
+        payload.push(payload_len);
+        for x in message1.iter() {
+            payload.push(*x);
+        }
+    }
 
     fn Url(self) -> DOMString {
         self.url.clone()
