@@ -94,9 +94,11 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             // image load or we risk emitting an output file missing the
             // image.
             let image_cache_task = if opts.output_file.is_some() {
-                ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool)
+                ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool,
+                                         time_profiler_chan_clone.clone())
             } else {
-                ImageCacheTask::new(resource_task.clone(), shared_task_pool)
+                ImageCacheTask::new(resource_task.clone(), shared_task_pool,
+                                    time_profiler_chan_clone.clone())
             };
             let font_cache_task = FontCacheTask::new(resource_task.clone());
             let storage_task = StorageTaskFactory::new();
