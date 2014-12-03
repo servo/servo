@@ -68,7 +68,7 @@ impl<NodeAddress: Send> ImageHolder<NodeAddress> {
         debug!("get_size() {}", self.url.serialize());
 
         self.get_image(node_address).map(|img| {
-	let (img_width,img_height) = img.dimensions();
+    let (img_width,img_height) = img.dimensions();
             self.cached_size = Size2D(img_width as int,
                                       img_height as int);
             self.cached_size.clone()

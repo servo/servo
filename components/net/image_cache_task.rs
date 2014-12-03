@@ -323,7 +323,7 @@ impl ImageCache {
                     let mut ext="";
                     for x in s.as_slice().split('.') { ext=x; }
                     println!("{}",ext);
-	
+
                     let image = profile(time::ImageDecodingCategory, None, time_profiler_chan_clone, || {
                         load_from_memory(data.as_slice(),ext)
                         });
@@ -994,7 +994,7 @@ mod tests {
     #[test]
     fn sync_cache_should_wait_for_images() {
         let mock_resource_task = mock_resource_task(box SendTestImage);
-       
+
         let image_cache_task = ImageCacheTask::new_sync(mock_resource_task.clone(), TaskPool::new(4));
         let url = Url::parse("file:///").unwrap();
 

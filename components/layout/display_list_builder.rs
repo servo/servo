@@ -219,7 +219,7 @@ impl FragmentDisplayListBuilding for Fragment {
         };
         debug!("(building display list) building background image");
 
-	let (img_width, img_height) = image.dimensions();
+    let (img_width, img_height) = image.dimensions();
 
         let image_width = Au::from_px(img_width as int);
         let image_height = Au::from_px(img_height as int);
