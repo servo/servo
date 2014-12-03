@@ -1,5 +1,8 @@
+/_virtualenv
 /.cargo/config
+/cargo
 /Cargo.lock
+/rust
 /target
 /components/servo/target
 /ports/cef/target
@@ -35,4 +38,3 @@ Servo.app
 .config.mk.last
 parser.out
 /glfw
-
