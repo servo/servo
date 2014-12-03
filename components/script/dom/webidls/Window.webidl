@@ -127,3 +127,10 @@ partial interface Window {
   void gc();
 };
 Window implements OnErrorEventHandlerForWindow;
+
+// https://html.spec.whatwg.org/multipage/webstorage.html#dom-sessionstorage
+[NoInterfaceObject]
+interface WindowSessionStorage {
+  readonly attribute Storage sessionStorage;
+};
+Window implements WindowSessionStorage;

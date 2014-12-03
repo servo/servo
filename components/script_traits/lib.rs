@@ -29,6 +29,7 @@ use servo_msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifi
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
+use servo_net::storage_task::StorageTask;
 use servo_util::smallvec::SmallVec1;
 use std::any::Any;
 
@@ -102,6 +103,7 @@ pub trait ScriptTaskFactory {
                  constellation_msg: ConstellationChan,
                  failure_msg: Failure,
                  resource_task: ResourceTask,
+                 storage_task: StorageTask,
                  image_cache_task: ImageCacheTask,
                  devtools_chan: Option<DevtoolsControlChan>,
                  window_size: WindowSizeData)
