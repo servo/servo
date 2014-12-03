@@ -22,7 +22,7 @@ extern crate collections;
 extern crate geom;
 extern crate html5ever;
 extern crate encoding;
-extern crate http;
+extern crate hyper;
 extern crate js;
 extern crate libc;
 extern crate msg;

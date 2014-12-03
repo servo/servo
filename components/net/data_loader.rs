@@ -6,8 +6,7 @@ use resource_task::{Done, Payload, Metadata, LoadData, TargetedLoadResponse, sta
 
 use serialize::base64::FromBase64;
 
-use http::headers::test_utils::from_stream_with_str;
-use http::headers::content_type::MediaType;
+use hyper::mime::Mime;
 use url::{percent_decode, NonRelativeSchemeData};
 
 
@@ -59,8 +58,8 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
     // Parse the content type using rust-http.
     // FIXME: this can go into an infinite loop! (rust-http #25)
-    let content_type: Option<MediaType> = from_stream_with_str(ct_str);
-    metadata.set_content_type(&content_type);
+    let content_type: Option<Mime> = from_str(ct_str);
+    metadata.set_content_type(content_type.as_ref());
 
     let progress_chan = start_sending(senders, metadata);
     let bytes = percent_decode(parts[1].as_bytes());
