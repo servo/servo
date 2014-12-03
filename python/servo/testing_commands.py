@@ -110,7 +110,8 @@ class MachCommands(CommandBase):
                 env=self.build_env(), cwd=self.servo_crate())
 
         for component in os.listdir("components"):
-            ret = ret or cargo_test(component)
+            if component != "servo":
+                ret = ret or cargo_test(component)
 
         return ret
 
