@@ -43,12 +43,13 @@ fn byte_swap_and_premultiply(data: &mut [u8]) {
     }
 }
 
-pub fn load_from_memory(buffer: &[u8]) -> Option<DynamicImage> {
+pub fn load_from_memory(buffer: &[u8],ext: &str) -> Option<DynamicImage> {
     if buffer.len() == 0 {
         return None;
     }
    else {
-	let result = servo_image::load_from_memory(buffer,servo_image::ImageFormat::JPEG);
+	
+	let result = servo_image::load_from_memory(buffer,get_format(ext));
 	if (result.is_ok()) {
   	    let v = result.unwrap();
   	    return Some(v);
@@ -57,5 +58,16 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<DynamicImage> {
 	    return None;
 	}		
    }
+   }
+fn get_format(ext: &str) -> servo_image::ImageFormat {
+		match ext.to_ascii().to_uppercase().as_str_ascii() {
+    "PNG" => {return servo_image::ImageFormat::PNG;},
+    "JPEG" => {return servo_image::ImageFormat::JPEG;},
+    "JPG" => {return servo_image::ImageFormat::JPEG;},
+    "GIF"=> {return servo_image::ImageFormat::GIF;},
+    "WEBP" => {return servo_image::ImageFormat::WEBP;},
+    "PPM" => {return servo_image::ImageFormat::PPM;},
+    _ => {return servo_image::ImageFormat::PNG;},
+		}
+	}
 
-}
