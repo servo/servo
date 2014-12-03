@@ -83,7 +83,7 @@ impl<E, S: Encoder<E>> Encodable<S, E> for ImageCacheTask {
 type DecoderFactory = fn() -> (proc(&[u8]) : 'static -> Option<Image>);
 
 impl ImageCacheTask {
-    pub fn new(resource_task: ResourceTask, task_pool: TaskPool) -> ImageCacheTask {
+    pub fn new(resource_task: ResourceTask, task_pool: TaskPool, time_profiler_chan: Timer) -> ImageCacheTask {
         let (chan, port) = channel();
         let chan_clone = chan.clone();
 
@@ -313,7 +313,6 @@ impl ImageCache {
             Prefetched(data) => {
                 let to_cache = self.chan.clone();
                 let url_clone = url.clone();
-                //let ref prof_chan = self.time_profiler_chan;
                 let time_profiler_chan_clone = self.time_profiler_chan.as_ref().unwrap().clone();
 
                 self.task_pool.execute(proc() {
