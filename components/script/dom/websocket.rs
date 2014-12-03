@@ -6,6 +6,7 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::WebSocketMethods;
+use dom::bindings::codegen::Bindings::WebSocketBinding::WebSocketConstants;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, JSRef};
@@ -21,15 +22,17 @@ use url::Url;
 pub struct WebSocket {
     eventtarget: EventTarget,
     url: DOMString,
-    response: LoadResponse
+    response: LoadResponse,
+    state: u16
 }
 
 impl WebSocket {
-    pub fn new_inherited(url: DOMString, resp: LoadResponse) -> WebSocket {
+    pub fn new_inherited(url: DOMString, resp: LoadResponse, state_value: u16) -> WebSocket {
         WebSocket {
             eventtarget: EventTarget::new_inherited(WebSocketTypeId),
             url: url,
-            response: resp
+            response: resp,
+            state: state_value
         }
     }
 
@@ -39,7 +42,7 @@ impl WebSocket {
         let(start_chan, start_port) = channel();
         resource_task.send(Load(LoadData::new(ws_url), start_chan));
         let resp = start_port.recv();
-        reflect_dom_object(box WebSocket::new_inherited(url, resp),
+        reflect_dom_object(box WebSocket::new_inherited(url, resp, WebSocketConstants::OPEN),
                            global,
                            WebSocketBinding::Wrap)
     }
@@ -47,6 +50,7 @@ impl WebSocket {
     pub fn Constructor(global: &GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
         Ok(WebSocket::new(global, url))
     }
+    
 }
 
 impl Reflectable for WebSocket {

@@ -13,7 +13,7 @@ pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     spawn_named("ws_loader", proc() load(load_data, start_chan))
 }
 
-fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {    
+fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     let(sen, rec) = channel();
     http_loader::load(load_data, sen);
     let response=rec.recv();
