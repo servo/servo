@@ -66,18 +66,14 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     event_handler!(close, GetOnclose, SetOnclose)
     event_handler!(message, GetOnmessage, SetOnmessage)
 
-    fn Send(self, message: DOMString) -> ()
+    fn Send(self, message: DOMString)
     {
-        let message1: Vec<u8>;
-        message1=message.to_string().into_bytes();  
-        let payload_len = message.len() as u8;
-        let entry1=129 as u8; 
-        let mut payload: Vec<u8> = Vec::with_capacity(2+message1.len());
-        payload.push(entry1);
-        payload.push(payload_len);
-        for x in message1.iter() {
-            payload.push(*x);
-        }
+        let message_u8: Vec<u8>=message.to_string().into_bytes();  
+//        assert_gt!((message.len() as u8),  125);
+        let mut payload: Vec<u8> = Vec::with_capacity(2 + message_u8.len());
+        payload.push(129u8);
+        payload.push(message.len() as u8);
+        payload.push_all(message_u8.as_slice());
     }
 
     fn Url(self) -> DOMString {
