@@ -48,7 +48,7 @@ git = "https://github.com/servo/rust-harfbuzz"
 git = "https://github.com/servo/rust-fontconfig"
 
 [dependencies.freetype-rs]
-git = "https://github.com/ankit3005/freetype-rs"
+git = "https://github.com/PistonDevelopers/freetype-rs"
 
 [dependencies.core_foundation]
 git = "https://github.com/servo/rust-core-foundation"
