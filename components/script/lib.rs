@@ -5,10 +5,9 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![feature(default_type_params, globs, macro_rules, struct_variant, phase, unsafe_destructor)]
+#![feature(globs, macro_rules, struct_variant, phase, unsafe_destructor)]
 
-#![deny(unused_imports)]
-#![deny(unused_variables)]
+#![deny(unused_imports, unused_variable)]
 #![allow(non_snake_case)]
 
 #![doc="The script crate contains all matters DOM."]
@@ -16,11 +15,12 @@
 #[phase(plugin, link)]
 extern crate log;
 
+extern crate debug;
 extern crate devtools_traits;
 extern crate cssparser;
 extern crate collections;
 extern crate geom;
-extern crate html5ever;
+extern crate hubbub;
 extern crate encoding;
 extern crate http;
 extern crate js;
@@ -89,10 +89,8 @@ pub mod dom {
     pub mod characterdata;
     pub mod domrect;
     pub mod domrectlist;
-    pub mod domstringmap;
     pub mod comment;
     pub mod console;
-    mod create;
     pub mod customevent;
     pub mod dedicatedworkerglobalscope;
     pub mod document;
@@ -103,6 +101,7 @@ pub mod dom {
     pub mod domparser;
     pub mod domtokenlist;
     pub mod element;
+    pub mod errorevent;
     pub mod event;
     pub mod eventdispatcher;
     pub mod eventtarget;
@@ -178,7 +177,6 @@ pub mod dom {
     pub mod htmlulistelement;
     pub mod htmlvideoelement;
     pub mod htmlunknownelement;
-    pub mod keyboardevent;
     pub mod location;
     pub mod messageevent;
     pub mod mouseevent;
@@ -194,8 +192,6 @@ pub mod dom {
     pub mod progressevent;
     pub mod range;
     pub mod screen;
-    pub mod servohtmlparser;
-    pub mod storage;
     pub mod text;
     pub mod treewalker;
     pub mod uievent;
@@ -203,7 +199,6 @@ pub mod dom {
     pub mod urlsearchparams;
     pub mod validitystate;
     pub mod virtualmethods;
-    pub mod websocket;
     pub mod window;
     pub mod worker;
     pub mod workerglobalscope;
@@ -216,10 +211,11 @@ pub mod dom {
     pub mod testbinding;
 }
 
-pub mod parse;
+/// Parsers for HTML and CSS.
+pub mod html {
+    pub mod hubbub_html_parser;
+}
 
 pub mod layout_interface;
 pub mod page;
 pub mod script_task;
-mod timers;
-pub mod textinput;
