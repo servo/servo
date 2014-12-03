@@ -1,14 +1,15 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-
+use dom::errorevent::ErrorEvent;
+use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
-use dom::bindings::error::{ErrorResult, DataClone};
 use dom::bindings::global;
+use servo_util::str::DOMString;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
@@ -16,28 +17,28 @@ use dom::eventtarget::WorkerGlobalScopeTypeId;
 use dom::messageevent::MessageEvent;
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::workerglobalscope::DedicatedGlobalScope;
-use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
+use dom::workerglobalscope::WorkerGlobalScope;
 use dom::xmlhttprequest::XMLHttpRequest;
 use script_task::{ScriptTask, ScriptChan};
-use script_task::{ScriptMsg, FromWorker,  DOMMessage, FireTimerMsg, XHRProgressMsg, XHRReleaseMsg, WorkerRelease};
+use script_task::{ScriptMsg, DOMMessage, XHRProgressMsg, WorkerRelease};
 use script_task::WorkerPostMessage;
+use script_task::WorkerDispatchErrorEvent;
 use script_task::StackRootTLS;
-
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
-use servo_util::task::spawn_named_native;
-use servo_util::task_state;
-use servo_util::task_state::{SCRIPT, IN_WORKER};
-
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
+use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::Cx;
 
 use std::rc::Rc;
 use std::ptr;
+use std::task::TaskBuilder;
+use native::task::NativeTaskBuilder;
 use url::Url;
 
-#[dom_struct]
+#[jstraceable]
+#[must_root]
+#[privatize]
 pub struct DedicatedWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
     receiver: Receiver<ScriptMsg>,
@@ -87,10 +88,10 @@ impl DedicatedWorkerGlobalScope {
                             parent_sender: ScriptChan,
                             own_sender: ScriptChan,
                             receiver: Receiver<ScriptMsg>) {
-        spawn_named_native(format!("WebWorker for {}", worker_url.serialize()), proc() {
-
-            task_state::initialize(SCRIPT | IN_WORKER);
-
+        TaskBuilder::new()
+            .native()
+            .named(format!("Web Worker at {}", worker_url.serialize()))
+            .spawn(proc() {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
@@ -119,7 +120,7 @@ impl DedicatedWorkerGlobalScope {
                 WorkerGlobalScopeCast::from_ref(*global);
             let target: JSRef<EventTarget> =
                 EventTargetCast::from_ref(*global);
-            loop {
+	    loop {
                 match global.receiver.recv_opt() {
                     Ok(DOMMessage(data, nbytes)) => {
                         let mut message = UndefinedValue();
@@ -130,25 +131,28 @@ impl DedicatedWorkerGlobalScope {
                                 ptr::null(), ptr::null_mut()) != 0);
                         }
 
-                        MessageEvent::dispatch_jsval(target, global::Worker(scope), message);
+                        MessageEvent::dispatch_jsval(target, &global::Worker(scope), message);
                         global.delayed_release_worker();
                     },
                     Ok(XHRProgressMsg(addr, progress)) => {
-                        XMLHttpRequest::handle_progress(addr, progress)
-                    },
-                    Ok(XHRReleaseMsg(addr)) => {
-                        XMLHttpRequest::handle_release(addr)
+                        XMLHttpRequest::handle_xhr_progress(addr, progress)
                     },
                     Ok(WorkerPostMessage(addr, data, nbytes)) => {
                         Worker::handle_message(addr, data, nbytes);
                     },
+                    Ok(WorkerDispatchErrorEvent(addr, 
+						type_,bubbles, cancelable,
+					        msg, file_name,
+					        line_num, col_num, error)) => {
+                        Worker::handle_error_message(addr, 
+						type_,bubbles, cancelable,
+					        msg, file_name,
+					        line_num, col_num, error);
+                    },
                     Ok(WorkerRelease(addr)) => {
                         Worker::handle_release(addr)
                     },
-                    Ok(FireTimerMsg(FromWorker, timer_id)) => {
-                        scope.handle_fire_timer(timer_id);
-                    }
-                    Ok(_) => panic!("Unexpected message"),
+                    Ok(_) => fail!("Unexpected message"),
                     Err(_) => break,
                 }
             }
@@ -157,34 +161,53 @@ impl DedicatedWorkerGlobalScope {
 }
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
-    fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
+    fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
-        let result = unsafe {
-            JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                    ptr::null(), ptr::null_mut())
-        };
-        if result == 0 {
-            unsafe { JS_ClearPendingException(cx); }
-            return Err(DataClone);
+        unsafe {
+            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
+                                            ptr::null(), ptr::null_mut()) != 0);
         }
 
         let ScriptChan(ref sender) = self.parent_sender;
         sender.send(WorkerPostMessage(self.worker, data, nbytes));
-        Ok(())
+    }
+    fn GetOnmessage(self) -> Option<EventHandlerNonNull> {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("message")
     }
 
-    event_handler!(message, GetOnmessage, SetOnmessage)
+    fn SetOnmessage(self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.set_event_handler_common("message", listener)
+    }
 }
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
     fn delayed_release_worker(self);
+    fn dispatch_error_to_worker(self, cx: *mut JSContext,
+		       type_: DOMString,
+                       JSRef<ErrorEvent>);
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
     fn delayed_release_worker(self) {
         let ScriptChan(ref sender) = self.parent_sender;
         sender.send(WorkerRelease(self.worker));
+    }
+    fn dispatch_error_to_worker(self, cx: *mut JSContext, 
+		       type_: DOMString,
+                       errorevent: JSRef<ErrorEvent>) {
+	let msg = errorevent.Message();
+	let file_name = errorevent.Filename();
+	let line_num = errorevent.Lineno();
+	let col_num = errorevent.Colno();
+	let error = errorevent.Error(cx);
+	let ScriptChan(ref sender) = self.parent_sender;
+        sender.send(WorkerDispatchErrorEvent(self.worker, 
+				type_,true, true,
+                                msg, file_name,
+                                line_num, col_num, error));
     }
 }
 

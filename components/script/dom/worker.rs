@@ -1,12 +1,20 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+//use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+//use dom::bindings::codegen::Bindings::ErrorEventBinding;
+//use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
+use dom::event::Event;
+use dom::bindings::codegen::InheritTypes::EventCast;
+use dom::errorevent::ErrorEvent;
+//use dom::bindings::global;
+//use dom::window::Window;
 
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::error::{Fallible, Syntax, ErrorResult, DataClone};
+use dom::bindings::error::{Fallible, Syntax};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::JSTraceable;
@@ -20,7 +28,7 @@ use servo_util::str::DOMString;
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::{JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot, JSTracer};
-use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
+use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
 use url::UrlParser;
 
@@ -29,9 +37,11 @@ use std::cell::Cell;
 use std::ptr;
 
 pub struct TrustedWorkerAddress(pub *const c_void);
-no_jsmanaged_fields!(TrustedWorkerAddress)
+untraceable!(TrustedWorkerAddress)
 
-#[dom_struct]
+#[jstraceable]
+#[must_root]
+#[privatize]
 pub struct Worker {
     eventtarget: EventTarget,
     refcount: Cell<uint>,
@@ -53,7 +63,7 @@ impl Worker {
 
     pub fn new(global: &GlobalRef, sender: ScriptChan) -> Temporary<Worker> {
         reflect_dom_object(box Worker::new_inherited(global, sender),
-                           *global,
+                           global,
                            WorkerBinding::Wrap)
     }
 
@@ -82,9 +92,7 @@ impl Worker {
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: *mut u64, nbytes: size_t) {
         let worker = unsafe { JS::from_trusted_worker_address(address).root() };
-
         let global = worker.global.root();
-
         let mut message = UndefinedValue();
         unsafe {
             assert!(JS_ReadStructuredClone(
@@ -92,9 +100,29 @@ impl Worker {
                 JS_STRUCTURED_CLONE_VERSION, &mut message,
                 ptr::null(), ptr::null_mut()) != 0);
         }
-
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
-        MessageEvent::dispatch_jsval(target, global.root_ref(), message);
+        MessageEvent::dispatch_jsval(target, &global.root_ref(), message);
+    }
+
+   pub fn handle_error_message(address: TrustedWorkerAddress, 
+               type_: DOMString,
+               can_bubble: bool,
+               cancelable: bool,
+               message: DOMString,
+               filename: DOMString,
+               lineno: u32,
+               colno: u32,
+               error: JSVal) {
+        let worker = unsafe { JS::from_trusted_worker_address(address).root() };
+        let global = worker.global.root();
+	let global_ref = global.root_ref();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
+	let errorevent = ErrorEvent::new(&global_ref, type_,
+                                can_bubble, cancelable,
+                                message, filename,
+                                lineno, colno, error).root();
+        let event: JSRef<Event> = EventCast::from_ref(*errorevent);
+        target.dispatch_event_with_target(Some(target), event).unwrap();
     }
 }
 
@@ -128,28 +156,33 @@ impl Worker {
         let worker = unsafe { JS::from_trusted_worker_address(address).root() };
         worker.release();
     }
+
+
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
-    fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
+    fn PostMessage(self, cx: *mut JSContext, message: JSVal) {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;
-        let result = unsafe {
-            JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                    ptr::null(), ptr::null_mut())
-        };
-        if result == 0 {
-            unsafe { JS_ClearPendingException(cx); }
-            return Err(DataClone);
+        unsafe {
+            assert!(JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
+                                            ptr::null(), ptr::null_mut()) != 0);
         }
 
         self.addref();
         let ScriptChan(ref sender) = self.sender;
         sender.send(DOMMessage(data, nbytes));
-        Ok(())
     }
 
-    event_handler!(message, GetOnmessage, SetOnmessage)
+    fn GetOnmessage(self) -> Option<EventHandlerNonNull> {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.get_event_handler_common("message")
+    }
+
+    fn SetOnmessage(self, listener: Option<EventHandlerNonNull>) {
+        let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        eventtarget.set_event_handler_common("message", listener)
+    }
 }
 
 impl Reflectable for Worker {
