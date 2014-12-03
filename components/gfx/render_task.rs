@@ -505,7 +505,7 @@ impl WorkerThread {
         {
             // Build the render context.
             let mut render_context = RenderContext {
-                draw_target: &draw_target,
+                draw_target: draw_target.clone(),
                 font_ctx: &mut self.font_context,
                 page_rect: tile.page_rect,
                 screen_rect: tile.screen_rect,

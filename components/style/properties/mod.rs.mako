@@ -1208,6 +1208,37 @@ pub mod longhands {
     ${switch_to_style_struct("Box")}
 
     ${single_keyword("box-sizing", "content-box border-box")}
+
+    ${new_style_struct("Effects", is_inherited=False)}
+
+    <%self:single_component_value name="opacity">
+        pub type SpecifiedValue = CSSFloat;
+        pub mod computed_value {
+            use super::super::CSSFloat;
+            pub type T = CSSFloat;
+        }
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            1.0
+        }
+        #[inline]
+        pub fn to_computed_value(value: SpecifiedValue, _: &computed::Context)
+                                 -> computed_value::T {
+            if value < 0.0 {
+                0.0
+            } else if value > 1.0 {
+                1.0
+            } else {
+                value
+            }
+        }
+        fn from_component_value(input: &ComponentValue, _: &Url) -> Result<SpecifiedValue,()> {
+            match *input {
+                Number(ref value) => Ok(value.value),
+                _ => Err(())
+            }
+        }
+    </%self:single_component_value>
 }
 
 

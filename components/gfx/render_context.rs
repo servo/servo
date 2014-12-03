@@ -4,6 +4,7 @@
 
 //! Painting of display lists using Moz2D/Azure.
 
+use azure::azure::AzIntSize;
 use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GradientStop, Linear};
 use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, SourceOp, StrokeOptions};
@@ -33,7 +34,7 @@ use text::TextRun;
 use text::glyph::CharIndex;
 
 pub struct RenderContext<'a> {
-    pub draw_target: &'a DrawTarget,
+    pub draw_target: DrawTarget,
     pub font_ctx: &'a mut Box<FontContext>,
     /// The rectangle that this context encompasses in page coordinates.
     pub page_rect: Rect<f32>,
@@ -54,8 +55,8 @@ enum DashSize {
 }
 
 impl<'a> RenderContext<'a>  {
-    pub fn get_draw_target(&self) -> &'a DrawTarget {
-        self.draw_target
+    pub fn get_draw_target(&self) -> &DrawTarget {
+        &self.draw_target
     }
 
     pub fn draw_solid_color(&self, bounds: &Rect<Au>, color: Color) {
@@ -153,7 +154,13 @@ impl<'a> RenderContext<'a>  {
         self.draw_target.fill_rect(&rect, ColorPatternRef(&pattern), Some(&draw_options));
     }
 
-    fn draw_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<AzFloat>, color: SideOffsets2D<Color>, style: SideOffsets2D<border_style::T>) {
+    fn draw_border_segment(&self,
+                           direction: Direction,
+                           bounds: &Rect<Au>,
+                           border: SideOffsets2D<f32>,
+                           radius: &BorderRadii<AzFloat>,
+                           color: SideOffsets2D<Color>,
+                           style: SideOffsets2D<border_style::T>) {
         let (style_select, color_select) = match direction {
             Top => (style.top, color.top),
             Left => (style.left, color.left),
@@ -641,6 +648,49 @@ impl<'a> RenderContext<'a>  {
                                    LinearGradientPatternRef(&pattern),
                                    None);
     }
+
+    pub fn get_or_create_temporary_draw_target(&mut self, opacity: AzFloat) -> DrawTarget {
+        if opacity == 1.0 {
+            return self.draw_target.clone()
+        }
+
+        // FIXME(pcwalton): This surface might be bigger than necessary and waste memory.
+        let size = self.draw_target.get_size();
+        let size = Size2D {
+            width: size.width,
+            height: size.height,
+        };
+
+        let temporary_draw_target =
+            self.draw_target.create_similar_draw_target(&size, self.draw_target.get_format());
+        temporary_draw_target.set_transform(&self.draw_target.get_transform());
+        temporary_draw_target
+    }
+
+    /// If we created a temporary draw target, then draw it to the main draw target. This is called
+    /// after doing all the painting, and the temporary draw target must not be used afterward.
+    pub fn draw_temporary_draw_target_if_necessary(&mut self,
+                                                   temporary_draw_target: &DrawTarget,
+                                                   opacity: AzFloat) {
+        if (*temporary_draw_target) == self.draw_target {
+            // We're directly rendering to the surface; nothing to do.
+            return
+        }
+
+        let old_transform = self.draw_target.get_transform();
+        self.draw_target.set_transform(&Matrix2D::identity());
+        temporary_draw_target.set_transform(&Matrix2D::identity());
+        let rect = Rect(Point2D(0.0, 0.0), self.draw_target.get_size().to_azure_size());
+        let source_surface = temporary_draw_target.snapshot();
+        let draw_surface_options = DrawSurfaceOptions::new(Linear, true);
+        let draw_options = DrawOptions::new(opacity, 0);
+        self.draw_target.draw_surface(source_surface,
+                                      rect,
+                                      rect,
+                                      draw_surface_options,
+                                      draw_options);
+        self.draw_target.set_transform(&old_transform);
+    }
 }
 
 pub trait ToAzurePoint {
@@ -662,6 +712,16 @@ impl ToAzureRect for Rect<Au> {
         Rect(self.origin.to_azure_point(),
              Size2D(self.size.width.to_nearest_px() as AzFloat,
                     self.size.height.to_nearest_px() as AzFloat))
+    }
+}
+
+pub trait ToAzureSize {
+    fn to_azure_size(&self) -> Size2D<AzFloat>;
+}
+
+impl ToAzureSize for AzIntSize {
+    fn to_azure_size(&self) -> Size2D<AzFloat> {
+        Size2D(self.width as AzFloat, self.height as AzFloat)
     }
 }
 
