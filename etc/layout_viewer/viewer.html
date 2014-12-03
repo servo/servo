@@ -90,6 +90,9 @@
 
         <script>
             function get_base(node) {
+                if (node.id !== undefined) {
+                    return node;
+                }
                 if (node.data.base !== undefined) {
                     return node.data.base;
                 }
