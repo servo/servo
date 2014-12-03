@@ -341,7 +341,8 @@ impl ScriptTask {
                              resource_task.clone(),
                              storage_task,
                              constellation_chan.clone(),
-                             js_context.clone());
+                             js_context.clone(),
+                             devtools_chan.clone());
 
         // Notify devtools that a new script global exists.
         //FIXME: Move this into handle_load after we create a window instead.
@@ -650,7 +651,8 @@ impl ScriptTask {
                       parent_page.resource_task.clone(),
                       parent_page.storage_task.clone(),
                       self.constellation_chan.clone(),
-                      self.js_context.borrow().as_ref().unwrap().clone())
+                      self.js_context.borrow().as_ref().unwrap().clone(),
+                      self.devtools_chan.clone())
         };
         parent_page.children.borrow_mut().push(Rc::new(new_page));
     }

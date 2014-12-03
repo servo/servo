@@ -37,7 +37,12 @@ pub struct DevtoolsPageInfo {
 /// Messages to the instruct the devtools server to update its known actors/state
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
+<<<<<<< HEAD
     NewGlobal(PipelineId, Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
+=======
+    NewGlobal(PipelineId, Sender<DevtoolScriptControlMsg>),
+    SendConsoleMessage(PipelineId, ConsoleMsg),
+>>>>>>> Implemented ConsoleAPICall and handled Console::Log
     ServerExitMsg
 }
 
@@ -115,3 +120,10 @@ impl<D:Decoder<E>, E> Decodable<D, E> for Modification {
         )
     }
 }
+
+//TODO: Include options for Warn, Debug, Info, Error messages from Console
+pub enum ConsoleMsg {
+    LogMessage(String),
+    //WarnMessage(PipelineId, String),
+}
+
