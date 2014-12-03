@@ -266,7 +266,6 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
                                         .map(|group| group.as_slice()));
         }
         //TODO: dispatch change event
-        self.force_relayout();
     }
 
     fn get_size(&self) -> u32 {
@@ -300,7 +299,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                     UIntAttrValue(_, value) => self.size.set(value),
                     _ => panic!("Expected a UIntAttrValue"),
                 }
-                self.force_relayout();
             }
             &atom!("type") => {
                 let value = attr.value();
@@ -319,11 +317,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                                                  .as_ref()
                                                  .map(|group| group.as_slice()));
                 }
-                self.force_relayout();
             }
             &atom!("value") => {
                 self.textinput.borrow_mut().set_content(attr.value().as_slice().to_string());
-                self.force_relayout();
             }
             &atom!("name") => {
                 if self.input_type.get() == InputRadio {
@@ -353,7 +349,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             }
             &atom!("size") => {
                 self.size.set(DEFAULT_INPUT_SIZE);
-                self.force_relayout();
             }
             &atom!("type") => {
                 if self.input_type.get() == InputRadio {
@@ -363,11 +358,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                                                 .map(|group| group.as_slice()));
                 }
                 self.input_type.set(InputText);
-                self.force_relayout();
             }
             &atom!("value") => {
                 self.textinput.borrow_mut().set_content("".to_string());
-                self.force_relayout();
             }
             &atom!("name") => {
                 if self.input_type.get() == InputRadio {
