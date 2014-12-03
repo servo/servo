@@ -1,13 +1,14 @@
 from __future__ import print_function, unicode_literals
 
 import argparse
+import os
 import os.path as path
 from os import chdir
 import subprocess
 import SimpleHTTPServer
 import SocketServer
 import mozdebug
-from shutil import copytree, rmtree, ignore_patterns
+from shutil import copytree, rmtree, ignore_patterns, copy2
 
 from mach.decorators import (
     CommandArgument,
@@ -16,6 +17,13 @@ from mach.decorators import (
 )
 
 from servo.command_base import CommandBase
+
+
+def read_file(filename, if_exists=False):
+    if if_exists and not path.exists(filename):
+        return None
+    with open(filename) as f:
+        return f.read()
 
 
 @CommandProvider
@@ -70,30 +78,35 @@ class MachCommands(CommandBase):
         help="Command-line arguments to be passed through to cargo doc")
     def doc(self, params):
         self.ensure_bootstrapped()
+
+        rust_docs = path.join(self.config["tools"]["rust-root"], "doc")
+        docs = path.join("components", "servo", "target", "doc")
+        if not path.exists(docs):
+            os.mkdir(docs)
+
+        if read_file(path.join(docs, "version_info.html"), if_exists=True) != \
+                read_file(path.join(rust_docs, "version_info.html")):
+            print("Copying Rust documentation.")
+            # copytree doesn't like the destination already existing.
+            for name in os.listdir(rust_docs):
+                if not name.startswith('.'):
+                    full_name = path.join(rust_docs, name)
+                    destination = path.join(docs, name)
+                    if path.isdir(full_name):
+                        if path.exists(destination):
+                            rmtree(destination)
+                        copytree(full_name, destination)
+                    else:
+                        copy2(full_name, destination)
+
         return subprocess.call(["cargo", "doc"] + params,
                                env=self.build_env(), cwd=self.servo_crate())
 
-    @Command('serve-docs',
-             description='Locally serve Servo and Rust documentation',
+    @Command('browse-doc',
+             description='Generate documentation and open it in a web browser',
              category='post-build')
-    @CommandArgument(
-        'port', default=8888, nargs='?', type=int, metavar='PORT',
-        help="Port to serve documentation at (default is 8888)")
-    def serve_docs(self, port):
+    def serve_docs(self):
         self.doc([])
-        servedir = path.join("components", "servo", "target", "serve-docs")
-        docdir = path.join("components", "servo", "target", "doc")
-
-        rmtree(servedir, True)
-        copytree(docdir, servedir, ignore=ignore_patterns('.*'))
-
-        rustdocs = path.join(self.config["tools"]["rust-root"], "doc")
-        copytree(rustdocs, path.join(servedir, "rust"), ignore=ignore_patterns('.*'))
-
-        chdir(servedir)
-        Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
-
-        httpd = SocketServer.TCPServer(("", port), Handler)
-
-        print("serving at port", port)
-        httpd.serve_forever()
+        import webbrowser
+        webbrowser.open("file://" + path.abspath(path.join(
+            "target", "doc", "servo", "index.html")))
