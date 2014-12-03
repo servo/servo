@@ -88,13 +88,13 @@ impl Event {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalRef) -> Temporary<Event> {
+    pub fn new_uninitialized(global: GlobalRef) -> Temporary<Event> {
         reflect_dom_object(box Event::new_inherited(HTMLEventTypeId),
                            global,
                            EventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalRef,
+    pub fn new(global: GlobalRef,
                type_: DOMString,
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Temporary<Event> {
@@ -108,7 +108,7 @@ impl Event {
                        init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
         let bubbles = if init.bubbles { Bubbles } else { DoesNotBubble };
         let cancelable = if init.cancelable { Cancelable } else { NotCancelable };
-        Ok(Event::new(global, type_, bubbles, cancelable))
+        Ok(Event::new(*global, type_, bubbles, cancelable))
     }
 
     #[inline]

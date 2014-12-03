@@ -838,7 +838,7 @@ impl ScriptTask {
         }
 
         // https://html.spec.whatwg.org/multipage/#the-end step 4
-        let event = Event::new(&global::Window(*window), "DOMContentLoaded".to_string(),
+        let event = Event::new(global::Window(*window), "DOMContentLoaded".to_string(),
                                DoesNotBubble, NotCancelable).root();
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(*document);
         let _ = doctarget.DispatchEvent(*event);
@@ -850,7 +850,7 @@ impl ScriptTask {
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         document.set_ready_state(DocumentReadyStateValues::Complete);
 
-        let event = Event::new(&global::Window(*window), "load".to_string(), DoesNotBubble, NotCancelable).root();
+        let event = Event::new(global::Window(*window), "load".to_string(), DoesNotBubble, NotCancelable).root();
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
         let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
 
@@ -1081,7 +1081,7 @@ impl ScriptTask {
                                 doc.begin_focus_transaction();
 
                                 let event =
-                                    Event::new(&global::Window(*window),
+                                    Event::new(global::Window(*window),
                                                "click".to_string(),
                                                Bubbles, Cancelable).root();
                                 let eventtarget: JSRef<EventTarget> = EventTargetCast::from_ref(node);

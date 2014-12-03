@@ -28,7 +28,7 @@ impl File {
         // the relevant subfields of file_bits should be copied over
     }
 
-    pub fn new(global: &GlobalRef, file_bits: JSRef<Blob>, name: DOMString) -> Temporary<File> {
+    pub fn new(global: GlobalRef, file_bits: JSRef<Blob>, name: DOMString) -> Temporary<File> {
         reflect_dom_object(box File::new_inherited(file_bits, name),
                            global,
                            FileBinding::Wrap)

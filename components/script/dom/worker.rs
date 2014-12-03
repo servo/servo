@@ -53,7 +53,7 @@ impl Worker {
 
     pub fn new(global: &GlobalRef, sender: ScriptChan) -> Temporary<Worker> {
         reflect_dom_object(box Worker::new_inherited(global, sender),
-                           global,
+                           *global,
                            WorkerBinding::Wrap)
     }
 
@@ -94,7 +94,7 @@ impl Worker {
         }
 
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
-        MessageEvent::dispatch_jsval(target, &global.root_ref(), message);
+        MessageEvent::dispatch_jsval(target, global.root_ref(), message);
     }
 }
 

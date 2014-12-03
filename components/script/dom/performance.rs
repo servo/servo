@@ -29,7 +29,7 @@ impl Performance {
 
     pub fn new(window: JSRef<Window>) -> Temporary<Performance> {
         reflect_dom_object(box Performance::new_inherited(window),
-                           &global::Window(window),
+                           global::Window(window),
                            PerformanceBinding::Wrap)
     }
 }

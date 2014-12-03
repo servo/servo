@@ -26,7 +26,7 @@ impl DOMStringMap {
         }
     }
 
-    pub fn new(global: &GlobalRef) -> Temporary<DOMStringMap> {
+    pub fn new(global: GlobalRef) -> Temporary<DOMStringMap> {
         reflect_dom_object(box DOMStringMap::new_inherited(),
                            global, DOMStringMapBinding::Wrap)
     }

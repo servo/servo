@@ -130,7 +130,7 @@ impl DedicatedWorkerGlobalScope {
                                 ptr::null(), ptr::null_mut()) != 0);
                         }
 
-                        MessageEvent::dispatch_jsval(target, &global::Worker(scope), message);
+                        MessageEvent::dispatch_jsval(target, global::Worker(scope), message);
                         global.delayed_release_worker();
                     },
                     Ok(XHRProgressMsg(addr, progress)) => {

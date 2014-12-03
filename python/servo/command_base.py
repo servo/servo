@@ -142,6 +142,9 @@ class CommandBase(object):
 
         return env
 
+    def servo_crate(self):
+        return path.join(self.context.topdir, "components", "servo")
+
     def ensure_bootstrapped(self):
         if self.context.bootstrapped:
             return

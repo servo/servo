@@ -75,7 +75,7 @@ pub extern "C" fn cef_string_utf8_clear(cs: *mut cef_string_utf8_t) {
 #[no_mangle]
 pub extern "C" fn cef_string_userfree_utf8_alloc() -> *mut cef_string_utf8_t {
     unsafe {
-        libc::malloc(mem::size_of::<cef_string_utf8_t>() as u64) as *mut cef_string_utf8_t
+        libc::calloc(1, mem::size_of::<cef_string_utf8_t>() as u64) as *mut cef_string_utf8_t
     }
 }
 
@@ -85,7 +85,7 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
     unsafe {
        if copy != 0 {
            if !src.is_null() && src_len > 0 {
-             (*output).str = libc::malloc(src_len + 1) as *mut u8;
+             (*output).str = libc::calloc(1, src_len + 1) as *mut u8;
              if (*output).str.is_null() {
                  return 0;
              }
@@ -156,7 +156,7 @@ pub extern "C" fn cef_string_utf16_clear(cs: *mut cef_string_utf16_t) {
 #[no_mangle]
 pub extern "C" fn cef_string_userfree_utf16_alloc() -> *mut cef_string_utf16_t {
     unsafe {
-        libc::malloc(mem::size_of::<cef_string_utf16_t>() as u64) as *mut cef_string_utf16_t
+        libc::calloc(1, mem::size_of::<cef_string_utf16_t>() as u64) as *mut cef_string_utf16_t
     }
 }
 
@@ -166,7 +166,7 @@ pub extern "C" fn cef_string_utf16_set(src: *const c_ushort, src_len: size_t, ou
     unsafe {
        if copy != 0 {
            if !src.is_null() && src_len > 0 {
-             (*output).str = libc::malloc((src_len + 1) * mem::size_of::<c_ushort>() as u64) as
+             (*output).str = libc::calloc(1, (src_len + 1) * mem::size_of::<c_ushort>() as u64) as
                  *mut u16;
              if (*output).str.is_null() {
                  return 0;
@@ -214,7 +214,7 @@ pub extern "C" fn cef_string_wide_clear(cs: *mut cef_string_wide_t) {
 #[no_mangle]
 pub extern "C" fn cef_string_userfree_wide_alloc() -> *mut cef_string_wide_t {
     unsafe {
-        libc::malloc(mem::size_of::<cef_string_wide_t>() as u64) as *mut cef_string_wide_t
+        libc::calloc(1, mem::size_of::<cef_string_wide_t>() as u64) as *mut cef_string_wide_t
     }
 }
 
@@ -224,7 +224,7 @@ pub extern "C" fn cef_string_wide_set(src: *const wchar_t, src_len: size_t, outp
     unsafe {
        if copy != 0 {
            if !src.is_null() && src_len > 0 {
-             (*output).str = libc::malloc((src_len + 1) * mem::size_of::<wchar_t>() as u64) as
+             (*output).str = libc::calloc(1, (src_len + 1) * mem::size_of::<wchar_t>() as u64) as
                  *mut wchar_t;
              if (*output).str.is_null() {
                  return 0;

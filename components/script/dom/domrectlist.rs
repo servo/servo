@@ -31,7 +31,7 @@ impl DOMRectList {
     pub fn new(window: JSRef<Window>,
                rects: Vec<JSRef<DOMRect>>) -> Temporary<DOMRectList> {
         reflect_dom_object(box DOMRectList::new_inherited(window, rects),
-                           &global::Window(window), DOMRectListBinding::Wrap)
+                           global::Window(window), DOMRectListBinding::Wrap)
     }
 }
 

@@ -25,14 +25,14 @@ impl WebSocket {
         }
     }
 
-    pub fn new(global: &GlobalRef, url: DOMString) -> Temporary<WebSocket> {
+    pub fn new(global: GlobalRef, url: DOMString) -> Temporary<WebSocket> {
         reflect_dom_object(box WebSocket::new_inherited(url),
                            global,
                            WebSocketBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
-        Ok(WebSocket::new(global, url))
+        Ok(WebSocket::new(*global, url))
     }
 }
 

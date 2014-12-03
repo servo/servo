@@ -17,7 +17,7 @@ extern crate url;
 
 use std::ascii::AsciiExt;
 use std::io;
-use std::io::{File, Reader, Command};
+use std::io::{File, Reader, Command, IoResult};
 use std::io::process::ExitStatus;
 use std::io::fs::PathExtensions;
 use std::os;
@@ -98,11 +98,33 @@ fn main() {
         color: AutoColor
     };
 
-    match run_tests_console(&test_opts, all_tests) {
+    match run(test_opts,
+              all_tests,
+              servo_args.iter().map(|x| x.clone()).collect()) {
         Ok(false) => os::set_exit_status(1), // tests failed
         Err(_) => os::set_exit_status(2),    // I/O-related failure
         _ => (),
     }
+}
+
+fn run(test_opts: TestOpts, all_tests: Vec<TestDescAndFn>,
+       servo_args: Vec<String>) -> IoResult<bool> {
+    // Verify that we're passing in valid servo arguments. Otherwise, servo
+    // will exit before we've run any tests, and it will appear to us as if
+    // all the tests are failing.
+    let mut command = match Command::new(os::self_exe_path().unwrap().join("servo"))
+                            .args(servo_args.as_slice()).spawn() {
+        Ok(p) => p,
+        Err(e) => panic!("failed to execute process: {}", e),
+    };
+    let stderr = command.stderr.as_mut().unwrap().read_to_string().unwrap();
+
+    if stderr.as_slice().contains("Unrecognized") {
+        println!("Servo: {}", stderr.as_slice());
+        return Ok(false);
+    }
+
+    run_tests_console(&test_opts, all_tests)
 }
 
 #[deriving(PartialEq)]
@@ -227,7 +249,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 
 fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     let png_filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
-    let mut command = Command::new("target/servo");
+    let mut command = Command::new(os::self_exe_path().unwrap().join("servo"));
     command
         .args(reftest.servo_args.as_slice())
         // Allows pixel perfect rendering of Ahem font for reftests.

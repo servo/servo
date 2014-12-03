@@ -72,7 +72,7 @@ impl ServoHTMLParser {
             tokenizer: DOMRefCell::new(tok),
         };
 
-        reflect_dom_object(box parser, &global::Window(*window), ServoHTMLParserBinding::Wrap)
+        reflect_dom_object(box parser, global::Window(*window), ServoHTMLParserBinding::Wrap)
     }
 
     #[inline]
