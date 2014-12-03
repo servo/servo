@@ -15,14 +15,12 @@ extern crate log;
 
 extern crate compositing;
 extern crate devtools;
-extern crate rustuv;
 extern crate "net" as servo_net;
 extern crate "msg" as servo_msg;
 #[phase(plugin, link)]
 extern crate "util" as servo_util;
 extern crate script;
 extern crate layout;
-extern crate green;
 extern crate gfx;
 extern crate libc;
 extern crate native;
@@ -55,8 +53,6 @@ use servo_util::opts;
 use servo_util::taskpool::TaskPool;
 
 #[cfg(not(test))]
-use green::GreenTaskBuilder;
-#[cfg(not(test))]
 use std::os;
 #[cfg(not(test))]
 use std::rc::Rc;
@@ -64,25 +60,16 @@ use std::rc::Rc;
 use std::task::TaskBuilder;
 
 pub struct Browser<Window> {
-    pool: green::SchedPool,
     compositor: Box<CompositorEventListener + 'static>,
 }
 
 impl<Window> Browser<Window> where Window: WindowMethods + 'static {
     #[cfg(not(test))]
     pub fn new(window: Option<Rc<Window>>) -> Browser<Window> {
-        use rustuv::EventLoop;
-        fn event_loop() -> Box<green::EventLoop + Send> {
-            box EventLoop::new().unwrap() as Box<green::EventLoop + Send>
-        }
-
         ::servo_util::opts::set_experimental_enabled(opts::get().enable_experimental);
         let opts = opts::get();
         RegisterBindings::RegisterProxyHandlers();
 
-        let mut pool_config = green::PoolConfig::new();
-        pool_config.event_loop_factory = event_loop;
-        let mut pool = green::SchedPool::new(pool_config);
         let shared_task_pool = TaskPool::new(8);
 
         let (compositor_proxy, compositor_receiver) =
@@ -99,7 +86,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         let (result_chan, result_port) = channel();
         let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
         TaskBuilder::new()
-            .green(&mut pool)
             .spawn(proc() {
             let opts = &opts_clone;
             // Create a Servo instance.
@@ -151,7 +137,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                 memory_profiler_chan);
 
         Browser {
-            pool: pool,
             compositor: compositor,
         }
     }
@@ -166,7 +151,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
     pub fn shutdown(mut self) {
         self.compositor.shutdown();
-        self.pool.shutdown();
     }
 }
 

@@ -6,11 +6,9 @@ dependencies = [
  "gfx 0.0.1",
  "glfw_app 0.0.1",
  "glutin_app 0.0.1",
- "green 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
  "layout 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
- "rustuv 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
  "script 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
  "util 0.0.1",
@@ -325,11 +323,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "green"
-version = "0.0.1"
-source = "git+https://github.com/servo/green-rs?ref=servo#9300d7e7dc73680c7446d78b10a309095636e64d"
-
-[[package]]
 name = "harfbuzz"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-harfbuzz#8aab215463214647b7a81f66011da552bbb1121c"
@@ -374,11 +367,9 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#2a7acd8c04949796c71145db61b7868128e497f2"
+source = "git+https://github.com/servo/rust-mozjs#7563bbd5abf12a1f0d01661c525b1f2491f783a9"
 dependencies = [
- "green 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
  "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs)",
- "rustuv 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
 ]
 
 [[package]]
@@ -511,15 +502,6 @@ version = "0.1.0"
 source = "git+https://github.com/netvl/rust-xml#d6c57380a300b94f7e7881979dbe5459dbe4ca06"
 
 [[package]]
-name = "rustuv"
-version = "0.0.1"
-source = "git+https://github.com/servo/green-rs?ref=servo#9300d7e7dc73680c7446d78b10a309095636e64d"
-dependencies = [
- "green 0.0.1 (git+https://github.com/servo/green-rs?ref=servo)",
- "tls 0.0.1 (git+https://github.com/alexcrichton/tls-rs)",
-]
-
-[[package]]
 name = "script"
 version = "0.0.1"
 dependencies = [
@@ -613,11 +595,6 @@ dependencies = [
 [[package]]
 name = "task_info"
 version = "0.0.1"
-
-[[package]]
-name = "tls"
-version = "0.0.1"
-source = "git+https://github.com/alexcrichton/tls-rs#2abeb8996f3795f1e870523b7684dcc2ce64fa85"
 
 [[package]]
 name = "url"
