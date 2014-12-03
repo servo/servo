@@ -153,7 +153,7 @@ impl<'a> RenderContext<'a>  {
         self.draw_target.fill_rect(&rect, ColorPatternRef(&pattern), Some(&draw_options));
     }
 
-    fn draw_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<AzFloat>, color: SideOffsets2D<Color>, style: SideOffsets2D<border_style::T>) {
+    fn draw_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<Option<AzFloat>>, color: SideOffsets2D<Color>, style: SideOffsets2D<border_style::T>) {
         let (style_select, color_select) = match direction {
             Top => (style.top, color.top),
             Left => (style.left, color.left),
@@ -188,7 +188,7 @@ impl<'a> RenderContext<'a>  {
         }
     }
 
-    fn draw_line_segment(&self, bounds: &Rect<Au>, radius: &BorderRadii<AzFloat>, color: Color, style: border_style::T) {
+    fn draw_line_segment(&self, bounds: &Rect<Au>, radius: &BorderRadii<Option<AzFloat>>, color: Color, style: border_style::T) {
         let border = SideOffsets2D::new_all_same(bounds.size.width).to_float_px();
 
         match style {
@@ -300,7 +300,7 @@ impl<'a> RenderContext<'a>  {
                         bounds:    &Rect<f32>,
                         direction: Direction,
                         border:    SideOffsets2D<f32>,
-                        radius:    &BorderRadii<AzFloat>,
+                        radius:    &BorderRadii<Option<AzFloat>>,
                         color:     Color) {
         // T = top, B = bottom, L = left, R = right
 
@@ -321,104 +321,148 @@ impl<'a> RenderContext<'a>  {
         let rad_T  = rad_TL + Float::frac_pi_4();
         let rad_TR = rad_T  + Float::frac_pi_4();
 
+        fn dx(x: AzFloat) -> Point2D<AzFloat> {
+            Point2D(x, 0.)
+        }
+
+        fn dy(y: AzFloat) -> Point2D<AzFloat> {
+            Point2D(0., y)
+        }
+
+        fn dx_if(cond: bool, dx: AzFloat) -> Point2D<AzFloat> {
+            Point2D(if cond { dx } else { 0. }, 0.)
+        }
+
+        fn dy_if(cond: bool, dy: AzFloat) -> Point2D<AzFloat> {
+            Point2D(0., if cond { dy } else { 0. })
+        }
+
         match direction {
             Top    => {
-                let edge_TL = box_TL  + Point2D(radius.top_left.max(border.left), 0.);
-                let edge_TR = box_TR  + Point2D(-radius.top_right.max(border.right), 0.);
-                let edge_BR = edge_TR + Point2D(0., border.top);
-                let edge_BL = edge_TL + Point2D(0., border.top);
+                let edge_TL = box_TL  + dx(radius.top_left.unwrap_or(0.).max(border.left));
+                let edge_TR = box_TR  + dx(-radius.top_right.unwrap_or(0.).max(border.right));
+                let edge_BR = edge_TR + dy(border.top);
+                let edge_BL = edge_TL + dy(border.top);
 
-                path_builder.move_to(edge_TL);
-                path_builder.line_to(edge_TR);
+                let corner_TL = edge_TL + dx_if(radius.top_left.is_none(), -border.left);
+                let corner_TR = edge_TR + dx_if(radius.top_right.is_none(), border.right);
 
-                // the origin is the center of the arcs we're about to draw.
-                let origin = edge_TR + Point2D((border.right - radius.top_right).max(0.), radius.top_right);
-                // the elbow is the inside of the border's curve.
-                let distance_to_elbow = (radius.top_right - border.top).max(0.);
+                path_builder.move_to(corner_TL);
+                path_builder.line_to(corner_TR);
 
-                path_builder.arc(origin, radius.top_right,  rad_T, rad_TR, false);
-                path_builder.arc(origin, distance_to_elbow, rad_TR, rad_T, true);
+                if let Some(top_right_radius) = radius.top_right {
+                    // the origin is the center of the arcs we're about to draw.
+                    let origin = edge_TR + Point2D((border.right - top_right_radius).max(0.), top_right_radius);
+                    // the elbow is the inside of the border's curve.
+                    let distance_to_elbow = (top_right_radius - border.top).max(0.);
+
+                    path_builder.arc(origin, top_right_radius,  rad_T, rad_TR, false);
+                    path_builder.arc(origin, distance_to_elbow, rad_TR, rad_T, true);
+                }
 
                 path_builder.line_to(edge_BR);
                 path_builder.line_to(edge_BL);
 
-                let origin = edge_TL + Point2D(-(border.left - radius.top_left).max(0.), radius.top_left);
-                let distance_to_elbow = (radius.top_left - border.top).max(0.);
+                if let Some(top_left_radius) = radius.top_left {
+                    let origin = edge_TL + Point2D(-(border.left - top_left_radius).max(0.), top_left_radius);
+                    let distance_to_elbow = (top_left_radius - border.top).max(0.);
 
-                path_builder.arc(origin, distance_to_elbow, rad_T, rad_TL, true);
-                path_builder.arc(origin, radius.top_left,   rad_TL, rad_T, false);
+                    path_builder.arc(origin, distance_to_elbow, rad_T, rad_TL, true);
+                    path_builder.arc(origin, top_left_radius,   rad_TL, rad_T, false);
+                }
             }
             Left   => {
-                let edge_TL = box_TL  + Point2D(0., radius.top_left.max(border.top));
-                let edge_BL = box_BL  + Point2D(0., -radius.bottom_left.max(border.bottom));
-                let edge_TR = edge_TL + Point2D(border.left, 0.);
-                let edge_BR = edge_BL + Point2D(border.left, 0.);
+                let edge_TL = box_TL  + dy(radius.top_left.unwrap_or(0.).max(border.top));
+                let edge_BL = box_BL  + dy(-radius.bottom_left.unwrap_or(0.).max(border.bottom));
+                let edge_TR = edge_TL + dx(border.left);
+                let edge_BR = edge_BL + dx(border.left);
 
-                path_builder.move_to(edge_BL);
-                path_builder.line_to(edge_TL);
+                let corner_TL = edge_TL + dy_if(radius.top_left.is_none(), -border.top);
+                let corner_BL = edge_BL + dy_if(radius.bottom_left.is_none(), border.bottom);
 
-                let origin = edge_TL + Point2D(radius.top_left, -(border.top - radius.top_left).max(0.));
-                let distance_to_elbow = (radius.top_left - border.left).max(0.);
+                path_builder.move_to(corner_BL);
+                path_builder.line_to(corner_TL);
 
-                path_builder.arc(origin, radius.top_left,   rad_L, rad_TL, false);
-                path_builder.arc(origin, distance_to_elbow, rad_TL, rad_L, true);
+                if let Some(top_left_radius) = radius.top_left {
+                    let origin = edge_TL + Point2D(top_left_radius, -(border.top - top_left_radius).max(0.));
+                    let distance_to_elbow = (top_left_radius - border.left).max(0.);
+
+                    path_builder.arc(origin, top_left_radius,   rad_L, rad_TL, false);
+                    path_builder.arc(origin, distance_to_elbow, rad_TL, rad_L, true);
+                }
 
                 path_builder.line_to(edge_TR);
                 path_builder.line_to(edge_BR);
 
-                let origin = edge_BL + Point2D(radius.bottom_left, (border.bottom - radius.bottom_left).max(0.));
-                let distance_to_elbow = (radius.bottom_left - border.left).max(0.);
+                if let Some(bottom_left_radius) = radius.bottom_left {
+                    let origin = edge_BL + Point2D(bottom_left_radius, (border.bottom - bottom_left_radius).max(0.));
+                    let distance_to_elbow = (bottom_left_radius - border.left).max(0.);
 
-                path_builder.arc(origin, distance_to_elbow,  rad_L, rad_BL, true);
-                path_builder.arc(origin, radius.bottom_left, rad_BL, rad_L, false);
+                    path_builder.arc(origin, distance_to_elbow,  rad_L, rad_BL, true);
+                    path_builder.arc(origin, bottom_left_radius, rad_BL, rad_L, false);
+                }
             }
             Right  => {
-                let edge_TR = box_TR  + Point2D(0., radius.top_right.max(border.top));
-                let edge_BR = box_BR  + Point2D(0., -radius.bottom_right.max(border.bottom));
-                let edge_TL = edge_TR + Point2D(-border.right, 0.);
-                let edge_BL = edge_BR + Point2D(-border.right, 0.);
+                let edge_TR = box_TR  + dy(radius.top_right.unwrap_or(0.).max(border.top));
+                let edge_BR = box_BR  + dy(-radius.bottom_right.unwrap_or(0.).max(border.bottom));
+                let edge_TL = edge_TR + dx(-border.right);
+                let edge_BL = edge_BR + dx(-border.right);
+
+                let corner_TR = edge_TR + dy_if(radius.top_right.is_none(), -border.top);
+                let corner_BR = edge_BR + dy_if(radius.bottom_right.is_none(), border.bottom);
 
                 path_builder.move_to(edge_BL);
                 path_builder.line_to(edge_TL);
 
-                let origin = edge_TR + Point2D(-radius.top_right, -(border.top - radius.top_right).max(0.));
-                let distance_to_elbow = (radius.top_right - border.right).max(0.);
+                if let Some(top_right_radius) = radius.top_right {
+                    let origin = edge_TR + Point2D(-top_right_radius, -(border.top - top_right_radius).max(0.));
+                    let distance_to_elbow = (top_right_radius - border.right).max(0.);
 
-                path_builder.arc(origin, distance_to_elbow, rad_R, rad_TR, true);
-                path_builder.arc(origin, radius.top_right,  rad_TR, rad_R, false);
+                    path_builder.arc(origin, distance_to_elbow, rad_R, rad_TR, true);
+                    path_builder.arc(origin, top_right_radius,  rad_TR, rad_R, false);
+                }
 
-                path_builder.line_to(edge_TR);
-                path_builder.line_to(edge_BR);
+                path_builder.line_to(corner_TR);
+                path_builder.line_to(corner_BR);
 
-                let origin = edge_BR + Point2D(-radius.bottom_right, (border.bottom - radius.bottom_right).max(0.));
-                let distance_to_elbow = (radius.bottom_right - border.right).max(0.);
+                if let Some(bottom_right_radius) = radius.bottom_right {
+                    let origin = edge_BR + Point2D(-bottom_right_radius, (border.bottom - bottom_right_radius).max(0.));
+                    let distance_to_elbow = (bottom_right_radius - border.right).max(0.);
 
-                path_builder.arc(origin, radius.bottom_right, rad_R, rad_BR, false);
-                path_builder.arc(origin, distance_to_elbow,   rad_BR, rad_R, true);
+                    path_builder.arc(origin, bottom_right_radius, rad_R, rad_BR, false);
+                    path_builder.arc(origin, distance_to_elbow,   rad_BR, rad_R, true);
+                }
             }
             Bottom => {
-                let edge_BL = box_BL  + Point2D(radius.bottom_left.max(border.left), 0.);
-                let edge_BR = box_BR  + Point2D(-radius.bottom_right.max(border.right), 0.);
-                let edge_TL = edge_BL + Point2D(0., -border.bottom);
-                let edge_TR = edge_BR + Point2D(0., -border.bottom);
+                let edge_BL = box_BL  + dx(radius.bottom_left.unwrap_or(0.).max(border.left));
+                let edge_BR = box_BR  + dx(-radius.bottom_right.unwrap_or(0.).max(border.right));
+                let edge_TL = edge_BL + dy(-border.bottom);
+                let edge_TR = edge_BR + dy(-border.bottom);
+
+                let corner_BR = edge_BR + dx_if(radius.bottom_right.is_none(), border.right);
+                let corner_BL = edge_BL + dx_if(radius.bottom_left.is_none(), -border.left);
 
                 path_builder.move_to(edge_TL);
                 path_builder.line_to(edge_TR);
 
-                let origin = edge_BR + Point2D((border.right - radius.bottom_right).max(0.), -radius.bottom_right);
-                let distance_to_elbow = (radius.bottom_right - border.bottom).max(0.);
+                if let Some(bottom_right_radius) = radius.bottom_right {
+                    let origin = edge_BR + Point2D((border.right - bottom_right_radius).max(0.), -bottom_right_radius);
+                    let distance_to_elbow = (bottom_right_radius - border.bottom).max(0.);
 
-                path_builder.arc(origin, distance_to_elbow,   rad_B, rad_BR, true);
-                path_builder.arc(origin, radius.bottom_right, rad_BR, rad_B, false);
+                    path_builder.arc(origin, distance_to_elbow,   rad_B, rad_BR, true);
+                    path_builder.arc(origin, bottom_right_radius, rad_BR, rad_B, false);
+                }
 
-                path_builder.line_to(edge_BR);
-                path_builder.line_to(edge_BL);
+                path_builder.line_to(corner_BR);
+                path_builder.line_to(corner_BL);
 
-                let origin = edge_BL - Point2D((border.left - radius.bottom_left).max(0.), radius.bottom_left);
-                let distance_to_elbow = (radius.bottom_left - border.bottom).max(0.);
+                if let Some(bottom_left_radius) = radius.bottom_left {
+                    let origin = edge_BL - Point2D((border.left - bottom_left_radius).max(0.), bottom_left_radius);
+                    let distance_to_elbow = (bottom_left_radius - border.bottom).max(0.);
 
-                path_builder.arc(origin, radius.bottom_left, rad_B, rad_BL, false);
-                path_builder.arc(origin, distance_to_elbow,  rad_BL, rad_B, true);
+                    path_builder.arc(origin, bottom_left_radius, rad_B, rad_BL, false);
+                    path_builder.arc(origin, distance_to_elbow,  rad_BL, rad_B, true);
+                }
             }
         }
 
@@ -486,7 +530,7 @@ impl<'a> RenderContext<'a>  {
                                      &draw_opts);
     }
 
-    fn draw_solid_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<AzFloat>, color: Color) {
+    fn draw_solid_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<Option<AzFloat>>, color: Color) {
         let rect = bounds.to_azure_rect();
         self.draw_border_path(&rect, direction, border, radius, color);
     }
@@ -511,7 +555,7 @@ impl<'a> RenderContext<'a>  {
         return Color::new(color.r * scale_factor, color.g * scale_factor, color.b * scale_factor, color.a);
     }
 
-    fn draw_double_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<AzFloat>, color: Color) {
+    fn draw_double_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<Option<AzFloat>>, color: Color) {
         let scaled_border       = SideOffsets2D::new((1.0/3.0) * border.top,
                                                      (1.0/3.0) * border.right,
                                                      (1.0/3.0) * border.bottom,
@@ -527,7 +571,7 @@ impl<'a> RenderContext<'a>  {
                                         direction: Direction,
                                         bounds:    &Rect<Au>,
                                         border:    SideOffsets2D<f32>,
-                                        radius:    &BorderRadii<AzFloat>,
+                                        radius:    &BorderRadii<Option<AzFloat>>,
                                         color:     Color,
                                         style:     border_style::T) {
         // original bounds as a Rect<f32>, with no scaling.
@@ -558,7 +602,7 @@ impl<'a> RenderContext<'a>  {
                                         direction: Direction,
                                         bounds:    &Rect<Au>,
                                         border:    SideOffsets2D<f32>,
-                                        radius:    &BorderRadii<AzFloat>,
+                                        radius:    &BorderRadii<Option<AzFloat>>,
                                         color:     Color,
                                         style:     border_style::T) {
         let is_inset = match style {
@@ -679,16 +723,24 @@ impl ToSideOffsetsPx for SideOffsets2D<Au> {
 }
 
 trait ToRadiiPx {
-    fn to_radii_px(&self) -> BorderRadii<AzFloat>;
+    fn to_radii_px(&self) -> BorderRadii<Option<AzFloat>>;
 }
 
 impl ToRadiiPx for BorderRadii<Au> {
-    fn to_radii_px(&self) -> BorderRadii<AzFloat> {
+    fn to_radii_px(&self) -> BorderRadii<Option<AzFloat>> {
+        fn to_nearest_px(x: Au) -> Option<AzFloat> {
+            if x == Au(0) {
+                None
+            } else {
+                Some(x.to_nearest_px() as AzFloat)
+            }
+        }
+
         BorderRadii {
-            top_left: self.top_left.to_nearest_px() as AzFloat,
-            top_right: self.top_right.to_nearest_px() as AzFloat,
-            bottom_left: self.bottom_left.to_nearest_px() as AzFloat,
-            bottom_right: self.bottom_right.to_nearest_px() as AzFloat,
+            top_left: to_nearest_px(self.top_left),
+            top_right: to_nearest_px(self.top_right),
+            bottom_left: to_nearest_px(self.bottom_left),
+            bottom_right: to_nearest_px(self.bottom_right),
         }
     }
 }
