@@ -37,7 +37,7 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        args = [path.join("target", "servo")]
+        args = [path.join("components", "servo", "target", "servo")]
 
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
@@ -71,7 +71,7 @@ class MachCommands(CommandBase):
     def doc(self, params):
         self.ensure_bootstrapped()
         return subprocess.call(["cargo", "doc"] + params,
-                               env=self.build_env())
+                               env=self.build_env(), cwd=self.servo_crate())
 
     @Command('serve-docs',
              description='Locally serve Servo and Rust documentation',
@@ -81,13 +81,13 @@ class MachCommands(CommandBase):
         help="Port to serve documentation at (default is 8888)")
     def serve_docs(self, port):
         self.doc([])
-        servedir = path.join("target", "serve-docs")
-        docdir = path.join("target", "doc")
+        servedir = path.join("components", "servo", "target", "serve-docs")
+        docdir = path.join("components", "servo", "target", "doc")
 
         rmtree(servedir, True)
         copytree(docdir, servedir, ignore=ignore_patterns('.*'))
 
-        rustdocs = path.join("rust", self.rust_snapshot_path(), "doc")
+        rustdocs = path.join(self.config["tools"]["rust-root"], "doc")
         copytree(rustdocs, path.join(servedir, "rust"), ignore=ignore_patterns('.*'))
 
         chdir(servedir)

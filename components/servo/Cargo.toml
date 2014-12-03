@@ -1,0 +1,71 @@
+[package]
+
+name = "servo"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "servo"
+path = "lib.rs"
+crate-type = ["rlib"]
+
+[[bin]]
+name = "servo"
+path = "main.rs"
+test = false
+doc = false
+bench = false
+
+[[test]]
+name = "reftest"
+path = "../../tests/reftest.rs"
+harness = false
+
+[[test]]
+name = "contenttest"
+path = "../../tests/contenttest.rs"
+harness = false
+
+[features]
+default = ["glfw_app"]
+glutin = ["glutin_app"]
+
+[dependencies.compositing]
+path = "../compositing"
+
+[dependencies.net]
+path = "../net"
+
+[dependencies.msg]
+path = "../msg"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.script]
+path = "../script"
+
+[dependencies.layout]
+path = "../layout"
+
+[dependencies.gfx]
+path = "../gfx"
+
+[dependencies.glfw_app]
+path = "../../ports/glfw"
+optional = true
+
+[dependencies.glutin_app]
+path = "../../ports/glutin"
+optional = true
+
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
+
+[dependencies.green]
+git = "https://github.com/servo/green-rs"
+branch = "servo"
+
+[dependencies.rustuv]
+git = "https://github.com/servo/green-rs"
+branch = "servo"

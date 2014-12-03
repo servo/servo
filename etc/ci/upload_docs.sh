@@ -6,14 +6,16 @@
 
 set -e
 
-mkdir -p target/doc
+cd "$(dirname $0)/../.."
+
+mkdir -p components/servo/target/doc
 ./mach bootstrap-rust
 # Ordered so that:
 # * etc/doc.servo.org/index.html overwrites $(mach rust-root)/doc/index.html
 # * ./mach doc overwrites $(mach rust-root)/doc/search-index.js
-cp -R $(./mach rust-root)/doc/* target/doc/
-cp etc/doc.servo.org/* target/doc/
+cp -R $(./mach rust-root)/doc/* components/servo/target/doc/
+cp etc/doc.servo.org/* components/servo/target/doc/
 ./mach doc
 
-ghp-import -n target/doc
+ghp-import -n components/servo/target/doc
 git push -qf https://${TOKEN}@github.com/servo/doc.servo.org.git gh-pages
