@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::iter::range_step;
-//use stb_image::image as stb_image;
 use servo_image;
 use png;
 
@@ -48,8 +47,18 @@ pub fn load_from_memory(buffer: &[u8],ext: &str) -> Option<DynamicImage> {
         return None;
     }
    else {
-	
-	let result = servo_image::load_from_memory(buffer,get_format(ext));
+	//let new_image_type: servo_image::ImageFormat = servo_image::ImageFormat::PNG;
+   
+        let image_type: Option< servo_image::ImageFormat > = get_format(ext);
+	if image_type == None
+	{
+	panic!("Image format not supported!");
+	}
+	else{
+        let new_image_type: servo_image::ImageFormat = image_type.unwrap();
+        
+        
+	let result = servo_image::load_from_memory(buffer,new_image_type);
 	if (result.is_ok()) {
   	    let v = result.unwrap();
   	    return Some(v);
@@ -59,15 +68,16 @@ pub fn load_from_memory(buffer: &[u8],ext: &str) -> Option<DynamicImage> {
 	}		
    }
    }
-fn get_format(ext: &str) -> servo_image::ImageFormat {
+   }
+fn get_format(ext: &str) -> Option<servo_image::ImageFormat> {
 		match ext.to_ascii().to_uppercase().as_str_ascii() {
-    "PNG" => {return servo_image::ImageFormat::PNG;},
-    "JPEG" => {return servo_image::ImageFormat::JPEG;},
-    "JPG" => {return servo_image::ImageFormat::JPEG;},
-    "GIF"=> {return servo_image::ImageFormat::GIF;},
-    "WEBP" => {return servo_image::ImageFormat::WEBP;},
-    "PPM" => {return servo_image::ImageFormat::PPM;},
-    _ => {return servo_image::ImageFormat::PNG;},
+    "PNG" => {(return Some(servo_image::ImageFormat::PNG));},
+    "JPEG" => {(return Some(servo_image::ImageFormat::JPEG));},
+    "JPG" => {(return Some(servo_image::ImageFormat::JPEG));},
+    "GIF"=> {(return Some(servo_image::ImageFormat::GIF));},
+    "WEBP" => {(return Some(servo_image::ImageFormat::WEBP));},
+    "PPM" => {(return Some(servo_image::ImageFormat::PPM));},
+    _ => {return None ;},
 		}
 	}
 
