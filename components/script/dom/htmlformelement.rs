@@ -204,8 +204,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         }
 
         // This is wrong. https://html.spec.whatwg.org/multipage/forms.html#planned-navigation
-        let ScriptChan(ref script_chan) = *win.script_chan();
-        script_chan.send(ScriptMsg::TriggerLoad(win.page().id, load_data));
+        win.script_chan().send(ScriptMsg::TriggerLoad(win.page().id, load_data));
     }
 
     fn get_form_dataset<'b>(self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {

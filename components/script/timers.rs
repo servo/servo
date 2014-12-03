@@ -100,7 +100,7 @@ impl TimerManager {
                                   timeout: i32,
                                   is_interval: IsInterval,
                                   source: TimerSource,
-                                  script_chan: ScriptChan)
+                                  script_chan: Box<ScriptChan+Send>)
                                   -> i32 {
         let timeout = cmp::max(0, timeout) as u64;
         let handle = self.next_timer_handle.get();
@@ -136,8 +136,7 @@ impl TimerManager {
                 let id = select.wait();
                 if id == timeout_handle.id() {
                     timeout_port.recv();
-                    let ScriptChan(ref chan) = script_chan;
-                    chan.send(ScriptMsg::FireTimer(source, TimerId(handle)));
+                    script_chan.send(ScriptMsg::FireTimer(source, TimerId(handle)));
                     if is_interval == IsInterval::NonInterval {
                         break;
                     }

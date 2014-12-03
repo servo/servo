@@ -42,32 +42,37 @@ local_data_key!(pub LiveReferences: LiveDOMReferences)
 /// DOM object is guaranteed to live at least as long as the last outstanding
 /// `Trusted<T>` instance.
 pub struct Trusted<T> {
-    cx: *mut JSContext,
     /// A pointer to the Rust DOM object of type T, but void to allow
     /// sending `Trusted<T>` between tasks, regardless of T's sendability.
     ptr: *const libc::c_void,
     refcount: Arc<Mutex<uint>>,
-    script_chan: ScriptChan,
+    script_chan: Box<ScriptChan + Send>,
+    owner_thread: *const libc::c_void,
 }
 
 impl<T: Reflectable> Trusted<T> {
     /// Create a new `Trusted<T>` instance from an existing DOM pointer. The DOM object will
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
-    pub fn new(cx: *mut JSContext, ptr: JSRef<T>, script_chan: ScriptChan) -> Trusted<T> {
+    pub fn new(cx: *mut JSContext, ptr: JSRef<T>, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
         let live_references = LiveReferences.get().unwrap();
         let refcount = live_references.addref(cx, &*ptr as *const T);
         Trusted {
-            cx: cx,
             ptr: &*ptr as *const T as *const libc::c_void,
             refcount: refcount,
             script_chan: script_chan,
+            owner_thread: (&*live_references) as *const _ as *const libc::c_void,
         }
     }
 
-    /// Obtain a usable DOM pointer from a pinned `Trusted<T>` value. Attempts to use the
-    /// resulting `Temporary<T>` off of the script thread will fail.
+    /// Obtain a usable DOM pointer from a pinned `Trusted<T>` value. Fails if used on
+    /// a different thread than the original value from which this `Trusted<T>` was
+    /// obtained.
     pub fn to_temporary(&self) -> Temporary<T> {
+        assert!({
+            let live_references = LiveReferences.get().unwrap();
+            self.owner_thread == (&*live_references) as *const _ as *const libc::c_void
+        });
         unsafe {
             Temporary::new(JS::from_raw(self.ptr as *const T))
         }
@@ -82,10 +87,10 @@ impl<T: Reflectable> Clone for Trusted<T> {
         }
 
         Trusted {
-            cx: self.cx,
             ptr: self.ptr,
             refcount: self.refcount.clone(),
             script_chan: self.script_chan.clone(),
+            owner_thread: self.owner_thread,
         }
     }
 }
@@ -97,8 +102,7 @@ impl<T: Reflectable> Drop for Trusted<T> {
         assert!(*refcount > 0);
         *refcount -= 1;
         if *refcount == 0 {
-            let ScriptChan(ref chan) = self.script_chan;
-            chan.send(ScriptMsg::RefcountCleanup(self.ptr));
+            self.script_chan.send(ScriptMsg::RefcountCleanup(self.ptr));
         }
     }
 }
