@@ -40,6 +40,7 @@ use servo_msg::constellation_msg::PipelineId;
 use servo_util::task::spawn_named;
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::comm;
 use std::comm::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
@@ -87,6 +88,8 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
 
     let mut accepted_connections: Vec<TcpStream> = Vec::new();
 
+    let mut actor_pipelines: HashMap<PipelineId, String> = HashMap::new();
+
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
         println!("connection established to {}", stream.peer_name().unwrap());
@@ -114,7 +117,8 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
     // TODO: move this into the root or tab modules?
     fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
                          pipeline: PipelineId,
-                         sender: Sender<DevtoolScriptControlMsg>) {
+                         sender: Sender<DevtoolScriptControlMsg>,
+                         actor_pipelines: &mut HashMap<PipelineId, String>) {
         let mut actors = actors.lock();
 
         //TODO: move all this actor creation into a constructor method on TabActor
@@ -123,6 +127,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
                 name: actors.new_name("console"),
                 script_chan: sender.clone(),
                 pipeline: pipeline,
+                streams: RefCell::new(Vec::new()),
             };
             let inspector = InspectorActor {
                 name: actors.new_name("inspector"),
@@ -146,6 +151,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             (tab, console, inspector)
         };
 
+        actor_pipelines.insert(pipeline, tab.name.clone());
         actors.register(box tab);
         actors.register(box console);
         actors.register(box inspector);
@@ -162,7 +168,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Err(ref e) if e.kind == TimedOut => {
                 match receiver.try_recv() {
                     Ok(ServerExitMsg) | Err(Disconnected) => break,
-                    Ok(NewGlobal(id, sender)) => handle_new_global(actors.clone(), id, sender),
+                    Ok(NewGlobal(id, sender)) => handle_new_global(actors.clone(), id, sender, &mut actor_pipelines),
                     Err(Empty) => acceptor.set_timeout(Some(POLL_TIMEOUT)),
                 }
             }
