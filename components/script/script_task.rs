@@ -541,12 +541,7 @@ impl ScriptTask {
                     if self.handle_exit_pipeline_msg(id) { return false },
                 FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                 FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
-                FromDevtools(EvaluateJS(id, s, reply)) => devtools::handle_evaluate_js(&*self.page.borrow(), id, s, reply),
-                FromDevtools(GetRootNode(id, reply)) => devtools::handle_get_root_node(&*self.page.borrow(), id, reply),
-                FromDevtools(GetDocumentElement(id, reply)) => devtools::handle_get_document_element(&*self.page.borrow(), id, reply),
-                FromDevtools(GetChildren(id, node_id, reply)) => devtools::handle_get_children(&*self.page.borrow(), id, node_id, reply),
-                FromDevtools(GetLayout(id, node_id, reply)) => devtools::handle_get_layout(&*self.page.borrow(), id, node_id, reply),
-                FromDevtools(ModifyAttribute(id, node_id, modifications)) => devtools::handle_modify_attribute(&*self.page.borrow(), id, node_id, modifications),
+                FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
             }
         }
 
@@ -606,6 +601,23 @@ impl ScriptTask {
                 Worker::handle_message(addr, data, nbytes),
             WorkerRelease(addr) =>
                 Worker::handle_release(addr),
+        }
+    }
+
+    fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
+        match msg {
+            EvaluateJS(id, s, reply) =>
+                devtools::handle_evaluate_js(&*self.page.borrow(), id, s, reply),
+            GetRootNode(id, reply) =>
+                devtools::handle_get_root_node(&*self.page.borrow(), id, reply),
+            GetDocumentElement(id, reply) =>
+                devtools::handle_get_document_element(&*self.page.borrow(), id, reply),
+            GetChildren(id, node_id, reply) =>
+                devtools::handle_get_children(&*self.page.borrow(), id, node_id, reply),
+            GetLayout(id, node_id, reply) =>
+                devtools::handle_get_layout(&*self.page.borrow(), id, node_id, reply),
+            ModifyAttribute(id, node_id, modifications) =>
+                devtools::handle_modify_attribute(&*self.page.borrow(), id, node_id, modifications),
         }
     }
 
