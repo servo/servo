@@ -223,3 +223,4 @@ pub mod page;
 pub mod script_task;
 mod timers;
 pub mod textinput;
+mod devtools;
