@@ -863,11 +863,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-getelementsbyname
     fn GetElementsByName(self, name: DOMString) -> Temporary<NodeList> {
         self.createNodeList(|node| {
-            if !node.is_element() {
-                return false;
-            }
-
-            let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
+            let element: JSRef<Element> = match ElementCast::to_ref(node) {
+                Some(element) => element,
+                None => return false,
+            };
             element.get_attribute(ns!(""), &atom!("name")).root().map_or(false, |attr| {
                 attr.value().as_slice() == name.as_slice()
             })
