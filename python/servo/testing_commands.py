@@ -47,7 +47,7 @@ class MachCommands(CommandBase):
              category='testing')
     def test(self):
         test_start = time()
-        for t in ["tidy", "unit", "ref", "content", "wpt"]:
+        for t in ["tidy", "ref", "content", "wpt", "unit"]:
             Registrar.dispatch("test-%s" % t, context=self.context)
         elapsed = time() - test_start
 
@@ -74,16 +74,9 @@ class MachCommands(CommandBase):
         for component in os.listdir("components"):
             ret = ret or cargo_test(component)
 
-        # XXX This is a workaround for issue #3928. For some reason, when
-        # cargo test is run, ./target/servo is deleted- breaking all subsequent
-        # tests if run with ./mach test (not to mention breaking ./mach run
-        # until you rebuild again). I would hope that there's a better solution
-        # to this (backing up the file before and moving it back after? some
-        # sort of cargo configuration?) but this is quick and easy for now.
-        print("Rebuilding servo...")
-        self.context.built_tests = False
-        self.ensure_built_tests()
-
+        print("WARNING: test-unit has probably destroyed your servo binary "
+              " (see https://github.com/rust-lang/cargo/issues/961 ). You "
+              " may want to rebuild now.")
         return ret
 
     @Command('test-ref',
