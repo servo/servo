@@ -553,8 +553,6 @@ impl DisplayItem {
                         bounds.origin.x = bounds.origin.x + x_offset;
                         bounds.origin.y = bounds.origin.y + y_offset;
                         bounds.size = image_item.stretch_size;
-            //ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ
-            println!("Bounds is {} and image_item.image.clone() is {} ", bounds, image_item.stretch_size);//, source_format);
                         render_context.draw_image(bounds, image_item.image.clone());
 
                         x_offset = x_offset + image_item.stretch_size.width;
