@@ -17,8 +17,8 @@ use servo_net::resource_task::{Load, LoadData, LoadResponse};
 use servo_util::str::DOMString;
 use std::ascii::IntoBytes;
 use std::comm::channel;
+//use std::io::net::tcp::TcpStream;
 use url::Url;
-use io::IoResult;
 
 #[dom_struct]
 pub struct WebSocket {
@@ -51,8 +51,7 @@ impl WebSocket {
 
     pub fn Constructor(global: &GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
         Ok(WebSocket::new(global, url))
-    }
-    
+    } 
 }
 
 impl Reflectable for WebSocket {
@@ -67,25 +66,36 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     event_handler!(close, GetOnclose, SetOnclose)
     event_handler!(message, GetOnmessage, SetOnmessage)
 
-    fn Send (self, message: DOMString) {
-        if (state == WebSocketConstants::OPEN)
+    fn Send(self, message: DOMString) {
+        if self.state == WebSocketConstants::OPEN
         {
-            let message_u8: Vec<u8>=message.to_string().into_bytes();  
+            let message_u8: Vec<u8>=message.to_string().into_bytes();
             assert!(message.len() <= 125);
             let mut payload: Vec<u8> = Vec::with_capacity(2 + message_u8.len());
            /*
               We are sending a single framed unmasked text message. Referring to http://tools.ietf.org/html/rfc6455#section-5.7.
-              10000001 this indicates FIN bit=1 and the opcode is 0001 which means it is a text frame and the decimal equivalent is 129 
-            */      
+              10000001 this indicates FIN bit=1 and the opcode is 0001 which means it is a text frame and the decimal equivalent is 129
+           */
             const ENTRY1: u8 = 0x81;
             payload.push(ENTRY1);
             payload.push(message.len() as u8);
             payload.push_all(message_u8.as_slice());
-            let tcp_stream: TcpStream = loadresponse.tcpstream.unwrap();
-            let ioresult = tcp_stream.write(payload);
+            /*
+            let tcp_stream_option = self.response.tcpstream;
+            let tcp_stream : TcpStream = tcp_stream_option.unwrap();
+            let ioresult = tcp_stream.write(payload.as_slice());
+            */
         } else {
              return;
         }
+    }
+    
+    fn Close(self) {
+         /*
+         let tcp_stream = self.response.tcpstream.unwrap();
+         tcp_stream.close_read();
+         tcp_stream.close_write();
+         */
     }
 
     fn Url(self) -> DOMString {

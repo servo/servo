@@ -8,13 +8,14 @@ use log;
 use std::collections::HashSet;
 use http::client::{RequestWriter, NetworkStream};
 use http::headers::HeaderEnum;
-use http::client::NetworkStream::{NormalStream};
+//use http::client::NetworkStream::{NormalStream};
 use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::Url;
-use std::io::net::tcp::TcpStream;
-use std::option::Option;
-use http::client::response::ResponseReader;
+//use std::io::net::tcp::TcpStream;
+//use std::option::Option;
+//use http::client::response::ResponseReader;
+
 pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     spawn_named("http_loader", proc() load(load_data, start_chan))
 }
@@ -69,8 +70,7 @@ pub fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 send_error(url, e.desc.to_string(), start_chan);
                 return;
             }
-        };
-       
+        }; 
        // Preserve the `host` header set automatically by RequestWriter.
        let host = writer.headers.host.clone();
         writer.headers = load_data.headers.clone();
@@ -99,11 +99,13 @@ pub fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 return;
             }
         };
-         
-        let tcpstream: Option<TcpStream> = Some(match response.stream.wrapped {
-            NormalStream(TcpStream) =>  TcpStream.clone()
-        });
-
+        /*
+        We are currently unable to test this due to the stream member of ResponseReader being private in rust-http
+        let tcpstream: TcpStream = match response.stream.wrapped {
+            NormalStream(TcpStream) =>  TcpStream.clone(),
+            SslProtectedStream(SslStream<TcpStream>) => panic!("invalid network stream")
+        };
+        */
         // Dump headers, but only do the iteration if info!() is enabled.
         info!("got HTTP response {:s}, headers:", response.status.to_string());
         if log_enabled!(log::INFO) {
@@ -141,8 +143,10 @@ pub fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         metadata.set_content_type(&response.headers.content_type);
         metadata.headers = Some(response.headers.clone());
         metadata.status = response.status.clone();
-
-        let progress_chan = match start_sending_opt(start_chan, metadata, tcpstream) {
+        /*
+             Once the stream is made public in ResponseReader, change None in the function below to tcpstream variable created above after the changes are tested.
+        */
+        let progress_chan = match start_sending_opt(start_chan, metadata, None) {
             Ok(p) => p,
             _ => return
         };
