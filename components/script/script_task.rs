@@ -22,10 +22,10 @@ use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentSource};
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::bindings::global::global_object_for_js_object;
-use dom::element::{HTMLButtonElementTypeId, HTMLInputElementTypeId};
+use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
 use dom::uievent::UIEvent;
-use dom::errorevent::ErrorEvent;
+//use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
@@ -69,10 +69,10 @@ use hyper::header::{Header, HeaderFormat};
 use hyper::header::common::util as header_util;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
-use js::jsapi::JSType;
+//use js::jsapi::JSType;
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
-use js::jsapi::{JS_GetGlobalObject};
-use js::jsval::{UndefinedValue};
+//use js::jsapi::{JS_GetGlobalObject};
+//use js::jsval::{UndefinedValue};
 use js::rust::{Cx, RtUtils};
 use js;
 use url::Url;
@@ -1339,20 +1339,20 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
     let lineno = (*report).lineno;
     let colno = (*report).column;
     let msg = string::raw::from_buf(msg as *const i8 as *const u8);
-    error!("MyError at {:s}:{}: {}: {:s}\n", fname, lineno, colno, msg);
+    error!("MyError at file {:s} on line :{} on column :{} Error Message = {:s}\n", fname, lineno , colno , msg);
 
     //let Dnb = true;   // DoesNotBubble : How to get this value ?
     //let Cncl = true;  // Cancelable: How to get this value?
 
-    let global = JS_GetGlobalObject(_cx);
+  /*  let global = JS_GetGlobalObject(_cx);
     let errorWindow = global_object_for_js_object(global);
 
     let event = ErrorEvent::new(&global.root_ref(),
                            "error".to_string(),
                            DoesNotBubble, Cancelable,
-                           msg, fname, lineno, colno, UndefinedValue()/*FIXME How to get JSval Error attribute (no such attri in rep*/).root();
+                           msg, fname, lineno, colno, UndefinedValue()).root();
     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*event);
-    target.dispatch_event_with_target(None, *event).ok();
+    target.dispatch_event_with_target(None, *event).ok(); */
     //let e1 = errorWindow.root();
     //let e1 = errorWindow.root();
 }
