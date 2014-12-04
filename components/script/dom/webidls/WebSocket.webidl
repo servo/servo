@@ -22,6 +22,7 @@ readonly attribute DOMString url;
     //readonly attribute DOMString extensions;
     //readonly attribute DOMString protocol;
     //void send(USVString data);
+      void send(DOMString message);
     //void send(Blob data);
     //void send(ArrayBuffer data);
     //void send(ArrayBufferView data);

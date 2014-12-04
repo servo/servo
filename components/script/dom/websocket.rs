@@ -66,11 +66,13 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     event_handler!(close, GetOnclose, SetOnclose)
     event_handler!(message, GetOnmessage, SetOnmessage)
 
-    fn Send(self, message: DOMString)
-    {
-        let message_u8: Vec<u8>=message.to_string().into_bytes();  
-//        assert_gt!((message.len() as u8),  125);
+    fn Send(self, message: DOMString){
+        let message_u8: Vec<u8>=message.to_string().into_bytes();
+        assert!(message.len() <= 125);
         let mut payload: Vec<u8> = Vec::with_capacity(2 + message_u8.len());
+//We are sending a single framed unmasked text message. Referring to http://tools.ietf.org/html/rfc6455#section-5.7.
+// 10000001 this indicates FIN bit=1 and the opcode is 0001 which means it is a text frame and the decimal equivalent is 129 
+
         payload.push(129u8);
         payload.push(message.len() as u8);
         payload.push_all(message_u8.as_slice());
