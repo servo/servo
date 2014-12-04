@@ -255,9 +255,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         if attr.local_name() == &atom!("src") && !self.parser_inserted.get() && node.is_in_doc() {
@@ -266,9 +265,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
     }
 
     fn child_inserted(&self, child: JSRef<Node>) {
-        match self.super_type() {
-            Some(ref s) => s.child_inserted(child),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.child_inserted(child)
         }
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         if !self.parser_inserted.get() && node.is_in_doc() {
@@ -277,9 +275,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.bind_to_tree(tree_in_doc),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
         }
 
         if tree_in_doc && !self.parser_inserted.get() {
@@ -289,9 +286,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
 
     fn cloning_steps(&self, copy: JSRef<Node>, maybe_doc: Option<JSRef<Document>>,
                      clone_children: CloneChildrenFlag) {
-        match self.super_type() {
-            Some(ref s) => s.cloning_steps(copy, maybe_doc, clone_children),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.cloning_steps(copy, maybe_doc, clone_children);
         }
 
         // https://whatwg.org/html/#already-started

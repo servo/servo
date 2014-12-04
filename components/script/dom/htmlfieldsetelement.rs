@@ -86,66 +86,58 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
-        match attr.local_name() {
-            &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
-                node.set_disabled_state(true);
-                node.set_enabled_state(false);
-                let maybe_legend = node.children().find(|node| node.is_htmllegendelement());
-                let filtered: Vec<JSRef<Node>> = node.children().filter(|child| {
-                    maybe_legend.map_or(true, |legend| legend != *child)
-                }).collect();
-                for descendant in filtered.iter().flat_map(|child| child.traverse_preorder()) {
-                    match descendant.type_id() {
-                        ElementNodeTypeId(HTMLButtonElementTypeId) |
-                        ElementNodeTypeId(HTMLInputElementTypeId) |
-                        ElementNodeTypeId(HTMLSelectElementTypeId) |
-                        ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
-                            descendant.set_disabled_state(true);
-                            descendant.set_enabled_state(false);
-                        },
-                        _ => ()
-                    }
+        if let &atom!("disabled") = attr.local_name() {
+            let node: JSRef<Node> = NodeCast::from_ref(*self);
+            node.set_disabled_state(true);
+            node.set_enabled_state(false);
+            let maybe_legend = node.children().find(|node| node.is_htmllegendelement());
+            let filtered: Vec<JSRef<Node>> = node.children().filter(|child| {
+                maybe_legend.map_or(true, |legend| legend != *child)
+            }).collect();
+            for descendant in filtered.iter().flat_map(|child| child.traverse_preorder()) {
+                match descendant.type_id() {
+                    ElementNodeTypeId(HTMLButtonElementTypeId) |
+                    ElementNodeTypeId(HTMLInputElementTypeId) |
+                    ElementNodeTypeId(HTMLSelectElementTypeId) |
+                    ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
+                        descendant.set_disabled_state(true);
+                        descendant.set_enabled_state(false);
+                    },
+                    _ => ()
                 }
-            },
-            _ => ()
+            }
         }
     }
 
     fn before_remove_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
         }
 
-        match attr.local_name() {
-            &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
-                node.set_disabled_state(false);
-                node.set_enabled_state(true);
-                let maybe_legend = node.children().find(|node| node.is_htmllegendelement());
-                let filtered: Vec<JSRef<Node>> = node.children().filter(|child| {
-                    maybe_legend.map_or(true, |legend| legend != *child)
-                }).collect();
-                for descendant in filtered.iter().flat_map(|child| child.traverse_preorder()) {
-                    match descendant.type_id() {
-                        ElementNodeTypeId(HTMLButtonElementTypeId) |
-                        ElementNodeTypeId(HTMLInputElementTypeId) |
-                        ElementNodeTypeId(HTMLSelectElementTypeId) |
-                        ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
-                            descendant.check_disabled_attribute();
-                            descendant.check_ancestors_disabled_state_for_form_control();
-                        },
-                        _ => ()
-                    }
+        if let &atom!("disabled") = attr.local_name() {
+            let node: JSRef<Node> = NodeCast::from_ref(*self);
+            node.set_disabled_state(false);
+            node.set_enabled_state(true);
+            let maybe_legend = node.children().find(|node| node.is_htmllegendelement());
+            let filtered: Vec<JSRef<Node>> = node.children().filter(|child| {
+                maybe_legend.map_or(true, |legend| legend != *child)
+            }).collect();
+            for descendant in filtered.iter().flat_map(|child| child.traverse_preorder()) {
+                match descendant.type_id() {
+                    ElementNodeTypeId(HTMLButtonElementTypeId) |
+                    ElementNodeTypeId(HTMLInputElementTypeId) |
+                    ElementNodeTypeId(HTMLSelectElementTypeId) |
+                    ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
+                        descendant.check_disabled_attribute();
+                        descendant.check_ancestors_disabled_state_for_form_control();
+                    },
+                    _ => ()
                 }
-            },
-            _ => ()
+            }
         }
     }
 }

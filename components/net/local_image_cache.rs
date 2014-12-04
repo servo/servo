@@ -119,25 +119,22 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
         self.image_cache_task.send(GetImage((*url).clone(), response_chan));
 
         let response = response_port.recv();
-        match response {
-            ImageNotReady => {
-                // Need to reflow when the image is available
-                // FIXME: Instead we should be just passing a Future
-                // to the caller, then to the display list. Finally,
-                // the compositor should be resonsible for waiting
-                // on the image to load and triggering layout
-                let image_cache_task = self.image_cache_task.clone();
-                assert!(self.on_image_available.is_some());
-                let on_image_available: proc(ImageResponseMsg, NodeAddress):Send =
-                    self.on_image_available.as_ref().unwrap().respond();
-                let url = (*url).clone();
-                spawn_named("LocalImageCache", proc() {
-                    let (response_chan, response_port) = channel();
-                    image_cache_task.send(WaitForImage(url, response_chan));
-                    on_image_available(response_port.recv(), node_address);
-                });
-            }
-            _ => ()
+        if let ImageNotReady = response {
+            // Need to reflow when the image is available
+            // FIXME: Instead we should be just passing a Future
+            // to the caller, then to the display list. Finally,
+            // the compositor should be resonsible for waiting
+            // on the image to load and triggering layout
+            let image_cache_task = self.image_cache_task.clone();
+            assert!(self.on_image_available.is_some());
+            let on_image_available: proc(ImageResponseMsg, NodeAddress):Send =
+                self.on_image_available.as_ref().unwrap().respond();
+            let url = (*url).clone();
+            spawn_named("LocalImageCache", proc() {
+                let (response_chan, response_port) = channel();
+                image_cache_task.send(WaitForImage(url, response_chan));
+                on_image_available(response_port.recv(), node_address);
+            });
         }
 
         // Put a copy of the response in the cache

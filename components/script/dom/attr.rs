@@ -206,9 +206,10 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
         let node: JSRef<Node> = NodeCast::from_ref(owner);
         let namespace_is_null = self.namespace == ns!("");
 
-        match set_type {
-            ReplacedAttr if namespace_is_null => vtable_for(&node).before_remove_attr(self),
-            _ => ()
+        if let ReplacedAttr = set_type {
+            if namespace_is_null {
+                vtable_for(&node).before_remove_attr(self);
+            }
         }
 
         *self.value.borrow_mut() = value;

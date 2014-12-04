@@ -165,30 +165,24 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr)
         }
 
-        match attr.local_name() {
-            &atom!("src") => {
-                let window = window_from_node(*self).root();
-                let url = window.get_url();
-                self.update_image(Some((attr.value().as_slice().to_string(), &url)));
-            },
-            _ => ()
+        if let &atom!("src") = attr.local_name() {
+            let window = window_from_node(*self).root();
+            let url = window.get_url();
+            self.update_image(Some((attr.value().as_slice().to_string(), &url)));
         }
     }
 
     fn before_remove_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr)
         }
 
-        match attr.local_name() {
-            &atom!("src") => self.update_image(None),
-            _ => ()
+        if let &atom!("src") = attr.local_name() {
+            self.update_image(None);
         }
     }
 

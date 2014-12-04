@@ -60,41 +60,33 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
-        match attr.local_name() {
-            &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
-                node.set_disabled_state(true);
-                node.set_enabled_state(false);
-                for child in node.children().filter(|child| child.is_htmloptionelement()) {
-                    child.set_disabled_state(true);
-                    child.set_enabled_state(false);
-                }
-            },
-            _ => ()
+        if let &atom!("disabled") = attr.local_name() {
+            let node: JSRef<Node> = NodeCast::from_ref(*self);
+            node.set_disabled_state(true);
+            node.set_enabled_state(false);
+            for child in node.children().filter(|child| child.is_htmloptionelement()) {
+                child.set_disabled_state(true);
+                child.set_enabled_state(false);
+            }
         }
     }
 
     fn before_remove_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
         }
 
-        match attr.local_name() {
-            &atom!("disabled") => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
-                node.set_disabled_state(false);
-                node.set_enabled_state(true);
-                for child in node.children().filter(|child| child.is_htmloptionelement()) {
-                    child.check_disabled_attribute();
-                }
-            },
-            _ => ()
+        if let &atom!("disabled") = attr.local_name() {
+            let node: JSRef<Node> = NodeCast::from_ref(*self);
+            node.set_disabled_state(false);
+            node.set_enabled_state(true);
+            for child in node.children().filter(|child| child.is_htmloptionelement()) {
+                child.check_disabled_attribute();
+            }
         }
     }
 }

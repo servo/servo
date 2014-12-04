@@ -271,9 +271,8 @@ impl ImageCache {
             match data {
               Ok(data) => {
                 self.set_state(url.clone(), Prefetched(data));
-                match next_step {
-                  DoDecode => self.decode(url),
-                  _ => ()
+                if let DoDecode = next_step {
+                    self.decode(url);
                 }
               }
               Err(..) => {

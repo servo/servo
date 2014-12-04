@@ -207,9 +207,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr)
         }
 
         match attr.local_name() {
@@ -239,21 +238,18 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
     }
 
     fn before_remove_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
         }
 
-        match attr.local_name() {
-            &atom!("sandbox") => self.sandbox.set(None),
-            _ => ()
+        if let &atom!("sandbox") = attr.local_name() {
+            self.sandbox.set(None);
         }
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.bind_to_tree(tree_in_doc),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
         }
 
         if tree_in_doc {

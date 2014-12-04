@@ -1203,9 +1203,10 @@ impl Node {
         }
 
         // Step 3.
-        match child {
-            Some(child) if !parent.is_parent_of(child) => return Err(NotFound),
-            _ => ()
+        if let Some(child) = child {
+            if !parent.is_parent_of(child) {
+                return Err(NotFound);
+            }
         }
 
         // Step 4-5.
@@ -1228,78 +1229,69 @@ impl Node {
         }
 
         // Step 6.
-        match parent.type_id() {
-            DocumentNodeTypeId => {
-                match node.type_id() {
-                    // Step 6.1
-                    DocumentFragmentNodeTypeId => {
-                        // Step 6.1.1(b)
-                        if node.children().any(|c| c.is_text()) {
-                            return Err(HierarchyRequest);
-                        }
-                        match node.child_elements().count() {
-                            0 => (),
-                            // Step 6.1.2
-                            1 => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                                match child {
-                                    Some(child) => {
-                                        if child.inclusively_following_siblings()
-                                            .any(|child| child.is_doctype()) {
-                                                return Err(HierarchyRequest)
-                                            }
-                                    }
-                                    _ => (),
-                                }
-                            },
-                            // Step 6.1.1(a)
-                            _ => return Err(HierarchyRequest),
-                        }
-                    },
-                    // Step 6.2
-                    ElementNodeTypeId(_) => {
-                        if !parent.child_elements().is_empty() {
-                            return Err(HierarchyRequest);
-                        }
-                        match child {
-                            Some(ref child) => {
+        if let DocumentNodeTypeId = parent.type_id() {
+            match node.type_id() {
+                // Step 6.1
+                DocumentFragmentNodeTypeId => {
+                    // Step 6.1.1(b)
+                    if node.children().any(|c| c.is_text()) {
+                        return Err(HierarchyRequest);
+                    }
+                    match node.child_elements().count() {
+                        0 => (),
+                        // Step 6.1.2
+                        1 => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
+                            }
+                            if let Some(child) = child {
                                 if child.inclusively_following_siblings()
                                     .any(|child| child.is_doctype()) {
-                                        return Err(HierarchyRequest)
+                                        return Err(HierarchyRequest);
                                     }
                             }
-                            _ => (),
-                        }
-                    },
-                    // Step 6.3
-                    DoctypeNodeTypeId => {
-                        if parent.children().any(|c| c.is_doctype()) {
-                            return Err(HierarchyRequest);
-                        }
-                        match child {
-                            Some(ref child) => {
-                                if parent.children()
-                                    .take_while(|c| c != child)
-                                    .any(|c| c.is_element()) {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
-                            None => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
-                        }
-                    },
-                    TextNodeTypeId |
-                    ProcessingInstructionNodeTypeId |
-                    CommentNodeTypeId => (),
-                    DocumentNodeTypeId => unreachable!(),
-                }
-            },
-            _ => (),
+                        },
+                        // Step 6.1.1(a)
+                        _ => return Err(HierarchyRequest),
+                    }
+                },
+                // Step 6.2
+                ElementNodeTypeId(_) => {
+                    if !parent.child_elements().is_empty() {
+                        return Err(HierarchyRequest);
+                    }
+                    if let Some(ref child) = child {
+                        if child.inclusively_following_siblings()
+                            .any(|child| child.is_doctype()) {
+                                return Err(HierarchyRequest)
+                            }
+                    }
+                },
+                // Step 6.3
+                DoctypeNodeTypeId => {
+                    if parent.children().any(|c| c.is_doctype()) {
+                        return Err(HierarchyRequest);
+                    }
+                    match child {
+                        Some(ref child) => {
+                            if parent.children()
+                                .take_while(|c| c != child)
+                                .any(|c| c.is_element()) {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                        None => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                    }
+                },
+                TextNodeTypeId |
+                ProcessingInstructionNodeTypeId |
+                CommentNodeTypeId => (),
+                DocumentNodeTypeId => unreachable!(),
+            }
         }
 
         // Step 7-8.
@@ -1432,9 +1424,10 @@ impl Node {
     // http://dom.spec.whatwg.org/#concept-node-pre-remove
     fn pre_remove(child: JSRef<Node>, parent: JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
-        match child.parent_node() {
-            Some(ref node) if node != &Temporary::from_rooted(parent) => return Err(NotFound),
-            _ => ()
+        if let Some(ref node) = child.parent_node() {
+            if node != &Temporary::from_rooted(parent) {
+                return Err(NotFound);
+            }
         }
 
         // Step 2.
@@ -1840,59 +1833,56 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 6.
-        match self.type_id {
-            DocumentNodeTypeId => {
-                match node.type_id() {
-                    // Step 6.1
-                    DocumentFragmentNodeTypeId => {
-                        // Step 6.1.1(b)
-                        if node.children().any(|c| c.is_text()) {
-                            return Err(HierarchyRequest);
-                        }
-                        match node.child_elements().count() {
-                            0 => (),
-                            // Step 6.1.2
-                            1 => {
-                                if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
-                                    return Err(HierarchyRequest);
-                                }
-                                if child.following_siblings()
-                                        .any(|child| child.is_doctype()) {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
-                            // Step 6.1.1(a)
-                            _ => return Err(HierarchyRequest)
-                        }
-                    },
-                    // Step 6.2
-                    ElementNodeTypeId(..) => {
-                        if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
-                            return Err(HierarchyRequest);
-                        }
-                        if child.following_siblings()
-                                .any(|child| child.is_doctype()) {
-                            return Err(HierarchyRequest);
-                        }
-                    },
-                    // Step 6.3
-                    DoctypeNodeTypeId => {
-                        if self.children().any(|c| c.is_doctype() && c != child) {
-                            return Err(HierarchyRequest);
-                        }
-                        if self.children()
-                            .take_while(|c| *c != child)
-                            .any(|c| c.is_element()) {
-                            return Err(HierarchyRequest);
-                        }
-                    },
-                    TextNodeTypeId |
-                    ProcessingInstructionNodeTypeId |
-                    CommentNodeTypeId => (),
-                    DocumentNodeTypeId => unreachable!()
-                }
-            },
-            _ => ()
+        if let DocumentNodeTypeId = self.type_id() {
+            match node.type_id() {
+                // Step 6.1
+                DocumentFragmentNodeTypeId => {
+                    // Step 6.1.1(b)
+                    if node.children().any(|c| c.is_text()) {
+                        return Err(HierarchyRequest);
+                    }
+                    match node.child_elements().count() {
+                        0 => (),
+                        // Step 6.1.2
+                        1 => {
+                            if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
+                                return Err(HierarchyRequest);
+                            }
+                            if child.following_siblings()
+                                    .any(|child| child.is_doctype()) {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                        // Step 6.1.1(a)
+                        _ => return Err(HierarchyRequest)
+                    }
+                },
+                // Step 6.2
+                ElementNodeTypeId(..) => {
+                    if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
+                        return Err(HierarchyRequest);
+                    }
+                    if child.following_siblings()
+                            .any(|child| child.is_doctype()) {
+                        return Err(HierarchyRequest);
+                    }
+                },
+                // Step 6.3
+                DoctypeNodeTypeId => {
+                    if self.children().any(|c| c.is_doctype() && c != child) {
+                        return Err(HierarchyRequest);
+                    }
+                    if self.children()
+                        .take_while(|c| *c != child)
+                        .any(|c| c.is_element()) {
+                        return Err(HierarchyRequest);
+                    }
+                },
+                TextNodeTypeId |
+                ProcessingInstructionNodeTypeId |
+                CommentNodeTypeId => (),
+                DocumentNodeTypeId => unreachable!()
+            }
         }
 
         // Ok if not caught by previous error checks.
@@ -2310,12 +2300,11 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
 
     fn check_parent_disabled_state_for_option(self) {
         if self.get_disabled_state() { return; }
-        match self.parent_node().root() {
-            Some(ref parent) if parent.is_htmloptgroupelement() && parent.get_disabled_state() => {
+        if let Some(ref parent) = self.parent_node().root() {
+            if parent.is_htmloptgroupelement() && parent.get_disabled_state() {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
-            },
-            _ => ()
+            }
         }
     }
 
