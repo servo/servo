@@ -38,13 +38,13 @@ impl MIMEClassifier {
                           return self.sniff_text_or_data(data);
                         }
 
-                        if MIMEClassifier::is_xml(media_type, media_subtype) { 
-                          return supplied_type.clone(); 
+                        if MIMEClassifier::is_xml(media_type, media_subtype) {
+                          return supplied_type.clone();
                         }
                         //Inplied in section 7.3, but flow is not clear
-                        if MIMEClassifier::is_html(media_type, media_subtype) { 
+                        if MIMEClassifier::is_html(media_type, media_subtype) {
                             return self.feeds_classifier.classify(data).
-                              or(supplied_type.clone()); 
+                              or(supplied_type.clone());
                          }
 
                          if media_type == "image" {
@@ -64,7 +64,7 @@ impl MIMEClassifier {
             }
         }
         return supplied_type.clone();
-    } 
+    }
 
     pub fn new()->MIMEClassifier {
          MIMEClassifier{
@@ -188,9 +188,9 @@ impl ByteMatcher {
                 return None;
             }
         }
-        for j in range(0u,self.pattern.len()) {           
-            if (data[i] & self.mask[j]) != (self.pattern[j] & self.mask[j]) { 
-                return None; 
+        for j in range(0u,self.pattern.len()) {
+            if (data[i] & self.mask[j]) != (self.pattern[j] & self.mask[j]) {
+                return None;
             }
             i = i + 1;
         }
@@ -370,7 +370,7 @@ impl GroupedClassifier {
                 box ByteMatcher::application_pdf()
             ]
         }
-            
+
     }
     fn plaintext_classifier() -> GroupedClassifier {
         GroupedClassifier{
@@ -1060,7 +1060,7 @@ mod tests {
         let class_type = Some((type_string, ""));
         test_sniff_classification(file,type_string,subtype_string,class_type);
     }
-        
+
     #[test]
     fn test_sniff_x_icon() {
         test_sniff_classification_sup("test.ico", "image", "x-icon");
@@ -1078,7 +1078,7 @@ mod tests {
 
     #[test]
     fn test_sniff_gif87a() {
-        test_sniff_classification_sup("test87a.gif", "image", "gif");
+        test_sniff_classification_sup("test87a", "image", "gif");
     }
 
     #[test]
@@ -1418,4 +1418,3 @@ mod tests {
         test_sniff_full(&Path::new("text/xml/feed.atom"), "application", "atom+xml", Some(("text", "html")));
     }
 }
-
