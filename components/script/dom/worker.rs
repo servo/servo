@@ -1,15 +1,10 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-//use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-//use dom::bindings::codegen::Bindings::ErrorEventBinding;
-//use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
-use dom::event::Event;
-use dom::bindings::codegen::InheritTypes::EventCast;
-use dom::errorevent::ErrorEvent;
-//use dom::bindings::global;
-//use dom::window::Window;
 
+use dom::event::Event;
+use dom::errorevent::ErrorEvent;
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -104,25 +99,16 @@ impl Worker {
         MessageEvent::dispatch_jsval(target, &global.root_ref(), message);
     }
 
-   pub fn handle_error_message(address: TrustedWorkerAddress, 
-               type_: DOMString,
-               can_bubble: bool,
-               cancelable: bool,
-               message: DOMString,
-               filename: DOMString,
-               lineno: u32,
-               colno: u32,
-               error: JSVal) {
-        let worker = unsafe { JS::from_trusted_worker_address(address).root() };
+   pub fn handle_error_message(address: TrustedWorkerAddress, type_: DOMString, can_bubble: bool, cancelable: bool,
+    			       message: DOMString,filename: DOMString, lineno: u32, colno: u32) { 			           
+   	let worker = unsafe { JS::from_trusted_worker_address(address).root() };
         let global = worker.global.root();
 	let global_ref = global.root_ref();
+	let error = UndefinedValue();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
-	let errorevent = ErrorEvent::new(&global_ref, type_,
-                                can_bubble, cancelable,
-                                message, filename,
-                                lineno, colno, error).root();
+	let errorevent = ErrorEvent::new(&global_ref, type_, can_bubble, cancelable, message, filename, lineno, colno, error).root();
         let event: JSRef<Event> = EventCast::from_ref(*errorevent);
-        target.dispatch_event_with_target(Some(target), event).unwrap();
+        target.dispatch_event_with_target(None, event).unwrap();
     }
 }
 
@@ -156,8 +142,6 @@ impl Worker {
         let worker = unsafe { JS::from_trusted_worker_address(address).root() };
         worker.release();
     }
-
-
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
