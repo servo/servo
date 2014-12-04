@@ -447,7 +447,7 @@ pub trait AttributeHandlers {
     fn get_string_attribute(self, name: &Atom) -> DOMString;
     fn set_string_attribute(self, name: &Atom, value: DOMString);
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString);
-    fn get_uint_attribute(self, name: &Atom) -> u32;
+    fn get_uint_attribute(self, name: &Atom, default: u32) -> u32;
     fn set_uint_attribute(self, name: &Atom, value: u32);
 }
 
@@ -630,7 +630,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         self.set_attribute(name, AttrValue::from_tokenlist(value));
     }
 
-    fn get_uint_attribute(self, name: &Atom) -> u32 {
+    fn get_uint_attribute(self, name: &Atom, default: u32) -> u32 {
         assert!(name.as_slice().chars().all(|ch| {
             !ch.is_ascii() || ch.to_ascii().to_lowercase() == ch.to_ascii()
         }));
@@ -639,10 +639,10 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             Some(attribute) => {
                 match *attribute.value() {
                     UIntAttrValue(_, value) => value,
-                    _ => panic!("Expected a UIntAttrValue"),
+                    _ => default,
                 }
             }
-            None => 0,
+            None => default,
         }
     }
     fn set_uint_attribute(self, name: &Atom, value: u32) {

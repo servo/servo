@@ -39,7 +39,7 @@ macro_rules! make_bool_getter(
 
 #[macro_export]
 macro_rules! make_uint_getter(
-    ( $attr:ident, $htmlname:expr ) => (
+    ( $attr:ident, $htmlname:expr, $default:expr ) => (
         fn $attr(self) -> u32 {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
@@ -47,11 +47,14 @@ macro_rules! make_uint_getter(
             use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             // FIXME(pcwalton): Do this at compile time, not runtime.
-            element.get_uint_attribute(&Atom::from_slice($htmlname))
+            element.get_uint_attribute(&Atom::from_slice($htmlname), $default)
         }
     );
+    ( $attr:ident, $htmlname:expr ) => (
+        make_uint_getter!($attr, $htmlname, 0)
+    );
     ($attr:ident) => {
-        make_uint_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+        make_uint_getter!($attr, stringify!($attr).to_ascii_lower().as_slice(), 0)
     }
 )
 
