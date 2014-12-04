@@ -540,17 +540,7 @@ impl ScriptTask {
                 FromConstellation(ExitPipelineMsg(id)) =>
                     if self.handle_exit_pipeline_msg(id) { return false },
                 FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
-                FromScript(TriggerLoadMsg(id, load_data)) => self.trigger_load(id, load_data),
-                FromScript(TriggerFragmentMsg(id, url)) => self.trigger_fragment(id, url),
-                FromScript(FireTimerMsg(FromWindow(id), timer_id)) => self.handle_fire_timer_msg(id, timer_id),
-                FromScript(FireTimerMsg(FromWorker, _)) => panic!("Worker timeouts must not be sent to script task"),
-                FromScript(NavigateMsg(direction)) => self.handle_navigate_msg(direction),
-                FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
-                FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_progress(addr, progress),
-                FromScript(XHRReleaseMsg(addr)) => XMLHttpRequest::handle_release(addr),
-                FromScript(DOMMessage(..)) => panic!("unexpected message"),
-                FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
-                FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
+                FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                 FromDevtools(EvaluateJS(id, s, reply)) => devtools::handle_evaluate_js(&*self.page.borrow(), id, s, reply),
                 FromDevtools(GetRootNode(id, reply)) => devtools::handle_get_root_node(&*self.page.borrow(), id, reply),
                 FromDevtools(GetDocumentElement(id, reply)) => devtools::handle_get_document_element(&*self.page.borrow(), id, reply),
@@ -589,6 +579,33 @@ impl ScriptTask {
                 panic!("should have handled ExitPipelineMsg already"),
             GetTitleMsg(pipeline_id) =>
                 self.handle_get_title_msg(pipeline_id),
+        }
+    }
+
+    fn handle_msg_from_script(&self, msg: ScriptMsg) {
+        match msg {
+            TriggerLoadMsg(id, load_data) =>
+                self.trigger_load(id, load_data),
+            TriggerFragmentMsg(id, url) =>
+                self.trigger_fragment(id, url),
+            FireTimerMsg(FromWindow(id), timer_id) =>
+                self.handle_fire_timer_msg(id, timer_id),
+            FireTimerMsg(FromWorker, _) =>
+                panic!("Worker timeouts must not be sent to script task"),
+            NavigateMsg(direction) =>
+                self.handle_navigate_msg(direction),
+            ExitWindowMsg(id) =>
+                self.handle_exit_window_msg(id),
+            XHRProgressMsg(addr, progress) =>
+                XMLHttpRequest::handle_progress(addr, progress),
+            XHRReleaseMsg(addr) =>
+                XMLHttpRequest::handle_release(addr),
+            DOMMessage(..) =>
+                panic!("unexpected message"),
+            WorkerPostMessage(addr, data, nbytes) =>
+                Worker::handle_message(addr, data, nbytes),
+            WorkerRelease(addr) =>
+                Worker::handle_release(addr),
         }
     }
 
