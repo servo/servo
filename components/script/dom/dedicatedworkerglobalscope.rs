@@ -141,7 +141,7 @@ impl DedicatedWorkerGlobalScope {
                     Ok(WorkerPostMessage(addr, data, nbytes)) => {
                         Worker::handle_message(addr, data, nbytes);
                     },
-                    Ok(WorkerDispatchErrorEvent(addr, type_,bubbles, cancelable, msg, file_name, line_num, col_num, error)) => {
+                    Ok(WorkerDispatchErrorEvent(addr, type_, bubbles, cancelable, msg, file_name, line_num, col_num, error)) => {
                         Worker::handle_error_message(addr, type_,bubbles, cancelable, msg, file_name, line_num, col_num, error);
                     },
                     Ok(WorkerRelease(addr)) => {

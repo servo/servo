@@ -508,7 +508,7 @@ impl ScriptTask {
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
                 FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
-                FromScript(WorkerDispatchErrorEvent(addr, type_,bubbles, cancelable, msg, file_name,line_num, col_num)) =>
+                FromScript(WorkerDispatchErrorEvent(addr, type_, bubbles, cancelable, msg, file_name,line_num, col_num)) =>
                     Worker::handle_error_message(addr, type_,bubbles, cancelable, msg, file_name, line_num, col_num),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
                 FromDevtools(EvaluateJS(id, s, reply)) => self.handle_evaluate_js(id, s, reply),
