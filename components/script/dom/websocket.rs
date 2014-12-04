@@ -72,8 +72,8 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
         let mut payload: Vec<u8> = Vec::with_capacity(2 + message_u8.len());
 //We are sending a single framed unmasked text message. Referring to http://tools.ietf.org/html/rfc6455#section-5.7.
 // 10000001 this indicates FIN bit=1 and the opcode is 0001 which means it is a text frame and the decimal equivalent is 129 
-
-        payload.push(129u8);
+        const ENTRY1: u8 = 0x81;
+        payload.push(ENTRY1);
         payload.push(message.len() as u8);
         payload.push_all(message_u8.as_slice());
     }
