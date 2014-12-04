@@ -321,7 +321,6 @@ impl ImageCache {
                     let s=url.serialize();
                     let mut ext="";
                     for x in s.as_slice().split('.') { ext=x; }
-                    println!("{}",ext);
 
                     let image = profile(time::ImageDecodingCategory, None, time_profiler_chan_clone, || {
                         load_from_memory(data.as_slice(),ext)
