@@ -493,7 +493,7 @@ dependencies = [
 [[package]]
 name = "skia-sys"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#d92603043a9b7dd0b25c0b3b562099a0cc32ac6c"
+source = "git+https://github.com/servo/skia#79aa9354837bc195b83fa041b9632ea628e6f7d0"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
