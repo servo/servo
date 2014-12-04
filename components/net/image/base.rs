@@ -46,18 +46,18 @@ fn byte_swap_and_premultiply(data: &mut [u8]) {
 pub fn load_from_memory(buffer: &[u8],ext: &str) -> Option<DynamicImage> {
     if buffer.len() == 0 {
         return None;
-    } 
+    }
     else {
         let image_type: Option< servo_image::ImageFormat > = get_format(ext);
         if image_type == None {
             panic!("Image format not supported!");
-        } 
+        }
         else {
             let new_image_type: servo_image::ImageFormat = image_type.unwrap();
-	    let result = servo_image::load_from_memory(buffer,new_image_type);
-	    if result.is_ok() {
-  	        let mut img = result.unwrap();
-            
+            let result = servo_image::load_from_memory(buffer,new_image_type);
+            if result.is_ok() {
+                let mut img = result.unwrap();
+
                 match img {
                     ImageRgba8(ref mut img_buffer) => {
                         byte_swap_and_premultiply(img_buffer.rawbuf_mut());
@@ -67,15 +67,15 @@ pub fn load_from_memory(buffer: &[u8],ext: &str) -> Option<DynamicImage> {
                         byte_swap(img_buffer.rawbuf_mut());
                         img = ImageRgba8(img_buffer)
                     },
-                    ImageLumaA8(_) => {
-                        img = ImageLuma8(img.to_luma());
+                        ImageLumaA8(_) => {
+                            img = ImageLuma8(img.to_luma());
+                            img.invert();
+                        }
+                    ImageLuma8(_) => {
                         img.invert();
                     }
-		    ImageLuma8(_) => {
-                        img.invert();		
-                    }
                 }
-  	    return Some(img);
+                return Some(img);
             }
             else  {
                 return None;
