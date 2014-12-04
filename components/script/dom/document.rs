@@ -821,21 +821,21 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-body
     fn SetBody(self, new_body: Option<JSRef<HTMLElement>>) -> ErrorResult {
         // Step 1.
-        match new_body {
-            Some(ref htmlelem) => {
-                let node: JSRef<Node> = NodeCast::from_ref(*htmlelem);
-                match node.type_id() {
-                    ElementNodeTypeId(HTMLBodyElementTypeId) | ElementNodeTypeId(HTMLFrameSetElementTypeId) => {}
-                    _ => return Err(HierarchyRequest)
-                }
-            }
-            None => return Err(HierarchyRequest)
+        let new_body = match new_body {
+            Some(new_body) => new_body,
+            None => return Err(HierarchyRequest),
+        };
+
+        let node: JSRef<Node> = NodeCast::from_ref(new_body);
+        match node.type_id() {
+            ElementNodeTypeId(HTMLBodyElementTypeId) |
+            ElementNodeTypeId(HTMLFrameSetElementTypeId) => {}
+            _ => return Err(HierarchyRequest)
         }
 
         // Step 2.
         let old_body = self.GetBody().root();
-        //FIXME: covariant lifetime workaround. do not judge.
-        if old_body.as_ref().map(|body| body.deref()) == new_body.as_ref().map(|a| &*a) {
+        if old_body.as_ref().map(|body| **body) == Some(new_body) {
             return Ok(());
         }
 
@@ -844,8 +844,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             // Step 4.
             None => return Err(HierarchyRequest),
             Some(ref root) => {
-                let new_body_unwrapped = new_body.unwrap();
-                let new_body: JSRef<Node> = NodeCast::from_ref(new_body_unwrapped);
+                let new_body: JSRef<Node> = NodeCast::from_ref(new_body);
 
                 let root: JSRef<Node> = NodeCast::from_ref(**root);
                 match old_body {
