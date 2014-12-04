@@ -520,12 +520,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-doctype
     fn GetDoctype(self) -> Option<Temporary<DocumentType>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.children().find(|child| {
-            child.is_doctype()
-        }).map(|node| {
-            let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
-            Temporary::from_rooted(doctype)
-        })
+        node.children()
+            .filter_map(DocumentTypeCast::to_ref)
+            .next()
+            .map(Temporary::from_rooted)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-documentelement
