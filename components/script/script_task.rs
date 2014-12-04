@@ -25,7 +25,7 @@ use dom::bindings::global::global_object_for_js_object;
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
 use dom::uievent::UIEvent;
-//use dom::errorevent::ErrorEvent;
+use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
@@ -71,8 +71,8 @@ use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, J
 use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
 //use js::jsapi::JSType;
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
-//use js::jsapi::{JS_GetGlobalObject};
-//use js::jsval::{UndefinedValue};
+use js::jsapi::{JS_GetGlobalObject};
+use js::jsval::{UndefinedValue};
 use js::rust::{Cx, RtUtils};
 use js;
 use url::Url;
@@ -1344,7 +1344,7 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
     //let Dnb = true;   // DoesNotBubble : How to get this value ?
     //let Cncl = true;  // Cancelable: How to get this value?
 
-  /*  let global = JS_GetGlobalObject(_cx);
+    let global = JS_GetGlobalObject(_cx);
     let errorWindow = global_object_for_js_object(global);
 
     let event = ErrorEvent::new(&global.root_ref(),
@@ -1352,7 +1352,7 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
                            DoesNotBubble, Cancelable,
                            msg, fname, lineno, colno, UndefinedValue()).root();
     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*event);
-    target.dispatch_event_with_target(None, *event).ok(); */
+    target.dispatch_event_with_target(None, *event).ok();
     //let e1 = errorWindow.root();
     //let e1 = errorWindow.root();
 }
