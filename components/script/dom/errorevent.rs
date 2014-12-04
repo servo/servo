@@ -50,7 +50,7 @@ impl ErrorEvent {
 
     pub fn new_uninitialized(global: &GlobalRef) -> Temporary<ErrorEvent> {
         reflect_dom_object(box ErrorEvent::new_inherited(ErrorEventTypeId),
-                           global,
+                           *global,
                            ErrorEventBinding::Wrap)
     }
 
