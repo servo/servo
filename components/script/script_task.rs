@@ -17,13 +17,13 @@ use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::Reflectable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
-use dom::bindings::global::global_object_for_js_object;
+//use dom::bindings::global::global_object_for_js_object;
 use dom::document::{Document, HTMLDocument, DocumentHelpers};
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
 use dom::event::{Event, Bubbles, DoesNotBubble, Cancelable, NotCancelable};
 use dom::uievent::UIEvent;
-use dom::errorevent::ErrorEvent;
+//use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::node;
 use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
@@ -59,10 +59,10 @@ use servo_util::task::spawn_named_with_send_on_failure;
 use geom::point::Point2D;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
-use js::jsapi::JSType;
+//use js::jsapi::JSType;
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
-use js::jsapi::{JS_GetGlobalObject};
-use js::jsval::{UndefinedValue};
+//use js::jsapi::{JS_GetGlobalObject};
+//use js::jsval::{UndefinedValue};
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
 use js;
@@ -1145,20 +1145,20 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
     let lineno = (*report).lineno;
     let colno = (*report).column;
     let msg = string::raw::from_buf(msg as *const i8 as *const u8);
-    error!("MyError at {:s}:{}: {}: {:s}\n", fname, lineno, colno, msg);
+    error!("MyError at file {:s} on line :{} on column :{} Error Message = {:s}\n", fname, lineno , colno , msg);
 
     //let Dnb = true;   // DoesNotBubble : How to get this value ?
     //let Cncl = true;  // Cancelable: How to get this value?
 
-    let global = JS_GetGlobalObject(_cx);
+  /*  let global = JS_GetGlobalObject(_cx);
     let errorWindow = global_object_for_js_object(global);
 
     let event = ErrorEvent::new(&global.root_ref(),
                            "error".to_string(),
                            DoesNotBubble, Cancelable,
-                           msg, fname, lineno, colno, UndefinedValue()/*FIXME How to get JSval Error attribute (no such attri in rep*/).root();
+                           msg, fname, lineno, colno, UndefinedValue()).root();
     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*event);
-    target.dispatch_event_with_target(None, *event).ok();
+    target.dispatch_event_with_target(None, *event).ok(); */
     //let e1 = errorWindow.root();
     //let e1 = errorWindow.root();
 }
