@@ -537,16 +537,9 @@ impl ScriptTask {
         // Process the gathered events.
         for msg in sequential.into_iter() {
             match msg {
-                // TODO(tkuehn) need to handle auxiliary layouts for iframes
-                FromConstellation(AttachLayoutMsg(_)) => panic!("should have handled AttachLayoutMsg already"),
-                FromConstellation(LoadMsg(id, load_data)) => self.load(id, load_data),
-                FromConstellation(SendEventMsg(id, event)) => self.handle_event(id, event),
-                FromConstellation(ReflowCompleteMsg(id, reflow_id)) => self.handle_reflow_complete_msg(id, reflow_id),
-                FromConstellation(ResizeInactiveMsg(id, new_size)) => self.handle_resize_inactive_msg(id, new_size),
-                FromConstellation(ExitPipelineMsg(id)) => if self.handle_exit_pipeline_msg(id) { return false },
-                FromConstellation(ViewportMsg(..)) => panic!("should have handled ViewportMsg already"),
-                FromConstellation(ResizeMsg(..)) => panic!("should have handled ResizeMsg already"),
-                FromConstellation(GetTitleMsg(pipeline_id)) => self.handle_get_title_msg(pipeline_id)
+                FromConstellation(ExitPipelineMsg(id)) =>
+                    if self.handle_exit_pipeline_msg(id) { return false },
+                FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                 FromScript(TriggerLoadMsg(id, load_data)) => self.trigger_load(id, load_data),
                 FromScript(TriggerFragmentMsg(id, url)) => self.trigger_fragment(id, url),
                 FromScript(FireTimerMsg(FromWindow(id), timer_id)) => self.handle_fire_timer_msg(id, timer_id),
@@ -573,6 +566,30 @@ impl ScriptTask {
         }
 
         true
+    }
+
+    fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
+        match msg {
+            // TODO(tkuehn) need to handle auxiliary layouts for iframes
+            AttachLayoutMsg(_) =>
+                panic!("should have handled AttachLayoutMsg already"),
+            LoadMsg(id, load_data) =>
+                self.load(id, load_data),
+            SendEventMsg(id, event) =>
+                self.handle_event(id, event),
+            ReflowCompleteMsg(id, reflow_id) =>
+                self.handle_reflow_complete_msg(id, reflow_id),
+            ResizeInactiveMsg(id, new_size) =>
+                self.handle_resize_inactive_msg(id, new_size),
+            ViewportMsg(..) =>
+                panic!("should have handled ViewportMsg already"),
+            ResizeMsg(..) =>
+                panic!("should have handled ResizeMsg already"),
+            ExitPipelineMsg(..) =>
+                panic!("should have handled ExitPipelineMsg already"),
+            GetTitleMsg(pipeline_id) =>
+                self.handle_get_title_msg(pipeline_id),
+        }
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
