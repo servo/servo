@@ -16,10 +16,9 @@ interface Storage {
 
   getter DOMString? getItem(DOMString name);
 
-  //setter creator void setItem(DOMString name, DOMString value);
+  setter creator void setItem(DOMString name, DOMString value);
 
-  //deleter not supported yet
-  //deleter void removeItem(DOMString name);
+  deleter void removeItem(DOMString name);
 
   void clear();
 };
