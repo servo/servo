@@ -529,7 +529,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-documentelement
     fn GetDocumentElement(self) -> Option<Temporary<Element>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.child_elements().next().map(|elem| Temporary::from_rooted(elem))
+        node.child_elements().next().map(Temporary::from_rooted)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
