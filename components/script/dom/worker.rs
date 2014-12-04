@@ -107,6 +107,13 @@ impl Worker {
         let error = UndefinedValue();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
         let errorevent = ErrorEvent::new(&global_ref, type_, can_bubble, cancelable, message, filename, lineno, colno, error).root();
+    			       message: DOMString,filename: DOMString, lineno: u32, colno: u32) { 			           
+   	let worker = unsafe { JS::from_trusted_worker_address(address).root() };
+        let global = worker.global.root();
+	let global_ref = global.root_ref();
+	let error = UndefinedValue();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
+	let errorevent = ErrorEvent::new(&global_ref, type_, can_bubble, cancelable, message, filename, lineno, colno, error).root();
         let event: JSRef<Event> = EventCast::from_ref(*errorevent);
         target.dispatch_event_with_target(None, event).unwrap();
     }
