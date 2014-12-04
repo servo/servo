@@ -207,7 +207,7 @@ source = "git+https://github.com/servo/rust-freetype#e55b06110fb2d74a2db68ead740
 [[package]]
 name = "freetype-rs"
 version = "0.0.0"
-source = "git+https://github.com/ankit3005/freetype-rs#5e55fccf39178eebceecc43397f37c9ed1d6828a"
+source = "git+https://github.com/PistonDevelopers/freetype-rs#753496406098651c83cdaf63db9f75dc42da17c7"
 
 [[package]]
 name = "freetype-sys"
@@ -228,10 +228,9 @@ dependencies = [
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
  "fontconfig 0.1.0 (git+https://github.com/servo/rust-fontconfig)",
- "freetype-rs 0.0.0 (git+https://github.com/ankit3005/freetype-rs)",
+ "freetype-rs 0.0.0 (git+https://github.com/PistonDevelopers/freetype-rs)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "harfbuzz 0.1.0 (git+https://github.com/servo/rust-harfbuzz)",
- "image 0.1.0 (git+https://github.com/PistonDevelopers/image)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
  "net 0.0.1",
@@ -472,6 +471,7 @@ version = "0.0.1"
 dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo)",
+ "image 0.1.0 (git+https://github.com/PistonDevelopers/image)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
