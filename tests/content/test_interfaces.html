@@ -68,7 +68,6 @@ var interfaceNamesInGlobalScope = [
   "DOMImplementation",
   "DOMParser",
   "DOMTokenList",
-  "DOMStringMap",
   "Element",
   "ErrorEvent",
   "Event",
@@ -144,7 +143,6 @@ var interfaceNamesInGlobalScope = [
   "HTMLUListElement",
   "HTMLUnknownElement",
   "HTMLVideoElement",
-  "KeyboardEvent",
   "Location",
   "MessageEvent",
   "MouseEvent",
@@ -159,14 +157,12 @@ var interfaceNamesInGlobalScope = [
   "ProgressEvent",
   "Range",
   "Screen",
-  "Storage",
   "TestBinding", // XXX
   "Text",
   "TreeWalker",
   "UIEvent",
   "URLSearchParams",
   "ValidityState",
-  "WebSocket",
   "Window",
   "Worker",
   "WorkerGlobalScope", // #2823
@@ -210,4 +206,5 @@ for (var name of Object.keys(interfaceMap)) {
 }
 is(Object.keys(interfaceMap).length, 0,
    "The following interface(s) are not enumerated: " + Object.keys(interfaceMap).join(", "));
+finish();
 </script>
