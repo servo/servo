@@ -95,6 +95,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
         let opts_clone = opts.clone();
         let time_profiler_chan_clone = time_profiler_chan.clone();
+        let time_profiler_chan_option: Option<servo_util::time::TimeProfilerChan> = Some(time_profiler_chan_clone.clone());
 
         let (result_chan, result_port) = channel();
         let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
@@ -108,9 +109,9 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             // image load or we risk emitting an output file missing the
             // image.
             let image_cache_task = if opts.output_file.is_some() {
-                ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool)
+                ImageCacheTask::new_sync(resource_task.clone(), shared_task_pool, time_profiler_chan_option)
             } else {
-                ImageCacheTask::new(resource_task.clone(), shared_task_pool)
+                ImageCacheTask::new(resource_task.clone(), shared_task_pool, time_profiler_chan_option)
             };
             let font_cache_task = FontCacheTask::new(resource_task.clone());
             let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
