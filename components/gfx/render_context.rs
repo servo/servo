@@ -4,7 +4,7 @@
 
 //! Painting of display lists using Moz2D/Azure.
 
-use azure::azure_hl::{B8G8R8A8, B8G8R8X8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
+use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GradientStop, Linear};
 use azure::azure_hl::{LinearGradientPattern, LinearGradientPatternRef, SourceOp, StrokeOptions};
 use azure::scaled_font::ScaledFont;
@@ -19,7 +19,7 @@ use geom::side_offsets::SideOffsets2D;
 use geom::size::Size2D;
 use libc::size_t;
 use libc::types::common::c99::{uint16_t, uint32_t};
-use servo_image::{Grey, RGB, GreyA, RGBA, Palette};
+use servo_image::DynamicImage::{ImageLuma8, ImageLumaA8, ImageRgb8, ImageRgba8};
 use servo_net::image::base::{DynamicImage};
 use servo_util::geometry::Au;
 use servo_util::opts;
@@ -113,13 +113,11 @@ impl<'a> RenderContext<'a>  {
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<DynamicImage>>) {
     let (image_width, image_height) = image.dimensions();
         let size = Size2D(image_width as i32, image_height as i32);
-    let raw_pixels = image.raw_pixels();
-        let (pixel_width, pixels, source_format) = match image.color() {
-            RGBA(_) => (4, raw_pixels.as_slice(), B8G8R8A8),
-            Grey(_) => (1, raw_pixels.as_slice(), A8),
-            RGB(_) => (3, raw_pixels.as_slice(), B8G8R8X8),
-            GreyA(_) => (2, raw_pixels.as_slice(), A8),
-        Palette(_) => panic!("Palette color type not supported"),
+        let (pixel_width, pixels, source_format) = match **image {
+            ImageRgba8(ref pixels) => (4, pixels.rawbuf(), B8G8R8A8),
+            ImageLuma8(ref pixels) => (1, pixels.rawbuf(), A8),
+            ImageRgb8(_) => panic!("RGB8 color type not supported"),
+            ImageLumaA8(_) => panic!("K8 color type not supported"),
         };
         let stride = image_width * pixel_width;
         self.draw_target.make_current();

@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::iter::range_step;
 use servo_image;
+use servo_image::DynamicImage::{ImageLuma8, ImageLumaA8, ImageRgb8, ImageRgba8};
 use png;
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
@@ -17,23 +19,66 @@ pub fn test_image_bin() -> Vec<u8> {
     TEST_IMAGE.iter().map(|&x| x).collect()
 }
 
+// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
+fn byte_swap(data: &mut [u8]) {
+    let length = data.len();
+    for i in range_step(0, length, 4) {
+        let r = data[i + 2];
+        data[i + 2] = data[i + 0];
+        data[i + 0] = r;
+    }
+}
+
+// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
+fn byte_swap_and_premultiply(data: &mut [u8]) {
+    let length = data.len();
+    for i in range_step(0, length, 4) {
+        let r = data[i + 2];
+        let g = data[i + 1];
+        let b = data[i + 0];
+        let a = data[i + 3];
+        data[i + 0] = ((r as u32) * (a as u32) / 255) as u8;
+        data[i + 1] = ((g as u32) * (a as u32) / 255) as u8;
+        data[i + 2] = ((b as u32) * (a as u32) / 255) as u8;
+    }
+}
+
 pub fn load_from_memory(buffer: &[u8],ext: &str) -> Option<DynamicImage> {
     if buffer.len() == 0 {
         return None;
-    } else {
-        //let new_image_type: servo_image::ImageFormat = servo_image::ImageFormat::PNG;
-
+    } 
+    else {
         let image_type: Option< servo_image::ImageFormat > = get_format(ext);
         if image_type == None {
             panic!("Image format not supported!");
-        } else{
+        } 
+        else {
             let new_image_type: servo_image::ImageFormat = image_type.unwrap();
-
-            let result = servo_image::load_from_memory(buffer,new_image_type);
-            if result.is_ok() {
-                let v = result.unwrap();
-                return Some(v);
-            } else  {
+            println!("Image format is {}", new_image_type);
+	    let result = servo_image::load_from_memory(buffer,new_image_type);
+	    if result.is_ok() {
+  	        let mut img = result.unwrap();
+            
+                match img {
+                    ImageRgba8(ref mut img_buffer) => {
+                        byte_swap_and_premultiply(img_buffer.rawbuf_mut());
+                    }
+                    ImageRgb8(_) => {
+                        let mut img_buffer = img.to_rgba();
+                        byte_swap(img_buffer.rawbuf_mut());
+                        img = ImageRgba8(img_buffer)
+                    },
+                    ImageLumaA8(_) => {
+                        img = ImageLuma8(img.to_luma());
+                        img.invert();
+                    }
+		    ImageLuma8(_) => {
+                        img.invert();		
+                    }
+                }
+  	    return Some(img);
+            }
+            else  {
                 return None;
             }
         }
