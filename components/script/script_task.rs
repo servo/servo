@@ -40,7 +40,8 @@ use timers::TimerId;
 use devtools_traits;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, NodeInfo, GetRootNode};
 use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, EvaluateJSReply, GetDocumentElement};
-use devtools_traits::{GetChildren, GetLayout};
+use devtools_traits::{GetChildren, GetLayout, ModifyAttribute};
+use devtools_traits::Modification;
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, ViewportMsg, SendEventMsg};
@@ -558,6 +559,7 @@ impl ScriptTask {
                 FromDevtools(GetDocumentElement(id, reply)) => self.handle_get_document_element(id, reply),
                 FromDevtools(GetChildren(id, node_id, reply)) => self.handle_get_children(id, node_id, reply),
                 FromDevtools(GetLayout(id, node_id, reply)) => self.handle_get_layout(id, node_id, reply),
+                FromDevtools(ModifyAttribute(id, node_id, modifications)) => self.handle_modify_attribute(id, node_id, modifications),
             }
         }
 
@@ -637,6 +639,20 @@ impl ScriptTask {
         let elem: JSRef<Element> = ElementCast::to_ref(*node).expect("should be getting layout of element");
         let rect = elem.GetBoundingClientRect().root();
         reply.send((rect.Width(), rect.Height()));
+    }
+
+    fn handle_modify_attribute(&self, pipeline: PipelineId, node_id: String, modifications: Vec<Modification>) {
+        let node = self.find_node_by_unique_id(pipeline, node_id).root();
+        let elem: JSRef<Element> = ElementCast::to_ref(*node).expect("should be getting layout of element");
+
+        for modification in modifications.iter(){
+            match modification.newValue {
+                Some(ref string) => {
+                    let _ = elem.SetAttribute(modification.attributeName.clone(), string.clone());
+                },
+                None => elem.RemoveAttribute(modification.attributeName.clone()),
+            }
+        }
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {

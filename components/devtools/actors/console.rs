@@ -14,6 +14,7 @@ use devtools_traits::{ActorValue, DevtoolScriptControlMsg};
 use servo_msg::constellation_msg::PipelineId;
 
 use collections::TreeMap;
+use core::cell::RefCell;
 use serialize::json;
 use serialize::json::ToJson;
 use std::io::TcpStream;
@@ -105,6 +106,7 @@ pub struct ConsoleActor {
     pub name: String,
     pub pipeline: PipelineId,
     pub script_chan: Sender<DevtoolScriptControlMsg>,
+    pub streams: RefCell<Vec<TcpStream>>,
 }
 
 impl Actor for ConsoleActor {
