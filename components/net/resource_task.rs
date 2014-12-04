@@ -22,6 +22,7 @@ use http::status::Ok as StatusOk;
 use http::status::Status;
 
 use servo_util::task::spawn_named;
+use std::io::net::tcp::TcpStream;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
@@ -116,6 +117,7 @@ pub struct LoadResponse {
     pub metadata: Metadata,
     /// Port for reading data.
     pub progress_port: Receiver<ProgressMsg>,
+    pub tcpstream: Option<TcpStream>
 }
 
 /// Messages sent in response to a `Load` message
@@ -129,15 +131,16 @@ pub enum ProgressMsg {
 
 /// For use by loaders in responding to a Load message.
 pub fn start_sending(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Sender<ProgressMsg> {
-    start_sending_opt(start_chan, metadata).ok().unwrap()
+    start_sending_opt(start_chan, metadata, None).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending_opt(start_chan: Sender<LoadResponse>, metadata: Metadata) -> Result<Sender<ProgressMsg>, ()> {
+pub fn start_sending_opt(start_chan: Sender<LoadResponse>, metadata: Metadata, tcpstream: Option<TcpStream>) -> Result<Sender<ProgressMsg>, ()> {
     let (progress_chan, progress_port) = channel();
     let result = start_chan.send_opt(LoadResponse {
         metadata:      metadata,
         progress_port: progress_port,
+        tcpstream:     tcpstream
     });
     match result {
         Ok(_) => Ok(progress_chan),

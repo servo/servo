@@ -18,6 +18,7 @@ use servo_util::str::DOMString;
 use std::ascii::IntoBytes;
 use std::comm::channel;
 use url::Url;
+use io::IoResult;
 
 #[dom_struct]
 pub struct WebSocket {
@@ -66,14 +67,23 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     event_handler!(close, GetOnclose, SetOnclose)
     event_handler!(message, GetOnmessage, SetOnmessage)
 
-    fn Send(self, message: DOMString)
-    {
+    fn Send (self, message: DOMString)
+    {   
+        if (state == WebSocketConstants::OPEN)
+        {
         let message_u8: Vec<u8>=message.to_string().into_bytes();  
-//        assert_gt!((message.len() as u8),  125);
+//       assert_gt!((message.len() as u8),  125);
         let mut payload: Vec<u8> = Vec::with_capacity(2 + message_u8.len());
         payload.push(129u8);
         payload.push(message.len() as u8);
         payload.push_all(message_u8.as_slice());
+        let tcp_stream: TcpStream = loadresponse.tcpstream.unwrap();
+        let ioresult = tcp_stream.write(payload);
+        }
+        else
+        {
+             return;
+        }
     }
 
     fn Url(self) -> DOMString {

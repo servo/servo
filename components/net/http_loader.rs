@@ -8,16 +8,19 @@ use log;
 use std::collections::HashSet;
 use http::client::{RequestWriter, NetworkStream};
 use http::headers::HeaderEnum;
+use http::client::NetworkStream::{NormalStream};
 use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::Url;
-
+use std::io::net::tcp::TcpStream;
+use std::option::Option;
+use http::client::response::ResponseReader;
 pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     spawn_named("http_loader", proc() load(load_data, start_chan))
 }
 
 fn send_error(url: Url, err: String, start_chan: Sender<LoadResponse>) {
-    match start_sending_opt(start_chan, Metadata::default(url)) {
+    match start_sending_opt(start_chan, Metadata::default(url), None) {
         Ok(p) => p.send(Done(Err(err))),
         _ => {}
     };
@@ -67,9 +70,9 @@ pub fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 return;
             }
         };
-
-        // Preserve the `host` header set automatically by RequestWriter.
-        let host = writer.headers.host.clone();
+       
+       // Preserve the `host` header set automatically by RequestWriter.
+       let host = writer.headers.host.clone();
         writer.headers = load_data.headers.clone();
         writer.headers.host = host;
         if writer.headers.accept_encoding.is_none() {
@@ -96,6 +99,10 @@ pub fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 return;
             }
         };
+         
+        let tcpstream: Option<TcpStream> = Some(match response.stream.wrapped {
+            NormalStream(TcpStream) =>  TcpStream.clone()
+        });
 
         // Dump headers, but only do the iteration if info!() is enabled.
         info!("got HTTP response {:s}, headers:", response.status.to_string());
@@ -135,7 +142,7 @@ pub fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         metadata.headers = Some(response.headers.clone());
         metadata.status = response.status.clone();
 
-        let progress_chan = match start_sending_opt(start_chan, metadata) {
+        let progress_chan = match start_sending_opt(start_chan, metadata, tcpstream) {
             Ok(p) => p,
             _ => return
         };

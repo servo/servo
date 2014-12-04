@@ -21,6 +21,7 @@ readonly attribute DOMString url;
     attribute EventHandler onmessage;
     //readonly attribute DOMString extensions;
     //readonly attribute DOMString protocol;
+    void send(DOMString message);
     //void send(USVString data);
     //void send(Blob data);
     //void send(ArrayBuffer data);
