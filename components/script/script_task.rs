@@ -540,21 +540,19 @@ impl ScriptTask {
                 // TODO(tkuehn) need to handle auxiliary layouts for iframes
                 FromConstellation(AttachLayoutMsg(_)) => panic!("should have handled AttachLayoutMsg already"),
                 FromConstellation(LoadMsg(id, load_data)) => self.load(id, load_data),
-                FromScript(TriggerLoadMsg(id, load_data)) => self.trigger_load(id, load_data),
-                FromScript(TriggerFragmentMsg(id, url)) => self.trigger_fragment(id, url),
                 FromConstellation(SendEventMsg(id, event)) => self.handle_event(id, event),
-                FromScript(FireTimerMsg(FromWindow(id), timer_id)) => self.handle_fire_timer_msg(id, timer_id),
-                FromScript(FireTimerMsg(FromWorker, _)) => panic!("Worker timeouts must not be sent to script task"),
-                FromScript(NavigateMsg(direction)) => self.handle_navigate_msg(direction),
                 FromConstellation(ReflowCompleteMsg(id, reflow_id)) => self.handle_reflow_complete_msg(id, reflow_id),
                 FromConstellation(ResizeInactiveMsg(id, new_size)) => self.handle_resize_inactive_msg(id, new_size),
                 FromConstellation(ExitPipelineMsg(id)) => if self.handle_exit_pipeline_msg(id) { return false },
                 FromConstellation(ViewportMsg(..)) => panic!("should have handled ViewportMsg already"),
-                FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
                 FromConstellation(ResizeMsg(..)) => panic!("should have handled ResizeMsg already"),
-                FromConstellation(GetTitleMsg(pipeline_id)) => {
-                    self.handle_get_title_msg(pipeline_id)
-                }
+                FromConstellation(GetTitleMsg(pipeline_id)) => self.handle_get_title_msg(pipeline_id)
+                FromScript(TriggerLoadMsg(id, load_data)) => self.trigger_load(id, load_data),
+                FromScript(TriggerFragmentMsg(id, url)) => self.trigger_fragment(id, url),
+                FromScript(FireTimerMsg(FromWindow(id), timer_id)) => self.handle_fire_timer_msg(id, timer_id),
+                FromScript(FireTimerMsg(FromWorker, _)) => panic!("Worker timeouts must not be sent to script task"),
+                FromScript(NavigateMsg(direction)) => self.handle_navigate_msg(direction),
+                FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_progress(addr, progress),
                 FromScript(XHRReleaseMsg(addr)) => XMLHttpRequest::handle_release(addr),
                 FromScript(DOMMessage(..)) => panic!("unexpected message"),
