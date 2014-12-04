@@ -54,7 +54,6 @@ pub fn load_from_memory(buffer: &[u8],ext: &str) -> Option<DynamicImage> {
         } 
         else {
             let new_image_type: servo_image::ImageFormat = image_type.unwrap();
-            println!("Image format is {}", new_image_type);
 	    let result = servo_image::load_from_memory(buffer,new_image_type);
 	    if result.is_ok() {
   	        let mut img = result.unwrap();
