@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use dom::errorevent::ErrorEvent;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
@@ -9,7 +10,6 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::global;
-use servo_util::str::DOMString;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
@@ -29,13 +29,14 @@ use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::Cx;
-
 use std::rc::Rc;
 use std::ptr;
 use std::task::TaskBuilder;
 use native::task::NativeTaskBuilder;
 use url::Url;
+use servo_util::str::DOMString;
 
+#[dom_struct]
 #[jstraceable]
 #[must_root]
 #[privatize]
@@ -120,7 +121,7 @@ impl DedicatedWorkerGlobalScope {
                 WorkerGlobalScopeCast::from_ref(*global);
             let target: JSRef<EventTarget> =
                 EventTargetCast::from_ref(*global);
-	    loop {
+         loop {
                 match global.receiver.recv_opt() {
                     Ok(DOMMessage(data, nbytes)) => {
                         let mut message = UndefinedValue();
@@ -140,14 +141,8 @@ impl DedicatedWorkerGlobalScope {
                     Ok(WorkerPostMessage(addr, data, nbytes)) => {
                         Worker::handle_message(addr, data, nbytes);
                     },
-                    Ok(WorkerDispatchErrorEvent(addr, 
-						type_,bubbles, cancelable,
-					        msg, file_name,
-					        line_num, col_num, error)) => {
-                        Worker::handle_error_message(addr, 
-						type_,bubbles, cancelable,
-					        msg, file_name,
-					        line_num, col_num, error);
+                    Ok(WorkerDispatchErrorEvent(addr, type_,bubbles, cancelable, msg, file_name, line_num, col_num, error)) => {
+                        Worker::handle_error_message(addr, type_,bubbles, cancelable, msg, file_name, line_num, col_num, error);
                     },
                     Ok(WorkerRelease(addr)) => {
                         Worker::handle_release(addr)
@@ -185,9 +180,7 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
     fn delayed_release_worker(self);
-    fn dispatch_error_to_worker(self, cx: *mut JSContext,
-		       type_: DOMString,
-                       JSRef<ErrorEvent>);
+    fn dispatch_error_to_worker(self, cx: *mut JSContext, type_: DOMString, JSRef<ErrorEvent>);
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
@@ -195,19 +188,14 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
         let ScriptChan(ref sender) = self.parent_sender;
         sender.send(WorkerRelease(self.worker));
     }
-    fn dispatch_error_to_worker(self, cx: *mut JSContext, 
-		       type_: DOMString,
-                       errorevent: JSRef<ErrorEvent>) {
-	let msg = errorevent.Message();
-	let file_name = errorevent.Filename();
-	let line_num = errorevent.Lineno();
-	let col_num = errorevent.Colno();
-	let error = errorevent.Error(cx);
-	let ScriptChan(ref sender) = self.parent_sender;
-        sender.send(WorkerDispatchErrorEvent(self.worker, 
-				type_,true, true,
-                                msg, file_name,
-                                line_num, col_num, error));
+    fn dispatch_error_to_worker(self, cx: *mut JSContext, type_: DOMString, errorevent: JSRef<ErrorEvent>) {
+        let msg = errorevent.Message();
+        let file_name = errorevent.Filename();
+        let line_num = errorevent.Lineno();
+        let col_num = errorevent.Colno();
+        let error = errorevent.Error(cx);
+        let ScriptChan(ref sender) = self.parent_sender;
+        sender.send(WorkerDispatchErrorEvent(self.worker, type_,true, true, msg, file_name, line_num, col_num, error));
     }
 }
 

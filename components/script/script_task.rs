@@ -5,9 +5,6 @@
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
 
-
-use servo_util::str::DOMString;
-use js::jsval::JSVal;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -54,10 +51,12 @@ use servo_net::resource_task::ResourceTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::task::spawn_named_with_send_on_failure;
+use servo_util::str::DOMString;
 use geom::point::Point2D;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
+use js::jsval::JSVal;
 use js::rust::{Cx, RtUtils};
 use js::rust::with_compartment;
 use js;
@@ -98,15 +97,7 @@ pub enum ScriptMsg {
     /// Posts a message to the Worker object (dispatched to all tasks).
     WorkerPostMessage(TrustedWorkerAddress, *mut u64, size_t),
     /// Sends a message to the Worker object (dispatched to all tasks) regarding error.
-    WorkerDispatchErrorEvent(TrustedWorkerAddress, 
-               DOMString,
-               bool,
-               bool,
-               DOMString,
-               DOMString,
-               u32,
-               u32,
-               JSVal),
+    WorkerDispatchErrorEvent(TrustedWorkerAddress, DOMString, bool, bool, DOMString, DOMString, u32, u32),
     /// Releases one reference to the Worker object (dispatched to all tasks).
     WorkerRelease(TrustedWorkerAddress),
 }
@@ -517,13 +508,8 @@ impl ScriptTask {
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_xhr_progress(addr, progress),
                 FromScript(DOMMessage(..)) => fail!("unexpected message"),
                 FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
-                FromScript(WorkerDispatchErrorEvent(addr, 
-						type_,bubbles, cancelable,
-					        msg, file_name,
-					        line_num, col_num, error)) => Worker::handle_error_message(addr, 
-										type_,bubbles, cancelable,
-										msg, file_name,
-										line_num, col_num, error),
+                FromScript(WorkerDispatchErrorEvent(addr, type_,bubbles, cancelable, msg, file_name,line_num, col_num)) =>
+                    Worker::handle_error_message(addr, type_,bubbles, cancelable, msg, file_name, line_num, col_num),
                 FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
                 FromDevtools(EvaluateJS(id, s, reply)) => self.handle_evaluate_js(id, s, reply),
                 FromDevtools(GetRootNode(id, reply)) => self.handle_get_root_node(id, reply),
@@ -532,7 +518,6 @@ impl ScriptTask {
                 FromDevtools(GetLayout(id, node_id, reply)) => self.handle_get_layout(id, node_id, reply),
             }
         }
-
         // Now process any pending reflows.
         for id in needs_reflow.into_iter() {
             self.handle_event(id, ReflowEvent(SmallVec1::new()));
