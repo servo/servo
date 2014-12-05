@@ -1998,10 +1998,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-clonenode
     fn CloneNode(self, deep: bool) -> Temporary<Node> {
-        match deep {
-            true => Node::clone(self, None, CloneChildren),
-            false => Node::clone(self, None, DoNotCloneChildren)
-        }
+        Node::clone(self, None, if deep { CloneChildren } else { DoNotCloneChildren })
     }
 
     // http://dom.spec.whatwg.org/#dom-node-isequalnode
