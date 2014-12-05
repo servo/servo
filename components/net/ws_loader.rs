@@ -17,7 +17,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     let(sen, rec) = channel();
     http_loader::load(load_data, sen);
     let response=rec.recv();
-    let mut flag: int = 0;
+    let mut flag: bool = false;
 
     response.metadata.headers.as_ref().map(|headers| {
         let header = headers.iter().find(|h|
@@ -26,7 +26,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         match header {
             Some(h) => {    if h.header_value().as_slice().to_ascii_lower() == "websocket".to_string()
                             {
-                                flag = flag + 1
+                                flag = true
                             }
                        },
             None => {}
@@ -34,7 +34,7 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     });
 
     let progress_chan = start_sending(start_chan, response.metadata);
-    if flag == 1
+    if flag == true
     {
        progress_chan.send(Done(Ok(())));
     } else {
