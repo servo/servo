@@ -207,14 +207,14 @@ impl ResourceManager {
 
 impl ResourceManager {
     fn start(&self) {
-        loop {
-            match self.from_client.recv() {
-              Load(load_data) => {
-                self.load(load_data)
-              }
-              Exit => {
-                break
-              }
+        for message in self.from_client.iter() {
+            match message {
+                Load(load_data) => {
+                    self.load(load_data);
+                }
+                Exit => {
+                    break;
+                }
             }
         }
     }
