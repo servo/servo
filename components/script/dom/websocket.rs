@@ -66,8 +66,7 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
     event_handler!(message, GetOnmessage, SetOnmessage)
 
     fn Send(self, message: DOMString) {
-        if self.state == WebSocketConstants::OPEN
-        {
+        if self.state == WebSocketConstants::OPEN {
             let message_u8: Vec<u8>=message.to_string().into_bytes();
             assert!(message.len() <= 125);
             let mut payload: Vec<u8> = Vec::with_capacity(2 + message_u8.len());
