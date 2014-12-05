@@ -35,52 +35,46 @@ impl SnifferManager {
 
 impl SnifferManager {
     fn start(self) {
-        loop {
-            match self.data_receiver.try_recv() {
-                Ok(mut snif_data) => {
-                    // Read all the data
-                    let mut resource_data = vec!();
-                    loop {
-                        match snif_data.load_response.progress_port.recv() {
-                            Payload(data) => {
-                                resource_data.push_all(data.as_slice());
-                            }
-                            Done(res) => {
-                                let (new_progress_chan, new_progress_port) = channel();
 
-                                // TODO: should be calculated in the resource loader, from pull requeset #4094
-                                let nosniff = false;
-                                let check_for_apache_bug = false;
+        for mut snif_data in self.data_receiver.iter() {
+            // Read all the data
+            let mut resource_data = vec!();
+            loop {
+                match snif_data.load_response.progress_port.recv() {
+                    Payload(data) => {
+                        resource_data.push_all(data.as_slice());
+                    }
+                    Done(res) => {
+                        let (new_progress_chan, new_progress_port) = channel();
 
-                                // We have all the data, go ahead and sniff it and replace the Content-Type
-                                if res.is_ok() {
-                                    snif_data.load_response.metadata.content_type = self.mime_classifier.classify(
-                                        nosniff,check_for_apache_bug,&snif_data.load_response.metadata.content_type,
-                                        &resource_data
-                                    );
-                                }
-                                let load_response = LoadResponse {
-                                    progress_port: new_progress_port,
-                                    metadata: snif_data.load_response.metadata,
-                                };
+                        // TODO: should be calculated in the resource loader, from pull requeset #4094
+                        let nosniff = false;
+                        let check_for_apache_bug = false;
 
-                                let result = snif_data.consumer.send_opt(load_response);
-                                if result.is_err() {
-                                    break;
-                                }
-
-                                new_progress_chan.send(Payload(resource_data));
-                                new_progress_chan.send(Done(res));
-                                return;
-                            }
+                        // We have all the data, go ahead and sniff it and replace the Content-Type
+                        if res.is_ok() {
+                            snif_data.load_response.metadata.content_type = self.mime_classifier.classify(
+                                nosniff,check_for_apache_bug,&snif_data.load_response.metadata.content_type,
+                                &resource_data
+                            );
                         }
+                        let load_response = LoadResponse {
+                            progress_port: new_progress_port,
+                            metadata: snif_data.load_response.metadata,
+                        };
+
+                        if snif_data.consumer.send_opt(load_response).is_err() {
+                            break;
+                        }
+
+                        new_progress_chan.send(Payload(resource_data));
+                        new_progress_chan.send(Done(res));
+                        return;
                     }
                 }
-                Err(_) => break,
             }
-        }
+        } // end for
     }
-
 }
 
 #[cfg(test)]
