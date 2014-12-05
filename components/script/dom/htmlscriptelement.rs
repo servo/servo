@@ -28,6 +28,7 @@ use encoding::types::{Encoding, DecodeReplace};
 use servo_net::resource_task::load_whole_resource;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::cell::Cell;
+use string_cache::Atom;
 use url::UrlParser;
 
 #[dom_struct]
@@ -302,10 +303,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
 }
 
 impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
-    fn Src(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_url_attribute(&atom!("src"))
-    }
+    make_url_getter!(Src)
+
+    make_setter!(SetSrc, "src")
 
     // http://www.whatwg.org/html/#dom-script-text
     fn Text(self) -> DOMString {

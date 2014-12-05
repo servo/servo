@@ -5,8 +5,7 @@
 
 // http://www.whatwg.org/html/#htmlscriptelement
 interface HTMLScriptElement : HTMLElement {
-  //         attribute DOMString src;
-  readonly attribute DOMString src;
+           attribute DOMString src;
   //         attribute DOMString type;
   //         attribute DOMString charset;
   //         attribute boolean async;
