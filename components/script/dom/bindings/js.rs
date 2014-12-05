@@ -248,6 +248,17 @@ impl<T: Reflectable> MutNullableJS<T> {
     pub unsafe fn get_inner(&self) -> Option<JS<T>> {
         self.ptr.get()
     }
+
+    pub fn or_init(&self, cb: || -> Temporary<T>) -> Temporary<T> {
+        match self.get() {
+            Some(inner) => inner,
+            None => {
+                let inner = cb();
+                self.assign(Some(inner));
+                inner
+            },
+        }
+    }
 }
 
 impl<T: Reflectable> JS<T> {
