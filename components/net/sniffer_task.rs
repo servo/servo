@@ -85,3 +85,41 @@ impl SnifferManager {
     }
 
 }
+
+#[cfg(test)]
+pub fn new_mock_sniffer_task() -> SnifferTask {
+    let(sen, rec) = channel();
+    let builder = TaskBuilder::new().named("SnifferManager");
+    builder.spawn(proc() {
+        MockSnifferManager::new(rec).start();
+    });
+    sen
+}
+
+#[cfg(test)]
+struct MockSnifferManager {
+    data_receiver: Receiver<TargetedLoadResponse>,
+}
+
+#[cfg(test)]
+impl MockSnifferManager {
+    fn new(data_receiver: Receiver <TargetedLoadResponse>) -> MockSnifferManager {
+        MockSnifferManager {
+            data_receiver: data_receiver,
+        }
+    }
+}
+
+#[cfg(test)]
+impl MockSnifferManager {
+    fn start(self) {
+        loop {
+            match self.data_receiver.recv_opt() {
+                Ok(snif_data) => {
+                    let _ = snif_data.consumer.send_opt(snif_data.load_response);
+                }
+                Err(_) => break,
+            }
+        }
+    }
+}
