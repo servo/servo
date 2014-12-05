@@ -66,8 +66,9 @@ impl SnifferManager {
                         if snif_data.consumer.send_opt(load_response).is_err() {
                             break;
                         }
-
-                        new_progress_chan.send(Payload(resource_data));
+                        if resource_data.len() > 0 {
+                            new_progress_chan.send(Payload(resource_data));
+                        }
                         new_progress_chan.send(Done(res));
                         return;
                     }
