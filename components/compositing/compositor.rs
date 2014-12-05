@@ -4,6 +4,7 @@
 
 use compositor_layer::{CompositorData, CompositorLayer, DoesntWantScrollEvents};
 use compositor_layer::WantsScrollEvents;
+use compositor_task;
 use compositor_task::{ChangeReadyState, ChangeRenderState, CompositorEventListener};
 use compositor_task::{CompositorProxy, CompositorReceiver, CompositorTask};
 use compositor_task::{CreateOrUpdateDescendantLayer, CreateOrUpdateRootLayer, Exit};
@@ -322,6 +323,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     }
                     _ => {}
                 }
+            }
+
+            (compositor_task::KeyEvent(key, modified), NotShuttingDown) => {
+                self.window.handle_key(key, modified);
             }
 
             // When we are shutting_down, we need to avoid performing operations

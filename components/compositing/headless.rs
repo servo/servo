@@ -5,7 +5,7 @@
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{Exit, ChangeReadyState, LoadComplete, Paint, ScrollFragmentPoint, SetIds};
 use compositor_task::{SetLayerOrigin, ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
-use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout, FrameTreeUpdateMsg};
+use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout, FrameTreeUpdateMsg, KeyEvent};
 use windowing::WindowEvent;
 
 use geom::scale_factor::ScaleFactor;
@@ -104,7 +104,7 @@ impl CompositorEventListener for NullCompositor {
             CreateOrUpdateDescendantLayer(..) |
             SetLayerOrigin(..) | Paint(..) |
             ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
-            LoadComplete | RenderMsgDiscarded(..) | ScrollTimeout(..) => ()
+            LoadComplete | RenderMsgDiscarded(..) | ScrollTimeout(..) | KeyEvent(..) => ()
         }
         true
     }

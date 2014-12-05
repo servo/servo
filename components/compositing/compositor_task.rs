@@ -20,6 +20,7 @@ use layers::layers::LayerBufferSet;
 use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use servo_msg::compositor_msg::{RenderListener, RenderState, ScriptListener, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
+use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers, Pressed};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
@@ -80,6 +81,12 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
 
     fn dup(&mut self) -> Box<ScriptListener+'static> {
         box self.clone_compositor_proxy() as Box<ScriptListener+'static>
+    }
+
+    fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
+        if state == Pressed {
+            self.send(KeyEvent(key, modifiers));
+        }
     }
 }
 
@@ -195,6 +202,8 @@ pub enum Msg {
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
     /// composite should happen. (See the `scrolling` module.)
     ScrollTimeout(u64),
+    /// Sends an unconsumed key event back to the compositor.
+    KeyEvent(Key, KeyModifiers),
 }
 
 impl Show for Msg {
@@ -215,6 +224,7 @@ impl Show for Msg {
             FrameTreeUpdateMsg(..) => write!(f, "FrameTreeUpdateMsg"),
             LoadComplete => write!(f, "LoadComplete"),
             ScrollTimeout(..) => write!(f, "ScrollTimeout"),
+            KeyEvent(..) => write!(f, "KeyEvent"),
         }
     }
 }
