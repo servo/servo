@@ -1714,16 +1714,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-childnodes
     fn ChildNodes(self) -> Temporary<NodeList> {
-        match self.child_list.get() {
-            None => (),
-            Some(list) => return list,
-        }
-
-        let doc = self.owner_doc().root();
-        let window = doc.window().root();
-        let child_list = NodeList::new_child_list(*window, self);
-        self.child_list.assign(Some(child_list));
-        self.child_list.get().unwrap()
+        self.child_list.or_init(|| {
+            let doc = self.owner_doc().root();
+            let window = doc.window().root();
+            NodeList::new_child_list(*window, self)
+        })
     }
 
     // http://dom.spec.whatwg.org/#dom-node-firstchild
