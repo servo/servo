@@ -6,11 +6,13 @@ use resource_task::{Metadata, Payload, Done, TargetedLoadResponse, LoadData, sta
 
 use log;
 use std::collections::HashSet;
-use http::client::{RequestWriter, NetworkStream};
-use http::headers::HeaderEnum;
+use hyper::client::Request;
+use hyper::header::common::{ContentLength, ContentType, Host, Location};
+use hyper::method::{Get, Head};
+use hyper::status::Redirection;
 use std::io::Reader;
 use servo_util::task::spawn_named;
-use url::Url;
+use url::{Url, UrlParser};
 
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     spawn_named("http_loader", proc() load(load_data, start_chan))
@@ -67,55 +69,75 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
         info!("requesting {:s}", url.serialize());
 
-        let request = RequestWriter::<NetworkStream>::new(load_data.method.clone(), url.clone());
-        let mut writer = match request {
-            Ok(w) => box w,
+        let mut req = match Request::new(load_data.method.clone(), url.clone()) {
+            Ok(req) => req,
             Err(e) => {
-                send_error(url, e.desc.to_string(), senders);
+                send_error(url, e.to_string(), senders);
                 return;
             }
         };
 
-        // Preserve the `host` header set automatically by RequestWriter.
-        let host = writer.headers.host.clone();
-        writer.headers = load_data.headers.clone();
-        writer.headers.host = host;
-        if writer.headers.accept_encoding.is_none() {
+        // Preserve the `host` header set automatically by Request.
+        let host = req.headers().get::<Host>().unwrap().clone();
+        *req.headers_mut() = load_data.headers.clone();
+        req.headers_mut().set(host);
+        // FIXME(seanmonstar): use AcceptEncoding from Hyper once available
+        //if !req.headers.has::<AcceptEncoding>() {
             // We currently don't support HTTP Compression (FIXME #2587)
-            writer.headers.accept_encoding = Some(String::from_str("identity".as_slice()))
-        }
-        match load_data.data {
+            req.headers_mut().set_raw("Accept-Encoding", vec![b"identity".to_vec()]);
+        //}
+        let writer = match load_data.data {
             Some(ref data) => {
-                writer.headers.content_length = Some(data.len());
+                req.headers_mut().set(ContentLength(data.len()));
+                let mut writer = match req.start() {
+                    Ok(w) => w,
+                    Err(e) => {
+                        send_error(url, e.to_string(), senders);
+                        return;
+                    }
+                };
                 match writer.write(data.as_slice()) {
                     Err(e) => {
                         send_error(url, e.desc.to_string(), senders);
                         return;
                     }
                     _ => {}
-                }
+                };
+                writer
             },
-            _ => {}
-        }
-        let mut response = match writer.read_response() {
+            None => {
+                match load_data.method {
+                    Get | Head => (),
+                    _ => req.headers_mut().set(ContentLength(0))
+                }
+                match req.start() {
+                    Ok(w) => w,
+                    Err(e) => {
+                        send_error(url, e.to_string(), senders);
+                        return;
+                    }
+                }
+            }
+        };
+        let mut response = match writer.send() {
             Ok(r) => r,
-            Err((_, e)) => {
-                send_error(url, e.desc.to_string(), senders);
+            Err(e) => {
+                send_error(url, e.to_string(), senders);
                 return;
             }
         };
 
         // Dump headers, but only do the iteration if info!() is enabled.
-        info!("got HTTP response {:s}, headers:", response.status.to_string());
+        info!("got HTTP response {}, headers:", response.status);
         if log_enabled!(log::INFO) {
             for header in response.headers.iter() {
-                info!(" - {:s}: {:s}", header.header_name(), header.header_value());
+                info!(" - {}", header);
             }
         }
 
-        if 3 == (response.status.code() / 100) {
-            match response.headers.location {
-                Some(new_url) => {
+        if response.status.class() == Redirection {
+            match response.headers.get::<Location>() {
+                Some(&Location(ref new_url)) => {
                     // CORS (http://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
                     match load_data.cors {
                         Some(ref c) => {
@@ -130,7 +152,14 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
                         }
                         _ => {}
                     }
-                    info!("redirecting to {:s}", new_url.serialize());
+                    let new_url = match UrlParser::new().base_url(&url).parse(new_url.as_slice()) {
+                        Ok(u) => u,
+                        Err(e) => {
+                            send_error(url, e.to_string(), senders);
+                            return;
+                        }
+                    };
+                    info!("redirecting to {}", new_url);
                     url = new_url;
                     continue;
                 }
@@ -139,9 +168,12 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         }
 
         let mut metadata = Metadata::default(url);
-        metadata.set_content_type(&response.headers.content_type);
+        metadata.set_content_type(match response.headers.get() {
+            Some(&ContentType(ref mime)) => Some(mime),
+            None => None
+        });
         metadata.headers = Some(response.headers.clone());
-        metadata.status = Some(response.status.clone());
+        metadata.status = Some(response.status_raw().clone());
 
         let progress_chan = match start_sending_opt(senders, metadata) {
             Ok(p) => p,

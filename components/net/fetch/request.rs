@@ -3,8 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use url::Url;
-use http::method::{Get, Method};
-use http::headers::request::HeaderCollection;
+use hyper::method::{Get, Method};
+use hyper::mime::{Mime, Text, Html, Charset, Utf8};
+use hyper::header::Headers;
+use hyper::header::common::ContentType;
 use fetch::cors_cache::CORSCache;
 use fetch::response::Response;
 
@@ -58,7 +60,7 @@ pub enum ResponseTainting {
 pub struct Request {
     pub method: Method,
     pub url: Url,
-    pub headers: HeaderCollection,
+    pub headers: Headers,
     pub unsafe_request: bool,
     pub body: Option<Vec<u8>>,
     pub preserve_content_codings: bool,
@@ -87,7 +89,7 @@ impl Request {
          Request {
             method: Get,
             url: url,
-            headers: HeaderCollection::new(),
+            headers: Headers::new(),
             unsafe_request: false,
             body: None,
             preserve_content_codings: false,
@@ -116,7 +118,7 @@ impl Request {
             "about" => match self.url.non_relative_scheme_data() {
                 Some(s) if s.as_slice() == "blank" => {
                     let mut response = Response::new();
-                    let _ = response.headers.insert_raw("Content-Type".to_string(), b"text/html;charset=utf-8");
+                    response.headers.set(ContentType(Mime(Text, Html, vec![(Charset, Utf8)])));
                     response
                 },
                 _ => Response::network_error()

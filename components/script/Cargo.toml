@@ -52,8 +52,8 @@ branch = "servo"
 [dependencies.encoding]
 git = "https://github.com/lifthrasiir/rust-encoding"
 
-[dependencies.http]
-git = "https://github.com/servo/rust-http"
+[dependencies.hyper]
+git = "https://github.com/servo/hyper"
 branch = "servo"
 
 [dependencies.js]

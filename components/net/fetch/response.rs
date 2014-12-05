@@ -3,11 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use url::Url;
-use http::status::{Status, UnregisteredStatus};
-use http::status::Ok as StatusOk;
-use http::headers::HeaderEnum;
-use http::headers::response::HeaderCollection;
-use std::ascii::OwnedAsciiExt;
+use hyper::status::StatusCode;
+use hyper::status::Ok as StatusOk;
+use hyper::header::Headers;
+use std::ascii::AsciiExt;
 use std::comm::Receiver;
 
 /// [Response type](http://fetch.spec.whatwg.org/#concept-response-type)
@@ -57,8 +56,9 @@ pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     pub url: Option<Url>,
-    pub status: Status,
-    pub headers: HeaderCollection,
+    /// `None` can be considered a StatusCode of `0`.
+    pub status: Option<StatusCode>,
+    pub headers: Headers,
     pub body: ResponseBody,
     /// [Internal response](http://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response is a filtered response
     pub internal_response: Option<Box<Response>>,
@@ -70,8 +70,8 @@ impl Response {
             response_type: Default,
             termination_reason: None,
             url: None,
-            status: StatusOk,
-            headers: HeaderCollection::new(),
+            status: Some(StatusOk),
+            headers: Headers::new(),
             body: Empty,
             internal_response: None
         }
@@ -82,8 +82,8 @@ impl Response {
             response_type: Error,
             termination_reason: None,
             url: None,
-            status: UnregisteredStatus(0, "".to_string()),
-            headers: HeaderCollection::new(),
+            status: None,
+            headers: Headers::new(),
             body: Empty,
             internal_response: None
         }
@@ -110,32 +110,30 @@ impl Response {
         match filter_type {
             Default | Error => unreachable!(),
             Basic => {
-                let mut headers = HeaderCollection::new();
-                for h in old_headers.iter() {
-                    match h.header_name().into_ascii_lower().as_slice() {
-                        "set-cookie" | "set-cookie2" => {},
-                        _ => headers.insert(h)
+                let headers = old_headers.iter().filter(|header| {
+                    match header.name().to_ascii_lower().as_slice() {
+                        "set-cookie" | "set-cookie2" => false,
+                        _ => true
                     }
-                }
+                }).collect();
                 response.headers = headers;
                 response.response_type = filter_type;
             },
             CORS => {
-                let mut headers = HeaderCollection::new();
-                for h in old_headers.iter() {
-                    match h.header_name().into_ascii_lower().as_slice() {
+                let headers = old_headers.iter().filter(|header| {
+                    match header.name().to_ascii_lower().as_slice() {
                         "cache-control" | "content-language" |
-                        "content-type" | "expires" | "last-modified" | "Pragma" => {},
+                        "content-type" | "expires" | "last-modified" | "Pragma" => false,
                         // XXXManishearth handle Access-Control-Expose-Headers
-                        _ => headers.insert(h)
+                        _ => true
                     }
-                }
+                }).collect();
                 response.headers = headers;
                 response.response_type = filter_type;
             },
             Opaque => {
-                response.headers = HeaderCollection::new();
-                response.status = UnregisteredStatus(0, "".to_string());
+                response.headers = Headers::new();
+                response.status = None;
                 response.body = Empty;
             }
         }

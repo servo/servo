@@ -9,23 +9,21 @@
 //! This library will eventually become the core of the Fetch crate
 //! with CORSRequest being expanded into FetchRequest (etc)
 
-use std::ascii::{AsciiExt, OwnedAsciiExt};
-use std::from_str::FromStr;
-use std::io::BufReader;
+use std::ascii::AsciiExt;
+use std::fmt::{mod, Show};
+use std::str::from_utf8;
 use time;
 use time::{now, Timespec};
 
-use http::headers::response::HeaderCollection as ResponseHeaderCollection;
-use http::headers::request::HeaderCollection as RequestHeaderCollection;
-use http::headers::request::Header as RequestHeader;
+use hyper::header::{Headers, Header, HeaderFormat, HeaderView};
+use hyper::header::common::util as header_util;
+use hyper::client::Request;
+use hyper::mime::{mod, Mime};
+use hyper::header::common::{ContentType, Host};
+use hyper::method::{Method, Get, Head, Post, Options};
+use hyper::status::Success;
 
-use http::client::{RequestWriter, NetworkStream};
-use http::headers::{HeaderConvertible, HeaderEnum, HeaderValueByteIterator};
-use http::headers::content_type::MediaType;
-use http::headers::request::{Accept, AcceptLanguage, ContentLanguage, ContentType};
-use http::method::{Method, Get, Head, Post, Options};
-
-use url::{RelativeSchemeData, Url, UrlParser};
+use url::{RelativeSchemeData, Url};
 
 #[deriving(Clone)]
 pub struct CORSRequest {
@@ -33,7 +31,7 @@ pub struct CORSRequest {
     pub destination: Url,
     pub mode: RequestMode,
     pub method: Method,
-    pub headers: RequestHeaderCollection,
+    pub headers: Headers,
     /// CORS preflight flag (http://fetch.spec.whatwg.org/#concept-http-fetch)
     /// Indicates that a CORS preflight request and/or cache check is to be performed
     pub preflight_flag: bool
@@ -51,7 +49,7 @@ pub enum RequestMode {
 impl CORSRequest {
     /// Creates a CORS request if necessary. Will return an error when fetching is forbidden
     pub fn maybe_new(referer: Url, destination: Url, mode: RequestMode,
-                     method: Method, headers: RequestHeaderCollection) -> Result<Option<CORSRequest>, ()> {
+                     method: Method, headers: Headers) -> Result<Option<CORSRequest>, ()> {
         if referer.scheme == destination.scheme &&
            referer.host() == destination.host() &&
            referer.port() == destination.port() {
@@ -73,7 +71,7 @@ impl CORSRequest {
     }
 
     fn new(mut referer: Url, destination: Url, mode: RequestMode, method: Method,
-           headers: RequestHeaderCollection) -> CORSRequest {
+           headers: Headers) -> CORSRequest {
         match referer.scheme_data {
             RelativeSchemeData(ref mut data) => data.path = vec!(),
             _ => {}
@@ -104,7 +102,7 @@ impl CORSRequest {
         let cache = &mut CORSCache(vec!()); // XXXManishearth Should come from user agent
         if self.preflight_flag &&
            !cache.match_method(self, &self.method) &&
-           !self.headers.iter().all(|h| is_simple_header(&h) && cache.match_header(self, h.header_name().as_slice())) {
+           !self.headers.iter().all(|h| is_simple_header(&h) && cache.match_header(self, h.name())) {
             if !is_simple_method(&self.method) || self.mode == ForcedPreflightMode {
                 return self.preflight_fetch();
                 // Everything after this is part of XHR::fetch()
@@ -121,69 +119,63 @@ impl CORSRequest {
 
         let mut preflight = self.clone(); // Step 1
         preflight.method = Options; // Step 2
-        preflight.headers = RequestHeaderCollection::new(); // Step 3
+        preflight.headers = Headers::new(); // Step 3
         // Step 4
-        preflight.insert_string_header("Access-Control-Request-Method".to_string(), self.method.http_value());
+        preflight.headers.set(AccessControlRequestMethod(self.method.clone()));
 
         // Step 5 - 7
         let mut header_names = vec!();
         for header in self.headers.iter() {
-            header_names.push(header.header_name().into_ascii_lower());
+            header_names.push(header.name().to_ascii_lower());
         }
         header_names.sort();
-        let header_list = header_names.connect(", "); // 0x2C 0x20
-        preflight.insert_string_header("Access-Control-Request-Headers".to_string(), header_list);
+        preflight.headers.set(AccessControlRequestHeaders(header_names));
 
         // Step 8 unnecessary, we don't use the request body
         // Step 9, 10 unnecessary, we're writing our own fetch code
 
         // Step 11
-        let preflight_request = RequestWriter::<NetworkStream>::new(preflight.method, preflight.destination);
-        let mut writer = match preflight_request {
-            Ok(w) => box w,
+        let preflight_request = Request::new(preflight.method, preflight.destination);
+        let mut req = match preflight_request {
+            Ok(req) => req,
             Err(_) => return error
         };
 
-        let host = writer.headers.host.clone();
-        writer.headers = preflight.headers.clone();
-        writer.headers.host = host;
-        let response = match writer.read_response() {
+        let host = req.headers().get::<Host>().unwrap().clone();
+        *req.headers_mut() = preflight.headers.clone();
+        req.headers_mut().set(host);
+        let stream = match req.start() {
+            Ok(s) => s,
+            Err(_) => return error
+        };
+        let response = match stream.send() {
             Ok(r) => r,
             Err(_) => return error
         };
 
         // Step 12
-        match response.status.code() {
-         200 ... 299 => {}
-         _ => return error
+        match response.status.class() {
+            Success => {}
+            _ => return error
         }
         cors_response.headers = response.headers.clone();
         // Substeps 1-3 (parsing rules: http://fetch.spec.whatwg.org/#http-new-header-syntax)
-        fn find_header(headers: &ResponseHeaderCollection, name: &str) -> Option<String> {
-            headers.iter().find(|h| h.header_name().as_slice()
-                                                   .eq_ignore_ascii_case(name))
-                                    .map(|h| h.header_value())
-        }
-        let methods_string = match find_header(&response.headers, "Access-Control-Allow-Methods") {
-            Some(s) => s,
+        let mut methods = match response.headers.get() {
+            Some(&AccessControlAllowMethods(ref v)) => v.as_slice(),
             _ => return error
         };
-        let methods = methods_string.as_slice().split(',');
-        let headers_string = match find_header(&response.headers, "Access-Control-Allow-Headers") {
-            Some(s) => s,
+        let headers = match response.headers.get() {
+            Some(&AccessControlAllowHeaders(ref h)) => h,
             _ => return error
         };
-        let headers = headers_string.as_slice().split(0x2Cu8 as char);
-        // The ABNF # rule will consider consecutive delimeters as a single delimeter
-        let mut methods: Vec<String> = methods.filter(|s| s.len() > 0).map(|s| s.to_string()).collect();
-        let headers: Vec<String> = headers.filter(|s| s.len() > 0).map(|s| s.to_string()).collect();
         // Substep 4
+        let methods_substep4 = [self.method.clone()];
         if methods.len() == 0 || preflight.mode == ForcedPreflightMode {
-            methods = vec!(self.method.http_value());
+            methods = methods_substep4.as_slice();
         }
         // Substep 5
         if !is_simple_method(&self.method) &&
-           !methods.iter().any(|ref m| self.method.http_value().as_slice().eq_ignore_ascii_case(m.as_slice())) {
+           !methods.iter().any(|m| m == &self.method) {
            return error;
         }
         // Substep 6
@@ -191,30 +183,29 @@ impl CORSRequest {
             if is_simple_header(&h) {
                 continue;
             }
-            if !headers.iter().any(|ref h2| h.header_name().as_slice().eq_ignore_ascii_case(h2.as_slice())) {
+            if !headers.iter().any(|ref h2| h.name().eq_ignore_ascii_case(h2.as_slice())) {
                 return error;
             }
         }
         // Substep 7, 8
-        let max_age: uint = find_header(&response.headers, "Access-Control-Max-Age")
-                                .and_then(|h| FromStr::from_str(h.as_slice())).unwrap_or(0);
+        let max_age = match response.headers.get() {
+            Some(&AccessControlMaxAge(num)) => num,
+            None => 0
+        };
         // Substep 9: Impose restrictions on max-age, if any (unimplemented)
         // Substeps 10-12: Add a cache (partially implemented, XXXManishearth)
         // This cache should come from the user agent, creating a new one here to check
         // for compile time errors
         let cache = &mut CORSCache(vec!());
         for m in methods.iter() {
-            let maybe_method: Option<Method> = FromStr::from_str(m.as_slice());
-            maybe_method.map(|ref m| {
-                let cache_match = cache.match_method_and_update(self, m, max_age);
-                if !cache_match {
-                    cache.insert(CORSCacheEntry::new(self.origin.clone(), self.destination.clone(),
-                                                     max_age, false, MethodData(m.clone())));
-                }
-            });
+            let cache_match = cache.match_method_and_update(self, m, max_age);
+            if !cache_match {
+                cache.insert(CORSCacheEntry::new(self.origin.clone(), self.destination.clone(),
+                                                 max_age, false, MethodData(m.clone())));
+            }
         }
-        for h in headers.iter() {
-            let cache_match = cache.match_header_and_update(self, h.as_slice(), max_age);
+        for h in response.headers.iter() {
+            let cache_match = cache.match_header_and_update(self, h.name(), max_age);
             if !cache_match {
                 cache.insert(CORSCacheEntry::new(self.origin.clone(), self.destination.clone(),
                                                  max_age, false, HeaderData(h.to_string())));
@@ -222,35 +213,26 @@ impl CORSRequest {
         }
         cors_response
     }
-
-    fn insert_string_header(&mut self, name: String, value: String) {
-        let value_bytes = value.into_bytes();
-        let mut reader = BufReader::new(value_bytes.as_slice());
-        let maybe_header: Option<RequestHeader> = HeaderEnum::value_from_stream(
-                                                                String::from_str(name.as_slice()),
-                                                                &mut HeaderValueByteIterator::new(&mut reader));
-        self.headers.insert(maybe_header.unwrap());
-    }
 }
 
 
 pub struct CORSResponse {
     pub network_error: bool,
-    pub headers: ResponseHeaderCollection
+    pub headers: Headers
 }
 
 impl CORSResponse {
     fn new() -> CORSResponse {
         CORSResponse {
             network_error: false,
-            headers: ResponseHeaderCollection::new()
+            headers: Headers::new()
         }
     }
 
     fn new_error() -> CORSResponse {
          CORSResponse {
             network_error: true,
-            headers: ResponseHeaderCollection::new()
+            headers: Headers::new()
         }
     }
 }
@@ -290,14 +272,14 @@ impl HeaderOrMethod {
 pub struct CORSCacheEntry {
     pub origin: Url,
     pub url: Url,
-    pub max_age: uint,
+    pub max_age: u32,
     pub credentials: bool,
     pub header_or_method: HeaderOrMethod,
     created: Timespec
 }
 
 impl CORSCacheEntry {
-    fn new (origin:Url, url: Url, max_age: uint, credentials: bool, header_or_method: HeaderOrMethod) -> CORSCacheEntry {
+    fn new (origin:Url, url: Url, max_age: u32, credentials: bool, header_or_method: HeaderOrMethod) -> CORSCacheEntry {
         CORSCacheEntry {
             origin: origin,
             url: url,
@@ -343,7 +325,7 @@ impl CORSCache {
         self.find_entry_by_header(request, header_name).is_some()
     }
 
-    fn match_header_and_update(&mut self, request: &CORSRequest, header_name: &str, new_max_age: uint) -> bool {
+    fn match_header_and_update(&mut self, request: &CORSRequest, header_name: &str, new_max_age: u32) -> bool {
         self.find_entry_by_header(request, header_name).map(|e| e.max_age = new_max_age).is_some()
     }
 
@@ -365,7 +347,7 @@ impl CORSCache {
         self.find_entry_by_method(request, method).is_some()
     }
 
-    fn match_method_and_update(&mut self, request: &CORSRequest, method: &Method, new_max_age: uint) -> bool {
+    fn match_method_and_update(&mut self, request: &CORSRequest, method: &Method, new_max_age: u32) -> bool {
         self.find_entry_by_method(request, method).map(|e| e.max_age = new_max_age).is_some()
     }
 
@@ -376,12 +358,18 @@ impl CORSCache {
     }
 }
 
-fn is_simple_header(h: &RequestHeader) -> bool {
-    match *h {
-        Accept(_) | AcceptLanguage(_) | ContentLanguage(_) => true,
-        ContentType(MediaType {type_: ref t, subtype: ref s, ..}) => match (t.as_slice(), s.as_slice()) {
-            ("text", "plain") | ("application", "x-www-form-urlencoded") | ("multipart", "form-data") => true,
+fn is_simple_header(h: &HeaderView) -> bool {
+    //FIXME: use h.is::<HeaderType>() when AcceptLanguage and
+    //ContentLanguage headers exist
+    match h.name().to_ascii_lower().as_slice() {
+        "accept" | "accept-language" | "content-language" => true,
+        "content-type" => match h.value() {
+            Some(&ContentType(Mime(mime::Text, mime::Plain, _))) |
+            Some(&ContentType(Mime(mime::Application, mime::WwwFormUrlEncoded, _))) |
+            Some(&ContentType(Mime(mime::Multipart, mime::FormData, _))) => true,
+
             _ => false
+
         },
         _ => false
     }
@@ -394,25 +382,160 @@ fn is_simple_method(m: &Method) -> bool {
     }
 }
 
+//XXX(seanmonstar): worth uplifting to Hyper?
+#[deriving(Clone)]
+struct AccessControlRequestMethod(pub Method);
+
+impl Header for AccessControlRequestMethod {
+    #[inline]
+    fn header_name(_: Option<AccessControlRequestMethod>) -> &'static str {
+        "Access-Control-Request-Method"
+    }
+
+    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlRequestMethod> {
+        header_util::from_one_raw_str(raw).map(AccessControlRequestMethod)
+    }
+}
+
+impl HeaderFormat for AccessControlRequestMethod {
+    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let AccessControlRequestMethod(ref method) = *self;
+        method.fmt(f)
+    }
+}
+
+#[deriving(Clone)]
+struct AccessControlRequestHeaders(pub Vec<String>);
+
+impl Header for AccessControlRequestHeaders {
+    #[inline]
+    fn header_name(_: Option<AccessControlRequestHeaders>) -> &'static str {
+        "Access-Control-Request-Headers"
+    }
+
+    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlRequestHeaders> {
+        header_util::from_comma_delimited(raw).map(AccessControlRequestHeaders)
+    }
+}
+
+impl HeaderFormat for AccessControlRequestHeaders {
+    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let AccessControlRequestHeaders(ref parts) = *self;
+        header_util::fmt_comma_delimited(f, parts.as_slice())
+    }
+}
+
+#[deriving(Clone)]
+struct AccessControlAllowMethods(pub Vec<Method>);
+
+impl Header for AccessControlAllowMethods {
+    #[inline]
+    fn header_name(_: Option<AccessControlAllowMethods>) -> &'static str {
+        "Access-Control-Allow-Methods"
+    }
+
+    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlAllowMethods> {
+        header_util::from_comma_delimited(raw).map(AccessControlAllowMethods)
+    }
+}
+
+impl HeaderFormat for AccessControlAllowMethods {
+    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let AccessControlAllowMethods(ref parts) = *self;
+        header_util::fmt_comma_delimited(f, parts.as_slice())
+    }
+}
+
+#[deriving(Clone)]
+struct AccessControlAllowHeaders(pub Vec<String>);
+
+impl Header for AccessControlAllowHeaders {
+    #[inline]
+    fn header_name(_: Option<AccessControlAllowHeaders>) -> &'static str {
+        "Access-Control-Allow-Headers"
+    }
+
+    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlAllowHeaders> {
+        header_util::from_comma_delimited(raw).map(AccessControlAllowHeaders)
+    }
+}
+
+impl HeaderFormat for AccessControlAllowHeaders {
+    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let AccessControlAllowHeaders(ref parts) = *self;
+        header_util::fmt_comma_delimited(f, parts.as_slice())
+    }
+}
+
+#[deriving(Clone)]
+enum AccessControlAllowOrigin {
+    AllowStar,
+    AllowOrigin(Url),
+}
+
+
+impl Header for AccessControlAllowOrigin {
+    #[inline]
+    fn header_name(_: Option<AccessControlAllowOrigin>) -> &'static str {
+        "Access-Control-Allow-Origin"
+    }
+
+    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlAllowOrigin> {
+        if raw.len() == 1 {
+            from_utf8(raw[0].as_slice()).and_then(|s| {
+                if s == "*" {
+                    Some(AllowStar)
+                } else {
+                    Url::parse(s).ok().map(|url| AllowOrigin(url))
+                }
+            })
+        } else {
+            None
+        }
+    }
+}
+
+impl HeaderFormat for AccessControlAllowOrigin {
+    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            AllowStar => "*".fmt(f),
+            AllowOrigin(ref url) => url.fmt(f)
+        }
+    }
+}
+
+#[deriving(Clone)]
+struct AccessControlMaxAge(pub u32);
+
+impl Header for AccessControlMaxAge {
+    #[inline]
+    fn header_name(_: Option<AccessControlMaxAge>) -> &'static str {
+        "Access-Control-Max-Age"
+    }
+
+    fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlMaxAge> {
+        header_util::from_one_raw_str(raw).map(AccessControlMaxAge)
+    }
+}
+
+impl HeaderFormat for AccessControlMaxAge {
+    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let AccessControlMaxAge(ref num) = *self;
+        num.fmt(f)
+    }
+}
+
+
 /// Perform a CORS check on a header list and CORS request
 /// http://fetch.spec.whatwg.org/#cors-check
-pub fn allow_cross_origin_request(req: &CORSRequest, headers: &ResponseHeaderCollection) -> bool {
-    let allow_cross_origin_request =  headers.iter().find(|h| h.header_name()
-                                                               .as_slice()
-                                                               .eq_ignore_ascii_case("Access-Control-Allow-Origin"));
-    match allow_cross_origin_request {
-        Some(h) => {
-            let origin_str = h.header_value();
-            if origin_str.as_slice() == "*" {
-                return true; // Not always true, depends on credentials mode
-            }
-            match UrlParser::new().parse(origin_str.as_slice()) {
-                Ok(parsed) => parsed.scheme == req.origin.scheme &&
-                              parsed.host() == req.origin.host() &&
-                              parsed.port() == req.origin.port(),
-                _ => false
-            }
-        },
+pub fn allow_cross_origin_request(req: &CORSRequest, headers: &Headers) -> bool {
+    //FIXME(seanmonstar): use req.headers.get::<AccessControlAllowOrigin>()
+    match headers.get() {
+        Some(&AllowStar) => true, // Not always true, depends on credentials mode
+        Some(&AllowOrigin(ref url)) =>
+            url.scheme == req.origin.scheme &&
+            url.host() == req.origin.host() &&
+            url.port() == req.origin.port(),
         None => false
     }
 }

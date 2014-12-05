@@ -9,7 +9,7 @@
 
 extern crate collections;
 extern crate geom;
-extern crate http;
+extern crate hyper;
 extern crate png;
 #[phase(plugin, link)]
 extern crate log;

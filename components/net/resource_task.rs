@@ -12,14 +12,13 @@ use sniffer_task;
 use sniffer_task::SnifferTask;
 
 use std::comm::{channel, Receiver, Sender};
-use http::headers::content_type::MediaType;
-use http::headers::response::HeaderCollection as ResponseHeaderCollection;
-use http::headers::request::HeaderCollection as RequestHeaderCollection;
-use http::method::{Method, Get};
+use hyper::mime::{Mime, Charset};
+use hyper::header::Headers;
+use hyper::header::common::UserAgent;
+use hyper::method::{Method, Get};
 use url::Url;
 
-use http::status::Ok as StatusOk;
-use http::status::Status;
+use hyper::http::RawStatus;
 
 use servo_util::task::spawn_named;
 
@@ -33,7 +32,7 @@ pub enum ControlMsg {
 pub struct LoadData {
     pub url: Url,
     pub method: Method,
-    pub headers: RequestHeaderCollection,
+    pub headers: Headers,
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
     pub consumer: Sender<LoadResponse>,
@@ -44,7 +43,7 @@ impl LoadData {
         LoadData {
             url: url,
             method: Get,
-            headers: RequestHeaderCollection::new(),
+            headers: Headers::new(),
             data: None,
             cors: None,
             consumer: consumer,
@@ -72,10 +71,10 @@ pub struct Metadata {
     pub charset: Option<String>,
 
     /// Headers
-    pub headers: Option<ResponseHeaderCollection>,
+    pub headers: Option<Headers>,
 
     /// HTTP Status
-    pub status: Option<Status>
+    pub status: Option<RawStatus>
 }
 
 impl Metadata {
@@ -86,21 +85,19 @@ impl Metadata {
             content_type: None,
             charset:      None,
             headers: None,
-            status: Some(StatusOk) // http://fetch.spec.whatwg.org/#concept-response-status-message
+            status: Some(RawStatus(200, "OK".into_string())) // http://fetch.spec.whatwg.org/#concept-response-status-message
         }
     }
 
-    /// Extract the parts of a MediaType that we care about.
-    pub fn set_content_type(&mut self, content_type: &Option<MediaType>) {
-        match *content_type {
+    /// Extract the parts of a Mime that we care about.
+    pub fn set_content_type(&mut self, content_type: Option<&Mime>) {
+        match content_type {
             None => (),
-            Some(MediaType { ref type_,
-                             ref subtype,
-                             ref parameters }) => {
-                self.content_type = Some((type_.clone(), subtype.clone()));
+            Some(&Mime(ref type_, ref subtype, ref parameters)) => {
+                self.content_type = Some((type_.to_string(), subtype.to_string()));
                 for &(ref k, ref v) in parameters.iter() {
-                    if "charset" == k.as_slice() {
-                        self.charset = Some(v.clone());
+                    if &Charset == k {
+                        self.charset = Some(v.to_string());
                     }
                 }
             }
@@ -224,7 +221,7 @@ impl ResourceManager {
 
     fn load(&self, load_data: LoadData) {
         let mut load_data = load_data;
-        load_data.headers.user_agent = self.user_agent.clone();
+        self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
         let senders = ResponseSenders {
             immediate_consumer: self.sniffer_task.clone(),
             eventual_consumer: load_data.consumer.clone(),
