@@ -2261,9 +2261,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     }
 
     fn as_element(self) -> JSRef<'a, Element> {
-        let elem: Option<JSRef<'a, Element>> = ElementCast::to_ref(self);
-        assert!(elem.is_some());
-        elem.unwrap()
+        ElementCast::to_ref(self).unwrap()
     }
 
     fn match_attr(self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
