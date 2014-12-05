@@ -506,7 +506,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(self) -> DOMString {
-        self.encoding_name.borrow().as_slice().to_string()
+        self.encoding_name.borrow().clone()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-content_type
