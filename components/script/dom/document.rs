@@ -483,10 +483,7 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
 impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(self) -> Temporary<DOMImplementation> {
-        if self.implementation.get().is_none() {
-            self.implementation.assign(Some(DOMImplementation::new(self)));
-        }
-        self.implementation.get().unwrap()
+        self.implementation.or_init(|| DOMImplementation::new(self))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-url
@@ -874,23 +871,21 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     fn Images(self) -> Temporary<HTMLCollection> {
-        if self.images.get().is_none() {
+        self.images.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box ImagesFilter;
-            self.images.assign(Some(HTMLCollection::create(*window, root, filter)));
-        }
-        self.images.get().unwrap()
+            HTMLCollection::create(*window, root, filter)
+        })
     }
 
     fn Embeds(self) -> Temporary<HTMLCollection> {
-        if self.embeds.get().is_none() {
+        self.embeds.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box EmbedsFilter;
-            self.embeds.assign(Some(HTMLCollection::create(*window, root, filter)));
-        }
-        self.embeds.get().unwrap()
+            HTMLCollection::create(*window, root, filter)
+        })
     }
 
     fn Plugins(self) -> Temporary<HTMLCollection> {
@@ -898,54 +893,49 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     }
 
     fn Links(self) -> Temporary<HTMLCollection> {
-        if self.links.get().is_none() {
+        self.links.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box LinksFilter;
-            self.links.assign(Some(HTMLCollection::create(*window, root, filter)));
-        }
-        self.links.get().unwrap()
+            HTMLCollection::create(*window, root, filter)
+        })
     }
 
     fn Forms(self) -> Temporary<HTMLCollection> {
-        if self.forms.get().is_none() {
+        self.forms.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box FormsFilter;
-            self.forms.assign(Some(HTMLCollection::create(*window, root, filter)));
-        }
-        self.forms.get().unwrap()
+            HTMLCollection::create(*window, root, filter)
+        })
     }
 
     fn Scripts(self) -> Temporary<HTMLCollection> {
-        if self.scripts.get().is_none() {
+        self.scripts.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box ScriptsFilter;
-            self.scripts.assign(Some(HTMLCollection::create(*window, root, filter)));
-        }
-        self.scripts.get().unwrap()
+            HTMLCollection::create(*window, root, filter)
+        })
     }
 
     fn Anchors(self) -> Temporary<HTMLCollection> {
-        if self.anchors.get().is_none() {
+        self.anchors.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box AnchorsFilter;
-            self.anchors.assign(Some(HTMLCollection::create(*window, root, filter)));
-        }
-        self.anchors.get().unwrap()
+            HTMLCollection::create(*window, root, filter)
+        })
     }
 
     fn Applets(self) -> Temporary<HTMLCollection> {
         // FIXME: This should be return OBJECT elements containing applets.
-        if self.applets.get().is_none() {
+        self.applets.or_init(|| {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box AppletsFilter;
-            self.applets.assign(Some(HTMLCollection::create(*window, root, filter)));
-        }
-        self.applets.get().unwrap()
+            HTMLCollection::create(*window, root, filter)
+        })
     }
 
     fn Location(self) -> Temporary<Location> {

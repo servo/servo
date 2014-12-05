@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, InvalidCharacter};
 use dom::bindings::global;
-use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
@@ -207,36 +207,19 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Location(self) -> Temporary<Location> {
-        if self.location.get().is_none() {
-            let page = self.page.clone();
-            let location = Location::new(self, page);
-            self.location.assign(Some(location));
-        }
-        self.location.get().unwrap()
+        self.location.or_init(|| Location::new(self, self.page.clone()))
     }
 
     fn SessionStorage(self) -> Temporary<Storage> {
-        if self.session_storage.get().is_none() {
-            let session_storage = Storage::new(&global::Window(self));
-            self.session_storage.assign(Some(session_storage));
-        }
-        self.session_storage.get().unwrap()
+        self.session_storage.or_init(|| Storage::new(&global::Window(self)))
     }
 
     fn Console(self) -> Temporary<Console> {
-        if self.console.get().is_none() {
-            let console = Console::new(global::Window(self));
-            self.console.assign(Some(console));
-        }
-        self.console.get().unwrap()
+        self.console.or_init(|| Console::new(global::Window(self)))
     }
 
     fn Navigator(self) -> Temporary<Navigator> {
-        if self.navigator.get().is_none() {
-            let navigator = Navigator::new(self);
-            self.navigator.assign(Some(navigator));
-        }
-        self.navigator.get().unwrap()
+        self.navigator.or_init(|| Navigator::new(self))
     }
 
     fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
@@ -284,11 +267,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Performance(self) -> Temporary<Performance> {
-        if self.performance.get().is_none() {
-            let performance = Performance::new(self);
-            self.performance.assign(Some(performance));
-        }
-        self.performance.get().unwrap()
+        self.performance.or_init(|| Performance::new(self))
     }
 
     event_handler!(click, GetOnclick, SetOnclick)
@@ -297,11 +276,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     error_event_handler!(error, GetOnerror, SetOnerror)
 
     fn Screen(self) -> Temporary<Screen> {
-        if self.screen.get().is_none() {
-            let screen = Screen::new(self);
-            self.screen.assign(Some(screen));
-        }
-        self.screen.get().unwrap()
+        self.screen.or_init(|| Screen::new(self))
     }
 
     fn Debug(self, message: DOMString) {
