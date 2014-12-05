@@ -21,16 +21,9 @@ fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
 
     response.metadata.headers.as_ref().map(|headers| {
         let header = headers.iter().find(|h|
-            h.header_name().as_slice().to_ascii_lower() == "upgrade".to_string()
+            h.header_name().as_slice().to_ascii_lower() == "upgrade".to_string() && h.header_value().as_slice().to_ascii_lower() == "websocket".to_string()
         );
-        match header {
-            Some(h) => {    if h.header_value().as_slice().to_ascii_lower() == "websocket".to_string()
-                            {
-                                flag = true
-                            }
-                       },
-            None => {}
-        }
+        flag=header.is_some();
     });
 
     let progress_chan = start_sending(start_chan, response.metadata);

@@ -3,18 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use resource_task::{Metadata, Payload, Done, LoadResponse, LoadData, start_sending_opt};
-
 use log;
 use std::collections::HashSet;
 use http::client::{RequestWriter, NetworkStream};
 use http::headers::HeaderEnum;
-//use http::client::NetworkStream::{NormalStream};
 use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::Url;
-//use std::io::net::tcp::TcpStream;
-//use std::option::Option;
-//use http::client::response::ResponseReader;
 
 pub fn factory(load_data: LoadData, start_chan: Sender<LoadResponse>) {
     spawn_named("http_loader", proc() load(load_data, start_chan))
@@ -51,7 +46,6 @@ pub fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
         }
 
         redirected_to.insert(url.clone());
-
         match url.scheme.as_slice() {
             "http" | "https" => {}
             _ => {
@@ -70,7 +64,7 @@ pub fn load(load_data: LoadData, start_chan: Sender<LoadResponse>) {
                 send_error(url, e.desc.to_string(), start_chan);
                 return;
             }
-        }; 
+        };
        // Preserve the `host` header set automatically by RequestWriter.
        let host = writer.headers.host.clone();
         writer.headers = load_data.headers.clone();

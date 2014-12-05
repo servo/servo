@@ -17,7 +17,6 @@ use servo_net::resource_task::{Load, LoadData, LoadResponse};
 use servo_util::str::DOMString;
 use std::ascii::IntoBytes;
 use std::comm::channel;
-//use std::io::net::tcp::TcpStream;
 use url::Url;
 
 #[dom_struct]
@@ -51,7 +50,7 @@ impl WebSocket {
 
     pub fn Constructor(global: &GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
         Ok(WebSocket::new(global, url))
-    } 
+    }
 }
 
 impl Reflectable for WebSocket {
@@ -80,22 +79,12 @@ impl<'a> WebSocketMethods for JSRef<'a, WebSocket> {
             payload.push(ENTRY1);
             payload.push(message.len() as u8);
             payload.push_all(message_u8.as_slice());
-            /*
-            let tcp_stream_option = self.response.tcpstream;
-            let tcp_stream : TcpStream = tcp_stream_option.unwrap();
-            let ioresult = tcp_stream.write(payload.as_slice());
-            */
         } else {
              return;
         }
     }
-    
+
     fn Close(self) {
-         /*
-         let tcp_stream = self.response.tcpstream.unwrap();
-         tcp_stream.close_read();
-         tcp_stream.close_write();
-         */
     }
 
     fn Url(self) -> DOMString {

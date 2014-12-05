@@ -56,9 +56,11 @@ use std::collections::HashMap;
 use std::comm::{Receiver, Sender};
 use std::io::timer::Timer;
 use std::rc::Rc;
+
 use string_cache::{Atom, Namespace};
 use style::PropertyDeclarationBlock;
 use url::Url;
+
 
 
 /// A trait to allow tracing (only) DOM objects.
