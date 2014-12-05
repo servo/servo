@@ -117,7 +117,7 @@ impl TextInput {
             self.edit_point.index - 1
         };
         let suffix_start = if forward {
-            let is_eol = self.edit_point.index == self.current_line_length() - 1;
+            let is_eol = self.edit_point.index == self.current_line_length();
             if self.multiline {
                 //TODO: handle deleting from end position of current line
                 if is_eol {
