@@ -21,7 +21,7 @@ pub trait Actor : Any {
                       registry: &ActorRegistry,
                       msg_type: &String,
                       msg: &json::JsonObject,
-                      stream: &mut TcpStream) -> bool;
+                      stream: &mut TcpStream) -> Result<bool, ()>;
     fn name(&self) -> String;
 }
 
@@ -148,13 +148,16 @@ impl ActorRegistry {
 
     /// Attempt to process a message as directed by its `to` property. If the actor is not
     /// found or does not indicate that it knew how to process the message, ignore the failure.
-    pub fn handle_message(&mut self, msg: &json::JsonObject, stream: &mut TcpStream) {
+    pub fn handle_message(&mut self,
+                          msg: &json::JsonObject,
+                          stream: &mut TcpStream)
+                          -> Result<(), ()> {
         let to = msg.get(&"to".to_string()).unwrap().as_string().unwrap();
         match self.actors.get(&to.to_string()) {
             None => println!("message received for unknown actor \"{:s}\"", to),
             Some(actor) => {
                 let msg_type = msg.get(&"type".to_string()).unwrap().as_string().unwrap();
-                if !actor.handle_message(self, &msg_type.to_string(), msg, stream) {
+                if !try!(actor.handle_message(self, &msg_type.to_string(), msg, stream)) {
                     println!("unexpected message type \"{:s}\" found for actor \"{:s}\"",
                              msg_type, to);
                 }
@@ -164,5 +167,6 @@ impl ActorRegistry {
         for actor in new_actors.into_iter() {
             self.actors.insert(actor.name().to_string(), actor);
         }
+        Ok(())
     }
 }

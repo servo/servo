@@ -78,8 +78,8 @@ impl Actor for TabActor {
                       registry: &ActorRegistry,
                       msg_type: &String,
                       _msg: &json::JsonObject,
-                      stream: &mut TcpStream) -> bool {
-        match msg_type.as_slice() {
+                      stream: &mut TcpStream) -> Result<bool, ()> {
+        Ok(match msg_type.as_slice() {
             "reconfigure" => {
                 stream.write_json_packet(&ReconfigureReply { from: self.name() });
                 true
@@ -125,7 +125,7 @@ impl Actor for TabActor {
             }
 
             _ => false
-        }
+        })
     }
 }
 
