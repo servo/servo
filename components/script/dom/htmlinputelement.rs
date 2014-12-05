@@ -115,7 +115,7 @@ impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
                                           .unwrap_or_else(|| "".to_string()),
             InputPassword => {
                 let raw = get_raw_textinput_value(self);
-                String::from_char(raw.len(), '●')
+                String::from_char(raw.char_len(), '●')
             }
             _ => get_raw_textinput_value(self),
         }
