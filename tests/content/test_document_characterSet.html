@@ -6,13 +6,13 @@
         <script>
             // test1: characterSet
             {
-                is(document.characterSet, "utf-8", "test1-0, characterSet");
+                is(document.characterSet, "UTF-8", "test1-0, characterSet");
 
                 var xmldoc = new Document;
-                is(xmldoc.characterSet, "utf-8", "test2-1, characterSet");
+                is(xmldoc.characterSet, "UTF-8", "test2-1, characterSet");
 
                 var htmldoc = document.implementation.createHTMLDocument("title");
-                is(htmldoc.characterSet, "utf-8", "test2-2, characterSet");
+                is(htmldoc.characterSet, "UTF-8", "test2-2, characterSet");
             }
         </script>
     </head>
