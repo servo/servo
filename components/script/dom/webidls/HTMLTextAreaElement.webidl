@@ -7,23 +7,23 @@
 interface HTMLTextAreaElement : HTMLElement {
   //         attribute DOMString autocomplete;
   //         attribute boolean autofocus;
-  //         attribute unsigned long cols;
+           attribute unsigned long cols;
   //         attribute DOMString dirName;
            attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
   //         attribute DOMString inputMode;
   //         attribute long maxLength;
   //         attribute long minLength;
-  //         attribute DOMString name;
-  //         attribute DOMString placeholder;
+           attribute DOMString name;
+           attribute DOMString placeholder;
   //         attribute boolean readOnly;
-  //         attribute boolean required;
-  //         attribute unsigned long rows;
-  //         attribute DOMString wrap;
+           attribute boolean required;
+           attribute unsigned long rows;
+           attribute DOMString wrap;
 
   readonly attribute DOMString type;
-  //         attribute DOMString defaultValue;
-  //[TreatNullAs=EmptyString] attribute DOMString value;
+           attribute DOMString defaultValue;
+  [TreatNullAs=EmptyString] attribute DOMString value;
   //readonly attribute unsigned long textLength;
 
   //readonly attribute boolean willValidate;
