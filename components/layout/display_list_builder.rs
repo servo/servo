@@ -24,15 +24,15 @@ use util::{OpaqueNodeMethods, ToGfxColor};
 use geom::approxeq::ApproxEq;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
-use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, BackgroundAndBorderLevel, BaseDisplayItem};
-use gfx::display_list::{BorderDisplayItem, BorderDisplayItemClass, BoxShadowDisplayItem};
-use gfx::display_list::{BoxShadowDisplayItemClass, ContentStackingLevel, DisplayList};
-use gfx::display_list::{FloatStackingLevel, GradientDisplayItem, GradientDisplayItemClass};
+use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
+use gfx::display_list::{BorderDisplayItemClass, BorderRadii, BoxShadowDisplayItem};
+use gfx::display_list::{BoxShadowDisplayItemClass, DisplayItem, DisplayList};
+use gfx::display_list::{GradientDisplayItem, GradientDisplayItemClass};
 use gfx::display_list::{GradientStop, ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem};
-use gfx::display_list::{LineDisplayItemClass, PositionedDescendantStackingLevel};
-use gfx::display_list::{PseudoDisplayItemClass, RootOfStackingContextLevel, SidewaysLeft};
+use gfx::display_list::{LineDisplayItemClass};
+use gfx::display_list::{PseudoDisplayItemClass, SidewaysLeft};
 use gfx::display_list::{SidewaysRight, SolidColorDisplayItem, SolidColorDisplayItemClass};
-use gfx::display_list::{StackingLevel, TextDisplayItem, TextDisplayItemClass, Upright};
+use gfx::display_list::{StackingContext, TextDisplayItem, TextDisplayItemClass, Upright};
 use gfx::paint_task::PaintLayer;
 use servo_msg::compositor_msg::{FixedPosition, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg};
@@ -435,14 +435,14 @@ impl FragmentDisplayListBuilding for Fragment {
                 absolute_bounds.translate(&Point2D(box_shadow.offset_x, box_shadow.offset_y))
                                .inflate(inflation, inflation);
             list.push(BoxShadowDisplayItemClass(box BoxShadowDisplayItem {
-                base: BaseDisplayItem::new(bounds, self.node, level, *clip_rect),
+                base: BaseDisplayItem::new(bounds, self.node, *clip_rect),
                 box_bounds: *absolute_bounds,
                 color: style.resolve_color(box_shadow.color).to_gfx_color(),
                 offset: Point2D(box_shadow.offset_x, box_shadow.offset_y),
                 blur_radius: box_shadow.blur_radius,
                 spread_radius: box_shadow.spread_radius,
                 inset: box_shadow.inset,
-            }));
+            }), level);
         }
     }
 

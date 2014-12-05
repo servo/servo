@@ -29,7 +29,7 @@ use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
 use servo_util::dlist as servo_dlist;
-use servo_util::geometry::{mod, Au};
+use servo_util::geometry::{mod, Au, ZERO_POINT};
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
@@ -171,7 +171,7 @@ impl StackingContext {
             display_list: display_list,
             layer: layer,
             bounds: bounds,
-            clip_rect: bounds,
+            clip_rect: Rect(ZERO_POINT, bounds.size),
             z_index: z_index,
             opacity: opacity,
         }
@@ -182,7 +182,7 @@ impl StackingContext {
                                           paint_context: &mut PaintContext,
                                           tile_bounds: &Rect<AzFloat>,
                                           transform: &Matrix2D<AzFloat>,
-                                          clip_rect: Option<&Rect<Au>>) {
+                                          clip_rect: Option<Rect<Au>>) {
         let temporary_draw_target =
             paint_context.get_or_create_temporary_draw_target(self.opacity);
         {
@@ -191,6 +191,7 @@ impl StackingContext {
                 font_ctx: &mut *paint_context.font_ctx,
                 page_rect: paint_context.page_rect,
                 screen_rect: paint_context.screen_rect,
+                clip_rect: clip_rect,
                 transient_clip_rect: None,
             };
 
@@ -207,12 +208,9 @@ impl StackingContext {
                                .sort_by(|this, other| this.z_index.cmp(&other.z_index));
 
             // Set up our clip rect and transform.
-            match clip_rect {
-                None => {}
-                Some(clip_rect) => paint_subcontext.draw_push_clip(clip_rect),
-            }
             let old_transform = paint_subcontext.draw_target.get_transform();
             paint_subcontext.draw_target.set_transform(transform);
+            paint_subcontext.push_clip_if_applicable();
 
             // Steps 1 and 2: Borders and background for the root.
             for display_item in display_list.background_and_borders.iter() {
@@ -240,7 +238,7 @@ impl StackingContext {
                     positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
-                                                                  Some(&positioned_kid.clip_rect))
+                                                                  Some(positioned_kid.clip_rect))
                 }
             }
 
@@ -283,21 +281,16 @@ impl StackingContext {
                     positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
-                                                                  Some(&positioned_kid.clip_rect))
+                                                                  Some(positioned_kid.clip_rect))
                 }
             }
 
             // TODO(pcwalton): Step 10: Outlines.
 
             // Undo our clipping and transform.
-            if paint_subcontext.transient_clip_rect.is_some() {
-                paint_subcontext.draw_pop_clip();
-                paint_subcontext.transient_clip_rect = None
-            }
-            paint_subcontext.draw_target.set_transform(&old_transform);
-            if clip_rect.is_some() {
-                paint_subcontext.draw_pop_clip()
-            }
+            paint_subcontext.remove_transient_clip_if_applicable();
+            paint_subcontext.pop_clip_if_applicable();
+            paint_subcontext.draw_target.set_transform(&old_transform)
         }
 
         paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target, self.opacity)
@@ -672,13 +665,12 @@ impl DisplayItem {
             }
 
             BoxShadowDisplayItemClass(ref box_shadow) => {
-                render_context.draw_box_shadow(&box_shadow.base.bounds,
-                                               &box_shadow.box_bounds,
-                                               &box_shadow.offset,
-                                               box_shadow.color,
-                                               box_shadow.blur_radius,
-                                               box_shadow.spread_radius,
-                                               box_shadow.inset)
+                paint_context.draw_box_shadow(&box_shadow.box_bounds,
+                                              &box_shadow.offset,
+                                              box_shadow.color,
+                                              box_shadow.blur_radius,
+                                              box_shadow.spread_radius,
+                                              box_shadow.inset)
             }
 
             PseudoDisplayItemClass(_) => {}

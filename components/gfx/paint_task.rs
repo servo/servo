@@ -509,8 +509,8 @@ impl WorkerThread {
                 font_ctx: &mut self.font_context,
                 page_rect: tile.page_rect,
                 screen_rect: tile.screen_rect,
+                clip_rect: None,
                 transient_clip_rect: None,
-                scale: scale,
             };
 
             // Apply the translation to paint the tile we want.
