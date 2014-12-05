@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScop
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::error::{ErrorResult, Fallible, Syntax, Network, FailureUnknown};
 use dom::bindings::global;
-use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::console::Console;
 use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
@@ -93,11 +93,9 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn Location(self) -> Temporary<WorkerLocation> {
-        if self.location.get().is_none() {
-            let location = WorkerLocation::new(self, self.worker_url.clone());
-            self.location.assign(Some(location));
-        }
-        self.location.get().unwrap()
+        self.location.or_init(|| {
+            WorkerLocation::new(self, self.worker_url.clone())
+        })
     }
 
     fn ImportScripts(self, url_strings: Vec<DOMString>) -> ErrorResult {
@@ -133,19 +131,11 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn Navigator(self) -> Temporary<WorkerNavigator> {
-        if self.navigator.get().is_none() {
-            let navigator = WorkerNavigator::new(self);
-            self.navigator.assign(Some(navigator));
-        }
-        self.navigator.get().unwrap()
+        self.navigator.or_init(|| WorkerNavigator::new(self))
     }
 
     fn Console(self) -> Temporary<Console> {
-        if self.console.get().is_none() {
-            let console = Console::new(global::Worker(self));
-            self.console.assign(Some(console));
-        }
-        self.console.get().unwrap()
+        self.console.or_init(|| Console::new(global::Worker(self)))
     }
 
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {

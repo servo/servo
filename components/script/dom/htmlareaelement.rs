@@ -11,7 +11,6 @@ use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::Element;
 use dom::element::HTMLAreaElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
@@ -73,11 +72,8 @@ impl Reflectable for HTMLAreaElement {
 
 impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
     fn RelList(self) -> Temporary<DOMTokenList> {
-        if self.rel_list.get().is_none() {
-            let element: JSRef<Element> = ElementCast::from_ref(self);
-            let rel_list = DOMTokenList::new(element, &atom!("rel"));
-            self.rel_list.assign(Some(rel_list));
-        }
-        self.rel_list.get().unwrap()
+        self.rel_list.or_init(|| {
+            DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
+        })
     }
 }
