@@ -149,7 +149,7 @@ impl TextInput {
 
     /// Return the length of the current line under the editing point.
     fn current_line_length(&self) -> uint {
-        self.lines[self.edit_point.line].len()
+        self.lines[self.edit_point.line].char_len()
     }
 
     /// Adjust the editing point position by a given of lines. The resulting column is
