@@ -141,8 +141,8 @@ impl DedicatedWorkerGlobalScope {
                     Ok(WorkerPostMessage(addr, data, nbytes)) => {
                         Worker::handle_message(addr, data, nbytes);
                     },
-                    Ok(WorkerDispatchErrorEvent(addr, type_, bubbles, cancelable, msg, file_name, line_num, col_num, error)) => {
-                        Worker::handle_error_message(addr, type_,bubbles, cancelable, msg, file_name, line_num, col_num, error);
+                    Ok(WorkerDispatchErrorEvent(addr, type_, bubbles, cancelable, msg, file_name, line_num, col_num)) => {
+                        Worker::handle_error_message(addr, type_,bubbles, cancelable, msg, file_name, line_num, col_num);
                     },
                     Ok(WorkerRelease(addr)) => {
                         Worker::handle_release(addr)
@@ -195,7 +195,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
         let col_num = errorevent.Colno();
         let error = errorevent.Error(cx);
         let ScriptChan(ref sender) = self.parent_sender;
-        sender.send(WorkerDispatchErrorEvent(self.worker, type_,true, true, msg, file_name, line_num, col_num, error));
+        sender.send(WorkerDispatchErrorEvent(self.worker, type_,true, true, msg, file_name, line_num, col_num));
     }
 }
 
