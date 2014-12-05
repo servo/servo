@@ -1972,25 +1972,27 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     fn Normalize(self) {
         let mut prev_text = None;
         for child in self.children() {
-            if child.is_text() {
-                let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(child).unwrap();
-                if characterdata.Length() == 0 {
-                    self.remove_child(child);
-                } else {
-                    match prev_text {
-                        Some(text_node) => {
-                            let prev_characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(text_node).unwrap();
-                            let _ = prev_characterdata.AppendData(characterdata.Data());
-                            self.remove_child(child);
-                        },
-                        None => prev_text = Some(child)
+            match TextCast::to_ref(child) {
+                Some(text) => {
+                    let characterdata: JSRef<CharacterData> = CharacterDataCast::from_ref(text);
+                    if characterdata.Length() == 0 {
+                        self.remove_child(child);
+                    } else {
+                        match prev_text {
+                            Some(text_node) => {
+                                let prev_characterdata: JSRef<CharacterData> = CharacterDataCast::from_ref(text_node);
+                                let _ = prev_characterdata.AppendData(characterdata.Data());
+                                self.remove_child(child);
+                            },
+                            None => prev_text = Some(text)
+                        }
                     }
+                },
+                None => {
+                    child.Normalize();
+                    prev_text = None;
                 }
-            } else {
-                child.Normalize();
-                prev_text = None;
             }
-
         }
     }
 
