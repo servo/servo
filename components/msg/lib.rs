@@ -7,7 +7,7 @@
 
 extern crate azure;
 extern crate geom;
-extern crate http;
+extern crate hyper;
 extern crate layers;
 extern crate serialize;
 extern crate "util" as servo_util;

@@ -34,9 +34,8 @@ use dom::node::{Node, TrustedNodeAddress};
 use collections::hash::{Hash, Hasher};
 use geom::rect::Rect;
 use html5ever::tree_builder::QuirksMode;
-use http::headers::request::HeaderCollection as RequestHeaderCollection;
-use http::headers::response::HeaderCollection as ResponseHeaderCollection;
-use http::method::Method;
+use hyper::header::Headers;
+use hyper::method::Method;
 use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
 use js::jsval::JSVal;
 use js::rust::Cx;
@@ -209,7 +208,7 @@ no_jsmanaged_fields!(PropertyDeclarationBlock)
 no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId)
 no_jsmanaged_fields!(QuirksMode)
 no_jsmanaged_fields!(Cx)
-no_jsmanaged_fields!(ResponseHeaderCollection, RequestHeaderCollection, Method)
+no_jsmanaged_fields!(Headers, Method)
 no_jsmanaged_fields!(ConstellationChan)
 no_jsmanaged_fields!(LayoutChan)
 no_jsmanaged_fields!(WindowProxyHandler)

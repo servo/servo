@@ -68,6 +68,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cookie"
+version = "0.0.1"
+source = "git+https://github.com/servo/cookie-rs#30520767a95b92e39265aaf6822db515b2418f1d"
+dependencies = [
+ "openssl 0.0.1 (git+https://github.com/servo/rust-openssl.git)",
+ "url 0.1.0 (git+https://github.com/servo/rust-url)",
+]
+
+[[package]]
 name = "core_foundation"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-core-foundation#6fa0b908f3912e20d081193e83bf5a9aa958fb83"
@@ -278,11 +287,16 @@ version = "0.0.0"
 source = "git+https://github.com/servo/html5ever?ref=servo#87c7e8b710391338b2463652be835f498923653c"
 
 [[package]]
-name = "http"
-version = "0.1.0-pre"
-source = "git+https://github.com/servo/rust-http?ref=servo#f957b94deb2c939c8e3d73d51823b65f8a1f8256"
+name = "hyper"
+version = "0.0.1"
+source = "git+https://github.com/servo/hyper?ref=servo#dd9d1830f35f7a8371b1b3bcb2d3e9cf2763f33f"
 dependencies = [
- "openssl 0.0.0 (git+https://github.com/sfackler/rust-openssl.git)",
+ "cookie 0.0.1 (git+https://github.com/servo/cookie-rs)",
+ "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
+ "move-acceptor 0.0.1 (git+https://github.com/reem/rust-move-acceptor)",
+ "openssl 0.0.1 (git+https://github.com/servo/rust-openssl.git)",
+ "typeable 0.0.2 (git+https://github.com/reem/rust-typeable)",
+ "unsafe-any 0.1.1 (git+https://github.com/reem/rust-unsafe-any)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
 ]
 
@@ -361,6 +375,24 @@ version = "0.1.0"
 source = "git+https://github.com/Kimundi/lazy-static.rs#62976cb611c5396e11315ae64c9c389576240eb7"
 
 [[package]]
+name = "libressl-pnacl-sys"
+version = "2.0.2"
+source = "git+https://github.com/DiamondLovesYou/libressl-pnacl-sys.git#8e9349e0280b069bfab247a2202cd10b8beae154"
+dependencies = [
+ "pnacl-build-helper 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "mime"
+version = "0.0.1"
+source = "git+https://github.com/hyperium/mime.rs#5264e04655974f85c8d6581395cc24597266c653"
+
+[[package]]
+name = "move-acceptor"
+version = "0.0.1"
+source = "git+https://github.com/reem/rust-move-acceptor#25c5c33a83f605fdd0f3d37d2589e2b0b4e6cbd1"
+
+[[package]]
 name = "mozjs-sys"
 version = "0.0.0"
 source = "git+https://github.com/servo/mozjs#0dd618fcc78fe7aa64e4e2a3b0f7f0d8a2f0f08a"
@@ -372,7 +404,7 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo)",
+ "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
@@ -384,7 +416,7 @@ name = "net"
 version = "0.0.1"
 dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo)",
+ "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
@@ -398,8 +430,20 @@ source = "git+https://github.com/servo/rust-opengles#7f025f0069fbf6fefef4ed383b9
 
 [[package]]
 name = "openssl"
-version = "0.0.0"
-source = "git+https://github.com/sfackler/rust-openssl.git#766ce4b7785c0b038bee95b74564e5b9bf7e9a4b"
+version = "0.0.1"
+source = "git+https://github.com/servo/rust-openssl.git#0a3cace0265fe286b505508aa6e5096fc94a6896"
+dependencies = [
+ "libressl-pnacl-sys 2.0.2 (git+https://github.com/DiamondLovesYou/libressl-pnacl-sys.git)",
+ "openssl-sys 0.0.1 (git+https://github.com/servo/rust-openssl)",
+]
+
+[[package]]
+name = "openssl-sys"
+version = "0.0.1"
+source = "git+https://github.com/servo/rust-openssl#0a3cace0265fe286b505508aa6e5096fc94a6896"
+dependencies = [
+ "pkg-config 0.1.0 (git+https://github.com/alexcrichton/pkg-config-rs)",
+]
 
 [[package]]
 name = "phf"
@@ -418,8 +462,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkg-config"
+version = "0.1.0"
+source = "git+https://github.com/alexcrichton/pkg-config-rs#9b3b44a2e1a8ccc70c3f701aeb5154ad79e665e9"
+
+[[package]]
 name = "plugins"
 version = "0.0.1"
+
+[[package]]
+name = "pnacl-build-helper"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "png"
@@ -450,7 +504,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "html5ever 0.0.0 (git+https://github.com/servo/html5ever?ref=servo)",
- "http 0.1.0-pre (git+https://github.com/servo/rust-http?ref=servo)",
+ "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "msg 0.0.1",
  "net 0.0.1",
@@ -542,6 +596,16 @@ dependencies = [
 [[package]]
 name = "task_info"
 version = "0.0.1"
+
+[[package]]
+name = "typeable"
+version = "0.0.2"
+source = "git+https://github.com/reem/rust-typeable#2f240fb44ce2fcdbb2b890623bfb2afe18a67c05"
+
+[[package]]
+name = "unsafe-any"
+version = "0.1.1"
+source = "git+https://github.com/reem/rust-unsafe-any#eb3fe87bea85f375b8fcefa0cdecfd131fae9624"
 
 [[package]]
 name = "url"
