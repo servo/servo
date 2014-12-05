@@ -12,6 +12,8 @@
 
 extern crate "msg" as servo_msg;
 extern crate serialize;
+extern crate url;
+extern crate "util" as servo_util;
 
 /// This module contains shared types and messages for use by devtools/script.
 /// The traits are here instead of in script so that the devtools crate can be
@@ -19,14 +21,23 @@ extern crate serialize;
 
 use serialize::{Decodable, Decoder};
 use servo_msg::constellation_msg::PipelineId;
+use servo_util::str::DOMString;
+use url::Url;
 
 pub type DevtoolsControlChan = Sender<DevtoolsControlMsg>;
 pub type DevtoolsControlPort = Receiver<DevtoolScriptControlMsg>;
 
+// Information would be attached to NewGlobal to be received and show in devtools.
+// Extend these fields if we need more information.
+pub struct DevtoolsPageInfo {
+    pub title: DOMString,
+    pub url: Url
+}
+
 /// Messages to the instruct the devtools server to update its known actors/state
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
-    NewGlobal(PipelineId, Sender<DevtoolScriptControlMsg>),
+    NewGlobal(PipelineId, Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
     ServerExitMsg
 }
 
