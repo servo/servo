@@ -39,13 +39,14 @@ use util::{PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
-use script::dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
 use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
+use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
@@ -183,13 +184,14 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     fn text(&self) -> String {
         unsafe {
-            let text_opt: Option<JS<Text>> = TextCast::to_js(self.get_jsmanaged());
-            match text_opt {
-                Some(text) => (*text.unsafe_get()).characterdata().data_for_layout().to_string(),
-                None => match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
-                    Some(input) => input.get_value_for_layout(),
-                    None => panic!("not text!")
-                }
+            if let Some(text) = TextCast::to_js(self.get_jsmanaged()) {
+                (*text.unsafe_get()).characterdata().data_for_layout().to_string()
+            } else if let Some(input) = HTMLInputElementCast::to_js(self.get_jsmanaged()) {
+                input.get_value_for_layout()
+            } else if let Some(area) = HTMLTextAreaElementCast::to_js(self.get_jsmanaged()) {
+                area.get_value_for_layout()
+            } else {
+                panic!("not text!")
             }
         }
     }

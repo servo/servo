@@ -49,6 +49,7 @@ use script::dom::element::{HTMLObjectElementTypeId, HTMLInputElementTypeId};
 use script::dom::element::{HTMLTableColElementTypeId, HTMLTableDataCellElementTypeId};
 use script::dom::element::{HTMLTableElementTypeId, HTMLTableHeaderCellElementTypeId};
 use script::dom::element::{HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId};
+use script::dom::element::HTMLTextAreaElementTypeId;
 use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
 use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
 use script::dom::node::{TextNodeTypeId};
@@ -487,7 +488,16 @@ impl<'a> FlowConstructor<'a> {
         // Special case: If this is generated content, then we need to initialize the accumulator
         // with the fragment corresponding to that content.
         if node.get_pseudo_element_type() != Normal ||
-           node.type_id() == Some(ElementNodeTypeId(HTMLInputElementTypeId)) {
+           node.type_id() == Some(ElementNodeTypeId(HTMLInputElementTypeId)) ||
+           node.type_id() == Some(ElementNodeTypeId(HTMLTextAreaElementTypeId)) {
+            // A TextArea's text contents are displayed through the input text
+            // box, so don't construct them.
+            // TODO Maybe this belongs somewhere else?
+            if node.type_id() == Some(ElementNodeTypeId(HTMLTextAreaElementTypeId)) {
+                for kid in node.children() {
+                    kid.set_flow_construction_result(NoConstructionResult)
+                }
+            }
             let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::new(node));
             let fragment = Fragment::new_from_specific_info(node, fragment_info);
             inline_fragment_accumulator.fragments.push_back(fragment);
