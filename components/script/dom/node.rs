@@ -738,15 +738,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             // Step 3.
             Ok(ref selectors) => {
                 let root = self.ancestors().last().unwrap_or(self.clone());
-                for node in root.traverse_preorder() {
-                    if node.is_element() && matches(selectors, &node, &mut None) {
-                        let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                        return Ok(Some(Temporary::from_rooted(elem)));
-                    }
-                }
+                Ok(root.traverse_preorder()
+                       .filter_map(ElementCast::to_ref)
+                       .find(|element| matches(selectors, &NodeCast::from_ref(*element), &mut None))
+                       .map(Temporary::from_rooted))
             }
         }
-        Ok(None)
     }
 
     /// Get an iterator over all nodes which match a set of selectors
