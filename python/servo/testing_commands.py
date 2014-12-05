@@ -63,7 +63,7 @@ class MachCommands(CommandBase):
 
         for test_dir, test_name, path_flag in test_dirs:
             if not path_flag:
-                path_arg = []
+                path_flag = []
             if test_dir in maybe_path:
                 args = ([mach_command, test_name] + path_flag +
                         [maybe_path] + params[1:])
