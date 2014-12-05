@@ -45,39 +45,36 @@ impl SnifferManager {
                             Payload(data) => {
                                 resource_data.push_all(data.as_slice());
                             }
-                            Done(Ok(..)) => {
-                                break;
-                            }
-                            Done(Err(..)) => {
-                                break;
+                            Done(res) => {
+                                let (new_progress_chan, new_progress_port) = channel();
+
+                                // TODO: should be calculated in the resource loader, from pull requeset #4094
+                                let nosniff = false;
+                                let check_for_apache_bug = false;
+
+                                // We have all the data, go ahead and sniff it and replace the Content-Type
+                                if res.is_ok() {
+                                    snif_data.load_response.metadata.content_type = self.mime_classifier.classify(
+                                        nosniff,check_for_apache_bug,&snif_data.load_response.metadata.content_type,
+                                        &resource_data
+                                    );
+                                }
+                                let load_response = LoadResponse {
+                                    progress_port: new_progress_port,
+                                    metadata: snif_data.load_response.metadata,
+                                };
+
+                                let result = snif_data.consumer.send_opt(load_response);
+                                if result.is_err() {
+                                    break;
+                                }
+
+                                new_progress_chan.send(Payload(resource_data));
+                                new_progress_chan.send(Done(res));
+                                return;
                             }
                         }
                     }
-
-                    let (new_progress_chan, new_progress_port) = channel();
-
-                    // TODO: should be calculated in the resource loader, from pull requeset #4094
-                    let nosniff = false;
-                    let check_for_apache_bug = false;
-
-                    // We have all the data, go ahead and sniff it and replace the Content-Type
-                    snif_data.load_response.metadata.content_type = self.mime_classifier.classify(
-                      nosniff,check_for_apache_bug,&snif_data.load_response.metadata.content_type,
-                      &resource_data
-                    );
-
-                    let load_response = LoadResponse {
-                      progress_port: new_progress_port,
-                      metadata: snif_data.load_response.metadata,
-                    };
-
-                    let result = snif_data.consumer.send_opt(load_response);
-                    if result.is_err() {
-                        break;
-                    }
-
-                    new_progress_chan.send(Payload(resource_data));
-                    new_progress_chan.send(Done(Ok(())));
                 }
                 Err(_) => break,
             }
