@@ -47,6 +47,7 @@ use dom::htmltitleelement::HTMLTitleElement;
 use dom::location::Location;
 use dom::mouseevent::MouseEvent;
 use dom::keyboardevent::KeyboardEvent;
+use dom::messageevent::MessageEvent;
 use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers};
 use dom::node::{CloneChildren, DoNotCloneChildren};
 use dom::nodelist::NodeList;
@@ -711,6 +712,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 global::Window(*window))),
             "keyboardevent" | "keyevents" => Ok(EventCast::from_temporary(
                 KeyboardEvent::new_uninitialized(*window))),
+            "messageevent" => Ok(EventCast::from_temporary(
+                MessageEvent::new_uninitialized(global::Window(*window)))),
             _ => Err(NotSupported)
         }
     }
