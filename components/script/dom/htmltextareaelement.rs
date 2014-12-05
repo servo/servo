@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -54,6 +54,9 @@ impl LayoutHTMLTextAreaElementHelpers for JS<HTMLTextAreaElement> {
         (*self.unsafe_get()).textinput.borrow_for_layout().get_content()
     }
 }
+
+static DEFAULT_COLS: u32 = 20;
+static DEFAULT_ROWS: u32 = 2;
 
 impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
@@ -211,6 +214,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         node.check_ancestors_disabled_state_for_form_control();
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("cols") => AttrValue::from_u32(value, DEFAULT_COLS),
+            &atom!("rows") => AttrValue::from_u32(value, DEFAULT_ROWS),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
