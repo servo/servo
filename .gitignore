@@ -11,10 +11,6 @@
 /components/script/dom/bindings/codegen/_cache
 /components/script/dom/bindings/codegen/Bindings
 /components/script/dom/bindings/codegen/test/*.rs
-/components/script/dom/bindings/codegen/RegisterBindings.cpp
-/components/script/dom/bindings/codegen/PrototypeList.h
-/components/script/dom/bindings/codegen/UnionTypes.h
-/components/script/dom/bindings/codegen/UnionConversions.h
 /.servobuild
 /tests/wpt/_virtualenv
 *~
