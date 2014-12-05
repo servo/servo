@@ -848,11 +848,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             publicId: "".to_string(),
             systemId: "".to_string(),
 
-            attrs: if self.is_element() {
-                let elem: JSRef<Element> = ElementCast::to_ref(self).unwrap();
-                elem.summarize()
-            } else {
-                vec!()
+            attrs: match ElementCast::to_ref(self) {
+                Some(element) => element.summarize(),
+                None => vec!(),
             },
 
             isDocumentElement:
