@@ -54,8 +54,8 @@ impl Actor for RootActor {
                       registry: &ActorRegistry,
                       msg_type: &String,
                       _msg: &json::JsonObject,
-                      stream: &mut TcpStream) -> bool {
-        match msg_type.as_slice() {
+                      stream: &mut TcpStream) -> Result<bool, ()> {
+        Ok(match msg_type.as_slice() {
             "listAddons" => {
                 let actor = ErrorReply {
                     from: "root".to_string(),
@@ -80,7 +80,7 @@ impl Actor for RootActor {
             }
 
             _ => false
-        }
+        })
     }
 }
 

@@ -101,9 +101,18 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
 
         'outer: loop {
             match stream.read_json_packet() {
-                Ok(json_packet) =>
-                    actors.lock().handle_message(json_packet.as_object().unwrap(),
-                                                                &mut stream),
+                Ok(json_packet) => {
+                    match actors.lock().handle_message(json_packet.as_object().unwrap(),
+                                                       &mut stream) {
+                        Ok(()) => {},
+                        Err(()) => {
+                            println!("error: devtools actor stopped responding");
+                            stream.close_read();
+                            stream.close_write();
+                            break 'outer
+                        }
+                    }
+                }
                 Err(e) => {
                     println!("error: {}", e.desc);
                     break 'outer
