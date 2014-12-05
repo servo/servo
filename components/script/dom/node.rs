@@ -1561,13 +1561,11 @@ impl Node {
         }.root();
 
         // Step 3.
-        let document = if copy.is_document() {
-            let doc: JSRef<Document> = DocumentCast::to_ref(*copy).unwrap();
-            JS::from_rooted(doc).root()
-        } else {
-            JS::from_rooted(*document).root()
+        let document = match DocumentCast::to_ref(*copy) {
+            Some(doc) => doc,
+            None => *document,
         };
-        assert!(&*copy.owner_doc().root() == &*document);
+        assert!(*copy.owner_doc().root() == document);
 
         // Step 4 (some data already copied in step 2).
         match node.type_id() {
@@ -1600,7 +1598,7 @@ impl Node {
         // Step 6.
         if clone_children == CloneChildren {
             for child in node.children() {
-                let child_copy = Node::clone(child, Some(*document), clone_children).root();
+                let child_copy = Node::clone(child, Some(document), clone_children).root();
                 let _inserted_node = Node::pre_insert(*child_copy, *copy, None);
             }
         }
