@@ -5,13 +5,13 @@
 
 // http://www.whatwg.org/html/#htmllinkelement
 interface HTMLLinkElement : HTMLElement {
-  //         attribute DOMString href;
+           attribute DOMString href;
   //         attribute DOMString crossOrigin;
-  //         attribute DOMString rel;
+           attribute DOMString rel;
   readonly attribute DOMTokenList relList;
-  //         attribute DOMString media;
-  //         attribute DOMString hreflang;
-  //         attribute DOMString type;
+           attribute DOMString media;
+           attribute DOMString hreflang;
+           attribute DOMString type;
   //[PutForwards=value] readonly attribute DOMSettableTokenList sizes;
 
   // also has obsolete members
