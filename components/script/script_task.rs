@@ -893,18 +893,25 @@ impl ScriptTask {
                                           None, props.key_code).root();
         let event = EventCast::from_ref(*keyevent);
         let _ = target.DispatchEvent(event);
+        let mut event_handled = event.DefaultPrevented();
 
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
-        if state != Released && props.is_printable() && !event.DefaultPrevented() {
+        if state != Released && props.is_printable() && !event_handled {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
-            let event = KeyboardEvent::new(*window, "keypress".to_string(), true, true, Some(*window),
-                                           0, props.key.to_string(), props.code.to_string(),
-                                           props.location, is_repeating, is_composing,
-                                           ctrl, alt, shift, meta,
-                                           props.char_code, 0).root();
-            let _ = target.DispatchEvent(EventCast::from_ref(*event));
+            let keyevent = KeyboardEvent::new(*window, "keypress".to_string(), true, true, Some(*window),
+                                              0, props.key.to_string(), props.code.to_string(),
+                                              props.location, is_repeating, is_composing,
+                                              ctrl, alt, shift, meta,
+                                              props.char_code, 0).root();
+            let event = EventCast::from_ref(*keyevent);
+            let _ = target.DispatchEvent(event);
+            event_handled = event.DefaultPrevented();
 
             // TODO: if keypress event is canceled, prevent firing input events
+        }
+
+        if !event_handled {
+            self.compositor.borrow_mut().send_key_event(key, state, modifiers);
         }
 
         window.flush_layout();

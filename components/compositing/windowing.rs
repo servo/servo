@@ -106,5 +106,8 @@ pub trait WindowMethods {
     /// magic to wake the up window's event loop.
     fn create_compositor_channel(_: &Option<Rc<Self>>)
                                  -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>);
+
+    /// Process a key event.
+    fn handle_key(&self, key: Key, mods: KeyModifiers);
 }
 
