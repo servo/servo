@@ -17,7 +17,7 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLInputElementDerived, HTMLTableCellElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, NodeCast, EventTargetCast, ElementCast};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
-use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
+use dom::bindings::js::{OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
@@ -712,25 +712,19 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-classlist
     fn ClassList(self) -> Temporary<DOMTokenList> {
-        if self.class_list.get().is_none() {
-            let class_list = DOMTokenList::new(self, &atom!("class"));
-            self.class_list.assign(Some(class_list));
-        }
-        self.class_list.get().unwrap()
+        self.class_list.or_init(|| DOMTokenList::new(self, &atom!("class")))
     }
 
     // http://dom.spec.whatwg.org/#dom-element-attributes
     fn Attributes(self) -> Temporary<NamedNodeMap> {
-        if self.attr_list.get().is_none() {
+        self.attr_list.or_init(|| {
             let doc = {
                 let node: JSRef<Node> = NodeCast::from_ref(self);
                 node.owner_doc().root()
             };
             let window = doc.window().root();
-            let list = NamedNodeMap::new(*window, self);
-            self.attr_list.assign(Some(list));
-        }
-        self.attr_list.get().unwrap()
+            NamedNodeMap::new(*window, self)
+        })
     }
 
     // http://dom.spec.whatwg.org/#dom-element-getattribute

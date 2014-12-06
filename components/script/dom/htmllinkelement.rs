@@ -146,11 +146,8 @@ impl Reflectable for HTMLLinkElement {
 
 impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
     fn RelList(self) -> Temporary<DOMTokenList> {
-        if self.rel_list.get().is_none() {
-            let element: JSRef<Element> = ElementCast::from_ref(self);
-            let rel_list = DOMTokenList::new(element, &atom!("rel"));
-            self.rel_list.assign(Some(rel_list));
-        }
-        self.rel_list.get().unwrap()
+        self.rel_list.or_init(|| {
+            DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
+        })
     }
 }
