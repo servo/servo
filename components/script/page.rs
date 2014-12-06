@@ -250,24 +250,6 @@ impl Page {
         None
     }
 
-    fn should_move_clip_rect(&self, clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
-        let clip_rect = Rect(Point2D(geometry::to_frac_px(clip_rect.origin.x) as f32,
-                                        geometry::to_frac_px(clip_rect.origin.y) as f32),
-                                Size2D(geometry::to_frac_px(clip_rect.size.width) as f32,
-                                       geometry::to_frac_px(clip_rect.size.height) as f32));
-
-        // We only need to move the clip rect if the viewport is getting near the edge of
-        // our preexisting clip rect. We use half of the size of the viewport as a heuristic
-        // for "close."
-        static VIEWPORT_SCROLL_MARGIN_SIZE: f32 = 0.5;
-        let viewport_scroll_margin = new_viewport.size * VIEWPORT_SCROLL_MARGIN_SIZE;
-
-        abs(clip_rect.origin.x - new_viewport.origin.x) <= viewport_scroll_margin.width ||
-        abs(clip_rect.max_x() - new_viewport.max_x()) <= viewport_scroll_margin.width ||
-        abs(clip_rect.origin.y - new_viewport.origin.y) <= viewport_scroll_margin.height ||
-        abs(clip_rect.max_y() - new_viewport.max_y()) <= viewport_scroll_margin.height
-    }
-
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: Rect<f32>) -> bool {
         // We use a clipping rectangle that is five times the size of the of the viewport,
         // so that we don't collect display list items for areas too far outside the viewport,
@@ -282,7 +264,7 @@ impl Page {
         }
 
         let had_clip_rect = clip_rect != MAX_RECT;
-        if had_clip_rect && !self.should_move_clip_rect(clip_rect, viewport) {
+        if had_clip_rect && !should_move_clip_rect(clip_rect, viewport) {
             return false;
         }
 
@@ -492,6 +474,24 @@ impl Page {
         };
         address
     }
+}
+
+fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
+    let clip_rect = Rect(Point2D(geometry::to_frac_px(clip_rect.origin.x) as f32,
+                                    geometry::to_frac_px(clip_rect.origin.y) as f32),
+                            Size2D(geometry::to_frac_px(clip_rect.size.width) as f32,
+                                   geometry::to_frac_px(clip_rect.size.height) as f32));
+
+    // We only need to move the clip rect if the viewport is getting near the edge of
+    // our preexisting clip rect. We use half of the size of the viewport as a heuristic
+    // for "close."
+    static VIEWPORT_SCROLL_MARGIN_SIZE: f32 = 0.5;
+    let viewport_scroll_margin = new_viewport.size * VIEWPORT_SCROLL_MARGIN_SIZE;
+
+    abs(clip_rect.origin.x - new_viewport.origin.x) <= viewport_scroll_margin.width ||
+    abs(clip_rect.max_x() - new_viewport.max_x()) <= viewport_scroll_margin.width ||
+    abs(clip_rect.origin.y - new_viewport.origin.y) <= viewport_scroll_margin.height ||
+    abs(clip_rect.max_y() - new_viewport.max_y()) <= viewport_scroll_margin.height
 }
 
 /// Information for one frame in the browsing context.
