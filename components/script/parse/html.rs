@@ -212,17 +212,15 @@ pub fn parse_html(page: &Page,
                   document: JSRef<Document>,
                   input: HTMLInput,
                   resource_task: ResourceTask,
-                  msg_load_data: Option<MsgLoadData>) {
+                  msg_load_data: MsgLoadData) {
     let (base_url, load_response) = match input {
         InputUrl(ref url) => {
             // Wait for the LoadResponse so that the parser knows the final URL.
             let (input_chan, input_port) = channel();
             let mut load_data = LoadData::new(url.clone(), input_chan);
-            msg_load_data.map(|m| {
-                load_data.headers = m.headers;
-                load_data.method = m.method;
-                load_data.data = m.data;
-            });
+            load_data.headers = msg_load_data.headers;
+            load_data.method = msg_load_data.method;
+            load_data.data = msg_load_data.data;
             resource_task.send(Load(load_data));
 
             let load_response = input_port.recv();

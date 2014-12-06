@@ -748,7 +748,7 @@ impl ScriptTask {
             InputString(strval.unwrap_or("".to_string()))
         };
 
-        parse_html(&*page, *document, parser_input, self.resource_task.clone(), Some(load_data));
+        parse_html(&*page, *document, parser_input, self.resource_task.clone(), load_data);
         url = page.get_url().clone();
 
         document.set_ready_state(DocumentReadyStateValues::Interactive);
