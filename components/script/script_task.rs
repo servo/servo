@@ -758,11 +758,7 @@ impl ScriptTask {
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {}", url);
-        {
-            let document_js_ref = (&*document).clone();
-            let document_as_node = NodeCast::from_ref(document_js_ref);
-            document.content_changed(document_as_node);
-        }
+        document.content_changed(NodeCast::from_ref(*document));
         window.flush_layout();
 
         {
