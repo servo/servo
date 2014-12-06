@@ -54,7 +54,7 @@ use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
-use servo_util::time::{TimeProfilerChan, profile};
+use servo_util::time::{TimeProfilerChan, profile, TimeRootWindow, TimeIFrame, TimeIncremental, TimeFirstReflow};
 use servo_util::time;
 use servo_util::workqueue::WorkQueue;
 use std::cell::Cell;
@@ -396,7 +396,9 @@ impl LayoutTask {
             },
             ReflowMsg(data) => {
                 profile(time::LayoutPerformCategory,
-                        Some((&data.url, data.iframe, self.first_reflow.get())),
+                        Some((&data.url,
+                        if data.iframe { TimeIFrame } else { TimeRootWindow },
+                        if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental })),
                         self.time_profiler_chan.clone(),
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
             },
@@ -562,8 +564,8 @@ impl LayoutTask {
                 // operation out.
                 parallel::traverse_flow_tree_preorder(layout_root,
                                                       &data.url,
-                                                      data.iframe,
-                                                      self.first_reflow.get(),
+                                                      if data.iframe { TimeIFrame } else { TimeRootWindow },
+                                                      if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental },
                                                       self.time_profiler_chan.clone(),
                                                       shared_layout_context,
                                                       traversal);
@@ -612,7 +614,9 @@ impl LayoutTask {
                                          rw_data: &mut RWGuard<'a>) {
         let writing_mode = flow::base(layout_root.deref()).writing_mode;
         profile(time::LayoutDispListBuildCategory,
-                Some((&data.url, data.iframe, self.first_reflow.get())),
+                Some((&data.url,
+                if data.iframe { TimeIFrame } else { TimeRootWindow },
+                if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental })),
                      self.time_profiler_chan.clone(),
                      || {
             shared_layout_ctx.dirty =
@@ -632,8 +636,8 @@ impl LayoutTask {
                 Some(ref mut traversal) => {
                     parallel::build_display_list_for_subtree(layout_root,
                                                              &data.url,
-                                                             data.iframe,
-                                                             self.first_reflow.get(),
+                                                             if data.iframe { TimeIFrame } else { TimeRootWindow },
+                                                             if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental },
                                                              self.time_profiler_chan.clone(),
                                                              shared_layout_ctx,
                                                              traversal);
@@ -758,8 +762,8 @@ impl LayoutTask {
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       Some((&data.url,
-                                      data.iframe,
-                                      self.first_reflow.get())),
+                                      if data.iframe { TimeIFrame } else { TimeRootWindow },
+                                      if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental })),
                                       self.time_profiler_chan.clone(),
                                       || {
             // Perform CSS selector matching and flow construction.
@@ -777,7 +781,9 @@ impl LayoutTask {
         });
 
         profile(time::LayoutRestyleDamagePropagation,
-                Some((&data.url, data.iframe, self.first_reflow.get())),
+                Some((&data.url,
+                if data.iframe { TimeIFrame } else { TimeRootWindow },
+                if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental })),
                 self.time_profiler_chan.clone(),
                 || {
             if opts::get().nonincremental_layout ||
@@ -798,7 +804,9 @@ impl LayoutTask {
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         profile(time::LayoutMainCategory,
-                Some((&data.url, data.iframe, self.first_reflow.get())),
+                Some((&data.url,
+                if data.iframe { TimeIFrame } else { TimeRootWindow },
+                if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental })),
                 self.time_profiler_chan.clone(),
                 || {
             let rw_data = rw_data.deref_mut();

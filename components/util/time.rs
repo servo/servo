@@ -246,10 +246,20 @@ impl TimeProfiler {
     }
 }
 
+#[deriving(Eq, PartialEq)]
+pub enum TimerMetadataFrameType {
+    TimeRootWindow,
+    TimeIFrame,
+}
+
+#[deriving(Eq, PartialEq)]
+pub enum TimerMetadataReflowType {
+    TimeIncremental,
+    TimeFirstReflow,
+}
 
 pub fn profile<T>(category: TimeProfilerCategory,
-                  // url, iframe?, first reflow?
-                  meta: Option<(&Url, bool, bool)>,
+                  meta: Option<(&Url, TimerMetadataFrameType, TimerMetadataReflowType)>,
                   time_profiler_chan: TimeProfilerChan,
                   callback: || -> T)
                   -> T {
@@ -257,11 +267,11 @@ pub fn profile<T>(category: TimeProfilerCategory,
     let val = callback();
     let end_time = precise_time_ns();
     let ms = (end_time - start_time) as f64 / 1000000f64;
-    let meta = meta.map(|(url, iframe, first_reflow)|
+    let meta = meta.map(|(url, iframe, reflow_type)|
         TimerMetadata {
             url: url.serialize(),
-            iframe: iframe,
-            incremental: !first_reflow,
+            iframe: iframe == TimeIFrame,
+            incremental: reflow_type == TimeIncremental,
         });
     time_profiler_chan.send(TimeMsg((category, meta), ms));
     return val;
