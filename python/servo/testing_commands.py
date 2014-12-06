@@ -100,7 +100,10 @@ class MachCommands(CommandBase):
                      help="Specific component to test")
     @CommandArgument('test_name', nargs=argparse.REMAINDER,
                      help="Only run tests that match this pattern")
-    def test_unit(self, test_name, component=None):
+    def test_unit(self, test_name=None, component=None):
+        if test_name is None:
+            test_name = []
+
         self.ensure_bootstrapped()
         self.ensure_built_tests()
 
