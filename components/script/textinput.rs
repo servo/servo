@@ -163,9 +163,9 @@ impl TextInput {
             self.edit_point.index = 0;
             self.edit_point.line = 0;
             return;
-        } else if adjust > 0 && self.edit_point.line >= self.lines.len() - adjust as uint {
-            self.edit_point.index = self.current_line_length();
+        } else if adjust > 0 && self.edit_point.line + adjust as uint >= self.lines.len() {
             self.edit_point.line = self.lines.len() - 1;
+            self.edit_point.index = self.current_line_length();
             return;
         }
 
@@ -266,6 +266,14 @@ impl TextInput {
             }
             "End" => {
                 self.edit_point.index = self.current_line_length();
+                Nothing
+            }
+            "PageUp" => {
+                self.adjust_vertical(-28);
+                Nothing
+            }
+            "PageDown" => {
+                self.adjust_vertical(28);
                 Nothing
             }
             "Tab" => TriggerDefaultAction,
