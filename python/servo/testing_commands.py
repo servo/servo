@@ -36,7 +36,9 @@ class MachCommands(CommandBase):
         for filename in target_contents:
             if filename.startswith(prefix + "-"):
                 filepath = path.join(
-                    self.context.topdir, "components", "servo", "target", filename)
+                    self.context.topdir, "components", "servo",
+                    "target", filename)
+
                 if path.isfile(filepath) and os.access(filepath, os.X_OK):
                     return filepath
 
@@ -94,11 +96,11 @@ class MachCommands(CommandBase):
     @Command('test-unit',
              description='Run unit tests',
              category='testing')
-    @CommandArgument('test_name', default=None, nargs="...",
+    @CommandArgument('--component', '-c', default=None,
+                     help="Specific component to test")
+    @CommandArgument('test_name', nargs=argparse.REMAINDER,
                      help="Only run tests that match this pattern")
-    def test_unit(self, test_name=None):
-        if test_name is None:
-            test_name = []
+    def test_unit(self, test_name, component=None):
         self.ensure_bootstrapped()
         self.ensure_built_tests()
 
@@ -106,12 +108,15 @@ class MachCommands(CommandBase):
 
         def cargo_test(component):
             return 0 != subprocess.call(
-                ["cargo", "test", "-p", component] + test_name,
-                env=self.build_env(), cwd=self.servo_crate())
+                ["cargo", "test", "-p", component]
+                + test_name, env=self.build_env(), cwd=self.servo_crate())
 
-        for component in os.listdir("components"):
-            if component != "servo":
-                ret = ret or cargo_test(component)
+        if component is not None:
+            ret = ret or cargo_test(component)
+        else:
+            for c in os.listdir("components"):
+                if c != "servo":
+                    ret = ret or cargo_test(c)
 
         return ret
 
