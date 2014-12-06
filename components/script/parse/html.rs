@@ -163,9 +163,9 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
 
 pub fn parse_html(document: JSRef<Document>,
                   input: HTMLInput,
-                  base_url: Option<Url>,
+                  base_url: Url,
                   load_response: Option<LoadResponse>) {
-    let parser = ServoHTMLParser::new(base_url.clone(), document).root();
+    let parser = ServoHTMLParser::new(Some(base_url.clone()), document).root();
     let parser: JSRef<ServoHTMLParser> = *parser;
 
     task_state::enter(IN_HTML_PARSER);
@@ -178,7 +178,7 @@ pub fn parse_html(document: JSRef<Document>,
             let load_response = load_response.unwrap();
             match load_response.metadata.content_type {
                 Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
-                    let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.as_ref().unwrap().serialize());
+                    let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.serialize());
                     parser.parse_chunk(page);
                 },
                 _ => {

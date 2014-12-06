@@ -728,7 +728,7 @@ impl ScriptTask {
         } else {
             url.clone()
         };
-        let document = Document::new(*window, Some(doc_url), HTMLDocument,
+        let document = Document::new(*window, Some(doc_url.clone()), HTMLDocument,
                                      None, FromParser).root();
 
         window.init_browser_context(*document);
@@ -783,13 +783,10 @@ impl ScriptTask {
                     *page.mut_url() = Some((base_url.clone(), true));
                 }
 
-                (Some(base_url), Some(load_response))
+                (base_url, Some(load_response))
             },
             InputString(_) => {
-                match *page.url() {
-                    Some((ref page_url, _)) => (Some(page_url.clone()), None),
-                    None => (None, None),
-                }
+                (doc_url, None)
             },
         };
 
