@@ -460,7 +460,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     fn SetTimeout(self, timeout: u32) -> ErrorResult {
         if self.sync.get() {
             // FIXME: Not valid for a worker environment
-            Err(InvalidState)
+            Err(InvalidAccess)
         } else {
             self.timeout.set(timeout);
             if self.send_flag.get() {
