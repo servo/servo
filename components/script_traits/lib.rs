@@ -26,7 +26,7 @@ use devtools_traits::DevtoolsControlChan;
 use libc::c_void;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
 use servo_msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
-use servo_msg::compositor_msg::ScriptListener;
+use servo_msg::compositor_msg::{ScriptToCompositorThreadProxy, ScriptToMainThreadProxy};
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
@@ -93,21 +93,39 @@ impl<S: Encoder<E>, E> Encodable<S, E> for ScriptControlChan {
     }
 }
 
+/// Data needed to construct a script thread.
+pub struct InitialScriptState<C> {
+    /// The ID of the pipeline with which this script thread is associated.
+    pub id: PipelineId,
+    /// A proxy to the main thread.
+    pub main_thread_proxy: Box<ScriptToMainThreadProxy + Send>,
+    /// The compositor. If `None`, this is a headless script thread.
+    pub compositor: Option<C>,
+    /// A channel with which messages can be sent to us (the script task).
+    pub control_chan: ScriptControlChan,
+    /// A port on which messages sent by the constellation to script can be received.
+    pub control_port: Receiver<ConstellationControlMsg>,
+    /// A channel on which messages can be sent to the constellation from script.
+    pub constellation_proxy: ConstellationChan,
+    /// Information that script sends out when it panics.
+    pub failure_info: Failure,
+    /// A channel to the resource manager task.
+    pub resource_task: ResourceTask,
+    /// A channel to the storage task.
+    pub storage_task: StorageTask,
+    /// A channel to the image cache task.
+    pub image_cache_task: ImageCacheTask,
+    /// A channel to the developer tools, if applicable.
+    pub devtools_chan: Option<DevtoolsControlChan>,
+    /// Information about the initial window size.
+    pub window_size: WindowSizeData,
+}
+
 pub trait ScriptTaskFactory {
     fn create<C>(_phantom: Option<&mut Self>,
-                 id: PipelineId,
-                 compositor: C,
-                 layout_chan: &OpaqueScriptLayoutChannel,
-                 control_chan: ScriptControlChan,
-                 control_port: Receiver<ConstellationControlMsg>,
-                 constellation_msg: ConstellationChan,
-                 failure_msg: Failure,
-                 resource_task: ResourceTask,
-                 storage_task: StorageTask,
-                 image_cache_task: ImageCacheTask,
-                 devtools_chan: Option<DevtoolsControlChan>,
-                 window_size: WindowSizeData)
-                 where C: ScriptListener + Send;
+                 state: InitialScriptState<C>,
+                 layout_chan: &OpaqueScriptLayoutChannel)
+                 where C: ScriptToCompositorThreadProxy + Send;
     fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;
     fn clone_layout_channel(_phantom: Option<&mut Self>, pair: &OpaqueScriptLayoutChannel)
                             -> Box<Any+Send>;

@@ -4,82 +4,69 @@
 
 //! Communication with the compositor task.
 
-pub use windowing;
 pub use constellation::{SendableFrameTree, FrameTreeDiff};
+pub use windowing;
 
 use compositor;
 use headless;
-use windowing::{WindowEvent, WindowMethods};
+use main_thread::MainThreadProxy;
+use windowing::{CompositorSupport, MouseWindowEvent, WindowMethods};
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
-use geom::point::Point2D;
+use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::Rect;
-use geom::size::Size2D;
-use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
+use geom::scale_factor::ScaleFactor;
+use geom::size::{Size2D, TypedSize2D};
+use layers::geometry::DevicePixel;
 use layers::layers::LayerBufferSet;
-use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
-use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
+use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
+use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, PaintListener, PaintState};
+use servo_msg::compositor_msg::{ReadyState, ScriptToCompositorThreadProxy, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
+use servo_util::geometry::ScreenPx;
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
-use std::comm::{channel, Sender, Receiver};
+use std::comm::{mod, Receiver, Sender};
 use std::fmt::{FormatError, Formatter, Show};
-use std::rc::Rc;
 
-/// Sends messages to the compositor. This is a trait supplied by the port because the method used
-/// to communicate with the compositor may have to kick OS event loops awake, communicate cross-
-/// process, and so forth.
-pub trait CompositorProxy : 'static + Send {
-    /// Sends a message to the compositor.
-    fn send(&mut self, msg: Msg);
-    /// Clones the compositor proxy.
-    fn clone_compositor_proxy(&self) -> Box<CompositorProxy+'static+Send>;
+/// Sends messages to the compositor.
+#[deriving(Clone)]
+pub struct CompositorProxy {
+    sender: Sender<Msg>,
 }
 
-/// The port that the compositor receives messages on. As above, this is a trait supplied by the
-/// Servo port.
-pub trait CompositorReceiver for Sized? : 'static {
-    /// Receives the next message inbound for the compositor. This must not block.
-    fn try_recv_compositor_msg(&mut self) -> Option<Msg>;
-    /// Synchronously waits for, and returns, the next message inbound for the compositor.
-    fn recv_compositor_msg(&mut self) -> Msg;
+impl CompositorProxy {
+    pub fn send(&mut self, msg: Msg) {
+        self.sender.send(msg)
+    }
 }
 
-/// A convenience implementation of `CompositorReceiver` for a plain old Rust `Receiver`.
-impl CompositorReceiver for Receiver<Msg> {
-    fn try_recv_compositor_msg(&mut self) -> Option<Msg> {
-        match self.try_recv() {
-            Ok(msg) => Some(msg),
-            Err(_) => None,
-        }
-    }
-    fn recv_compositor_msg(&mut self) -> Msg {
-        self.recv()
-    }
+/// The port that the compositor receives messages on.
+pub type CompositorReceiver = Receiver<Msg>;
+
+/// Creates the channel to the compositor and returns both ends.
+pub fn create_channel() -> (CompositorProxy, CompositorReceiver) {
+    let (sender, receiver) = comm::channel();
+    (CompositorProxy {
+        sender: sender,
+    }, receiver)
 }
 
 /// Implementation of the abstract `ScriptListener` interface.
-impl ScriptListener for Box<CompositorProxy+'static+Send> {
+impl ScriptToCompositorThreadProxy for CompositorProxy {
     fn set_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
-        let msg = ChangeReadyState(pipeline_id, ready_state);
-        self.send(msg);
+        self.send(ChangeReadyState(pipeline_id, ready_state))
     }
 
     fn scroll_fragment_point(&mut self,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
                              point: Point2D<f32>) {
-        self.send(ScrollFragmentPoint(pipeline_id, layer_id, point));
+        self.send(ScrollFragmentPoint(pipeline_id, layer_id, point))
     }
 
-    fn close(&mut self) {
-        let (chan, port) = channel();
-        self.send(Exit(chan));
-        port.recv();
-    }
-
-    fn dup(&mut self) -> Box<ScriptListener+'static> {
-        box self.clone_compositor_proxy() as Box<ScriptListener+'static>
+    fn dup(&mut self) -> Box<ScriptToCompositorThreadProxy + Send> {
+        box self.clone() as Box<ScriptToCompositorThreadProxy + Send>
     }
 }
 
@@ -109,7 +96,7 @@ impl LayerProperties {
 }
 
 /// Implementation of the abstract `PaintListener` interface.
-impl PaintListener for Box<CompositorProxy+'static+Send> {
+impl PaintListener for CompositorProxy {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
         let (chan, port) = channel();
         self.send(GetGraphicsMetadata(chan));
@@ -120,7 +107,7 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
              pipeline_id: PipelineId,
              epoch: Epoch,
              replies: Vec<(LayerId, Box<LayerBufferSet>)>) {
-        self.send(Paint(pipeline_id, epoch, replies));
+        self.send(Paint(pipeline_id, epoch, replies))
     }
 
     fn initialize_layers_for_pipeline(&mut self,
@@ -195,6 +182,26 @@ pub enum Msg {
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
     /// composite should happen. (See the `scrolling` module.)
     ScrollTimeout(u64),
+    /// Requests that a new composite occur.
+    Refresh,
+    /// Alerts the compositor that the window has been resized.
+    Resize(TypedSize2D<DevicePixel,uint>, ScaleFactor<ScreenPx,DevicePixel,f32>),
+    /// Tells the compositor to scroll. The first element is the delta and the
+    /// second element is the cursor.
+    Scroll(TypedPoint2D<DevicePixel,f32>, TypedPoint2D<DevicePixel,i32>),
+    /// Sends a mouse event.
+    SendMouseEvent(MouseWindowEvent),
+    /// Sends a mouse move event at the given point.
+    SendMouseMoveEvent(TypedPoint2D<DevicePixel,f32>),
+    /// Tells the compositor to pinch zoom.
+    ///
+    /// TODO(pcwalton): This should have an origin as well.
+    PinchZoom(f32),
+    /// Tells the compositor to zoom.
+    Zoom(f32),
+    /// Requests that a composite occur after the next paint. You must be careful when blocking on
+    /// the resulting channel, as if a paint is not scheduled then you will hang forever.
+    SynchronousRefresh(Sender<()>),
 }
 
 impl Show for Msg {
@@ -215,6 +222,14 @@ impl Show for Msg {
             FrameTreeUpdateMsg(..) => write!(f, "FrameTreeUpdateMsg"),
             LoadComplete => write!(f, "LoadComplete"),
             ScrollTimeout(..) => write!(f, "ScrollTimeout"),
+            Refresh => write!(f, "Refresh"),
+            Resize(..) => write!(f, "Resize"),
+            Scroll(..) => write!(f, "Scroll"),
+            SendMouseEvent(..) => write!(f, "SendMouseEvent"),
+            SendMouseMoveEvent(..) => write!(f, "SendMouseMoveEvent"),
+            PinchZoom(..) => write!(f, "PinchZoom"),
+            Zoom(..) => write!(f, "Zoom"),
+            SynchronousRefresh(..) => write!(f, "SynchronousRefresh"),
         }
     }
 }
@@ -227,47 +242,51 @@ impl CompositorTask {
     /// FIXME(pcwalton): Probably could be less platform-specific, using the metadata abstraction.
     #[cfg(target_os="linux")]
     pub fn create_graphics_context(native_metadata: &NativeGraphicsMetadata)
-                                    -> NativeCompositingGraphicsContext {
+                                   -> NativeCompositingGraphicsContext {
         NativeCompositingGraphicsContext::from_display(native_metadata.display)
     }
     #[cfg(not(target_os="linux"))]
     pub fn create_graphics_context(_: &NativeGraphicsMetadata)
-                                    -> NativeCompositingGraphicsContext {
+                                   -> NativeCompositingGraphicsContext {
         NativeCompositingGraphicsContext::new()
     }
 
-    pub fn create<Window>(window: Option<Rc<Window>>,
-                          sender: Box<CompositorProxy+Send>,
-                          receiver: Box<CompositorReceiver>,
-                          constellation_chan: ConstellationChan,
-                          time_profiler_chan: TimeProfilerChan,
-                          memory_profiler_chan: MemoryProfilerChan)
-                          -> Box<CompositorEventListener + 'static>
-                          where Window: WindowMethods + 'static {
-        match window {
-            Some(window) => {
-                box compositor::IOCompositor::create(window,
-                                                     sender,
-                                                     receiver,
-                                                     constellation_chan.clone(),
-                                                     time_profiler_chan,
-                                                     memory_profiler_chan)
-                    as Box<CompositorEventListener>
-            }
-            None => {
-                box headless::NullCompositor::create(receiver,
-                                                     constellation_chan.clone(),
-                                                     time_profiler_chan,
-                                                     memory_profiler_chan)
-                    as Box<CompositorEventListener>
-            }
+    pub fn create(state: InitialCompositorState) -> Box<CompositorEventListener + 'static> {
+        if state.native_graphics_metadata.is_some() {
+            box compositor::IOCompositor::create(state) as Box<CompositorEventListener>
+        } else {
+            box headless::NullCompositor::create(state) as Box<CompositorEventListener>
         }
     }
 }
 
 pub trait CompositorEventListener {
-    fn handle_event(&mut self, event: WindowEvent) -> bool;
-    fn repaint_synchronously(&mut self);
+    fn handle_events(&mut self) -> bool;
     fn shutdown(&mut self);
+}
+
+/// Data used to construct a compositor.
+pub struct InitialCompositorState {
+    /// A channel to the main thread.
+    pub main_thread_proxy: Box<MainThreadProxy + Send>,
+    /// A channel to the compositor.
+    pub sender: CompositorProxy,
+    /// A port on which messages inbound to the compositor can be received.
+    pub receiver: CompositorReceiver,
+    /// A channel to the constellation.
+    pub constellation_sender: ConstellationChan,
+    /// A channel to the time profiler thread.
+    pub time_profiler_sender: TimeProfilerChan,
+    /// A channel to the memory profiler thread.
+    pub memory_profiler_sender: MemoryProfilerChan,
+    /// The initial framebuffer size of the window.
+    pub window_framebuffer_size: TypedSize2D<DevicePixel,uint>,
+    /// The initial device pixel ratio for the window.
+    pub hidpi_factor: ScaleFactor<ScreenPx,DevicePixel,f32>,
+    /// Native graphics metadata needed to create a graphics context. If `None`, this is a headless
+    /// compositor.
+    pub native_graphics_metadata: Option<NativeGraphicsMetadata>,
+    /// The compositor support object, which is used to create off-thread compositors.
+    pub compositor_support: Box<CompositorSupport + Send>,
 }
 

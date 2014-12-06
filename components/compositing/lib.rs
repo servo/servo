@@ -41,6 +41,7 @@ pub use compositor_task::{CompositorEventListener, CompositorProxy, CompositorTa
 pub use constellation::Constellation;
 
 pub mod compositor_task;
+pub mod main_thread;
 
 mod compositor_layer;
 mod scrolling;

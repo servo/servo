@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use pipeline::{Pipeline, CompositionPipeline};
+use main_thread::MainThreadProxy;
+use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline};
+use windowing::QuitWindowEvent;
 
-use compositor_task::{CompositorProxy, FrameTreeUpdateMsg, LoadComplete, ShutdownComplete, SetLayerOrigin, SetIds};
+use compositor_task::{CompositorProxy, FrameTreeUpdateMsg, LoadComplete};
+use compositor_task::{SetLayerOrigin, SetIds};
 use devtools_traits;
 use devtools_traits::DevtoolsControlChan;
 use geom::rect::{Rect, TypedRect};
@@ -50,8 +53,12 @@ pub struct Constellation<LTF, STF> {
     pub request_port: Receiver<Msg>,
 
     /// A channel (the implementation of which is port-specific) through which messages can be sent
-    /// to the compositor.
-    pub compositor_proxy: Box<CompositorProxy>,
+    /// to the main thread.
+    pub main_thread_proxy: Box<MainThreadProxy + Send>,
+
+    /// A channel through which messages can be sent to the compositor. If `None`, this
+    /// constellation is running headless.
+    pub compositor_proxy: Option<CompositorProxy>,
 
     /// A channel through which messages can be sent to the resource task.
     pub resource_task: ResourceTask,
@@ -81,9 +88,38 @@ pub struct Constellation<LTF, STF> {
     pending_sizes: HashMap<(PipelineId, SubpageId), TypedRect<PagePx, f32>>,
 
     /// A channel through which messages can be sent to the time profiler.
-    pub time_profiler_chan: TimeProfilerChan,
+    pub time_profiler_proxy: TimeProfilerChan,
 
     pub window_size: WindowSizeData,
+}
+
+/// State needed to construct a constellation.
+pub struct InitialConstellationState {
+    /// A channel (the implementation of which is port-specific) through which messages can be sent
+    /// to the main thread.
+    pub main_thread_proxy: Box<MainThreadProxy + Send>,
+
+    /// A channel through which messages can be sent to the compositor. If this is `None, then
+    /// we're running headless.
+    pub compositor_proxy: Option<CompositorProxy>,
+
+    /// A channel through which messages can be sent to the resource task.
+    pub resource_task: ResourceTask,
+
+    /// A channel through which messages can be sent to the image cache task.
+    pub image_cache_task: ImageCacheTask,
+
+    /// A channel through which messages can be sent to the developer tools.
+    pub devtools_chan: Option<DevtoolsControlChan>,
+
+    /// A channel through which messages can be sent to the storage task.
+    pub storage_task: StorageTask,
+
+    /// A channel through which messages can be sent to the font cache.
+    pub font_cache_task: FontCacheTask,
+
+    /// A channel through which messages can be sent to the time profiler.
+    pub time_profiler_proxy: TimeProfilerChan,
 }
 
 /// Stores the Id of the outermost frame's pipeline, along with a vector of children frames
@@ -310,33 +346,27 @@ impl NavigationContext {
     }
 }
 
-impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
-    pub fn start(compositor_proxy: Box<CompositorProxy+Send>,
-                 resource_task: ResourceTask,
-                 image_cache_task: ImageCacheTask,
-                 font_cache_task: FontCacheTask,
-                 time_profiler_chan: TimeProfilerChan,
-                 devtools_chan: Option<DevtoolsControlChan>,
-                 storage_task: StorageTask)
-                 -> ConstellationChan {
+impl<LTF,STF> Constellation<LTF,STF> where LTF: LayoutTaskFactory, STF: ScriptTaskFactory {
+    pub fn start(state: InitialConstellationState) -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
         spawn_named("Constellation", proc() {
             let mut constellation: Constellation<LTF, STF> = Constellation {
                 chan: constellation_chan_clone,
                 request_port: constellation_port,
-                compositor_proxy: compositor_proxy,
-                devtools_chan: devtools_chan,
-                resource_task: resource_task,
-                image_cache_task: image_cache_task,
-                font_cache_task: font_cache_task,
-                storage_task: storage_task,
+                main_thread_proxy: state.main_thread_proxy,
+                compositor_proxy: state.compositor_proxy,
+                devtools_chan: state.devtools_chan,
+                resource_task: state.resource_task,
+                image_cache_task: state.image_cache_task,
+                font_cache_task: state.font_cache_task,
+                storage_task: state.storage_task,
                 pipelines: HashMap::new(),
                 navigation_context: NavigationContext::new(),
                 next_pipeline_id: PipelineId(0),
                 pending_frames: vec!(),
                 pending_sizes: HashMap::new(),
-                time_profiler_chan: time_profiler_chan,
+                time_profiler_proxy: state.time_profiler_proxy,
                 window_size: WindowSizeData {
                     visible_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor(1.0),
                     initial_viewport: opts::get().initial_window_size.as_f32() * ScaleFactor(1.0),
@@ -364,19 +394,22 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     script_pipeline: Option<Rc<Pipeline>>,
                     load_data: LoadData)
                     -> Rc<Pipeline> {
-            let pipe = Pipeline::create::<LTF, STF>(id,
-                                                    subpage_id,
-                                                    self.chan.clone(),
-                                                    self.compositor_proxy.clone_compositor_proxy(),
-                                                    self.devtools_chan.clone(),
-                                                    self.image_cache_task.clone(),
-                                                    self.font_cache_task.clone(),
-                                                    self.resource_task.clone(),
-                                                    self.storage_task.clone(),
-                                                    self.time_profiler_chan.clone(),
-                                                    self.window_size,
-                                                    script_pipeline,
-                                                    load_data);
+            let pipe = Pipeline::create::<LTF, STF>(InitialPipelineState {
+                id: id,
+                subpage_id: subpage_id,
+                constellation_chan: self.chan.clone(),
+                main_thread_proxy: self.main_thread_proxy.clone_main_thread_proxy(),
+                compositor_proxy: self.compositor_proxy.clone(),
+                devtools_chan: self.devtools_chan.clone(),
+                image_cache_task: self.image_cache_task.clone(),
+                font_cache_task: self.font_cache_task.clone(),
+                resource_task: self.resource_task.clone(),
+                storage_task: self.storage_task.clone(),
+                time_profiler_proxy: self.time_profiler_proxy.clone(),
+                window_size: self.window_size,
+                script_pipeline: script_pipeline,
+                load_data: load_data,
+            });
             pipe.load();
             Rc::new(pipe)
     }
@@ -445,7 +478,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             // script, and reflow messages have been sent.
             LoadCompleteMsg => {
                 debug!("constellation got load complete message");
-                self.compositor_proxy.send(LoadComplete);
+                match self.compositor_proxy {
+                    None => {}
+                    Some(ref mut compositor_proxy) => compositor_proxy.send(LoadComplete),
+                }
             }
             // Handle a forward or back request
             NavigateMsg(direction) => {
@@ -480,7 +516,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         });
         self.storage_task.send(storage_task::Exit);
         self.font_cache_task.exit();
-        self.compositor_proxy.send(ShutdownComplete);
+        self.main_thread_proxy.send(QuitWindowEvent);
     }
 
     fn handle_failure_msg(&mut self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>) {
@@ -578,12 +614,17 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     match children.iter_mut().find(|child| subpage_eq(child)) {
                         None => {}
                         Some(child) => {
-                            update_child_rect(child,
-                                              rect,
-                                              true,
-                                              &mut already_sent,
-                                              &mut self.compositor_proxy,
-                                              self.window_size.device_pixel_ratio)
+                            match self.compositor_proxy {
+                                None => {}
+                                Some(ref mut compositor_proxy) => {
+                                    update_child_rect(child,
+                                                      rect,
+                                                      true,
+                                                      &mut already_sent,
+                                                      compositor_proxy,
+                                                      self.window_size.device_pixel_ratio)
+                                }
+                            }
                         }
                     }
                 }
@@ -594,12 +635,17 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 let mut children = frame_tree.children.borrow_mut();
                 let found_child = children.iter_mut().find(|child| subpage_eq(child));
                 found_child.map(|child| {
-                    update_child_rect(child,
-                                      rect,
-                                      false,
-                                      &mut already_sent,
-                                      &mut self.compositor_proxy,
-                                      self.window_size.device_pixel_ratio)
+                    match self.compositor_proxy {
+                        None => {}
+                        Some(ref mut compositor_proxy) => {
+                            update_child_rect(child,
+                                              rect,
+                                              false,
+                                              &mut already_sent,
+                                              compositor_proxy,
+                                              self.window_size.device_pixel_ratio)
+                        }
+                    }
                 });
             }
         }
@@ -617,7 +663,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                              rect: TypedRect<PagePx,f32>,
                              is_active: bool,
                              already_sent: &mut HashSet<PipelineId>,
-                             compositor_proxy: &mut Box<CompositorProxy>,
+                             compositor_proxy: &mut CompositorProxy,
                              device_pixel_ratio: ScaleFactor<ViewportPx,DevicePixel,f32>) {
             child_frame_tree.rect = Some(rect);
             // NOTE: work around borrowchk issues
@@ -697,8 +743,15 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.pipelines.insert(pipeline.id, pipeline);
     }
 
-    fn handle_load_url_msg(&mut self, source_id: PipelineId, load_data: LoadData) {
+    fn handle_load_url_msg(&mut self, source_id: Option<PipelineId>, load_data: LoadData) {
         debug!("Constellation: received message to load {:s}", load_data.url.to_string());
+
+        // If `source_id` is not specified, default to the root.
+        let source_id = match source_id {
+            Some(source_id) => source_id,
+            None => self.current_frame().as_ref().unwrap().pipeline.id,
+        };
+
         // Make sure no pending page would be overridden.
         let source_frame = self.current_frame().as_ref().unwrap().find(source_id).expect(
             "Constellation: received a LoadUrlMsg from a pipeline_id associated
@@ -952,8 +1005,15 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn set_ids(&mut self, frame_tree: &Rc<FrameTree>) {
         let (chan, port) = channel();
+
         debug!("Constellation sending SetIds");
-        self.compositor_proxy.send(SetIds(frame_tree.to_sendable(), chan, self.chan.clone()));
+        match self.compositor_proxy {
+            None => return,
+            Some(ref mut compositor_proxy) => {
+                compositor_proxy.send(SetIds(frame_tree.to_sendable(), chan, self.chan.clone()))
+            }
+        }
+
         match port.recv_opt() {
             Ok(()) => {
                 let mut iter = frame_tree.iter();
@@ -1010,13 +1070,21 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         };
 
         let (chan, port) = channel();
-        self.compositor_proxy.send(FrameTreeUpdateMsg(sendable_frame_tree_diff, chan));
+        match self.compositor_proxy {
+            None => {}
+            Some(ref mut compositor_proxy) => {
+                compositor_proxy.send(FrameTreeUpdateMsg(sendable_frame_tree_diff, chan))
+            }
+        }
+
         match port.recv_opt() {
             Ok(()) => {
                 child.frame_tree.has_compositor_layer.set(true);
                 child.frame_tree.pipeline.grant_paint_permission();
             }
-            Err(()) => {} // The message has been discarded, we are probably shutting down.
+            Err(()) => {
+                // The message has been discarded, we are probably headless or shutting down.
+            }
         }
     }
 }

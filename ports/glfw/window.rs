@@ -6,8 +6,8 @@
 
 use NestedEventLoopListener;
 
-use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
-use compositing::windowing::{Forward, Back};
+use compositing::main_thread::MainThreadProxy;
+use compositing::windowing::{CompositorSupport, Forward, Back};
 use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent};
 use compositing::windowing::{KeyEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass};
@@ -35,10 +35,9 @@ use util::geometry::ScreenPx;
 /// The type of a window.
 pub struct Window {
     glfw: glfw::Glfw,
+    glfw_window: RefCell<glfw::Window>,
 
-    glfw_window: glfw::Window,
     events: Receiver<(f64, glfw::WindowEvent)>,
-
     event_queue: RefCell<Vec<WindowEvent>>,
 
     mouse_down_button: Cell<Option<glfw::MouseButton>>,
@@ -68,10 +67,9 @@ impl Window {
         // Create our window object.
         let window = Window {
             glfw: glfw,
+            glfw_window: RefCell::new(glfw_window),
 
-            glfw_window: glfw_window,
             events: events,
-
             event_queue: RefCell::new(vec!()),
 
             mouse_down_button: Cell::new(None),
@@ -84,12 +82,12 @@ impl Window {
         };
 
         // Register event handlers.
-        window.glfw_window.set_framebuffer_size_polling(true);
-        window.glfw_window.set_refresh_polling(true);
-        window.glfw_window.set_key_polling(true);
-        window.glfw_window.set_mouse_button_polling(true);
-        window.glfw_window.set_cursor_pos_polling(true);
-        window.glfw_window.set_scroll_polling(true);
+        window.glfw_window.borrow().set_framebuffer_size_polling(true);
+        window.glfw_window.borrow().set_refresh_polling(true);
+        window.glfw_window.borrow().set_key_polling(true);
+        window.glfw_window.borrow().set_mouse_button_polling(true);
+        window.glfw_window.borrow().set_cursor_pos_polling(true);
+        window.glfw_window.borrow().set_scroll_polling(true);
 
         glfw.set_swap_interval(1);
 
@@ -106,10 +104,10 @@ impl Window {
 
         self.glfw.wait_events();
         for (_, event) in glfw::flush_messages(&self.events) {
-            self.handle_window_event(&self.glfw_window, event);
+            self.handle_window_event(&*self.glfw_window.borrow(), event);
         }
 
-        if self.glfw_window.should_close() {
+        if self.glfw_window.borrow().should_close() {
             QuitWindowEvent
         } else {
             self.event_queue.borrow_mut().remove(0).unwrap_or(IdleWindowEvent)
@@ -119,16 +117,17 @@ impl Window {
     pub unsafe fn set_nested_event_loop_listener(
             &self,
             listener: *mut NestedEventLoopListener + 'static) {
-        self.glfw_window.set_refresh_polling(false);
-        glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.ptr, Some(on_refresh));
-        glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.ptr, Some(on_framebuffer_size));
+        self.glfw_window.borrow().set_refresh_polling(false);
+        glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.borrow().ptr, Some(on_refresh));
+        glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.borrow().ptr,
+                                                  Some(on_framebuffer_size));
         g_nested_event_loop_listener = Some(listener)
     }
 
     pub unsafe fn remove_nested_event_loop_listener(&self) {
-        glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.ptr, None);
-        glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.ptr, None);
-        self.glfw_window.set_refresh_polling(true);
+        glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.borrow().ptr, None);
+        glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.borrow().ptr, None);
+        self.glfw_window.borrow().set_refresh_polling(true);
         g_nested_event_loop_listener = None
     }
 }
@@ -138,19 +137,19 @@ static mut g_nested_event_loop_listener: Option<*mut NestedEventLoopListener + '
 impl WindowMethods for Window {
     /// Returns the size of the window in hardware pixels.
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
-        let (width, height) = self.glfw_window.get_framebuffer_size();
+        let (width, height) = self.glfw_window.borrow().get_framebuffer_size();
         TypedSize2D(width as uint, height as uint)
     }
 
     /// Returns the size of the window in density-independent "px" units.
     fn size(&self) -> TypedSize2D<ScreenPx, f32> {
-        let (width, height) = self.glfw_window.get_size();
+        let (width, height) = self.glfw_window.borrow().get_size();
         TypedSize2D(width as f32, height as f32)
     }
 
     /// Presents the window to the screen (perhaps by page flipping).
     fn present(&self) {
-        self.glfw_window.swap_buffers();
+        self.glfw_window.borrow().swap_buffers();
     }
 
     /// Sets the ready state.
@@ -188,13 +187,17 @@ impl WindowMethods for Window {
         }
     }
 
-    fn create_compositor_channel(_: &Option<Rc<Window>>)
-                                 -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
-        let (sender, receiver) = channel();
-        (box GlfwCompositorProxy {
-             sender: sender,
-         } as Box<CompositorProxy+Send>,
-         box receiver as Box<CompositorReceiver>)
+    fn create_main_thread_proxy(_: &Option<Rc<Window>>, sender: Sender<WindowEvent>)
+                                -> Box<MainThreadProxy + Send> {
+        box GlfwMainThreadProxy {
+            sender: sender,
+        } as Box<MainThreadProxy + Send>
+    }
+
+    fn create_compositor_support(&self) -> Box<CompositorSupport + Send> {
+        box GlfwCompositorSupport {
+            render_context: self.glfw_window.borrow_mut().render_context(),
+        } as Box<CompositorSupport + Send>
     }
 }
 
@@ -271,10 +274,10 @@ impl Window {
 
     /// Helper function to send a scroll event.
     fn scroll_window(&self, dx: f32, dy: f32) {
-        let (x, y) = self.glfw_window.get_cursor_pos();
+        let (x, y) = self.glfw_window.borrow().get_cursor_pos();
         //handle hidpi displays, since GLFW returns non-hi-def coordinates.
-        let (backing_size, _) = self.glfw_window.get_framebuffer_size();
-        let (window_size, _) = self.glfw_window.get_size();
+        let (backing_size, _) = self.glfw_window.borrow().get_framebuffer_size();
+        let (window_size, _) = self.glfw_window.borrow().get_size();
         let hidpi = (backing_size as f32) / (window_size as f32);
         let x = x as f32 * hidpi;
         let y = y as f32 * hidpi;
@@ -293,21 +296,21 @@ impl Window {
 
         match self.ready_state.get() {
             Blank => {
-                self.glfw_window.set_title("blank — Servo [GLFW]")
+                self.glfw_window.borrow().set_title("blank — Servo [GLFW]")
             }
             Loading => {
-                self.glfw_window.set_title("Loading — Servo [GLFW]")
+                self.glfw_window.borrow().set_title("Loading — Servo [GLFW]")
             }
             PerformingLayout => {
-                self.glfw_window.set_title("Performing Layout — Servo [GLFW]")
+                self.glfw_window.borrow().set_title("Performing Layout — Servo [GLFW]")
             }
             FinishedLoading => {
                 match self.paint_state.get() {
                     PaintingPaintState => {
-                        self.glfw_window.set_title("Rendering — Servo [GLFW]")
+                        self.glfw_window.borrow().set_title("Rendering — Servo [GLFW]")
                     }
                     IdlePaintState => {
-                        self.glfw_window.set_title("Servo [GLFW]")
+                        self.glfw_window.borrow().set_title("Servo [GLFW]")
                     }
                 }
             }
@@ -317,7 +320,7 @@ impl Window {
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: glfw::Key, mods: glfw::Modifiers) {
         match key {
-            glfw::KeyEscape => self.glfw_window.set_should_close(true),
+            glfw::KeyEscape => self.glfw_window.borrow().set_should_close(true),
             glfw::KeyEqual if mods.contains(glfw::Control) => { // Ctrl-+
                 self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
             }
@@ -331,11 +334,11 @@ impl Window {
                 self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
             }
             glfw::KeyPageDown => {
-                let (_, height) = self.glfw_window.get_size();
+                let (_, height) = self.glfw_window.borrow().get_size();
                 self.scroll_window(0.0, -height as f32);
             }
             glfw::KeyPageUp => {
-                let (_, height) = self.glfw_window.get_size();
+                let (_, height) = self.glfw_window.borrow().get_size();
                 self.scroll_window(0.0, height as f32);
             }
             _ => {}
@@ -376,20 +379,33 @@ impl Window {
     }
 }
 
-struct GlfwCompositorProxy {
-    sender: Sender<compositor_task::Msg>,
+struct GlfwMainThreadProxy {
+    sender: Sender<WindowEvent>,
 }
 
-impl CompositorProxy for GlfwCompositorProxy {
-    fn send(&mut self, msg: compositor_task::Msg) {
+impl MainThreadProxy for GlfwMainThreadProxy {
+    fn send(&mut self, event: WindowEvent) {
         // Send a message and kick the OS event loop awake.
-        self.sender.send(msg);
+        self.sender.send(event);
         glfw::Glfw::post_empty_event()
     }
-    fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
-        box GlfwCompositorProxy {
+    fn clone_main_thread_proxy(&self) -> Box<MainThreadProxy + Send> {
+        box GlfwMainThreadProxy {
             sender: self.sender.clone(),
-        } as Box<CompositorProxy+Send>
+        } as Box<MainThreadProxy + Send>
+    }
+}
+
+struct GlfwCompositorSupport {
+    render_context: glfw::RenderContext,
+}
+
+impl CompositorSupport for GlfwCompositorSupport {
+    fn initialize(&mut self) {
+        self.render_context.make_current()
+    }
+    fn present(&mut self) {
+        self.render_context.swap_buffers()
     }
 }
 

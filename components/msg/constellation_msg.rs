@@ -31,7 +31,8 @@ pub enum IFrameSandboxState {
     IFrameUnsandboxed
 }
 
-// We pass this info to various tasks, so it lives in a separate, cloneable struct.
+/// Information that is sent when one of the essential threads in a pipeline panics. We pass this
+/// info to various tasks, so it lives in a separate, cloneable struct.
 #[deriving(Clone)]
 pub struct Failure {
     pub pipeline_id: PipelineId,
@@ -199,7 +200,9 @@ pub enum Msg {
     InitLoadUrlMsg(Url),
     LoadCompleteMsg,
     FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
-    LoadUrlMsg(PipelineId, LoadData),
+    /// Requests that the constellation load the given URL in the given pipeline. If the pipeline
+    /// is not specified, defaults to the root pipeline.
+    LoadUrlMsg(Option<PipelineId>, LoadData),
     ScriptLoadedURLInIFrameMsg(Url, PipelineId, SubpageId, IFrameSandboxState),
     NavigateMsg(NavigationDirection),
     PainterReadyMsg(PipelineId),

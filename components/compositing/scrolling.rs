@@ -22,7 +22,7 @@ pub struct ScrollingTimerProxy {
 }
 
 pub struct ScrollingTimer {
-    compositor_proxy: Box<CompositorProxy>,
+    compositor_proxy: CompositorProxy,
     receiver: Receiver<ToScrollingTimerMsg>,
 }
 
@@ -32,7 +32,7 @@ enum ToScrollingTimerMsg {
 }
 
 impl ScrollingTimerProxy {
-    pub fn new(compositor_proxy: Box<CompositorProxy+Send>) -> ScrollingTimerProxy {
+    pub fn new(compositor_proxy: CompositorProxy) -> ScrollingTimerProxy {
         let (to_scrolling_timer_sender, to_scrolling_timer_receiver) = channel();
         TaskBuilder::new().native().spawn(proc() {
             let mut scrolling_timer = ScrollingTimer {

@@ -99,7 +99,7 @@ impl PaintChan {
 pub struct PaintTask<C> {
     id: PipelineId,
     port: Receiver<Msg>,
-    compositor: C,
+    compositor: Option<C>,
     constellation_chan: ConstellationChan,
 
     /// A channel to the time profiler.
@@ -170,7 +170,7 @@ fn initialize_layers<C>(compositor: &mut C,
 impl<C> PaintTask<C> where C: PaintListener + Send {
     pub fn create(id: PipelineId,
                   port: Receiver<Msg>,
-                  compositor: C,
+                  mut compositor: Option<C>,
                   constellation_chan: ConstellationChan,
                   font_cache_task: FontCacheTask,
                   failure_msg: Failure,
@@ -181,10 +181,14 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
             {
                 // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.
-                let mut compositor = compositor;
-                let native_graphics_context = compositor.get_graphics_metadata().map(
-                    |md| NativePaintingGraphicsContext::from_metadata(&md));
-                let worker_threads = WorkerThreadProxy::spawn(compositor.get_graphics_metadata(),
+                let graphics_metadata = match compositor {
+                    None => None,
+                    Some(ref mut compositor) => compositor.get_graphics_metadata(),
+                };
+                let native_graphics_context = graphics_metadata.map(|metadata| {
+                    NativePaintingGraphicsContext::from_metadata(&metadata)
+                });
+                let worker_threads = WorkerThreadProxy::spawn(graphics_metadata,
                                                               font_cache_task,
                                                               time_profiler_chan.clone());
 
@@ -238,22 +242,33 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                         continue;
                     }
 
-                    initialize_layers(&mut self.compositor,
-                                      self.id,
-                                      self.epoch,
-                                      &*stacking_context);
+                    match self.compositor {
+                        None => {}
+                        Some(ref mut compositor) => {
+                            initialize_layers(compositor, self.id, self.epoch, &*stacking_context)
+                        }
+                    }
                 }
                 PaintMsg(requests) => {
                     if !self.paint_permission {
                         debug!("paint_task: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(PainterReadyMsg(self.id));
-                        self.compositor.paint_msg_discarded();
+                        match self.compositor {
+                            None => {}
+                            Some(ref mut compositor) => compositor.render_msg_discarded(),
+                        }
                         continue;
                     }
 
                     let mut replies = Vec::new();
-                    self.compositor.set_paint_state(self.id, PaintingPaintState);
+                    match self.compositor {
+                        None => {}
+                        Some(ref mut compositor) => {
+                            compositor.set_paint_state(self.id, PaintingRenderState)
+                        }
+                    }
+
                     for PaintRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.into_iter() {
                         if self.epoch == epoch {
@@ -263,10 +278,14 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                         }
                     }
 
-                    self.compositor.set_paint_state(self.id, IdlePaintState);
-
                     debug!("paint_task: returning surfaces");
-                    self.compositor.paint(self.id, self.epoch, replies);
+                    match self.compositor {
+                        None => {}
+                        Some(ref mut compositor) => {
+                            compositor.set_render_state(self.id, IdlePaintState);
+                            compositor.paint(self.id, self.epoch, replies);
+                        }
+                    }
                 }
                 UnusedBufferMsg(unused_buffers) => {
                     for buffer in unused_buffers.into_iter().rev() {
@@ -280,10 +299,15 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                         None => {}
                         Some(ref stacking_context) => {
                             self.epoch.next();
-                            initialize_layers(&mut self.compositor,
-                                              self.id,
-                                              self.epoch,
-                                              &**stacking_context);
+                            match self.compositor {
+                                None => {}
+                                Some(ref mut compositor) => {
+                                    initialize_layers(compositor,
+                                                      self.id,
+                                                      self.epoch,
+                                                      &**stacking_context)
+                                }
+                            }
                         }
                     }
                 }

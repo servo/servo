@@ -30,7 +30,9 @@ use servo_util::rtinstrument;
 #[cfg(not(any(test,target_os="android")))]
 use servo::Browser;
 #[cfg(not(any(test,target_os="android")))]
-use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, WindowEvent};
+use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, SynchronousRepaintWindowEvent};
+#[cfg(not(any(test,target_os="android")))]
+use compositing::windowing::{WindowEvent};
 
 #[cfg(not(any(test,target_os="android")))]
 use std::os;
@@ -66,15 +68,18 @@ fn start(argc: int, argv: *const *const u8) -> int {
             }
 
             loop {
-                let should_continue = match window {
-                    None => browser.browser.handle_event(IdleWindowEvent),
+                match window {
+                    None => {
+                        if !browser.browser.send_event(IdleWindowEvent) {
+                            break
+                        }
+                    }
                     Some(ref window) => {
                         let event = window.wait_events();
-                        browser.browser.handle_event(event)
+                        if !browser.browser.send_event(event) {
+                            break
+                        }
                     }
-                };
-                if !should_continue {
-                    break
                 }
             }
 
@@ -86,11 +91,6 @@ fn start(argc: int, argv: *const *const u8) -> int {
                     }
                 }
             }
-
-            let BrowserWrapper {
-                browser
-            } = browser;
-            browser.shutdown();
 
             rtinstrument::teardown();
         }
@@ -104,11 +104,9 @@ impl app::NestedEventLoopListener for BrowserWrapper {
             ResizeWindowEvent(..) => true,
             _ => false,
         };
-        if !self.browser.handle_event(event) {
-            return false
-        }
+        self.browser.send_event(event);
         if is_resize {
-            self.browser.repaint_synchronously()
+            return self.browser.send_event(SynchronousRepaintWindowEvent)
         }
         true
     }
