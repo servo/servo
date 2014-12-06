@@ -413,7 +413,7 @@ impl Document {
             // http://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(NoQuirks),
             // http://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: DOMRefCell::new("utf-8".to_string()),
+            encoding_name: DOMRefCell::new("UTF-8".to_string()),
             is_html_document: is_html_document == HTMLDocument,
             images: Default::default(),
             embeds: Default::default(),
@@ -506,7 +506,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
     // http://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(self) -> DOMString {
-        self.encoding_name.borrow().as_slice().to_ascii_lower()
+        self.encoding_name.borrow().clone()
     }
 
     // http://dom.spec.whatwg.org/#dom-document-content_type
