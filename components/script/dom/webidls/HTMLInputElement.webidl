@@ -21,7 +21,7 @@ interface HTMLInputElement : HTMLElement {
   //         attribute boolean formNoValidate;
              attribute DOMString formTarget;
   //         attribute unsigned long height;
-  //         attribute boolean indeterminate;
+             attribute boolean indeterminate;
   //         attribute DOMString inputMode;
   //readonly attribute HTMLElement? list;
   //         attribute DOMString max;
@@ -32,7 +32,7 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString name;
   //         attribute DOMString pattern;
   //         attribute DOMString placeholder;
-  //         attribute boolean readOnly;
+           attribute boolean readOnly;
   //         attribute boolean required;
            attribute unsigned long size;
   //         attribute DOMString src;

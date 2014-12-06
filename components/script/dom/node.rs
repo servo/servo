@@ -50,7 +50,7 @@ use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
-use style::{parse_selector_list_from_str, matches};
+use style::{parse_selector_list_from_str, matches, SelectorList};
 
 use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
@@ -124,7 +124,7 @@ impl NodeDerived for EventTarget {
 bitflags! {
     #[doc = "Flags for node items."]
     #[jstraceable]
-    flags NodeFlags: u8 {
+    flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
         #[doc = "Specifies whether this node is in hover state."]
@@ -143,6 +143,12 @@ bitflags! {
         #[doc = "Specifies whether this node has descendants (inclusive of itself) which \
                  have changed since the last reflow."]
         const HAS_DIRTY_DESCENDANTS = 0x80,
+        // TODO: find a better place to keep this (#4105)
+        // https://critic.hoppipolla.co.uk/showcomment?chain=8873
+        // Perhaps using a Set in Document?
+        #[doc = "Specifies whether or not there is an authentic click in progress on \
+                 this element."]
+        const CLICK_IN_PROGRESS = 0x100,
     }
 }
 
@@ -377,6 +383,29 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     }
 }
 
+pub struct QuerySelectorIterator<'a> {
+    selectors: SelectorList,
+    iterator: TreeIterator<'a>,
+}
+
+impl<'a> QuerySelectorIterator<'a> {
+    unsafe fn new(iter: TreeIterator<'a>, selectors: SelectorList) -> QuerySelectorIterator<'a> {
+        QuerySelectorIterator {
+            selectors: selectors,
+            iterator: iter,
+        }
+    }
+}
+
+impl<'a> Iterator<JSRef<'a, Node>> for QuerySelectorIterator<'a> {
+    fn next(&mut self) -> Option<JSRef<'a, Node>> {
+        let selectors = &self.selectors;
+        // TODO(cgaebel): Is it worth it to build a bloom filter here
+        // (instead of passing `None`)? Probably.
+        self.iterator.find(|node| node.is_element() && matches(selectors, node, &mut None))
+    }
+}
+
 pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator<'a>;
     fn children(self) -> NodeChildrenIterator<'a>;
@@ -449,6 +478,7 @@ pub trait NodeHelpers<'a> {
     fn get_content_boxes(self) -> Vec<Rect<Au>>;
 
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>>;
+    unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator<'a>>;
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>>;
 
     fn remove_self(self);
@@ -719,8 +749,10 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         Ok(None)
     }
 
-    // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
-    fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
+    /// Get an iterator over all nodes which match a set of selectors
+    /// Be careful not to do anything which may manipulate the DOM tree whilst iterating, otherwise
+    /// the iterator may be invalidated
+    unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator<'a>> {
         // Step 1.
         let nodes;
         let root = self.ancestors().last().unwrap_or(self.clone());
@@ -728,16 +760,24 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
-            Ok(ref selectors) => {
-                nodes = root.traverse_preorder().filter(
-                    // TODO(cgaebel): Is it worth it to build a bloom filter here
-                    // (instead of passing `None`)? Probably.
-                    |node| node.is_element() && matches(selectors, node, &mut None)).collect()
+            Ok(selectors) => {
+                nodes = QuerySelectorIterator::new(root.traverse_preorder(), selectors);
             }
-        }
-        let window = window_from_node(self).root();
-        Ok(NodeList::new_simple_list(*window, nodes))
+        };
+        Ok(nodes)
     }
+
+    // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
+        // Step 1.
+        unsafe {
+            self.query_selector_iter(selectors).map(|mut iter| {
+                let window = window_from_node(self).root();
+                NodeList::new_simple_list(*window, iter.collect())
+            })
+        }
+    }
+
 
     fn ancestors(self) -> AncestorIterator<'a> {
         AncestorIterator {

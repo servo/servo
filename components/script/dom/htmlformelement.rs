@@ -15,7 +15,7 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, HTMLFormElementTypeId, HTMLTextAreaElementTypeId, HTMLDataListElementTypeId};
 use dom::element::{HTMLInputElementTypeId, HTMLButtonElementTypeId, HTMLObjectElementTypeId, HTMLSelectElementTypeId};
-use dom::event::{Event, Bubbles, Cancelable};
+use dom::event::{Event, EventHelpers, Bubbles, Cancelable};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlinputelement::HTMLInputElement;
@@ -142,6 +142,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         let event = Event::new(Window(*win),
                                "submit".to_string(),
                                Bubbles, Cancelable).root();
+        event.set_trusted(true);
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         target.DispatchEvent(*event).ok();
         if event.DefaultPrevented() {
@@ -410,7 +411,7 @@ impl<'a> FormSubmitter<'a> {
     }
 }
 
-pub trait FormOwner<'a> : Copy {
+pub trait FormControl<'a> : Copy {
     fn form_owner(self) -> Option<Temporary<HTMLFormElement>>;
     fn get_form_attribute(self,
                           attr: &Atom,
@@ -423,4 +424,6 @@ pub trait FormOwner<'a> : Copy {
         }
     }
     fn to_element(self) -> JSRef<'a, Element>;
+    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
+    fn mutable(self) -> bool;
 }
