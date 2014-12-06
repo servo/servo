@@ -639,7 +639,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             Some(attribute) => {
                 match *attribute.value() {
                     UIntAttrValue(_, value) => value,
-                    _ => panic!("Expected a UIntAttrValue"),
+                    _ => panic!("Expected a UIntAttrValue: \
+                                 implement parse_plain_attribute"),
                 }
             }
             None => 0,
