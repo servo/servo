@@ -693,20 +693,17 @@ impl ScriptTask {
             message for a layout channel that is not associated with this script task. This
             is a bug.");
 
-        let last_loaded_url = replace(&mut *page.mut_url(), None);
-        match last_loaded_url {
-            Some((ref loaded, needs_reflow)) if *loaded == url => {
-                *page.mut_url() = Some((loaded.clone(), false));
-                if needs_reflow {
+        let last_url = match &mut *page.mut_url() {
+            &Some((ref mut loaded, ref mut needs_reflow)) if *loaded == url => {
+                if replace(needs_reflow, false) {
                     self.force_reflow(&*page);
                 }
                 return;
             },
-            _ => (),
-        }
+            url => replace(url, None).map(|(loaded, _)| loaded),
+        };
 
         let is_javascript = url.scheme.as_slice() == "javascript";
-        let last_url = last_loaded_url.map(|(ref loaded, _)| loaded.clone());
 
         let cx = self.js_context.borrow();
         let cx = cx.as_ref().unwrap();
