@@ -966,7 +966,6 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.ready_state.get()
     }
 
-    event_handler!(click, GetOnclick, SetOnclick)
-    event_handler!(load, GetOnload, SetOnload)
+    global_event_handlers!()
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange)
 }

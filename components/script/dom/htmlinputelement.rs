@@ -2,28 +2,31 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::activation::Activatable;
 use dom::attr::{Attr, AttrValue, UIntAttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFormElementCast, HTMLInputElementCast, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, ResultRootable};
+use dom::bindings::global::Window;
+use dom::bindings::js::{Comparable, JS, JSRef, Root, Temporary, OptionalRootable};
+use dom::bindings::js::{ResultRootable, RootedReference, MutNullableJS};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
-use dom::element::RawLayoutElementHelpers;
-use dom::event::Event;
+use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
+use dom::event::{Event, Bubbles, NotCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::keyboardevent::KeyboardEvent;
-use dom::htmlformelement::{InputElement, FormOwner, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
+use dom::htmlformelement::{InputElement, FormControl, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use textinput::{Single, TextInput, TriggerDefaultAction, DispatchInput, Nothing};
@@ -33,6 +36,7 @@ use string_cache::Atom;
 
 use std::ascii::OwnedAsciiExt;
 use std::cell::Cell;
+use std::default::Default;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -41,7 +45,9 @@ const DEFAULT_RESET_VALUE: &'static str = "Reset";
 #[deriving(PartialEq)]
 #[allow(dead_code)]
 enum InputType {
-    InputButton(Option<&'static str>),
+    InputSubmit,
+    InputReset,
+    InputButton,
     InputText,
     InputFile,
     InputImage,
@@ -55,8 +61,34 @@ pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
     checked: Cell<bool>,
+    indeterminate: Cell<bool>,
     size: Cell<u32>,
     textinput: DOMRefCell<TextInput>,
+    activation_state: DOMRefCell<InputActivationState>,
+}
+
+#[jstraceable]
+#[must_root]
+struct InputActivationState {
+    indeterminate: bool,
+    checked: bool,
+    checked_radio: MutNullableJS<HTMLInputElement>,
+    // In case mutability changed
+    was_mutable: bool,
+    // In case the type changed
+    old_type: InputType,
+}
+
+impl InputActivationState {
+    fn new() -> InputActivationState {
+        InputActivationState {
+            indeterminate: false,
+            checked: false,
+            checked_radio: Default::default(),
+            was_mutable: false,
+            old_type: InputText
+        }
+    }
 }
 
 impl HTMLInputElementDerived for EventTarget {
@@ -73,8 +105,10 @@ impl HTMLInputElement {
             htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, prefix, document),
             input_type: Cell::new(InputText),
             checked: Cell::new(false),
+            indeterminate: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
             textinput: DOMRefCell::new(TextInput::new(Single, "".to_string())),
+            activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }
 
@@ -110,9 +144,9 @@ impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
         match (*self.unsafe_get()).input_type.get() {
             InputCheckbox | InputRadio => "".to_string(),
             InputFile | InputImage => "".to_string(),
-            InputButton(ref default) => get_raw_attr_value(self)
-                                          .or_else(|| default.map(|v| v.to_string()))
-                                          .unwrap_or_else(|| "".to_string()),
+            InputButton => get_raw_attr_value(self).unwrap_or_else(|| "".to_string()),
+            InputSubmit => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_SUBMIT_VALUE.to_string()),
+            InputReset => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_RESET_VALUE.to_string()),
             InputPassword => {
                 let raw = get_raw_textinput_value(self);
                 String::from_char(raw.char_len(), '●')
@@ -148,6 +182,12 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
     make_bool_setter!(SetChecked, "checked")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-readonly
+    make_bool_getter!(ReadOnly)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-readonly
+    make_bool_setter!(SetReadOnly, "readonly")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-size
     make_uint_getter!(Size)
@@ -194,7 +234,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_setter!(SetFormEnctype, "formenctype")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
-        make_enumerated_getter!(FormMethod, "get", "post" | "dialog")
+    make_enumerated_getter!(FormMethod, "get", "post" | "dialog")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
     make_setter!(SetFormMethod, "formmethod")
@@ -204,34 +244,59 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formtarget
     make_setter!(SetFormTarget, "formtarget")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-indeterminate
+    fn Indeterminate(self) -> bool {
+        self.indeterminate.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-indeterminate
+    fn SetIndeterminate(self, val: bool) {
+        // FIXME #4079 this should change the appearance
+        self.indeterminate.set(val)
+    }
 }
 
 pub trait HTMLInputElementHelpers {
     fn force_relayout(self);
     fn radio_group_updated(self, group: Option<&str>);
-    fn get_radio_group(self) -> Option<String>;
+    fn get_radio_group_name(self) -> Option<String>;
     fn update_checked_state(self, checked: bool);
     fn get_size(&self) -> u32;
 }
 
 fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&str>) {
     //TODO: if not in document, use root ancestor instead of document
+    let owner = broadcaster.form_owner().root();
     let doc = document_from_node(broadcaster).root();
-    let radios = doc.QuerySelectorAll("input[type=\"radio\"]".to_string()).unwrap().root();
-    let mut i = 0;
-    while i < radios.Length() {
-        let node = radios.Item(i).unwrap().root();
-        let radio: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(*node).unwrap();
-        if radio != broadcaster {
-            //TODO: determine form owner
-            let other_group = radio.get_radio_group();
-            //TODO: ensure compatibility caseless match (https://html.spec.whatwg.org/multipage/infrastructure.html#compatibility-caseless)
-            let group_matches = other_group.as_ref().map(|group| group.as_slice()) == group.as_ref().map(|&group| &*group);
-            if group_matches && radio.Checked() {
-                radio.SetChecked(false);
-            }
+    let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
+
+    // There is no DOM tree manipulation here, so this is safe
+    let mut iter = unsafe {
+        doc_node.query_selector_iter("input[type=radio]".to_string()).unwrap()
+                .filter_map(|t| HTMLInputElementCast::to_ref(t))
+                .filter(|&r| in_same_group(r, owner.root_ref(), group) && broadcaster != r)
+    };
+    for r in iter {
+        if r.Checked() {
+            r.SetChecked(false);
         }
-        i += 1;
+    }
+}
+
+fn in_same_group<'a,'b>(other: JSRef<'a, HTMLInputElement>,
+                        owner: Option<JSRef<'b, HTMLFormElement>>,
+                        group: Option<&str>) -> bool {
+    let other_owner = other.form_owner().root();
+    let other_owner = other_owner.root_ref();
+    other.input_type.get() == InputRadio &&
+    // TODO Both a and b are in the same home subtree.
+    other_owner.equals(owner) &&
+    // TODO should be a unicode compatibility caseless match
+    match (other.get_radio_group_name(), group) {
+        (Some(ref s1), Some(s2)) => s1.as_slice() == s2,
+        (None, None) => true,
+        _ => false
     }
 }
 
@@ -248,8 +313,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#radio-button-group
-    fn get_radio_group(self) -> Option<String> {
+    fn get_radio_group_name(self) -> Option<String> {
         //TODO: determine form owner
         let elem: JSRef<Element> = ElementCast::from_ref(self);
         elem.get_attribute(ns!(""), &atom!("name"))
@@ -261,7 +325,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
         self.checked.set(checked);
         if self.input_type.get() == InputRadio && checked {
             broadcast_radio_checked(self,
-                                    self.get_radio_group()
+                                    self.get_radio_group_name()
                                         .as_ref()
                                         .map(|group| group.as_slice()));
         }
@@ -305,9 +369,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             &atom!("type") => {
                 let value = attr.value();
                 self.input_type.set(match value.as_slice() {
-                    "button" => InputButton(None),
-                    "submit" => InputButton(Some(DEFAULT_SUBMIT_VALUE)),
-                    "reset" => InputButton(Some(DEFAULT_RESET_VALUE)),
+                    "button" => InputButton,
+                    "submit" => InputSubmit,
+                    "reset" => InputReset,
                     "file" => InputFile,
                     "radio" => InputRadio,
                     "checkbox" => InputCheckbox,
@@ -315,7 +379,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                     _ => InputText,
                 });
                 if self.input_type.get() == InputRadio {
-                    self.radio_group_updated(self.get_radio_group()
+                    self.radio_group_updated(self.get_radio_group_name()
                                                  .as_ref()
                                                  .map(|group| group.as_slice()));
                 }
@@ -358,7 +422,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             &atom!("type") => {
                 if self.input_type.get() == InputRadio {
                     broadcast_radio_checked(*self,
-                                            self.get_radio_group()
+                                            self.get_radio_group_name()
                                                 .as_ref()
                                                 .map(|group| group.as_slice()));
                 }
@@ -419,15 +483,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 
         if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
             match self.input_type.get() {
-                InputCheckbox => self.SetChecked(!self.checked.get()),
                 InputRadio => self.SetChecked(true),
-                InputButton(Some(DEFAULT_SUBMIT_VALUE)) => {
-                    self.form_owner().map(|o| {
-                        o.root().submit(NotFromFormSubmitMethod, InputElement(self.clone()))
-                    });
-                }
                 _ => {}
             }
+
+            // TODO: Dispatch events for non activatable inputs
+            // https://html.spec.whatwg.org/multipage/forms.html#common-input-element-events
 
             //TODO: set the editing position for text inputs
 
@@ -455,7 +516,7 @@ impl Reflectable for HTMLInputElement {
     }
 }
 
-impl<'a> FormOwner<'a> for JSRef<'a, HTMLInputElement> {
+impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
     // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
     //        but we need html5ever to do it correctly
     fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
@@ -482,5 +543,169 @@ impl<'a> FormOwner<'a> for JSRef<'a, HTMLInputElement> {
 
     fn to_element(self) -> JSRef<'a, Element> {
         ElementCast::from_ref(self)
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
+    fn mutable(self) -> bool {
+        // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-fe-mutable
+        // https://html.spec.whatwg.org/multipage/forms.html#the-readonly-attribute:concept-fe-mutable
+        !(self.Disabled() || self.ReadOnly())
+    }
+}
+
+
+impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
+    fn as_element(&self) -> Temporary<Element> {
+        Temporary::from_rooted(ElementCast::from_ref(*self))
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
+    fn pre_click_activation(&self) {
+        let mut cache = self.activation_state.borrow_mut();
+        let ty = self.input_type.get();
+        cache.old_type = ty;
+        cache.was_mutable = self.mutable();
+        if cache.was_mutable {
+            match ty {
+                // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
+                // InputSubmit => (), // No behavior defined
+                InputCheckbox => {
+                    // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):pre-click-activation-steps
+                    // cache current values of `checked` and `indeterminate`
+                    // we may need to restore them later
+                    cache.indeterminate = self.Indeterminate();
+                    cache.checked = self.Checked();
+                    self.SetIndeterminate(false);
+                    self.SetChecked(!cache.checked);
+                },
+                // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):pre-click-activation-steps
+                InputRadio => {
+                    //TODO: if not in document, use root ancestor instead of document
+                    let owner = self.form_owner().root();
+                    let doc = document_from_node(*self).root();
+                    let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
+                    let group = self.get_radio_group_name();;
+
+                    // Safe since we only manipulate the DOM tree after finding an element
+                    let checked_member = unsafe {
+                        doc_node.query_selector_iter("input[type=radio]".to_string()).unwrap()
+                                .filter_map(|t| HTMLInputElementCast::to_ref(t))
+                                .filter(|&r| in_same_group(r, owner.root_ref(),
+                                                           group.as_ref().map(|gr| gr.as_slice())))
+                                .find(|r| r.Checked())
+                    };
+                    cache.checked_radio.assign(checked_member);
+                    self.SetChecked(true);
+                }
+                _ => ()
+            }
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-canceled-activation-steps
+    fn canceled_activation(&self) {
+        let cache = self.activation_state.borrow();
+        let ty = self.input_type.get();
+        if cache.old_type != ty  {
+            // Type changed, abandon ship
+            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414
+            return;
+        }
+        match ty {
+            // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
+            // InputSubmit => (), // No behavior defined
+            // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):canceled-activation-steps
+            InputCheckbox => {
+                // We want to restore state only if the element had been changed in the first place
+                if cache.was_mutable {
+                    self.SetIndeterminate(cache.indeterminate);
+                    self.SetChecked(cache.checked);
+                }
+            },
+            // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):canceled-activation-steps
+            InputRadio => {
+                // We want to restore state only if the element had been changed in the first place
+                if cache.was_mutable {
+                    let old_checked: Option<Root<HTMLInputElement>> = cache.checked_radio.get().root();
+                    let name = self.get_radio_group_name();
+                    match old_checked {
+                        Some(o) => {
+                            // Avoiding iterating through the whole tree here, instead
+                            // we can check if the conditions for radio group siblings apply
+                            if name == o.get_radio_group_name() && // TODO should be compatibility caseless
+                               self.form_owner() == o.form_owner() &&
+                               // TODO Both a and b are in the same home subtree
+                               o.input_type.get() == InputRadio {
+                                    o.SetChecked(true);
+                            } else {
+                                self.SetChecked(false);
+                            }
+                        },
+                        None => self.SetChecked(false)
+                    };
+                }
+            }
+            _ => ()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
+    fn activation_behavior(&self) {
+        let ty = self.input_type.get();
+        if self.activation_state.borrow().old_type != ty {
+            // Type changed, abandon ship
+            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414
+            return;
+        }
+        match ty {
+            InputSubmit => {
+                // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
+                // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
+                if self.mutable() /* and document owner is fully active */ {
+                    self.form_owner().map(|o| {
+                        o.root().submit(NotFromFormSubmitMethod, InputElement(self.clone()))
+                    });
+                }
+            },
+            InputCheckbox | InputRadio => {
+                // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):activation-behavior
+                // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):activation-behavior
+                if self.mutable() {
+                    let win = window_from_node(*self).root();
+                    let event = Event::new(Window(*win),
+                                           "input".to_string(),
+                                           Bubbles, NotCancelable).root();
+                    event.set_trusted(true);
+                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+                    target.DispatchEvent(*event).ok();
+
+                    let event = Event::new(Window(*win),
+                                           "change".to_string(),
+                                           Bubbles, NotCancelable).root();
+                    event.set_trusted(true);
+                    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
+                    target.DispatchEvent(*event).ok();
+                }
+            },
+            _ => ()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
+    fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
+        let doc = document_from_node(*self).root();
+        let node: JSRef<Node> = NodeCast::from_ref(*doc);
+        let owner = self.form_owner();
+        if owner.is_none() || ElementCast::from_ref(*self).click_in_progress() {
+            return;
+        }
+        // This is safe because we are stopping after finding the first element
+        // and only then performing actions which may modify the DOM tree
+        unsafe {
+            node.query_selector_iter("input[type=submit]".to_string()).unwrap()
+                .filter_map(|t| HTMLInputElementCast::to_ref(t))
+                .find(|r| r.form_owner() == owner)
+                .map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+        }
     }
 }

@@ -82,6 +82,7 @@ pub mod dom {
     #[path="bindings/codegen/InterfaceTypes.rs"]
     pub mod types;
 
+    pub mod activation;
     pub mod attr;
     pub mod blob;
     pub mod browsercontext;

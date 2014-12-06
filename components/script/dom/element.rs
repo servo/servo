@@ -4,6 +4,7 @@
 
 //! Element nodes.
 
+use dom::activation::Activatable;
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpers, AttrHelpersForLayout};
 use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
 use dom::namednodemap::NamedNodeMap;
@@ -11,9 +12,10 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
-use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLInputElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLInputElementDerived, HTMLTableCellElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, NodeCast, EventTargetCast, ElementCast};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalSettable, OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -24,12 +26,13 @@ use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
 use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::event::Event;
+use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
 use dom::htmlserializer::serialize;
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
-use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node};
+use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node, CLICK_IN_PROGRESS};
 use dom::node::{window_from_node, LayoutNodeHelpers};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -1182,5 +1185,94 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
                 }
             }
         }
+    }
+}
+
+pub trait ActivationElementHelpers<'a> {
+    fn as_maybe_activatable(&'a self) -> Option<&'a Activatable + 'a>;
+    fn click_in_progress(self) -> bool;
+    fn set_click_in_progress(self, click: bool);
+    fn nearest_activable_element(self) -> Option<Temporary<Element>>;
+    fn authentic_click_activation<'b>(self, event: JSRef<'b, Event>);
+}
+
+impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
+    fn as_maybe_activatable(&'a self) -> Option<&'a Activatable + 'a> {
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        match node.type_id() {
+            ElementNodeTypeId(HTMLInputElementTypeId) => {
+                let element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
+                Some(element as &'a Activatable + 'a)
+            },
+            _ => {
+                None
+            }
+        }
+    }
+
+    fn click_in_progress(self) -> bool {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.get_flag(CLICK_IN_PROGRESS)
+    }
+
+    fn set_click_in_progress(self, click: bool) {
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        node.set_flag(CLICK_IN_PROGRESS, click)
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#nearest-activatable-element
+    fn nearest_activable_element(self) -> Option<Temporary<Element>> {
+        match self.as_maybe_activatable() {
+            Some(el) => Some(Temporary::from_rooted(*el.as_element().root())),
+            None => {
+                let node: JSRef<Node> = NodeCast::from_ref(self);
+                node.ancestors()
+                    .filter_map(|node| ElementCast::to_ref(node))
+                    .filter(|e| e.as_maybe_activatable().is_some()).next()
+                    .map(|r| Temporary::from_rooted(r))
+            }
+        }
+    }
+
+    /// Please call this method *only* for real click events
+    ///
+    /// https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
+    ///
+    /// Use an element's synthetic click activation (or handle_event) for any script-triggered clicks.
+    /// If the spec says otherwise, check with Manishearth first
+    fn authentic_click_activation<'b>(self, event: JSRef<'b, Event>) {
+        // Not explicitly part of the spec, however this helps enforce the invariants
+        // required to save state between pre-activation and post-activation
+        // since we cannot nest authentic clicks (unlike synthetic click activation, where
+        // the script can generate more click events from the handler)
+        assert!(!self.click_in_progress());
+
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        // Step 2 (requires canvas support)
+        // Step 3
+        self.set_click_in_progress(true);
+        // Step 4
+        let e = self.nearest_activable_element().root();
+        match e {
+            Some(el) => match el.as_maybe_activatable() {
+                Some(elem) => {
+                    // Step 5-6
+                    elem.pre_click_activation();
+                    target.dispatch_event_with_target(None, event).ok();
+                    if !event.DefaultPrevented() {
+                        // post click activation
+                        elem.activation_behavior();
+                    } else {
+                        elem.canceled_activation();
+                    }
+                }
+                // Step 6
+                None => {target.dispatch_event_with_target(None, event).ok();}
+            },
+            // Step 6
+            None => {target.dispatch_event_with_target(None, event).ok();}
+        }
+        // Step 7
+        self.set_click_in_progress(false);
     }
 }

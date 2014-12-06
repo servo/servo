@@ -7,14 +7,15 @@ use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::HTMLElementBinding;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId, ElementTypeId_, HTMLElementTypeId};
+use dom::element::{Element, ElementTypeId, ElementTypeId_, HTMLElementTypeId, ActivationElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, NodeTargetTypeId};
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -74,7 +75,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     make_bool_getter!(Hidden)
     make_bool_setter!(SetHidden, "hidden")
 
-    event_handler!(click, GetOnclick, SetOnclick)
+    global_event_handlers!(NoOnload)
 
     fn GetOnload(self) -> Option<EventHandlerNonNull> {
         if self.is_body_or_frameset() {
@@ -90,6 +91,18 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
             let win = window_from_node(self).root();
             win.SetOnload(listener)
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#dom-click
+    fn Click(self) {
+        let maybe_input = HTMLInputElementCast::to_ref(self);
+        match maybe_input {
+            Some(i) if i.Disabled() => return,
+            _ => ()
+        }
+        let element: JSRef<Element> = ElementCast::from_ref(self);
+        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
+        element.as_maybe_activatable().map(|a| a.synthetic_click_activation(false, false, false, false));
     }
 }
 
