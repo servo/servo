@@ -1253,7 +1253,7 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
         // Step 4
         let e = self.nearest_activable_element().root();
         match e {
-            Some (el) => match el.as_maybe_activatable() {
+            Some(el) => match el.as_maybe_activatable() {
                 Some(elem) => {
                     // Step 5-6
                     elem.pre_click_activation();

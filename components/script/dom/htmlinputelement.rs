@@ -16,7 +16,8 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFor
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::Window;
-use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable, ResultRootable, MutNullableJS};
+use dom::bindings::js::{Comparable, JS, JSRef, Root, Temporary, OptionalRootable};
+use dom::bindings::js::{ResultRootable, RootedReference, MutNullableJS};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
@@ -260,16 +261,13 @@ pub trait HTMLInputElementHelpers {
     fn force_relayout(self);
     fn radio_group_updated(self, group: Option<&str>);
     fn get_radio_group_name(self) -> Option<String>;
-    fn in_same_group<'a,'b>(self, other: JSRef<'a, HTMLInputElement>,
-                            owner: Option<JSRef<'b, HTMLFormElement>>,
-                            group: Option<&str>) -> bool;
     fn update_checked_state(self, checked: bool);
     fn get_size(&self) -> u32;
 }
 
 fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&str>) {
     //TODO: if not in document, use root ancestor instead of document
-    let owner = broadcaster.form_owner().root().map(|r| *r);
+    let owner = broadcaster.form_owner().root();
     let doc = document_from_node(broadcaster).root();
     let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
 
@@ -277,12 +275,28 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
     let mut iter = unsafe {
         doc_node.query_selector_iter("input[type=radio]".to_string()).unwrap()
                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
-                .filter(|&r| broadcaster.in_same_group(r, owner, group) && broadcaster != r)
+                .filter(|&r| in_same_group(r, owner.root_ref(), group) && broadcaster != r)
     };
     for r in iter {
         if r.Checked() {
             r.SetChecked(false);
         }
+    }
+}
+
+fn in_same_group<'a,'b>(other: JSRef<'a, HTMLInputElement>,
+                        owner: Option<JSRef<'b, HTMLFormElement>>,
+                        group: Option<&str>) -> bool {
+    let other_owner = other.form_owner().root();
+    let other_owner = other_owner.root_ref();
+    other.input_type.get() == InputRadio &&
+    // TODO Both a and b are in the same home subtree.
+    other_owner.equals(owner) &&
+    // TODO should be a unicode compatibility caseless match
+    match (other.get_radio_group_name(), group) {
+        (Some(ref s1), Some(s2)) => s1.as_slice() == s2,
+        (None, None) => true,
+        _ => false
     }
 }
 
@@ -305,21 +319,6 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
         elem.get_attribute(ns!(""), &atom!("name"))
             .root()
             .map(|name| name.Value())
-    }
-
-    fn in_same_group<'a,'b>(self, other: JSRef<'a, HTMLInputElement>,
-                            owner: Option<JSRef<'b, HTMLFormElement>>,
-                            group: Option<&str>) -> bool {
-        let other_owner: Option<JSRef<_>> = other.form_owner().root().map(|r| *r);
-        other.input_type.get() == InputRadio &&
-        // TODO Both a and b are in the same home subtree.
-        other_owner == owner &&
-        // TODO should be a unicode compatibility caseless match
-        match (other.get_radio_group_name(), group) {
-            (Some(ref s1), Some(s2)) => s1.as_slice() == s2,
-            (None, None) => true,
-            _ => false
-        }
     }
 
     fn update_checked_state(self, checked: bool) {
@@ -582,7 +581,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):pre-click-activation-steps
                 InputRadio => {
                     //TODO: if not in document, use root ancestor instead of document
-                    let owner = self.form_owner().root().map(|r| *r);
+                    let owner = self.form_owner().root();
                     let doc = document_from_node(*self).root();
                     let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
                     let group = self.get_radio_group_name();;
@@ -591,8 +590,8 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     let checked_member = unsafe {
                         doc_node.query_selector_iter("input[type=radio]".to_string()).unwrap()
                                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
-                                .filter(|&r| self.in_same_group(r, owner,
-                                                                group.as_ref().map(|gr| gr.as_slice())))
+                                .filter(|&r| in_same_group(r, owner.root_ref(),
+                                                           group.as_ref().map(|gr| gr.as_slice())))
                                 .find(|r| r.Checked())
                     };
                     cache.checked_radio.assign(checked_member);
@@ -673,16 +672,16 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):activation-behavior
                 if self.mutable() {
                     let win = window_from_node(*self).root();
-                    let event = Event::new(&Window(*win),
-                           "input".to_string(),
-                           Bubbles, NotCancelable).root();
+                    let event = Event::new(Window(*win),
+                                           "input".to_string(),
+                                           Bubbles, NotCancelable).root();
                     event.set_trusted(true);
                     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
                     target.DispatchEvent(*event).ok();
 
-                    let event = Event::new(&Window(*win),
-                           "change".to_string(),
-                           Bubbles, NotCancelable).root();
+                    let event = Event::new(Window(*win),
+                                           "change".to_string(),
+                                           Bubbles, NotCancelable).root();
                     event.set_trusted(true);
                     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
                     target.DispatchEvent(*event).ok();

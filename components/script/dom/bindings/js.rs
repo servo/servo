@@ -575,3 +575,24 @@ impl<'a, T: Reflectable> Reflectable for JSRef<'a, T> {
         self.deref().reflector()
     }
 }
+
+/// A trait for comparing smart pointers ignoring the lifetimes
+pub trait Comparable<T> {
+    fn equals(&self, other: T) -> bool;
+}
+
+impl<'a, 'b, T> Comparable<JSRef<'a, T>> for JSRef<'b, T> {
+    fn equals(&self, other: JSRef<'a, T>) -> bool {
+        self.ptr == other.ptr
+    }
+}
+
+impl<'a, 'b, T> Comparable<Option<JSRef<'a, T>>> for Option<JSRef<'b, T>> {
+    fn equals(&self, other: Option<JSRef<'a, T>>) -> bool {
+        match (*self, other) {
+            (Some(x), Some(y)) => x.ptr == y.ptr,
+            (None, None) => true,
+            _ => false
+        }
+    }
+}
