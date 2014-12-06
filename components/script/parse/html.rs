@@ -217,11 +217,14 @@ pub fn parse_html(page: &Page,
         InputUrl(ref url) => {
             // Wait for the LoadResponse so that the parser knows the final URL.
             let (input_chan, input_port) = channel();
-            let mut load_data = LoadData::new(url.clone(), input_chan);
-            load_data.headers = msg_load_data.headers;
-            load_data.method = msg_load_data.method;
-            load_data.data = msg_load_data.data;
-            resource_task.send(Load(load_data));
+            resource_task.send(Load(LoadData {
+                url: url.clone(),
+                method: msg_load_data.method,
+                headers: msg_load_data.headers,
+                data: msg_load_data.data,
+                cors: None,
+                consumer: input_chan,
+            }));
 
             let load_response = input_port.recv();
 
