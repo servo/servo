@@ -163,7 +163,7 @@ impl TextInput {
             self.edit_point.index = 0;
             self.edit_point.line = 0;
             return;
-        } else if adjust > 0 && self.edit_point.line >= min(0, self.lines.len() - adjust as uint) {
+        } else if adjust > 0 && self.edit_point.line >= self.lines.len() - adjust as uint {
             self.edit_point.index = self.current_line_length();
             self.edit_point.line = self.lines.len() - 1;
             return;
