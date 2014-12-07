@@ -30,7 +30,7 @@ use gfx::display_list::{ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem
 use gfx::display_list::{LineDisplayItemClass, PseudoDisplayItemClass, SidewaysLeft, SidewaysRight};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, StackingContext};
 use gfx::display_list::{TextDisplayItem, TextDisplayItemClass, Upright};
-use gfx::render_task::RenderLayer;
+use gfx::paint_task::RenderLayer;
 use servo_msg::compositor_msg::{FixedPosition, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg};
 use servo_net::image::holder::ImageHolder;

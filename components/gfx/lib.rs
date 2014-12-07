@@ -59,7 +59,7 @@ mod render_context;
 pub mod color;
 #[path="display_list/mod.rs"]
 pub mod display_list;
-pub mod render_task;
+pub mod paint_task;
 
 // Fonts
 pub mod font;

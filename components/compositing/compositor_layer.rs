@@ -14,7 +14,7 @@ use geom::matrix::identity;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::size::{Size2D, TypedSize2D};
 use geom::rect::Rect;
-use gfx::render_task::UnusedBufferMsg;
+use gfx::paint_task::UnusedBufferMsg;
 use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};

@@ -28,7 +28,7 @@ use geom::scale_factor::ScaleFactor;
 use gfx::color;
 use gfx::display_list::{DisplayList, OpaqueNode, StackingContext};
 use gfx::font_cache_task::FontCacheTask;
-use gfx::render_task::{mod, RenderInitMsg, RenderChan, RenderLayer};
+use gfx::paint_task::{mod, RenderInitMsg, RenderChan, RenderLayer};
 use layout_traits;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
@@ -463,7 +463,7 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
-        self.render_chan.send(render_task::ExitMsg(Some(response_chan)));
+        self.render_chan.send(paint_task::ExitMsg(Some(response_chan)));
         response_port.recv()
     }
 

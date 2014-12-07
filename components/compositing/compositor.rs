@@ -29,7 +29,7 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
-use gfx::render_task::{RenderChan, RenderMsg, RenderRequest, UnusedBufferMsg};
+use gfx::paint_task::{RenderChan, RenderMsg, RenderRequest, UnusedBufferMsg};
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;

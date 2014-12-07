@@ -20,7 +20,7 @@ extern crate "util" as servo_util;
 //   that these modules won't have to depend on layout.
 
 use gfx::font_cache_task::FontCacheTask;
-use gfx::render_task::RenderChan;
+use gfx::paint_task::RenderChan;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_msg::constellation_msg::Failure;
 use servo_net::image_cache_task::ImageCacheTask;

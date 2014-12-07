@@ -8,8 +8,8 @@ use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
 
 use devtools_traits::DevtoolsControlChan;
-use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
-use gfx::render_task::{RenderChan, RenderTask};
+use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
+use gfx::paint_task::{RenderChan, RenderTask};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadData, WindowSizeData};
 use servo_net::image_cache_task::ImageCacheTask;

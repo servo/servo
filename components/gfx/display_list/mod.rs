@@ -24,7 +24,7 @@ use azure::azure::AzFloat;
 use collections::dlist::{mod, DList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use libc::uintptr_t;
-use render_task::RenderLayer;
+use paint_task::RenderLayer;
 use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
