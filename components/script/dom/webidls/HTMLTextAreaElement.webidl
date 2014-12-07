@@ -16,7 +16,7 @@ interface HTMLTextAreaElement : HTMLElement {
   //         attribute long minLength;
            attribute DOMString name;
            attribute DOMString placeholder;
-  //         attribute boolean readOnly;
+           attribute boolean readOnly;
            attribute boolean required;
            attribute unsigned long rows;
            attribute DOMString wrap;

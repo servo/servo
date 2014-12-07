@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -20,6 +20,7 @@ use dom::event::{Event, EventHelpers, Bubbles, Cancelable};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlinputelement::HTMLInputElement;
+use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use hyper::method::Post;
 use servo_msg::constellation_msg::LoadData;
@@ -362,8 +363,9 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                     {}
                 }
                 ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
-                    // Unimplemented
-                    {}
+                    let textarea: JSRef<HTMLTextAreaElement> = HTMLTextAreaElementCast::to_ref(child)
+                                                                                        .unwrap();
+                    textarea.reset()
                 }
                 ElementNodeTypeId(HTMLOutputElementTypeId) => {
                     // Unimplemented
