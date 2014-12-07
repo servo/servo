@@ -9,7 +9,7 @@ use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
 
 use devtools_traits::DevtoolsControlChan;
 use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
-use gfx::paint_task::{RenderChan, RenderTask};
+use gfx::paint_task::{RenderChan, PaintTask};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadData, WindowSizeData};
 use servo_net::image_cache_task::ImageCacheTask;
@@ -102,14 +102,14 @@ impl Pipeline {
             }
         };
 
-        RenderTask::create(id,
-                           render_port,
-                           compositor_proxy,
-                           constellation_chan.clone(),
-                           font_cache_task.clone(),
-                           failure.clone(),
-                           time_profiler_chan.clone(),
-                           render_shutdown_chan);
+        PaintTask::create(id,
+                          render_port,
+                          compositor_proxy,
+                          constellation_chan.clone(),
+                          font_cache_task.clone(),
+                          failure.clone(),
+                          time_profiler_chan.clone(),
+                          render_shutdown_chan);
 
         LayoutTaskFactory::create(None::<&mut LTF>,
                                   id,

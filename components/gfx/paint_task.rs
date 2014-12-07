@@ -96,7 +96,7 @@ impl RenderChan {
     }
 }
 
-pub struct RenderTask<C> {
+pub struct PaintTask<C> {
     id: PipelineId,
     port: Receiver<Msg>,
     compositor: C,
@@ -125,7 +125,7 @@ pub struct RenderTask<C> {
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing
-// the whole RenderTask struct.
+// the whole PaintTask struct.
 macro_rules! native_graphics_context(
     ($task:expr) => (
         $task.native_graphics_context.as_ref().expect("Need a graphics context to do rendering")
@@ -167,7 +167,7 @@ fn initialize_layers<C>(compositor: &mut C,
     }
 }
 
-impl<C> RenderTask<C> where C: RenderListener + Send {
+impl<C> PaintTask<C> where C: RenderListener + Send {
     pub fn create(id: PipelineId,
                   port: Receiver<Msg>,
                   compositor: C,
@@ -177,7 +177,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("RenderTask", task_state::RENDER, proc() {
+        spawn_named_with_send_on_failure("PaintTask", task_state::RENDER, proc() {
             {
                 // Ensures that the render task and graphics context are destroyed before the
                 // shutdown message.
@@ -189,7 +189,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                                                               time_profiler_chan.clone());
 
                 // FIXME: rust/#5967
-                let mut render_task = RenderTask {
+                let mut paint_task = PaintTask {
                     id: id,
                     port: port,
                     compositor: compositor,
@@ -203,27 +203,27 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                     worker_threads: worker_threads,
                 };
 
-                render_task.start();
+                paint_task.start();
 
                 // Destroy all the buffers.
-                match render_task.native_graphics_context.as_ref() {
-                    Some(ctx) => render_task.buffer_map.clear(ctx),
+                match paint_task.native_graphics_context.as_ref() {
+                    Some(ctx) => paint_task.buffer_map.clear(ctx),
                     None => (),
                 }
 
                 // Tell all the worker threads to shut down.
-                for worker_thread in render_task.worker_threads.iter_mut() {
+                for worker_thread in paint_task.worker_threads.iter_mut() {
                     worker_thread.exit()
                 }
             }
 
-            debug!("render_task: shutdown_chan send");
+            debug!("paint_task: shutdown_chan send");
             shutdown_chan.send(());
         }, FailureMsg(failure_msg), c, true);
     }
 
     fn start(&mut self) {
-        debug!("render_task: beginning rendering loop");
+        debug!("paint_task: beginning rendering loop");
 
         loop {
             match self.port.recv() {
@@ -232,7 +232,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                     self.root_stacking_context = Some(stacking_context.clone());
 
                     if !self.paint_permission {
-                        debug!("render_task: render ready msg");
+                        debug!("paint_task: render ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(RendererReadyMsg(self.id));
                         continue;
@@ -245,7 +245,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                 }
                 RenderMsg(requests) => {
                     if !self.paint_permission {
-                        debug!("render_task: render ready msg");
+                        debug!("paint_task: render ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(RendererReadyMsg(self.id));
                         self.compositor.render_msg_discarded();
@@ -265,7 +265,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
 
                     self.compositor.set_render_state(self.id, IdleRenderState);
 
-                    debug!("render_task: returning surfaces");
+                    debug!("paint_task: returning surfaces");
                     self.compositor.paint(self.id, self.epoch, replies);
                 }
                 UnusedBufferMsg(unused_buffers) => {
@@ -291,7 +291,7 @@ impl<C> RenderTask<C> where C: RenderListener + Send {
                     self.paint_permission = false;
                 }
                 ExitMsg(response_ch) => {
-                    debug!("render_task: exitmsg response send");
+                    debug!("paint_task: exitmsg response send");
                     response_ch.map(|ch| ch.send(()));
                     break;
                 }
