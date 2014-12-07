@@ -40,7 +40,7 @@ use sync::Arc;
 
 /// Information about a hardware graphics layer that layout sends to the painting task.
 #[deriving(Clone)]
-pub struct RenderLayer {
+pub struct PaintLayer {
     /// A per-pipeline ID describing this layer that should be stable across reflows.
     pub id: LayerId,
     /// The color of the background in this layer. Used for unrendered content.
@@ -49,10 +49,10 @@ pub struct RenderLayer {
     pub scroll_policy: ScrollPolicy,
 }
 
-impl RenderLayer {
-    /// Creates a new `RenderLayer`.
-    pub fn new(id: LayerId, background_color: Color, scroll_policy: ScrollPolicy) -> RenderLayer {
-        RenderLayer {
+impl PaintLayer {
+    /// Creates a new `PaintLayer`.
+    pub fn new(id: LayerId, background_color: Color, scroll_policy: ScrollPolicy) -> PaintLayer {
+        PaintLayer {
             id: id,
             background_color: background_color,
             scroll_policy: scroll_policy,
@@ -147,16 +147,16 @@ fn initialize_layers<C>(compositor: &mut C,
         let page_position = stacking_context.bounds.origin + *page_position;
         match stacking_context.layer {
             None => {}
-            Some(ref render_layer) => {
+            Some(ref paint_layer) => {
                 metadata.push(LayerMetadata {
-                    id: render_layer.id,
+                    id: paint_layer.id,
                     position:
                         Rect(Point2D(page_position.x.to_nearest_px() as uint,
                                      page_position.y.to_nearest_px() as uint),
                              Size2D(stacking_context.bounds.size.width.to_nearest_px() as uint,
                                     stacking_context.bounds.size.height.to_nearest_px() as uint)),
-                    background_color: render_layer.background_color,
-                    scroll_policy: render_layer.scroll_policy,
+                    background_color: paint_layer.background_color,
+                    scroll_policy: paint_layer.scroll_policy,
                 })
             }
         }

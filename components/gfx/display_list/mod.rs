@@ -24,7 +24,7 @@ use azure::azure::AzFloat;
 use collections::dlist::{mod, DList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use libc::uintptr_t;
-use paint_task::RenderLayer;
+use paint_task::PaintLayer;
 use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
@@ -138,7 +138,7 @@ pub struct StackingContext {
     /// The display items that make up this stacking context.
     pub display_list: Box<DisplayList>,
     /// The layer for this stacking context, if there is one.
-    pub layer: Option<Arc<RenderLayer>>,
+    pub layer: Option<Arc<PaintLayer>>,
     /// The position and size of this stacking context.
     pub bounds: Rect<Au>,
     /// The clipping rect for this stacking context, in the coordinate system of the *parent*
@@ -160,7 +160,7 @@ impl StackingContext {
                bounds: Rect<Au>,
                z_index: i32,
                opacity: AzFloat,
-               layer: Option<Arc<RenderLayer>>)
+               layer: Option<Arc<PaintLayer>>)
                -> StackingContext {
         StackingContext {
             display_list: display_list,

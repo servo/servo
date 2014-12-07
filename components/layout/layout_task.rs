@@ -28,7 +28,7 @@ use geom::scale_factor::ScaleFactor;
 use gfx::color;
 use gfx::display_list::{DisplayList, OpaqueNode, StackingContext};
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::{mod, RenderInitMsg, RenderChan, RenderLayer};
+use gfx::paint_task::{mod, RenderInitMsg, RenderChan, PaintLayer};
 use layout_traits;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
@@ -676,7 +676,7 @@ impl LayoutTask {
             let mut display_list = box DisplayList::new();
             flow::mut_base(layout_root.deref_mut()).display_list_building_result
                                                    .add_to(&mut *display_list);
-            let render_layer = Arc::new(RenderLayer::new(layout_root.layer_id(0),
+            let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
                                                          color,
                                                          Scrollable));
             let origin = Rect(Point2D(Au(0), Au(0)), root_size);
@@ -684,7 +684,7 @@ impl LayoutTask {
                                                                  origin,
                                                                  0,
                                                                  1.0,
-                                                                 Some(render_layer)));
+                                                                 Some(paint_layer)));
 
             rw_data.stacking_context = Some(stacking_context.clone());
 
