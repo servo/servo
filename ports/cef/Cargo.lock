@@ -81,9 +81,9 @@ dependencies = [
 [[package]]
 name = "cookie"
 version = "0.0.1"
-source = "git+https://github.com/servo/cookie-rs#9b579dd9b8cf0624eee1d013e9b48577acd3c40e"
+source = "git+https://github.com/servo/cookie-rs#30520767a95b92e39265aaf6822db515b2418f1d"
 dependencies = [
- "openssl 0.0.1 (git+https://github.com/servo/rust-openssl.git)",
+ "openssl 0.0.1 (git+https://github.com/servo/rust-openssl)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
 ]
 
@@ -205,12 +205,12 @@ source = "git+https://github.com/servo/rust-freetype#e55b06110fb2d74a2db68ead740
 [[package]]
 name = "freetype-sys"
 version = "2.4.11"
-source = "git+https://github.com/servo/libfreetype2#5b6499164106f094937565595c7b96d07de55521"
+source = "git+https://github.com/servo/libfreetype2#f5c49c0da1d5bc6b206c4176344012ac37524243"
 
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#e5e74911ac6d3201009879b72499d6c681302611"
+source = "git+https://github.com/servo/rust-geom#95e746133b4a35b53eb259304668b63ee8de42b8"
 
 [[package]]
 name = "gfx"
@@ -325,9 +325,9 @@ dependencies = [
  "cookie 0.0.1 (git+https://github.com/servo/cookie-rs)",
  "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
  "move-acceptor 0.0.1 (git+https://github.com/reem/rust-move-acceptor)",
- "openssl 0.0.1 (git+https://github.com/servo/rust-openssl.git)",
- "typeable 0.0.2 (git+https://github.com/reem/rust-typeable)",
- "unsafe-any 0.1.1 (git+https://github.com/reem/rust-unsafe-any)",
+ "openssl 0.0.1 (git+https://github.com/servo/rust-openssl)",
+ "typeable 0.0.1 (git+https://github.com/reem/rust-typeable)",
+ "unsafe-any 0.1.0 (git+https://github.com/reem/rust-unsafe-any)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
 ]
 
@@ -406,6 +406,14 @@ version = "0.1.0"
 source = "git+https://github.com/Kimundi/lazy-static.rs#62976cb611c5396e11315ae64c9c389576240eb7"
 
 [[package]]
+name = "libressl-pnacl-sys"
+version = "2.0.2"
+source = "git+https://github.com/DiamondLovesYou/libressl-pnacl-sys.git#8e9349e0280b069bfab247a2202cd10b8beae154"
+dependencies = [
+ "pnacl-build-helper 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "mime"
 version = "0.0.1"
 source = "git+https://github.com/hyperium/mime.rs#5264e04655974f85c8d6581395cc24597266c653"
@@ -449,7 +457,7 @@ dependencies = [
 [[package]]
 name = "openssl"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-openssl.git#0a3cace0265fe286b505508aa6e5096fc94a6896"
+source = "git+https://github.com/servo/rust-openssl#0a3cace0265fe286b505508aa6e5096fc94a6896"
 dependencies = [
  "libressl-pnacl-sys 2.0.2 (git+https://github.com/DiamondLovesYou/libressl-pnacl-sys.git)",
  "openssl-sys 0.0.1 (git+https://github.com/servo/rust-openssl)",
@@ -480,8 +488,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "pkg-config"
+version = "0.1.0"
+source = "git+https://github.com/alexcrichton/pkg-config-rs#9b3b44a2e1a8ccc70c3f701aeb5154ad79e665e9"
+
+[[package]]
 name = "plugins"
 version = "0.0.1"
+
+[[package]]
+name = "pnacl-build-helper"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "png"
@@ -613,13 +631,13 @@ version = "0.0.1"
 
 [[package]]
 name = "typeable"
-version = "0.0.2"
-source = "git+https://github.com/reem/rust-typeable#2f240fb44ce2fcdbb2b890623bfb2afe18a67c05"
+version = "0.0.1"
+source = "git+https://github.com/reem/rust-typeable#55154e1809db8ceec8f8519bdbb638c2fbd712f5"
 
 [[package]]
 name = "unsafe-any"
-version = "0.1.1"
-source = "git+https://github.com/reem/rust-unsafe-any#eb3fe87bea85f375b8fcefa0cdecfd131fae9624"
+version = "0.1.0"
+source = "git+https://github.com/reem/rust-unsafe-any#2863af363bbd83079b6773920bba5b736408db33"
 
 [[package]]
 name = "url"

@@ -13,8 +13,6 @@ extern crate log;
 #[phase(plugin)]
 extern crate "plugins" as servo_plugins;
 
-extern crate rustuv;
-
 extern crate servo;
 
 extern crate azure;

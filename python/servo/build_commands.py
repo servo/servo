@@ -106,7 +106,7 @@ class MachCommands(CommandBase):
         build_start = time()
         with cd(path.join("ports", "cef")):
             ret = subprocess.call(["cargo", "build"],
-                                  env=self.build_env(), cwd=self.servo_crate())
+                                  env=self.build_env())
         elapsed = time() - build_start
 
         print("CEF build completed in %0.2fs" % elapsed)
