@@ -148,7 +148,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
         if !self.value_changed.get() {
-            self.SetValue(node.GetTextContent().unwrap());
+            self.reset();
         }
     }
 
@@ -159,7 +159,9 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-value
     fn SetValue(self, value: DOMString) {
+        // TODO move the cursor to the end of the field
         self.textinput.borrow_mut().set_content(value);
+        self.value_changed.set(true);
         self.force_relayout();
     }
 }
@@ -255,7 +257,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             _ => (),
         }
 
-        if child.is_text() {
+        if child.is_text() && !self.value_changed.get() {
             self.reset();
         }
     }
