@@ -29,7 +29,7 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
-use gfx::paint_task::{RenderChan, RenderMsg, RenderRequest, UnusedBufferMsg};
+use gfx::paint_task::{RenderChan, RenderMsg, PaintRequest, UnusedBufferMsg};
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
@@ -838,10 +838,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                         requests: Vec<(Rc<Layer<CompositorData>>,
                                                                        Vec<BufferRequest>)>) ->
                                                         HashMap<PipelineId, (RenderChan,
-                                                                             Vec<RenderRequest>)> {
+                                                                             Vec<PaintRequest>)> {
         let scale = self.device_pixels_per_page_px();
         let mut results:
-            HashMap<PipelineId, (RenderChan, Vec<RenderRequest>)> = HashMap::new();
+            HashMap<PipelineId, (RenderChan, Vec<PaintRequest>)> = HashMap::new();
 
         for (layer, mut layer_requests) in requests.into_iter() {
             let &(_, ref mut vec) =
@@ -862,7 +862,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 request.page_rect = request.page_rect / scale.get();
             }
 
-            vec.push(RenderRequest {
+            vec.push(PaintRequest {
                 buffer_requests: layer_requests,
                 scale: scale.get(),
                 layer_id: layer.extra_data.borrow().id,

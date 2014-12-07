@@ -60,7 +60,7 @@ impl PaintLayer {
     }
 }
 
-pub struct RenderRequest {
+pub struct PaintRequest {
     pub buffer_requests: Vec<BufferRequest>,
     pub scale: f32,
     pub layer_id: LayerId,
@@ -69,7 +69,7 @@ pub struct RenderRequest {
 
 pub enum Msg {
     RenderInitMsg(Arc<StackingContext>),
-    RenderMsg(Vec<RenderRequest>),
+    RenderMsg(Vec<PaintRequest>),
     UnusedBufferMsg(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
@@ -254,7 +254,7 @@ impl<C> PaintTask<C> where C: RenderListener + Send {
 
                     let mut replies = Vec::new();
                     self.compositor.set_render_state(self.id, RenderingRenderState);
-                    for RenderRequest { buffer_requests, scale, layer_id, epoch }
+                    for PaintRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.into_iter() {
                         if self.epoch == epoch {
                             self.render(&mut replies, buffer_requests, scale, layer_id);
