@@ -48,6 +48,8 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to rustc")
     def rustc(self, params):
+        if params is None:
+            params = []
         return subprocess.call(["rustc"] + params, env=self.build_env())
 
     @Command('rust-root',
