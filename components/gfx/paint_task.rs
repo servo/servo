@@ -8,7 +8,7 @@ use buffer_map::BufferMap;
 use display_list::{mod, StackingContext};
 use font_cache_task::FontCacheTask;
 use font_context::FontContext;
-use render_context::RenderContext;
+use paint_context::PaintContext;
 
 use azure::azure_hl::{B8G8R8A8, Color, DrawTarget, SkiaBackend, StolenGLResources};
 use azure::AzFloat;
@@ -504,7 +504,7 @@ impl WorkerThread {
 
         {
             // Build the render context.
-            let mut render_context = RenderContext {
+            let mut paint_context = PaintContext {
                 draw_target: draw_target.clone(),
                 font_ctx: &mut self.font_context,
                 page_rect: tile.page_rect,
@@ -518,19 +518,19 @@ impl WorkerThread {
             let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,
                                           -tile_bounds.origin.y as AzFloat);
 
-            render_context.draw_target.set_transform(&matrix);
+            paint_context.draw_target.set_transform(&matrix);
 
             // Clear the buffer.
-            render_context.clear();
+            paint_context.clear();
 
             // Draw the display list.
             profile(time::PaintingPerTileCategory, None, self.time_profiler_sender.clone(), || {
                 let mut clip_stack = Vec::new();
-                stacking_context.optimize_and_draw_into_context(&mut render_context,
+                stacking_context.optimize_and_draw_into_context(&mut paint_context,
                                                                 &tile.page_rect,
                                                                 &matrix,
                                                                 &mut clip_stack);
-                render_context.draw_target.flush();
+                paint_context.draw_target.flush();
             });
         }
 

@@ -16,7 +16,7 @@
 
 use color::Color;
 use display_list::optimizer::DisplayListOptimizer;
-use render_context::{RenderContext, ToAzureRect};
+use paint_context::{PaintContext, ToAzureRect};
 use text::glyph::CharIndex;
 use text::TextRun;
 
@@ -174,19 +174,19 @@ impl StackingContext {
 
     /// Draws the stacking context in the proper order according to the steps in CSS 2.1 § E.2.
     pub fn optimize_and_draw_into_context(&self,
-                                          render_context: &mut RenderContext,
+                                          paint_context: &mut PaintContext,
                                           tile_bounds: &Rect<AzFloat>,
                                           current_transform: &Matrix2D<AzFloat>,
                                           current_clip_stack: &mut Vec<Rect<Au>>) {
         let temporary_draw_target =
-            render_context.get_or_create_temporary_draw_target(self.opacity);
+            paint_context.get_or_create_temporary_draw_target(self.opacity);
         {
-            let mut render_subcontext = RenderContext {
+            let mut render_subcontext = PaintContext {
                 draw_target: temporary_draw_target.clone(),
-                font_ctx: &mut *render_context.font_ctx,
-                page_rect: render_context.page_rect,
-                screen_rect: render_context.screen_rect,
-                ..*render_context
+                font_ctx: &mut *paint_context.font_ctx,
+                page_rect: paint_context.page_rect,
+                screen_rect: paint_context.screen_rect,
+                ..*paint_context
             };
 
             // Optimize the display list to throw out out-of-bounds display items and so forth.
@@ -277,7 +277,7 @@ impl StackingContext {
             // TODO(pcwalton): Step 10: Outlines.
         }
 
-        render_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target,
+        paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target,
                                                                self.opacity)
     }
 
@@ -562,30 +562,30 @@ impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
 impl DisplayItem {
     /// Renders this display item into the given render context.
     fn draw_into_context(&self,
-                         render_context: &mut RenderContext,
+                         paint_context: &mut PaintContext,
                          current_transform: &Matrix2D<AzFloat>,
                          current_clip_stack: &mut Vec<Rect<Au>>) {
         // TODO(pcwalton): This will need some tweaking to deal with more complex clipping regions.
         let clip_rect = &self.base().clip_rect;
         if current_clip_stack.len() == 0 || current_clip_stack.last().unwrap() != clip_rect {
             while current_clip_stack.len() != 0 {
-                render_context.draw_pop_clip();
+                paint_context.draw_pop_clip();
                 drop(current_clip_stack.pop());
             }
-            render_context.draw_push_clip(clip_rect);
+            paint_context.draw_push_clip(clip_rect);
             current_clip_stack.push(*clip_rect);
         }
 
-        render_context.draw_target.set_transform(current_transform);
+        paint_context.draw_target.set_transform(current_transform);
 
         match *self {
             SolidColorDisplayItemClass(ref solid_color) => {
-                render_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
+                paint_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
             }
 
             TextDisplayItemClass(ref text) => {
                 debug!("Drawing text at {}.", text.base.bounds);
-                render_context.draw_text(&**text, current_transform);
+                paint_context.draw_text(&**text, current_transform);
             }
 
             ImageDisplayItemClass(ref image_item) => {
@@ -600,7 +600,7 @@ impl DisplayItem {
                         bounds.origin.y = bounds.origin.y + y_offset;
                         bounds.size = image_item.stretch_size;
 
-                        render_context.draw_image(bounds, image_item.image.clone());
+                        paint_context.draw_image(bounds, image_item.image.clone());
 
                         x_offset = x_offset + image_item.stretch_size.width;
                     }
@@ -610,7 +610,7 @@ impl DisplayItem {
             }
 
             BorderDisplayItemClass(ref border) => {
-                render_context.draw_border(&border.base.bounds,
+                paint_context.draw_border(&border.base.bounds,
                                            border.border_widths,
                                            &border.radius,
                                            border.color,
@@ -618,14 +618,14 @@ impl DisplayItem {
             }
 
             GradientDisplayItemClass(ref gradient) => {
-                render_context.draw_linear_gradient(&gradient.base.bounds,
+                paint_context.draw_linear_gradient(&gradient.base.bounds,
                                                     &gradient.start_point,
                                                     &gradient.end_point,
                                                     gradient.stops.as_slice());
             }
 
             LineDisplayItemClass(ref line) => {
-                render_context.draw_line(&line.base.bounds,
+                paint_context.draw_line(&line.base.bounds,
                                           line.color,
                                           line.style)
             }

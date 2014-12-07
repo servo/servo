@@ -50,10 +50,10 @@ extern crate freetype;
 #[cfg(target_os="macos")] extern crate core_graphics;
 #[cfg(target_os="macos")] extern crate core_text;
 
-pub use render_context::RenderContext;
+pub use paint_context::PaintContext;
 
 // Private rendering modules
-mod render_context;
+mod paint_context;
 
 // Rendering
 pub mod color;
