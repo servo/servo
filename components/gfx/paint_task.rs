@@ -77,21 +77,21 @@ pub enum Msg {
 }
 
 #[deriving(Clone)]
-pub struct RenderChan(Sender<Msg>);
+pub struct PaintChan(Sender<Msg>);
 
-impl RenderChan {
-    pub fn new() -> (Receiver<Msg>, RenderChan) {
+impl PaintChan {
+    pub fn new() -> (Receiver<Msg>, PaintChan) {
         let (chan, port) = channel();
-        (port, RenderChan(chan))
+        (port, PaintChan(chan))
     }
 
     pub fn send(&self, msg: Msg) {
-        let &RenderChan(ref chan) = self;
-        assert!(chan.send_opt(msg).is_ok(), "RenderChan.send: render port closed")
+        let &PaintChan(ref chan) = self;
+        assert!(chan.send_opt(msg).is_ok(), "PaintChan.send: render port closed")
     }
 
     pub fn send_opt(&self, msg: Msg) -> Result<(), Msg> {
-        let &RenderChan(ref chan) = self;
+        let &PaintChan(ref chan) = self;
         chan.send_opt(msg)
     }
 }

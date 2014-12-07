@@ -506,7 +506,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         fn force_pipeline_exit(old_pipeline: &Rc<Pipeline>) {
             let ScriptControlChan(ref old_script) = old_pipeline.script_chan;
             let _ = old_script.send_opt(ExitPipelineMsg(old_pipeline.id));
-            let _ = old_pipeline.render_chan.send_opt(paint_task::ExitMsg(None));
+            let _ = old_pipeline.paint_chan.send_opt(paint_task::ExitMsg(None));
             let LayoutControlChan(ref old_layout) = old_pipeline.layout_chan;
             let _ = old_layout.send_opt(ExitNowMsg);
         }

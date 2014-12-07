@@ -9,7 +9,7 @@ use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
 
 use devtools_traits::DevtoolsControlChan;
 use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
-use gfx::paint_task::{RenderChan, PaintTask};
+use gfx::paint_task::{PaintChan, PaintTask};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadData, WindowSizeData};
 use servo_net::image_cache_task::ImageCacheTask;
@@ -25,7 +25,7 @@ pub struct Pipeline {
     pub subpage_id: Option<SubpageId>,
     pub script_chan: ScriptControlChan,
     pub layout_chan: LayoutControlChan,
-    pub render_chan: RenderChan,
+    pub paint_chan: PaintChan,
     pub layout_shutdown_port: Receiver<()>,
     pub render_shutdown_port: Receiver<()>,
     /// The most recently loaded page
@@ -37,7 +37,7 @@ pub struct Pipeline {
 pub struct CompositionPipeline {
     pub id: PipelineId,
     pub script_chan: ScriptControlChan,
-    pub render_chan: RenderChan,
+    pub paint_chan: PaintChan,
 }
 
 impl Pipeline {
@@ -60,7 +60,7 @@ impl Pipeline {
                       load_data: LoadData)
                       -> Pipeline {
         let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
-        let (render_port, render_chan) = RenderChan::new();
+        let (render_port, paint_chan) = PaintChan::new();
         let (render_shutdown_chan, render_shutdown_port) = channel();
         let (layout_shutdown_chan, layout_shutdown_port) = channel();
         let (pipeline_chan, pipeline_port) = channel();
@@ -118,7 +118,7 @@ impl Pipeline {
                                   constellation_chan,
                                   failure,
                                   script_chan.clone(),
-                                  render_chan.clone(),
+                                  paint_chan.clone(),
                                   resource_task,
                                   image_cache_task,
                                   font_cache_task,
@@ -129,7 +129,7 @@ impl Pipeline {
                       subpage_id,
                       script_chan,
                       LayoutControlChan(pipeline_chan),
-                      render_chan,
+                      paint_chan,
                       layout_shutdown_port,
                       render_shutdown_port,
                       load_data)
@@ -139,7 +139,7 @@ impl Pipeline {
                subpage_id: Option<SubpageId>,
                script_chan: ScriptControlChan,
                layout_chan: LayoutControlChan,
-               render_chan: RenderChan,
+               paint_chan: PaintChan,
                layout_shutdown_port: Receiver<()>,
                render_shutdown_port: Receiver<()>,
                load_data: LoadData)
@@ -149,7 +149,7 @@ impl Pipeline {
             subpage_id: subpage_id,
             script_chan: script_chan,
             layout_chan: layout_chan,
-            render_chan: render_chan,
+            paint_chan: paint_chan,
             layout_shutdown_port: layout_shutdown_port,
             render_shutdown_port: render_shutdown_port,
             load_data: load_data,
@@ -162,12 +162,12 @@ impl Pipeline {
     }
 
     pub fn grant_paint_permission(&self) {
-        let _ = self.render_chan.send_opt(PaintPermissionGranted);
+        let _ = self.paint_chan.send_opt(PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking render channel paint permission");
-        let _ = self.render_chan.send_opt(PaintPermissionRevoked);
+        let _ = self.paint_chan.send_opt(PaintPermissionRevoked);
     }
 
     pub fn exit(&self) {
@@ -188,7 +188,7 @@ impl Pipeline {
         CompositionPipeline {
             id: self.id.clone(),
             script_chan: self.script_chan.clone(),
-            render_chan: self.render_chan.clone(),
+            paint_chan: self.paint_chan.clone(),
         }
     }
 }

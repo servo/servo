@@ -194,7 +194,7 @@ impl CompositorLayer for Layer<CompositorData> {
                    epoch,
                    self.extra_data.borrow().pipeline.id);
             let msg = UnusedBufferMsg(new_buffers.buffers);
-            let _ = self.extra_data.borrow().pipeline.render_chan.send_opt(msg);
+            let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(msg);
             return false;
         }
 
@@ -206,7 +206,7 @@ impl CompositorLayer for Layer<CompositorData> {
             let unused_buffers = self.collect_unused_buffers();
             if !unused_buffers.is_empty() { // send back unused buffers
                 let msg = UnusedBufferMsg(unused_buffers);
-                let _ = self.extra_data.borrow().pipeline.render_chan.send_opt(msg);
+                let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(msg);
             }
         }
 
@@ -224,7 +224,7 @@ impl CompositorLayer for Layer<CompositorData> {
                 buffer.mark_wont_leak()
             }
 
-            let _ = self.extra_data.borrow().pipeline.render_chan.send_opt(UnusedBufferMsg(buffers));
+            let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(UnusedBufferMsg(buffers));
         }
     }
 
