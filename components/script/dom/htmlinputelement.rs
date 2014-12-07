@@ -27,7 +27,7 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::htmlformelement::{InputElement, FormControl, HTMLFormElement, HTMLFormElementHelpers};
-use dom::htmlformelement::{NotFromFormSubmitMethod};
+use dom::htmlformelement::{NotFromFormSubmitMethod, NotFromFormResetMethod};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, OtherNodeDamage};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -698,6 +698,15 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 if self.mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
                         o.root().submit(NotFromFormSubmitMethod, InputElement(self.clone()))
+                    });
+                }
+            },
+            InputReset => {
+                // https://html.spec.whatwg.org/multipage/forms.html#reset-button-state-(type=reset):activation-behavior
+                // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
+                if self.mutable() /* and document owner is fully active */ {
+                    self.form_owner().map(|o| {
+                        o.root().reset(NotFromFormResetMethod)
                     });
                 }
             },
