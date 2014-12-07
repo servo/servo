@@ -571,6 +571,20 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
         // https://html.spec.whatwg.org/multipage/forms.html#the-readonly-attribute:concept-fe-mutable
         !(self.Disabled() || self.ReadOnly())
     }
+
+    fn reset(self) {
+        let ty = self.Type();
+
+        match ty.as_slice() {
+            "radio" | "checkbox" => {
+                // TODO Reset radios/checkboxes here
+            },
+            "image" => (),
+            _ => ()
+        }
+
+        self.SetValue(self.DefaultValue());
+    }
 }
 
 

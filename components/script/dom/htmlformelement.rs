@@ -346,32 +346,17 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
         for child in node.traverse_preorder() {
-            // TODO This is the wrong place to do this. Each resettable
-            // element should implement its own reset method (trait?)
-            //
-            // List of resettable elements:
-            // https://html.spec.whatwg.org/multipage/forms.html#category-reset
             match child.type_id() {
                 ElementNodeTypeId(HTMLInputElementTypeId) => {
                     let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child)
                                                                                .unwrap();
-                    let ty = input.Type();
-
-                    match ty.as_slice() {
-                        "radio" | "checkbox" => {
-                            // TODO Reset radios/checkboxes here
-                        },
-                        "image" => (),
-                        _ => ()
-                    }
-
-                    input.SetValue(input.DefaultValue());
+                    input.reset()
                 }
                 // TODO HTMLKeygenElement unimplemented
-                /*ElementNodeTypeID(HTMLKeygenElementTypeId) => {
-                    // Unimplemented
-                    {}
-                }*/
+                //ElementNodeTypeID(HTMLKeygenElementTypeId) => {
+                //    // Unimplemented
+                //    {}
+                //}
                 ElementNodeTypeId(HTMLSelectElementTypeId) => {
                     // Unimplemented
                     {}
@@ -498,4 +483,5 @@ pub trait FormControl<'a> : Copy {
     fn to_element(self) -> JSRef<'a, Element>;
     // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
     fn mutable(self) -> bool;
+    fn reset(self);
 }
