@@ -40,6 +40,10 @@ pub struct PaintContext<'a> {
     pub page_rect: Rect<f32>,
     /// The rectangle that this context encompasses in screen coordinates (pixels).
     pub screen_rect: Rect<uint>,
+    /// The current transient clipping rect, if any. A "transient clipping rect" is the clipping
+    /// rect used by the last display item. We cache the last value so that we avoid pushing and
+    /// popping clip rects unnecessarily.
+    pub transient_clip_rect: Option<Rect<Au>>,
 }
 
 enum Direction {
@@ -130,11 +134,11 @@ impl<'a> PaintContext<'a>  {
                                                                             size,
                                                                             stride as i32,
                                                                             source_format);
-        let source_rect = Rect(Point2D(0u as AzFloat, 0u as AzFloat),
+        let source_rect = Rect(Point2D(0.0, 0.0),
                                Size2D(image.width as AzFloat, image.height as AzFloat));
         let dest_rect = bounds.to_azure_rect();
         let draw_surface_options = DrawSurfaceOptions::new(Linear, true);
-        let draw_options = DrawOptions::new(1.0f64 as AzFloat, 0);
+        let draw_options = DrawOptions::new(1.0, 0);
         draw_target_ref.draw_surface(azure_surface,
                                      dest_rect,
                                      source_rect,
@@ -628,9 +632,9 @@ impl<'a> PaintContext<'a>  {
         self.draw_border_path(&original_bounds, direction, border, radius, scaled_color);
     }
 
-    pub fn draw_text(&mut self,
-                     text: &TextDisplayItem,
-                     current_transform: &Matrix2D<AzFloat>) {
+    pub fn draw_text(&mut self, text: &TextDisplayItem) {
+        let current_transform = self.draw_target.get_transform();
+
         // Optimization: Don’t set a transform matrix for upright text, and pass a start point to
         // `draw_text_into_context`.
         //
@@ -669,7 +673,7 @@ impl<'a> PaintContext<'a>  {
 
         // Undo the transform, only when we did one.
         if text.orientation != Upright {
-            self.draw_target.set_transform(current_transform)
+            self.draw_target.set_transform(&current_transform)
         }
     }
 
