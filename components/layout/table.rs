@@ -11,11 +11,12 @@ use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use construct::FlowConstructor;
 use context::LayoutContext;
 use floats::FloatKind;
-use flow::{Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS, ImmutableFlowUtils};
-use flow::{TableFlowClass};
+use flow::{mod, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
+use flow::{ImmutableFlowUtils, TableFlowClass};
 use fragment::{Fragment, FragmentBoundsIterator};
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution};
+use table_row::CellIntrinsicInlineSize;
 use table_wrapper::{TableLayout, FixedLayout, AutoLayout};
 use wrapper::ThreadSafeLayoutNode;
 
@@ -97,24 +98,52 @@ impl TableFlow {
     /// Update the corresponding value of `self_inline_sizes` if a value of `kid_inline_sizes` has
     /// a larger value than one of `self_inline_sizes`. Returns the minimum and preferred inline
     /// sizes.
-    pub fn update_column_inline_sizes(parent_inline_sizes: &mut Vec<ColumnInlineSize>,
-                                      child_inline_sizes: &Vec<ColumnInlineSize>)
-                                      -> IntrinsicISizes {
+    fn update_automatic_column_inline_sizes(parent_inline_sizes: &mut Vec<ColumnInlineSize>,
+                                            child_cell_inline_sizes: &[CellIntrinsicInlineSize])
+                                            -> IntrinsicISizes {
         let mut total_inline_sizes = IntrinsicISizes::new();
-        for (parent_sizes, child_sizes) in parent_inline_sizes.iter_mut()
-                                                              .zip(child_inline_sizes.iter()) {
-            *parent_sizes = ColumnInlineSize {
-                minimum_length: max(parent_sizes.minimum_length, child_sizes.minimum_length),
-                percentage: parent_sizes.greatest_percentage(child_sizes),
-                preferred: max(parent_sizes.preferred, child_sizes.preferred),
-                constrained: parent_sizes.constrained || child_sizes.constrained
-            };
+        let mut column_index = 0;
+        for child_cell_inline_size in child_cell_inline_sizes.iter() {
+            for _ in range(0, child_cell_inline_size.column_span) {
+                if column_index < parent_inline_sizes.len() {
+                    // We already have some intrinsic size information for this column. Merge it in
+                    // according to the rules specified in INTRINSIC § 4.
+                    let parent_sizes = &mut parent_inline_sizes[column_index];
+                    if child_cell_inline_size.column_span > 1 {
+                        // TODO(pcwalton): Perform the recursive algorithm specified in INTRINSIC §
+                        // 4. For now we make this column contribute no width.
+                    } else {
+                        let column_size = &child_cell_inline_size.column_size;
+                        *parent_sizes = ColumnInlineSize {
+                            minimum_length: max(parent_sizes.minimum_length,
+                                                column_size.minimum_length),
+                            percentage: parent_sizes.greatest_percentage(column_size),
+                            preferred: max(parent_sizes.preferred, column_size.preferred),
+                            constrained: parent_sizes.constrained || column_size.constrained,
+                        }
+                    }
+                } else {
+                    // We discovered a new column. Initialize its data.
+                    debug_assert!(column_index == parent_inline_sizes.len());
+                    if child_cell_inline_size.column_span > 1 {
+                        // TODO(pcwalton): Perform the recursive algorithm specified in INTRINSIC §
+                        // 4. For now we make this column contribute no width.
+                        parent_inline_sizes.push(ColumnInlineSize::new())
+                    } else {
+                        parent_inline_sizes.push(child_cell_inline_size.column_size)
+                    }
+                }
 
-            total_inline_sizes.minimum_inline_size = total_inline_sizes.minimum_inline_size +
-                parent_sizes.minimum_length;
-            total_inline_sizes.preferred_inline_size = total_inline_sizes.preferred_inline_size +
-                parent_sizes.preferred;
+                total_inline_sizes.minimum_inline_size = total_inline_sizes.minimum_inline_size +
+                    parent_inline_sizes[column_index].minimum_length;
+                total_inline_sizes.preferred_inline_size =
+                    total_inline_sizes.preferred_inline_size +
+                    parent_inline_sizes[column_index].preferred;
+
+                column_index += 1
+            }
         }
+
         total_inline_sizes
     }
 
@@ -127,6 +156,39 @@ impl TableFlow {
     #[inline(always)]
     fn assign_block_size_table_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         self.block_flow.assign_block_size_block_base(layout_context, MarginsMayNotCollapse);
+    }
+
+    /// Updates the minimum and preferred inline-size calculation for a single row. This is
+    /// factored out into a separate function because we process children of rowgroups too.
+    fn update_column_inline_sizes_for_row(child: &mut Flow,
+                                          column_inline_sizes: &mut Vec<ColumnInlineSize>,
+                                          computation: &mut IntrinsicISizesContribution,
+                                          did_first_row: &mut bool,
+                                          table_layout: TableLayout) {
+        // Read column inline-sizes from the table-row, and assign inline-size=0 for the columns
+        // not defined in the column group.
+        //
+        // FIXME: Need to read inline-sizes from either table-header-group OR the first table-row.
+        debug_assert!(child.is_table_row());
+        let row = child.as_table_row();
+        match table_layout {
+            FixedLayout => {
+                // Fixed table layout only looks at the first row.
+                //
+                // FIXME(pcwalton): This is really inefficient. We should stop after the first row!
+                if !*did_first_row {
+                    *did_first_row = true;
+                    for cell_inline_size in row.cell_intrinsic_inline_sizes.iter() {
+                        column_inline_sizes.push(cell_inline_size.column_size);
+                    }
+                }
+            }
+            AutoLayout => {
+                computation.union_block(&TableFlow::update_automatic_column_inline_sizes(
+                    column_inline_sizes,
+                    row.cell_intrinsic_inline_sizes.as_slice()))
+            }
+        }
     }
 }
 
@@ -178,49 +240,20 @@ impl Flow for TableFlow {
                         constrained: false,
                     })
                 }
-            } else if kid.is_table_rowgroup() || kid.is_table_row() {
-                // Read column inline-sizes from the table-row-group/table-row, and assign
-                // inline-size=0 for the columns not defined in the column group.
-                // FIXME: Need to read inline-sizes from either table-header-group OR the first
-                // table-row.
-                match self.table_layout {
-                    FixedLayout => {
-                        // Fixed table layout only looks at the first row.
-                        if !did_first_row {
-                            did_first_row = true;
-                            for child_column_inline_size in kid.column_inline_sizes().iter() {
-                                self.column_inline_sizes.push(*child_column_inline_size);
-                            }
-                        }
-                    }
-                    AutoLayout => {
-                        let child_column_inline_sizes = kid.column_inline_sizes();
-                        let mut child_intrinsic_sizes =
-                            TableFlow::update_column_inline_sizes(&mut self.column_inline_sizes,
-                                                                  child_column_inline_sizes);
-
-                        // Add new columns if processing this row caused us to discover them.
-                        let child_column_count = child_column_inline_sizes.len();
-                        let parent_column_count = self.column_inline_sizes.len();
-                        debug!("table until the previous row has {} column(s) and this row has {} \
-                                column(s)",
-                               parent_column_count,
-                               child_column_count);
-                        self.column_inline_sizes.reserve(child_column_count);
-                        for i in range(parent_column_count, child_column_count) {
-                            let inline_size_for_new_column = (*child_column_inline_sizes)[i];
-                            child_intrinsic_sizes.minimum_inline_size =
-                                child_intrinsic_sizes.minimum_inline_size +
-                                inline_size_for_new_column.minimum_length;
-                            child_intrinsic_sizes.preferred_inline_size =
-                                child_intrinsic_sizes.preferred_inline_size +
-                                inline_size_for_new_column.preferred;
-                            self.column_inline_sizes.push(inline_size_for_new_column);
-                        }
-
-                        computation.union_block(&child_intrinsic_sizes)
-                    }
+            } else if kid.is_table_rowgroup() {
+                for grandkid in flow::mut_base(kid).child_iter() {
+                    TableFlow::update_column_inline_sizes_for_row(grandkid,
+                                                                  &mut self.column_inline_sizes,
+                                                                  &mut computation,
+                                                                  &mut did_first_row,
+                                                                  self.table_layout)
                 }
+            } else if kid.is_table_row() {
+                TableFlow::update_column_inline_sizes_for_row(kid,
+                                                              &mut self.column_inline_sizes,
+                                                              &mut computation,
+                                                              &mut did_first_row,
+                                                              self.table_layout)
             }
         }
 
@@ -389,6 +422,16 @@ pub struct ColumnInlineSize {
 }
 
 impl ColumnInlineSize {
+    /// Returns a `ColumnInlineSize` instance initialized to zero.
+    fn new() -> ColumnInlineSize {
+        ColumnInlineSize {
+            preferred: Au(0),
+            minimum_length: Au(0),
+            percentage: 0.0,
+            constrained: false,
+        }
+    }
+
     /// Returns the true minimum size of this column, given the containing block's inline size.
     /// Beware that this is generally only correct for fixed table layout. (Compare CSS 2.1 §
     /// 17.5.2.1 with the algorithm in INTRINSIC § 4.)

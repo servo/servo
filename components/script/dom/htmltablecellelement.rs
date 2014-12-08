@@ -22,6 +22,7 @@ pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<SimpleColor>>,
     border: Cell<Option<u32>>,
+    colspan: Cell<Option<u32>>,
     width: Cell<LengthOrPercentageOrAuto>,
 }
 
@@ -45,6 +46,7 @@ impl HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document),
             background_color: Cell::new(None),
             border: Cell::new(None),
+            colspan: Cell::new(None),
             width: Cell::new(AutoLpa),
         }
     }
@@ -58,6 +60,7 @@ impl HTMLTableCellElement {
 pub trait HTMLTableCellElementHelpers {
     fn get_background_color(&self) -> Option<SimpleColor>;
     fn get_border(&self) -> Option<u32>;
+    fn get_colspan(&self) -> Option<u32>;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
@@ -68,6 +71,10 @@ impl HTMLTableCellElementHelpers for HTMLTableCellElement {
 
     fn get_border(&self) -> Option<u32> {
         self.border.get()
+    }
+
+    fn get_colspan(&self) -> Option<u32> {
+        self.colspan.get()
     }
 
     fn get_width(&self) -> LengthOrPercentageOrAuto {
@@ -97,6 +104,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
                                                                      .as_slice()
                                                                      .chars()).unwrap_or(1)))
             }
+            &atom!("colspan") => {
+                self.colspan.set(str::parse_unsigned_integer(attr.value().as_slice().chars()));
+            }
             &atom!("width") => self.width.set(str::parse_length(attr.value().as_slice())),
             _ => ()
         }
@@ -111,6 +121,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
         match attr.local_name() {
             &atom!("bgcolor") => self.background_color.set(None),
             &atom!("border") => self.border.set(None),
+            &atom!("colspan") => self.colspan.set(None),
             &atom!("width") => self.width.set(AutoLpa),
             _ => ()
         }

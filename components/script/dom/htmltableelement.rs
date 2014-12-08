@@ -26,6 +26,7 @@ pub struct HTMLTableElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<SimpleColor>>,
     border: Cell<Option<u32>>,
+    width: Cell<LengthOrPercentageOrAuto>,
 }
 
 impl HTMLTableElementDerived for EventTarget {
@@ -44,6 +45,7 @@ impl HTMLTableElement {
                                                     document),
             background_color: Cell::new(None),
             border: Cell::new(None),
+            width: Cell::new(AutoLpa),
         }
     }
 
@@ -95,6 +97,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
 pub trait HTMLTableElementHelpers {
     fn get_background_color(&self) -> Option<SimpleColor>;
     fn get_border(&self) -> Option<u32>;
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
 impl HTMLTableElementHelpers for HTMLTableElement {
@@ -104,6 +107,10 @@ impl HTMLTableElementHelpers for HTMLTableElement {
 
     fn get_border(&self) -> Option<u32> {
         self.border.get()
+    }
+
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        self.width.get()
     }
 }
 
@@ -129,6 +136,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
                                                                      .as_slice()
                                                                      .chars()).unwrap_or(1)))
             }
+            &atom!("width") => self.width.set(str::parse_length(attr.value().as_slice())),
             _ => ()
         }
     }
@@ -142,6 +150,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
         match attr.local_name() {
             &atom!("bgcolor") => self.background_color.set(None),
             &atom!("border") => self.border.set(None),
+            &atom!("width") => self.width.set(AutoLpa),
             _ => ()
         }
     }

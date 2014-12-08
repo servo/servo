@@ -25,8 +25,8 @@ use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
 use properties::{BackgroundColorDeclaration, BorderBottomWidthDeclaration};
 use properties::{BorderLeftWidthDeclaration, BorderRightWidthDeclaration};
-use properties::{BorderTopWidthDeclaration, ColumnSpanDeclaration, PropertyDeclaration};
-use properties::{PropertyDeclarationBlock, SpecifiedValue, WidthDeclaration, specified};
+use properties::{BorderTopWidthDeclaration, PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{ServoColumnSpanDeclaration, SpecifiedValue, WidthDeclaration, specified};
 use selectors::*;
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
 
@@ -517,6 +517,14 @@ impl Stylist {
                         *shareable = false
                     }
                 }
+                match element.get_unsigned_integer_attribute(ColSpanUnsignedIntegerAttribute) {
+                    None => {}
+                    Some(value) => {
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                ServoColumnSpanDeclaration(SpecifiedValue(value))));
+                        *shareable = false
+                    }
+                }
                 self.synthesize_presentational_hint_for_legacy_background_color_attribute(
                     element,
                     matching_rules_list,
@@ -947,7 +955,7 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
 /// either this list or `common_style_affecting_attributes`. See the comment in
 /// `synthesize_presentational_hints_for_legacy_attributes`.
 pub fn rare_style_affecting_attributes() -> [Atom, ..3] {
-    [ atom!("bgcolor"), atom!("border") ]
+    [ atom!("bgcolor"), atom!("border"), atom!("colspan") ]
 }
 
 /// Determines whether the given element matches the given single selector.
