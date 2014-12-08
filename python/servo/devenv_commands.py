@@ -30,8 +30,11 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'params', default=None, nargs='...',
         help='Command-line arguments to be passed through to cargo update')
-    def update_cargo(self, params):
-        cargo_paths = [path.join('.'),
+    def update_cargo(self, params=None):
+        if not params:
+            params = []
+
+        cargo_paths = [path.join('components', 'servo'),
                        path.join('ports', 'cef'),
                        path.join('ports', 'android', 'glut_app')]
 
