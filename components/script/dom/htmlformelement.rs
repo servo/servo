@@ -2,15 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast, HTMLFormElementCast};
 use dom::bindings::global::Window;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, HTMLFormElementTypeId, HTMLTextAreaElementTypeId, HTMLDataListElementTypeId};
@@ -31,9 +32,12 @@ use url::UrlParser;
 use url::form_urlencoded::serialize;
 use string_cache::Atom;
 
+use std::cell::Cell;
+
 #[dom_struct]
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
+    marked_for_reset: Cell<bool>,
 }
 
 impl HTMLFormElementDerived for EventTarget {
@@ -45,7 +49,8 @@ impl HTMLFormElementDerived for EventTarget {
 impl HTMLFormElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFormElement {
         HTMLFormElement {
-            htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, prefix, document),
+            marked_for_reset: Cell::new(false),
         }
     }
 
@@ -332,6 +337,13 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
     }
 
     fn reset(self, _reset_method_flag: ResetFrom) {
+        // https://html.spec.whatwg.org/multipage/forms.html#locked-for-reset
+        if self.marked_for_reset.get() {
+            return;
+        } else {
+            self.marked_for_reset.set(true);
+        }
+
         let win = window_from_node(self).root();
         let event = Event::new(Window(*win),
                                "reset".to_string(),
@@ -374,6 +386,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                 _ => {}
             }
         };
+        self.marked_for_reset.set(false);
     }
 }
 
@@ -471,7 +484,30 @@ impl<'a> FormSubmitter<'a> {
 }
 
 pub trait FormControl<'a> : Copy {
-    fn form_owner(self) -> Option<Temporary<HTMLFormElement>>;
+    // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
+    //        but we need html5ever to do it correctly
+    fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
+        // https://html.spec.whatwg.org/multipage/forms.html#reset-the-form-owner
+        let elem = self.to_element();
+        let owner = elem.get_string_attribute(&atom!("form"));
+        if !owner.is_empty() {
+            let doc = document_from_node(elem).root();
+            let owner = doc.GetElementById(owner).root();
+            match owner {
+                Some(o) => {
+                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(*o);
+                    if maybe_form.is_some() {
+                        return maybe_form.map(Temporary::from_rooted);
+                    }
+                },
+                _ => ()
+            }
+        }
+        let node: JSRef<Node> = NodeCast::from_ref(elem);
+        node.ancestors().filter_map(|a| HTMLFormElementCast::to_ref(a)).next()
+            .map(Temporary::from_rooted)
+    }
+
     fn get_form_attribute(self,
                           attr: &Atom,
                           input: |Self| -> DOMString,

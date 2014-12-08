@@ -7,12 +7,11 @@ use dom::attr::{Attr, AttrValue, UIntAttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLFormElementCast, HTMLInputElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::Window;
@@ -134,6 +133,7 @@ pub trait LayoutHTMLInputElementHelpers {
 
 pub trait RawLayoutHTMLInputElementHelpers {
     unsafe fn get_checked_state_for_layout(&self) -> bool;
+    unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
     unsafe fn get_size_for_layout(&self) -> u32;
 }
 
@@ -174,6 +174,11 @@ impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
     #[allow(unrooted_must_root)]
     unsafe fn get_checked_state_for_layout(&self) -> bool {
         self.checked.get()
+    }
+
+    #[allow(unrooted_must_root)]
+    unsafe fn get_indeterminate_state_for_layout(&self) -> bool {
+        self.indeterminate.get()
     }
 
     #[allow(unrooted_must_root)]
@@ -284,7 +289,6 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-indeterminate
     fn SetIndeterminate(self, val: bool) {
-        // FIXME #4079 this should change the appearance
         self.indeterminate.set(val)
     }
 }
@@ -295,6 +299,7 @@ pub trait HTMLInputElementHelpers {
     fn get_radio_group_name(self) -> Option<String>;
     fn update_checked_state(self, checked: bool, dirty: bool);
     fn get_size(&self) -> u32;
+    fn get_indeterminate_state(self) -> bool;
 }
 
 fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&str>) {
@@ -372,6 +377,10 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
 
     fn get_size(&self) -> u32 {
         self.size.get()
+    }
+
+    fn get_indeterminate_state(self) -> bool {
+        self.indeterminate.get()
     }
 }
 
@@ -566,30 +575,6 @@ impl Reflectable for HTMLInputElement {
 }
 
 impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
-    // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
-    //        but we need html5ever to do it correctly
-    fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
-        // https://html.spec.whatwg.org/multipage/forms.html#reset-the-form-owner
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let owner = elem.get_string_attribute(&atom!("form"));
-        if !owner.is_empty() {
-            let doc = document_from_node(self).root();
-            let owner = doc.GetElementById(owner).root();
-            match owner {
-                Some(o) => {
-                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(*o);
-                    if maybe_form.is_some() {
-                        return maybe_form.map(Temporary::from_rooted);
-                    }
-                },
-                _ => ()
-            }
-        }
-        let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.ancestors().filter_map(|a| HTMLFormElementCast::to_ref(a)).next()
-            .map(Temporary::from_rooted)
-    }
-
     fn to_element(self) -> JSRef<'a, Element> {
         ElementCast::from_ref(self)
     }
@@ -601,6 +586,7 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
         !(self.Disabled() || self.ReadOnly())
     }
 
+    // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-form-reset-control
     fn reset(self) {
         match self.input_type.get() {
             InputRadio | InputCheckbox => {
@@ -631,6 +617,8 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         if cache.was_mutable {
             match ty {
                 // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
+                // InputSubmit => (), // No behavior defined
+                // https://html.spec.whatwg.org/multipage/forms.html#reset-button-state-(type=reset):activation-behavior
                 // InputSubmit => (), // No behavior defined
                 InputCheckbox => {
                     // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):pre-click-activation-steps
@@ -679,6 +667,8 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         match ty {
             // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-(type=submit):activation-behavior
             // InputSubmit => (), // No behavior defined
+            // https://html.spec.whatwg.org/multipage/forms.html#reset-button-state-(type=reset):activation-behavior
+            // InputReset => (), // No behavior defined
             // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-(type=checkbox):canceled-activation-steps
             InputCheckbox => {
                 // We want to restore state only if the element had been changed in the first place

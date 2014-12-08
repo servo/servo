@@ -12,7 +12,11 @@
 <div><input id=foo3 type="checkbox"></div>
 <div><button id=setdefault type=button>setDefaultChecked</button></div>
 <div><input type="submit"><input type="reset"><div>
+<div><input id=ch type="checkbox" checked></div>
+<div><input id=unch type="checkbox"></div>
 <script>
+document.getElementById("ch").indeterminate = true;
+document.getElementById("unch").indeterminate = true;
 var checkboxes = [document.getElementById("foo1"),
                   document.getElementById("foo2"),
                   document.getElementById("foo3")];

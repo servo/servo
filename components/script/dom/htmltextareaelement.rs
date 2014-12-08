@@ -5,14 +5,13 @@
 use dom::attr::{Attr, AttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived, HTMLFormElementCast};
+use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
@@ -20,7 +19,7 @@ use dom::element::{AttributeHandlers, HTMLTextAreaElementTypeId, Element};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::htmlformelement::FormControl;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, OtherNodeDamage, ElementNodeTypeId};
 use dom::node::{document_from_node};
@@ -299,30 +298,6 @@ impl Reflectable for HTMLTextAreaElement {
 }
 
 impl<'a> FormControl<'a> for JSRef<'a, HTMLTextAreaElement> {
-    // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
-    //        but we need html5ever to do it correctly
-    fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
-        // https://html.spec.whatwg.org/multipage/forms.html#reset-the-form-owner
-        let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let owner = elem.get_string_attribute(&atom!("form"));
-        if !owner.is_empty() {
-            let doc = document_from_node(self).root();
-            let owner = doc.GetElementById(owner).root();
-            match owner {
-                Some(o) => {
-                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(*o);
-                    if maybe_form.is_some() {
-                        return maybe_form.map(Temporary::from_rooted);
-                    }
-                },
-                _ => ()
-            }
-        }
-        let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.ancestors().filter_map(|a| HTMLFormElementCast::to_ref(a)).next()
-            .map(Temporary::from_rooted)
-    }
-
     fn to_element(self) -> JSRef<'a, Element> {
         ElementCast::from_ref(self)
     }
@@ -334,6 +309,7 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn reset(self) {
+        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-form-reset-control
         self.SetValue(self.DefaultValue());
         self.value_changed.set(false);
     }
