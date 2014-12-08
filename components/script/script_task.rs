@@ -694,15 +694,14 @@ impl ScriptTask {
             is a bug.");
 
         let last_loaded_url = replace(&mut *page.mut_url(), None);
-        match last_loaded_url {
-            Some((ref loaded, needs_reflow)) if *loaded == url => {
+        if let Some((ref loaded, needs_reflow)) = last_loaded_url {
+            if *loaded == url {
                 *page.mut_url() = Some((loaded.clone(), false));
                 if needs_reflow {
                     self.force_reflow(&*page);
                 }
                 return;
-            },
-            _ => (),
+            }
         }
 
         let is_javascript = url.scheme.as_slice() == "javascript";

@@ -484,9 +484,8 @@ impl<'a> TreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
         loop {
             // "1. While result is not FILTER_REJECT and node has a child, run these subsubsteps:"
             loop {
-                match result {
-                    Ok(NodeFilterConstants::FILTER_REJECT) => break,
-                    _ => {}
+                if let Ok(NodeFilterConstants::FILTER_REJECT) = result {
+                    break;
                 }
                 match node.first_child() {
                     None => break,

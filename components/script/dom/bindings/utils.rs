@@ -321,19 +321,16 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
         let constructor = JS_GetFunctionObject(fun);
         assert!(constructor.is_not_null());
 
-        match members.staticMethods {
-            Some(staticMethods) => DefineMethods(cx, constructor, staticMethods),
-            _ => (),
+        if let Some(staticMethods) = members.staticMethods {
+            DefineMethods(cx, constructor, staticMethods);
         }
 
-        match members.staticAttrs {
-            Some(staticProperties) => DefineProperties(cx, constructor, staticProperties),
-            _ => (),
+        if let Some(staticProperties) = members.staticAttrs {
+            DefineProperties(cx, constructor, staticProperties);
         }
 
-        match members.consts {
-            Some(constants) => DefineConstants(cx, constructor, constants),
-            _ => (),
+        if let Some(constants) = members.consts {
+            DefineConstants(cx, constructor, constants);
         }
 
         if proto.is_not_null() {
@@ -392,19 +389,16 @@ fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
         let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, &*parentProto, &*global);
         assert!(ourProto.is_not_null());
 
-        match members.methods {
-            Some(methods) => DefineMethods(cx, ourProto, methods),
-            _ => (),
+        if let Some(methods) = members.methods {
+            DefineMethods(cx, ourProto, methods);
         }
 
-        match members.attrs {
-            Some(properties) => DefineProperties(cx, ourProto, properties),
-            _ => (),
+        if let Some(properties) = members.attrs {
+            DefineProperties(cx, ourProto, properties);
         }
 
-        match members.consts {
-            Some(constants) => DefineConstants(cx, ourProto, constants),
-            _ => (),
+        if let Some(constants) = members.consts {
+            DefineConstants(cx, ourProto, constants);
         }
 
         return ourProto;

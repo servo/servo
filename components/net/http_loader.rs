@@ -22,10 +22,9 @@ fn send_error(url: Url, err: String, senders: ResponseSenders) {
     let mut metadata = Metadata::default(url);
     metadata.status = None;
 
-    match start_sending_opt(senders, metadata) {
-        Ok(p) => p.send(Done(Err(err))),
-        _ => {}
-    };
+    if let Ok(p) = start_sending_opt(senders, metadata) {
+        p.send(Done(Err(err)));
+    }
 }
 
 fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
@@ -139,18 +138,15 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
             match response.headers.get::<Location>() {
                 Some(&Location(ref new_url)) => {
                     // CORS (http://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
-                    match load_data.cors {
-                        Some(ref c) => {
-                            if c.preflight {
-                                // The preflight lied
-                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), senders);
-                                return;
-                            } else {
-                                // XXXManishearth There are some CORS-related steps here,
-                                // but they don't seem necessary until credentials are implemented
-                            }
+                    if let Some(ref c) = load_data.cors {
+                        if c.preflight {
+                            // The preflight lied
+                            send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), senders);
+                            return;
+                        } else {
+                            // XXXManishearth There are some CORS-related steps here,
+                            // but they don't seem necessary until credentials are implemented
                         }
-                        _ => {}
                     }
                     let new_url = match UrlParser::new().base_url(&url).parse(new_url.as_slice()) {
                         Ok(u) => u,

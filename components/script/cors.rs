@@ -72,10 +72,9 @@ impl CORSRequest {
 
     fn new(mut referer: Url, destination: Url, mode: RequestMode, method: Method,
            headers: Headers) -> CORSRequest {
-        match referer.scheme_data {
-            RelativeSchemeData(ref mut data) => data.path = vec!(),
-            _ => {}
-        };
+        if let RelativeSchemeData(ref mut data) = referer.scheme_data {
+            data.path = vec!();
+        }
         referer.fragment = None;
         referer.query = None;
         CORSRequest {

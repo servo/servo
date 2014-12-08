@@ -244,24 +244,21 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                         ty: DOMString,
                         listener: Option<EventListener>,
                         capture: bool) {
-        match listener {
-            Some(listener) => {
-                let mut handlers = self.handlers.borrow_mut();
-                let entry = match handlers.entry(ty) {
-                    Occupied(entry) => entry.into_mut(),
-                    Vacant(entry) => entry.set(vec!()),
-                };
+        if let Some(listener) = listener {
+            let mut handlers = self.handlers.borrow_mut();
+            let entry = match handlers.entry(ty) {
+                Occupied(entry) => entry.into_mut(),
+                Vacant(entry) => entry.set(vec!()),
+            };
 
-                let phase = if capture { Capturing } else { Bubbling };
-                let new_entry = EventListenerEntry {
-                    phase: phase,
-                    listener: Additive(listener)
-                };
-                if entry.as_slice().position_elem(&new_entry).is_none() {
-                    entry.push(new_entry);
-                }
-            },
-            _ => (),
+            let phase = if capture { Capturing } else { Bubbling };
+            let new_entry = EventListenerEntry {
+                phase: phase,
+                listener: Additive(listener)
+            };
+            if entry.as_slice().position_elem(&new_entry).is_none() {
+                entry.push(new_entry);
+            }
         }
     }
 
@@ -269,23 +266,20 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                            ty: DOMString,
                            listener: Option<EventListener>,
                            capture: bool) {
-        match listener {
-            Some(listener) => {
-                let mut handlers = self.handlers.borrow_mut();
-                let mut entry = handlers.get_mut(&ty);
-                for entry in entry.iter_mut() {
-                    let phase = if capture { Capturing } else { Bubbling };
-                    let old_entry = EventListenerEntry {
-                        phase: phase,
-                        listener: Additive(listener)
-                    };
-                    let position = entry.as_slice().position_elem(&old_entry);
-                    for &position in position.iter() {
-                        entry.remove(position);
-                    }
+        if let Some(listener) = listener {
+            let mut handlers = self.handlers.borrow_mut();
+            let mut entry = handlers.get_mut(&ty);
+            for entry in entry.iter_mut() {
+                let phase = if capture { Capturing } else { Bubbling };
+                let old_entry = EventListenerEntry {
+                    phase: phase,
+                    listener: Additive(listener)
+                };
+                let position = entry.as_slice().position_elem(&old_entry);
+                for &position in position.iter() {
+                    entry.remove(position);
                 }
-            },
-            _ => (),
+            }
         }
     }
 
