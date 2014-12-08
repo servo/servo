@@ -31,10 +31,10 @@ pub struct Opts {
     /// The initial URLs to load.
     pub urls: Vec<String>,
 
-    /// How many threads to use for CPU rendering (`-t`).
+    /// How many threads to use for CPU painting (`-t`).
     ///
-    /// FIXME(pcwalton): This is not currently used. All rendering is sequential.
-    pub n_render_threads: uint,
+    /// FIXME(pcwalton): This is not currently used. All painting is sequential.
+    pub n_paint_threads: uint,
 
     /// True to use GPU painting via Skia-GL, false to use CPU painting via Skia (`-g`). Note that
     /// compositing is always done on the GPU.
@@ -88,7 +88,7 @@ pub struct Opts {
 
     /// True if each step of layout is traced to an external JSON file
     /// for debugging purposes. Settings this implies sequential layout
-    /// and render.
+    /// and paint.
     pub trace_layout: bool,
 
     /// If true, instrument the runtime for each task created and dump
@@ -145,7 +145,7 @@ fn args_fail(msg: &str) {
     os::set_exit_status(1);
 }
 
-// Always use CPU rendering on android.
+// Always use CPU painting on android.
 
 #[cfg(target_os="android")]
 static FORCE_CPU_PAINTING: bool = true;
@@ -156,7 +156,7 @@ static FORCE_CPU_PAINTING: bool = false;
 pub fn default_opts() -> Opts {
     Opts {
         urls: vec!(),
-        n_render_threads: 1,
+        n_paint_threads: 1,
         gpu_painting: false,
         tile_size: 512,
         device_pixels_per_px: None,
@@ -194,7 +194,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optopt("s", "size", "Size of tiles", "512"),
         getopts::optopt("", "device-pixel-ratio", "Device pixels per px", ""),
         getopts::optflag("e", "experimental", "Enable experimental web features"),
-        getopts::optopt("t", "threads", "Number of render threads", "1"),
+        getopts::optopt("t", "threads", "Number of paint threads", "1"),
         getopts::optflagopt("p", "profile", "Profiler flag and output interval", "10"),
         getopts::optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10"),
         getopts::optflag("x", "exit", "Exit after load flag"),
@@ -253,8 +253,8 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         ScaleFactor(from_str(dppx_str.as_slice()).unwrap())
     );
 
-    let mut n_render_threads: uint = match opt_match.opt_str("t") {
-        Some(n_render_threads_str) => from_str(n_render_threads_str.as_slice()).unwrap(),
+    let mut n_paint_threads: uint = match opt_match.opt_str("t") {
+        Some(n_paint_threads_str) => from_str(n_paint_threads_str.as_slice()).unwrap(),
         None => 1,      // FIXME: Number of cores.
     };
 
@@ -278,7 +278,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     let mut bubble_inline_sizes_separately = debug_options.contains(&"bubble-widths");
     let trace_layout = debug_options.contains(&"trace-layout");
     if trace_layout {
-        n_render_threads = 1;
+        n_paint_threads = 1;
         layout_threads = 1;
         bubble_inline_sizes_separately = true;
     }
@@ -308,7 +308,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
 
     let opts = Opts {
         urls: urls,
-        n_render_threads: n_render_threads,
+        n_paint_threads: n_paint_threads,
         gpu_painting: gpu_painting,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
