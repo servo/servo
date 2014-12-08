@@ -28,7 +28,7 @@ use geom::scale_factor::ScaleFactor;
 use gfx::color;
 use gfx::display_list::{DisplayList, OpaqueNode, StackingContext};
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::{mod, RenderInitMsg, PaintChan, PaintLayer};
+use gfx::paint_task::{mod, PaintInitMsg, PaintChan, PaintLayer};
 use layout_traits;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
@@ -690,7 +690,7 @@ impl LayoutTask {
 
             debug!("Layout done!");
 
-            self.paint_chan.send(RenderInitMsg(stacking_context));
+            self.paint_chan.send(PaintInitMsg(stacking_context));
         });
     }
 

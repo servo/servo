@@ -29,7 +29,7 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
-use gfx::paint_task::{PaintChan, RenderMsg, PaintRequest, UnusedBufferMsg};
+use gfx::paint_task::{PaintChan, PaintMsg, PaintRequest, UnusedBufferMsg};
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
@@ -379,7 +379,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn has_render_msg_tracking(&self) -> bool {
-        // only track RenderMsg's if the compositor outputs to a file.
+        // only track PaintMsg's if the compositor outputs to a file.
         opts::get().output_file.is_some()
     }
 
@@ -928,7 +928,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut num_render_msgs_sent = 0;
         for (_pipeline_id, (chan, requests)) in pipeline_requests.into_iter() {
             num_render_msgs_sent += 1;
-            let _ = chan.send_opt(RenderMsg(requests));
+            let _ = chan.send_opt(PaintMsg(requests));
         }
 
         self.add_outstanding_render_msg(num_render_msgs_sent);

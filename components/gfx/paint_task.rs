@@ -68,8 +68,8 @@ pub struct PaintRequest {
 }
 
 pub enum Msg {
-    RenderInitMsg(Arc<StackingContext>),
-    RenderMsg(Vec<PaintRequest>),
+    PaintInitMsg(Arc<StackingContext>),
+    PaintMsg(Vec<PaintRequest>),
     UnusedBufferMsg(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
@@ -227,7 +227,7 @@ impl<C> PaintTask<C> where C: RenderListener + Send {
 
         loop {
             match self.port.recv() {
-                RenderInitMsg(stacking_context) => {
+                PaintInitMsg(stacking_context) => {
                     self.epoch.next();
                     self.root_stacking_context = Some(stacking_context.clone());
 
@@ -243,7 +243,7 @@ impl<C> PaintTask<C> where C: RenderListener + Send {
                                       self.epoch,
                                       &*stacking_context);
                 }
-                RenderMsg(requests) => {
+                PaintMsg(requests) => {
                     if !self.paint_permission {
                         debug!("paint_task: render ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
