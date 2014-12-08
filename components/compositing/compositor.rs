@@ -97,7 +97,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// the compositor.
     shutdown_state: ShutdownState,
 
-    /// Tracks outstanding render_msg's sent to the render tasks.
+    /// Tracks outstanding render_msg's sent to the paint tasks.
     outstanding_render_msgs: uint,
 
     /// Tracks the last composite time.
@@ -113,7 +113,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     ready_states: HashMap<PipelineId, ReadyState>,
 
     /// Current paint status of each pipeline.
-    render_states: HashMap<PipelineId, PaintState>,
+    paint_states: HashMap<PipelineId, PaintState>,
 
     /// Whether the page being rendered has loaded completely.
     /// Differs from ReadyState because we can finish loading (ready)
@@ -200,7 +200,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             zoom_action: false,
             zoom_time: 0f64,
             ready_states: HashMap::new(),
-            render_states: HashMap::new(),
+            paint_states: HashMap::new(),
             got_load_complete_message: false,
             got_set_ids_message: false,
             constellation_chan: constellation_chan,
@@ -258,8 +258,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_ready_state(pipeline_id, ready_state);
             }
 
-            (ChangePaintState(pipeline_id, render_state), NotShuttingDown) => {
-                self.change_render_state(pipeline_id, render_state);
+            (ChangePaintState(pipeline_id, paint_state), NotShuttingDown) => {
+                self.change_paint_state(pipeline_id, paint_state);
             }
 
             (PaintMsgDiscarded, NotShuttingDown) => {
@@ -358,24 +358,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     }
 
-    fn change_render_state(&mut self, pipeline_id: PipelineId, render_state: PaintState) {
-        match self.render_states.entry(pipeline_id) {
+    fn change_paint_state(&mut self, pipeline_id: PipelineId, paint_state: PaintState) {
+        match self.paint_states.entry(pipeline_id) {
             Occupied(entry) => {
-                *entry.into_mut() = render_state;
+                *entry.into_mut() = paint_state;
             }
             Vacant(entry) => {
-                entry.set(render_state);
+                entry.set(paint_state);
             }
         }
 
-        self.window.set_render_state(render_state);
+        self.window.set_render_state(paint_state);
     }
 
-    fn all_pipelines_in_idle_render_state(&self) -> bool {
+    fn all_pipelines_in_idle_paint_state(&self) -> bool {
         if self.ready_states.len() == 0 {
             return false;
         }
-        return self.render_states.values().all(|&value| value == IdlePaintState);
+        return self.paint_states.values().all(|&value| value == IdlePaintState);
     }
 
     fn has_render_msg_tracking(&self) -> bool {
@@ -437,7 +437,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                      -> Rc<Layer<CompositorData>> {
         // Initialize the ReadyState and PaintState for this pipeline.
         self.ready_states.insert(frame_tree.pipeline.id, Blank);
-        self.render_states.insert(frame_tree.pipeline.id, PaintingPaintState);
+        self.paint_states.insert(frame_tree.pipeline.id, PaintingPaintState);
 
         let root_layer = create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline, frame_rect);
         for kid in frame_tree.children.iter() {
@@ -948,7 +948,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return false;
         }
 
-        if !self.all_pipelines_in_idle_render_state() {
+        if !self.all_pipelines_in_idle_paint_state() {
             return false;
         }
 
