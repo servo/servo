@@ -4,11 +4,11 @@
 
 use compositor_layer::{CompositorData, CompositorLayer, DoesntWantScrollEvents};
 use compositor_layer::WantsScrollEvents;
-use compositor_task::{ChangeReadyState, ChangeRenderState, CompositorEventListener};
+use compositor_task::{ChangeReadyState, ChangePaintState, CompositorEventListener};
 use compositor_task::{CompositorProxy, CompositorReceiver, CompositorTask};
 use compositor_task::{CreateOrUpdateDescendantLayer, CreateOrUpdateRootLayer, Exit};
 use compositor_task::{FrameTreeUpdateMsg, GetGraphicsMetadata, LayerProperties};
-use compositor_task::{LoadComplete, Msg, Paint, RenderMsgDiscarded, ScrollFragmentPoint};
+use compositor_task::{LoadComplete, Msg, Paint, PaintMsgDiscarded, ScrollFragmentPoint};
 use compositor_task::{ScrollTimeout, SetIds, SetLayerOrigin, ShutdownComplete};
 use constellation::{SendableFrameTree, FrameTreeDiff};
 use pipeline::CompositionPipeline;
@@ -258,11 +258,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_ready_state(pipeline_id, ready_state);
             }
 
-            (ChangeRenderState(pipeline_id, render_state), NotShuttingDown) => {
+            (ChangePaintState(pipeline_id, render_state), NotShuttingDown) => {
                 self.change_render_state(pipeline_id, render_state);
             }
 
-            (RenderMsgDiscarded, NotShuttingDown) => {
+            (PaintMsgDiscarded, NotShuttingDown) => {
                 self.remove_outstanding_render_msg();
             }
 

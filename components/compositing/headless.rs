@@ -4,7 +4,7 @@
 
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{Exit, ChangeReadyState, LoadComplete, Paint, ScrollFragmentPoint, SetIds};
-use compositor_task::{SetLayerOrigin, ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
+use compositor_task::{SetLayerOrigin, ShutdownComplete, ChangePaintState, PaintMsgDiscarded};
 use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout, FrameTreeUpdateMsg};
 use windowing::WindowEvent;
 
@@ -103,8 +103,8 @@ impl CompositorEventListener for NullCompositor {
             CreateOrUpdateRootLayer(..) |
             CreateOrUpdateDescendantLayer(..) |
             SetLayerOrigin(..) | Paint(..) |
-            ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
-            LoadComplete | RenderMsgDiscarded(..) | ScrollTimeout(..) => ()
+            ChangeReadyState(..) | ChangePaintState(..) | ScrollFragmentPoint(..) |
+            LoadComplete | PaintMsgDiscarded(..) | ScrollTimeout(..) => ()
         }
         true
     }

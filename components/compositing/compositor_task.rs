@@ -143,11 +143,11 @@ impl RenderListener for Box<CompositorProxy+'static+Send> {
     }
 
     fn render_msg_discarded(&mut self) {
-        self.send(RenderMsgDiscarded);
+        self.send(PaintMsgDiscarded);
     }
 
     fn set_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
-        self.send(ChangeRenderState(pipeline_id, render_state))
+        self.send(ChangePaintState(pipeline_id, render_state))
     }
 }
 
@@ -183,9 +183,9 @@ pub enum Msg {
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(PipelineId, ReadyState),
     /// Alerts the compositor to the current status of rendering.
-    ChangeRenderState(PipelineId, RenderState),
+    ChangePaintState(PipelineId, RenderState),
     /// Alerts the compositor that the RenderMsg has been discarded.
-    RenderMsgDiscarded,
+    PaintMsgDiscarded,
     /// Sets the channel to the current layout and render tasks, along with their id
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// Sends an updated version of the frame tree.
@@ -209,8 +209,8 @@ impl Show for Msg {
             ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
             Paint(..) => write!(f, "Paint"),
             ChangeReadyState(..) => write!(f, "ChangeReadyState"),
-            ChangeRenderState(..) => write!(f, "ChangeRenderState"),
-            RenderMsgDiscarded(..) => write!(f, "RenderMsgDiscarded"),
+            ChangePaintState(..) => write!(f, "ChangePaintState"),
+            PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
             SetIds(..) => write!(f, "SetIds"),
             FrameTreeUpdateMsg(..) => write!(f, "FrameTreeUpdateMsg"),
             LoadComplete => write!(f, "LoadComplete"),
