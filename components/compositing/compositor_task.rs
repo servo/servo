@@ -18,7 +18,7 @@ use geom::size::Size2D;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
 use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
-use servo_msg::compositor_msg::{PaintListener, RenderState, ScriptListener, ScrollPolicy};
+use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
@@ -146,8 +146,8 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
         self.send(PaintMsgDiscarded);
     }
 
-    fn set_paint_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
-        self.send(ChangePaintState(pipeline_id, render_state))
+    fn set_paint_state(&mut self, pipeline_id: PipelineId, paint_state: PaintState) {
+        self.send(ChangePaintState(pipeline_id, paint_state))
     }
 }
 
@@ -182,8 +182,8 @@ pub enum Msg {
     Paint(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(PipelineId, ReadyState),
-    /// Alerts the compositor to the current status of rendering.
-    ChangePaintState(PipelineId, RenderState),
+    /// Alerts the compositor to the current status of painting.
+    ChangePaintState(PipelineId, PaintState),
     /// Alerts the compositor that the RenderMsg has been discarded.
     PaintMsgDiscarded,
     /// Sets the channel to the current layout and render tasks, along with their id

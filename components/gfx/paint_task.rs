@@ -21,8 +21,8 @@ use layers::platform::surface::{NativeSurface, NativeSurfaceMethods};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
 use native::task::NativeTaskBuilder;
-use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerId};
-use servo_msg::compositor_msg::{LayerMetadata, PaintListener, RenderingRenderState, ScrollPolicy};
+use servo_msg::compositor_msg::{Epoch, IdlePaintState, LayerId};
+use servo_msg::compositor_msg::{LayerMetadata, PaintListener, PaintingPaintState, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineId};
 use servo_msg::constellation_msg::{RendererReadyMsg};
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
@@ -253,7 +253,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     }
 
                     let mut replies = Vec::new();
-                    self.compositor.set_paint_state(self.id, RenderingRenderState);
+                    self.compositor.set_paint_state(self.id, PaintingPaintState);
                     for PaintRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.into_iter() {
                         if self.epoch == epoch {
@@ -263,7 +263,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                         }
                     }
 
-                    self.compositor.set_paint_state(self.id, IdleRenderState);
+                    self.compositor.set_paint_state(self.id, IdlePaintState);
 
                     debug!("paint_task: returning surfaces");
                     self.compositor.paint(self.id, self.epoch, replies);

@@ -18,7 +18,7 @@ use geom::size::TypedSize2D;
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
+use msg::compositor_msg::{IdlePaintState, PaintState, PaintingPaintState};
 use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -66,7 +66,7 @@ pub struct Window {
 
     mouse_pos: Cell<Point2D<int>>,
     ready_state: Cell<ReadyState>,
-    render_state: Cell<RenderState>,
+    render_state: Cell<PaintState>,
     key_modifiers: Cell<KeyModifiers>,
 
     last_title_set_time: Cell<Timespec>,
@@ -118,7 +118,7 @@ impl Window {
 
             mouse_pos: Cell::new(Point2D(0, 0)),
             ready_state: Cell::new(Blank),
-            render_state: Cell::new(IdleRenderState),
+            render_state: Cell::new(IdlePaintState),
             key_modifiers: Cell::new(KeyModifiers::empty()),
 
             last_title_set_time: Cell::new(Timespec::new(0, 0)),
@@ -173,9 +173,9 @@ impl WindowMethods for Window {
         self.update_window_title()
     }
 
-    /// Sets the render state.
-    fn set_render_state(&self, render_state: RenderState) {
-        self.render_state.set(render_state);
+    /// Sets the paint state.
+    fn set_render_state(&self, paint_state: PaintState) {
+        self.render_state.set(paint_state);
         self.update_window_title()
     }
 
@@ -234,10 +234,10 @@ impl Window {
                     }
                     FinishedLoading => {
                         match self.render_state.get() {
-                            RenderingRenderState => {
+                            PaintingPaintState => {
                                 window.set_title("Rendering - Servo [glutin]")
                             }
-                            IdleRenderState => {
+                            IdlePaintState => {
                                 window.set_title("Servo [glutin]")
                             }
                         }

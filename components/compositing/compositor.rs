@@ -39,8 +39,8 @@ use png;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
 use script_traits::{ViewportMsg, ScriptControlChan};
-use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerId};
-use servo_msg::compositor_msg::{ReadyState, RenderingRenderState, RenderState, Scrollable};
+use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdlePaintState, LayerId};
+use servo_msg::compositor_msg::{ReadyState, PaintingPaintState, PaintState, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, LoadUrlMsg};
 use servo_msg::constellation_msg::{NavigateMsg, LoadData, PipelineId, ResizedWindowMsg};
 use servo_msg::constellation_msg::{WindowSizeData, KeyState, Key, KeyModifiers};
@@ -112,8 +112,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// Current display/reflow status of each pipeline.
     ready_states: HashMap<PipelineId, ReadyState>,
 
-    /// Current render status of each pipeline.
-    render_states: HashMap<PipelineId, RenderState>,
+    /// Current paint status of each pipeline.
+    render_states: HashMap<PipelineId, PaintState>,
 
     /// Whether the page being rendered has loaded completely.
     /// Differs from ReadyState because we can finish loading (ready)
@@ -358,7 +358,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     }
 
-    fn change_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
+    fn change_render_state(&mut self, pipeline_id: PipelineId, render_state: PaintState) {
         match self.render_states.entry(pipeline_id) {
             Occupied(entry) => {
                 *entry.into_mut() = render_state;
@@ -375,7 +375,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if self.ready_states.len() == 0 {
             return false;
         }
-        return self.render_states.values().all(|&value| value == IdleRenderState);
+        return self.render_states.values().all(|&value| value == IdlePaintState);
     }
 
     fn has_render_msg_tracking(&self) -> bool {
@@ -435,9 +435,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                      frame_tree: &SendableFrameTree,
                                      frame_rect: Option<TypedRect<PagePx, f32>>)
                                      -> Rc<Layer<CompositorData>> {
-        // Initialize the ReadyState and RenderState for this pipeline.
+        // Initialize the ReadyState and PaintState for this pipeline.
         self.ready_states.insert(frame_tree.pipeline.id, Blank);
-        self.render_states.insert(frame_tree.pipeline.id, RenderingRenderState);
+        self.render_states.insert(frame_tree.pipeline.id, PaintingPaintState);
 
         let root_layer = create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline, frame_rect);
         for kid in frame_tree.children.iter() {

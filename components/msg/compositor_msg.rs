@@ -12,11 +12,11 @@ use std::fmt;
 
 use constellation_msg::PipelineId;
 
-/// The status of the renderer.
+/// The status of the painter.
 #[deriving(PartialEq, Clone)]
-pub enum RenderState {
-    IdleRenderState,
-    RenderingRenderState,
+pub enum PaintState {
+    IdlePaintState,
+    PaintingPaintState,
 }
 
 #[deriving(Eq, Ord, PartialEq, PartialOrd, Clone)]
@@ -100,7 +100,7 @@ pub trait PaintListener for Sized? {
              replies: Vec<(LayerId, Box<LayerBufferSet>)>);
 
     fn paint_msg_discarded(&mut self);
-    fn set_paint_state(&mut self, PipelineId, RenderState);
+    fn set_paint_state(&mut self, PipelineId, PaintState);
 }
 
 /// The interface used by the script task to tell the compositor to update its ready state,
