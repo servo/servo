@@ -657,7 +657,7 @@ impl<'a> PaintContext<'a>  {
         };
 
         self.font_ctx
-            .get_render_font_from_template(&text.text_run.font_template,
+            .get_paint_font_from_template(&text.text_run.font_template,
                                            text.text_run.actual_pt_size)
             .borrow()
             .draw_text_into_context(self,
@@ -717,7 +717,7 @@ impl<'a> PaintContext<'a>  {
                                                    temporary_draw_target: &DrawTarget,
                                                    opacity: AzFloat) {
         if (*temporary_draw_target) == self.draw_target {
-            // We're directly rendering to the surface; nothing to do.
+            // We're directly painting to the surface; nothing to do.
             return
         }
 

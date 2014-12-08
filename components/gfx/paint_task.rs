@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! The task that handles all rendering/painting.
+//! The task that handles all painting.
 
 use buffer_map::BufferMap;
 use display_list::{mod, StackingContext};
@@ -43,7 +43,7 @@ use sync::Arc;
 pub struct PaintLayer {
     /// A per-pipeline ID describing this layer that should be stable across reflows.
     pub id: LayerId,
-    /// The color of the background in this layer. Used for unrendered content.
+    /// The color of the background in this layer. Used for unpainted content.
     pub background_color: Color,
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
@@ -87,7 +87,7 @@ impl PaintChan {
 
     pub fn send(&self, msg: Msg) {
         let &PaintChan(ref chan) = self;
-        assert!(chan.send_opt(msg).is_ok(), "PaintChan.send: render port closed")
+        assert!(chan.send_opt(msg).is_ok(), "PaintChan.send: paint port closed")
     }
 
     pub fn send_opt(&self, msg: Msg) -> Result<(), Msg> {
@@ -128,7 +128,7 @@ pub struct PaintTask<C> {
 // the whole PaintTask struct.
 macro_rules! native_graphics_context(
     ($task:expr) => (
-        $task.native_graphics_context.as_ref().expect("Need a graphics context to do rendering")
+        $task.native_graphics_context.as_ref().expect("Need a graphics context to do painting")
     )
 )
 
@@ -179,7 +179,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
         let ConstellationChan(c) = constellation_chan.clone();
         spawn_named_with_send_on_failure("PaintTask", task_state::PAINT, proc() {
             {
-                // Ensures that the render task and graphics context are destroyed before the
+                // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.
                 let mut compositor = compositor;
                 let native_graphics_context = compositor.get_graphics_metadata().map(
@@ -223,7 +223,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
     }
 
     fn start(&mut self) {
-        debug!("paint_task: beginning rendering loop");
+        debug!("paint_task: beginning painting loop");
 
         loop {
             match self.port.recv() {
@@ -232,7 +232,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     self.root_stacking_context = Some(stacking_context.clone());
 
                     if !self.paint_permission {
-                        debug!("paint_task: render ready msg");
+                        debug!("paint_task: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(PainterReadyMsg(self.id));
                         continue;
@@ -245,7 +245,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                 }
                 PaintMsg(requests) => {
                     if !self.paint_permission {
-                        debug!("paint_task: render ready msg");
+                        debug!("paint_task: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(PainterReadyMsg(self.id));
                         self.compositor.paint_msg_discarded();
@@ -257,9 +257,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     for PaintRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.into_iter() {
                         if self.epoch == epoch {
-                            self.render(&mut replies, buffer_requests, scale, layer_id);
+                            self.paint(&mut replies, buffer_requests, scale, layer_id);
                         } else {
-                            debug!("renderer epoch mismatch: {} != {}", self.epoch, epoch);
+                            debug!("painter epoch mismatch: {} != {}", self.epoch, epoch);
                         }
                     }
 
@@ -342,8 +342,8 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
         })
     }
 
-    /// Renders one layer and sends the tiles back to the layer.
-    fn render(&mut self,
+    /// Paints one layer and sends the tiles back to the layer.
+    fn paint(&mut self,
               replies: &mut Vec<(LayerId, Box<LayerBufferSet>)>,
               mut tiles: Vec<BufferRequest>,
               scale: f32,
@@ -493,7 +493,7 @@ impl WorkerThread {
             DrawTarget::new(SkiaBackend, size, B8G8R8A8)
         } else {
             // FIXME(pcwalton): Cache the components of draw targets (texture color buffer,
-            // renderbuffers) instead of recreating them.
+            // paintbuffers) instead of recreating them.
             let draw_target = DrawTarget::new_with_fbo(SkiaBackend,
                                                        native_graphics_context!(self),
                                                        size,
@@ -503,7 +503,7 @@ impl WorkerThread {
         };
 
         {
-            // Build the render context.
+            // Build the paint context.
             let mut paint_context = PaintContext {
                 draw_target: draw_target.clone(),
                 font_ctx: &mut self.font_context,
@@ -511,7 +511,7 @@ impl WorkerThread {
                 screen_rect: tile.screen_rect,
             };
 
-            // Apply the translation to render the tile we want.
+            // Apply the translation to paint the tile we want.
             let tile_bounds = tile.page_rect;
             let matrix: Matrix2D<AzFloat> = Matrix2D::identity();
             let matrix = matrix.scale(scale as AzFloat, scale as AzFloat);
@@ -544,10 +544,10 @@ impl WorkerThread {
                                             scale: f32)
                                             -> Box<LayerBuffer> {
         // Extract the texture from the draw target and place it into its slot in the buffer. If
-        // using CPU rendering, upload it first.
+        // using CPU painting, upload it first.
         //
         // FIXME(pcwalton): We should supply the texture and native surface *to* the draw target in
-        // GPU rendering mode, so that it doesn't have to recreate it.
+        // GPU painting mode, so that it doesn't have to recreate it.
         if !opts::get().gpu_painting {
             let mut buffer = layer_buffer.unwrap();
             draw_target.snapshot().get_data_surface().with_data(|data| {

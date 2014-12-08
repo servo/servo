@@ -12,7 +12,7 @@ use std::hash::sip::SipState;
 use std::mem;
 
 /// This is a struct used to store buffers when they are not in use.
-/// The render task can quickly query for a particular size of buffer when it
+/// The paint task can quickly query for a particular size of buffer when it
 /// needs it.
 pub struct BufferMap {
     /// A HashMap that stores the Buffers.

@@ -52,10 +52,10 @@ extern crate freetype;
 
 pub use paint_context::PaintContext;
 
-// Private rendering modules
+// Private painting modules
 mod paint_context;
 
-// Rendering
+// Painting
 pub mod color;
 #[path="display_list/mod.rs"]
 pub mod display_list;

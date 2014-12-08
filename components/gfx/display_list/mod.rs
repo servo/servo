@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Servo heavily uses display lists, which are retained-mode lists of rendering commands to
-//! perform. Using a list instead of rendering elements in immediate mode allows transforms, hit
+//! Servo heavily uses display lists, which are retained-mode lists of painting commands to
+//! perform. Using a list instead of painting elements in immediate mode allows transforms, hit
 //! testing, and invalidation to be performed using the same primitives as painting. It also allows
-//! Servo to aggressively cull invisible and out-of-bounds rendering elements, to reduce overdraw.
-//! Finally, display lists allow tiles to be farmed out onto multiple CPUs and rendered in
-//! parallel (although this benefit does not apply to GPU-based rendering).
+//! Servo to aggressively cull invisible and out-of-bounds painting elements, to reduce overdraw.
+//! Finally, display lists allow tiles to be farmed out onto multiple CPUs and painted in
+//! parallel (although this benefit does not apply to GPU-based painting).
 //!
 //! Display items describe relatively high-level drawing operations (for example, entire borders
 //! and shadows instead of lines and blur operations), to reduce the amount of allocation required.
@@ -181,7 +181,7 @@ impl StackingContext {
         let temporary_draw_target =
             paint_context.get_or_create_temporary_draw_target(self.opacity);
         {
-            let mut render_subcontext = PaintContext {
+            let mut paint_subcontext = PaintContext {
                 draw_target: temporary_draw_target.clone(),
                 font_ctx: &mut *paint_context.font_ctx,
                 page_rect: paint_context.page_rect,
@@ -203,7 +203,7 @@ impl StackingContext {
 
             // Steps 1 and 2: Borders and background for the root.
             for display_item in display_list.background_and_borders.iter() {
-                display_item.draw_into_context(&mut render_subcontext,
+                display_item.draw_into_context(&mut paint_subcontext,
                                                current_transform,
                                                current_clip_stack)
             }
@@ -222,7 +222,7 @@ impl StackingContext {
                     let new_tile_rect =
                         self.compute_tile_rect_for_child_stacking_context(tile_bounds,
                                                                           &**positioned_kid);
-                    positioned_kid.optimize_and_draw_into_context(&mut render_subcontext,
+                    positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
                                                                   current_clip_stack);
@@ -231,14 +231,14 @@ impl StackingContext {
 
             // Step 4: Block backgrounds and borders.
             for display_item in display_list.block_backgrounds_and_borders.iter() {
-                display_item.draw_into_context(&mut render_subcontext,
+                display_item.draw_into_context(&mut paint_subcontext,
                                                current_transform,
                                                current_clip_stack)
             }
 
             // Step 5: Floats.
             for display_item in display_list.floats.iter() {
-                display_item.draw_into_context(&mut render_subcontext,
+                display_item.draw_into_context(&mut paint_subcontext,
                                                current_transform,
                                                current_clip_stack)
             }
@@ -247,7 +247,7 @@ impl StackingContext {
 
             // Step 7: Content.
             for display_item in display_list.content.iter() {
-                display_item.draw_into_context(&mut render_subcontext,
+                display_item.draw_into_context(&mut paint_subcontext,
                                                current_transform,
                                                current_clip_stack)
             }
@@ -267,7 +267,7 @@ impl StackingContext {
                     let new_tile_rect =
                         self.compute_tile_rect_for_child_stacking_context(tile_bounds,
                                                                           &**positioned_kid);
-                    positioned_kid.optimize_and_draw_into_context(&mut render_subcontext,
+                    positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
                                                                   current_clip_stack);
@@ -439,14 +439,14 @@ impl BaseDisplayItem {
     }
 }
 
-/// Renders a solid color.
+/// Paints a solid color.
 #[deriving(Clone)]
 pub struct SolidColorDisplayItem {
     pub base: BaseDisplayItem,
     pub color: Color,
 }
 
-/// Renders text.
+/// Paints text.
 #[deriving(Clone)]
 pub struct TextDisplayItem {
     /// Fields common to all display items.
@@ -472,7 +472,7 @@ pub enum TextOrientation {
     SidewaysRight,
 }
 
-/// Renders an image.
+/// Paints an image.
 #[deriving(Clone)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
@@ -500,7 +500,7 @@ pub struct GradientDisplayItem {
     pub stops: Vec<GradientStop>,
 }
 
-/// Renders a border.
+/// Paints a border.
 #[deriving(Clone)]
 pub struct BorderDisplayItem {
     /// Fields common to all display items.
@@ -532,7 +532,7 @@ pub struct BorderRadii<T> {
     pub bottom_left:  T,
 }
 
-/// Renders a line segment.
+/// Paints a line segment.
 #[deriving(Clone)]
 pub struct LineDisplayItem {
     pub base: BaseDisplayItem,
@@ -560,7 +560,7 @@ impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
 }
 
 impl DisplayItem {
-    /// Renders this display item into the given render context.
+    /// Paints this display item into the given paint context.
     fn draw_into_context(&self,
                          paint_context: &mut PaintContext,
                          current_transform: &Matrix2D<AzFloat>,
