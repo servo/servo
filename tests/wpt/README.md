@@ -73,8 +73,8 @@ This first requires saving the raw, unformatted log from a test run, for
 example by running `./mach test-wpt --log-raw /tmp/servo.log`. Once the
 log is saved, run from the root directory:
 
-    source _virtualenv/bin/activate
-    _virtualenv/bin/wptupdate \
+    source tests/wpt/_virtualenv/bin/activate
+    tests/wpt/_virtualenv/bin/wptupdate \
       --ignore-existing \
       --config tests/wpt/config.ini \
       /tmp/servo.log
