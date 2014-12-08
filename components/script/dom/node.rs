@@ -288,7 +288,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         let parent = self.parent_node().root();
         parent.map(|parent| vtable_for(&*parent).child_inserted(self));
 
-        document.content_changed(self);
+        document.content_and_heritage_changed(self);
     }
 
     // http://dom.spec.whatwg.org/#node-is-removed
@@ -464,6 +464,16 @@ pub trait NodeHelpers<'a> {
     /// with sibling selectors), its ancestors as `HAS_DIRTY_DESCENDANTS`, and its
     /// descendants as `IS_DIRTY`.
     fn dirty(self);
+
+    /// Similar to `dirty`, but will always walk the ancestors to mark them dirty,
+    /// too. This is useful when a node is reparented. The node will frequently
+    /// already be marked as `changed` to skip double-dirties, but the ancestors
+    /// still need to be marked as `HAS_DIRTY_DESCENDANTS`.
+    ///
+    /// See #4170
+    fn force_dirty_ancestors(self);
+
+    fn dirty_impl(self, force_ancestors: bool);
 
     fn dump(self);
     fn dump_indent(self, indent: uint);
@@ -646,11 +656,19 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         self.set_flag(HAS_DIRTY_DESCENDANTS, state)
     }
 
+    fn force_dirty_ancestors(self) {
+        self.dirty_impl(true)
+    }
+
     fn dirty(self) {
+        self.dirty_impl(false)
+    }
+
+    fn dirty_impl(self, force_ancestors: bool) {
         // 1. Dirty self.
         self.set_has_changed(true);
 
-        if self.get_is_dirty() {
+        if self.get_is_dirty() && !force_ancestors {
             return
         }
 
@@ -684,7 +702,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
         // 4. Dirty ancestors.
         for ancestor in self.ancestors() {
-            if ancestor.get_has_dirty_descendants() { break }
+            if !force_ancestors && ancestor.get_has_dirty_descendants() { break }
             ancestor.set_has_dirty_descendants(true);
         }
     }
@@ -1424,7 +1442,6 @@ impl Node {
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
     fn replace_all(node: Option<JSRef<Node>>, parent: JSRef<Node>) {
-
         // Step 1.
         match node {
             Some(node) => {
