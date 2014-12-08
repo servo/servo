@@ -176,8 +176,8 @@ impl StackingContext {
     pub fn optimize_and_draw_into_context(&self,
                                           paint_context: &mut PaintContext,
                                           tile_bounds: &Rect<AzFloat>,
-                                          current_transform: &Matrix2D<AzFloat>,
-                                          current_clip_stack: &mut Vec<Rect<Au>>) {
+                                          transform: &Matrix2D<AzFloat>,
+                                          clip_rect: Option<&Rect<Au>>) {
         let temporary_draw_target =
             paint_context.get_or_create_temporary_draw_target(self.opacity);
         {
@@ -186,7 +186,7 @@ impl StackingContext {
                 font_ctx: &mut *paint_context.font_ctx,
                 page_rect: paint_context.page_rect,
                 screen_rect: paint_context.screen_rect,
-                ..*paint_context
+                transient_clip_rect: None,
             };
 
             // Optimize the display list to throw out out-of-bounds display items and so forth.
@@ -201,11 +201,17 @@ impl StackingContext {
             positioned_children.as_slice_mut()
                                .sort_by(|this, other| this.z_index.cmp(&other.z_index));
 
+            // Set up our clip rect and transform.
+            match clip_rect {
+                None => {}
+                Some(clip_rect) => paint_subcontext.draw_push_clip(clip_rect),
+            }
+            let old_transform = paint_subcontext.draw_target.get_transform();
+            paint_subcontext.draw_target.set_transform(transform);
+
             // Steps 1 and 2: Borders and background for the root.
             for display_item in display_list.background_and_borders.iter() {
-                display_item.draw_into_context(&mut paint_subcontext,
-                                               current_transform,
-                                               current_clip_stack)
+                display_item.draw_into_context(&mut paint_subcontext)
             }
 
             // Step 3: Positioned descendants with negative z-indices.
@@ -215,41 +221,39 @@ impl StackingContext {
                 }
                 if positioned_kid.layer.is_none() {
                     let new_transform =
-                        current_transform.translate(positioned_kid.bounds.origin.x.to_nearest_px()
-                                                        as AzFloat,
-                                                    positioned_kid.bounds.origin.y.to_nearest_px()
-                                                        as AzFloat);
+                        transform.translate(positioned_kid.bounds
+                                                          .origin
+                                                          .x
+                                                          .to_nearest_px() as AzFloat,
+                                            positioned_kid.bounds
+                                                          .origin
+                                                          .y
+                                                          .to_nearest_px() as AzFloat);
                     let new_tile_rect =
                         self.compute_tile_rect_for_child_stacking_context(tile_bounds,
                                                                           &**positioned_kid);
                     positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
-                                                                  current_clip_stack);
+                                                                  Some(&positioned_kid.clip_rect))
                 }
             }
 
             // Step 4: Block backgrounds and borders.
             for display_item in display_list.block_backgrounds_and_borders.iter() {
-                display_item.draw_into_context(&mut paint_subcontext,
-                                               current_transform,
-                                               current_clip_stack)
+                display_item.draw_into_context(&mut paint_subcontext)
             }
 
             // Step 5: Floats.
             for display_item in display_list.floats.iter() {
-                display_item.draw_into_context(&mut paint_subcontext,
-                                               current_transform,
-                                               current_clip_stack)
+                display_item.draw_into_context(&mut paint_subcontext)
             }
 
             // TODO(pcwalton): Step 6: Inlines that generate stacking contexts.
 
             // Step 7: Content.
             for display_item in display_list.content.iter() {
-                display_item.draw_into_context(&mut paint_subcontext,
-                                               current_transform,
-                                               current_clip_stack)
+                display_item.draw_into_context(&mut paint_subcontext)
             }
 
             // Steps 8 and 9: Positioned descendants with nonnegative z-indices.
@@ -260,25 +264,38 @@ impl StackingContext {
 
                 if positioned_kid.layer.is_none() {
                     let new_transform =
-                        current_transform.translate(positioned_kid.bounds.origin.x.to_nearest_px()
-                                                        as AzFloat,
-                                                    positioned_kid.bounds.origin.y.to_nearest_px()
-                                                        as AzFloat);
+                        transform.translate(positioned_kid.bounds
+                                                          .origin
+                                                          .x
+                                                          .to_nearest_px() as AzFloat,
+                                            positioned_kid.bounds
+                                                          .origin
+                                                          .y
+                                                          .to_nearest_px() as AzFloat);
                     let new_tile_rect =
                         self.compute_tile_rect_for_child_stacking_context(tile_bounds,
                                                                           &**positioned_kid);
                     positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
-                                                                  current_clip_stack);
+                                                                  Some(&positioned_kid.clip_rect))
                 }
             }
 
             // TODO(pcwalton): Step 10: Outlines.
+
+            // Undo our clipping and transform.
+            if paint_subcontext.transient_clip_rect.is_some() {
+                paint_subcontext.draw_pop_clip();
+                paint_subcontext.transient_clip_rect = None
+            }
+            paint_subcontext.draw_target.set_transform(&old_transform);
+            if clip_rect.is_some() {
+                paint_subcontext.draw_pop_clip()
+            }
         }
 
-        paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target,
-                                                               self.opacity)
+        paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target, self.opacity)
     }
 
     /// Translate the given tile rect into the coordinate system of a child stacking context.
@@ -560,23 +577,16 @@ impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
 }
 
 impl DisplayItem {
-    /// Paints this display item into the given paint context.
-    fn draw_into_context(&self,
-                         paint_context: &mut PaintContext,
-                         current_transform: &Matrix2D<AzFloat>,
-                         current_clip_stack: &mut Vec<Rect<Au>>) {
-        // TODO(pcwalton): This will need some tweaking to deal with more complex clipping regions.
-        let clip_rect = &self.base().clip_rect;
-        if current_clip_stack.len() == 0 || current_clip_stack.last().unwrap() != clip_rect {
-            while current_clip_stack.len() != 0 {
+    /// Paints this display item into the given painting context.
+    fn draw_into_context(&self, paint_context: &mut PaintContext) {
+        let this_clip_rect = self.base().clip_rect;
+        if paint_context.transient_clip_rect != Some(this_clip_rect) {
+            if paint_context.transient_clip_rect.is_some() {
                 paint_context.draw_pop_clip();
-                drop(current_clip_stack.pop());
             }
-            paint_context.draw_push_clip(clip_rect);
-            current_clip_stack.push(*clip_rect);
+            paint_context.draw_push_clip(&this_clip_rect);
+            paint_context.transient_clip_rect = Some(this_clip_rect)
         }
-
-        paint_context.draw_target.set_transform(current_transform);
 
         match *self {
             SolidColorDisplayItemClass(ref solid_color) => {
@@ -585,7 +595,7 @@ impl DisplayItem {
 
             TextDisplayItemClass(ref text) => {
                 debug!("Drawing text at {}.", text.base.bounds);
-                paint_context.draw_text(&**text, current_transform);
+                paint_context.draw_text(&**text);
             }
 
             ImageDisplayItemClass(ref image_item) => {

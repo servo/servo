@@ -509,6 +509,7 @@ impl WorkerThread {
                 font_ctx: &mut self.font_context,
                 page_rect: tile.page_rect,
                 screen_rect: tile.screen_rect,
+                transient_clip_rect: None,
             };
 
             // Apply the translation to paint the tile we want.
@@ -518,18 +519,15 @@ impl WorkerThread {
             let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,
                                           -tile_bounds.origin.y as AzFloat);
 
-            paint_context.draw_target.set_transform(&matrix);
-
             // Clear the buffer.
             paint_context.clear();
 
             // Draw the display list.
             profile(time::PaintingPerTileCategory, None, self.time_profiler_sender.clone(), || {
-                let mut clip_stack = Vec::new();
                 stacking_context.optimize_and_draw_into_context(&mut paint_context,
                                                                 &tile.page_rect,
                                                                 &matrix,
-                                                                &mut clip_stack);
+                                                                None);
                 paint_context.draw_target.flush();
             });
         }
