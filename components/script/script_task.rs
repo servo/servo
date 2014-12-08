@@ -51,7 +51,8 @@ use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT, Rep
 use servo_msg::constellation_msg::{Released};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_net::resource_task::ResourceTask;
+use servo_net::resource_task::{ResourceTask, Load};
+use servo_net::resource_task::LoadData as NetLoadData;
 use servo_net::storage_task::StorageTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::smallvec::{SmallVec1, SmallVec};
@@ -59,6 +60,8 @@ use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
 
 use geom::point::Point2D;
+use hyper::header::{Header, HeaderFormat};
+use hyper::header::common::util as header_util;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
@@ -71,9 +74,11 @@ use libc::size_t;
 use std::any::{Any, AnyRefExt};
 use std::collections::HashSet;
 use std::comm::{channel, Sender, Receiver, Select};
+use std::fmt::{mod, Show};
 use std::mem::replace;
 use std::rc::Rc;
 use std::u32;
+use time::{Tm, strptime};
 
 local_data_key!(pub StackRoots: *const RootCollection)
 
@@ -693,20 +698,17 @@ impl ScriptTask {
             message for a layout channel that is not associated with this script task. This
             is a bug.");
 
-        let last_loaded_url = replace(&mut *page.mut_url(), None);
-        match last_loaded_url {
-            Some((ref loaded, needs_reflow)) if *loaded == url => {
-                *page.mut_url() = Some((loaded.clone(), false));
-                if needs_reflow {
+        let last_url = match &mut *page.mut_url() {
+            &Some((ref mut loaded, ref mut needs_reflow)) if *loaded == url => {
+                if replace(needs_reflow, false) {
                     self.force_reflow(&*page);
                 }
                 return;
             },
-            _ => (),
-        }
+            url => replace(url, None).map(|(loaded, _)| loaded),
+        };
 
         let is_javascript = url.scheme.as_slice() == "javascript";
-        let last_url = last_loaded_url.map(|(ref loaded, _)| loaded.clone());
 
         let cx = self.js_context.borrow();
         let cx = cx.as_ref().unwrap();
@@ -726,7 +728,7 @@ impl ScriptTask {
         } else {
             url.clone()
         };
-        let document = Document::new(*window, Some(doc_url), HTMLDocument,
+        let document = Document::new(*window, Some(doc_url.clone()), HTMLDocument,
                                      None, FromParser).root();
 
         window.init_browser_context(*document);
@@ -751,18 +753,51 @@ impl ScriptTask {
             InputString(strval.unwrap_or("".to_string()))
         };
 
-        parse_html(&*page, *document, parser_input, self.resource_task.clone(), Some(load_data));
+        let (base_url, load_response) = match parser_input {
+            InputUrl(ref url) => {
+                // Wait for the LoadResponse so that the parser knows the final URL.
+                let (input_chan, input_port) = channel();
+                self.resource_task.send(Load(NetLoadData {
+                    url: url.clone(),
+                    method: load_data.method,
+                    headers: load_data.headers,
+                    data: load_data.data,
+                    cors: None,
+                    consumer: input_chan,
+                }));
+
+                let load_response = input_port.recv();
+
+                load_response.metadata.headers.as_ref().map(|headers| {
+                    headers.get().map(|&LastModified(ref tm)| {
+                        document.set_last_modified(dom_last_modified(tm));
+                    });
+                });
+
+                let base_url = load_response.metadata.final_url.clone();
+
+                {
+                    // Store the final URL before we start parsing, so that DOM routines
+                    // (e.g. HTMLImageElement::update_image) can resolve relative URLs
+                    // correctly.
+                    *page.mut_url() = Some((base_url.clone(), true));
+                }
+
+                (base_url, Some(load_response))
+            },
+            InputString(_) => {
+                (doc_url, None)
+            },
+        };
+
+        parse_html(*document, parser_input, base_url, load_response);
         url = page.get_url().clone();
 
         document.set_ready_state(DocumentReadyStateValues::Interactive);
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {}", url);
-        {
-            let document_js_ref = (&*document).clone();
-            let document_as_node = NodeCast::from_ref(document_js_ref);
-            document.content_changed(document_as_node);
-        }
+        document.content_changed(NodeCast::from_ref(*document));
         window.flush_layout();
 
         {
@@ -1165,4 +1200,43 @@ pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
     page.find(pipeline_id).expect("ScriptTask: received an event \
         message for a layout channel that is not associated with this script task.\
          This is a bug.")
+}
+
+//FIXME(seanmonstar): uplift to Hyper
+#[deriving(Clone)]
+struct LastModified(pub Tm);
+
+impl Header for LastModified {
+    #[inline]
+    fn header_name(_: Option<LastModified>) -> &'static str {
+        "Last-Modified"
+    }
+
+    // Parses an RFC 2616 compliant date/time string,
+    fn parse_header(raw: &[Vec<u8>]) -> Option<LastModified> {
+        header_util::from_one_raw_str(raw).and_then(|s: String| {
+            let s = s.as_slice();
+            strptime(s, "%a, %d %b %Y %T %Z").or_else(|_| {
+                strptime(s, "%A, %d-%b-%y %T %Z")
+            }).or_else(|_| {
+                strptime(s, "%c")
+            }).ok().map(|tm| LastModified(tm))
+        })
+    }
+}
+
+impl HeaderFormat for LastModified {
+    // a localized date/time string in a format suitable
+    // for document.lastModified.
+    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let LastModified(ref tm) = *self;
+        match tm.tm_gmtoff {
+            0 => tm.rfc822().fmt(f),
+            _ => tm.to_utc().rfc822().fmt(f)
+        }
+    }
+}
+
+fn dom_last_modified(tm: &Tm) -> String {
+    tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap()
 }

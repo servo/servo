@@ -16,70 +16,24 @@ use dom::node::{Node, NodeHelpers, TrustedNodeAddress};
 use dom::servohtmlparser;
 use dom::servohtmlparser::ServoHTMLParser;
 use dom::text::Text;
-use page::Page;
 use parse::Parser;
 
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecodeReplace};
 
-use servo_net::resource_task::{Load, LoadData, Payload, Done, ResourceTask};
-use servo_msg::constellation_msg::LoadData as MsgLoadData;
+use servo_net::resource_task::{Payload, Done, LoadResponse};
 use servo_util::task_state;
 use servo_util::task_state::IN_HTML_PARSER;
 use std::ascii::AsciiExt;
-use std::comm::channel;
-use std::fmt::{mod, Show};
 use std::str::MaybeOwned;
 use url::Url;
-use time::{Tm, strptime};
 use html5ever::Attribute;
 use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText};
 use string_cache::QualName;
-use hyper::header::{Header, HeaderFormat};
-use hyper::header::common::util as header_util;
 
 pub enum HTMLInput {
     InputString(String),
     InputUrl(Url),
-}
-
-//FIXME(seanmonstar): uplift to Hyper
-#[deriving(Clone)]
-struct LastModified(pub Tm);
-
-impl Header for LastModified {
-    #[inline]
-    fn header_name(_: Option<LastModified>) -> &'static str {
-        "Last-Modified"
-    }
-
-    // Parses an RFC 2616 compliant date/time string,
-    fn parse_header(raw: &[Vec<u8>]) -> Option<LastModified> {
-        header_util::from_one_raw_str(raw).and_then(|s: String| {
-            let s = s.as_slice();
-            strptime(s, "%a, %d %b %Y %T %Z").or_else(|_| {
-                strptime(s, "%A, %d-%b-%y %T %Z")
-            }).or_else(|_| {
-                strptime(s, "%c")
-            }).ok().map(|tm| LastModified(tm))
-        })
-    }
-}
-
-impl HeaderFormat for LastModified {
-    // a localized date/time string in a format suitable
-    // for document.lastModified.
-    fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let LastModified(ref tm) = *self;
-        match tm.tm_gmtoff {
-            0 => tm.rfc822().fmt(f),
-            _ => tm.to_utc().rfc822().fmt(f)
-        }
-    }
-}
-
-fn dom_last_modified(tm: &Tm) -> String {
-    tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap()
 }
 
 trait SinkHelpers {
@@ -207,52 +161,11 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
     }
 }
 
-// The url from msg_load_data is ignored here
-pub fn parse_html(page: &Page,
-                  document: JSRef<Document>,
+pub fn parse_html(document: JSRef<Document>,
                   input: HTMLInput,
-                  resource_task: ResourceTask,
-                  msg_load_data: Option<MsgLoadData>) {
-    let (base_url, load_response) = match input {
-        InputUrl(ref url) => {
-            // Wait for the LoadResponse so that the parser knows the final URL.
-            let (input_chan, input_port) = channel();
-            let mut load_data = LoadData::new(url.clone(), input_chan);
-            msg_load_data.map(|m| {
-                load_data.headers = m.headers;
-                load_data.method = m.method;
-                load_data.data = m.data;
-            });
-            resource_task.send(Load(load_data));
-
-            let load_response = input_port.recv();
-
-            load_response.metadata.headers.as_ref().map(|headers| {
-                headers.get().map(|&LastModified(ref tm)| {
-                    document.set_last_modified(dom_last_modified(tm));
-                });
-            });
-
-            let base_url = load_response.metadata.final_url.clone();
-
-            {
-                // Store the final URL before we start parsing, so that DOM routines
-                // (e.g. HTMLImageElement::update_image) can resolve relative URLs
-                // correctly.
-                *page.mut_url() = Some((base_url.clone(), true));
-            }
-
-            (Some(base_url), Some(load_response))
-        },
-        InputString(_) => {
-            match *page.url() {
-                Some((ref page_url, _)) => (Some(page_url.clone()), None),
-                None => (None, None),
-            }
-        },
-    };
-
-    let parser = ServoHTMLParser::new(base_url.clone(), document).root();
+                  base_url: Url,
+                  load_response: Option<LoadResponse>) {
+    let parser = ServoHTMLParser::new(Some(base_url.clone()), document).root();
     let parser: JSRef<ServoHTMLParser> = *parser;
 
     task_state::enter(IN_HTML_PARSER);
@@ -265,7 +178,7 @@ pub fn parse_html(page: &Page,
             let load_response = load_response.unwrap();
             match load_response.metadata.content_type {
                 Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
-                    let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.as_ref().unwrap().serialize());
+                    let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.serialize());
                     parser.parse_chunk(page);
                 },
                 _ => {
