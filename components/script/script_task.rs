@@ -733,15 +733,6 @@ impl ScriptTask {
 
         self.compositor.borrow_mut().set_ready_state(pipeline_id, Loading);
 
-        let parser_input = if !is_javascript {
-            InputUrl(url.clone())
-        } else {
-            let evalstr = load_data.url.non_relative_scheme_data().unwrap();
-            let jsval = window.evaluate_js_with_result(evalstr);
-            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval, Empty);
-            InputString(strval.unwrap_or("".to_string()))
-        };
-
         {
             // Create the root frame.
             let mut frame = page.mut_frame();
@@ -750,6 +741,15 @@ impl ScriptTask {
                 window: JS::from_rooted(*window),
             });
         }
+
+        let parser_input = if !is_javascript {
+            InputUrl(url.clone())
+        } else {
+            let evalstr = load_data.url.non_relative_scheme_data().unwrap();
+            let jsval = window.evaluate_js_with_result(evalstr);
+            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval, Empty);
+            InputString(strval.unwrap_or("".to_string()))
+        };
 
         parse_html(&*page, *document, parser_input, self.resource_task.clone(), Some(load_data));
         url = page.get_url().clone();
