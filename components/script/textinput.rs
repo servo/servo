@@ -27,8 +27,8 @@ pub struct TextInput {
     lines: Vec<DOMString>,
     /// Current cursor input point
     edit_point: TextPoint,
-    /// Selection range, beginning and end point that can span multiple lines.
-    _selection: Option<(TextPoint, TextPoint)>,
+    /// Beginning of selection range with edit_point as end that can span multiple lines.
+    selection_begin: Option<TextPoint>,
     /// Is this a multiline input?
     multiline: bool,
 }
@@ -69,82 +69,68 @@ impl TextInput {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
-            _selection: None,
+            selection_begin: None,
             multiline: lines == Multiple,
         };
         i.set_content(initial);
         i
     }
 
-    /// Return the current line under the editing point
-    fn get_current_line(&self) -> &DOMString {
-        &self.lines[self.edit_point.line]
+    fn replace_selection(&mut self, insert: String) {
+        let begin = self.selection_begin.take().unwrap();
+        let end = self.edit_point;
+        let (begin, end) = if begin.line < end.line || (begin.line == end.line && begin.index < end.index) {
+            (begin, end)
+        } else {
+            (end, begin)
+        };
+
+        let new_lines = {
+            let prefix = self.lines[begin.line].slice_chars(0, begin.index);
+            let suffix = self.lines[end.line].slice_chars(end.index, self.lines[end.line].char_len());
+            let lines_prefix = self.lines.slice(0, begin.line);
+            let lines_suffix = self.lines.slice(end.line + 1, self.lines.len());
+
+            let mut insert_lines = if self.multiline {
+                insert.as_slice().split('\n').map(|s| s.to_string()).collect()
+            } else {
+                vec!(insert)
+            };
+
+            let mut new_line = prefix.to_string();
+            new_line.push_str(insert_lines[0].as_slice());
+            insert_lines[0] = new_line;
+
+            let last_insert_lines_index = insert_lines.len() - 1;
+            self.edit_point.index = insert_lines[last_insert_lines_index].char_len();
+            self.edit_point.line = begin.line + last_insert_lines_index;
+
+            insert_lines[last_insert_lines_index].push_str(suffix);
+
+            let mut new_lines = vec!();
+            new_lines.push_all(lines_prefix);
+            new_lines.push_all(insert_lines.as_slice());
+            new_lines.push_all(lines_suffix);
+            new_lines
+        };
+
+        self.lines = new_lines;
     }
 
     /// Insert a character at the current editing point
     fn insert_char(&mut self, ch: char) {
-        //TODO: handle replacing selection with character
-        let new_line = {
-            let prefix = self.get_current_line().as_slice().slice_chars(0, self.edit_point.index);
-            let suffix = self.get_current_line().as_slice().slice_chars(self.edit_point.index,
-                                                                        self.current_line_length());
-            let mut new_line = prefix.to_string();
-            new_line.push(ch);
-            new_line.push_str(suffix.as_slice());
-            new_line
-        };
-
-        self.lines[self.edit_point.line] = new_line;
-        self.edit_point.index += 1;
+        if self.selection_begin.is_none() {
+            self.selection_begin = Some(self.edit_point);
+        }
+        self.replace_selection(ch.to_string());
     }
 
     /// Remove a character at the current editing point
     fn delete_char(&mut self, dir: DeleteDir) {
-        let forward = dir == Forward;
-
-        //TODO: handle deleting selection
-        let prefix_end = if forward {
-            self.edit_point.index
-        } else {
-            if self.multiline {
-                //TODO: handle backspacing from position 0 of current line
-                if self.edit_point.index == 0 {
-                    return;
-                }
-            } else if self.edit_point.index == 0 {
-                return;
-            }
-            self.edit_point.index - 1
-        };
-        let suffix_start = if forward {
-            let is_eol = self.edit_point.index == self.current_line_length();
-            if self.multiline {
-                //TODO: handle deleting from end position of current line
-                if is_eol {
-                    return;
-                }
-            } else if is_eol {
-                return;
-            }
-            self.edit_point.index + 1
-        } else {
-            self.edit_point.index
-        };
-
-        let new_line = {
-            let prefix = self.get_current_line().as_slice().slice_chars(0, prefix_end);
-            let suffix = self.get_current_line().as_slice().slice_chars(suffix_start,
-                                                                        self.current_line_length());
-            let mut new_line = prefix.to_string();
-            new_line.push_str(suffix);
-            new_line
-        };
-
-        self.lines[self.edit_point.line] = new_line;
-
-        if !forward {
-            self.adjust_horizontal(-1);
+        if self.selection_begin.is_none() {
+            self.adjust_horizontal(if dir == Forward {1} else {-1}, true);
         }
+        self.replace_selection("".to_string());
     }
 
     /// Return the length of the current line under the editing point.
@@ -154,9 +140,17 @@ impl TextInput {
 
     /// Adjust the editing point position by a given of lines. The resulting column is
     /// as close to the original column position as possible.
-    fn adjust_vertical(&mut self, adjust: int) {
+    fn adjust_vertical(&mut self, adjust: int, select: bool) {
         if !self.multiline {
             return;
+        }
+
+        if select {
+            if self.selection_begin.is_none() {
+                self.selection_begin = Some(self.edit_point);
+            }
+        } else {
+            self.selection_begin = None;
         }
 
         if adjust < 0 && self.edit_point.line as int + adjust < 0 {
@@ -176,13 +170,21 @@ impl TextInput {
     /// Adjust the editing point position by a given number of columns. If the adjustment
     /// requested is larger than is available in the current line, the editing point is
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
-    fn adjust_horizontal(&mut self, adjust: int) {
+    fn adjust_horizontal(&mut self, adjust: int, select: bool) {
+        if select {
+            if self.selection_begin.is_none() {
+                self.selection_begin = Some(self.edit_point);
+            }
+        } else {
+            self.selection_begin = None;
+        }
+
         if adjust < 0 {
             let remaining = self.edit_point.index;
             if adjust.abs() as uint > remaining && self.edit_point.line > 0 {
-                self.adjust_vertical(-1);
+                self.adjust_vertical(-1, select);
                 self.edit_point.index = self.current_line_length();
-                self.adjust_horizontal(adjust + remaining as int);
+                self.adjust_horizontal(adjust + remaining as int, select);
             } else {
                 self.edit_point.index = max(0, self.edit_point.index as int + adjust) as uint;
             }
@@ -190,8 +192,8 @@ impl TextInput {
             let remaining = self.current_line_length() - self.edit_point.index;
             if adjust as uint > remaining && self.edit_point.line < self.lines.len() - 1 {
                 self.edit_point.index = 0;
-                self.adjust_vertical(1);
-                self.adjust_horizontal(adjust - remaining as int);
+                self.adjust_vertical(1, select);
+                self.adjust_horizontal(adjust - remaining as int, select);
             } else {
                 self.edit_point.index = min(self.current_line_length(),
                                             self.edit_point.index + adjust as uint);
@@ -204,13 +206,7 @@ impl TextInput {
         if !self.multiline {
             return TriggerDefaultAction;
         }
-
-        //TODO: support replacing selection with newline
-        let prefix = self.get_current_line().as_slice().slice_chars(0, self.edit_point.index).to_string();
-        let suffix = self.get_current_line().as_slice().slice_chars(self.edit_point.index,
-                                                                    self.current_line_length()).to_string();
-        self.lines[self.edit_point.line] = prefix;
-        self.lines.insert(self.edit_point.line + 1, suffix);
+        self.insert_char('\n');
         return DispatchInput;
     }
 
@@ -235,19 +231,19 @@ impl TextInput {
                 DispatchInput
             }
             "ArrowLeft" => {
-                self.adjust_horizontal(-1);
+                self.adjust_horizontal(-1, event.ShiftKey());
                 Nothing
             }
             "ArrowRight" => {
-                self.adjust_horizontal(1);
+                self.adjust_horizontal(1, event.ShiftKey());
                 Nothing
             }
             "ArrowUp" => {
-                self.adjust_vertical(-1);
+                self.adjust_vertical(-1, event.ShiftKey());
                 Nothing
             }
             "ArrowDown" => {
-                self.adjust_vertical(1);
+                self.adjust_vertical(1, event.ShiftKey());
                 Nothing
             }
             "Enter" => self.handle_return(),
@@ -260,11 +256,11 @@ impl TextInput {
                 Nothing
             }
             "PageUp" => {
-                self.adjust_vertical(-28);
+                self.adjust_vertical(-28, event.ShiftKey());
                 Nothing
             }
             "PageDown" => {
-                self.adjust_vertical(28);
+                self.adjust_vertical(28, event.ShiftKey());
                 Nothing
             }
             "Tab" => TriggerDefaultAction,
