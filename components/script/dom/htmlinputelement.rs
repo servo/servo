@@ -183,6 +183,12 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     // http://www.whatwg.org/html/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled")
 
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultchecked
+    make_bool_getter!(DefaultChecked, "checked")
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultchecked
+    make_bool_setter!(SetDefaultChecked, "checked")
+
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
     fn Checked(self) -> bool {
         self.checked.get()
@@ -573,13 +579,11 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
     }
 
     fn reset(self) {
-        let ty = self.Type();
-
-        match ty.as_slice() {
-            "radio" | "checkbox" => {
-                // TODO Reset radios/checkboxes here
+        match self.input_type.get() {
+            InputRadio | InputCheckbox => {
+                self.SetChecked(self.DefaultChecked());
             },
-            "image" => (),
+            InputImage => (),
             _ => ()
         }
 

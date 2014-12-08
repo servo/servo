@@ -9,7 +9,7 @@ interface HTMLInputElement : HTMLElement {
   //         attribute DOMString alt;
   //         attribute DOMString autocomplete;
   //         attribute boolean autofocus;
-  //         attribute boolean defaultChecked;
+           attribute boolean defaultChecked;
            attribute boolean checked;
   //         attribute DOMString dirName;
            attribute boolean disabled;
