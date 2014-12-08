@@ -24,7 +24,7 @@ use native::task::NativeTaskBuilder;
 use servo_msg::compositor_msg::{Epoch, IdlePaintState, LayerId};
 use servo_msg::compositor_msg::{LayerMetadata, PaintListener, PaintingPaintState, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineId};
-use servo_msg::constellation_msg::{RendererReadyMsg};
+use servo_msg::constellation_msg::{PainterReadyMsg};
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
 use servo_util::geometry::{Au, ZERO_POINT};
 use servo_util::opts;
@@ -234,7 +234,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     if !self.paint_permission {
                         debug!("paint_task: render ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(RendererReadyMsg(self.id));
+                        c.send(PainterReadyMsg(self.id));
                         continue;
                     }
 
@@ -247,7 +247,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     if !self.paint_permission {
                         debug!("paint_task: render ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(RendererReadyMsg(self.id));
+                        c.send(PainterReadyMsg(self.id));
                         self.compositor.paint_msg_discarded();
                         continue;
                     }

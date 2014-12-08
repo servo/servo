@@ -21,7 +21,7 @@ use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
 use servo_msg::constellation_msg::{LoadCompleteMsg, LoadUrlMsg, LoadData, Msg, NavigateMsg};
-use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
+use servo_msg::constellation_msg::{NavigationType, PipelineId, PainterReadyMsg, ResizedWindowMsg};
 use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SubpageId, WindowSizeData};
 use servo_msg::constellation_msg::{KeyEvent, Key, KeyState, KeyModifiers};
 use servo_msg::constellation_msg;
@@ -453,7 +453,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 self.handle_navigate_msg(direction);
             }
             // Notification that rendering has finished and is requesting permission to paint.
-            RendererReadyMsg(pipeline_id) => {
+            PainterReadyMsg(pipeline_id) => {
                 debug!("constellation got renderer ready message");
                 self.handle_renderer_ready_msg(pipeline_id);
             }
