@@ -79,7 +79,8 @@ pub enum SimpleSelector {
     NthLastOfType(i32, i32),
     FirstOfType,
     LastOfType,
-    OnlyOfType
+    OnlyOfType,
+    ServoNonzeroBorder,
     // ...
 }
 
@@ -231,7 +232,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
 //                | &Empty | &Lang(*)
                 | &NthChild(..) | &NthLastChild(..)
                 | &NthOfType(..) | &NthLastOfType(..)
-                | &FirstOfType | &LastOfType | &OnlyOfType
+                | &FirstOfType | &LastOfType | &OnlyOfType | &ServoNonzeroBorder
                 => specificity.class_like_selectors += 1,
                 &NamespaceSelector(..) => (),
                 &Negation(ref negated)
@@ -506,6 +507,10 @@ fn parse_simple_pseudo_class(name: &str) -> Result<SimpleSelector, ()> {
         "first-of-type" => Ok(FirstOfType),
         "last-of-type"  => Ok(LastOfType),
         "only-of-type"  => Ok(OnlyOfType),
+        "-servo-nonzero-border"  => {
+            // TODO(pcwalton): Have some mechanism whereby we forbid Web content from using this.
+            Ok(ServoNonzeroBorder)
+        }
 //        "empty" => Ok(Empty),
         _ => Err(())
     }

@@ -6,7 +6,9 @@
 //! `<input size>`, and so forth.
 
 use node::{TElement, TElementAttributes, TNode};
-use properties::{SpecifiedValue, WidthDeclaration, specified};
+use properties::{BorderBottomWidthDeclaration, BorderLeftWidthDeclaration};
+use properties::{BorderRightWidthDeclaration, BorderTopWidthDeclaration, SpecifiedValue};
+use properties::{WidthDeclaration, specified};
 use selector_matching::{DeclarationBlock, Stylist};
 
 use servo_util::geometry::Au;
@@ -25,6 +27,12 @@ pub enum IntegerAttribute {
     SizeIntegerAttribute,
 }
 
+/// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
+pub enum UnsignedIntegerAttribute {
+    /// `<td border>`
+    BorderUnsignedIntegerAttribute,
+}
+
 /// Extension methods for `Stylist` that cause rules to be synthesized for legacy attributes.
 pub trait PresentationalHintSynthesis {
     /// Synthesizes rules from various HTML attributes (mostly legacy junk from HTML4) that confer
@@ -39,6 +47,16 @@ pub trait PresentationalHintSynthesis {
                                                                       TElementAttributes,
                                                                    N: TNode<'a,E>,
                                                                    V: VecLike<DeclarationBlock>;
+    /// Synthesizes rules for the legacy `border` attribute.
+    fn synthesize_presentational_hint_for_legacy_border_attribute<'a,E,V>(
+                                                                  &self,
+                                                                  element: E,
+                                                                  matching_rules_list: &mut V,
+                                                                  shareable: &mut bool)
+                                                                  where
+                                                                    E: TElement<'a> +
+                                                                       TElementAttributes,
+                                                                    V: VecLike<DeclarationBlock>;
 }
 
 impl PresentationalHintSynthesis for Stylist {
@@ -68,7 +86,17 @@ impl PresentationalHintSynthesis for Stylist {
                                 WidthDeclaration(SpecifiedValue(width_value))));
                         *shareable = false
                     }
-                };
+                }
+                self.synthesize_presentational_hint_for_legacy_border_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
+            }
+            name if *name == atom!("table") => {
+                self.synthesize_presentational_hint_for_legacy_border_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
             }
             name if *name == atom!("input") => {
                 match element.get_integer_attribute(SizeIntegerAttribute) {
@@ -92,6 +120,32 @@ impl PresentationalHintSynthesis for Stylist {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn synthesize_presentational_hint_for_legacy_border_attribute<'a,E,V>(
+                                                                  &self,
+                                                                  element: E,
+                                                                  matching_rules_list: &mut V,
+                                                                  shareable: &mut bool)
+                                                                  where
+                                                                    E: TElement<'a> +
+                                                                       TElementAttributes,
+                                                                    V: VecLike<DeclarationBlock> {
+        match element.get_unsigned_integer_attribute(BorderUnsignedIntegerAttribute) {
+            None => {}
+            Some(length) => {
+                let width_value = specified::Au_(Au::from_px(length as int));
+                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        BorderTopWidthDeclaration(SpecifiedValue(width_value))));
+                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        BorderLeftWidthDeclaration(SpecifiedValue(width_value))));
+                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        BorderBottomWidthDeclaration(SpecifiedValue(width_value))));
+                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        BorderRightWidthDeclaration(SpecifiedValue(width_value))));
+                *shareable = false
+            }
         }
     }
 }

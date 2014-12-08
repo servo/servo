@@ -56,11 +56,12 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::str::{LengthOrPercentageOrAuto, is_whitespace};
 use std::kinds::marker::ContravariantLifetime;
 use std::mem;
-use style::computed_values::{content, display, white_space};
-use style::{AnyNamespace, AttrSelector, IntegerAttribute, LengthAttribute};
-use style::{PropertyDeclarationBlock, SpecificNamespace, TElement, TElementAttributes, TNode};
-use url::Url;
 use string_cache::{Atom, Namespace};
+use style::computed_values::{content, display, white_space};
+use style::{AnyNamespace, AttrSelector, BorderUnsignedIntegerAttribute, IntegerAttribute};
+use style::{LengthAttribute, PropertyDeclarationBlock, SpecificNamespace, TElement};
+use style::{TElementAttributes, TNode, UnsignedIntegerAttribute};
+use url::Url;
 
 use std::cell::{Ref, RefMut};
 
@@ -580,6 +581,17 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
             }
         }
     }
+
+    #[inline]
+    fn has_nonzero_border(self) -> bool {
+        unsafe {
+            match self.element
+                      .get_unsigned_integer_attribute_for_layout(BorderUnsignedIntegerAttribute) {
+                None | Some(0) => false,
+                _ => true,
+            }
+        }
+    }
 }
 
 impl<'le> TElementAttributes for LayoutElement<'le> {
@@ -592,6 +604,12 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
     fn get_integer_attribute(self, integer_attribute: IntegerAttribute) -> Option<i32> {
         unsafe {
             self.element.get_integer_attribute_for_layout(integer_attribute)
+        }
+    }
+
+    fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
+        unsafe {
+            self.element.get_unsigned_integer_attribute_for_layout(attribute)
         }
     }
 }

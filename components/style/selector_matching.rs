@@ -799,6 +799,13 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
     ]
 }
 
+/// Attributes that, if present, disable style sharing. All legacy HTML attributes must be in
+/// either this list or `common_style_affecting_attributes`. See the comment in
+/// `synthesize_presentational_hints_for_legacy_attributes`.
+pub fn rare_style_affecting_attributes() -> [Atom, ..1] {
+    [ atom!("border") ]
+}
+
 /// Determines whether the given element matches the given single selector.
 ///
 /// NB: If you add support for any new kinds of selectors to this routine, be sure to set
@@ -991,6 +998,12 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             *shareable = false;
             matches_generic_nth_child(element, 0, 1, true, false) &&
                 matches_generic_nth_child(element, 0, 1, true, true)
+        }
+
+        ServoNonzeroBorder => {
+            *shareable = false;
+            let elem = element.as_element();
+            elem.has_nonzero_border()
         }
 
         Negation(ref negated) => {
