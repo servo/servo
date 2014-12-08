@@ -744,7 +744,7 @@ impl ScriptTask {
             });
         }
 
-        let (parser_input, base_url, load_response) = if !is_javascript {
+        let (parser_input, base_url) = if !is_javascript {
             // Wait for the LoadResponse so that the parser knows the final URL.
             let (input_chan, input_port) = channel();
             self.resource_task.send(Load(NetLoadData {
@@ -773,15 +773,15 @@ impl ScriptTask {
                 *page.mut_url() = Some((base_url.clone(), true));
             }
 
-            (InputUrl(url.clone()), base_url, Some(load_response))
+            (InputUrl(url.clone(), load_response), base_url)
         } else {
             let evalstr = load_data.url.non_relative_scheme_data().unwrap();
             let jsval = window.evaluate_js_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval, Empty);
-            (InputString(strval.unwrap_or("".to_string())), doc_url, None)
+            (InputString(strval.unwrap_or("".to_string())), doc_url)
         };
 
-        parse_html(*document, parser_input, base_url, load_response);
+        parse_html(*document, parser_input, base_url);
         url = page.get_url().clone();
 
         document.set_ready_state(DocumentReadyStateValues::Interactive);

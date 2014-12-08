@@ -33,7 +33,7 @@ use string_cache::QualName;
 
 pub enum HTMLInput {
     InputString(String),
-    InputUrl(Url),
+    InputUrl(Url, LoadResponse),
 }
 
 trait SinkHelpers {
@@ -163,8 +163,7 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
 
 pub fn parse_html(document: JSRef<Document>,
                   input: HTMLInput,
-                  base_url: Url,
-                  load_response: Option<LoadResponse>) {
+                  base_url: Url) {
     let parser = ServoHTMLParser::new(Some(base_url.clone()), document).root();
     let parser: JSRef<ServoHTMLParser> = *parser;
 
@@ -174,8 +173,7 @@ pub fn parse_html(document: JSRef<Document>,
         InputString(s) => {
             parser.parse_chunk(s);
         }
-        InputUrl(url) => {
-            let load_response = load_response.unwrap();
+        InputUrl(url, load_response) => {
             match load_response.metadata.content_type {
                 Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
                     let page = format!("<html><body><img src='{:s}' /></body></html>", base_url.serialize());
