@@ -518,6 +518,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.encoding_name.borrow().clone()
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-inputencoding
+    fn InputEncoding(self) -> DOMString {
+        self.encoding_name.borrow().clone()
+    }
+
     // http://dom.spec.whatwg.org/#dom-document-content_type
     fn ContentType(self) -> DOMString {
         self.content_type.clone()
