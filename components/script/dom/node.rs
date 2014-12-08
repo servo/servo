@@ -756,15 +756,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             // Step 3.
             Ok(ref selectors) => {
                 let root = self.ancestors().last().unwrap_or(self.clone());
-                for node in root.traverse_preorder() {
-                    if node.is_element() && matches(selectors, &node, &mut None) {
-                        let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
-                        return Ok(Some(Temporary::from_rooted(elem)));
-                    }
-                }
+                Ok(root.traverse_preorder()
+                       .filter_map(ElementCast::to_ref)
+                       .find(|element| matches(selectors, &NodeCast::from_ref(*element), &mut None))
+                       .map(Temporary::from_rooted))
             }
         }
-        Ok(None)
     }
 
     /// Get an iterator over all nodes which match a set of selectors
@@ -869,11 +866,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             publicId: "".to_string(),
             systemId: "".to_string(),
 
-            attrs: if self.is_element() {
-                let elem: JSRef<Element> = ElementCast::to_ref(self).unwrap();
-                elem.summarize()
-            } else {
-                vec!()
+            attrs: match ElementCast::to_ref(self) {
+                Some(element) => element.summarize(),
+                None => vec!(),
             },
 
             isDocumentElement:
@@ -1583,13 +1578,11 @@ impl Node {
         }.root();
 
         // Step 3.
-        let document = if copy.is_document() {
-            let doc: JSRef<Document> = DocumentCast::to_ref(*copy).unwrap();
-            JS::from_rooted(doc).root()
-        } else {
-            JS::from_rooted(*document).root()
+        let document = match DocumentCast::to_ref(*copy) {
+            Some(doc) => doc,
+            None => *document,
         };
-        assert!(&*copy.owner_doc().root() == &*document);
+        assert!(*copy.owner_doc().root() == document);
 
         // Step 4 (some data already copied in step 2).
         match node.type_id() {
@@ -1622,7 +1615,7 @@ impl Node {
         // Step 6.
         if clone_children == CloneChildren {
             for child in node.children() {
-                let child_copy = Node::clone(child, Some(*document), clone_children).root();
+                let child_copy = Node::clone(child, Some(document), clone_children).root();
                 let _inserted_node = Node::pre_insert(*child_copy, *copy, None);
             }
         }
@@ -1738,16 +1731,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-childnodes
     fn ChildNodes(self) -> Temporary<NodeList> {
-        match self.child_list.get() {
-            None => (),
-            Some(list) => return list,
-        }
-
-        let doc = self.owner_doc().root();
-        let window = doc.window().root();
-        let child_list = NodeList::new_child_list(*window, self);
-        self.child_list.assign(Some(child_list));
-        self.child_list.get().unwrap()
+        self.child_list.or_init(|| {
+            let doc = self.owner_doc().root();
+            let window = doc.window().root();
+            NodeList::new_child_list(*window, self)
+        })
     }
 
     // http://dom.spec.whatwg.org/#dom-node-firstchild
@@ -2001,34 +1989,33 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     fn Normalize(self) {
         let mut prev_text = None;
         for child in self.children() {
-            if child.is_text() {
-                let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(child).unwrap();
-                if characterdata.Length() == 0 {
-                    self.remove_child(child);
-                } else {
-                    match prev_text {
-                        Some(text_node) => {
-                            let prev_characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(text_node).unwrap();
-                            let _ = prev_characterdata.AppendData(characterdata.Data());
-                            self.remove_child(child);
-                        },
-                        None => prev_text = Some(child)
+            match TextCast::to_ref(child) {
+                Some(text) => {
+                    let characterdata: JSRef<CharacterData> = CharacterDataCast::from_ref(text);
+                    if characterdata.Length() == 0 {
+                        self.remove_child(child);
+                    } else {
+                        match prev_text {
+                            Some(text_node) => {
+                                let prev_characterdata: JSRef<CharacterData> = CharacterDataCast::from_ref(text_node);
+                                let _ = prev_characterdata.AppendData(characterdata.Data());
+                                self.remove_child(child);
+                            },
+                            None => prev_text = Some(text)
+                        }
                     }
+                },
+                None => {
+                    child.Normalize();
+                    prev_text = None;
                 }
-            } else {
-                child.Normalize();
-                prev_text = None;
             }
-
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-clonenode
     fn CloneNode(self, deep: bool) -> Temporary<Node> {
-        match deep {
-            true => Node::clone(self, None, CloneChildren),
-            false => Node::clone(self, None, DoNotCloneChildren)
-        }
+        Node::clone(self, None, if deep { CloneChildren } else { DoNotCloneChildren })
     }
 
     // http://dom.spec.whatwg.org/#dom-node-isequalnode
@@ -2291,9 +2278,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     }
 
     fn as_element(self) -> JSRef<'a, Element> {
-        let elem: Option<JSRef<'a, Element>> = ElementCast::to_ref(self);
-        assert!(elem.is_some());
-        elem.unwrap()
+        ElementCast::to_ref(self).unwrap()
     }
 
     fn match_attr(self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
@@ -2318,9 +2303,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     }
 
     fn is_html_element_in_html_document(self) -> bool {
-        let elem: Option<JSRef<'a, Element>> = ElementCast::to_ref(self);
-        assert!(elem.is_some());
-        elem.unwrap().html_element_in_html_document()
+        self.as_element().html_element_in_html_document()
     }
 
     fn has_changed(self) -> bool { self.get_has_changed() }
