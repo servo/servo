@@ -107,8 +107,8 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
                         Ok(()) => {},
                         Err(()) => {
                             println!("error: devtools actor stopped responding");
-                            stream.close_read();
-                            stream.close_write();
+                            stream.close_read().ok().expect("error: devtools TCP stream broken");
+                            stream.close_write().ok().expect("error: devtools TCP stream broken");
                             break 'outer
                         }
                     }
