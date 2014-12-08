@@ -16,7 +16,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use servo_util::str::DOMString;
 
 use js::jsapi::JSContext;
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
 
 #[dom_struct]
 pub struct MessageEvent {
@@ -43,13 +43,21 @@ impl MessageEvent {
         }
     }
 
+    pub fn new_uninitialized(global: GlobalRef) -> Temporary<MessageEvent> {
+        MessageEvent::new_initialized(global, UndefinedValue(), "".to_string(), "".to_string())
+    }
+
+    pub fn new_initialized(global: GlobalRef, data: JSVal, origin: DOMString, lastEventId: DOMString) -> Temporary<MessageEvent> {
+        reflect_dom_object(box MessageEvent::new_inherited(data, origin, lastEventId),
+        global,
+        MessageEventBinding::Wrap)
+    }
+
     pub fn new(global: GlobalRef, type_: DOMString,
                bubbles: bool, cancelable: bool,
                data: JSVal, origin: DOMString, lastEventId: DOMString)
                -> Temporary<MessageEvent> {
-        let ev = reflect_dom_object(box MessageEvent::new_inherited(data, origin, lastEventId),
-                                    global,
-                                    MessageEventBinding::Wrap).root();
+        let ev = MessageEvent::new_initialized(global, data, origin, lastEventId).root();
         let event: JSRef<Event> = EventCast::from_ref(*ev);
         event.InitEvent(type_, bubbles, cancelable);
         Temporary::from_rooted(*ev)
