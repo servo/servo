@@ -47,8 +47,7 @@ pub struct TableWrapperFlow {
 
     /// Computed inline-size for each column.
     ///
-    /// FIXME: This should be a separate type that only contains computed inline
-    /// sizes.
+    /// FIXME(pcwalton): This should be a separate type that only contains computed inline sizes.
     pub column_inline_sizes: Vec<ColumnInlineSize>,
 
     /// Table-layout property

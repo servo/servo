@@ -17,3 +17,17 @@ pub enum IntegerAttribute {
     SizeIntegerAttribute,
 }
 
+/// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
+pub enum UnsignedIntegerAttribute {
+    /// `<td border>`
+    BorderUnsignedIntegerAttribute,
+    /// `<td colspan>`
+    ColSpanUnsignedIntegerAttribute,
+}
+
+/// Legacy presentational attributes that take a simple color as defined in HTML5 § 2.4.6.
+pub enum SimpleColorAttribute {
+    /// `<body bgcolor>`
+    BgColorSimpleColorAttribute,
+}
+

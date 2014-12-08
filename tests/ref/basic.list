@@ -187,3 +187,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == incremental_float_a.html incremental_float_ref.html
 == opacity_simple_a.html opacity_simple_ref.html
 == opacity_stacking_context_a.html opacity_stacking_context_ref.html
+== table_colspan_simple_a.html table_colspan_simple_ref.html
+== legacy_td_bgcolor_attribute_a.html legacy_td_bgcolor_attribute_ref.html
+== legacy_table_border_attribute_a.html legacy_table_border_attribute_ref.html

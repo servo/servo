@@ -268,6 +268,9 @@ impl StyleSharingCandidate {
             return false
         }
 
+        // FIXME(pcwalton): It's probably faster to iterate over all the element's attributes and
+        // use the {common, rare}-style-affecting-attributes tables as lookup tables.
+
         for attribute_info in style::common_style_affecting_attributes().iter() {
             match attribute_info.mode {
                 AttrIsPresentMode(flag) => {
@@ -292,6 +295,12 @@ impl StyleSharingCandidate {
                         _ => {}
                     }
                 }
+            }
+        }
+
+        for attribute_name in style::rare_style_affecting_attributes().iter() {
+            if element.get_attr(&ns!(""), attribute_name).is_some() {
+                return false
             }
         }
 
