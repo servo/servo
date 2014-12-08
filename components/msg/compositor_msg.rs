@@ -83,7 +83,7 @@ pub struct LayerMetadata {
 
 /// The interface used by the renderer to acquire draw targets for each render frame and
 /// submit them to be drawn to the display.
-pub trait RenderListener for Sized? {
+pub trait PaintListener for Sized? {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata>;
 
     /// Informs the compositor of the layers for the given pipeline. The compositor responds by
@@ -99,8 +99,8 @@ pub trait RenderListener for Sized? {
              epoch: Epoch,
              replies: Vec<(LayerId, Box<LayerBufferSet>)>);
 
-    fn render_msg_discarded(&mut self);
-    fn set_render_state(&mut self, PipelineId, RenderState);
+    fn paint_msg_discarded(&mut self);
+    fn set_paint_state(&mut self, PipelineId, RenderState);
 }
 
 /// The interface used by the script task to tell the compositor to update its ready state,

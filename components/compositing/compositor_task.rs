@@ -18,7 +18,7 @@ use geom::size::Size2D;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
 use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
-use servo_msg::compositor_msg::{RenderListener, RenderState, ScriptListener, ScrollPolicy};
+use servo_msg::compositor_msg::{PaintListener, RenderState, ScriptListener, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
@@ -108,8 +108,8 @@ impl LayerProperties {
     }
 }
 
-/// Implementation of the abstract `RenderListener` interface.
-impl RenderListener for Box<CompositorProxy+'static+Send> {
+/// Implementation of the abstract `PaintListener` interface.
+impl PaintListener for Box<CompositorProxy+'static+Send> {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
         let (chan, port) = channel();
         self.send(GetGraphicsMetadata(chan));
@@ -142,11 +142,11 @@ impl RenderListener for Box<CompositorProxy+'static+Send> {
         }
     }
 
-    fn render_msg_discarded(&mut self) {
+    fn paint_msg_discarded(&mut self) {
         self.send(PaintMsgDiscarded);
     }
 
-    fn set_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
+    fn set_paint_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
         self.send(ChangePaintState(pipeline_id, render_state))
     }
 }

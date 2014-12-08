@@ -22,7 +22,7 @@ use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
 use native::task::NativeTaskBuilder;
 use servo_msg::compositor_msg::{Epoch, IdleRenderState, LayerId};
-use servo_msg::compositor_msg::{LayerMetadata, RenderListener, RenderingRenderState, ScrollPolicy};
+use servo_msg::compositor_msg::{LayerMetadata, PaintListener, RenderingRenderState, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineId};
 use servo_msg::constellation_msg::{RendererReadyMsg};
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
@@ -136,7 +136,7 @@ fn initialize_layers<C>(compositor: &mut C,
                         pipeline_id: PipelineId,
                         epoch: Epoch,
                         root_stacking_context: &StackingContext)
-                        where C: RenderListener {
+                        where C: PaintListener {
     let mut metadata = Vec::new();
     build(&mut metadata, root_stacking_context, &ZERO_POINT);
     compositor.initialize_layers_for_pipeline(pipeline_id, metadata, epoch);
@@ -167,7 +167,7 @@ fn initialize_layers<C>(compositor: &mut C,
     }
 }
 
-impl<C> PaintTask<C> where C: RenderListener + Send {
+impl<C> PaintTask<C> where C: PaintListener + Send {
     pub fn create(id: PipelineId,
                   port: Receiver<Msg>,
                   compositor: C,
@@ -248,12 +248,12 @@ impl<C> PaintTask<C> where C: RenderListener + Send {
                         debug!("paint_task: render ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(RendererReadyMsg(self.id));
-                        self.compositor.render_msg_discarded();
+                        self.compositor.paint_msg_discarded();
                         continue;
                     }
 
                     let mut replies = Vec::new();
-                    self.compositor.set_render_state(self.id, RenderingRenderState);
+                    self.compositor.set_paint_state(self.id, RenderingRenderState);
                     for PaintRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.into_iter() {
                         if self.epoch == epoch {
@@ -263,7 +263,7 @@ impl<C> PaintTask<C> where C: RenderListener + Send {
                         }
                     }
 
-                    self.compositor.set_render_state(self.id, IdleRenderState);
+                    self.compositor.set_paint_state(self.id, IdleRenderState);
 
                     debug!("paint_task: returning surfaces");
                     self.compositor.paint(self.id, self.epoch, replies);
