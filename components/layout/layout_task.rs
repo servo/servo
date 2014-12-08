@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
-//! rendered.
+//! painted.
 
 use css::node_style::StyledNode;
 use construct::FlowConstructionResult;
@@ -28,7 +28,7 @@ use geom::scale_factor::ScaleFactor;
 use gfx::color;
 use gfx::display_list::{DisplayList, OpaqueNode, StackingContext};
 use gfx::font_cache_task::FontCacheTask;
-use gfx::render_task::{mod, RenderInitMsg, RenderChan, RenderLayer};
+use gfx::paint_task::{mod, PaintInitMsg, PaintChan, PaintLayer};
 use layout_traits;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
@@ -119,7 +119,7 @@ pub struct LayoutTask {
     pub script_chan: ScriptControlChan,
 
     /// The channel on which messages can be sent to the painting task.
-    pub render_chan: RenderChan,
+    pub paint_chan: PaintChan,
 
     /// The channel on which messages can be sent to the time profiler.
     pub time_profiler_chan: TimeProfilerChan,
@@ -173,7 +173,7 @@ impl LayoutTaskFactory for LayoutTask {
                   constellation_chan: ConstellationChan,
                   failure_msg: Failure,
                   script_chan: ScriptControlChan,
-                  render_chan: RenderChan,
+                  paint_chan: PaintChan,
                   resource_task: ResourceTask,
                   img_cache_task: ImageCacheTask,
                   font_cache_task: FontCacheTask,
@@ -191,7 +191,7 @@ impl LayoutTaskFactory for LayoutTask {
                         pipeline_port,
                         constellation_chan,
                         script_chan,
-                        render_chan,
+                        paint_chan,
                         resource_task,
                         img_cache_task,
                         font_cache_task,
@@ -240,7 +240,7 @@ impl LayoutTask {
            pipeline_port: Receiver<LayoutControlMsg>,
            constellation_chan: ConstellationChan,
            script_chan: ScriptControlChan,
-           render_chan: RenderChan,
+           paint_chan: PaintChan,
            resource_task: ResourceTask,
            image_cache_task: ImageCacheTask,
            font_cache_task: FontCacheTask,
@@ -264,7 +264,7 @@ impl LayoutTask {
             chan: chan,
             constellation_chan: constellation_chan,
             script_chan: script_chan,
-            render_chan: render_chan,
+            paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
             resource_task: resource_task,
             image_cache_task: image_cache_task.clone(),
@@ -463,7 +463,7 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
-        self.render_chan.send(render_task::ExitMsg(Some(response_chan)));
+        self.paint_chan.send(paint_task::ExitMsg(Some(response_chan)));
         response_port.recv()
     }
 
@@ -676,7 +676,7 @@ impl LayoutTask {
             let mut display_list = box DisplayList::new();
             flow::mut_base(layout_root.deref_mut()).display_list_building_result
                                                    .add_to(&mut *display_list);
-            let render_layer = Arc::new(RenderLayer::new(layout_root.layer_id(0),
+            let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
                                                          color,
                                                          Scrollable));
             let origin = Rect(Point2D(Au(0), Au(0)), root_size);
@@ -684,13 +684,13 @@ impl LayoutTask {
                                                                  origin,
                                                                  0,
                                                                  1.0,
-                                                                 Some(render_layer)));
+                                                                 Some(paint_layer)));
 
             rw_data.stacking_context = Some(stacking_context.clone());
 
             debug!("Layout done!");
 
-            self.render_chan.send(RenderInitMsg(stacking_context));
+            self.paint_chan.send(PaintInitMsg(stacking_context));
         });
     }
 
@@ -825,7 +825,7 @@ impl LayoutTask {
             }
         });
 
-        // Build the display list if necessary, and send it to the renderer.
+        // Build the display list if necessary, and send it to the painter.
         if data.goal == ReflowForDisplay {
             self.build_display_list_for_reflow(data,
                                                node,

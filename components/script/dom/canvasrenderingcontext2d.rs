@@ -13,7 +13,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 
-use canvas::canvas_render_task::{CanvasMsg, CanvasRenderTask, ClearRect, Close, FillRect, Recreate, StrokeRect};
+use canvas::canvas_paint_task::{CanvasMsg, CanvasPaintTask, ClearRect, Close, FillRect, Recreate, StrokeRect};
 
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
@@ -28,7 +28,7 @@ impl CanvasRenderingContext2D {
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             global: GlobalField::from_rooted(global),
-            renderer: CanvasRenderTask::start(size),
+            renderer: CanvasPaintTask::start(size),
             canvas: JS::from_rooted(canvas),
         }
     }

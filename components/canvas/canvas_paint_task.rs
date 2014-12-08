@@ -18,17 +18,17 @@ pub enum CanvasMsg {
     Close,
 }
 
-pub struct CanvasRenderTask {
+pub struct CanvasPaintTask {
     drawtarget: DrawTarget,
     fill_color: ColorPattern,
     stroke_color: ColorPattern,
     stroke_opts: StrokeOptions,
 }
 
-impl CanvasRenderTask {
-    fn new(size: Size2D<i32>) -> CanvasRenderTask {
-        CanvasRenderTask {
-            drawtarget: CanvasRenderTask::create(size),
+impl CanvasPaintTask {
+    fn new(size: Size2D<i32>) -> CanvasPaintTask {
+        CanvasPaintTask {
+            drawtarget: CanvasPaintTask::create(size),
             fill_color: ColorPattern::new(Color::new(0., 0., 0., 1.)),
             stroke_color: ColorPattern::new(Color::new(0., 0., 0., 1.)),
             stroke_opts: StrokeOptions::new(1.0, 1.0),
@@ -38,14 +38,14 @@ impl CanvasRenderTask {
     pub fn start(size: Size2D<i32>) -> Sender<CanvasMsg> {
         let (chan, port) = comm::channel::<CanvasMsg>();
         spawn_named("CanvasTask", proc() {
-            let mut renderer = CanvasRenderTask::new(size);
+            let mut painter = CanvasPaintTask::new(size);
 
             loop {
                 match port.recv() {
-                    FillRect(ref rect) => renderer.fill_rect(rect),
-                    StrokeRect(ref rect) => renderer.stroke_rect(rect),
-                    ClearRect(ref rect) => renderer.clear_rect(rect),
-                    Recreate(size) => renderer.recreate(size),
+                    FillRect(ref rect) => painter.fill_rect(rect),
+                    StrokeRect(ref rect) => painter.stroke_rect(rect),
+                    ClearRect(ref rect) => painter.clear_rect(rect),
+                    Recreate(size) => painter.recreate(size),
                     Close => break,
                 }
             }
@@ -72,6 +72,6 @@ impl CanvasRenderTask {
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
-        self.drawtarget = CanvasRenderTask::create(size);
+        self.drawtarget = CanvasPaintTask::create(size);
     }
 }

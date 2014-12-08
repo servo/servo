@@ -198,7 +198,7 @@ impl Shaper {
 }
 
 impl ShaperMethods for Shaper {
-    /// Calculate the layout metrics associated with the given text when rendered in a specific
+    /// Calculate the layout metrics associated with the given text when painted in a specific
     /// font.
     fn shape_text(&self, text: &str, glyphs: &mut GlyphStore) {
         unsafe {

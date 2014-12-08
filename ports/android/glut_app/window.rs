@@ -19,7 +19,7 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use msg::compositor_msg::{IdleRenderState, RenderState};
+use msg::compositor_msg::{IdlePaintState, PaintState};
 use msg::compositor_msg::{Blank, ReadyState};
 use util::geometry::ScreenPx;
 
@@ -41,7 +41,7 @@ pub struct Window {
     pub mouse_down_point: Cell<Point2D<c_int>>,
 
     pub ready_state: Cell<ReadyState>,
-    pub render_state: Cell<RenderState>,
+    pub paint_state: Cell<PaintState>,
     pub throbber_frame: Cell<u8>,
 }
 
@@ -65,7 +65,7 @@ impl Window {
             mouse_down_point: Cell::new(Point2D(0 as c_int, 0)),
 
             ready_state: Cell::new(Blank),
-            render_state: Cell::new(IdleRenderState),
+            paint_state: Cell::new(IdlePaintState),
             throbber_frame: Cell::new(0),
         };
 
@@ -180,9 +180,9 @@ impl WindowMethods for Window {
         //self.update_window_title()
     }
 
-    /// Sets the render state.
-    fn set_render_state(&self, render_state: RenderState) {
-        self.render_state.set(render_state);
+    /// Sets the paint state.
+    fn set_paint_state(&self, paint_state: PaintState) {
+        self.paint_state.set(paint_state);
         //FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily blocked.
         //self.update_window_title()
     }
@@ -215,11 +215,11 @@ impl Window {
     //             glut::set_window_title(self.glut_window, format!("{:c} Performing Layout . Servo", throbber))
     //         }
     //         FinishedLoading => {
-    //             match self.render_state {
-    //                 RenderingRenderState => {
+    //             match self.paint_state {
+    //                 PaintingPaintState => {
     //                     glut::set_window_title(self.glut_window, format!("{:c} Rendering . Servo", throbber))
     //                 }
-    //                 IdleRenderState => glut::set_window_title(self.glut_window, "Servo"),
+    //                 IdlePaintState => glut::set_window_title(self.glut_window, "Servo"),
     //             }
     //         }
     //     }

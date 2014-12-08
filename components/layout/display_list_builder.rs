@@ -30,7 +30,7 @@ use gfx::display_list::{ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem
 use gfx::display_list::{LineDisplayItemClass, PseudoDisplayItemClass, SidewaysLeft, SidewaysRight};
 use gfx::display_list::{SolidColorDisplayItem, SolidColorDisplayItemClass, StackingContext};
 use gfx::display_list::{TextDisplayItem, TextDisplayItemClass, Upright};
-use gfx::render_task::RenderLayer;
+use gfx::paint_task::PaintLayer;
 use servo_msg::compositor_msg::{FixedPosition, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg};
 use servo_net::image::holder::ImageHolder;
@@ -812,7 +812,7 @@ pub trait BlockFlowDisplayListBuilding {
     fn build_display_list_for_floating_block(&mut self, layout_context: &LayoutContext);
     fn create_stacking_context(&self,
                                display_list: Box<DisplayList>,
-                               layer: Option<Arc<RenderLayer>>)
+                               layer: Option<Arc<PaintLayer>>)
                                -> Arc<StackingContext>;
 }
 
@@ -875,7 +875,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let transparent = color::rgba(1.0, 1.0, 1.0, 0.0);
         let stacking_context =
             self.create_stacking_context(display_list,
-                                         Some(Arc::new(RenderLayer::new(self.layer_id(0),
+                                         Some(Arc::new(PaintLayer::new(self.layer_id(0),
                                                                         transparent,
                                                                         scroll_policy))));
         self.base.display_list_building_result = StackingContextResult(stacking_context)
@@ -897,7 +897,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
 
     fn create_stacking_context(&self,
                                display_list: Box<DisplayList>,
-                               layer: Option<Arc<RenderLayer>>)
+                               layer: Option<Arc<PaintLayer>>)
                                -> Arc<StackingContext> {
         let bounds = Rect(self.base.stacking_relative_position,
                           self.base.overflow.size.to_physical(self.base.writing_mode));

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Transforms a display list to produce a visually-equivalent, but cheaper-to-render, one.
+//! Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
 
 use display_list::{DisplayItem, DisplayList, StackingContext};
 
@@ -11,7 +11,7 @@ use geom::rect::Rect;
 use servo_util::geometry::{mod, Au};
 use sync::Arc;
 
-/// Transforms a display list to produce a visually-equivalent, but cheaper-to-render, one.
+/// Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
 pub struct DisplayListOptimizer {
     /// The visible rect in page coordinates.
     visible_rect: Rect<Au>,

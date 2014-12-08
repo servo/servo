@@ -202,7 +202,7 @@ pub enum Msg {
     LoadUrlMsg(PipelineId, LoadData),
     ScriptLoadedURLInIFrameMsg(Url, PipelineId, SubpageId, IFrameSandboxState),
     NavigateMsg(NavigationDirection),
-    RendererReadyMsg(PipelineId),
+    PainterReadyMsg(PipelineId),
     ResizedWindowMsg(WindowSizeData),
     KeyEvent(Key, KeyState, KeyModifiers),
 }

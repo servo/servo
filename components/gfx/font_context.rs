@@ -50,9 +50,9 @@ struct FallbackFontCacheEntry {
     font: Rc<RefCell<Font>>,
 }
 
-/// A cached azure font (per render task) that
+/// A cached azure font (per paint task) that
 /// can be shared by multiple text runs.
-struct RenderFontCacheEntry {
+struct PaintFontCacheEntry {
     pt_size: Au,
     identifier: String,
     font: Rc<RefCell<ScaledFont>>,
@@ -60,7 +60,7 @@ struct RenderFontCacheEntry {
 
 /// The FontContext represents the per-thread/task state necessary for
 /// working with fonts. It is the public API used by the layout and
-/// render code. It talks directly to the font cache task where
+/// paint code. It talks directly to the font cache task where
 /// required.
 pub struct FontContext {
     platform_handle: FontContextHandle,
@@ -70,9 +70,9 @@ pub struct FontContext {
     layout_font_cache: Vec<LayoutFontCacheEntry>,
     fallback_font_cache: Vec<FallbackFontCacheEntry>,
 
-    /// Strong reference as the render FontContext is (for now) recycled
+    /// Strong reference as the paint FontContext is (for now) recycled
     /// per frame. TODO: Make this weak when incremental redraw is done.
-    render_font_cache: Vec<RenderFontCacheEntry>,
+    paint_font_cache: Vec<PaintFontCacheEntry>,
 
     last_style: Option<Arc<SpecifiedFontStyle>>,
     last_fontgroup: Option<Rc<FontGroup>>,
@@ -86,7 +86,7 @@ impl FontContext {
             font_cache_task: font_cache_task,
             layout_font_cache: vec!(),
             fallback_font_cache: vec!(),
-            render_font_cache: vec!(),
+            paint_font_cache: vec!(),
             last_style: None,
             last_fontgroup: None,
         }
@@ -97,7 +97,7 @@ impl FontContext {
                             descriptor: FontTemplateDescriptor, pt_size: Au,
                             variant: font_variant::T) -> Font {
         // TODO: (Bug #3463): Currently we only support fake small-caps
-        // rendering. We should also support true small-caps (where the
+        // painting. We should also support true small-caps (where the
         // font supports it) in the future.
         let actual_pt_size = match variant {
             font_variant::small_caps => pt_size.scale_by(SMALL_CAPS_SCALE_FACTOR),
@@ -227,26 +227,26 @@ impl FontContext {
         font_group
     }
 
-    /// Create a render font for use with azure. May return a cached
+    /// Create a paint font for use with azure. May return a cached
     /// reference if already used by this font context.
-    pub fn get_render_font_from_template(&mut self,
+    pub fn get_paint_font_from_template(&mut self,
                                          template: &Arc<FontTemplateData>,
                                          pt_size: Au)
                                          -> Rc<RefCell<ScaledFont>> {
-        for cached_font in self.render_font_cache.iter() {
+        for cached_font in self.paint_font_cache.iter() {
             if cached_font.pt_size == pt_size &&
                cached_font.identifier == template.identifier {
                 return cached_font.font.clone();
             }
         }
 
-        let render_font = Rc::new(RefCell::new(create_scaled_font(template, pt_size)));
-        self.render_font_cache.push(RenderFontCacheEntry{
-            font: render_font.clone(),
+        let paint_font = Rc::new(RefCell::new(create_scaled_font(template, pt_size)));
+        self.paint_font_cache.push(PaintFontCacheEntry{
+            font: paint_font.clone(),
             pt_size: pt_size,
             identifier: template.identifier.clone(),
         });
-        render_font
+        paint_font
     }
 
     /// Returns a reference to the font cache task.

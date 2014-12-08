@@ -10,7 +10,7 @@ use devtools_traits::DevtoolsControlChan;
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
-use gfx::render_task;
+use gfx::paint_task;
 use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutTaskFactory, ExitNowMsg};
 use libc;
@@ -21,7 +21,7 @@ use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
 use servo_msg::constellation_msg::{LoadCompleteMsg, LoadUrlMsg, LoadData, Msg, NavigateMsg};
-use servo_msg::constellation_msg::{NavigationType, PipelineId, RendererReadyMsg, ResizedWindowMsg};
+use servo_msg::constellation_msg::{NavigationType, PipelineId, PainterReadyMsg, ResizedWindowMsg};
 use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SubpageId, WindowSizeData};
 use servo_msg::constellation_msg::{KeyEvent, Key, KeyState, KeyModifiers};
 use servo_msg::constellation_msg;
@@ -452,10 +452,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got navigation message");
                 self.handle_navigate_msg(direction);
             }
-            // Notification that rendering has finished and is requesting permission to paint.
-            RendererReadyMsg(pipeline_id) => {
-                debug!("constellation got renderer ready message");
-                self.handle_renderer_ready_msg(pipeline_id);
+            // Notification that painting has finished and is requesting permission to paint.
+            PainterReadyMsg(pipeline_id) => {
+                debug!("constellation got painter ready message");
+                self.handle_painter_ready_msg(pipeline_id);
             }
             ResizedWindowMsg(new_size) => {
                 debug!("constellation got window resize message");
@@ -506,7 +506,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         fn force_pipeline_exit(old_pipeline: &Rc<Pipeline>) {
             let ScriptControlChan(ref old_script) = old_pipeline.script_chan;
             let _ = old_script.send_opt(ExitPipelineMsg(old_pipeline.id));
-            let _ = old_pipeline.render_chan.send_opt(render_task::ExitMsg(None));
+            let _ = old_pipeline.paint_chan.send_opt(paint_task::ExitMsg(None));
             let LayoutControlChan(ref old_layout) = old_pipeline.layout_chan;
             let _ = old_layout.send_opt(ExitNowMsg);
         }
@@ -787,8 +787,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         });
     }
 
-    fn handle_renderer_ready_msg(&mut self, pipeline_id: PipelineId) {
-        debug!("Renderer {} ready to send paint msg", pipeline_id);
+    fn handle_painter_ready_msg(&mut self, pipeline_id: PipelineId) {
+        debug!("Painter {} ready to send paint msg", pipeline_id);
         // This message could originate from a pipeline in the navigation context or
         // from a pending frame. The only time that we will grant paint permission is
         // when the message originates from a pending frame or the current frame.
