@@ -23,3 +23,9 @@ pub enum UnsignedIntegerAttribute {
     BorderUnsignedIntegerAttribute,
 }
 
+/// Legacy presentational attributes that take a simple color as defined in HTML5 § 2.4.6.
+pub enum SimpleColorAttribute {
+    /// `<body bgcolor>`
+    BgColorSimpleColorAttribute,
+}
+

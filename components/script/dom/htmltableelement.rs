@@ -24,6 +24,7 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
+    background_color: Cell<Option<SimpleColor>>,
     border: Cell<Option<u32>>,
 }
 
@@ -41,6 +42,7 @@ impl HTMLTableElement {
                                                     localName,
                                                     prefix,
                                                     document),
+            background_color: Cell::new(None),
             border: Cell::new(None),
         }
     }
@@ -91,10 +93,15 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
 }
 
 pub trait HTMLTableElementHelpers {
+    fn get_background_color(&self) -> Option<SimpleColor>;
     fn get_border(&self) -> Option<u32>;
 }
 
 impl HTMLTableElementHelpers for HTMLTableElement {
+    fn get_background_color(&self) -> Option<SimpleColor> {
+        self.background_color.get()
+    }
+
     fn get_border(&self) -> Option<u32> {
         self.border.get()
     }
@@ -113,6 +120,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
         }
 
         match attr.local_name() {
+            &atom!("bgcolor") => {
+                self.background_color.set(str::parse_legacy_color(attr.value().as_slice()).ok())
+            }
             &atom!("border") => {
                 // According to HTML5 § 14.3.9, invalid values map to 1px.
                 self.border.set(Some(str::parse_unsigned_integer(attr.value()
@@ -130,6 +140,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
         }
 
         match attr.local_name() {
+            &atom!("bgcolor") => self.background_color.set(None),
             &atom!("border") => self.border.set(None),
             _ => ()
         }

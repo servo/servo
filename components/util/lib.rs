@@ -13,6 +13,7 @@ extern crate log;
 
 extern crate alloc;
 extern crate collections;
+extern crate cssparser;
 extern crate geom;
 extern crate getopts;
 extern crate layers;

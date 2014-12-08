@@ -10,6 +10,7 @@ use sync::Arc;
 
 use url::Url;
 
+use cssparser::{RGBA, RGBAColor};
 use servo_util::bloom::BloomFilter;
 use servo_util::geometry::Au;
 use servo_util::resource_files::read_resource_file;
@@ -516,13 +517,27 @@ impl Stylist {
                         *shareable = false
                     }
                 }
+                self.synthesize_presentational_hint_for_legacy_background_color_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
                 self.synthesize_presentational_hint_for_legacy_border_attribute(
                     element,
                     matching_rules_list,
                     shareable);
             }
             name if *name == atom!("table") => {
+                self.synthesize_presentational_hint_for_legacy_background_color_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
                 self.synthesize_presentational_hint_for_legacy_border_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
+            }
+            name if *name == atom!("body") => {
+                self.synthesize_presentational_hint_for_legacy_background_color_attribute(
                     element,
                     matching_rules_list,
                     shareable);
@@ -549,6 +564,32 @@ impl Stylist {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn synthesize_presentational_hint_for_legacy_background_color_attribute<'a,E,V>(
+                                                                            &self,
+                                                                            element: E,
+                                                                            matching_rules_list:
+                                                                                &mut V,
+                                                                            shareable: &mut bool)
+                                                                            where
+                                                                            E: TElement<'a> +
+                                                                               TElementAttributes,
+                                                                            V: VecLike<
+                                                                                DeclarationBlock> {
+        match element.get_simple_color_attribute(BgColorSimpleColorAttribute) {
+            None => {}
+            Some(color) => {
+                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        BackgroundColorDeclaration(SpecifiedValue(RGBAColor(RGBA {
+                            red: color.red as f32 / 255.0,
+                            green: color.green as f32 / 255.0,
+                            blue: color.blue as f32 / 255.0,
+                            alpha: 1.0,
+                        })))));
+                *shareable = false
+            }
         }
     }
 
@@ -905,8 +946,8 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
 /// Attributes that, if present, disable style sharing. All legacy HTML attributes must be in
 /// either this list or `common_style_affecting_attributes`. See the comment in
 /// `synthesize_presentational_hints_for_legacy_attributes`.
-pub fn rare_style_affecting_attributes() -> [Atom, ..1] {
-    [ atom!("border") ]
+pub fn rare_style_affecting_attributes() -> [Atom, ..3] {
+    [ atom!("bgcolor"), atom!("border") ]
 }
 
 /// Determines whether the given element matches the given single selector.

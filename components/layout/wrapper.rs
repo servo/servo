@@ -593,6 +593,12 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
             self.element.get_unsigned_integer_attribute_for_layout(attribute)
         }
     }
+
+    fn get_simple_color_attribute(self, attribute: SimpleColorAttribute) -> Option<SimpleColor> {
+        unsafe {
+            self.element.get_simple_color_attribute_for_layout(attribute)
+        }
+    }
 }
 
 fn get_content(content_list: &content::T) -> String {
