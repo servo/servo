@@ -15,7 +15,7 @@ bitflags! {
     flags TaskState: u32 {
         const SCRIPT          = 0x01,
         const LAYOUT          = 0x02,
-        const RENDER          = 0x04,
+        const PAINT           = 0x04,
 
         const IN_WORKER       = 0x0100,
         const IN_GC           = 0x0200,
@@ -40,7 +40,7 @@ macro_rules! task_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
 task_types! {
     is_script = SCRIPT;
     is_layout = LAYOUT;
-    is_render = RENDER;
+    is_paint = PAINT;
 }
 
 #[cfg(not(ndebug))]

@@ -24,7 +24,7 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
 use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
-use msg::compositor_msg::{IdleRenderState, RenderState, RenderingRenderState};
+use msg::compositor_msg::{IdlePaintState, PaintState, PaintingPaintState};
 use msg::constellation_msg;
 use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
@@ -45,7 +45,7 @@ pub struct Window {
     mouse_down_point: Cell<Point2D<c_int>>,
 
     ready_state: Cell<ReadyState>,
-    render_state: Cell<RenderState>,
+    paint_state: Cell<PaintState>,
 
     last_title_set_time: Cell<Timespec>,
 }
@@ -78,7 +78,7 @@ impl Window {
             mouse_down_point: Cell::new(Point2D(0 as c_int, 0)),
 
             ready_state: Cell::new(Blank),
-            render_state: Cell::new(IdleRenderState),
+            paint_state: Cell::new(IdlePaintState),
 
             last_title_set_time: Cell::new(Timespec::new(0, 0)),
         };
@@ -159,9 +159,9 @@ impl WindowMethods for Window {
         self.update_window_title()
     }
 
-    /// Sets the render state.
-    fn set_render_state(&self, render_state: RenderState) {
-        self.render_state.set(render_state);
+    /// Sets the paint state.
+    fn set_paint_state(&self, paint_state: PaintState) {
+        self.paint_state.set(paint_state);
         self.update_window_title()
     }
 
@@ -302,11 +302,11 @@ impl Window {
                 self.glfw_window.set_title("Performing Layout — Servo [GLFW]")
             }
             FinishedLoading => {
-                match self.render_state.get() {
-                    RenderingRenderState => {
+                match self.paint_state.get() {
+                    PaintingPaintState => {
                         self.glfw_window.set_title("Rendering — Servo [GLFW]")
                     }
-                    IdleRenderState => {
+                    IdlePaintState => {
                         self.glfw_window.set_title("Servo [GLFW]")
                     }
                 }

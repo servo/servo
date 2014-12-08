@@ -18,7 +18,7 @@ use geom::size::Size2D;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
 use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
-use servo_msg::compositor_msg::{RenderListener, RenderState, ScriptListener, ScrollPolicy};
+use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
@@ -108,8 +108,8 @@ impl LayerProperties {
     }
 }
 
-/// Implementation of the abstract `RenderListener` interface.
-impl RenderListener for Box<CompositorProxy+'static+Send> {
+/// Implementation of the abstract `PaintListener` interface.
+impl PaintListener for Box<CompositorProxy+'static+Send> {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
         let (chan, port) = channel();
         self.send(GetGraphicsMetadata(chan));
@@ -142,12 +142,12 @@ impl RenderListener for Box<CompositorProxy+'static+Send> {
         }
     }
 
-    fn render_msg_discarded(&mut self) {
-        self.send(RenderMsgDiscarded);
+    fn paint_msg_discarded(&mut self) {
+        self.send(PaintMsgDiscarded);
     }
 
-    fn set_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
-        self.send(ChangeRenderState(pipeline_id, render_state))
+    fn set_paint_state(&mut self, pipeline_id: PipelineId, paint_state: PaintState) {
+        self.send(ChangePaintState(pipeline_id, paint_state))
     }
 }
 
@@ -161,7 +161,7 @@ pub enum Msg {
     /// at the time that we send it an ExitMsg.
     ShutdownComplete,
 
-    /// Requests the compositor's graphics metadata. Graphics metadata is what the renderer needs
+    /// Requests the compositor's graphics metadata. Graphics metadata is what the painter needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.
     ///
@@ -182,11 +182,11 @@ pub enum Msg {
     Paint(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(PipelineId, ReadyState),
-    /// Alerts the compositor to the current status of rendering.
-    ChangeRenderState(PipelineId, RenderState),
-    /// Alerts the compositor that the RenderMsg has been discarded.
-    RenderMsgDiscarded,
-    /// Sets the channel to the current layout and render tasks, along with their id
+    /// Alerts the compositor to the current status of painting.
+    ChangePaintState(PipelineId, PaintState),
+    /// Alerts the compositor that the PaintMsg has been discarded.
+    PaintMsgDiscarded,
+    /// Sets the channel to the current layout and paint tasks, along with their id
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// Sends an updated version of the frame tree.
     FrameTreeUpdateMsg(FrameTreeDiff, Sender<()>),
@@ -209,8 +209,8 @@ impl Show for Msg {
             ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
             Paint(..) => write!(f, "Paint"),
             ChangeReadyState(..) => write!(f, "ChangeReadyState"),
-            ChangeRenderState(..) => write!(f, "ChangeRenderState"),
-            RenderMsgDiscarded(..) => write!(f, "RenderMsgDiscarded"),
+            ChangePaintState(..) => write!(f, "ChangePaintState"),
+            PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
             SetIds(..) => write!(f, "SetIds"),
             FrameTreeUpdateMsg(..) => write!(f, "FrameTreeUpdateMsg"),
             LoadComplete => write!(f, "LoadComplete"),

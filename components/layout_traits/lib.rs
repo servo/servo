@@ -20,7 +20,7 @@ extern crate "util" as servo_util;
 //   that these modules won't have to depend on layout.
 
 use gfx::font_cache_task::FontCacheTask;
-use gfx::render_task::RenderChan;
+use gfx::paint_task::PaintChan;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
 use servo_msg::constellation_msg::Failure;
 use servo_net::image_cache_task::ImageCacheTask;
@@ -48,7 +48,7 @@ pub trait LayoutTaskFactory {
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
               script_chan: ScriptControlChan,
-              render_chan: RenderChan,
+              paint_chan: PaintChan,
               resource_task: ResourceTask,
               img_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,

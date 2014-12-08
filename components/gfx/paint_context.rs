@@ -33,7 +33,7 @@ use sync::Arc;
 use text::TextRun;
 use text::glyph::CharIndex;
 
-pub struct RenderContext<'a> {
+pub struct PaintContext<'a> {
     pub draw_target: DrawTarget,
     pub font_ctx: &'a mut Box<FontContext>,
     /// The rectangle that this context encompasses in page coordinates.
@@ -54,7 +54,7 @@ enum DashSize {
     DashedBorder = 3
 }
 
-impl<'a> RenderContext<'a>  {
+impl<'a> PaintContext<'a>  {
     pub fn get_draw_target(&self) -> &DrawTarget {
         &self.draw_target
     }
@@ -657,7 +657,7 @@ impl<'a> RenderContext<'a>  {
         };
 
         self.font_ctx
-            .get_render_font_from_template(&text.text_run.font_template,
+            .get_paint_font_from_template(&text.text_run.font_template,
                                            text.text_run.actual_pt_size)
             .borrow()
             .draw_text_into_context(self,
@@ -717,7 +717,7 @@ impl<'a> RenderContext<'a>  {
                                                    temporary_draw_target: &DrawTarget,
                                                    opacity: AzFloat) {
         if (*temporary_draw_target) == self.draw_target {
-            // We're directly rendering to the surface; nothing to do.
+            // We're directly painting to the surface; nothing to do.
             return
         }
 
@@ -803,7 +803,7 @@ impl ToRadiiPx for BorderRadii<Au> {
 
 trait ScaledFontExtensionMethods {
     fn draw_text_into_context(&self,
-                              rctx: &RenderContext,
+                              rctx: &PaintContext,
                               run: &Box<TextRun>,
                               range: &Range<CharIndex>,
                               baseline_origin: Point2D<Au>,
@@ -813,7 +813,7 @@ trait ScaledFontExtensionMethods {
 
 impl ScaledFontExtensionMethods for ScaledFont {
     fn draw_text_into_context(&self,
-                              rctx: &RenderContext,
+                              rctx: &PaintContext,
                               run: &Box<TextRun>,
                               range: &Range<CharIndex>,
                               baseline_origin: Point2D<Au>,

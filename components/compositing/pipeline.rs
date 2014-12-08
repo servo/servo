@@ -8,8 +8,8 @@ use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
 
 use devtools_traits::DevtoolsControlChan;
-use gfx::render_task::{PaintPermissionGranted, PaintPermissionRevoked};
-use gfx::render_task::{RenderChan, RenderTask};
+use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
+use gfx::paint_task::{PaintChan, PaintTask};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadData, WindowSizeData};
 use servo_net::image_cache_task::ImageCacheTask;
@@ -19,15 +19,15 @@ use servo_net::storage_task::StorageTask;
 use servo_util::time::TimeProfilerChan;
 use std::rc::Rc;
 
-/// A uniquely-identifiable pipeline of script task, layout task, and render task.
+/// A uniquely-identifiable pipeline of script task, layout task, and paint task.
 pub struct Pipeline {
     pub id: PipelineId,
     pub subpage_id: Option<SubpageId>,
     pub script_chan: ScriptControlChan,
     pub layout_chan: LayoutControlChan,
-    pub render_chan: RenderChan,
+    pub paint_chan: PaintChan,
     pub layout_shutdown_port: Receiver<()>,
-    pub render_shutdown_port: Receiver<()>,
+    pub paint_shutdown_port: Receiver<()>,
     /// The most recently loaded page
     pub load_data: LoadData,
 }
@@ -37,11 +37,11 @@ pub struct Pipeline {
 pub struct CompositionPipeline {
     pub id: PipelineId,
     pub script_chan: ScriptControlChan,
-    pub render_chan: RenderChan,
+    pub paint_chan: PaintChan,
 }
 
 impl Pipeline {
-    /// Starts a render task, layout task, and possibly a script task.
+    /// Starts a paint task, layout task, and possibly a script task.
     /// Returns the channels wrapped in a struct.
     /// If script_pipeline is not None, then subpage_id must also be not None.
     pub fn create<LTF:LayoutTaskFactory, STF:ScriptTaskFactory>(
@@ -60,8 +60,8 @@ impl Pipeline {
                       load_data: LoadData)
                       -> Pipeline {
         let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
-        let (render_port, render_chan) = RenderChan::new();
-        let (render_shutdown_chan, render_shutdown_port) = channel();
+        let (paint_port, paint_chan) = PaintChan::new();
+        let (paint_shutdown_chan, paint_shutdown_port) = channel();
         let (layout_shutdown_chan, layout_shutdown_port) = channel();
         let (pipeline_chan, pipeline_port) = channel();
 
@@ -102,14 +102,14 @@ impl Pipeline {
             }
         };
 
-        RenderTask::create(id,
-                           render_port,
-                           compositor_proxy,
-                           constellation_chan.clone(),
-                           font_cache_task.clone(),
-                           failure.clone(),
-                           time_profiler_chan.clone(),
-                           render_shutdown_chan);
+        PaintTask::create(id,
+                          paint_port,
+                          compositor_proxy,
+                          constellation_chan.clone(),
+                          font_cache_task.clone(),
+                          failure.clone(),
+                          time_profiler_chan.clone(),
+                          paint_shutdown_chan);
 
         LayoutTaskFactory::create(None::<&mut LTF>,
                                   id,
@@ -118,7 +118,7 @@ impl Pipeline {
                                   constellation_chan,
                                   failure,
                                   script_chan.clone(),
-                                  render_chan.clone(),
+                                  paint_chan.clone(),
                                   resource_task,
                                   image_cache_task,
                                   font_cache_task,
@@ -129,9 +129,9 @@ impl Pipeline {
                       subpage_id,
                       script_chan,
                       LayoutControlChan(pipeline_chan),
-                      render_chan,
+                      paint_chan,
                       layout_shutdown_port,
-                      render_shutdown_port,
+                      paint_shutdown_port,
                       load_data)
     }
 
@@ -139,9 +139,9 @@ impl Pipeline {
                subpage_id: Option<SubpageId>,
                script_chan: ScriptControlChan,
                layout_chan: LayoutControlChan,
-               render_chan: RenderChan,
+               paint_chan: PaintChan,
                layout_shutdown_port: Receiver<()>,
-               render_shutdown_port: Receiver<()>,
+               paint_shutdown_port: Receiver<()>,
                load_data: LoadData)
                -> Pipeline {
         Pipeline {
@@ -149,9 +149,9 @@ impl Pipeline {
             subpage_id: subpage_id,
             script_chan: script_chan,
             layout_chan: layout_chan,
-            render_chan: render_chan,
+            paint_chan: paint_chan,
             layout_shutdown_port: layout_shutdown_port,
-            render_shutdown_port: render_shutdown_port,
+            paint_shutdown_port: paint_shutdown_port,
             load_data: load_data,
         }
     }
@@ -162,24 +162,24 @@ impl Pipeline {
     }
 
     pub fn grant_paint_permission(&self) {
-        let _ = self.render_chan.send_opt(PaintPermissionGranted);
+        let _ = self.paint_chan.send_opt(PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
-        debug!("pipeline revoking render channel paint permission");
-        let _ = self.render_chan.send_opt(PaintPermissionRevoked);
+        debug!("pipeline revoking paint channel paint permission");
+        let _ = self.paint_chan.send_opt(PaintPermissionRevoked);
     }
 
     pub fn exit(&self) {
         debug!("pipeline {} exiting", self.id);
 
-        // Script task handles shutting down layout, and layout handles shutting down the renderer.
+        // Script task handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script task has failed, we give up on clean shutdown.
         let ScriptControlChan(ref chan) = self.script_chan;
         if chan.send_opt(ExitPipelineMsg(self.id)).is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
-            let _ = self.render_shutdown_port.recv_opt();
+            let _ = self.paint_shutdown_port.recv_opt();
             let _ = self.layout_shutdown_port.recv_opt();
         }
     }
@@ -188,7 +188,7 @@ impl Pipeline {
         CompositionPipeline {
             id: self.id.clone(),
             script_chan: self.script_chan.clone(),
-            render_chan: self.render_chan.clone(),
+            paint_chan: self.paint_chan.clone(),
         }
     }
 }

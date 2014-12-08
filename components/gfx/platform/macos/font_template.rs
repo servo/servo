@@ -10,7 +10,7 @@ use core_text;
 /// Platform specific font representation for mac.
 /// The identifier is a PostScript font name. The
 /// CTFont object is cached here for use by the
-/// render functions that create CGFont references.
+/// paint functions that create CGFont references.
 pub struct FontTemplateData {
     pub ctfont: Option<CTFont>,
     pub identifier: String,
