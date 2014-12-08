@@ -103,7 +103,7 @@ cp servobuild.example .servobuild
 
 - `-p INTERVAL` turns on the profiler and dumps info to the console every
   `INTERVAL` seconds
-- `-s SIZE` sets the tile size for rendering; defaults to 512
+- `-s SIZE` sets the tile size for painting; defaults to 512
 - `-z` disables all graphical output; useful for running JS / layout tests
 
 ### Keyboard Shortcuts
