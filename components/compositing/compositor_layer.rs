@@ -75,19 +75,19 @@ pub trait CompositorLayer {
 
     fn add_buffers(&self, new_buffers: Box<LayerBufferSet>, epoch: Epoch) -> bool;
 
-    /// Destroys all layer tiles, sending the buffers back to the renderer to be destroyed or
+    /// Destroys all layer tiles, sending the buffers back to the painter to be destroyed or
     /// reused.
     fn clear(&self);
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
-    /// renderer to be destroyed or reused.
+    /// painter to be destroyed or reused.
     fn clear_all_tiles(&self);
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
-    /// renderer. You must call this only when the render task is destined to be going down;
+    /// painter. You must call this only when the paint task is destined to be going down;
     /// otherwise, you will leak tiles.
     ///
-    /// This is used during shutdown, when we know the render task is going away.
+    /// This is used during shutdown, when we know the paint task is going away.
     fn forget_all_tiles(&self);
 
     /// Move the layer's descendants that don't want scroll events and scroll by a relative
@@ -217,8 +217,8 @@ impl CompositorLayer for Layer<CompositorData> {
         let mut buffers = self.collect_buffers();
 
         if !buffers.is_empty() {
-            // We have no way of knowing without a race whether the render task is even up and
-            // running, but mark the buffers as not leaking. If the render task died, then the
+            // We have no way of knowing without a race whether the paint task is even up and
+            // running, but mark the buffers as not leaking. If the paint task died, then the
             // buffers are going to be cleaned up.
             for buffer in buffers.iter_mut() {
                 buffer.mark_wont_leak()
@@ -229,7 +229,7 @@ impl CompositorLayer for Layer<CompositorData> {
     }
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
-    /// renderer to be destroyed or reused.
+    /// painter to be destroyed or reused.
     fn clear_all_tiles(&self) {
         self.clear();
         for kid in self.children().iter() {
@@ -238,10 +238,10 @@ impl CompositorLayer for Layer<CompositorData> {
     }
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
-    /// renderer. You must call this only when the render task is destined to be going down;
+    /// painter. You must call this only when the paint task is destined to be going down;
     /// otherwise, you will leak tiles.
     ///
-    /// This is used during shutdown, when we know the render task is going away.
+    /// This is used during shutdown, when we know the paint task is going away.
     fn forget_all_tiles(&self) {
         let tiles = self.collect_buffers();
         for tile in tiles.into_iter() {

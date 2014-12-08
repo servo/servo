@@ -161,7 +161,7 @@ pub enum Msg {
     /// at the time that we send it an ExitMsg.
     ShutdownComplete,
 
-    /// Requests the compositor's graphics metadata. Graphics metadata is what the renderer needs
+    /// Requests the compositor's graphics metadata. Graphics metadata is what the painter needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.
     ///
@@ -184,9 +184,9 @@ pub enum Msg {
     ChangeReadyState(PipelineId, ReadyState),
     /// Alerts the compositor to the current status of painting.
     ChangePaintState(PipelineId, PaintState),
-    /// Alerts the compositor that the RenderMsg has been discarded.
+    /// Alerts the compositor that the PaintMsg has been discarded.
     PaintMsgDiscarded,
-    /// Sets the channel to the current layout and render tasks, along with their id
+    /// Sets the channel to the current layout and paint tasks, along with their id
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// Sends an updated version of the frame tree.
     FrameTreeUpdateMsg(FrameTreeDiff, Sender<()>),

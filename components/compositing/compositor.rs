@@ -97,8 +97,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// the compositor.
     shutdown_state: ShutdownState,
 
-    /// Tracks outstanding render_msg's sent to the paint tasks.
-    outstanding_render_msgs: uint,
+    /// Tracks outstanding paint_msg's sent to the paint tasks.
+    outstanding_paint_msgs: uint,
 
     /// Tracks the last composite time.
     last_composite_time: u64,
@@ -173,8 +173,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
            -> IOCompositor<Window> {
         // Create an initial layer tree.
         //
-        // TODO: There should be no initial layer tree until the renderer creates one from the
-        // display list. This is only here because we don't have that logic in the renderer yet.
+        // TODO: There should be no initial layer tree until the painter creates one from the
+        // display list. This is only here because we don't have that logic in the painter yet.
         let window_size = window.framebuffer_size();
         let hidpi_factor = window.hidpi_factor();
         let context = CompositorTask::create_graphics_context(&window.native_metadata());
@@ -207,7 +207,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             time_profiler_chan: time_profiler_chan,
             memory_profiler_chan: memory_profiler_chan,
             fragment_point: None,
-            outstanding_render_msgs: 0,
+            outstanding_paint_msgs: 0,
             last_composite_time: 0,
         }
     }
@@ -263,7 +263,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (PaintMsgDiscarded, NotShuttingDown) => {
-                self.remove_outstanding_render_msg();
+                self.remove_outstanding_paint_msg();
             }
 
             (SetIds(frame_tree, response_chan, new_constellation_chan), NotShuttingDown) => {
@@ -298,7 +298,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 for (layer_id, new_layer_buffer_set) in replies.into_iter() {
                     self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                 }
-                self.remove_outstanding_render_msg();
+                self.remove_outstanding_paint_msg();
             }
 
             (ScrollFragmentPoint(pipeline_id, layer_id, point), NotShuttingDown) => {
@@ -308,14 +308,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (LoadComplete(..), NotShuttingDown) => {
                 self.got_load_complete_message = true;
 
-                // If we're rendering in headless mode, schedule a recomposite.
+                // If we're painting in headless mode, schedule a recomposite.
                 if opts::get().output_file.is_some() {
                     self.composite_if_necessary();
                 }
             }
 
             (ScrollTimeout(timestamp), NotShuttingDown) => {
-                debug!("scroll timeout, drawing unrendered content!");
+                debug!("scroll timeout, drawing unpainted content!");
                 match self.composition_request {
                     CompositeOnScrollTimeout(this_timestamp) if timestamp == this_timestamp => {
                         self.composition_request = CompositeNow
@@ -344,7 +344,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
         self.window.set_ready_state(self.get_earliest_pipeline_ready_state());
 
-        // If we're rendering in headless mode, schedule a recomposite.
+        // If we're painting in headless mode, schedule a recomposite.
         if opts::get().output_file.is_some() {
             self.composite_if_necessary()
         }
@@ -378,32 +378,32 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         return self.paint_states.values().all(|&value| value == IdlePaintState);
     }
 
-    fn has_render_msg_tracking(&self) -> bool {
+    fn has_paint_msg_tracking(&self) -> bool {
         // only track PaintMsg's if the compositor outputs to a file.
         opts::get().output_file.is_some()
     }
 
-    fn has_outstanding_render_msgs(&self) -> bool {
-        self.has_render_msg_tracking() && self.outstanding_render_msgs > 0
+    fn has_outstanding_paint_msgs(&self) -> bool {
+        self.has_paint_msg_tracking() && self.outstanding_paint_msgs > 0
     }
 
-    fn add_outstanding_render_msg(&mut self, count: uint) {
-        // return early if not tracking render_msg's
-        if !self.has_render_msg_tracking() {
+    fn add_outstanding_paint_msg(&mut self, count: uint) {
+        // return early if not tracking paint_msg's
+        if !self.has_paint_msg_tracking() {
             return;
         }
-        debug!("add_outstanding_render_msg {}", self.outstanding_render_msgs);
-        self.outstanding_render_msgs += count;
+        debug!("add_outstanding_paint_msg {}", self.outstanding_paint_msgs);
+        self.outstanding_paint_msgs += count;
     }
 
-    fn remove_outstanding_render_msg(&mut self) {
-        if !self.has_render_msg_tracking() {
+    fn remove_outstanding_paint_msg(&mut self) {
+        if !self.has_paint_msg_tracking() {
             return;
         }
-        if self.outstanding_render_msgs > 0 {
-            self.outstanding_render_msgs -= 1;
+        if self.outstanding_paint_msgs > 0 {
+            self.outstanding_paint_msgs -= 1;
         } else {
-            debug!("too many rerender msgs completed");
+            debug!("too many repaint msgs completed");
         }
     }
 
@@ -483,7 +483,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                         opts::get().tile_size);
 
             // Add the first child / base layer to the front of the child list, so that
-            // child iframe layers are rendered on top of the base layer. These iframe
+            // child iframe layers are painted on top of the base layer. These iframe
             // layers were added previously when creating the layer tree skeleton in
             // create_frame_tree_root_layers.
             root_layer.children().insert(0, first_child);
@@ -604,7 +604,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
             None => {
                 // FIXME: This may potentially be triggered by a race condition where a
-                // buffers are being rendered but the layer is removed before rendering
+                // buffers are being painted but the layer is removed before painting
                 // completes.
                 panic!("compositor given paint command for non-existent layer");
             }
@@ -856,7 +856,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     }
                 };
 
-            // All the BufferRequests are in layer/device coordinates, but the render task
+            // All the BufferRequests are in layer/device coordinates, but the paint task
             // wants to know the page coordinates. We scale them before sending them.
             for request in layer_requests.iter_mut() {
                 request.page_rect = request.page_rect / scale.get();
@@ -925,17 +925,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let pipeline_requests =
             self.convert_buffer_requests_to_pipeline_requests_map(layers_and_requests);
 
-        let mut num_render_msgs_sent = 0;
+        let mut num_paint_msgs_sent = 0;
         for (_pipeline_id, (chan, requests)) in pipeline_requests.into_iter() {
-            num_render_msgs_sent += 1;
+            num_paint_msgs_sent += 1;
             let _ = chan.send_opt(PaintMsg(requests));
         }
 
-        self.add_outstanding_render_msg(num_render_msgs_sent);
+        self.add_outstanding_paint_msg(num_paint_msgs_sent);
         true
     }
 
-    fn is_ready_to_render_image_output(&self) -> bool {
+    fn is_ready_to_paint_image_output(&self) -> bool {
         if !self.got_load_complete_message {
             return false;
         }
@@ -944,7 +944,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return false;
         }
 
-        if self.has_outstanding_render_msgs() {
+        if self.has_outstanding_paint_msgs() {
             return false;
         }
 
@@ -961,7 +961,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn composite(&mut self) {
         let output_image = opts::get().output_file.is_some() &&
-                            self.is_ready_to_render_image_output();
+                            self.is_ready_to_paint_image_output();
 
         let mut framebuffer_ids = vec!();
         let mut texture_ids = vec!();
@@ -992,7 +992,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 origin: Zero::zero(),
                 size: self.window_size.as_f32(),
             };
-            // Render the scene.
+            // paint the scene.
             match self.scene.root {
                 Some(ref layer) => {
                     rendergl::render_scene(layer.clone(), self.context, &self.scene);

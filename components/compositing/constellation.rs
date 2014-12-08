@@ -452,10 +452,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got navigation message");
                 self.handle_navigate_msg(direction);
             }
-            // Notification that rendering has finished and is requesting permission to paint.
+            // Notification that painting has finished and is requesting permission to paint.
             PainterReadyMsg(pipeline_id) => {
-                debug!("constellation got renderer ready message");
-                self.handle_renderer_ready_msg(pipeline_id);
+                debug!("constellation got painter ready message");
+                self.handle_painter_ready_msg(pipeline_id);
             }
             ResizedWindowMsg(new_size) => {
                 debug!("constellation got window resize message");
@@ -787,8 +787,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         });
     }
 
-    fn handle_renderer_ready_msg(&mut self, pipeline_id: PipelineId) {
-        debug!("Renderer {} ready to send paint msg", pipeline_id);
+    fn handle_painter_ready_msg(&mut self, pipeline_id: PipelineId) {
+        debug!("Painter {} ready to send paint msg", pipeline_id);
         // This message could originate from a pipeline in the navigation context or
         // from a pending frame. The only time that we will grant paint permission is
         // when the message originates from a pending frame or the current frame.
