@@ -225,7 +225,8 @@ impl<'ln> LayoutNode<'ln> {
     }
 
     fn debug_str(self) -> String {
-        format!("{}: dirty={}", self.type_id(), self.is_dirty())
+        format!("{}: changed={} dirty={} dirty_descendants={}",
+                self.type_id(), self.has_changed(), self.is_dirty(), self.has_dirty_descendants())
     }
 
     pub fn flow_debug_id(self) -> uint {

@@ -177,6 +177,7 @@ pub trait DocumentHelpers<'a> {
     fn set_last_modified(self, value: DOMString);
     fn set_encoding_name(self, name: DOMString);
     fn content_changed(self, node: JSRef<Node>);
+    fn content_and_heritage_changed(self, node: JSRef<Node>);
     fn reflow(self);
     fn wait_until_safe_to_modify_dom(self);
     fn unregister_named_element(self, to_unregister: JSRef<Element>, id: Atom);
@@ -227,7 +228,14 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     }
 
     fn content_changed(self, node: JSRef<Node>) {
+        debug!("content_changed on {}", node.debug_str());
         node.dirty();
+        self.reflow();
+    }
+
+    fn content_and_heritage_changed(self, node: JSRef<Node>) {
+        debug!("content_and_heritage_changed on {}", node.debug_str());
+        node.force_dirty_ancestors();
         self.reflow();
     }
 
