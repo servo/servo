@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast, HTMLTableCaptionElementCast};
+use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
@@ -14,11 +16,15 @@ use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
-use servo_util::str::DOMString;
+use dom::virtualmethods::VirtualMethods;
+
+use servo_util::str::{mod, AutoLpa, DOMString, LengthOrPercentageOrAuto, SimpleColor};
+use std::cell::Cell;
 
 #[dom_struct]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
+    border: Cell<Option<u32>>,
 }
 
 impl HTMLTableElementDerived for EventTarget {
@@ -28,14 +34,20 @@ impl HTMLTableElementDerived for EventTarget {
 }
 
 impl HTMLTableElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+                     -> HTMLTableElement {
         HTMLTableElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId,
+                                                    localName,
+                                                    prefix,
+                                                    document),
+            border: Cell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTableElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+               -> Temporary<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
     }
@@ -77,3 +89,50 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
         });
     }
 }
+
+pub trait HTMLTableElementHelpers {
+    fn get_border(&self) -> Option<u32>;
+}
+
+impl HTMLTableElementHelpers for HTMLTableElement {
+    fn get_border(&self) -> Option<u32> {
+        self.border.get()
+    }
+}
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        Some(htmlelement as &VirtualMethods)
+    }
+
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
+        match self.super_type() {
+            Some(ref s) => s.after_set_attr(attr),
+            _ => ()
+        }
+
+        match attr.local_name() {
+            &atom!("border") => {
+                // According to HTML5 § 14.3.9, invalid values map to 1px.
+                self.border.set(Some(str::parse_unsigned_integer(attr.value()
+                                                                     .as_slice()
+                                                                     .chars()).unwrap_or(1)))
+            }
+            _ => ()
+        }
+    }
+
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+        match self.super_type() {
+            Some(ref s) => s.before_remove_attr(attr),
+            _ => ()
+        }
+
+        match attr.local_name() {
+            &atom!("border") => self.border.set(None),
+            _ => ()
+        }
+    }
+}
+

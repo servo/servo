@@ -61,7 +61,8 @@ pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
     '\u000d',
 ];
 
-pub fn split_html_space_chars<'a>(s: &'a str) -> Filter<'a, &'a str, CharSplits<'a, StaticCharVec>> {
+pub fn split_html_space_chars<'a>(s: &'a str)
+                                  -> Filter<'a, &'a str, CharSplits<'a, StaticCharVec>> {
     s.split(HTML_SPACE_CHARACTERS).filter(|&split| !split.is_empty())
 }
 
@@ -75,7 +76,6 @@ fn do_parse_integer<T: Iterator<char>>(input: T) -> Option<i64> {
             _ => false,
         }
     }
-
 
     let mut input = input.skip_while(|c| {
         HTML_SPACE_CHARACTERS.iter().any(|s| s == c)

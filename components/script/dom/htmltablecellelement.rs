@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::attr::AttrHelpers;
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -22,6 +21,7 @@ use std::cell::Cell;
 #[dom_struct]
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
+    border: Cell<Option<u32>>,
     width: Cell<LengthOrPercentageOrAuto>,
 }
 
@@ -36,10 +36,15 @@ impl HTMLTableCellElementDerived for EventTarget {
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableCellElement {
+    pub fn new_inherited(type_id: ElementTypeId,
+                         tag_name: DOMString,
+                         prefix: Option<DOMString>,
+                         document: JSRef<Document>)
+                         -> HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document),
-            width: Cell::new(AutoLpa)
+            border: Cell::new(None),
+            width: Cell::new(AutoLpa),
         }
     }
 
@@ -50,10 +55,15 @@ impl HTMLTableCellElement {
 }
 
 pub trait HTMLTableCellElementHelpers {
+    fn get_border(&self) -> Option<u32>;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
 impl HTMLTableCellElementHelpers for HTMLTableCellElement {
+    fn get_border(&self) -> Option<u32> {
+        self.border.get()
+    }
+
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         self.width.get()
     }
@@ -72,6 +82,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
         }
 
         match attr.local_name() {
+            &atom!("border") => {
+                // According to HTML5 § 14.3.9, invalid values map to 1px.
+                self.border.set(Some(str::parse_unsigned_integer(attr.value()
+                                                                     .as_slice()
+                                                                     .chars()).unwrap_or(1)))
+            }
             &atom!("width") => self.width.set(str::parse_length(attr.value().as_slice())),
             _ => ()
         }
@@ -84,6 +100,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
         }
 
         match attr.local_name() {
+            &atom!("border") => self.border.set(None),
             &atom!("width") => self.width.set(AutoLpa),
             _ => ()
         }

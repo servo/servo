@@ -18,11 +18,14 @@ use servo_util::sort;
 use servo_util::str::{AutoLpa, LengthLpa, PercentageLpa};
 use string_cache::Atom;
 
-use legacy::{SizeIntegerAttribute, WidthLengthAttribute};
+use legacy::{BgColorSimpleColorAttribute, BorderUnsignedIntegerAttribute};
+use legacy::{ColSpanUnsignedIntegerAttribute, SizeIntegerAttribute, WidthLengthAttribute};
 use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock, SpecifiedValue, WidthDeclaration};
-use properties::{specified};
+use properties::{BackgroundColorDeclaration, BorderBottomWidthDeclaration};
+use properties::{BorderLeftWidthDeclaration, BorderRightWidthDeclaration};
+use properties::{BorderTopWidthDeclaration, ColumnSpanDeclaration, PropertyDeclaration};
+use properties::{PropertyDeclarationBlock, SpecifiedValue, WidthDeclaration, specified};
 use selectors::*;
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
 
@@ -481,6 +484,11 @@ impl Stylist {
     /// Synthesizes rules from various HTML attributes (mostly legacy junk from HTML4) that confer
     /// *presentational hints* as defined in the HTML5 specification. This handles stuff like
     /// `<body bgcolor>`, `<input size>`, `<td width>`, and so forth.
+    ///
+    /// NB: Beware! If you add an attribute to this list, be sure to add it to
+    /// `common_style_affecting_attributes` or `rare_style_affecting_attributes` as appropriate. If
+    /// you don't, you risk strange random nondeterministic failures due to false positives in
+    /// style sharing.
     fn synthesize_presentational_hints_for_legacy_attributes<'a,E,N,V>(
                                                              &self,
                                                              node: &N,
@@ -507,7 +515,17 @@ impl Stylist {
                                 WidthDeclaration(SpecifiedValue(width_value))));
                         *shareable = false
                     }
-                };
+                }
+                self.synthesize_presentational_hint_for_legacy_border_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
+            }
+            name if *name == atom!("table") => {
+                self.synthesize_presentational_hint_for_legacy_border_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
             }
             name if *name == atom!("input") => {
                 match element.get_integer_attribute(SizeIntegerAttribute) {
@@ -531,6 +549,32 @@ impl Stylist {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn synthesize_presentational_hint_for_legacy_border_attribute<'a,E,V>(
+                                                                  &self,
+                                                                  element: E,
+                                                                  matching_rules_list: &mut V,
+                                                                  shareable: &mut bool)
+                                                                  where
+                                                                    E: TElement<'a> +
+                                                                       TElementAttributes,
+                                                                    V: VecLike<DeclarationBlock> {
+        match element.get_unsigned_integer_attribute(BorderUnsignedIntegerAttribute) {
+            None => {}
+            Some(length) => {
+                let width_value = specified::Au_(Au::from_px(length as int));
+                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        BorderTopWidthDeclaration(SpecifiedValue(width_value))));
+                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        BorderLeftWidthDeclaration(SpecifiedValue(width_value))));
+                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        BorderBottomWidthDeclaration(SpecifiedValue(width_value))));
+                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        BorderRightWidthDeclaration(SpecifiedValue(width_value))));
+                *shareable = false
+            }
         }
     }
 }
@@ -856,6 +900,13 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
             mode: AttrIsEqualMode("right", ALIGN_RIGHT_ATTRIBUTE),
         }
     ]
+}
+
+/// Attributes that, if present, disable style sharing. All legacy HTML attributes must be in
+/// either this list or `common_style_affecting_attributes`. See the comment in
+/// `synthesize_presentational_hints_for_legacy_attributes`.
+pub fn rare_style_affecting_attributes() -> [Atom, ..1] {
+    [ atom!("border") ]
 }
 
 /// Determines whether the given element matches the given single selector.

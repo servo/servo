@@ -69,8 +69,6 @@ pub mod incremental;
 pub mod wrapper;
 
 pub mod css {
-    mod node_util;
-
     pub mod matching;
     pub mod node_style;
 }

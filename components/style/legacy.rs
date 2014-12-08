@@ -17,3 +17,9 @@ pub enum IntegerAttribute {
     SizeIntegerAttribute,
 }
 
+/// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
+pub enum UnsignedIntegerAttribute {
+    /// `<td border>`
+    BorderUnsignedIntegerAttribute,
+}
+
