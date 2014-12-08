@@ -209,5 +209,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == box_shadow_inset_parsing_a.html box_shadow_inset_parsing_ref.html
 != list_style_type_a.html list_style_type_ref.html
 == list_style_position_a.html list_style_position_ref.html
+== table_colspan_simple_a.html table_colspan_simple_ref.html
 == legacy_td_bgcolor_attribute_a.html legacy_td_bgcolor_attribute_ref.html
 == legacy_table_border_attribute_a.html legacy_table_border_attribute_ref.html

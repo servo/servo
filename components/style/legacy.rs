@@ -8,7 +8,8 @@
 use node::{TElement, TElementAttributes, TNode};
 use properties::{BackgroundColorDeclaration, BorderBottomWidthDeclaration};
 use properties::{BorderLeftWidthDeclaration, BorderRightWidthDeclaration};
-use properties::{BorderTopWidthDeclaration, SpecifiedValue, WidthDeclaration, specified};
+use properties::{BorderTopWidthDeclaration, ServoColumnSpanDeclaration, SpecifiedValue};
+use properties::{WidthDeclaration, specified};
 use selector_matching::{DeclarationBlock, Stylist};
 
 use cssparser::{RGBA, RGBAColor};
@@ -32,6 +33,8 @@ pub enum IntegerAttribute {
 pub enum UnsignedIntegerAttribute {
     /// `<td border>`
     BorderUnsignedIntegerAttribute,
+    /// `<td colspan>`
+    ColSpanUnsignedIntegerAttribute,
 }
 
 /// Legacy presentational attributes that take a simple color as defined in HTML5 § 2.4.6.
@@ -108,6 +111,14 @@ impl PresentationalHintSynthesis for Stylist {
                         let width_value = specified::LPA_Length(specified::Au_(length));
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 WidthDeclaration(SpecifiedValue(width_value))));
+                        *shareable = false
+                    }
+                }
+                match element.get_unsigned_integer_attribute(ColSpanUnsignedIntegerAttribute) {
+                    None => {}
+                    Some(value) => {
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                ServoColumnSpanDeclaration(SpecifiedValue(value))));
                         *shareable = false
                     }
                 }

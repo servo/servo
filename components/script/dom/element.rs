@@ -44,8 +44,9 @@ use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
-use style::{mod, BgColorSimpleColorAttribute, BorderUnsignedIntegerAttribute, IntegerAttribute};
-use style::{LengthAttribute, SimpleColorAttribute, SizeIntegerAttribute, UnsignedIntegerAttribute};
+use style::{mod, BgColorSimpleColorAttribute, BorderUnsignedIntegerAttribute};
+use style::{ColSpanUnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
+use style::{SimpleColorAttribute, SizeIntegerAttribute, UnsignedIntegerAttribute};
 use style::{WidthLengthAttribute, matches, parse_selector_list_from_str};
 use servo_util::namespace;
 use servo_util::str::{DOMString, LengthOrPercentageOrAuto, SimpleColor};
@@ -347,6 +348,14 @@ impl RawLayoutElementHelpers for Element {
                     // Don't panic since `:-servo-nonzero-border` can cause this to be called on
                     // arbitrary elements.
                     None
+                }
+            }
+            ColSpanUnsignedIntegerAttribute => {
+                if self.is_htmltablecellelement() {
+                    let this: &HTMLTableCellElement = mem::transmute(self);
+                    this.get_colspan()
+                } else {
+                    panic!("I'm not a table cell!")
                 }
             }
         }

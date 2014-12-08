@@ -30,11 +30,20 @@ use sync::Arc;
 pub struct TableRowFlow {
     pub block_flow: BlockFlow,
 
-    /// Information about the intrinsic inline-sizes of each column.
-    pub column_intrinsic_inline_sizes: Vec<ColumnIntrinsicInlineSize>,
+    /// Information about the intrinsic inline-sizes of each cell.
+    pub cell_intrinsic_inline_sizes: Vec<CellIntrinsicInlineSize>,
 
     /// Information about the computed inline-sizes of each column.
     pub column_computed_inline_sizes: Vec<ColumnComputedInlineSize>,
+}
+
+/// Information about the column inline size and span for each cell.
+#[deriving(Encodable)]
+pub struct CellIntrinsicInlineSize {
+    /// Inline sizes that this cell contributes to the column.
+    pub column_size: ColumnInlineSize,
+    /// The column span of this cell.
+    pub column_span: u32,
 }
 
 impl TableRowFlow {
@@ -43,7 +52,7 @@ impl TableRowFlow {
                                   -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
-            column_intrinsic_inline_sizes: Vec::new(),
+            cell_intrinsic_inline_sizes: Vec::new(),
             column_computed_inline_sizes: Vec::new(),
         }
     }
@@ -53,8 +62,8 @@ impl TableRowFlow {
                      -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node(constructor, node),
-            column_intrinsic_inline_sizes: Vec::new(),
-            column_computed_inline_sizes: Vec::new(),
+            cell_intrinsic_inline_sizes: Vec::new(),
+            column_computed_inline_sizes: Vec::new()
         }
     }
 
@@ -181,10 +190,13 @@ impl Flow for TableRowFlow {
 
             // Collect the specified column inline-size of the cell. This is used in both fixed and
             // automatic table layout calculation.
-            let child_specified_inline_size = kid.as_table_cell()
-                                                 .fragment()
-                                                 .style()
-                                                 .content_inline_size();
+            let child_specified_inline_size;
+            let child_column_span;
+            {
+                let child_style = kid.as_table_cell().fragment().style();
+                child_specified_inline_size = child_style.content_inline_size();
+                child_column_span = child_style.get_table()._servo_column_span
+            }
 
             // Collect minimum and preferred inline-sizes of the cell for automatic table layout
             // calculation.
@@ -208,15 +220,16 @@ impl Flow for TableRowFlow {
             };
             min_inline_size = min_inline_size + child_column_inline_size.minimum_length;
             pref_inline_size = pref_inline_size + child_column_inline_size.preferred;
-            self.column_intrinsic_inline_sizes.push(child_column_inline_size);
+            self.cell_intrinsic_inline_sizes.push(CellIntrinsicInlineSize {
+                column_size: child_column_inline_size,
+                column_span: child_column_span,
+            });
         }
         self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = min_inline_size;
         self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size = max(min_inline_size,
                                                                                 pref_inline_size);
     }
 
-    /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
-    /// When called on this context, the context has had its inline-size set by the parent context.
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("table_row::assign_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
@@ -233,11 +246,41 @@ impl Flow for TableRowFlow {
                                                       layout_context,
                                                       containing_block_inline_size);
 
+        // Spread out the completed inline sizes among columns with spans > 1.
+        let mut computed_inline_size_for_cells = Vec::new();
+        let mut column_inline_size_iterator = self.column_inline_sizes.iter();
+        for cell_intrinsic_inline_size in self.cell_intrinsic_inline_sizes.iter() {
+            //(intrinsic_inline_size_for_column, computed_inline_size_for_column) in
+            // Start with the computed inline size for the first column in the span.
+            let mut column_inline_size = match column_inline_size_iterator.next() {
+                Some(column_inline_size) => *column_inline_size,
+                None => {
+                    // This could happen if there are too few cells in this row. Don't crash.
+                    break
+                }
+            };
+
+            // Add in computed inline sizes for any extra columns in the span.
+            for _ in range(1, cell_intrinsic_inline_size.column_span) {
+                let extra_column_inline_size = match column_inline_size_iterator.next() {
+                    Some(column_inline_size) => column_inline_size,
+                    None => break,
+                };
+                column_inline_size.minimum_length = column_inline_size.minimum_length +
+                    extra_column_inline_size.minimum_length;
+                column_inline_size.preferred = column_inline_size.preferred +
+                    extra_column_inline_size.preferred;
+            }
+
+            computed_inline_size_for_cells.push(column_inline_size)
+        }
+
+        // Push those inline sizes down to the cells.
         self.block_flow.propagate_assigned_inline_size_to_children(
             layout_context,
             inline_start_content_edge,
             containing_block_inline_size,
-            Some(self.column_computed_inline_sizes.as_slice()));
+            Some(computed_inline_size_for_cells.as_slice()));
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {

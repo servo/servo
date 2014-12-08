@@ -108,6 +108,7 @@ impl HTMLTableElementHelpers for HTMLTableElement {
     fn get_border(&self) -> Option<u32> {
         self.border.get()
     }
+
     fn get_width(&self) -> LengthOrPercentageOrAuto {
         self.width.get()
     }
@@ -135,6 +136,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
                                                                      .as_slice()
                                                                      .chars()).unwrap_or(1)))
             }
+            &atom!("width") => self.width.set(str::parse_length(attr.value().as_slice())),
             _ => ()
         }
     }
@@ -148,6 +150,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
         match attr.local_name() {
             &atom!("bgcolor") => self.background_color.set(None),
             &atom!("border") => self.border.set(None),
+            &atom!("width") => self.width.set(AutoLpa),
             _ => ()
         }
     }
