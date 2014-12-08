@@ -163,9 +163,9 @@ impl TextInput {
             self.edit_point.index = 0;
             self.edit_point.line = 0;
             return;
-        } else if adjust > 0 && self.edit_point.line >= min(0, self.lines.len() - adjust as uint) {
-            self.edit_point.index = self.current_line_length();
+        } else if adjust > 0 && self.edit_point.line + adjust as uint >= self.lines.len() {
             self.edit_point.line = self.lines.len() - 1;
+            self.edit_point.index = self.current_line_length();
             return;
         }
 
@@ -178,29 +178,20 @@ impl TextInput {
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
     fn adjust_horizontal(&mut self, adjust: int) {
         if adjust < 0 {
-            if self.multiline {
-                let remaining = self.edit_point.index;
-                if adjust.abs() as uint > remaining {
-                    self.edit_point.index = 0;
-                    self.adjust_vertical(-1);
-                    self.edit_point.index = self.current_line_length();
-                    self.adjust_horizontal(adjust + remaining as int);
-                } else {
-                    self.edit_point.index = (self.edit_point.index as int + adjust) as uint;
-                }
+            let remaining = self.edit_point.index;
+            if adjust.abs() as uint > remaining && self.edit_point.line > 0 {
+                self.adjust_vertical(-1);
+                self.edit_point.index = self.current_line_length();
+                self.adjust_horizontal(adjust + remaining as int);
             } else {
                 self.edit_point.index = max(0, self.edit_point.index as int + adjust) as uint;
             }
         } else {
-            if self.multiline {
-                let remaining = self.current_line_length() - self.edit_point.index;
-                if adjust as uint > remaining {
-                    self.edit_point.index = 0;
-                    self.adjust_vertical(1);
-                    self.adjust_horizontal(adjust - remaining as int);
-                } else {
-                    self.edit_point.index += adjust as uint;
-                }
+            let remaining = self.current_line_length() - self.edit_point.index;
+            if adjust as uint > remaining && self.edit_point.line < self.lines.len() - 1 {
+                self.edit_point.index = 0;
+                self.adjust_vertical(1);
+                self.adjust_horizontal(adjust - remaining as int);
             } else {
                 self.edit_point.index = min(self.current_line_length(),
                                             self.edit_point.index + adjust as uint);
@@ -266,6 +257,14 @@ impl TextInput {
             }
             "End" => {
                 self.edit_point.index = self.current_line_length();
+                Nothing
+            }
+            "PageUp" => {
+                self.adjust_vertical(-28);
+                Nothing
+            }
+            "PageDown" => {
+                self.adjust_vertical(28);
                 Nothing
             }
             "Tab" => TriggerDefaultAction,
