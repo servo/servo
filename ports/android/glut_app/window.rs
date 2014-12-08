@@ -41,7 +41,7 @@ pub struct Window {
     pub mouse_down_point: Cell<Point2D<c_int>>,
 
     pub ready_state: Cell<ReadyState>,
-    pub render_state: Cell<PaintState>,
+    pub paint_state: Cell<PaintState>,
     pub throbber_frame: Cell<u8>,
 }
 
@@ -65,7 +65,7 @@ impl Window {
             mouse_down_point: Cell::new(Point2D(0 as c_int, 0)),
 
             ready_state: Cell::new(Blank),
-            render_state: Cell::new(IdlePaintState),
+            paint_state: Cell::new(IdlePaintState),
             throbber_frame: Cell::new(0),
         };
 
@@ -181,8 +181,8 @@ impl WindowMethods for Window {
     }
 
     /// Sets the paint state.
-    fn set_render_state(&self, paint_state: PaintState) {
-        self.render_state.set(paint_state);
+    fn set_paint_state(&self, paint_state: PaintState) {
+        self.paint_state.set(paint_state);
         //FIXME: set_window_title causes crash with Android version of freeGLUT. Temporarily blocked.
         //self.update_window_title()
     }
@@ -215,7 +215,7 @@ impl Window {
     //             glut::set_window_title(self.glut_window, format!("{:c} Performing Layout . Servo", throbber))
     //         }
     //         FinishedLoading => {
-    //             match self.render_state {
+    //             match self.paint_state {
     //                 PaintingPaintState => {
     //                     glut::set_window_title(self.glut_window, format!("{:c} Rendering . Servo", throbber))
     //                 }

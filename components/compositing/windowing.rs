@@ -91,7 +91,7 @@ pub trait WindowMethods {
     /// Sets the ready state of the current page.
     fn set_ready_state(&self, ready_state: ReadyState);
     /// Sets the paint state of the current page.
-    fn set_render_state(&self, paint_state: PaintState);
+    fn set_paint_state(&self, paint_state: PaintState);
 
     /// Returns the hidpi factor of the monitor.
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;

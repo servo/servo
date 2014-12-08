@@ -45,7 +45,7 @@ pub struct Window {
     mouse_down_point: Cell<Point2D<c_int>>,
 
     ready_state: Cell<ReadyState>,
-    render_state: Cell<PaintState>,
+    paint_state: Cell<PaintState>,
 
     last_title_set_time: Cell<Timespec>,
 }
@@ -78,7 +78,7 @@ impl Window {
             mouse_down_point: Cell::new(Point2D(0 as c_int, 0)),
 
             ready_state: Cell::new(Blank),
-            render_state: Cell::new(IdlePaintState),
+            paint_state: Cell::new(IdlePaintState),
 
             last_title_set_time: Cell::new(Timespec::new(0, 0)),
         };
@@ -160,8 +160,8 @@ impl WindowMethods for Window {
     }
 
     /// Sets the paint state.
-    fn set_render_state(&self, paint_state: PaintState) {
-        self.render_state.set(paint_state);
+    fn set_paint_state(&self, paint_state: PaintState) {
+        self.paint_state.set(paint_state);
         self.update_window_title()
     }
 
@@ -302,7 +302,7 @@ impl Window {
                 self.glfw_window.set_title("Performing Layout — Servo [GLFW]")
             }
             FinishedLoading => {
-                match self.render_state.get() {
+                match self.paint_state.get() {
                     PaintingPaintState => {
                         self.glfw_window.set_title("Rendering — Servo [GLFW]")
                     }

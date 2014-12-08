@@ -368,7 +368,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
         }
 
-        self.window.set_render_state(paint_state);
+        self.window.set_paint_state(paint_state);
     }
 
     fn all_pipelines_in_idle_paint_state(&self) -> bool {
