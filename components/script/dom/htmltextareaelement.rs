@@ -109,7 +109,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     make_bool_getter!(ReadOnly)
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-textarea-readonly
-    make_bool_setter!(SetReadOnly, "readOnly")
+    make_bool_setter!(SetReadOnly, "readonly")
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-required
     make_bool_getter!(Required)

@@ -63,7 +63,9 @@ pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
     checked: Cell<bool>,
+    checked_changed: Cell<bool>,
     indeterminate: Cell<bool>,
+    value_changed: Cell<bool>,
     size: Cell<u32>,
     textinput: DOMRefCell<TextInput>,
     activation_state: DOMRefCell<InputActivationState>,
@@ -74,6 +76,7 @@ pub struct HTMLInputElement {
 struct InputActivationState {
     indeterminate: bool,
     checked: bool,
+    checked_changed: bool,
     checked_radio: MutNullableJS<HTMLInputElement>,
     // In case mutability changed
     was_mutable: bool,
@@ -86,6 +89,7 @@ impl InputActivationState {
         InputActivationState {
             indeterminate: false,
             checked: false,
+            checked_changed: false,
             checked_radio: Default::default(),
             was_mutable: false,
             old_type: InputText
@@ -108,6 +112,8 @@ impl HTMLInputElement {
             input_type: Cell::new(InputText),
             checked: Cell::new(false),
             indeterminate: Cell::new(false),
+            checked_changed: Cell::new(false),
+            value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
             textinput: DOMRefCell::new(TextInput::new(Single, "".to_string())),
             activation_state: DOMRefCell::new(InputActivationState::new())
@@ -196,7 +202,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
     fn SetChecked(self, checked: bool) {
-        self.update_checked_state(checked);
+        self.update_checked_state(checked, true);
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-readonly
@@ -231,6 +237,7 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
     fn SetValue(self, value: DOMString) {
         self.textinput.borrow_mut().set_content(value);
+        self.value_changed.set(true);
         self.force_relayout();
     }
 
@@ -286,7 +293,7 @@ pub trait HTMLInputElementHelpers {
     fn force_relayout(self);
     fn radio_group_updated(self, group: Option<&str>);
     fn get_radio_group_name(self) -> Option<String>;
-    fn update_checked_state(self, checked: bool);
+    fn update_checked_state(self, checked: bool, dirty: bool);
     fn get_size(&self) -> u32;
 }
 
@@ -346,8 +353,13 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
             .map(|name| name.Value())
     }
 
-    fn update_checked_state(self, checked: bool) {
+    fn update_checked_state(self, checked: bool, dirty: bool) {
         self.checked.set(checked);
+
+        if dirty {
+            self.checked_changed.set(true);
+        }
+
         if self.input_type.get() == InputRadio && checked {
             broadcast_radio_checked(self,
                                     self.get_radio_group_name()
@@ -382,7 +394,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 node.set_enabled_state(false);
             }
             &atom!("checked") => {
-                self.update_checked_state(true);
+                // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-input-checked-dirty
+                if !self.checked_changed.get() {
+                    self.update_checked_state(true, false);
+                }
             }
             &atom!("size") => {
                 match *attr.value() {
@@ -411,8 +426,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 self.force_relayout();
             }
             &atom!("value") => {
-                self.textinput.borrow_mut().set_content(attr.value().as_slice().to_string());
-                self.force_relayout();
+                if !self.value_changed.get() {
+                    self.textinput.borrow_mut().set_content(attr.value().as_slice().to_string());
+                    self.force_relayout();
+                }
             }
             &atom!("name") => {
                 if self.input_type.get() == InputRadio {
@@ -438,7 +455,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 node.check_ancestors_disabled_state_for_form_control();
             }
             &atom!("checked") => {
-                self.update_checked_state(false);
+                // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-input-checked-dirty
+                if !self.checked_changed.get() {
+                    self.update_checked_state(false, false);
+                }
             }
             &atom!("size") => {
                 self.size.set(DEFAULT_INPUT_SIZE);
@@ -455,8 +475,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                 self.force_relayout();
             }
             &atom!("value") => {
-                self.textinput.borrow_mut().set_content("".to_string());
-                self.force_relayout();
+                if !self.value_changed.get() {
+                    self.textinput.borrow_mut().set_content("".to_string());
+                    self.force_relayout();
+                }
             }
             &atom!("name") => {
                 if self.input_type.get() == InputRadio {
@@ -508,7 +530,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
 
         if "click" == event.Type().as_slice() && !event.DefaultPrevented() {
             match self.input_type.get() {
-                InputRadio => self.SetChecked(true),
+                InputRadio => self.update_checked_state(true, true),
                 _ => {}
             }
 
@@ -526,6 +548,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                     match self.textinput.borrow_mut().handle_keydown(keyevent) {
                         TriggerDefaultAction => (),
                         DispatchInput => {
+                            self.value_changed.set(true);
                             self.force_relayout();
                             event.PreventDefault();
                         }
@@ -581,13 +604,15 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
     fn reset(self) {
         match self.input_type.get() {
             InputRadio | InputCheckbox => {
-                self.SetChecked(self.DefaultChecked());
+                self.update_checked_state(self.DefaultChecked(), false);
+                self.checked_changed.set(false);
             },
             InputImage => (),
             _ => ()
         }
 
         self.SetValue(self.DefaultValue());
+        self.value_changed.set(false);
     }
 }
 
@@ -613,6 +638,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     // we may need to restore them later
                     cache.indeterminate = self.Indeterminate();
                     cache.checked = self.Checked();
+                    cache.checked_changed = self.checked_changed.get();
                     self.SetIndeterminate(false);
                     self.SetChecked(!cache.checked);
                 },
@@ -633,6 +659,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                                 .find(|r| r.Checked())
                     };
                     cache.checked_radio.assign(checked_member);
+                    cache.checked_changed = self.checked_changed.get();
                     self.SetChecked(true);
                 }
                 _ => ()
@@ -658,6 +685,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 if cache.was_mutable {
                     self.SetIndeterminate(cache.indeterminate);
                     self.SetChecked(cache.checked);
+                    self.checked_changed.set(cache.checked_changed);
                 }
             },
             // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):canceled-activation-steps
@@ -681,6 +709,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                         },
                         None => self.SetChecked(false)
                     };
+                    self.checked_changed.set(cache.checked_changed);
                 }
             }
             _ => ()
