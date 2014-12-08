@@ -997,6 +997,12 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             let elem = element.as_element();
             elem.get_enabled_state()
         },
+        // https://html.spec.whatwg.org/multipage/scripting.html#selector-checked
+        Checked => {
+            *shareable = false;
+            let elem = element.as_element();
+            elem.get_checked_state()
+        }
         FirstChild => {
             *shareable = false;
             matches_first_child(element)

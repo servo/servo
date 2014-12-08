@@ -68,6 +68,7 @@ pub enum SimpleSelector {
     Hover,
     Disabled,
     Enabled,
+    Checked,
     FirstChild, LastChild, OnlyChild,
 //    Empty,
     Root,
@@ -226,7 +227,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 | &AttrExists(..) | &AttrEqual(..) | &AttrIncludes(..) | &AttrDashMatch(..)
                 | &AttrPrefixMatch(..) | &AttrSubstringMatch(..) | &AttrSuffixMatch(..)
                 | &AnyLink | &Link | &Visited | &Hover | &Disabled | &Enabled
-                | &FirstChild | &LastChild | &OnlyChild | &Root
+                | &FirstChild | &LastChild | &OnlyChild | &Root | &Checked
 //                | &Empty | &Lang(*)
                 | &NthChild(..) | &NthLastChild(..)
                 | &NthOfType(..) | &NthLastOfType(..)
@@ -497,6 +498,7 @@ fn parse_simple_pseudo_class(name: &str) -> Result<SimpleSelector, ()> {
         "hover" => Ok(Hover),
         "disabled" => Ok(Disabled),
         "enabled" => Ok(Enabled),
+        "checked" => Ok(Checked),
         "first-child" => Ok(FirstChild),
         "last-child"  => Ok(LastChild),
         "only-child"  => Ok(OnlyChild),

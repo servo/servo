@@ -45,6 +45,7 @@ pub trait TElement<'a> : Copy {
     fn get_id(self) -> Option<Atom>;
     fn get_disabled_state(self) -> bool;
     fn get_enabled_state(self) -> bool;
+    fn get_checked_state(self) -> bool;
     fn has_class(self, name: &Atom) -> bool;
 
     // Ordinarily I wouldn't use callbacks like this, but the alternative is

@@ -125,6 +125,7 @@ pub trait LayoutHTMLInputElementHelpers {
 }
 
 pub trait RawLayoutHTMLInputElementHelpers {
+    unsafe fn get_checked_state_for_layout(&self) -> bool;
     unsafe fn get_size_for_layout(&self) -> u32;
 }
 
@@ -163,6 +164,11 @@ impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
 
 impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
     #[allow(unrooted_must_root)]
+    unsafe fn get_checked_state_for_layout(&self) -> bool {
+        self.checked.get()
+    }
+
+    #[allow(unrooted_must_root)]
     unsafe fn get_size_for_layout(&self) -> u32 {
         self.size.get()
     }
@@ -181,7 +187,9 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
-    make_bool_setter!(SetChecked, "checked")
+    fn SetChecked(self, checked: bool) {
+        self.update_checked_state(checked);
+    }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-readonly
     make_bool_getter!(ReadOnly)

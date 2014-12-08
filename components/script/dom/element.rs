@@ -13,6 +13,7 @@ use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::ElementBinding;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLInputElementDerived, HTMLTableCellElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, NodeCast, EventTargetCast, ElementCast};
@@ -198,6 +199,7 @@ pub trait RawLayoutElementHelpers {
                                               -> LengthOrPercentageOrAuto;
     unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
                                                -> Option<i32>;
+    unsafe fn get_checked_state_for_layout(&self) -> bool;
     fn local_name<'a>(&'a self) -> &'a Atom;
     fn namespace<'a>(&'a self) -> &'a Namespace;
     fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>>;
@@ -311,6 +313,17 @@ impl RawLayoutElementHelpers for Element {
                 Some(this.get_size_for_layout() as i32)
             }
         }
+    }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    unsafe fn get_checked_state_for_layout(&self) -> bool {
+        // TODO option and menuitem can also have a checked state.
+        if !self.is_htmlinputelement() {
+            return false
+        }
+        let this: &HTMLInputElement = mem::transmute(self);
+        this.get_checked_state_for_layout()
     }
 
     // Getters used in components/layout/wrapper.rs
@@ -1155,6 +1168,12 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
     fn get_enabled_state(self) -> bool {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.get_enabled_state()
+    }
+    fn get_checked_state(self) -> bool {
+        match HTMLInputElementCast::to_ref(self) {
+            Some(input) => input.Checked(),
+            None => false,
+        }
     }
     fn has_class(self, name: &Atom) -> bool {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
