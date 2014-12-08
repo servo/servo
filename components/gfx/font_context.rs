@@ -52,7 +52,7 @@ struct FallbackFontCacheEntry {
 
 /// A cached azure font (per render task) that
 /// can be shared by multiple text runs.
-struct RenderFontCacheEntry {
+struct PaintFontCacheEntry {
     pt_size: Au,
     identifier: String,
     font: Rc<RefCell<ScaledFont>>,
@@ -72,7 +72,7 @@ pub struct FontContext {
 
     /// Strong reference as the render FontContext is (for now) recycled
     /// per frame. TODO: Make this weak when incremental redraw is done.
-    render_font_cache: Vec<RenderFontCacheEntry>,
+    render_font_cache: Vec<PaintFontCacheEntry>,
 
     last_style: Option<Arc<SpecifiedFontStyle>>,
     last_fontgroup: Option<Rc<FontGroup>>,
@@ -241,7 +241,7 @@ impl FontContext {
         }
 
         let render_font = Rc::new(RefCell::new(create_scaled_font(template, pt_size)));
-        self.render_font_cache.push(RenderFontCacheEntry{
+        self.render_font_cache.push(PaintFontCacheEntry{
             font: render_font.clone(),
             pt_size: pt_size,
             identifier: template.identifier.clone(),
