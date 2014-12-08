@@ -17,8 +17,8 @@ use main_thread::MainThreadProxy;
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
 use windowing::{CompositorSupport, MouseWindowEvent, MouseWindowClickEvent};
-use windowing::{MouseWindowMouseDownEvent, MouseWindowMouseUpEvent, SetReadyStateWindowEvent};
-use windowing::{SetRenderStateWindowEvent};
+use windowing::{MouseWindowMouseDownEvent, MouseWindowMouseUpEvent, SetPaintStateWindowEvent};
+use windowing::{SetReadyStateWindowEvent};
 
 use azure::azure_hl;
 use std::cmp;
@@ -27,7 +27,7 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
-use gfx::paint_task::{PaintChan, PaintMsg, RenderRequest, UnusedBufferMsg};
+use gfx::paint_task::{PaintChan, PaintMsg, PaintRequest, UnusedBufferMsg};
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::platform::surface::NativeGraphicsMetadata;
@@ -38,7 +38,7 @@ use png;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
 use script_traits::{ViewportMsg, ScriptControlChan};
-use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdleRenderState, LayerId};
+use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdlePaintState, LayerId};
 use servo_msg::compositor_msg::{PaintingPaintState, PaintState, ReadyState, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, PipelineId, ResizedWindowMsg};
 use servo_msg::constellation_msg::{WindowSizeData};
@@ -168,7 +168,6 @@ struct HitTestResult {
 }
 
 impl IOCompositor {
-    #[allow(unused_variables)]
     fn new(mut state: InitialCompositorState) -> IOCompositor {
         // Get the native graphics system set up. This must be done first.
         state.compositor_support.initialize();
@@ -249,7 +248,7 @@ impl IOCompositor {
             }
 
             (ShutdownComplete, _) => {
-                // XXX(pcwalton)
+                // Do nothing so that we don't try to send on channels and panic.
             }
 
             (ChangeReadyState(pipeline_id, ready_state), NotShuttingDown) => {

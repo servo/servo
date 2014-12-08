@@ -13,11 +13,11 @@ use geom::size::TypedSize2D;
 use windowing::{mod, KeyEvent, IdleWindowEvent, LoadUrlWindowEvent, MouseWindowEvent};
 use windowing::{MouseWindowEventClass, MouseWindowMoveEventClass, NavigationWindowEvent};
 use windowing::{PinchZoomWindowEvent, QuitWindowEvent, RefreshWindowEvent, ResizeWindowEvent};
-use windowing::{ScrollWindowEvent, SetReadyStateWindowEvent, SetRenderStateWindowEvent};
+use windowing::{ScrollWindowEvent, SetPaintStateWindowEvent, SetReadyStateWindowEvent};
 use windowing::{SynchronousRepaintWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 use windowing::{ZoomWindowEvent};
 
-use servo_msg::compositor_msg::{ReadyState, RenderState, ScriptToMainThreadProxy};
+use servo_msg::compositor_msg::{PaintState, ReadyState, ScriptToMainThreadProxy};
 use servo_msg::constellation_msg::{mod, ConstellationChan, ExitMsg, Key, KeyState, KeyModifiers};
 use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, NavigateMsg};
 use layers::geometry::DevicePixel;
@@ -87,7 +87,7 @@ impl<W> MainThread<W> where W: WindowMethods {
                 SetReadyStateWindowEvent(ready_state) => {
                     self.on_set_ready_state_event(ready_state)
                 }
-                SetRenderStateWindowEvent(state) => self.on_set_render_state_event(state),
+                SetPaintStateWindowEvent(state) => self.on_set_paint_state_event(state),
                 SynchronousRepaintWindowEvent => self.on_synchronous_repaint_event(),
                 QuitWindowEvent => {
                     self.on_quit_event();
@@ -121,7 +121,6 @@ impl<W> MainThread<W> where W: WindowMethods {
 
     fn on_load_url_window_event(&mut self, url_string: String) {
         debug!("osmain: loading URL `{:s}`", url_string);
-        //self.got_load_complete_message = false;
         let msg = LoadUrlMsg(None, LoadData::new(Url::parse(url_string.as_slice()).unwrap()));
         let ConstellationChan(ref chan) = self.constellation_proxy;
         chan.send(msg);
@@ -183,8 +182,8 @@ impl<W> MainThread<W> where W: WindowMethods {
         self.window.as_ref().unwrap().set_ready_state(ready_state)
     }
 
-    fn on_set_render_state_event(&self, render_state: RenderState) {
-        self.window.as_ref().unwrap().set_render_state(render_state)
+    fn on_set_paint_state_event(&self, paint_state: PaintState) {
+        self.window.as_ref().unwrap().set_paint_state(paint_state)
     }
 
     fn on_synchronous_repaint_event(&mut self) {
@@ -231,7 +230,8 @@ impl<W> MainThread<W> where W: WindowMethods {
 /// process, and so forth.
 pub trait MainThreadProxy {
     /// Sends an event to the main thread and kicks it awake. You should not use this method if you
-    /// are on the main thread; instead, use 
+    /// are on the main thread handling an event; instead, send messages directly via the main
+    /// task's `Sender`. Otherwise you risk flooding the main thread with wakeup events.
     fn send(&mut self, msg: WindowEvent);
     /// Clones the main thread proxy.
     fn clone_main_thread_proxy(&self) -> Box<MainThreadProxy + 'static + Send>;

@@ -53,7 +53,6 @@ use servo_msg::constellation_msg::{SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{ResourceTask, Load};
 use servo_net::resource_task::LoadData as NetLoadData;
-use servo_net::storage_task::StorageTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::task::spawn_named_with_send_on_failure;
@@ -156,7 +155,6 @@ impl Drop for StackRootTLS {
 /// want to make sure the code to do that doesn't get removed.
 ///
 /// FIXME: Rename to `Page`, following WebKit?
-#[allow(dead_code)]
 pub struct ScriptTask {
     /// A handle to the information pertaining to page layout
     page: DOMRefCell<Rc<Page>>,
@@ -183,6 +181,7 @@ pub struct ScriptTask {
     /// A handle to the compositor for communicating ready state messages.
     compositor: DOMRefCell<Option<Box<ScriptToCompositorThreadProxy + Send>>>,
     /// A handle to the main thread for communicating progress messages, control messages, etc.
+    #[allow(dead_code)]
     main_thread_proxy: DOMRefCell<Box<ScriptToMainThreadProxy + Send>>,
 
     /// For providing instructions to an optional devtools server.

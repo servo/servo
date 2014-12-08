@@ -4,7 +4,7 @@
 
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{Exit, ChangeReadyState, LoadComplete, Paint, ScrollFragmentPoint, SetIds};
-use compositor_task::{SetLayerOrigin, ShutdownComplete, ChangeRenderState, PaintMsgDiscarded};
+use compositor_task::{SetLayerOrigin, ShutdownComplete, ChangePaintState, PaintMsgDiscarded};
 use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout, PinchZoom, Zoom};
 use compositor_task::{FrameTreeUpdateMsg, SendMouseEvent, SendMouseMoveEvent, Refresh, Resize};
 use compositor_task::{Scroll, InitialCompositorState, SynchronousRefresh};
@@ -94,7 +94,7 @@ impl CompositorEventListener for NullCompositor {
             CreateOrUpdateRootLayer(..) |
             CreateOrUpdateDescendantLayer(..) |
             SetLayerOrigin(..) | Paint(..) |
-            ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
+            ChangeReadyState(..) | ChangePaintState(..) | ScrollFragmentPoint(..) |
             LoadComplete | PaintMsgDiscarded(..) | ScrollTimeout(..) | Refresh | Resize(..) |
             Scroll(..) | SendMouseEvent(_) | SendMouseMoveEvent(_) | PinchZoom(_) | Zoom(_) |
             SynchronousRefresh(..) => ()

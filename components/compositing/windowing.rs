@@ -61,8 +61,8 @@ pub enum WindowEvent {
     KeyEvent(Key, KeyState, KeyModifiers),
     /// Informs the main thread that the ready state has changed.
     SetReadyStateWindowEvent(ReadyState),
-    /// Informs the main thread that the render state has changed.
-    SetRenderStateWindowEvent(RenderState),
+    /// Informs the main thread that the paint state has changed.
+    SetPaintStateWindowEvent(PaintState),
     /// Sent when a synchronous repaint is needed (often when a resize event occurs). The main
     /// thread will not return from processing until the repaint happens.
     SynchronousRepaintWindowEvent,
@@ -83,7 +83,7 @@ impl Show for WindowEvent {
             PinchZoomWindowEvent(..) => write!(f, "PinchZoom"),
             NavigationWindowEvent(..) => write!(f, "Navigation"),
             SetReadyStateWindowEvent(..) => write!(f, "SetReadyState"),
-            SetRenderStateWindowEvent(..) => write!(f, "SetRenderState"),
+            SetPaintStateWindowEvent(..) => write!(f, "SetPaintState"),
             SynchronousRepaintWindowEvent => write!(f, "SynchronousRepaintWindowEvent"),
             QuitWindowEvent => write!(f, "Quit"),
         }

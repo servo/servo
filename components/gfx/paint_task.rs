@@ -256,7 +256,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                         c.send(PainterReadyMsg(self.id));
                         match self.compositor {
                             None => {}
-                            Some(ref mut compositor) => compositor.render_msg_discarded(),
+                            Some(ref mut compositor) => compositor.paint_msg_discarded(),
                         }
                         continue;
                     }
@@ -265,7 +265,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     match self.compositor {
                         None => {}
                         Some(ref mut compositor) => {
-                            compositor.set_paint_state(self.id, PaintingRenderState)
+                            compositor.set_paint_state(self.id, PaintingPaintState)
                         }
                     }
 
@@ -282,7 +282,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     match self.compositor {
                         None => {}
                         Some(ref mut compositor) => {
-                            compositor.set_render_state(self.id, IdlePaintState);
+                            compositor.set_paint_state(self.id, IdlePaintState);
                             compositor.paint(self.id, self.epoch, replies);
                         }
                     }
