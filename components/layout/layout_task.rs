@@ -40,7 +40,7 @@ use script::layout_interface::{ContentBoxesQuery, ContentBoxQuery, ExitNowMsg, G
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, LoadStylesheetMsg};
 use script::layout_interface::{MouseOverResponse, Msg, NoQuery, PrepareToExitMsg};
 use script::layout_interface::{ReapLayoutDataMsg, Reflow, ReflowForDisplay, ReflowMsg};
-use script::layout_interface::{ScriptLayoutChan, TrustedNodeAddress};
+use script::layout_interface::{ScriptLayoutChan, SetQuirksModeMsg, TrustedNodeAddress};
 use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
@@ -390,6 +390,7 @@ impl LayoutTask {
         match request {
             AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet, possibly_locked_rw_data),
             LoadStylesheetMsg(url) => self.handle_load_stylesheet(url, possibly_locked_rw_data),
+            SetQuirksModeMsg => self.handle_set_quirks_mode(possibly_locked_rw_data),
             GetRPCMsg(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
                                    Box<LayoutRPC + Send>);
@@ -497,6 +498,15 @@ impl LayoutTask {
             self.font_cache_task.add_web_font(family.to_string(), (*src).clone());
         });
         rw_data.stylist.add_stylesheet(sheet);
+        LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
+    }
+
+    /// Sets quirks mode for the document, causing the quirks mode stylesheet to be loaded.
+    fn handle_set_quirks_mode<'a>(&'a self,
+                                  possibly_locked_rw_data:
+                                    &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+        let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
+        rw_data.stylist.add_quirks_mode_stylesheet();
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
     }
 

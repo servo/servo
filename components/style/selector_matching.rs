@@ -292,7 +292,6 @@ impl Stylist {
             after_map: PerPseudoElementSelectorMap::new(),
             rules_source_order: 0u,
         };
-        // FIXME: Add quirks-mode.css in quirks mode.
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
         //        (Does it make a difference?)
@@ -386,6 +385,15 @@ impl Stylist {
 
         self.device = device;
         self.is_dirty |= is_dirty;
+    }
+
+    pub fn add_quirks_mode_stylesheet(&mut self) {
+        self.add_stylesheet(Stylesheet::from_bytes(
+            read_resource_file(["quirks-mode.css"]).unwrap().as_slice(),
+            Url::parse("chrome:///quirks-mode.css").unwrap(),
+            None,
+            None,
+            UserAgentOrigin))
     }
 
     pub fn add_stylesheet(&mut self, stylesheet: Stylesheet) {

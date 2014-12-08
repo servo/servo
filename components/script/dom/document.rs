@@ -61,6 +61,7 @@ use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
 use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
+use layout_interface::{LayoutChan, SetQuirksModeMsg};
 use string_cache::{Atom, QualName};
 use url::Url;
 
@@ -217,6 +218,15 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
     fn set_quirks_mode(self, mode: QuirksMode) {
         self.quirks_mode.set(mode);
+
+        match mode {
+            Quirks => {
+                let window = self.window.root();
+                let LayoutChan(ref layout_chan) = window.page().layout_chan;
+                layout_chan.send(SetQuirksModeMsg);
+            }
+            NoQuirks | LimitedQuirks => {}
+        }
     }
 
     fn set_last_modified(self, value: DOMString) {
