@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! The layout task. Performs layout on the DOM, builds display lists and sends them to be
-//! rendered.
+//! painted.
 
 use css::node_style::StyledNode;
 use construct::FlowConstructionResult;
@@ -825,7 +825,7 @@ impl LayoutTask {
             }
         });
 
-        // Build the display list if necessary, and send it to the renderer.
+        // Build the display list if necessary, and send it to the painter.
         if data.goal == ReflowForDisplay {
             self.build_display_list_for_reflow(data,
                                                node,
