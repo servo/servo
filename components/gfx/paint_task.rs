@@ -177,7 +177,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("PaintTask", task_state::RENDER, proc() {
+        spawn_named_with_send_on_failure("PaintTask", task_state::PAINT, proc() {
             {
                 // Ensures that the render task and graphics context are destroyed before the
                 // shutdown message.
