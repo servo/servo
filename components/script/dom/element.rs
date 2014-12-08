@@ -16,9 +16,10 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTargetCast};
-use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLInputElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableElementCast, HTMLTableElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableCellElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLInputElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
+use dom::bindings::codegen::InheritTypes::{NodeCast};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -31,6 +32,7 @@ use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
+use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
 use dom::htmlserializer::serialize;
@@ -42,12 +44,11 @@ use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
-use style::{BorderUnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
-use style::{SizeIntegerAttribute, UnsignedIntegerAttribute, WidthLengthAttribute};
-use style::{matches, parse_selector_list_from_str};
-use style;
+use style::{mod, BgColorSimpleColorAttribute, BorderUnsignedIntegerAttribute, IntegerAttribute};
+use style::{LengthAttribute, SimpleColorAttribute, SizeIntegerAttribute, UnsignedIntegerAttribute};
+use style::{WidthLengthAttribute, matches, parse_selector_list_from_str};
 use servo_util::namespace;
-use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
+use servo_util::str::{DOMString, LengthOrPercentageOrAuto, SimpleColor};
 
 use std::ascii::AsciiExt;
 use std::cell::{Ref, RefMut};
@@ -207,6 +208,8 @@ pub trait RawLayoutElementHelpers {
     unsafe fn get_checked_state_for_layout(&self) -> bool;
     unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32>;
+    unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
+                                                    -> Option<SimpleColor>;
     fn local_name<'a>(&'a self) -> &'a Atom;
     fn namespace<'a>(&'a self) -> &'a Namespace;
     fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>>;
@@ -344,6 +347,28 @@ impl RawLayoutElementHelpers for Element {
                     // Don't panic since `:-servo-nonzero-border` can cause this to be called on
                     // arbitrary elements.
                     None
+                }
+            }
+        }
+    }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
+                                                    -> Option<SimpleColor> {
+        match attribute {
+            BgColorSimpleColorAttribute => {
+                if self.is_htmlbodyelement() {
+                    let this: &HTMLBodyElement = mem::transmute(self);
+                    this.get_background_color()
+                } else if self.is_htmltableelement() {
+                    let this: &HTMLTableElement = mem::transmute(self);
+                    this.get_background_color()
+                } else if self.is_htmltablecellelement() {
+                    let this: &HTMLTableCellElement = mem::transmute(self);
+                    this.get_background_color()
+                } else {
+                    panic!("I'm not a body, table, or table cell!")
                 }
             }
         }

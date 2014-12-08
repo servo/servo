@@ -54,8 +54,9 @@ pub use selectors::{PseudoElement, Before, After, SelectorList, parse_selector_l
 pub use selectors::{AttrSelector, NamespaceConstraint, SpecificNamespace, AnyNamespace};
 pub use selectors::{SimpleSelector, LocalNameSelector};
 pub use cssparser::{Color, RGBA};
-pub use legacy::{BorderUnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
-pub use legacy::{SizeIntegerAttribute, UnsignedIntegerAttribute, WidthLengthAttribute};
+pub use legacy::{BgColorSimpleColorAttribute, BorderUnsignedIntegerAttribute, IntegerAttribute};
+pub use legacy::{LengthAttribute, SimpleColorAttribute, SizeIntegerAttribute};
+pub use legacy::{UnsignedIntegerAttribute, WidthLengthAttribute};
 pub use font_face::{Source, LocalSource, UrlSource_};
 
 mod stylesheets;

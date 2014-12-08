@@ -6,11 +6,12 @@
 //! `<input size>`, and so forth.
 
 use node::{TElement, TElementAttributes, TNode};
-use properties::{BorderBottomWidthDeclaration, BorderLeftWidthDeclaration};
-use properties::{BorderRightWidthDeclaration, BorderTopWidthDeclaration, SpecifiedValue};
-use properties::{WidthDeclaration, specified};
+use properties::{BackgroundColorDeclaration, BorderBottomWidthDeclaration};
+use properties::{BorderLeftWidthDeclaration, BorderRightWidthDeclaration};
+use properties::{BorderTopWidthDeclaration, SpecifiedValue, WidthDeclaration, specified};
 use selector_matching::{DeclarationBlock, Stylist};
 
+use cssparser::{RGBA, RGBAColor};
 use servo_util::geometry::Au;
 use servo_util::smallvec::VecLike;
 use servo_util::str::{AutoLpa, LengthLpa, PercentageLpa};
@@ -33,11 +34,22 @@ pub enum UnsignedIntegerAttribute {
     BorderUnsignedIntegerAttribute,
 }
 
+/// Legacy presentational attributes that take a simple color as defined in HTML5 § 2.4.6.
+pub enum SimpleColorAttribute {
+    /// `<body bgcolor>`
+    BgColorSimpleColorAttribute,
+}
+
 /// Extension methods for `Stylist` that cause rules to be synthesized for legacy attributes.
 pub trait PresentationalHintSynthesis {
     /// Synthesizes rules from various HTML attributes (mostly legacy junk from HTML4) that confer
     /// *presentational hints* as defined in the HTML5 specification. This handles stuff like
     /// `<body bgcolor>`, `<input size>`, `<td width>`, and so forth.
+    ///
+    /// NB: Beware! If you add an attribute to this list, be sure to add it to
+    /// `common_style_affecting_attributes` or `rare_style_affecting_attributes` as appropriate. If
+    /// you don't, you risk strange random nondeterministic failures due to false positives in
+    /// style sharing.
     fn synthesize_presentational_hints_for_legacy_attributes<'a,E,N,V>(
                                                              &self,
                                                              node: &N,
@@ -47,6 +59,18 @@ pub trait PresentationalHintSynthesis {
                                                                       TElementAttributes,
                                                                    N: TNode<'a,E>,
                                                                    V: VecLike<DeclarationBlock>;
+    /// Synthesizes rules for the legacy `bgcolor` attribute.
+    fn synthesize_presentational_hint_for_legacy_background_color_attribute<'a,E,V>(
+                                                                            &self,
+                                                                            element: E,
+                                                                            matching_rules_list:
+                                                                                &mut V,
+                                                                            shareable: &mut bool)
+                                                                            where
+                                                                            E: TElement<'a> +
+                                                                               TElementAttributes,
+                                                                            V: VecLike<
+                                                                                DeclarationBlock>;
     /// Synthesizes rules for the legacy `border` attribute.
     fn synthesize_presentational_hint_for_legacy_border_attribute<'a,E,V>(
                                                                   &self,
@@ -87,13 +111,27 @@ impl PresentationalHintSynthesis for Stylist {
                         *shareable = false
                     }
                 }
+                self.synthesize_presentational_hint_for_legacy_background_color_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
                 self.synthesize_presentational_hint_for_legacy_border_attribute(
                     element,
                     matching_rules_list,
                     shareable);
             }
             name if *name == atom!("table") => {
+                self.synthesize_presentational_hint_for_legacy_background_color_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
                 self.synthesize_presentational_hint_for_legacy_border_attribute(
+                    element,
+                    matching_rules_list,
+                    shareable);
+            }
+            name if *name == atom!("body") => {
+                self.synthesize_presentational_hint_for_legacy_background_color_attribute(
                     element,
                     matching_rules_list,
                     shareable);
@@ -120,6 +158,32 @@ impl PresentationalHintSynthesis for Stylist {
                 }
             }
             _ => {}
+        }
+    }
+
+    fn synthesize_presentational_hint_for_legacy_background_color_attribute<'a,E,V>(
+                                                                            &self,
+                                                                            element: E,
+                                                                            matching_rules_list:
+                                                                                &mut V,
+                                                                            shareable: &mut bool)
+                                                                            where
+                                                                            E: TElement<'a> +
+                                                                               TElementAttributes,
+                                                                            V: VecLike<
+                                                                                DeclarationBlock> {
+        match element.get_simple_color_attribute(BgColorSimpleColorAttribute) {
+            None => {}
+            Some(color) => {
+                matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                        BackgroundColorDeclaration(SpecifiedValue(RGBAColor(RGBA {
+                            red: color.red as f32 / 255.0,
+                            green: color.green as f32 / 255.0,
+                            blue: color.blue as f32 / 255.0,
+                            alpha: 1.0,
+                        })))));
+                *shareable = false
+            }
         }
     }
 

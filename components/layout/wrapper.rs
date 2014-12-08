@@ -53,14 +53,14 @@ use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DES
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
-use servo_util::str::{LengthOrPercentageOrAuto, is_whitespace};
+use servo_util::str::{LengthOrPercentageOrAuto, SimpleColor, is_whitespace};
 use std::kinds::marker::ContravariantLifetime;
 use std::mem;
 use string_cache::{Atom, Namespace};
 use style::computed_values::{content, display, white_space};
 use style::{AnyNamespace, AttrSelector, BorderUnsignedIntegerAttribute, IntegerAttribute};
-use style::{LengthAttribute, PropertyDeclarationBlock, SpecificNamespace, TElement};
-use style::{TElementAttributes, TNode, UnsignedIntegerAttribute};
+use style::{LengthAttribute, PropertyDeclarationBlock, SimpleColorAttribute, SpecificNamespace};
+use style::{TElement, TElementAttributes, TNode, UnsignedIntegerAttribute};
 use url::Url;
 
 use std::cell::{Ref, RefMut};
@@ -610,6 +610,12 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
     fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
         unsafe {
             self.element.get_unsigned_integer_attribute_for_layout(attribute)
+        }
+    }
+
+    fn get_simple_color_attribute(self, attribute: SimpleColorAttribute) -> Option<SimpleColor> {
+        unsafe {
+            self.element.get_simple_color_attribute_for_layout(attribute)
         }
     }
 }
