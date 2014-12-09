@@ -18,6 +18,7 @@ use std::comm::Receiver;
 use std::rc::Rc;
 use std::mem::transmute;
 use std::mem::size_of;
+use std::mem::zeroed;
 use std::ptr;
 use servo_util::geometry::ScreenPx;
 use gleam::gl;
@@ -282,13 +283,13 @@ pub struct alloc_device {
 #[allow(dead_code)]
 pub struct GonkNativeWindow {
     window: ANativeWindow,
-    count: i32, // Refcount. Managed by C code. Should rewrite in rust.
     set_usage: extern fn(*mut GonkNativeWindow, c_int) -> c_int,
     set_format: extern fn(*mut GonkNativeWindow, c_int) -> c_int,
     set_transform: extern fn(*mut GonkNativeWindow, c_int) -> c_int,
     set_dimensions: extern fn(*mut GonkNativeWindow, c_int, c_int) -> c_int,
     api_connect: extern fn(*mut GonkNativeWindow, c_int) -> c_int,
     api_disconnect: extern fn(*mut GonkNativeWindow, c_int) -> c_int,
+    count: i32,
     alloc_dev: *mut alloc_device,
     hwc_dev: *mut hwc_composer_device,
     width: i32,
@@ -310,14 +311,12 @@ impl ANativeBase {
 #[repr(C)]
 pub struct GonkNativeWindowBuffer {
     buffer: ANativeWindowBuffer,
-    count: i32, // Refcount. Managed by C code.
+    count: i32,
 }
 
-#[link(name = "cutils")]
 #[link(name = "native_window_glue", kind = "static")]
 extern {
-    fn alloc_native_window(size: u32) -> *mut GonkNativeWindow;
-    fn alloc_native_buffer(size: u32) -> *mut GonkNativeWindowBuffer;
+    fn gnw_perform(win: *mut ANativeWindow, op: c_int, ...) -> c_int;
 }
 
 #[link(name = "suspend")]
@@ -454,34 +453,65 @@ extern fn api_disconnect(window: *mut GonkNativeWindow,
     0
 }
 
-#[allow(unused_variables)]
+extern fn gnw_incRef(base: *mut ANativeBase) {
+    let mut win: &mut GonkNativeWindow = unsafe { transmute(base) };
+    win.count += 1;
+}
+
+extern fn gnw_decRef(base: *mut ANativeBase) {
+    let mut win: &mut GonkNativeWindow = unsafe { transmute(base) };
+    win.count -= 1;
+    if win.count == 0 {
+        unsafe { transmute::<_, Box<GonkNativeWindow>>(base) };
+    }
+}
+
 impl GonkNativeWindow {
     pub fn new(alloc_dev: *mut alloc_device, hwc_dev: *mut hwc_composer_device, width: i32, height: i32, usage: c_int) -> *mut GonkNativeWindow {
-        let win: &mut GonkNativeWindow;
-        unsafe {
-            win = transmute(alloc_native_window(size_of::<GonkNativeWindow>() as u32));
-        }
-
-        win.window.common.magic = ANativeBase::magic('_', 'w', 'n', 'd');
-        win.window.common.version = size_of::<ANativeBase>() as u32;
-        win.window.setSwapInterval = setSwapInterval;
-        win.window.query = query;
-        win.window.dequeueBuffer = dequeueBuffer;
-        win.window.queueBuffer = queueBuffer;
-        win.window.cancelBuffer = cancelBuffer;
-        win.set_usage = set_usage;
-        win.set_format = set_format;
-        win.set_transform = set_transform;
-        win.set_dimensions = set_dimensions;
-        win.api_connect = api_connect;
-        win.api_disconnect = api_disconnect;
-        win.alloc_dev = alloc_dev;
-        win.hwc_dev = hwc_dev;
-        win.width = width;
-        win.height = height;
-        win.usage = usage;
-        win.last_idx = -1;
-        win.fences = [-1, -1];
+        let mut win = box GonkNativeWindow {
+            window: ANativeWindow {
+                common: ANativeBase {
+                    magic: ANativeBase::magic('_', 'w', 'n', 'd'),
+                    version: size_of::<ANativeBase>() as u32,
+                    reserved: unsafe { zeroed() },
+                    incRef: gnw_incRef,
+                    decRef: gnw_decRef,
+                },
+                flags: 0,
+                minSwapInterval: 0,
+                maxSwapInterval: 0,
+                xdpi: 0f32,
+                ydpi: 0f32,
+                oem: unsafe { zeroed() },
+                setSwapInterval: setSwapInterval,
+                dequeueBuffer_DEPRECATED: 0,
+                lockBuffer_DEPRECATED: 0,
+                queueBuffer_DEPRECATED: 0,
+                query: query,
+                perform: unsafe { transmute(gnw_perform) },
+                cancelBuffer_DEPRECATED: 0,
+                dequeueBuffer: dequeueBuffer,
+                queueBuffer: queueBuffer,
+                cancelBuffer: cancelBuffer,
+            },
+            set_usage: set_usage,
+            set_format: set_format,
+            set_transform: set_transform,
+            set_dimensions: set_dimensions,
+            api_connect: api_connect,
+            api_disconnect: api_disconnect,
+            count: 1,
+            alloc_dev: alloc_dev,
+            hwc_dev: hwc_dev,
+            width: width,
+            height: height,
+            format: 0,
+            usage: usage,
+            last_fence: -1,
+            last_idx: -1,
+            bufs: unsafe { zeroed() },
+            fences: [-1, -1],
+        };
 
         unsafe { transmute(win) }
     }
@@ -554,22 +584,44 @@ impl GonkNativeWindow {
     }
 }
 
+extern fn gnwb_incRef(base: *mut ANativeBase) {
+    let mut buf: &mut GonkNativeWindowBuffer = unsafe { transmute(base) };
+    buf.count += 1;
+}
+
+extern fn gnwb_decRef(base: *mut ANativeBase) {
+    let mut buf: &mut GonkNativeWindowBuffer = unsafe { transmute(base) };
+    buf.count -= 1;
+    if buf.count == 0 {
+        unsafe { transmute::<_, Box<GonkNativeWindowBuffer>>(base) };
+    }
+}
+
 impl GonkNativeWindowBuffer {
     pub fn new(dev: *mut alloc_device, width: i32, height: i32, format: c_int, usage: c_int) -> *mut GonkNativeWindowBuffer {
-        let buf: &mut GonkNativeWindowBuffer;
-        unsafe {
-            buf = transmute(alloc_native_buffer(size_of::<GonkNativeWindowBuffer>() as u32));
-        }
+        let mut buf = box GonkNativeWindowBuffer {
+            buffer: ANativeWindowBuffer {
+                common: ANativeBase {
+                    magic: ANativeBase::magic('_', 'b', 'f', 'r'),
+                    version: size_of::<ANativeBase>() as u32,
+                    reserved: unsafe { zeroed() },
+                    incRef: gnwb_incRef,
+                    decRef: gnwb_decRef,
+                },
+                width: width,
+                height: height,
+                stride: 0,
+                format: format,
+                usage: usage,
+                reserved: unsafe { zeroed() },
+                handle: ptr::null(),
+                reserved_proc: unsafe { zeroed() },
+            },
+            count: 1,
+        };
 
-        buf.buffer.common.magic = ANativeBase::magic('_', 'b', 'f', 'r');
-        buf.buffer.common.version = size_of::<ANativeBase>() as u32;
         let ret = unsafe { ((*dev).alloc)(dev, width, height, format, usage, &mut buf.buffer.handle, &mut buf.buffer.stride) };
         assert!(ret == 0, "Failed to allocate gralloc buffer!");
-
-        buf.buffer.width = width;
-        buf.buffer.height = height;
-        buf.buffer.format = format;
-        buf.buffer.usage = usage;
 
         unsafe { transmute(buf) }
     }
