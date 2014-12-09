@@ -459,6 +459,7 @@ impl LayoutElementHelpers for JS<Element> {
 pub trait ElementHelpers<'a> {
     fn html_element_in_html_document(self) -> bool;
     fn local_name(self) -> &'a Atom;
+    fn parsed_name(self, name: DOMString) -> DOMString;
     fn namespace(self) -> &'a Namespace;
     fn prefix(self) -> &'a Option<DOMString>;
     fn attrs(&self) -> Ref<Vec<JS<Attr>>>;
@@ -479,6 +480,15 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 
     fn local_name(self) -> &'a Atom {
         &self.extended_deref().local_name
+    }
+
+    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
+    fn parsed_name(self, name: DOMString) -> DOMString {
+        if self.html_element_in_html_document() {
+            name.as_slice().to_ascii_lower()
+        } else {
+            name
+        }
     }
 
     fn namespace(self) -> &'a Namespace {
@@ -902,11 +912,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(self, name: DOMString) -> Option<DOMString> {
-        let name = if self.html_element_in_html_document() {
-            name.as_slice().to_ascii_lower()
-        } else {
-            name
-        };
+        let name = self.parsed_name(name);
         self.get_attribute(ns!(""), &Atom::from_slice(name.as_slice())).root()
                      .map(|s| s.Value())
     }
@@ -931,11 +937,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 2.
-        let name = if self.html_element_in_html_document() {
-            name.as_slice().to_ascii_lower()
-        } else {
-            name
-        };
+        let name = self.parsed_name(name);
 
         // Step 3-5.
         let name = Atom::from_slice(name.as_slice());
@@ -1012,11 +1014,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-removeattribute
     fn RemoveAttribute(self, name: DOMString) {
-        let name = if self.html_element_in_html_document() {
-            name.as_slice().to_ascii_lower()
-        } else {
-            name
-        };
+        let name = self.parsed_name(name);
         self.remove_attribute(ns!(""), name.as_slice())
     }
 
