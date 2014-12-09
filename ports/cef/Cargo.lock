@@ -326,7 +326,7 @@ dependencies = [
  "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
  "move-acceptor 0.0.1 (git+https://github.com/reem/rust-move-acceptor)",
  "openssl 0.0.1 (git+https://github.com/servo/rust-openssl)",
- "typeable 0.0.1 (git+https://github.com/reem/rust-typeable)",
+ "typeable 0.0.3 (git+https://github.com/reem/rust-typeable)",
  "unsafe-any 0.1.0 (git+https://github.com/reem/rust-unsafe-any)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
 ]
@@ -631,8 +631,8 @@ version = "0.0.1"
 
 [[package]]
 name = "typeable"
-version = "0.0.1"
-source = "git+https://github.com/reem/rust-typeable#55154e1809db8ceec8f8519bdbb638c2fbd712f5"
+version = "0.0.3"
+source = "git+https://github.com/reem/rust-typeable#db8975daaa3889871f67eea11baeaefd8e706eaf"
 
 [[package]]
 name = "unsafe-any"
