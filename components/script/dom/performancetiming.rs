@@ -27,9 +27,12 @@ impl PerformanceTiming {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: JSRef<Window>) -> Temporary<PerformanceTiming> {
-        let timing = PerformanceTiming::new_inherited(window.navigation_start(),
-                                                      window.navigation_start_precise());
+    pub fn new(window: JSRef<Window>,
+               navigation_start: u64,
+               navigation_start_precise: f64)
+               -> Temporary<PerformanceTiming> {
+        let timing = PerformanceTiming::new_inherited(navigation_start,
+                                                      navigation_start_precise);
         reflect_dom_object(box timing, global::Window(window),
                            PerformanceTimingBinding::Wrap)
     }

@@ -20,15 +20,23 @@ pub struct Performance {
 }
 
 impl Performance {
-    fn new_inherited(window: JSRef<Window>) -> Performance {
+    fn new_inherited(window: JSRef<Window>,
+                     navigation_start: u64,
+                     navigation_start_precise: f64) -> Performance {
         Performance {
             reflector_: Reflector::new(),
-            timing: JS::from_rooted(PerformanceTiming::new(window)),
+            timing: JS::from_rooted(PerformanceTiming::new(window,
+                                                           navigation_start,
+                                                           navigation_start_precise)),
         }
     }
 
-    pub fn new(window: JSRef<Window>) -> Temporary<Performance> {
-        reflect_dom_object(box Performance::new_inherited(window),
+    pub fn new(window: JSRef<Window>,
+               navigation_start: u64,
+               navigation_start_precise: f64) -> Temporary<Performance> {
+        reflect_dom_object(box Performance::new_inherited(window,
+                                                          navigation_start,
+                                                          navigation_start_precise),
                            global::Window(window),
                            PerformanceBinding::Wrap)
     }
