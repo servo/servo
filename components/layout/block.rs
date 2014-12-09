@@ -908,12 +908,8 @@ impl BlockFlow {
                 }
 
                 // Lay the child out if this was an in-order traversal.
-                let need_to_process_child_floats = if flow::base(kid).flags.is_float() {
-                    kid.place_float_if_applicable(layout_context);
-                    true
-                } else {
-                    kid.assign_block_size_for_inorder_child_if_necessary(layout_context)
-                };
+                let need_to_process_child_floats =
+                    kid.assign_block_size_for_inorder_child_if_necessary(layout_context);
 
                 // Mark flows for layerization if necessary to handle painting order correctly.
                 propagate_layer_flag_from_child(&mut layers_needed_for_descendants, kid);
