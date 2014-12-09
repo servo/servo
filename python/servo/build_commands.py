@@ -63,17 +63,25 @@ class MachCommands(CommandBase):
             opts += ["--features", "%s" % ' '.join(features)]
 
         build_start = time()
+        env = self.build_env()
         if android:
+            # Build OpenSSL for android
+            with cd(self.android_support_dir()):
+                status = subprocess.call(
+                    ["make", "-j4", "-f", "openssl.makefile"],
+                    env=self.build_env())
+            env['OPENSSL_PATH'] = path.join(self.android_support_dir(), "openssl-1.0.1j")
+
             make_opts = []
             if opts:
                 make_opts += ["CARGO_OPTS=" + " ".join(opts)]
             status = subprocess.call(
                 ["make", "-C", "ports/android"] + make_opts,
-                env=self.build_env())
+                env=env)
         else:
             status = subprocess.call(
                 ["cargo", "build"] + opts,
-                env=self.build_env(), cwd=self.servo_crate())
+                env=env, cwd=self.servo_crate())
         elapsed = time() - build_start
 
         print("Build completed in %0.2fs" % elapsed)
