@@ -619,6 +619,7 @@ pub trait AttributeHandlers {
                                  value: DOMString,
                                  prefix: Option<DOMString>);
     fn set_attribute(self, name: &Atom, value: AttrValue);
+    fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult;
     fn do_set_attribute(self, local_name: Atom, value: AttrValue,
                         name: Atom, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool);
@@ -686,6 +687,23 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
         self.do_set_attribute(name.clone(), value, name.clone(),
             ns!(""), None, |attr| *attr.local_name() == *name);
+    }
+
+    // https://html.spec.whatwg.org/multipage/dom.html#attr-data-*
+    fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult {
+        // Step 1.
+        match xml_name_type(name.as_slice()) {
+            InvalidXMLName => return Err(InvalidCharacter),
+            _ => {}
+        }
+
+        // Steps 2-5.
+        let name = Atom::from_slice(name.as_slice());
+        let value = self.parse_attribute(&ns!(""), &name, value);
+        self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
+            *attr.name() == name && *attr.namespace() == ns!("")
+        });
+        Ok(())
     }
 
     fn do_set_attribute(self, local_name: Atom, value: AttrValue,
@@ -943,7 +961,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         let name = Atom::from_slice(name.as_slice());
         let value = self.parse_attribute(&ns!(""), &name, value);
         self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
-            attr.name().as_slice() == name.as_slice()
+            *attr.name() == name
         });
         Ok(())
     }
