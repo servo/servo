@@ -6,18 +6,23 @@
 // http://dev.w3.org/2006/webapi/FileAPI/#dfn-Blob
 //[Exposed=Window,Worker][Constructor,
 // Constructor(sequence<(ArrayBuffer or ArrayBufferView or Blob or DOMString)> blobParts, optional BlobPropertyBag options)]
-[Constructor]
+[Constructor,
+ Constructor(DOMString blobParts)]
 interface Blob {
 
-  //readonly attribute unsigned long long size;
-  //readonly attribute DOMString type;
+  readonly attribute unsigned long long size;
+  readonly attribute DOMString type;
   //readonly attribute boolean isClosed;
 
   //slice Blob into byte-ranged chunks
 
+  //TODO: implement slice with [Clamp]
   //Blob slice([Clamp] optional long long start,
   //           [Clamp] optional long long end,
   //           optional DOMString contentType);
+  Blob slice(optional long long start,
+             optional long long end,
+             optional DOMString contentType);
   //void close();
 
 };
