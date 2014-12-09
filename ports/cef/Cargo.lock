@@ -457,7 +457,7 @@ dependencies = [
 [[package]]
 name = "openssl"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-openssl#0a3cace0265fe286b505508aa6e5096fc94a6896"
+source = "git+https://github.com/servo/rust-openssl#82b520100532dba9a4cdd4588709eaedb37c7a77"
 dependencies = [
  "libressl-pnacl-sys 2.0.2 (git+https://github.com/DiamondLovesYou/libressl-pnacl-sys.git)",
  "openssl-sys 0.0.1 (git+https://github.com/servo/rust-openssl)",
@@ -466,7 +466,7 @@ dependencies = [
 [[package]]
 name = "openssl-sys"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-openssl#0a3cace0265fe286b505508aa6e5096fc94a6896"
+source = "git+https://github.com/servo/rust-openssl#82b520100532dba9a4cdd4588709eaedb37c7a77"
 dependencies = [
  "pkg-config 0.1.0 (git+https://github.com/alexcrichton/pkg-config-rs)",
 ]
