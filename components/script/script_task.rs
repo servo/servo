@@ -748,7 +748,7 @@ impl ScriptTask {
             // Wait for the LoadResponse so that the parser knows the final URL.
             let (input_chan, input_port) = channel();
             self.resource_task.send(Load(NetLoadData {
-                url: url.clone(),
+                url: url,
                 method: load_data.method,
                 headers: load_data.headers,
                 data: load_data.data,
@@ -773,7 +773,7 @@ impl ScriptTask {
                 *page.mut_url() = Some((base_url.clone(), true));
             }
 
-            (InputUrl(url.clone(), load_response), base_url)
+            (InputUrl(load_response), base_url)
         } else {
             let evalstr = load_data.url.non_relative_scheme_data().unwrap();
             let jsval = window.evaluate_js_with_result(evalstr);
