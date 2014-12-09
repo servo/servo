@@ -781,7 +781,7 @@ impl ScriptTask {
             (InputString(strval.unwrap_or("".to_string())), doc_url)
         };
 
-        parse_html(*document, parser_input, final_url);
+        parse_html(*document, parser_input, &final_url);
         url = page.get_url().clone();
 
         document.set_ready_state(DocumentReadyStateValues::Interactive);

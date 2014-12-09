@@ -163,7 +163,7 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
 
 pub fn parse_html(document: JSRef<Document>,
                   input: HTMLInput,
-                  url: Url) {
+                  url: &Url) {
     let parser = ServoHTMLParser::new(Some(url.clone()), document).root();
     let parser: JSRef<ServoHTMLParser> = *parser;
 
