@@ -85,7 +85,10 @@ impl HTMLCollection {
             ascii_lower_tag: Atom,
         }
         impl CollectionFilter for TagNameFilter {
-            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
+            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
+                if NodeCast::from_ref(elem) == root {
+                    return false
+                }
                 if elem.html_element_in_html_document() {
                     *elem.local_name() == self.ascii_lower_tag
                 } else {
