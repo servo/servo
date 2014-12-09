@@ -1,0 +1,31 @@
+[package]
+name = "b2s"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+build = "make -f makefile.cargo"
+
+[dependencies.compositing]
+path = "../../components/compositing"
+
+[dependencies.geom]
+git = "https://github.com/servo/rust-geom"
+
+[dependencies.layers]
+git = "https://github.com/servo/rust-layers"
+
+[dependencies.msg]
+path = "../../components/msg"
+
+[dependencies.script]
+path = "../../components/script"
+
+[dependencies.servo]
+path = "../../components/servo"
+default-features = false
+
+[dependencies.util]
+path = "../../components/util"
+
+[dependencies.egl]
+git = "https://github.com/servo/rust-egl"
