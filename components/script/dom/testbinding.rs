@@ -57,7 +57,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetEnumAttribute(self, _: TestEnum) {}
     fn InterfaceAttribute(self) -> Temporary<Blob> {
         let global = self.global.root();
-        Blob::new(global.root_ref())
+        Blob::new(&global.root_ref(), None)
     }
     fn SetInterfaceAttribute(self, _: JSRef<Blob>) {}
     fn UnionAttribute(self) -> HTMLElementOrLong { eLong(0) }
@@ -96,7 +96,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn GetEnumAttributeNullable(self) -> Option<TestEnum> { Some(_empty) }
     fn GetInterfaceAttributeNullable(self) -> Option<Temporary<Blob>> {
         let global = self.global.root();
-        Some(Blob::new(global.root_ref()))
+        Some(Blob::new(&global.root_ref(), None))
     }
     fn SetInterfaceAttributeNullable(self, _: Option<JSRef<Blob>>) {}
     fn GetUnionAttributeNullable(self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
@@ -120,7 +120,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn ReceiveEnum(self) -> TestEnum { _empty }
     fn ReceiveInterface(self) -> Temporary<Blob> {
         let global = self.global.root();
-        Blob::new(global.root_ref())
+        Blob::new(&global.root_ref(), None)
     }
     fn ReceiveAny(self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveUnion(self) -> HTMLElementOrLong { eLong(0) }
@@ -142,7 +142,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn ReceiveNullableEnum(self) -> Option<TestEnum> { Some(_empty) }
     fn ReceiveNullableInterface(self) -> Option<Temporary<Blob>> {
         let global = self.global.root();
-        Some(Blob::new(global.root_ref()))
+        Some(Blob::new(&global.root_ref(), None))
     }
     fn ReceiveNullableUnion(self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
     fn ReceiveNullableUnion2(self) -> Option<EventOrString> { Some(eString("".to_string())) }
