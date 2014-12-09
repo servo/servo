@@ -152,3 +152,32 @@ class MachCommands(CommandBase):
             ["git", "submodule", "--quiet", "sync", "--recursive"])
         subprocess.check_call(
             ["git", "submodule", "update", "--init", "--recursive"])
+
+    @Command('clean-snapshots',
+             description='Clean unused snapshots of Rust and Cargo',
+             category='bootstrap')
+    @CommandArgument('--force', '-f',
+                     action='store_true',
+                     help='Actually remove stuff')
+    def clean_snapshots(self, force=False):
+        rust_current = self.rust_snapshot_path().split('/')[0]
+        cargo_current = self.cargo_build_id()
+        print("Current Rust version: " + rust_current)
+        print("Current Cargo version: " + cargo_current)
+        removing_anything = False
+        for current, base in [(rust_current, "rust"), (cargo_current, "cargo")]:
+            base = path.join(self.context.sharedir, base)
+            for name in os.listdir(base):
+                if name != current:
+                    removing_anything = True
+                    name = path.join(base, name)
+                    if force:
+                        print("Removing " + name)
+                        shutil.rmtree(name)
+                    else:
+                        print("Would remove " + name)
+        if not removing_anything:
+            print("Nothing to remove.")
+        elif not force:
+            print("Nothing done. "
+                  "Run `./mach clean-snapshots -f` to actually remove.")
