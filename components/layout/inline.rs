@@ -169,16 +169,16 @@ enum WrapMode {
 }
 
 struct LineBreaker {
-    pub floats: Floats,
-    pub new_fragments: Vec<Fragment>,
-    pub work_list: RingBuf<Fragment>,
-    pub pending_line: Line,
-    pub lines: Vec<Line>,
-    pub cur_b: Au,  // Current position on the block direction
+    floats: Floats,
+    new_fragments: Vec<Fragment>,
+    work_list: RingBuf<Fragment>,
+    pending_line: Line,
+    lines: Vec<Line>,
+    cur_b: Au,  // Current position on the block direction
 }
 
 impl LineBreaker {
-    pub fn new(float_context: Floats) -> LineBreaker {
+    fn new(float_context: Floats) -> LineBreaker {
         LineBreaker {
             new_fragments: Vec::new(),
             work_list: RingBuf::new(),
@@ -193,7 +193,7 @@ impl LineBreaker {
         }
     }
 
-    pub fn floats(&mut self) -> Floats {
+    fn floats(&mut self) -> Floats {
         self.floats.clone()
     }
 
@@ -215,7 +215,7 @@ impl LineBreaker {
         self.pending_line.green_zone = LogicalSize::zero(self.floats.writing_mode)
     }
 
-    pub fn scan_for_lines(&mut self, flow: &mut InlineFlow, layout_context: &LayoutContext) {
+    fn scan_for_lines(&mut self, flow: &mut InlineFlow, layout_context: &LayoutContext) {
         self.reset_scanner();
 
         let mut old_fragments = mem::replace(&mut flow.fragments, InlineFragments::new());
