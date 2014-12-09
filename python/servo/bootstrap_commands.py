@@ -164,17 +164,20 @@ class MachCommands(CommandBase):
         cargo_current = self.cargo_build_id()
         print("Current Rust version: " + rust_current)
         print("Current Cargo version: " + cargo_current)
-        action = "Removing " if force else "Would remove "
+        removing_anything = False
         for current, base in [(rust_current, "rust"), (cargo_current, "cargo")]:
             base = path.join(self.context.sharedir, base)
             for name in os.listdir(base):
                 if name != current:
+                    removing_anything = True
                     name = path.join(base, name)
                     if force:
                         print("Removing " + name)
                         shutil.rmtree(name)
                     else:
                         print("Would remove " + name)
-        if not force:
+        if not removing_anything:
+            print("Nothing to remove.")
+        elif not force:
             print("Nothing done. "
                   "Run `./mach clean-snapshots -f` to actually remove.")
