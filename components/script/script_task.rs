@@ -690,7 +690,7 @@ impl ScriptTask {
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
-        let mut url = load_data.url.clone();
+        let url = load_data.url.clone();
         debug!("ScriptTask: loading {} on page {}", url, pipeline_id);
 
         let page = self.page.borrow_mut();
@@ -782,19 +782,18 @@ impl ScriptTask {
         };
 
         parse_html(*document, parser_input, &final_url);
-        url = page.get_url().clone();
 
         document.set_ready_state(DocumentReadyStateValues::Interactive);
 
         // Kick off the initial reflow of the page.
-        debug!("kicking off initial reflow of {}", url);
+        debug!("kicking off initial reflow of {}", final_url);
         document.content_changed(NodeCast::from_ref(*document));
         window.flush_layout();
 
         {
             // No more reflow required
             let mut page_url = page.mut_url();
-            *page_url = Some((url.clone(), false));
+            *page_url = Some((final_url.clone(), false));
         }
 
         // https://html.spec.whatwg.org/multipage/#the-end step 4
@@ -814,7 +813,7 @@ impl ScriptTask {
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
         let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
 
-        *page.fragment_name.borrow_mut() = url.fragment;
+        *page.fragment_name.borrow_mut() = final_url.fragment;
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(LoadCompleteMsg);
