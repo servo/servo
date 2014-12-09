@@ -191,3 +191,5 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == text_transform_uppercase_a.html text_transform_uppercase_ref.html
 == text_transform_lowercase_a.html text_transform_lowercase_ref.html
 == text_transform_capitalize_a.html text_transform_capitalize_ref.html
+== outlines_simple_a.html outlines_simple_ref.html
+== outlines_wrap_a.html outlines_wrap_ref.html

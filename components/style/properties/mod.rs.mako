@@ -355,6 +355,38 @@ pub mod longhands {
         </%self:longhand>
     % endfor
 
+    ${new_style_struct("Outline", is_inherited=False)}
+
+    // TODO(pcwalton): `invert`
+    ${predefined_type("outline-color", "CSSColor", "CurrentColor")}
+
+    <%self:single_component_value name="outline-style">
+        pub use super::border_top_style::{get_initial_value, to_computed_value};
+        pub type SpecifiedValue = super::border_top_style::SpecifiedValue;
+        pub mod computed_value {
+            pub type T = super::super::border_top_style::computed_value::T;
+        }
+        pub fn from_component_value(value: &ComponentValue, base_url: &Url)
+                                    -> Result<SpecifiedValue,()> {
+            match value {
+                &Ident(ref ident) if ident.eq_ignore_ascii_case("hidden") => {
+                    // `hidden` is not a valid value.
+                    Err(())
+                }
+                _ => super::border_top_style::from_component_value(value, base_url)
+            }
+        }
+    </%self:single_component_value>
+
+    <%self:longhand name="outline-width">
+        pub use super::border_top_width::{get_initial_value, parse};
+        pub use computed::compute_Au as to_computed_value;
+        pub type SpecifiedValue = super::border_top_width::SpecifiedValue;
+        pub mod computed_value {
+            pub type T = super::super::border_top_width::computed_value::T;
+        }
+    </%self:longhand>
+
     ${new_style_struct("PositionOffsets", is_inherited=False)}
 
     % for side in ["top", "right", "bottom", "left"]:
@@ -1542,6 +1574,52 @@ pub mod shorthands {
                 radius: radii[3],
             }),
         })
+    </%self:shorthand>
+
+    <%self:shorthand name="outline" sub_properties="outline-color outline-style outline-width">
+        let (mut color, mut style, mut width, mut any) = (None, None, None, false);
+        for component_value in input.skip_whitespace() {
+            if color.is_none() {
+                match specified::CSSColor::parse(component_value) {
+                    Ok(c) => {
+                        color = Some(c);
+                        any = true;
+                        continue
+                    }
+                    Err(()) => {}
+                }
+            }
+            if style.is_none() {
+                match border_top_style::from_component_value(component_value, base_url) {
+                    Ok(s) => {
+                        style = Some(s);
+                        any = true;
+                        continue
+                    }
+                    Err(()) => {}
+                }
+            }
+            if width.is_none() {
+                match parse_border_width(component_value, base_url) {
+                    Ok(w) => {
+                        width = Some(w);
+                        any = true;
+                        continue
+                    }
+                    Err(()) => {}
+                }
+            }
+            return Err(())
+        }
+        if any {
+            Ok(Longhands {
+                outline_color: color,
+                outline_style: style,
+                outline_width: width,
+            })
+        } else {
+            Err(())
+        }
     </%self:shorthand>
 
     <%self:shorthand name="font" sub_properties="font-style font-variant font-weight
