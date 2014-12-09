@@ -430,6 +430,7 @@ pub trait MutableOwnedFlowUtils {
 pub enum FlowClass {
     BlockFlowClass,
     InlineFlowClass,
+    ListItemFlowClass,
     TableWrapperFlowClass,
     TableFlowClass,
     TableColGroupFlowClass,

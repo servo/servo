@@ -23,7 +23,7 @@ use sync::Arc;
 /// A table formatting context.
 #[deriving(Encodable)]
 pub struct TableCellFlow {
-    /// Data common to all flows.
+    /// Data common to all block flows.
     pub block_flow: BlockFlow,
 }
 
