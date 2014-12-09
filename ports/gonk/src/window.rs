@@ -44,7 +44,6 @@ const GRALLOC_USAGE_HW_FB: c_int = 0x00001000;
 // system/core/include/cutils/native_handle.h
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct native_handle {
     version: c_int,
     numFds: c_int,
@@ -55,7 +54,6 @@ pub struct native_handle {
 // system/core/include/system/window.h
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct ANativeBase {
     magic: u32,
     version: u32,
@@ -65,7 +63,6 @@ pub struct ANativeBase {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct ANativeWindowBuffer {
     common: ANativeBase,
     width: c_int,
@@ -79,7 +76,6 @@ pub struct ANativeWindowBuffer {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct ANativeWindow {
     common: ANativeBase,
     flags: u32,
@@ -107,13 +103,11 @@ pub struct ANativeWindow {
 // hardware/libhardware/include/hardware/hardware.h
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct hw_module_methods {
     open: extern fn(*const hw_module, *const c_char, *mut *const hw_device) -> c_int,
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct hw_module {
     tag: u32,
     module_api_version: u16,
@@ -127,7 +121,6 @@ pub struct hw_module {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct hw_device {
     tag: u32,
     version: u32,
@@ -137,7 +130,6 @@ pub struct hw_device {
 }
 
 #[link(name = "hardware")]
-#[allow(dead_code)]
 extern {
     fn hw_get_module(id: *const c_char, module: *mut *const hw_module) -> c_int;
 }
@@ -145,7 +137,6 @@ extern {
 // hardware/libhardware/include/hardware/hwcomposer.h
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct hwc_color {
     r: u8,
     g: u8,
@@ -154,7 +145,6 @@ pub struct hwc_color {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct hwc_rect {
     left: c_int,
     top: c_int,
@@ -163,7 +153,6 @@ pub struct hwc_rect {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct hwc_region {
     numRects: i32,
     rects: *const hwc_rect,
@@ -178,7 +167,6 @@ const HWC_BLIT: i32 = 4;
 const HWC_SKIP_LAYER: u32 = 1;
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct hwc_layer {
     compositionType: i32,
     hints: u32,
@@ -197,7 +185,6 @@ pub struct hwc_layer {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct hwc_display_contents {
     retireFenceFd: c_int,
     // HWC 1.0 not supported
@@ -209,7 +196,6 @@ pub struct hwc_display_contents {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct hwc_procs {
     invalidate: extern fn(*const hwc_procs),
     vsync: extern fn(*const hwc_procs, c_int, i64),
@@ -224,7 +210,6 @@ const HWC_DISPLAY_DPI_X: u32 = 4;
 const HWC_DISPLAY_DPI_Y: u32 = 5;
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct hwc_composer_device {
     common: hw_device,
     prepare: extern fn(*mut hwc_composer_device, size_t, *mut *mut hwc_display_contents) -> c_int,
@@ -242,7 +227,6 @@ pub struct hwc_composer_device {
 // system/core/include/system/graphics.h
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct android_ycbcr {
     y: *mut c_void,
     cb: *mut c_void,
@@ -256,7 +240,6 @@ pub struct android_ycbcr {
 // hardware/libhardware/include/hardware/gralloc.h
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct gralloc_module {
     common: hw_module,
     registerBuffer: extern fn(*const gralloc_module, *const native_handle) -> c_int,
@@ -269,7 +252,6 @@ pub struct gralloc_module {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct alloc_device {
     common: hw_device,
     allocSize: extern fn(*mut alloc_device, c_int, c_int, c_int, c_int, *mut *const native_handle, *mut c_int, c_int) -> c_int,
@@ -280,7 +262,6 @@ pub struct alloc_device {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
 pub struct GonkNativeWindow {
     window: ANativeWindow,
     set_usage: extern fn(*mut GonkNativeWindow, c_int) -> c_int,
