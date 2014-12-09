@@ -72,7 +72,7 @@ name = "cookie"
 version = "0.0.1"
 source = "git+https://github.com/servo/cookie-rs#30520767a95b92e39265aaf6822db515b2418f1d"
 dependencies = [
- "openssl 0.0.1 (git+https://github.com/servo/rust-openssl.git)",
+ "openssl 0.0.1 (git+https://github.com/servo/rust-openssl)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
 ]
 
@@ -294,7 +294,7 @@ dependencies = [
  "cookie 0.0.1 (git+https://github.com/servo/cookie-rs)",
  "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
  "move-acceptor 0.0.1 (git+https://github.com/reem/rust-move-acceptor)",
- "openssl 0.0.1 (git+https://github.com/servo/rust-openssl.git)",
+ "openssl 0.0.1 (git+https://github.com/servo/rust-openssl)",
  "typeable 0.0.3 (git+https://github.com/reem/rust-typeable)",
  "unsafe-any 0.1.1 (git+https://github.com/reem/rust-unsafe-any)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
@@ -431,7 +431,7 @@ source = "git+https://github.com/servo/rust-opengles#7f025f0069fbf6fefef4ed383b9
 [[package]]
 name = "openssl"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-openssl.git#0a3cace0265fe286b505508aa6e5096fc94a6896"
+source = "git+https://github.com/servo/rust-openssl#82b520100532dba9a4cdd4588709eaedb37c7a77"
 dependencies = [
  "libressl-pnacl-sys 2.0.2 (git+https://github.com/DiamondLovesYou/libressl-pnacl-sys.git)",
  "openssl-sys 0.0.1 (git+https://github.com/servo/rust-openssl)",
@@ -440,7 +440,7 @@ dependencies = [
 [[package]]
 name = "openssl-sys"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-openssl#0a3cace0265fe286b505508aa6e5096fc94a6896"
+source = "git+https://github.com/servo/rust-openssl#82b520100532dba9a4cdd4588709eaedb37c7a77"
 dependencies = [
  "pkg-config 0.1.0 (git+https://github.com/alexcrichton/pkg-config-rs)",
 ]
