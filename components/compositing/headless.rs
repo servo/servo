@@ -5,7 +5,8 @@
 use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
 use compositor_task::{Exit, ChangeReadyState, LoadComplete, Paint, ScrollFragmentPoint, SetIds};
 use compositor_task::{SetLayerOrigin, ShutdownComplete, ChangePaintState, PaintMsgDiscarded};
-use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout, FrameTreeUpdateMsg};
+use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout, ChangePageTitle};
+use compositor_task::{ChangePageLoadData, FrameTreeUpdateMsg};
 use windowing::WindowEvent;
 
 use geom::scale_factor::ScaleFactor;
@@ -104,7 +105,8 @@ impl CompositorEventListener for NullCompositor {
             CreateOrUpdateDescendantLayer(..) |
             SetLayerOrigin(..) | Paint(..) |
             ChangeReadyState(..) | ChangePaintState(..) | ScrollFragmentPoint(..) |
-            LoadComplete | PaintMsgDiscarded(..) | ScrollTimeout(..) => ()
+            LoadComplete | PaintMsgDiscarded(..) | ScrollTimeout(..) | ChangePageTitle(..) |
+            ChangePageLoadData(..) => ()
         }
         true
     }
@@ -119,4 +121,10 @@ impl CompositorEventListener for NullCompositor {
         self.time_profiler_chan.send(time::ExitMsg);
         self.memory_profiler_chan.send(memory::ExitMsg);
     }
+
+    fn pinch_zoom_level(&self) -> f32 {
+        1.0
+    }
+
+    fn get_title_for_main_frame(&self) {}
 }

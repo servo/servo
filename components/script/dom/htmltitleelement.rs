@@ -5,15 +5,17 @@
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLTitleElementDerived, NodeCast, TextCast};
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{TextCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::element::HTMLTitleElementTypeId;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use dom::text::Text;
+use dom::virtualmethods::VirtualMethods;
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -68,3 +70,19 @@ impl Reflectable for HTMLTitleElement {
         self.htmlelement.reflector()
     }
 }
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        Some(htmlelement as &VirtualMethods)
+    }
+
+    fn bind_to_tree(&self, is_in_doc: bool) {
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        if is_in_doc {
+            let document = node.owner_doc().root();
+            document.send_title_to_compositor()
+        }
+    }
+}
+

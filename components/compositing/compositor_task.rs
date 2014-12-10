@@ -5,7 +5,7 @@
 //! Communication with the compositor task.
 
 pub use windowing;
-pub use constellation::{SendableFrameTree, FrameTreeDiff};
+pub use constellation::{FrameId, SendableFrameTree, FrameTreeDiff};
 
 use compositor;
 use headless;
@@ -19,7 +19,7 @@ use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphics
 use layers::layers::LayerBufferSet;
 use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
+use servo_msg::constellation_msg::{ConstellationChan, LoadData, PipelineId};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
@@ -81,8 +81,13 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
     fn dup(&mut self) -> Box<ScriptListener+'static> {
         box self.clone_compositor_proxy() as Box<ScriptListener+'static>
     }
+
+    fn set_title(&mut self, pipeline_id: PipelineId, title: Option<String>) {
+        self.send(ChangePageTitle(pipeline_id, title))
+    }
 }
 
+/// Information about each layer that the compositor keeps.
 pub struct LayerProperties {
     pub pipeline_id: PipelineId,
     pub epoch: Epoch,
@@ -184,9 +189,13 @@ pub enum Msg {
     ChangeReadyState(PipelineId, ReadyState),
     /// Alerts the compositor to the current status of painting.
     ChangePaintState(PipelineId, PaintState),
-    /// Alerts the compositor that the PaintMsg has been discarded.
+    /// Alerts the compositor that the current page has changed its title.
+    ChangePageTitle(PipelineId, Option<String>),
+    /// Alerts the compositor that the current page has changed its load data (including URL).
+    ChangePageLoadData(FrameId, LoadData),
+    /// Alerts the compositor that a `PaintMsg` has been discarded.
     PaintMsgDiscarded,
-    /// Sets the channel to the current layout and paint tasks, along with their id
+    /// Sets the channel to the current layout and paint tasks, along with their ID.
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// Sends an updated version of the frame tree.
     FrameTreeUpdateMsg(FrameTreeDiff, Sender<()>),
@@ -210,6 +219,8 @@ impl Show for Msg {
             Paint(..) => write!(f, "Paint"),
             ChangeReadyState(..) => write!(f, "ChangeReadyState"),
             ChangePaintState(..) => write!(f, "ChangePaintState"),
+            ChangePageTitle(..) => write!(f, "ChangePageTitle"),
+            ChangePageLoadData(..) => write!(f, "ChangePageLoadData"),
             PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
             SetIds(..) => write!(f, "SetIds"),
             FrameTreeUpdateMsg(..) => write!(f, "FrameTreeUpdateMsg"),
@@ -269,5 +280,8 @@ pub trait CompositorEventListener {
     fn handle_event(&mut self, event: WindowEvent) -> bool;
     fn repaint_synchronously(&mut self);
     fn shutdown(&mut self);
+    fn pinch_zoom_level(&self) -> f32;
+    /// Requests that the compositor send the title for the main frame as soon as possible.
+    fn get_title_for_main_frame(&self);
 }
 

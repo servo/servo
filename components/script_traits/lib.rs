@@ -65,7 +65,10 @@ pub enum ConstellationControlMsg {
     SendEventMsg(PipelineId, CompositorEvent),
     /// Notifies script that reflow is finished.
     ReflowCompleteMsg(PipelineId, uint),
+    /// Notifies script of the viewport.
     ViewportMsg(PipelineId, Rect<f32>),
+    /// Requests that the script task immediately send the constellation the title of a pipeline.
+    GetTitleMsg(PipelineId),
 }
 
 /// Events from the compositor that the script task needs to know about

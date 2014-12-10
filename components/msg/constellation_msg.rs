@@ -205,6 +205,9 @@ pub enum Msg {
     PainterReadyMsg(PipelineId),
     ResizedWindowMsg(WindowSizeData),
     KeyEvent(Key, KeyState, KeyModifiers),
+    /// Requests that the constellation inform the compositor of the title of the pipeline
+    /// immediately.
+    GetPipelineTitleMsg(PipelineId),
 }
 
 /// Similar to net::resource_task::LoadData

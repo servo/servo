@@ -46,7 +46,7 @@ pub fn command_line_init(argc: c_int, argv: *const *const u8) {
 #[no_mangle]
 pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, name: *const cef_string_t) -> cef_string_userfree_t {
     if cmd.is_null() || name.is_null() {
-        return cef_string::empty_utf16_string()
+        return cef_string::empty_utf16_userfree_string()
     }
     unsafe {
         //technically cef_string_t can be any type of character size
@@ -67,11 +67,11 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
                                          &mut string,
                                          1);
                 });
-                return string
+                return cef_string::string_to_userfree_string(string)
             }
         }
     }
-    return cef_string::empty_utf16_string()
+    return cef_string::empty_utf16_userfree_string()
 }
 
 #[no_mangle]
