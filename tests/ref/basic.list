@@ -187,3 +187,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == incremental_float_a.html incremental_float_ref.html
 == opacity_simple_a.html opacity_simple_ref.html
 == opacity_stacking_context_a.html opacity_stacking_context_ref.html
+== text_transform_none_a.html text_transform_none_ref.html
+== text_transform_uppercase_a.html text_transform_uppercase_ref.html
+== text_transform_lowercase_a.html text_transform_lowercase_ref.html
+== text_transform_capitalize_a.html text_transform_capitalize_ref.html
