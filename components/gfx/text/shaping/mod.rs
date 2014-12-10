@@ -7,6 +7,7 @@
 //!
 //! Currently, only harfbuzz bindings are implemented.
 
+use font::ShapingOptions;
 use text::glyph::GlyphStore;
 
 pub use text::shaping::harfbuzz::Shaper;
@@ -14,6 +15,6 @@ pub use text::shaping::harfbuzz::Shaper;
 pub mod harfbuzz;
 
 pub trait ShaperMethods {
-    fn shape_text(&self, text: &str, glyphs: &mut GlyphStore);
+    fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore);
 }
 

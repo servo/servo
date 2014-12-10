@@ -9,7 +9,8 @@
 use fragment::{Fragment, ScannedTextFragmentInfo, UnscannedTextFragment};
 use inline::InlineFragments;
 
-use gfx::font::{FontMetrics,RunMetrics};
+use gfx::font::{FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG, RunMetrics, ShapingFlags};
+use gfx::font::{ShapingOptions};
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
@@ -105,6 +106,7 @@ impl TextRunScanner {
             let fontgroup;
             let compression;
             let text_transform;
+            let letter_spacing;
             {
                 let in_fragment = self.clump.front().unwrap();
                 let font_style = in_fragment.style().get_font_arc();
@@ -114,6 +116,7 @@ impl TextRunScanner {
                     white_space::pre => CompressNone,
                 };
                 text_transform = in_fragment.style().get_inheritedtext().text_transform;
+                letter_spacing = in_fragment.style().get_inheritedtext().letter_spacing;
             }
 
             // First, transform/compress text of all the nodes.
@@ -150,7 +153,22 @@ impl TextRunScanner {
                 self.clump = DList::new();
                 return last_whitespace
             }
-            Arc::new(box TextRun::new(&mut *fontgroup.fonts.get(0).borrow_mut(), run_text))
+
+            // Per CSS 2.1 § 16.4, "when the resultant space between two characters is not the same
+            // as the default space, user agents should not use ligatures." This ensures that, for
+            // example, `finally` with a wide `letter-spacing` renders as `f i n a l l y` and not
+            // `ﬁ n a l l y`.
+            let options = ShapingOptions {
+                letter_spacing: letter_spacing,
+                flags: match letter_spacing {
+                    Some(Au(0)) | None => ShapingFlags::empty(),
+                    Some(_) => IGNORE_LIGATURES_SHAPING_FLAG,
+                },
+            };
+
+            Arc::new(box TextRun::new(&mut *fontgroup.fonts.get(0).borrow_mut(),
+                                      run_text,
+                                      &options))
         };
 
         // Make new fragments with the run and adjusted text indices.
