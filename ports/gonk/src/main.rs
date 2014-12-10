@@ -28,6 +28,7 @@ use servo_util::opts;
 use servo_util::rtinstrument;
 use servo::Browser;
 use compositing::windowing::IdleWindowEvent;
+use compositing::windowing::InitializeCompositingWindowEvent;
 
 use std::os;
 
@@ -57,6 +58,8 @@ fn start(argc: int, argv: *const *const u8) -> int {
                 None => (),
                 Some(ref window) => input::run_input_loop(&window.event_send)
             }
+
+            browser.browser.handle_event(InitializeCompositingWindowEvent);
 
             loop {
                 let should_continue = match window {
