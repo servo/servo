@@ -270,14 +270,14 @@ impl Page {
 
 impl Iterator<Rc<Page>> for PageIterator {
     fn next(&mut self) -> Option<Rc<Page>> {
-        if !self.stack.is_empty() {
-            let next = self.stack.pop().unwrap();
-            for child in next.children.borrow().iter() {
-                self.stack.push(child.clone());
-            }
-            Some(next.clone())
-        } else {
-            None
+        match self.stack.pop() {
+            Some(next) => {
+                for child in next.children.borrow().iter() {
+                    self.stack.push(child.clone());
+                }
+                Some(next)
+            },
+            None => None,
         }
     }
 }
