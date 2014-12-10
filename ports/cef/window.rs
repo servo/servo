@@ -37,21 +37,40 @@ pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
 }
 
+#[cfg(target_os="macos")]
+fn load_gl() {
+    const RTLD_DEFAULT: *mut c_void = (-2) as *mut c_void;
+
+    extern {
+        fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
+    }
+
+    gl::load_with(|s| {
+        unsafe {
+            let c_str = s.to_c_str();
+            dlsym(RTLD_DEFAULT, c_str.as_ptr()) as *const c_void
+        }
+    });
+}
+
+#[cfg(target_os="linux")]
+fn load_gl() {
+    extern {
+        fn glXGetProcAddress(symbol: *const c_char) -> *mut c_void;
+    }
+
+    gl::load_with(|s| {
+        unsafe {
+            let c_str = s.to_c_str();
+            glXGetProcAddress(c_str.as_ptr()) as *const c_void
+        }
+    });
+}
+
 impl Window {
     /// Creates a new window.
     pub fn new() -> Rc<Window> {
-        const RTLD_DEFAULT: *mut c_void = (-2) as *mut c_void;
-
-        extern {
-            fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
-        }
-
-        gl::load_with(|s| {
-            unsafe {
-                let c_str = s.to_c_str();
-                dlsym(RTLD_DEFAULT, c_str.as_ptr()) as *const c_void
-            }
-        });
+        load_gl();
 
         Rc::new(Window {
             cef_browser: RefCell::new(None),
@@ -164,8 +183,15 @@ impl WindowMethods for Window {
 
     #[cfg(target_os="linux")]
     fn native_metadata(&self) -> NativeGraphicsMetadata {
-        // TODO(pcwalton)
-        panic!()
+        extern {
+            fn cef_get_xdisplay() -> *mut c_void;
+        }
+
+        unsafe {
+            NativeGraphicsMetadata {
+                display: cef_get_xdisplay()
+            }
+        }
     }
 
     fn create_compositor_channel(_: &Option<Rc<Window>>)

@@ -119,6 +119,7 @@ macro_rules! cef_stub_static_method_impls(
         )*
     ) => (
         $(
+            #[no_mangle]
             pub extern "C" fn $method_name($(_: $method_arg_type),*)
                                            -> $method_return_type {
                 panic!("unimplemented static method: {}", stringify!($method_name))
