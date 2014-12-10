@@ -19,15 +19,15 @@ pub enum NodeListType {
 
 #[dom_struct]
 pub struct NodeList {
-    list_type: NodeListType,
     reflector_: Reflector,
+    list_type: NodeListType,
 }
 
 impl NodeList {
     fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
-            list_type: list_type,
             reflector_: Reflector::new(),
+            list_type: list_type,
         }
     }
 

@@ -50,3 +50,46 @@ impl HTMLTableRowElement {
     }
 }
 
+
+pub trait HTMLTableRowElementHelpers {
+    fn get_background_color(&self) -> Option<RGBA>;
+}
+
+impl HTMLTableRowElementHelpers for HTMLTableRowElement {
+    fn get_background_color(&self) -> Option<RGBA> {
+        self.background_color.get()
+    }
+}
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLTableRowElement> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        Some(htmlelement as &VirtualMethods)
+    }
+
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
+        match self.super_type() {
+            Some(ref s) => s.after_set_attr(attr),
+            _ => ()
+        }
+
+        match attr.local_name() {
+            &atom!("bgcolor") => {
+                self.background_color.set(str::parse_legacy_color(attr.value().as_slice()).ok())
+            }
+            _ => {}
+        }
+    }
+
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+        match self.super_type() {
+            Some(ref s) => s.before_remove_attr(attr),
+            _ => ()
+        }
+
+        match attr.local_name() {
+            &atom!("bgcolor") => self.background_color.set(None),
+            _ => {}
+        }
+    }
+}

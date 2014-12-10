@@ -32,15 +32,15 @@ pub enum CollectionTypeId {
 
 #[dom_struct]
 pub struct HTMLCollection {
-    collection: CollectionTypeId,
     reflector_: Reflector,
+    collection: CollectionTypeId,
 }
 
 impl HTMLCollection {
     fn new_inherited(collection: CollectionTypeId) -> HTMLCollection {
         HTMLCollection {
-            collection: collection,
             reflector_: Reflector::new(),
+            collection: collection,
         }
     }
 

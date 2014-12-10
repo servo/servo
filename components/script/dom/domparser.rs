@@ -19,15 +19,15 @@ use servo_util::str::DOMString;
 
 #[dom_struct]
 pub struct DOMParser {
+    reflector_: Reflector,
     window: JS<Window>, //XXXjdm Document instead?
-    reflector_: Reflector
 }
 
 impl DOMParser {
     fn new_inherited(window: JSRef<Window>) -> DOMParser {
         DOMParser {
+            reflector_: Reflector::new(),
             window: JS::from_rooted(window),
-            reflector_: Reflector::new()
         }
     }
 

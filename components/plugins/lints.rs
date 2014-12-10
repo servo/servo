@@ -272,9 +272,18 @@ impl LintPass for InheritancePass {
         // #[_dom_struct_marker] here without also checking for #[dom_struct]
         if ty::has_attr(cx.tcx, ast_util::local_def(id), "_dom_struct_marker") {
             // Find the reflector, if any
-            let reflector_span = def.fields.iter()
-                                    .find(|f| match_lang_ty(cx, &*f.node.ty, "reflector"))
-                                    .map(|f| f.span);
+            let reflector_span = def.fields.iter().enumerate()
+                                    .find(|&(ctr, f)| {
+                                        if match_lang_ty(cx, &*f.node.ty, "reflector") {
+                                            if ctr > 0 {
+                                                cx.span_lint(INHERITANCE_INTEGRITY, f.span,
+                                                             "The Reflector should be the first field of the DOM struct");                                            
+                                            }
+                                            return true;
+                                        }
+                                        false
+                                    })
+                                    .map(|(_, f)| f.span);
             // Find all #[dom_struct] fields
             let dom_spans: Vec<_> = def.fields.iter().enumerate().filter_map(|(ctr, f)| {
                 if let ast::TyPath(_, _, ty_id) = f.node.ty.node {

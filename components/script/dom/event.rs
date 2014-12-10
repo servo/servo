@@ -51,8 +51,8 @@ pub enum EventCancelable {
 
 #[dom_struct]
 pub struct Event {
-    type_id: EventTypeId,
     reflector_: Reflector,
+    type_id: EventTypeId,
     current_target: MutNullableJS<EventTarget>,
     target: MutNullableJS<EventTarget>,
     type_: DOMRefCell<DOMString>,
@@ -71,8 +71,8 @@ pub struct Event {
 impl Event {
     pub fn new_inherited(type_id: EventTypeId) -> Event {
         Event {
-            type_id: type_id,
             reflector_: Reflector::new(),
+            type_id: type_id,
             current_target: Default::default(),
             target: Default::default(),
             phase: Cell::new(EventPhase::None),

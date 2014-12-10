@@ -24,15 +24,15 @@ use std::ascii::OwnedAsciiExt;
 
 #[dom_struct]
 pub struct URLSearchParams {
-    data: DOMRefCell<HashMap<DOMString, Vec<DOMString>>>,
     reflector_: Reflector,
+    data: DOMRefCell<HashMap<DOMString, Vec<DOMString>>>,
 }
 
 impl URLSearchParams {
     fn new_inherited() -> URLSearchParams {
         URLSearchParams {
-            data: DOMRefCell::new(HashMap::new()),
             reflector_: Reflector::new(),
+            data: DOMRefCell::new(HashMap::new()),
         }
     }
 

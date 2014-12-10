@@ -64,3 +64,17 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
     }
 }
 
+impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        Some(htmlelement as &VirtualMethods)
+    }
+
+    fn bind_to_tree(&self, is_in_doc: bool) {
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        if is_in_doc {
+            let document = node.owner_doc().root();
+            document.send_title_to_compositor()
+        }
+    }
+}
