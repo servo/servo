@@ -189,6 +189,7 @@ pub trait DocumentHelpers<'a> {
     fn begin_focus_transaction(self);
     fn request_focus(self, elem: JSRef<Element>);
     fn commit_focus_transaction(self);
+    fn send_title_to_compositor(self);
 }
 
 impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
@@ -368,6 +369,12 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     fn commit_focus_transaction(self) {
         //TODO: dispatch blur, focus, focusout, and focusin events
         self.focused.assign(self.possibly_focused.get());
+    }
+
+    /// Sends this document's title to the compositor.
+    fn send_title_to_compositor(self) {
+        let window = self.window().root();
+        window.page().send_title_to_compositor();
     }
 }
 
@@ -985,3 +992,4 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     global_event_handlers!()
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange)
 }
+

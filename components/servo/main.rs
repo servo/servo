@@ -30,7 +30,9 @@ use servo_util::rtinstrument;
 #[cfg(not(any(test,target_os="android")))]
 use servo::Browser;
 #[cfg(not(any(test,target_os="android")))]
-use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, WindowEvent};
+use compositing::windowing::{IdleWindowEvent, InitializeCompositingWindowEvent, ResizeWindowEvent};
+#[cfg(not(any(test,target_os="android")))]
+use compositing::windowing::{WindowEvent};
 
 #[cfg(not(any(test,target_os="android")))]
 use std::os;
@@ -64,6 +66,8 @@ fn start(argc: int, argv: *const *const u8) -> int {
                     }
                 }
             }
+
+            browser.browser.handle_event(InitializeCompositingWindowEvent);
 
             loop {
                 let should_continue = match window {

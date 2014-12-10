@@ -28,8 +28,10 @@ pub struct Pipeline {
     pub paint_chan: PaintChan,
     pub layout_shutdown_port: Receiver<()>,
     pub paint_shutdown_port: Receiver<()>,
-    /// The most recently loaded page
+    /// Load data corresponding to the most recently-loaded page.
     pub load_data: LoadData,
+    /// The title of the most recently-loaded page.
+    pub title: Option<String>,
 }
 
 /// The subset of the pipeline that is needed for layer composition.
@@ -44,21 +46,21 @@ impl Pipeline {
     /// Starts a paint task, layout task, and possibly a script task.
     /// Returns the channels wrapped in a struct.
     /// If script_pipeline is not None, then subpage_id must also be not None.
-    pub fn create<LTF:LayoutTaskFactory, STF:ScriptTaskFactory>(
-                      id: PipelineId,
-                      subpage_id: Option<SubpageId>,
-                      constellation_chan: ConstellationChan,
-                      compositor_proxy: Box<CompositorProxy+'static+Send>,
-                      devtools_chan: Option<DevtoolsControlChan>,
-                      image_cache_task: ImageCacheTask,
-                      font_cache_task: FontCacheTask,
-                      resource_task: ResourceTask,
-                      storage_task: StorageTask,
-                      time_profiler_chan: TimeProfilerChan,
-                      window_size: WindowSizeData,
-                      script_pipeline: Option<Rc<Pipeline>>,
-                      load_data: LoadData)
-                      -> Pipeline {
+    pub fn create<LTF,STF>(id: PipelineId,
+                           subpage_id: Option<SubpageId>,
+                           constellation_chan: ConstellationChan,
+                           compositor_proxy: Box<CompositorProxy+'static+Send>,
+                           devtools_chan: Option<DevtoolsControlChan>,
+                           image_cache_task: ImageCacheTask,
+                           font_cache_task: FontCacheTask,
+                           resource_task: ResourceTask,
+                           storage_task: StorageTask,
+                           time_profiler_chan: TimeProfilerChan,
+                           window_size: WindowSizeData,
+                           script_pipeline: Option<Rc<Pipeline>>,
+                           load_data: LoadData)
+                           -> Pipeline
+                           where LTF: LayoutTaskFactory, STF:ScriptTaskFactory {
         let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
         let (paint_port, paint_chan) = PaintChan::new();
         let (paint_shutdown_chan, paint_shutdown_port) = channel();
@@ -153,6 +155,7 @@ impl Pipeline {
             layout_shutdown_port: layout_shutdown_port,
             paint_shutdown_port: paint_shutdown_port,
             load_data: load_data,
+            title: None,
         }
     }
 

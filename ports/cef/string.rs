@@ -4,7 +4,7 @@
 
 
 use eutil::slice_to_str;
-use libc::{mod, size_t, c_int, c_ushort,c_void};
+use libc::{mod, size_t, c_int, c_ushort, c_void};
 use libc::types::os::arch::c95::wchar_t;
 use std::char;
 use std::mem;
@@ -54,7 +54,7 @@ pub extern "C" fn cef_string_userfree_utf8_free(cs: *mut cef_string_userfree_utf
 }
 
 #[no_mangle]
-pub extern "C" fn cef_string_userfree_utf16_free(cs: *mut cef_string_userfree_utf16_t) {
+pub extern "C" fn cef_string_userfree_utf16_free(cs: cef_string_userfree_utf16_t) {
     unsafe {
         cef_string_utf16_clear(cs);
         libc::free(cs as *mut c_void)
@@ -269,19 +269,6 @@ pub extern "C" fn cef_string_utf8_to_wide(src: *const u8, src_len: size_t, outpu
     })
 }
 
-/// Wraps a borrowed reference to a UTF-16 CEF string.
-pub struct CefStringRef<'a> {
-    pub c_object: &'a *const cef_string_utf16_t,
-}
-
-impl<'a> CefStringRef<'a> {
-    pub unsafe fn from_c_object(c_object: &'a *const cef_string_utf16_t) -> CefStringRef<'a> {
-        CefStringRef {
-            c_object: c_object,
-        }
-    }
-}
-
 #[no_mangle]
 pub extern "C" fn cef_string_wide_to_utf8(src: *const wchar_t, src_len: size_t, output: *mut cef_string_utf8_t) -> c_int {
     if mem::size_of::<wchar_t>() == mem::size_of::<u16>() {
@@ -319,5 +306,18 @@ pub fn empty_utf16_string() -> cef_string_utf16_t {
         length: 0,
         dtor: None,
     }
+}
+
+pub fn string_to_userfree_string(string: cef_string_utf16_t) -> cef_string_userfree_utf16_t {
+    unsafe {
+        let allocation: cef_string_userfree_utf16_t =
+            mem::transmute(libc::malloc(mem::size_of::<cef_string_utf16_t>() as size_t));
+        ptr::write(allocation, string);
+        allocation
+    }
+}
+
+pub fn empty_utf16_userfree_string() -> cef_string_userfree_utf16_t {
+    string_to_userfree_string(empty_utf16_string())
 }
 

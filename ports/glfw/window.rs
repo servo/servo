@@ -23,9 +23,9 @@ use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
-use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
-use msg::compositor_msg::{IdlePaintState, PaintState, PaintingPaintState};
-use msg::constellation_msg;
+use msg::compositor_msg::{Blank, FinishedLoading, IdlePaintState, Loading, PaintState};
+use msg::compositor_msg::{PaintingPaintState, PerformingLayout, ReadyState};
+use msg::constellation_msg::{mod, LoadData};
 use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
 use std::rc::Rc;
@@ -97,6 +97,15 @@ impl Window {
     }
 
     pub fn wait_events(&self) -> WindowEvent {
+        self.wait_or_poll_events(|glfw| glfw.wait_events())
+    }
+
+    pub fn poll_events(&self) -> WindowEvent {
+        self.wait_or_poll_events(|glfw| glfw.poll_events())
+    }
+
+    /// Helper method to factor out functionality from `poll_events` and `wait_events`.
+    fn wait_or_poll_events(&self, callback: |glfw: &glfw::Glfw|) -> WindowEvent {
         {
             let mut event_queue = self.event_queue.borrow_mut();
             if !event_queue.is_empty() {
@@ -104,7 +113,7 @@ impl Window {
             }
         }
 
-        self.glfw.wait_events();
+        callback(&self.glfw);
         for (_, event) in glfw::flush_messages(&self.events) {
             self.handle_window_event(&self.glfw_window, event);
         }
@@ -196,6 +205,16 @@ impl WindowMethods for Window {
          } as Box<CompositorProxy+Send>,
          box receiver as Box<CompositorReceiver>)
     }
+
+    fn prepare_for_composite(&self) -> bool {
+        true
+    }
+
+    fn load_end(&self) {}
+
+    fn set_page_title(&self, _: Option<String>) {}
+
+    fn set_page_load_data(&self, _: LoadData) {}
 }
 
 impl Window {

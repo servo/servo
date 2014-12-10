@@ -113,7 +113,7 @@ class MachCommands(CommandBase):
 
         build_start = time()
         with cd(path.join("ports", "cef")):
-            ret = subprocess.call(["cargo", "build"],
+            ret = subprocess.call(["cargo", "build"] + opts,
                                   env=self.build_env())
         elapsed = time() - build_start
 

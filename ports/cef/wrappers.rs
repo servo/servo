@@ -21,9 +21,9 @@ use types::{cef_load_handler_t, cef_menu_item_type_t, cef_mouse_button_type_t};
 use types::{cef_mouse_event, cef_navigation_type_t};
 use types::{cef_page_range_t, cef_paint_element_type_t, cef_point_t, cef_postdataelement_type_t};
 use types::{cef_popup_features_t, cef_process_id_t};
-use types::{cef_rect_t, cef_request_context_t, cef_request_handler_t};
+use types::{cef_rect_t, cef_request_handler_t};
 use types::{cef_resource_type_t};
-use types::{cef_screen_info_t, cef_size_t, cef_string_t};
+use types::{cef_screen_info_t, cef_size_t, cef_string_t, cef_string_userfree_t};
 use types::{cef_string_list_t, cef_string_map_t, cef_string_multimap_t, cef_string_utf16};
 use types::{cef_termination_status_t, cef_text_input_context_t, cef_thread_id_t};
 use types::{cef_time_t, cef_transition_type_t, cef_urlrequest_status_t};
@@ -126,7 +126,6 @@ cef_noop_wrapper!(*mut cef_geolocation_handler_t)
 cef_noop_wrapper!(*mut cef_jsdialog_handler_t)
 cef_noop_wrapper!(*mut cef_keyboard_handler_t)
 cef_noop_wrapper!(*mut cef_load_handler_t)
-cef_noop_wrapper!(*mut cef_request_context_t)
 cef_noop_wrapper!(*mut cef_request_handler_t)
 cef_noop_wrapper!(*mut cef_string_list_t)
 cef_noop_wrapper!(*mut cef_string_utf16)
@@ -181,9 +180,8 @@ cef_unimplemented_wrapper!(cef_string_t, String)
 impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
     fn to_c(buffer: &'a [u16]) -> *const cef_string_t {
         unsafe {
-            let ptr: *mut c_ushort =
-                mem::transmute(libc::calloc(1, ((buffer.len() * 2) + 1) as u64));
-            ptr::copy_memory(ptr, mem::transmute(buffer.as_ptr()), (buffer.len() * 2) as uint);
+            let ptr: *mut c_ushort = mem::transmute(libc::malloc(((buffer.len() + 1) * 2) as u64));
+            ptr::copy_memory(ptr, mem::transmute(buffer.as_ptr()), buffer.len());
             *ptr.offset(buffer.len() as int) = 0;
 
             // FIXME(pcwalton): This leaks!! We should instead have the caller pass some scratch
@@ -237,6 +235,71 @@ impl<'a,'b> CefWrap<*mut *const c_char> for &'a mut &'b str {
     }
     unsafe fn to_rust(_: *mut *const c_char) -> &'a mut &'b str {
         panic!("unimplemented CEF type conversion: *mut *const c_char")
+    }
+}
+
+impl<'a> CefWrap<cef_string_userfree_t> for String {
+    fn to_c(string: String) -> cef_string_userfree_t {
+        let utf16_chars: Vec<u16> = Utf16Encoder::new(string.chars()).collect();
+
+        let boxed_string;
+        unsafe {
+            let buffer = libc::malloc((mem::size_of::<c_ushort>() as u64) *
+                                      ((utf16_chars.len() + 1) as u64 + 1)) as *mut u16;
+            for (i, ch) in utf16_chars.iter().enumerate() {
+                *buffer.offset(i as int) = *ch
+            }
+            *buffer.offset(utf16_chars.len() as int) = 0;
+
+            boxed_string = libc::malloc(mem::size_of::<cef_string_utf16>() as u64) as
+                *mut cef_string_utf16;
+            ptr::write(&mut (*boxed_string).str, buffer);
+            ptr::write(&mut (*boxed_string).length, utf16_chars.len() as u64);
+            ptr::write(&mut (*boxed_string).dtor, Some(free_utf16_buffer));
+            mem::forget(utf16_chars);
+        }
+        boxed_string
+    }
+    unsafe fn to_rust(_: cef_string_userfree_t) -> String {
+        panic!("unimplemented CEF type conversion: cef_string_userfree_t")
+    }
+}
+
+extern "C" fn free_utf16_buffer(buffer: *mut c_ushort) {
+    unsafe {
+        libc::free(buffer as *mut c_void)
+    }
+}
+
+// TODO(pcwalton): Post Rust-upgrade, remove this and use `collections::str::Utf16Encoder`.
+pub struct Utf16Encoder<I> {
+    chars: I,
+    extra: u16,
+}
+
+impl<I> Utf16Encoder<I> {
+    pub fn new(chars: I) -> Utf16Encoder<I> where I: Iterator<char> {
+        Utf16Encoder {
+            chars: chars,
+            extra: 0,
+        }
+    }
+}
+
+impl<I> Iterator<u16> for Utf16Encoder<I> where I: Iterator<char> {
+    fn next(&mut self) -> Option<u16> {
+        if self.extra != 0 {
+            return Some(mem::replace(&mut self.extra, 0))
+        }
+
+        let mut buf = [0u16, ..2];
+        self.chars.next().map(|ch| {
+            let n = ch.encode_utf16(buf.as_mut_slice()).unwrap_or(0);
+            if n == 2 {
+                self.extra = buf[1]
+            }
+            buf[0]
+        })
     }
 }
 

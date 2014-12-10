@@ -43,10 +43,12 @@ use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, Scrip
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, ViewportMsg, SendEventMsg};
 use script_traits::{ResizeInactiveMsg, ExitPipelineMsg, NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, ReflowCompleteMsg, UntrustedNodeAddress, KeyEvent};
-use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading};
+use script_traits::{GetTitleMsg};
+use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
 use servo_msg::compositor_msg::{ScriptListener};
-use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{LoadData, PipelineId, Failure, FailureMsg, WindowSizeData, Key, KeyState};
+use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg};
+use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, NavigationDirection, PipelineId};
+use servo_msg::constellation_msg::{Failure, FailureMsg, WindowSizeData, Key, KeyState};
 use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed};
 use servo_msg::constellation_msg::{Released};
 use servo_msg::constellation_msg;
@@ -550,6 +552,9 @@ impl ScriptTask {
                 FromConstellation(ViewportMsg(..)) => panic!("should have handled ViewportMsg already"),
                 FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
                 FromConstellation(ResizeMsg(..)) => panic!("should have handled ResizeMsg already"),
+                FromConstellation(GetTitleMsg(pipeline_id)) => {
+                    self.handle_get_title_msg(pipeline_id)
+                }
                 FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_progress(addr, progress),
                 FromScript(XHRReleaseMsg(addr)) => XMLHttpRequest::handle_release(addr),
                 FromScript(DOMMessage(..)) => panic!("unexpected message"),
@@ -659,6 +664,11 @@ impl ScriptTask {
         // so this can afford to be naive and just shut down the
         // compositor. In the future it'll need to be smarter.
         self.compositor.borrow_mut().close();
+    }
+
+    /// Handles a request for the window title.
+    fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
+        get_page(&*self.page.borrow(), pipeline_id).send_title_to_compositor();
     }
 
     /// Handles a request to exit the script task and shut down layout.
@@ -784,6 +794,7 @@ impl ScriptTask {
         parse_html(*document, parser_input, &final_url);
 
         document.set_ready_state(DocumentReadyStateValues::Interactive);
+        self.compositor.borrow_mut().set_ready_state(pipeline_id, PerformingLayout);
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {}", final_url);
