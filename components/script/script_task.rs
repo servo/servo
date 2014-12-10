@@ -43,17 +43,16 @@ use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, Scrip
 use script_traits::{ResizeMsg, AttachLayoutMsg, LoadMsg, ViewportMsg, SendEventMsg};
 use script_traits::{ResizeInactiveMsg, ExitPipelineMsg, NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, ReflowCompleteMsg, UntrustedNodeAddress, KeyEvent};
-use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading};
-use servo_msg::compositor_msg::{ScriptListener};
-use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{LoadData, PipelineId, Failure, FailureMsg, WindowSizeData, Key, KeyState};
-use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed};
-use servo_msg::constellation_msg::{Released};
-use servo_msg::constellation_msg;
+use script_traits::{InitialScriptState};
+use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, ScriptToCompositorThreadProxy};
+use servo_msg::compositor_msg::{ScriptToMainThreadProxy};
+use servo_msg::constellation_msg::{mod, ConstellationChan, LoadCompleteMsg, LoadUrlMsg};
+use servo_msg::constellation_msg::{LoadData, NavigationDirection, PipelineId, FailureMsg};
+use servo_msg::constellation_msg::{WindowSizeData, Key, KeyState, Released, KeyModifiers};
+use servo_msg::constellation_msg::{SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed};
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{ResourceTask, Load};
 use servo_net::resource_task::LoadData as NetLoadData;
-use servo_net::storage_task::StorageTask;
 use servo_util::geometry::to_frac_px;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::task::spawn_named_with_send_on_failure;
@@ -151,6 +150,10 @@ impl Drop for StackRootTLS {
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
 ///
+/// We allow dead code here because `main_thread_proxy` will almost certainly be needed later but
+/// isn't used now, and it's a bit of a pain to shuttle it around so that it ends up here, so I
+/// want to make sure the code to do that doesn't get removed.
+///
 /// FIXME: Rename to `Page`, following WebKit?
 pub struct ScriptTask {
     /// A handle to the information pertaining to page layout
@@ -176,7 +179,10 @@ pub struct ScriptTask {
     /// For communicating load url messages to the constellation
     constellation_chan: ConstellationChan,
     /// A handle to the compositor for communicating ready state messages.
-    compositor: DOMRefCell<Box<ScriptListener+'static>>,
+    compositor: DOMRefCell<Option<Box<ScriptToCompositorThreadProxy + Send>>>,
+    /// A handle to the main thread for communicating progress messages, control messages, etc.
+    #[allow(dead_code)]
+    main_thread_proxy: DOMRefCell<Box<ScriptToMainThreadProxy + Send>>,
 
     /// For providing instructions to an optional devtools server.
     devtools_chan: Option<DevtoolsControlChan>,
@@ -257,42 +263,24 @@ impl ScriptTaskFactory for ScriptTask {
     }
 
     fn create<C>(_phantom: Option<&mut ScriptTask>,
-                 id: PipelineId,
-                 compositor: C,
-                 layout_chan: &OpaqueScriptLayoutChannel,
-                 control_chan: ScriptControlChan,
-                 control_port: Receiver<ConstellationControlMsg>,
-                 constellation_chan: ConstellationChan,
-                 failure_msg: Failure,
-                 resource_task: ResourceTask,
-                 storage_task: StorageTask,
-                 image_cache_task: ImageCacheTask,
-                 devtools_chan: Option<DevtoolsControlChan>,
-                 window_size: WindowSizeData)
-                 where C: ScriptListener + Send + 'static {
-        let ConstellationChan(const_chan) = constellation_chan.clone();
+                 state: InitialScriptState<C>,
+                 layout_chan: &OpaqueScriptLayoutChannel)
+                 where C: ScriptToCompositorThreadProxy + Send {
+        let ConstellationChan(constellation_proxy) = state.constellation_proxy.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
+        let failure_info = state.failure_info;
         spawn_named_with_send_on_failure("ScriptTask", task_state::SCRIPT, proc() {
-            let script_task = ScriptTask::new(id,
-                                              box compositor as Box<ScriptListener>,
+            let script_task = ScriptTask::new(state,
                                               layout_chan,
                                               script_port,
-                                              ScriptChan(script_chan),
-                                              control_chan,
-                                              control_port,
-                                              constellation_chan,
-                                              resource_task,
-                                              storage_task,
-                                              image_cache_task,
-                                              devtools_chan,
-                                              window_size);
+                                              ScriptChan(script_chan));
             let mut failsafe = ScriptMemoryFailsafe::new(&script_task);
             script_task.start();
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
-        }, FailureMsg(failure_msg), const_chan, false);
+        }, FailureMsg(failure_info), constellation_proxy, false);
     }
 }
 
@@ -306,20 +294,12 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) 
 
 impl ScriptTask {
     /// Creates a new script task.
-    pub fn new(id: PipelineId,
-               compositor: Box<ScriptListener+'static>,
-               layout_chan: LayoutChan,
-               port: Receiver<ScriptMsg>,
-               chan: ScriptChan,
-               control_chan: ScriptControlChan,
-               control_port: Receiver<ConstellationControlMsg>,
-               constellation_chan: ConstellationChan,
-               resource_task: ResourceTask,
-               storage_task: StorageTask,
-               img_cache_task: ImageCacheTask,
-               devtools_chan: Option<DevtoolsControlChan>,
-               window_size: WindowSizeData)
-               -> ScriptTask {
+    pub fn new<C>(state: InitialScriptState<C>,
+                  layout_chan: LayoutChan,
+                  port: Receiver<ScriptMsg>,
+                  chan: ScriptChan)
+                  -> ScriptTask
+                  where C: ScriptToCompositorThreadProxy + Send {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
         unsafe {
             // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
@@ -336,32 +316,41 @@ impl ScriptTask {
                                       Some(pre_wrap));
         }
 
-        let page = Page::new(id, None, layout_chan, window_size,
-                             resource_task.clone(),
-                             storage_task,
-                             constellation_chan.clone(),
+        let page = Page::new(state.id,
+                             None,
+                             layout_chan,
+                             state.window_size,
+                             state.resource_task.clone(),
+                             state.storage_task.clone(),
+                             state.constellation_proxy.clone(),
                              js_context.clone());
 
         // Notify devtools that a new script global exists.
-        //FIXME: Move this into handle_load after we create a window instead.
+        // FIXME: Move this into handle_load after we create a window instead.
         let (devtools_sender, devtools_receiver) = channel();
-        devtools_chan.as_ref().map(|chan| {
-            chan.send(NewGlobal(id, devtools_sender.clone()));
+        state.devtools_chan.as_ref().map(|chan| {
+            chan.send(NewGlobal(state.id, devtools_sender.clone()));
         });
 
         ScriptTask {
             page: DOMRefCell::new(Rc::new(page)),
 
-            image_cache_task: img_cache_task,
-            resource_task: resource_task,
+            image_cache_task: state.image_cache_task,
+            resource_task: state.resource_task,
 
             port: port,
             chan: chan,
-            control_chan: control_chan,
-            control_port: control_port,
-            constellation_chan: constellation_chan,
-            compositor: DOMRefCell::new(compositor),
-            devtools_chan: devtools_chan,
+            control_chan: state.control_chan,
+            control_port: state.control_port,
+            main_thread_proxy: DOMRefCell::new(state.main_thread_proxy),
+            constellation_chan: state.constellation_proxy,
+            compositor: DOMRefCell::new(match state.compositor {
+                None => None,
+                Some(compositor) => {
+                    Some(box compositor as Box<ScriptToCompositorThreadProxy + Send>)
+                }
+            }),
+            devtools_chan: state.devtools_chan,
             devtools_port: devtools_receiver,
 
             js_runtime: js_runtime,
@@ -620,7 +609,10 @@ impl ScriptTask {
             *layout_join_port = None;
         }
 
-        self.compositor.borrow_mut().set_ready_state(pipeline_id, FinishedLoading);
+        match &mut *self.compositor.borrow_mut() {
+            &None => {}
+            &Some(ref mut compositor) => compositor.set_ready_state(pipeline_id, FinishedLoading),
+        }
 
         if page.pending_reflows.get() > 0 {
             page.pending_reflows.set(0);
@@ -647,18 +639,17 @@ impl ScriptTask {
         }
     }
 
-    /// We have gotten a window.close from script, which we pass on to the compositor.
-    /// We do not shut down the script task now, because the compositor will ask the
-    /// constellation to shut down the pipeline, which will clean everything up
-    /// normally. If we do exit, we will tear down the DOM nodes, possibly at a point
-    /// where layout is still accessing them.
+    /// We have gotten a window.close from script, which we pass on to the constellation.
+    /// We do not shut down the script task now, because the constellation will shut down the
+    /// pipeline, which will clean everything up normally. If we do exit, we will tear down the DOM
+    /// nodes, possibly at a point where layout is still accessing them.
     fn handle_exit_window_msg(&self, _: PipelineId) {
         debug!("script task handling exit window msg");
 
-        // TODO(tkuehn): currently there is only one window,
-        // so this can afford to be naive and just shut down the
-        // compositor. In the future it'll need to be smarter.
-        self.compositor.borrow_mut().close();
+        // TODO(tkuehn): Currently there is only one window, so this can afford to be naïve and
+        // just shut down the constellation. In the future it'll need to be smarter.
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(constellation_msg::ExitMsg);
     }
 
     /// Handles a request to exit the script task and shut down layout.
@@ -717,7 +708,10 @@ impl ScriptTask {
                                  page.clone(),
                                  self.chan.clone(),
                                  self.control_chan.clone(),
-                                 self.compositor.borrow_mut().dup(),
+                                 self.compositor
+                                     .borrow_mut()
+                                     .as_mut()
+                                     .map(|compositor| compositor.dup()),
                                  self.image_cache_task.clone()).root();
         let doc_url = if is_javascript {
             let doc_url = last_url.unwrap_or_else(|| {
@@ -733,7 +727,10 @@ impl ScriptTask {
 
         window.init_browser_context(*document);
 
-        self.compositor.borrow_mut().set_ready_state(pipeline_id, Loading);
+        match &mut *self.compositor.borrow_mut() {
+            &None => {}
+            &Some(ref mut compositor) => compositor.set_ready_state(pipeline_id, Loading),
+        }
 
         {
             // Create the root frame.
@@ -828,7 +825,12 @@ impl ScriptTask {
         // Really what needs to happen is that this needs to go through layout to ask which
         // layer the element belongs to, and have it send the scroll message to the
         // compositor.
-        self.compositor.borrow_mut().scroll_fragment_point(pipeline_id, LayerId::null(), point);
+        match &mut *self.compositor.borrow_mut() {
+            &None => {}
+            &Some(ref mut compositor) => {
+                compositor.scroll_fragment_point(pipeline_id, LayerId::null(), point)
+            }
+        }
     }
 
     fn force_reflow(&self, page: &Page) {
@@ -845,7 +847,7 @@ impl ScriptTask {
         page.damage();
         page.reflow(ReflowForDisplay,
                     self.control_chan.clone(),
-                    &mut **self.compositor.borrow_mut(),
+                    self.compositor.borrow_mut().as_mut().map(|compositor| &mut **compositor),
                     NoQuery);
     }
 
@@ -959,7 +961,7 @@ impl ScriptTask {
     /// for the given pipeline.
     fn trigger_load(&self, pipeline_id: PipelineId, load_data: LoadData) {
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(LoadUrlMsg(pipeline_id, load_data));
+        const_chan.send(LoadUrlMsg(Some(pipeline_id), load_data));
     }
 
     /// The entry point for content to notify that a fragment url has been requested

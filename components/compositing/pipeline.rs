@@ -4,16 +4,18 @@
 
 use CompositorProxy;
 use layout_traits::{LayoutTaskFactory, LayoutControlChan};
-use script_traits::{ScriptControlChan, ScriptTaskFactory};
+use main_thread::MainThreadProxy;
+use script_traits::{InitialScriptState, ScriptControlChan, ScriptTaskFactory};
 use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
 
 use devtools_traits::DevtoolsControlChan;
+use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::paint_task::{PaintChan, PaintTask};
+use servo_msg::compositor_msg::ScriptToMainThreadProxy;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadData, WindowSizeData};
 use servo_net::image_cache_task::ImageCacheTask;
-use gfx::font_cache_task::FontCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
 use servo_util::time::TimeProfilerChan;
@@ -40,25 +42,45 @@ pub struct CompositionPipeline {
     pub paint_chan: PaintChan,
 }
 
+/// Initial setup data needed to construct a pipeline.
+pub struct InitialPipelineState {
+    /// The ID of the pipeline to create.
+    pub id: PipelineId,
+    /// The subpage ID of the pipeline to create. If `None`, this is the root.
+    pub subpage_id: Option<SubpageId>,
+    /// A channel to the main thread.
+    pub main_thread_proxy: Box<MainThreadProxy + Send>,
+    /// A channel to the associated constellation.
+    pub constellation_chan: ConstellationChan,
+    /// A channel to the compositor. If `None`, this is headless.
+    pub compositor_proxy: Option<CompositorProxy>,
+    /// A channel to the developer tools, if applicable.
+    pub devtools_chan: Option<DevtoolsControlChan>,
+    /// A channel to the image cache task.
+    pub image_cache_task: ImageCacheTask,
+    /// A channel to the font cache task.
+    pub font_cache_task: FontCacheTask,
+    /// A channel to the resource task.
+    pub resource_task: ResourceTask,
+    /// A channel to the storage task.
+    pub storage_task: StorageTask,
+    /// A channel to the time profiler thread.
+    pub time_profiler_proxy: TimeProfilerChan,
+    /// Information about the initial window size.
+    pub window_size: WindowSizeData,
+    /// The pipeline to use for script, if applicable. If this is `Some`, then `subpage_id` must
+    /// also be `Some`.
+    pub script_pipeline: Option<Rc<Pipeline>>,
+    /// Information about the page to load.
+    pub load_data: LoadData,
+}
+
 impl Pipeline {
-    /// Starts a paint task, layout task, and possibly a script task.
-    /// Returns the channels wrapped in a struct.
-    /// If script_pipeline is not None, then subpage_id must also be not None.
-    pub fn create<LTF:LayoutTaskFactory, STF:ScriptTaskFactory>(
-                      id: PipelineId,
-                      subpage_id: Option<SubpageId>,
-                      constellation_chan: ConstellationChan,
-                      compositor_proxy: Box<CompositorProxy+'static+Send>,
-                      devtools_chan: Option<DevtoolsControlChan>,
-                      image_cache_task: ImageCacheTask,
-                      font_cache_task: FontCacheTask,
-                      resource_task: ResourceTask,
-                      storage_task: StorageTask,
-                      time_profiler_chan: TimeProfilerChan,
-                      window_size: WindowSizeData,
-                      script_pipeline: Option<Rc<Pipeline>>,
-                      load_data: LoadData)
-                      -> Pipeline {
+    /// Starts a paint task, layout task, and possibly a script task. Returns the channels wrapped
+    /// in a structure.
+    pub fn create<LTF,STF>(state: InitialPipelineState)
+                           -> Pipeline
+                           where LTF:LayoutTaskFactory, STF:ScriptTaskFactory {
         let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
         let (paint_port, paint_chan) = PaintChan::new();
         let (paint_shutdown_chan, paint_shutdown_port) = channel();
@@ -66,34 +88,38 @@ impl Pipeline {
         let (pipeline_chan, pipeline_port) = channel();
 
         let failure = Failure {
-            pipeline_id: id,
-            subpage_id: subpage_id,
+            pipeline_id: state.id,
+            subpage_id: state.subpage_id,
         };
 
-        let script_chan = match script_pipeline {
+        let script_chan = match state.script_pipeline {
             None => {
                 let (script_chan, script_port) = channel();
-                ScriptTaskFactory::create(None::<&mut STF>,
-                                          id,
-                                          compositor_proxy.clone_compositor_proxy(),
-                                          &layout_pair,
-                                          ScriptControlChan(script_chan.clone()),
-                                          script_port,
-                                          constellation_chan.clone(),
-                                          failure.clone(),
-                                          resource_task.clone(),
-                                          storage_task.clone(),
-                                          image_cache_task.clone(),
-                                          devtools_chan,
-                                          window_size);
+                ScriptTaskFactory::create(None::<&mut STF>, InitialScriptState {
+                    id: state.id,
+                    main_thread_proxy: box state.main_thread_proxy as
+                        Box<ScriptToMainThreadProxy + Send>,
+                    compositor: state.compositor_proxy.clone(),
+                    control_chan: ScriptControlChan(script_chan.clone()),
+                    control_port: script_port,
+                    constellation_proxy: state.constellation_chan.clone(),
+                    failure_info: failure.clone(),
+                    resource_task: state.resource_task.clone(),
+                    storage_task: state.storage_task.clone(),
+                    image_cache_task: state.image_cache_task.clone(),
+                    devtools_chan: state.devtools_chan,
+                    window_size: state.window_size,
+                }, &layout_pair);
                 ScriptControlChan(script_chan)
             }
             Some(spipe) => {
                 let new_layout_info = NewLayoutInfo {
                     old_pipeline_id: spipe.id.clone(),
-                    new_pipeline_id: id,
-                    subpage_id: subpage_id.expect("script_pipeline != None but subpage_id == None"),
-                    layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>, &layout_pair),
+                    new_pipeline_id: state.id,
+                    subpage_id: state.subpage_id
+                                     .expect("script_pipeline != None but subpage_id == None"),
+                    layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>,
+                                                                         &layout_pair),
                 };
 
                 let ScriptControlChan(ref chan) = spipe.script_chan;
@@ -102,37 +128,37 @@ impl Pipeline {
             }
         };
 
-        PaintTask::create(id,
+        PaintTask::create(state.id,
                           paint_port,
-                          compositor_proxy,
-                          constellation_chan.clone(),
-                          font_cache_task.clone(),
+                          state.compositor_proxy,
+                          state.constellation_chan.clone(),
+                          state.font_cache_task.clone(),
                           failure.clone(),
-                          time_profiler_chan.clone(),
+                          state.time_profiler_proxy.clone(),
                           paint_shutdown_chan);
 
         LayoutTaskFactory::create(None::<&mut LTF>,
-                                  id,
+                                  state.id,
                                   layout_pair,
                                   pipeline_port,
-                                  constellation_chan,
+                                  state.constellation_chan,
                                   failure,
                                   script_chan.clone(),
                                   paint_chan.clone(),
-                                  resource_task,
-                                  image_cache_task,
-                                  font_cache_task,
-                                  time_profiler_chan,
+                                  state.resource_task,
+                                  state.image_cache_task,
+                                  state.font_cache_task,
+                                  state.time_profiler_proxy,
                                   layout_shutdown_chan);
 
-        Pipeline::new(id,
-                      subpage_id,
+        Pipeline::new(state.id,
+                      state.subpage_id,
                       script_chan,
                       LayoutControlChan(pipeline_chan),
                       paint_chan,
                       layout_shutdown_port,
                       paint_shutdown_port,
-                      load_data)
+                      state.load_data)
     }
 
     pub fn new(id: PipelineId,

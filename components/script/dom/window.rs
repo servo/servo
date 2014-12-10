@@ -28,7 +28,7 @@ use script_task::FromWindow;
 use script_traits::ScriptControlChan;
 use timers::{Interval, NonInterval, TimerId, TimerManager};
 
-use servo_msg::compositor_msg::ScriptListener;
+use servo_msg::compositor_msg::ScriptToCompositorThreadProxy;
 use servo_msg::constellation_msg::LoadData;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::storage_task::StorageTask;
@@ -57,7 +57,7 @@ pub struct Window {
     location: MutNullableJS<Location>,
     navigator: MutNullableJS<Navigator>,
     image_cache_task: ImageCacheTask,
-    compositor: DOMRefCell<Box<ScriptListener+'static>>,
+    compositor: DOMRefCell<Option<Box<ScriptToCompositorThreadProxy + Send>>>,
     browser_context: DOMRefCell<Option<BrowserContext>>,
     page: Rc<Page>,
     performance: MutNullableJS<Performance>,
@@ -86,7 +86,7 @@ impl Window {
         &self.image_cache_task
     }
 
-    pub fn compositor(&self) -> RefMut<Box<ScriptListener+'static>> {
+    pub fn compositor(&self) -> RefMut<Option<Box<ScriptToCompositorThreadProxy + Send>>> {
         self.compositor.borrow_mut()
     }
 
@@ -383,7 +383,7 @@ impl Window {
                page: Rc<Page>,
                script_chan: ScriptChan,
                control_chan: ScriptControlChan,
-               compositor: Box<ScriptListener+'static>,
+               compositor: Option<Box<ScriptToCompositorThreadProxy + Send>>,
                image_cache_task: ImageCacheTask)
                -> Temporary<Window> {
         let win = box Window {

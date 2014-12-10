@@ -21,8 +21,7 @@ use script_traits::{UntrustedNodeAddress, ScriptControlChan};
 
 use geom::{Point2D, Rect, Size2D};
 use js::rust::Cx;
-use servo_msg::compositor_msg::PerformingLayout;
-use servo_msg::compositor_msg::ScriptListener;
+use servo_msg::compositor_msg::{PerformingLayout, ScriptToCompositorThreadProxy};
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
@@ -195,7 +194,10 @@ impl Page {
         if force_reflow {
             let frame = self.frame();
             let window = frame.as_ref().unwrap().window.root();
-            self.reflow(reflow_goal, window.control_chan().clone(), &mut **window.compositor(), query);
+            self.reflow(reflow_goal,
+                        window.control_chan().clone(),
+                        window.compositor().as_mut().map(|compositor| &mut **compositor),
+                        query);
         } else {
             self.avoided_reflows.set(self.avoided_reflows.get() + 1);
         }
@@ -356,7 +358,7 @@ impl Page {
     pub fn reflow(&self,
                   goal: ReflowGoal,
                   script_chan: ScriptControlChan,
-                  compositor: &mut ScriptListener,
+                  mut compositor: Option<&mut ScriptToCompositorThreadProxy + Send>,
                   query_type: ReflowQueryType) {
         let root = match *self.frame() {
             None => return,
@@ -377,7 +379,12 @@ impl Page {
                 self.join_layout();
 
                 // Tell the user that we're performing layout.
-                compositor.set_ready_state(self.id, PerformingLayout);
+                match compositor {
+                    None => {}
+                    Some(ref mut compositor) => {
+                        compositor.set_ready_state(self.id, PerformingLayout);
+                    }
+                }
 
                 // Layout will let us know when it's done.
                 let (join_chan, join_port) = channel();

@@ -4,7 +4,7 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use compositor_task::{CompositorProxy, CompositorReceiver};
+use main_thread::MainThreadProxy;
 
 use geom::point::TypedPoint2D;
 use geom::scale_factor::ScaleFactor;
@@ -55,10 +55,17 @@ pub enum WindowEvent {
     PinchZoomWindowEvent(f32),
     /// Sent when the user uses chrome navigation (i.e. backspace or shift-backspace).
     NavigationWindowEvent(WindowNavigateMsg),
-    /// Sent when the user quits the application
+    /// Sent when the user quits the application.
     QuitWindowEvent,
-    /// Sent when a key input state changes
+    /// Sent when a key input state changes.
     KeyEvent(Key, KeyState, KeyModifiers),
+    /// Informs the main thread that the ready state has changed.
+    SetReadyStateWindowEvent(ReadyState),
+    /// Informs the main thread that the paint state has changed.
+    SetPaintStateWindowEvent(PaintState),
+    /// Sent when a synchronous repaint is needed (often when a resize event occurs). The main
+    /// thread will not return from processing until the repaint happens.
+    SynchronousRepaintWindowEvent,
 }
 
 impl Show for WindowEvent {
@@ -75,6 +82,9 @@ impl Show for WindowEvent {
             ZoomWindowEvent(..) => write!(f, "Zoom"),
             PinchZoomWindowEvent(..) => write!(f, "PinchZoom"),
             NavigationWindowEvent(..) => write!(f, "Navigation"),
+            SetReadyStateWindowEvent(..) => write!(f, "SetReadyState"),
+            SetPaintStateWindowEvent(..) => write!(f, "SetPaintState"),
+            SynchronousRepaintWindowEvent => write!(f, "SynchronousRepaintWindowEvent"),
             QuitWindowEvent => write!(f, "Quit"),
         }
     }
@@ -99,12 +109,27 @@ pub trait WindowMethods {
     /// Gets the OS native graphics information for this window.
     fn native_metadata(&self) -> NativeGraphicsMetadata;
 
-    /// Creates a channel to the compositor. The dummy parameter is needed because we don't have
-    /// UFCS in Rust yet.
+    /// Returns a *compositor support object*—a thread-safe object that provides the native
+    /// graphics context to the compositing thread.
+    fn create_compositor_support(&self) -> Box<CompositorSupport + Send>;
+
+    /// Creates a channel on which events can be sent to the main thread. The dummy parameter is
+    /// needed because we don't have UFCS in Rust yet.
     ///
     /// This is part of the windowing system because its implementation often involves OS-specific
     /// magic to wake the up window's event loop.
-    fn create_compositor_channel(_: &Option<Rc<Self>>)
-                                 -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>);
+    fn create_main_thread_proxy(_: &Option<Rc<Self>>, sender: Sender<WindowEvent>)
+                                -> Box<MainThreadProxy + Send>;
+}
+
+/// An thread-safe object that provides support for the compositor. Typically this wraps the native
+/// OS graphics context—`CGLContextObj` on Mac or `EGLContext` on EGL-compliant platforms, for
+/// example.
+pub trait CompositorSupport {
+    /// Initializes compositing. Typically this involves making some kind of OS graphics context
+    /// current.
+    fn initialize(&mut self);
+    /// Presents the current rendered contents to the screen, perhaps by performing a page flip.
+    fn present(&mut self);
 }
 

@@ -103,14 +103,30 @@ pub trait PaintListener for Sized? {
     fn set_paint_state(&mut self, PipelineId, PaintState);
 }
 
-/// The interface used by the script task to tell the compositor to update its ready state,
-/// which is used in displaying the appropriate message in the window's title.
-pub trait ScriptListener {
-    fn set_ready_state(&mut self, PipelineId, ReadyState);
+/// The interface that the script task uses to send messages to the compositor.
+pub trait ScriptToCompositorThreadProxy {
+    /// Sets the ready state of the page.
+    ///
+    /// You might think that this would be better to put on the main thread, but in fact it belongs
+    /// here because the compositor needs this information in PNG output mode (to know when it's
+    /// time to take a screenshot).
+    fn set_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState);
+
+    /// Scrolls to the given point.
+    ///
+    /// FIXME(pcwalton): Script needs to involve layout to do this properly.
     fn scroll_fragment_point(&mut self,
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
                              point: Point2D<f32>);
-    fn close(&mut self);
-    fn dup(&mut self) -> Box<ScriptListener+'static>;
+
+    /// Duplicates this `ScriptToCompositorThreadProxy`.
+    fn dup(&mut self) -> Box<ScriptToCompositorThreadProxy + Send>;
 }
+
+/// The interface that the script task uses to send messages to the main thread.
+pub trait ScriptToMainThreadProxy {
+    /// Shuts down the application.
+    fn quit(&mut self);
+}
+

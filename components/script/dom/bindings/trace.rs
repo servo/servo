@@ -45,7 +45,7 @@ use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use net::image_cache_task::ImageCacheTask;
 use script_traits::ScriptControlChan;
 use script_traits::UntrustedNodeAddress;
-use servo_msg::compositor_msg::ScriptListener;
+use servo_msg::compositor_msg::ScriptToCompositorThreadProxy;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::str::LengthOrPercentageOrAuto;
@@ -229,7 +229,7 @@ impl<A,B> JSTraceable for fn(A) -> B {
     }
 }
 
-impl JSTraceable for Box<ScriptListener+'static> {
+impl JSTraceable for Box<ScriptToCompositorThreadProxy + Send> {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing
