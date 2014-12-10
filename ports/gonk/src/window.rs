@@ -13,6 +13,7 @@ use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
 use msg::compositor_msg::{Blank, IdlePaintState};
 use msg::compositor_msg::{ReadyState, PaintState};
+use msg::constellation_msg::LoadData;
 use std::cell::Cell;
 use std::comm::Receiver;
 use std::rc::Rc;
@@ -790,6 +791,15 @@ impl WindowMethods for Window {
         self.paint_state.set(paint_state);
     }
 
+    fn set_page_title(&self, _: Option<String>) {
+    }
+
+    fn set_page_load_data(&self, _: LoadData) {
+    }
+
+    fn load_end(&self) {
+    }
+
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         ScaleFactor(1.0)
     }
@@ -808,6 +818,10 @@ impl WindowMethods for Window {
              event_sender: window.as_ref().unwrap().event_send.clone(),
          } as Box<CompositorProxy+Send>,
          box receiver as Box<CompositorReceiver>)
+    }
+
+    fn prepare_for_composite(&self) -> bool {
+        true
     }
 }
 
