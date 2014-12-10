@@ -40,7 +40,7 @@ pub enum cef_keyboard_handler_t {}
 pub enum cef_render_handler_t {}
 pub enum cef_request_handler_t {}
 #[cfg(target_os="linux")]
-pub type cef_window_handle_t = c_uint;
+pub type cef_window_handle_t = c_ulong;
 #[cfg(target_os="macos")]
 pub type cef_window_handle_t = *mut c_void; //NSView*
 //#[cfg(target_os="win")]
