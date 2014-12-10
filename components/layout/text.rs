@@ -22,7 +22,7 @@ use servo_util::smallvec::{SmallVec, SmallVec1};
 use std::collections::DList;
 use std::mem;
 use style::ComputedValues;
-use style::computed_values::{line_height, text_orientation, white_space};
+use style::computed_values::{line_height, text_orientation, text_transform, white_space};
 use style::style_structs::Font as FontStyle;
 use sync::Arc;
 
@@ -104,6 +104,7 @@ impl TextRunScanner {
         let run = {
             let fontgroup;
             let compression;
+            let text_transform;
             {
                 let in_fragment = self.clump.front().unwrap();
                 let font_style = in_fragment.style().get_font_arc();
@@ -111,7 +112,8 @@ impl TextRunScanner {
                 compression = match in_fragment.white_space() {
                     white_space::normal | white_space::nowrap => CompressWhitespaceNewline,
                     white_space::pre => CompressNone,
-                }
+                };
+                text_transform = in_fragment.style().get_inheritedtext().text_transform;
             }
 
             // First, transform/compress text of all the nodes.
@@ -135,6 +137,10 @@ impl TextRunScanner {
                 new_ranges.push(Range::new(char_total, added_chars));
                 char_total = char_total + added_chars;
             }
+
+            // Account for `text-transform`. (Confusingly, this is not handled in "text
+            // transformation" above, but we follow Gecko in the naming.)
+            self.apply_style_transform_if_necessary(&mut run_text, text_transform);
 
             // Now create the run.
             //
@@ -175,6 +181,55 @@ impl TextRunScanner {
         }
 
         last_whitespace
+    }
+
+    /// Accounts for `text-transform`.
+    ///
+    /// FIXME(#4311, pcwalton): Case mapping can change length of the string; case mapping should
+    /// be language-specific; `full-width`; use graphemes instead of characters.
+    fn apply_style_transform_if_necessary(&mut self,
+                                          string: &mut String,
+                                          text_transform: text_transform::T) {
+        match text_transform {
+            text_transform::none => {}
+            text_transform::uppercase => {
+                let length = string.len();
+                let original = mem::replace(string, String::with_capacity(length));
+                for character in original.chars() {
+                    string.push(character.to_uppercase())
+                }
+            }
+            text_transform::lowercase => {
+                let length = string.len();
+                let original = mem::replace(string, String::with_capacity(length));
+                for character in original.chars() {
+                    string.push(character.to_lowercase())
+                }
+            }
+            text_transform::capitalize => {
+                let length = string.len();
+                let original = mem::replace(string, String::with_capacity(length));
+                let mut capitalize_next_letter = true;
+                for character in original.chars() {
+                    // FIXME(#4311, pcwalton): Should be the CSS/Unicode notion of a *typographic
+                    // letter unit*, not an *alphabetic* character:
+                    //
+                    //    http://dev.w3.org/csswg/css-text/#typographic-letter-unit
+                    if capitalize_next_letter && character.is_alphabetic() {
+                        string.push(character.to_uppercase());
+                        capitalize_next_letter = false;
+                        continue
+                    }
+
+                    string.push(character);
+
+                    // FIXME(#4311, pcwalton): Try UAX29 instead of just whitespace.
+                    if character.is_whitespace() {
+                        capitalize_next_letter = true
+                    }
+                }
+            }
+        }
     }
 }
 

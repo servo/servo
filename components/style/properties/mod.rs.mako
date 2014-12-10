@@ -1185,6 +1185,9 @@ pub mod longhands {
 
     ${single_keyword("white-space", "normal pre nowrap")}
 
+    // TODO(pcwalton): `full-width`
+    ${single_keyword("text-transform", "none capitalize uppercase lowercase")}
+
     // CSS 2.1, Section 17 - Tables
     ${new_style_struct("Table", is_inherited=False)}
 
