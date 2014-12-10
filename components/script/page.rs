@@ -353,8 +353,6 @@ impl Page {
     /// won't wait for the new layout computation to finish.
     ///
     /// If there is no window size yet, the page is presumed invisible and no reflow is performed.
-    ///
-    /// This function fails if there is no root frame.
     pub fn reflow(&self,
                   goal: ReflowGoal,
                   script_chan: ScriptControlChan,
