@@ -228,26 +228,18 @@ impl Page {
             self.children
                 .borrow_mut()
                 .iter_mut()
-                .enumerate()
-                .find(|&(_idx, ref page_tree)| {
-                    // FIXME: page_tree has a lifetime such that it's unusable for anything.
-                    let page_tree_id = page_tree.id;
-                    page_tree_id == id
-                })
-                .map(|(idx, _)| idx)
+                .position(|page_tree| page_tree.id == id)
         };
         match remove_idx {
-            Some(idx) => return Some(self.children.borrow_mut().remove(idx).unwrap()),
+            Some(idx) => Some(self.children.borrow_mut().remove(idx).unwrap()),
             None => {
-                for page_tree in self.children.borrow_mut().iter_mut() {
-                    match page_tree.remove(id) {
-                        found @ Some(_) => return found,
-                        None => (), // keep going...
-                    }
-                }
+                self.children
+                    .borrow_mut()
+                    .iter_mut()
+                    .filter_map(|page_tree| page_tree.remove(id))
+                    .next()
             }
         }
-        None
     }
 
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: Rect<f32>) -> bool {
@@ -278,14 +270,14 @@ impl Page {
 
 impl Iterator<Rc<Page>> for PageIterator {
     fn next(&mut self) -> Option<Rc<Page>> {
-        if !self.stack.is_empty() {
-            let next = self.stack.pop().unwrap();
-            for child in next.children.borrow().iter() {
-                self.stack.push(child.clone());
-            }
-            Some(next.clone())
-        } else {
-            None
+        match self.stack.pop() {
+            Some(next) => {
+                for child in next.children.borrow().iter() {
+                    self.stack.push(child.clone());
+                }
+                Some(next)
+            },
+            None => None,
         }
     }
 }
@@ -361,8 +353,6 @@ impl Page {
     /// won't wait for the new layout computation to finish.
     ///
     /// If there is no window size yet, the page is presumed invisible and no reflow is performed.
-    ///
-    /// This function fails if there is no root frame.
     pub fn reflow(&self,
                   goal: ReflowGoal,
                   script_chan: ScriptControlChan,
