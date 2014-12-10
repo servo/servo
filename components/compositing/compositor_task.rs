@@ -5,7 +5,7 @@
 //! Communication with the compositor task.
 
 pub use windowing;
-pub use constellation::{SendableFrameTree, FrameTreeDiff};
+pub use constellation::SendableFrameTree;
 
 use compositor;
 use headless;
@@ -13,13 +13,15 @@ use windowing::{WindowEvent, WindowMethods};
 
 use azure::azure_hl::{SourceSurfaceMethods, Color};
 use geom::point::Point2D;
-use geom::rect::Rect;
+use geom::rect::{Rect, TypedRect};
 use geom::size::Size2D;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
+use pipeline::CompositionPipeline;
 use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
+use servo_util::geometry::PagePx;
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
@@ -188,8 +190,10 @@ pub enum Msg {
     PaintMsgDiscarded,
     /// Sets the channel to the current layout and paint tasks, along with their id
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
-    /// Sends an updated version of the frame tree.
-    FrameTreeUpdateMsg(FrameTreeDiff, Sender<()>),
+    /// Requests the compositor to create a root layer for a new frame.
+    CreateRootLayerForPipeline(CompositionPipeline, CompositionPipeline, Option<TypedRect<PagePx, f32>>, Sender<()>),
+    /// Requests the compositor to change a root layer's pipeline and remove all child layers.
+    ChangeLayerPipelineAndRemoveChildren(CompositionPipeline, CompositionPipeline, Sender<()>),
     /// The load of a page has completed.
     LoadComplete,
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
@@ -212,7 +216,8 @@ impl Show for Msg {
             ChangePaintState(..) => write!(f, "ChangePaintState"),
             PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
             SetIds(..) => write!(f, "SetIds"),
-            FrameTreeUpdateMsg(..) => write!(f, "FrameTreeUpdateMsg"),
+            CreateRootLayerForPipeline(..) => write!(f, "CreateRootLayerForPipeline"),
+            ChangeLayerPipelineAndRemoveChildren(..) => write!(f, "ChangeLayerPipelineAndRemoveChildren"),
             LoadComplete => write!(f, "LoadComplete"),
             ScrollTimeout(..) => write!(f, "ScrollTimeout"),
         }
