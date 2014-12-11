@@ -473,9 +473,9 @@ impl Page {
 
 fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
     let clip_rect = Rect(Point2D(geometry::to_frac_px(clip_rect.origin.x) as f32,
-                                    geometry::to_frac_px(clip_rect.origin.y) as f32),
-                            Size2D(geometry::to_frac_px(clip_rect.size.width) as f32,
-                                   geometry::to_frac_px(clip_rect.size.height) as f32));
+                                 geometry::to_frac_px(clip_rect.origin.y) as f32),
+                         Size2D(geometry::to_frac_px(clip_rect.size.width) as f32,
+                                geometry::to_frac_px(clip_rect.size.height) as f32));
 
     // We only need to move the clip rect if the viewport is getting near the edge of
     // our preexisting clip rect. We use half of the size of the viewport as a heuristic
