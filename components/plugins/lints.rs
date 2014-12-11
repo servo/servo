@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use syntax::{ast, ast_util, codemap, visit};
+use syntax::{ast, ast_map, ast_util, codemap, visit};
 use syntax::ast::Public;
 use syntax::attr::AttrMetaMethods;
 use rustc::lint::{Context, LintPass, LintArray};
@@ -92,6 +92,35 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
     };
 }
 
+// Determines if a block is in an unsafe context so that an unhelpful
+// lint can be aborted.
+fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
+    match map.get(map.get_parent(id)) {
+        ast_map::NodeImplItem(itm) => {
+            match *itm {
+                ast::MethodImplItem(ref meth) => match meth.node {
+                    ast::MethDecl(_, _, _, _, style, _, _, _) => match style {
+                        ast::UnsafeFn => true,
+                        _ => false,
+                    },
+                    _ => false,
+                },
+                _ => false,
+            }
+        },
+        ast_map::NodeItem(itm) => {
+            match itm.node {
+                ast::ItemFn(_, style, _, _, _) => match style {
+                    ast::UnsafeFn => true,
+                    _ => false,
+                },
+                _ => false,
+            }
+        }
+        _ => false // There are probably a couple of other unsafe cases we don't care to lint, those will need to be added.
+    }
+}
+
 impl LintPass for UnrootedPass {
     fn get_lints(&self) -> LintArray {
         lint_array!(UNROOTED_MUST_ROOT)
@@ -122,14 +151,23 @@ impl LintPass for UnrootedPass {
     }
     /// Function arguments that are #[must_root] types are not allowed
     fn check_fn(&mut self, cx: &Context, kind: visit::FnKind, decl: &ast::FnDecl,
-                block: &ast::Block, _span: codemap::Span, _id: ast::NodeId) {
+                block: &ast::Block, _span: codemap::Span, id: ast::NodeId) {
         match kind {
             visit::FkItemFn(i, _, _, _) |
             visit::FkMethod(i, _, _) if i.as_str() == "new" || i.as_str() == "new_inherited" => {
                 return;
-            }
+            },
+            visit::FkItemFn(_, _, style, _) => match style {
+                ast::UnsafeFn => return,
+                _ => ()
+            },
             _ => ()
         }
+
+        if unsafe_context(&cx.tcx.map, id) {
+            return;
+        }
+
         match block.rules {
             ast::DefaultBlock => {
                 for arg in decl.inputs.iter() {
@@ -146,6 +184,16 @@ impl LintPass for UnrootedPass {
     // Expressions which return out of blocks eventually end up in a `let` or assignment
     // statement or a function return (which will be caught when it is used elsewhere)
     fn check_stmt(&mut self, cx: &Context, s: &ast::Stmt) {
+
+        match s.node {
+            ast::StmtDecl(_, id) |
+            ast::StmtExpr(_, id) |
+            ast::StmtSemi(_, id) if unsafe_context(&cx.tcx.map, id) => {
+                return
+            },
+            _ => ()
+        };
+
         let expr = match s.node {
             // Catch a `let` binding
             ast::StmtDecl(ref decl, _) => match decl.node {
