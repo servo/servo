@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#d323c3c7c248d3d5a2d46a6a5ee61c6e92aec0b0"
+source = "git+https://github.com/servo/rust-azure#e8323588209b47a07b67f61812c75dfeb2ad6851"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -24,7 +24,7 @@ dependencies = [
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
- "skia-sys 0.0.20130412 (git+https://github.com/servo/skia)",
+ "skia-sys 0.0.20130412 (git+https://github.com/servo/skia?ref=upstream-2014-06-16)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
@@ -534,7 +534,7 @@ dependencies = [
 [[package]]
 name = "skia-sys"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#79aa9354837bc195b83fa041b9632ea628e6f7d0"
+source = "git+https://github.com/servo/skia?ref=upstream-2014-06-16#35649d0cddfd89c0bfee0ff558da7291e26d30c3"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
