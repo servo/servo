@@ -1178,10 +1178,11 @@ fn create_root_layer_for_pipeline_and_rect(pipeline: &CompositionPipeline,
                                                WantsScrollEvents,
                                                opts::get().tile_size);
 
+    // All root layers mask to bounds.
+    *root_layer.masks_to_bounds.borrow_mut() = true;
+
     match frame_rect {
         Some(ref frame_rect) => {
-            *root_layer.masks_to_bounds.borrow_mut() = true;
-
             let frame_rect = frame_rect.to_untyped();
             *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
         }
