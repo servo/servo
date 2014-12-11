@@ -36,7 +36,8 @@ class MachCommands(CommandBase):
 
         cargo_paths = [path.join('components', 'servo'),
                        path.join('ports', 'cef'),
-                       path.join('ports', 'android', 'glut_app')]
+                       path.join('ports', 'android', 'glut_app'),
+                       path.join('ports', 'gonk')]
 
         for cargo_path in cargo_paths:
             with cd(cargo_path):
