@@ -294,7 +294,7 @@ version = "0.0.1"
 source = "git+https://github.com/servo/glfw-rs?ref=servo#46f82b46589720f202ab2d4a99e4f4fd48df6469"
 dependencies = [
  "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?ref=cargo-3.0.4)",
- "semver 0.1.0 (git+https://github.com/rust-lang/semver)",
+ "semver 0.1.3 (git+https://github.com/rust-lang/semver)",
 ]
 
 [[package]]
@@ -614,8 +614,8 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "0.1.0"
-source = "git+https://github.com/rust-lang/semver#7dca047a9cd40e929a4545b37a1917daff82f156"
+version = "0.1.3"
+source = "git+https://github.com/rust-lang/semver#29212953f839337c672d185dde74e14b5dfb1f46"
 
 [[package]]
 name = "skia-sys"
