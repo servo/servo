@@ -7,16 +7,20 @@ use std::ascii::AsciiExt;
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding;
 use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::global::Window;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{ElementTypeId, Element, AttributeHandlers, ElementCreator};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::event::{Event, Bubbles, NotCancelable, EventHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
@@ -206,6 +210,13 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         };
 
         window.evaluate_script_with_result(source.as_slice(), url.serialize().as_slice());
+
+        let event = Event::new(Window(*window),
+                               "load".to_string(),
+                               Bubbles, NotCancelable).root();
+        event.set_trusted(true);
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        target.DispatchEvent(*event).ok();
     }
 
     fn is_javascript(self) -> bool {
