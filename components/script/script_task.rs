@@ -946,6 +946,10 @@ impl ScriptTask {
             // TODO: if keypress event is canceled, prevent firing input events
         }
 
+        if !prevented {
+            self.compositor.borrow_mut().send_key_event(key, state, modifiers);
+        }
+
         // This behavior is unspecced
         // We are supposed to dispatch synthetic click activation for Space and/or Return,
         // however *when* we do it is up to us
