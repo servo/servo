@@ -128,23 +128,23 @@ pub fn parse_unsigned_integer<T: Iterator<char>>(input: T) -> Option<u32> {
 }
 
 pub enum LengthOrPercentageOrAuto {
-    AutoLpa,
-    PercentageLpa(f64),
-    LengthLpa(Au),
+    Auto,
+    Percentage(f64),
+    Length(Au),
 }
 
 /// Parses a length per HTML5 § 2.4.4.4. If unparseable, `AutoLpa` is returned.
 pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     value = value.trim_left_chars(Whitespace);
     if value.len() == 0 {
-        return AutoLpa
+        return LengthOrPercentageOrAuto::Auto
     }
     if value.starts_with("+") {
         value = value.slice_from(1)
     }
     value = value.trim_left_chars('0');
     if value.len() == 0 {
-        return AutoLpa
+        return LengthOrPercentageOrAuto::Auto
     }
 
     let mut end_index = value.len();
@@ -172,14 +172,14 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     if found_percent {
         let result: Option<f64> = FromStr::from_str(value);
         match result {
-            Some(number) => return PercentageLpa((number as f64) / 100.0),
-            None => return AutoLpa,
+            Some(number) => return LengthOrPercentageOrAuto::Percentage((number as f64) / 100.0),
+            None => return LengthOrPercentageOrAuto::Auto,
         }
     }
 
     match FromStr::from_str(value) {
-        Some(number) => LengthLpa(Au::from_px(number)),
-        None => AutoLpa,
+        Some(number) => LengthOrPercentageOrAuto::Length(Au::from_px(number)),
+        None => LengthOrPercentageOrAuto::Auto,
     }
 }
 
