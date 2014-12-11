@@ -543,7 +543,7 @@ dependencies = [
 [[package]]
 name = "stb_image"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-stb-image#74488fef4740acf287ff5dc248d65cc74033467a"
+source = "git+https://github.com/servo/rust-stb-image#97d7e440e80e41a304647363c322eab68e3700aa"
 
 [[package]]
 name = "string_cache"
