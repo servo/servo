@@ -238,8 +238,8 @@ source = "git+https://github.com/servo/libfreetype2#f5c49c0da1d5bc6b206c41763440
 
 [[package]]
 name = "gcc"
-version = "0.1.1"
-source = "git+https://github.com/alexcrichton/gcc-rs#d35c34c871dd75f97fadf04cb0ed85d997a9bc0c"
+version = "0.0.2"
+source = "git+https://github.com/alexcrichton/gcc-rs#903e8f8a2e3766ad3d514404d452dbaa1d3b2d79"
 
 [[package]]
 name = "geom"
@@ -406,7 +406,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#7563bbd5abf12a1f0d01661c525b1f2491f783a9"
+source = "git+https://github.com/servo/rust-mozjs#e04e7307a3e52f46bc9ba3d5682188285110bc67"
 dependencies = [
  "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs)",
 ]
@@ -681,7 +681,7 @@ name = "time"
 version = "0.1.1"
 source = "git+https://github.com/rust-lang/time#4c7585dee9e418a9da793574869f292df2653c47"
 dependencies = [
- "gcc 0.1.1 (git+https://github.com/alexcrichton/gcc-rs)",
+ "gcc 0.0.2 (git+https://github.com/alexcrichton/gcc-rs)",
 ]
 
 [[package]]
