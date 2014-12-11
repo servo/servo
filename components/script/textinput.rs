@@ -76,9 +76,26 @@ impl TextInput {
         i
     }
 
+    /// Remove a character at the current editing point
+    fn delete_char(&mut self, dir: DeleteDir) {
+        if self.selection_begin.is_none() {
+            self.adjust_horizontal(if dir == Forward {1} else {-1}, true);
+        }
+        self.replace_selection("".to_string());
+    }
+
+    /// Insert a character at the current editing point
+    fn insert_char(&mut self, ch: char) {
+        if self.selection_begin.is_none() {
+            self.selection_begin = Some(self.edit_point);
+        }
+        self.replace_selection(ch.to_string());
+    }
+
     fn replace_selection(&mut self, insert: String) {
         let begin = self.selection_begin.take().unwrap();
         let end = self.edit_point;
+
         let (begin, end) = if begin.line < end.line || (begin.line == end.line && begin.index < end.index) {
             (begin, end)
         } else {
@@ -117,22 +134,6 @@ impl TextInput {
         self.lines = new_lines;
     }
 
-    /// Insert a character at the current editing point
-    fn insert_char(&mut self, ch: char) {
-        if self.selection_begin.is_none() {
-            self.selection_begin = Some(self.edit_point);
-        }
-        self.replace_selection(ch.to_string());
-    }
-
-    /// Remove a character at the current editing point
-    fn delete_char(&mut self, dir: DeleteDir) {
-        if self.selection_begin.is_none() {
-            self.adjust_horizontal(if dir == Forward {1} else {-1}, true);
-        }
-        self.replace_selection("".to_string());
-    }
-
     /// Return the length of the current line under the editing point.
     fn current_line_length(&self) -> uint {
         self.lines[self.edit_point.line].char_len()
@@ -153,17 +154,21 @@ impl TextInput {
             self.selection_begin = None;
         }
 
-        if adjust < 0 && self.edit_point.line as int + adjust < 0 {
+        assert!(self.edit_point.line < self.lines.len());
+
+        let target_line: int = self.edit_point.line as int + adjust;
+
+        if target_line < 0 {
             self.edit_point.index = 0;
             self.edit_point.line = 0;
             return;
-        } else if adjust > 0 && self.edit_point.line + adjust as uint >= self.lines.len() {
+        } else if target_line as uint >= self.lines.len() {
             self.edit_point.line = self.lines.len() - 1;
             self.edit_point.index = self.current_line_length();
             return;
         }
 
-        self.edit_point.line = (self.edit_point.line as int + adjust) as uint;
+        self.edit_point.line = target_line as uint;
         self.edit_point.index = min(self.current_line_length(), self.edit_point.index);
     }
 
@@ -184,16 +189,17 @@ impl TextInput {
             if adjust.abs() as uint > remaining && self.edit_point.line > 0 {
                 self.adjust_vertical(-1, select);
                 self.edit_point.index = self.current_line_length();
-                self.adjust_horizontal(adjust + remaining as int, select);
+                self.adjust_horizontal(adjust + remaining as int + 1, select);
             } else {
                 self.edit_point.index = max(0, self.edit_point.index as int + adjust) as uint;
             }
         } else {
             let remaining = self.current_line_length() - self.edit_point.index;
-            if adjust as uint > remaining && self.edit_point.line < self.lines.len() - 1 {
-                self.edit_point.index = 0;
+            if adjust as uint > remaining && self.lines.len() > self.edit_point.line + 1 {
                 self.adjust_vertical(1, select);
-                self.adjust_horizontal(adjust - remaining as int, select);
+                self.edit_point.index = 0;
+                // one shift is consumed by the change of line, hence the -1
+                self.adjust_horizontal(adjust - remaining as int - 1, select);
             } else {
                 self.edit_point.index = min(self.current_line_length(),
                                             self.edit_point.index + adjust as uint);
