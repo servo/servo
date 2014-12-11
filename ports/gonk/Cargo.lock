@@ -103,7 +103,7 @@ name = "cssparser"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-cssparser#cbbfd66f794bd019bbdeaefc88b29eff455b62e5"
 dependencies = [
- "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "encoding 0.2.3 (git+https://github.com/lifthrasiir/rust-encoding)",
 ]
 
 [[package]]
@@ -129,8 +129,8 @@ source = "git+https://github.com/servo/rust-egl#88f2a13812ddbce2bf2317221663a61c
 
 [[package]]
 name = "encoding"
-version = "0.2.0"
-source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+version = "0.2.3"
+source = "git+https://github.com/lifthrasiir/rust-encoding#15ac0ded3ca592c31ded5b9ff6f9fe2fa4b73fc4"
 dependencies = [
  "encoding-index-japanese 1.0.20140915 (git+https://github.com/lifthrasiir/rust-encoding)",
  "encoding-index-korean 1.0.20140915 (git+https://github.com/lifthrasiir/rust-encoding)",
@@ -142,27 +142,47 @@ dependencies = [
 [[package]]
 name = "encoding-index-japanese"
 version = "1.0.20140915"
-source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+source = "git+https://github.com/lifthrasiir/rust-encoding#15ac0ded3ca592c31ded5b9ff6f9fe2fa4b73fc4"
+dependencies = [
+ "encoding_index_tests 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+]
 
 [[package]]
 name = "encoding-index-korean"
 version = "1.0.20140915"
-source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+source = "git+https://github.com/lifthrasiir/rust-encoding#15ac0ded3ca592c31ded5b9ff6f9fe2fa4b73fc4"
+dependencies = [
+ "encoding_index_tests 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+]
 
 [[package]]
 name = "encoding-index-simpchinese"
 version = "1.0.20140915"
-source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+source = "git+https://github.com/lifthrasiir/rust-encoding#15ac0ded3ca592c31ded5b9ff6f9fe2fa4b73fc4"
+dependencies = [
+ "encoding_index_tests 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+]
 
 [[package]]
 name = "encoding-index-singlebyte"
 version = "1.0.20140915"
-source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+source = "git+https://github.com/lifthrasiir/rust-encoding#15ac0ded3ca592c31ded5b9ff6f9fe2fa4b73fc4"
+dependencies = [
+ "encoding_index_tests 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+]
 
 [[package]]
 name = "encoding-index-tradchinese"
 version = "1.0.20140915"
-source = "git+https://github.com/lifthrasiir/rust-encoding#a06637cc6d0da37c12c68661e2ee9ca1999764a4"
+source = "git+https://github.com/lifthrasiir/rust-encoding#15ac0ded3ca592c31ded5b9ff6f9fe2fa4b73fc4"
+dependencies = [
+ "encoding_index_tests 0.1.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+]
+
+[[package]]
+name = "encoding_index_tests"
+version = "0.1.0"
+source = "git+https://github.com/lifthrasiir/rust-encoding#15ac0ded3ca592c31ded5b9ff6f9fe2fa4b73fc4"
 
 [[package]]
 name = "expat-sys"
@@ -335,7 +355,7 @@ dependencies = [
 name = "layout"
 version = "0.0.1"
 dependencies = [
- "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "encoding 0.2.3 (git+https://github.com/lifthrasiir/rust-encoding)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "layout_traits 0.0.1",
@@ -487,7 +507,7 @@ dependencies = [
  "canvas 0.0.1",
  "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser)",
  "devtools_traits 0.0.1",
- "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "encoding 0.2.3 (git+https://github.com/lifthrasiir/rust-encoding)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "html5ever 0.0.0 (git+https://github.com/servo/html5ever)",
@@ -570,7 +590,7 @@ name = "style"
 version = "0.0.1"
 dependencies = [
  "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser)",
- "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "encoding 0.2.3 (git+https://github.com/lifthrasiir/rust-encoding)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
  "plugins 0.0.1",
@@ -599,7 +619,7 @@ name = "url"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-url#8a61b7654ab5378b488225a1d8a9cbbbcbd38894"
 dependencies = [
- "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "encoding 0.2.3 (git+https://github.com/lifthrasiir/rust-encoding)",
 ]
 
 [[package]]
