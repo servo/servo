@@ -678,5 +678,5 @@ source = "git+https://github.com/servo/rust-xlib#58ec3847b592aeabdcfeb6a2d02033d
 [[package]]
 name = "xxhash"
 version = "0.0.1"
-source = "git+https://github.com/Jurily/rust-xxhash#7e4174e780af0cfb29a5e53ede0b987adca16396"
+source = "git+https://github.com/Jurily/rust-xxhash#64f8d02314735f511cb4272563d0f703d575c159"
 
