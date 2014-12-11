@@ -234,6 +234,11 @@ version = "2.4.11"
 source = "git+https://github.com/servo/libfreetype2#f5c49c0da1d5bc6b206c4176344012ac37524243"
 
 [[package]]
+name = "gcc"
+version = "0.1.1"
+source = "git+https://github.com/alexcrichton/gcc-rs#d35c34c871dd75f97fadf04cb0ed85d997a9bc0c"
+
+[[package]]
 name = "geom"
 version = "0.1.0"
 source = "git+https://github.com/servo/rust-geom#95e746133b4a35b53eb259304668b63ee8de42b8"
@@ -500,7 +505,7 @@ dependencies = [
 [[package]]
 name = "phf"
 version = "0.0.0"
-source = "git+https://github.com/sfackler/rust-phf#18a5ecc028055c3dbd650cc5a064b6fb033d82ef"
+source = "git+https://github.com/sfackler/rust-phf#aa3e2d0aedea4d55c2e4cea1bdf6e89418dc1206"
 dependencies = [
  "xxhash 0.0.1 (git+https://github.com/Jurily/rust-xxhash)",
 ]
@@ -508,8 +513,9 @@ dependencies = [
 [[package]]
 name = "phf_mac"
 version = "0.0.0"
-source = "git+https://github.com/sfackler/rust-phf#18a5ecc028055c3dbd650cc5a064b6fb033d82ef"
+source = "git+https://github.com/sfackler/rust-phf#aa3e2d0aedea4d55c2e4cea1bdf6e89418dc1206"
 dependencies = [
+ "time 0.1.1 (git+https://github.com/rust-lang/time)",
  "xxhash 0.0.1 (git+https://github.com/Jurily/rust-xxhash)",
 ]
 
@@ -654,6 +660,14 @@ dependencies = [
 [[package]]
 name = "task_info"
 version = "0.0.1"
+
+[[package]]
+name = "time"
+version = "0.1.1"
+source = "git+https://github.com/rust-lang/time#4c7585dee9e418a9da793574869f292df2653c47"
+dependencies = [
+ "gcc 0.1.1 (git+https://github.com/alexcrichton/gcc-rs)",
+]
 
 [[package]]
 name = "typeable"
