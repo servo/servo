@@ -17,7 +17,7 @@ dependencies = [
 [[package]]
 name = "android_glue"
 version = "0.0.1"
-source = "git+https://github.com/tomaka/android-rs-glue#fe9acb5bd465da1df4561e2bd4ebcc6d305134a4"
+source = "git+https://github.com/tomaka/android-rs-glue#cac0adb90bc576758f1ebf3b5e567961b1605c1f"
 dependencies = [
  "compile_msg 0.1.1 (git+https://github.com/huonw/compile_msg)",
 ]
@@ -299,7 +299,7 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.2"
-source = "git+https://github.com/tomaka/glutin#c95b778e2c077c0b410f366ad3c85a93c40c6095"
+source = "git+https://github.com/tomaka/glutin#749c47d8c20af078b06e8506b68a54e3799c1a8b"
 dependencies = [
  "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue)",
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
