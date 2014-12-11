@@ -248,8 +248,8 @@ impl TimeProfiler {
 
 #[deriving(Eq, PartialEq)]
 pub enum TimerMetadataFrameType {
-    TimeRootWindow,
-    TimeIFrame,
+    RootWindow,
+    IFrame,
 }
 
 #[deriving(Eq, PartialEq)]
@@ -270,7 +270,7 @@ pub fn profile<T>(category: TimeProfilerCategory,
     let meta = meta.map(|(url, iframe, reflow_type)|
         TimerMetadata {
             url: url.serialize(),
-            iframe: iframe == TimeIFrame,
+            iframe: iframe == TimerMetadataFrameType::IFrame,
             incremental: reflow_type == TimerMetadataReflowType::Incremental,
         });
     time_profiler_chan.send(TimeProfilerMsg::Time((category, meta), ms));
