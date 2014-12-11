@@ -420,7 +420,7 @@ macro_rules! def_small_vector(
             }
         }
 
-        impl<T> Extendable<T> for $name<T> {
+        impl<T> $name<T> {
             fn extend<I: Iterator<T>>(&mut self, mut iter: I) {
                 let (lower_size_bound, _) = iter.size_hint();
 
