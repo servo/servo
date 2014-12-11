@@ -5,6 +5,7 @@
 use geometry::Au;
 
 use std::iter::Filter;
+use std::num::Int;
 use std::str::{CharEq, CharSplits, FromStr};
 use unicode::char::to_lowercase;
 
@@ -102,13 +103,13 @@ fn do_parse_integer<T: Iterator<char>>(input: T) -> Option<i64> {
         d as i64 - '0' as i64
     }).fold(Some(0i64), |accumulator, d| {
         accumulator.and_then(|accumulator| {
-            accumulator.checked_mul(&10)
+            accumulator.checked_mul(10)
         }).and_then(|accumulator| {
-            accumulator.checked_add(&d)
+            accumulator.checked_add(d)
         })
     });
 
-    return value.and_then(|value| value.checked_mul(&sign));
+    return value.and_then(|value| value.checked_mul(sign));
 }
 
 /// Parse an integer according to

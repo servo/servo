@@ -6,7 +6,7 @@ use std::cmp::{max, min};
 use std::iter;
 use std::fmt;
 use std::num;
-use std::num::{Bounded, Zero};
+use std::num::{Int, Bounded, Zero};
 
 /// An index type to be used by a `Range`
 pub trait RangeIndex: Copy
@@ -282,7 +282,7 @@ impl<I: RangeIndex> Range<I> {
 }
 
 /// Methods for `Range`s with indices based on integer values
-impl<T: Int, I: IntRangeIndex<T>> Range<I> {
+impl<T: Int+Bounded, I: IntRangeIndex<T>> Range<I> {
     /// Returns an iterater that increments over `[begin, end)`.
     #[inline]
     pub fn each_index(&self) -> EachIndex<T, I> {
