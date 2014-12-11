@@ -47,7 +47,6 @@ git = "https://github.com/servo/rust-geom"
 
 [dependencies.html5ever]
 git = "https://github.com/servo/html5ever"
-branch = "servo"
 
 [dependencies.encoding]
 git = "https://github.com/lifthrasiir/rust-encoding"
