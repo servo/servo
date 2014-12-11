@@ -1177,6 +1177,11 @@ impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
     /// Assumption: Absolute descendants have had their overflow calculated.
     fn store_overflow(self, _: &LayoutContext) {
         let my_position = mut_base(self).position;
+
+        // FIXME(pcwalton): We should calculate overflow on a per-fragment basis, because their
+        // styles can affect overflow regions. Consider `box-shadow`, `outline`, etc.--anything
+        // that can draw outside the border box. For now we assume overflow is the border box, but
+        // that is wrong.
         let mut overflow = my_position;
 
         if self.is_block_container() {

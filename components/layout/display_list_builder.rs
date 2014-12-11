@@ -112,6 +112,12 @@ pub trait FragmentDisplayListBuilding {
                                                     level: StackingLevel,
                                                     clip_rect: &Rect<Au>);
 
+    fn build_display_list_for_outline_if_applicable(&self,
+                                                    style: &ComputedValues,
+                                                    display_list: &mut DisplayList,
+                                                    bounds: &Rect<Au>,
+                                                    clip_rect: &Rect<Au>);
+
     fn build_debug_borders_around_text_fragments(&self,
                                                  display_list: &mut DisplayList,
                                                  flow_origin: Point2D<Au>,
@@ -439,6 +445,40 @@ impl FragmentDisplayListBuilding for Fragment {
         }), level);
     }
 
+    fn build_display_list_for_outline_if_applicable(&self,
+                                                    style: &ComputedValues,
+                                                    display_list: &mut DisplayList,
+                                                    bounds: &Rect<Au>,
+                                                    clip_rect: &Rect<Au>) {
+        let width = style.get_outline().outline_width;
+        if width == Au(0) {
+            return
+        }
+
+        let outline_style = style.get_outline().outline_style;
+        if outline_style == border_style::none {
+            return
+        }
+
+        // Outlines are not accounted for in the dimensions of the border box, so adjust the
+        // absolute bounds.
+        let mut bounds = *bounds;
+        bounds.origin.x = bounds.origin.x - width;
+        bounds.origin.y = bounds.origin.y - width;
+        bounds.size.width = bounds.size.width + width + width;
+        bounds.size.height = bounds.size.height + width + width;
+
+        // Append the outline to the display list.
+        let color = style.resolve_color(style.get_outline().outline_color).to_gfx_color();
+        display_list.outlines.push_back(BorderDisplayItemClass(box BorderDisplayItem {
+            base: BaseDisplayItem::new(bounds, self.node, *clip_rect),
+            border_widths: SideOffsets2D::new_all_same(width),
+            color: SideOffsets2D::new_all_same(color),
+            style: SideOffsets2D::new_all_same(outline_style),
+            radius: Default::default(),
+        }))
+    }
+
     fn build_debug_borders_around_text_fragments(&self,
                                                  display_list: &mut DisplayList,
                                                  flow_origin: Point2D<Au>,
@@ -578,9 +618,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 }
             }
 
-            // Add a border, if applicable.
-            //
-            // TODO: Outlines.
+            // Add a border and outlines, if applicable.
             match self.inline_context {
                 Some(ref inline_context) => {
                     for style in inline_context.styles.iter().rev() {
@@ -589,6 +627,11 @@ impl FragmentDisplayListBuilding for Fragment {
                             display_list,
                             &absolute_fragment_bounds,
                             level,
+                            clip_rect);
+                        self.build_display_list_for_outline_if_applicable(
+                            &**style,
+                            display_list,
+                            &absolute_fragment_bounds,
                             clip_rect);
                     }
                 }
@@ -602,6 +645,11 @@ impl FragmentDisplayListBuilding for Fragment {
                         display_list,
                         &absolute_fragment_bounds,
                         level,
+                        clip_rect);
+                    self.build_display_list_for_outline_if_applicable(
+                        &*self.style,
+                        display_list,
+                        &absolute_fragment_bounds,
                         clip_rect);
                 }
             }
@@ -870,8 +918,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let stacking_context =
             self.create_stacking_context(display_list,
                                          Some(Arc::new(PaintLayer::new(self.layer_id(0),
-                                                                        transparent,
-                                                                        scroll_policy))));
+                                                                       transparent,
+                                                                       scroll_policy))));
         self.base.display_list_building_result = StackingContextResult(stacking_context)
     }
 

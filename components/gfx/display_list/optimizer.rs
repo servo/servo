@@ -35,6 +35,7 @@ impl DisplayListOptimizer {
                                          display_list.block_backgrounds_and_borders.iter());
         self.add_in_bounds_display_items(&mut result.floats, display_list.floats.iter());
         self.add_in_bounds_display_items(&mut result.content, display_list.content.iter());
+        self.add_in_bounds_display_items(&mut result.outlines, display_list.outlines.iter());
         self.add_in_bounds_stacking_contexts(&mut result.children, display_list.children.iter());
         result
     }
