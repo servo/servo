@@ -617,10 +617,7 @@ source = "git+https://github.com/reem/rust-unsafe-any#eb3fe87bea85f375b8fcefa0cd
 [[package]]
 name = "url"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-url#8a61b7654ab5378b488225a1d8a9cbbbcbd38894"
-dependencies = [
- "encoding 0.2.3 (git+https://github.com/lifthrasiir/rust-encoding)",
-]
+source = "git+https://github.com/servo/rust-url#46458f80e48c542b2f175e36e5b7d30782ca7dc5"
 
 [[package]]
 name = "util"
