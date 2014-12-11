@@ -465,7 +465,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "png"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-png#b0b4acde0080dd475dee93615276bfc19207a21e"
+source = "git+https://github.com/servo/rust-png#f060a2d9484a150de286f930eb80f9f3bff3ea38"
 dependencies = [
  "png-sys 1.6.3 (git+https://github.com/servo/libpng?ref=servo)",
 ]
