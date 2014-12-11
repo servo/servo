@@ -1316,34 +1316,6 @@ pub mod longhands {
 
     ${single_keyword("table-layout", "auto fixed")}
 
-    <%self:single_component_value name="-servo-column-span">
-        // The handling of this property is not well-specified by INTRINSIC, but its presence is
-        // assumed. HTML5 14.3.9 specifies that the `colspan` attribute is to be a nonnegative
-        // integer.
-        pub use super::computed_as_specified as to_computed_value;
-        pub mod computed_value {
-            pub type T = u32;
-        }
-        pub type SpecifiedValue = computed_value::T;
-
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T {
-            1
-        }
-
-        pub fn from_component_value(input: &ComponentValue, _: &Url) -> Result<SpecifiedValue,()> {
-            match input {
-                &Number(ref value) => {
-                    match value.int_value {
-                        None => Err(()),
-                        Some(n) => Ok(n as SpecifiedValue),
-                    }
-                }
-                _ => Err(()),
-            }
-        }
-    </%self:single_component_value>
-
     // CSS 2.1, Section 18 - User interface
 
 

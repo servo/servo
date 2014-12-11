@@ -6,13 +6,13 @@
 
 #![deny(unsafe_blocks)]
 
-use block::{BlockFlow, ISizeAndMarginsComputer};
+use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayNotCollapse};
 use construct::FlowConstructor;
 use context::LayoutContext;
-use flow::{mod, Flow, FlowClass, TableRowGroupFlowClass};
+use flow::{Flow, FlowClass, TableRowGroupFlowClass};
 use fragment::{Fragment, FragmentBoundsIterator};
 use layout_debug;
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableFlow};
+use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;

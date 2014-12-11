@@ -4,7 +4,7 @@
 
 use geometry::Au;
 
-use cssparser::{mod, RGBAColor};
+use cssparser::{mod, RGBA, RGBAColor};
 use std::ascii::AsciiExt;
 use std::from_str::FromStr;
 use std::iter::Filter;
@@ -186,19 +186,8 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     }
 }
 
-/// A "simple color" per HTML5 § 2.4.6.
-#[deriving(Show)]
-pub struct SimpleColor {
-    /// The red component of the color, [0, 255].
-    pub red: u8,
-    /// The green component of the color, [0, 255].
-    pub green: u8,
-    /// The blue component of the color, [0, 255].
-    pub blue: u8,
-}
-
 /// Parses a legacy color per HTML5 § 2.4.6. If unparseable, `Err` is returned.
-pub fn parse_legacy_color(mut input: &str) -> Result<SimpleColor,()> {
+pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
     // Steps 1 and 2.
     if input.len() == 0 {
         return Err(())
@@ -214,27 +203,22 @@ pub fn parse_legacy_color(mut input: &str) -> Result<SimpleColor,()> {
 
     // Step 5.
     match cssparser::parse_color_keyword(input) {
-        Ok(RGBAColor(rgba)) => {
-            return Ok(SimpleColor {
-                red: (rgba.red * 255.0) as u8,
-                green: (rgba.green * 255.0) as u8,
-                blue: (rgba.blue * 255.0) as u8,
-            })
-        }
+        Ok(RGBAColor(rgba)) => return Ok(rgba),
         _ => {}
     }
 
     // Step 6.
     if input.len() == 4 {
-        match (input.char_at(0),
-               hex(input.char_at(1)),
-               hex(input.char_at(2)),
-               hex(input.char_at(3))) {
-            ('#', Ok(r), Ok(g), Ok(b)) => {
-                return Ok(SimpleColor {
-                    red: r * 17,
-                    green: g * 17,
-                    blue: b * 17,
+        match (input.as_bytes()[0],
+               hex(input.as_bytes()[1] as char),
+               hex(input.as_bytes()[2] as char),
+               hex(input.as_bytes()[3] as char)) {
+            (b'#', Ok(r), Ok(g), Ok(b)) => {
+                return Ok(RGBA {
+                    red: (r as f32) * 17.0 / 255.0,
+                    green: (g as f32) * 17.0 / 255.0,
+                    blue: (b as f32) * 17.0 / 255.0,
+                    alpha: 1.0,
                 })
             }
             _ => {}
@@ -253,8 +237,11 @@ pub fn parse_legacy_color(mut input: &str) -> Result<SimpleColor,()> {
     let mut input = new_input.as_slice();
 
     // Step 8.
-    if input.len() > 128 {
-        input = input.slice_to(128)
+    for (char_count, (index, _)) in input.char_indices().enumerate() {
+        if char_count == 128 {
+            input = input.slice_to(index);
+            break
+        }
     }
 
     // Step 9.
@@ -301,10 +288,11 @@ pub fn parse_legacy_color(mut input: &str) -> Result<SimpleColor,()> {
     }
 
     // Steps 15-20.
-    return Ok(SimpleColor {
-        red: (hex(red[0] as char).unwrap() << 4) | hex(red[1] as char).unwrap(),
-        green: (hex(green[0] as char).unwrap() << 4) | hex(green[1] as char).unwrap(),
-        blue: (hex(blue[0] as char).unwrap() << 4) | hex(blue[1] as char).unwrap(),
+    return Ok(RGBA {
+        red: hex_string(red).unwrap() as f32 / 255.0,
+        green: hex_string(green).unwrap() as f32 / 255.0,
+        blue: hex_string(blue).unwrap() as f32 / 255.0,
+        alpha: 1.0,
     });
 
     fn hex(ch: char) -> Result<u8,()> {
@@ -313,6 +301,18 @@ pub fn parse_legacy_color(mut input: &str) -> Result<SimpleColor,()> {
             'a'...'f' => Ok((ch as u8) - b'a' + 10),
             'A'...'F' => Ok((ch as u8) - b'A' + 10),
             _ => Err(()),
+        }
+    }
+
+    fn hex_string(string: &[u8]) -> Result<u8,()> {
+        match string.len() {
+            0 => Err(()),
+            1 => hex(string[0] as char),
+            _ => {
+                let upper = try!(hex(string[0] as char));
+                let lower = try!(hex(string[1] as char));
+                Ok((upper << 4) | lower)
+            }
         }
     }
 }

@@ -20,9 +20,22 @@ use legacy::PresentationalHintSynthesis;
 use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use selectors::*;
+use selectors::{After, AnyLink, AttrDashMatch, AttrEqual};
+use selectors::{AttrExists, AttrIncludes, AttrPrefixMatch};
+use selectors::{AttrSubstringMatch, AttrSuffixMatch, Before, CaseInsensitive, CaseSensitive};
+use selectors::{Checked, Child, ClassSelector};
+use selectors::{CompoundSelector, Descendant, Disabled, Enabled, FirstChild, FirstOfType};
+use selectors::{Hover, IDSelector, LastChild, LastOfType};
+use selectors::{LaterSibling, LocalName, LocalNameSelector};
+use selectors::{NamespaceSelector, Link, Negation};
+use selectors::{NextSibling, NthChild};
+use selectors::{NthLastChild, NthLastOfType};
+use selectors::{NthOfType, OnlyChild, OnlyOfType, PseudoElement, Root};
+use selectors::{SelectorList, ServoNonzeroBorder, SimpleSelector, Visited};
+use selectors::{get_selector_list_selectors};
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
 
+#[deriving(Clone, PartialEq)]
 pub enum StylesheetOrigin {
     UserAgentOrigin,
     AuthorOrigin,
@@ -1166,12 +1179,16 @@ mod tests {
     /// Each sublist of the result contains the Rules for one StyleRule.
     fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         use namespaces::NamespaceMap;
-        use selectors::parse_selector_list;
+        use selectors::{ParserContext, parse_selector_list};
+        use selector_matching::AuthorOrigin;
         use cssparser::tokenize;
 
         let namespaces = NamespaceMap::new();
         css_selectors.iter().enumerate().map(|(i, selectors)| {
-            parse_selector_list(tokenize(*selectors).map(|(c, _)| c), &namespaces)
+            let context = ParserContext {
+                origin: AuthorOrigin,
+            };
+            parse_selector_list(&context, tokenize(*selectors).map(|(c, _)| c), &namespaces)
             .unwrap().into_iter().map(|s| {
                 Rule {
                     selector: s.compound_selectors.clone(),

@@ -36,6 +36,7 @@ use incremental::RestyleDamage;
 use util::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, OpaqueNodeMethods};
 use util::{PrivateLayoutData};
 
+use cssparser::RGBA;
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
@@ -53,7 +54,7 @@ use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DES
 use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
-use servo_util::str::{LengthOrPercentageOrAuto, SimpleColor, is_whitespace};
+use servo_util::str::{LengthOrPercentageOrAuto, is_whitespace};
 use std::kinds::marker::ContravariantLifetime;
 use std::mem;
 use string_cache::{Atom, Namespace};
@@ -613,7 +614,7 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
         }
     }
 
-    fn get_simple_color_attribute(self, attribute: SimpleColorAttribute) -> Option<SimpleColor> {
+    fn get_simple_color_attribute(self, attribute: SimpleColorAttribute) -> Option<RGBA> {
         unsafe {
             self.element.get_simple_color_attribute_for_layout(attribute)
         }
@@ -933,6 +934,18 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
                 Some(input) => input.get_size_for_layout(),
                 None => panic!("not an input element!")
+            }
+        }
+    }
+
+    pub fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute)
+                                          -> Option<u32> {
+        unsafe {
+            match ElementCast::to_js(self.get_jsmanaged()) {
+                Some(element) => {
+                    (*element.unsafe_get()).get_unsigned_integer_attribute_for_layout(attribute)
+                }
+                None => panic!("not an element!")
             }
         }
     }

@@ -17,13 +17,14 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, ElementNodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::{mod, DOMString, SimpleColor};
+use cssparser::RGBA;
+use servo_util::str::{mod, DOMString};
 use std::cell::Cell;
 
 #[dom_struct]
 pub struct HTMLBodyElement {
     htmlelement: HTMLElement,
-    background_color: Cell<Option<SimpleColor>>,
+    background_color: Cell<Option<RGBA>>,
 }
 
 impl HTMLBodyElementDerived for EventTarget {
@@ -65,11 +66,11 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
 }
 
 pub trait HTMLBodyElementHelpers {
-    fn get_background_color(&self) -> Option<SimpleColor>;
+    fn get_background_color(&self) -> Option<RGBA>;
 }
 
 impl HTMLBodyElementHelpers for HTMLBodyElement {
-    fn get_background_color(&self) -> Option<SimpleColor> {
+    fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
 }

@@ -18,13 +18,14 @@ use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::{mod, AutoLpa, DOMString, LengthOrPercentageOrAuto, SimpleColor};
+use cssparser::RGBA;
+use servo_util::str::{mod, AutoLpa, DOMString, LengthOrPercentageOrAuto};
 use std::cell::Cell;
 
 #[dom_struct]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
-    background_color: Cell<Option<SimpleColor>>,
+    background_color: Cell<Option<RGBA>>,
     border: Cell<Option<u32>>,
     width: Cell<LengthOrPercentageOrAuto>,
 }
@@ -95,13 +96,13 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
 }
 
 pub trait HTMLTableElementHelpers {
-    fn get_background_color(&self) -> Option<SimpleColor>;
+    fn get_background_color(&self) -> Option<RGBA>;
     fn get_border(&self) -> Option<u32>;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
 impl HTMLTableElementHelpers for HTMLTableElement {
-    fn get_background_color(&self) -> Option<SimpleColor> {
+    fn get_background_color(&self) -> Option<RGBA> {
         self.background_color.get()
     }
 

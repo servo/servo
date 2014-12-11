@@ -41,7 +41,7 @@ pub struct TableRowFlow {
 #[deriving(Encodable)]
 pub struct CellIntrinsicInlineSize {
     /// Inline sizes that this cell contributes to the column.
-    pub column_size: ColumnInlineSize,
+    pub column_size: ColumnIntrinsicInlineSize,
     /// The column span of this cell.
     pub column_span: u32,
 }
@@ -165,7 +165,7 @@ impl Flow for TableRowFlow {
     }
 
     fn column_intrinsic_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnIntrinsicInlineSize> {
-        &mut self.column_intrinsic_inline_sizes
+        panic!("can't call column_intrinsic_inline_sizes() on table row")
     }
 
     fn column_computed_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnComputedInlineSize> {
@@ -193,9 +193,11 @@ impl Flow for TableRowFlow {
             let child_specified_inline_size;
             let child_column_span;
             {
-                let child_style = kid.as_table_cell().fragment().style();
-                child_specified_inline_size = child_style.content_inline_size();
-                child_column_span = child_style.get_table()._servo_column_span
+                let child_table_cell = kid.as_table_cell();
+                child_specified_inline_size = child_table_cell.fragment()
+                                                              .style()
+                                                              .content_inline_size();
+                child_column_span = child_table_cell.column_span
             }
 
             // Collect minimum and preferred inline-sizes of the cell for automatic table layout
@@ -248,31 +250,36 @@ impl Flow for TableRowFlow {
 
         // Spread out the completed inline sizes among columns with spans > 1.
         let mut computed_inline_size_for_cells = Vec::new();
-        let mut column_inline_size_iterator = self.column_inline_sizes.iter();
+        let mut column_computed_inline_size_iterator = self.column_computed_inline_sizes.iter();
         for cell_intrinsic_inline_size in self.cell_intrinsic_inline_sizes.iter() {
-            //(intrinsic_inline_size_for_column, computed_inline_size_for_column) in
             // Start with the computed inline size for the first column in the span.
-            let mut column_inline_size = match column_inline_size_iterator.next() {
-                Some(column_inline_size) => *column_inline_size,
-                None => {
-                    // This could happen if there are too few cells in this row. Don't crash.
-                    break
-                }
-            };
+            let mut column_computed_inline_size =
+                match column_computed_inline_size_iterator.next() {
+                    Some(column_computed_inline_size) => *column_computed_inline_size,
+                    None => {
+                        // We're in fixed layout mode and there are more cells in this row than
+                        // columns we know about. According to CSS 2.1 § 17.5.2.1, the behavior is
+                        // now undefined. So just use zero.
+                        //
+                        // FIXME(pcwalton): $10 says this isn't Web compatible.
+                        ColumnComputedInlineSize {
+                            size: Au(0),
+                        }
+                    }
+                };
 
             // Add in computed inline sizes for any extra columns in the span.
             for _ in range(1, cell_intrinsic_inline_size.column_span) {
-                let extra_column_inline_size = match column_inline_size_iterator.next() {
-                    Some(column_inline_size) => column_inline_size,
-                    None => break,
-                };
-                column_inline_size.minimum_length = column_inline_size.minimum_length +
-                    extra_column_inline_size.minimum_length;
-                column_inline_size.preferred = column_inline_size.preferred +
-                    extra_column_inline_size.preferred;
+                let extra_column_computed_inline_size =
+                    match column_computed_inline_size_iterator.next() {
+                        Some(column_computed_inline_size) => column_computed_inline_size,
+                        None => break,
+                    };
+                column_computed_inline_size.size = column_computed_inline_size.size +
+                    extra_column_computed_inline_size.size;
             }
 
-            computed_inline_size_for_cells.push(column_inline_size)
+            computed_inline_size_for_cells.push(column_computed_inline_size)
         }
 
         // Push those inline sizes down to the cells.

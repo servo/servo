@@ -8,11 +8,10 @@
 use node::{TElement, TElementAttributes, TNode};
 use properties::{BackgroundColorDeclaration, BorderBottomWidthDeclaration};
 use properties::{BorderLeftWidthDeclaration, BorderRightWidthDeclaration};
-use properties::{BorderTopWidthDeclaration, ServoColumnSpanDeclaration, SpecifiedValue};
-use properties::{WidthDeclaration, specified};
+use properties::{BorderTopWidthDeclaration, SpecifiedValue, WidthDeclaration, specified};
 use selector_matching::{DeclarationBlock, Stylist};
 
-use cssparser::{RGBA, RGBAColor};
+use cssparser::RGBAColor;
 use servo_util::geometry::Au;
 use servo_util::smallvec::VecLike;
 use servo_util::str::{AutoLpa, LengthLpa, PercentageLpa};
@@ -114,14 +113,6 @@ impl PresentationalHintSynthesis for Stylist {
                         *shareable = false
                     }
                 }
-                match element.get_unsigned_integer_attribute(ColSpanUnsignedIntegerAttribute) {
-                    None => {}
-                    Some(value) => {
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                ServoColumnSpanDeclaration(SpecifiedValue(value))));
-                        *shareable = false
-                    }
-                }
                 self.synthesize_presentational_hint_for_legacy_background_color_attribute(
                     element,
                     matching_rules_list,
@@ -141,7 +132,8 @@ impl PresentationalHintSynthesis for Stylist {
                     matching_rules_list,
                     shareable);
             }
-            name if *name == atom!("body") => {
+            name if *name == atom!("body") || *name == atom!("tr") || *name == atom!("thead") ||
+                    *name == atom!("tbody") || *name == atom!("tfoot") => {
                 self.synthesize_presentational_hint_for_legacy_background_color_attribute(
                     element,
                     matching_rules_list,
@@ -187,12 +179,7 @@ impl PresentationalHintSynthesis for Stylist {
             None => {}
             Some(color) => {
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        BackgroundColorDeclaration(SpecifiedValue(RGBAColor(RGBA {
-                            red: color.red as f32 / 255.0,
-                            green: color.green as f32 / 255.0,
-                            blue: color.blue as f32 / 255.0,
-                            alpha: 1.0,
-                        })))));
+                        BackgroundColorDeclaration(SpecifiedValue(RGBAColor(color)))));
                 *shareable = false
             }
         }

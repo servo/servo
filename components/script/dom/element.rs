@@ -19,7 +19,8 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTar
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -38,19 +39,22 @@ use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
 use dom::htmlserializer::serialize;
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
+use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementHelpers};
+use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementHelpers};
 use dom::node::{CLICK_IN_PROGRESS, ElementNodeTypeId, LayoutNodeHelpers, Node, NodeHelpers};
 use dom::node::{NodeIterator, NodeStyleDamaged, OtherNodeDamage, document_from_node};
 use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
-use style::{mod, BgColorSimpleColorAttribute, BorderUnsignedIntegerAttribute};
-use style::{ColSpanUnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
+use style::{mod, AuthorOrigin, BgColorSimpleColorAttribute, BorderUnsignedIntegerAttribute};
+use style::{ColSpanUnsignedIntegerAttribute, IntegerAttribute, LengthAttribute, ParserContext};
 use style::{SimpleColorAttribute, SizeIntegerAttribute, UnsignedIntegerAttribute};
-use style::{WidthLengthAttribute, matches, parse_selector_list_from_str};
+use style::{WidthLengthAttribute, matches};
 use servo_util::namespace;
-use servo_util::str::{DOMString, LengthOrPercentageOrAuto, SimpleColor};
+use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
+use cssparser::RGBA;
 use std::ascii::AsciiExt;
 use std::cell::{Ref, RefMut};
 use std::default::Default;
@@ -210,7 +214,7 @@ pub trait RawLayoutElementHelpers {
     unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32>;
     unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
-                                                    -> Option<SimpleColor>;
+                                                    -> Option<RGBA>;
     fn local_name<'a>(&'a self) -> &'a Atom;
     fn namespace<'a>(&'a self) -> &'a Namespace;
     fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>>;
@@ -341,9 +345,6 @@ impl RawLayoutElementHelpers for Element {
                 if self.is_htmltableelement() {
                     let this: &HTMLTableElement = mem::transmute(self);
                     this.get_border()
-                } else if self.is_htmltablecellelement() {
-                    let this: &HTMLTableCellElement = mem::transmute(self);
-                    this.get_border()
                 } else {
                     // Don't panic since `:-servo-nonzero-border` can cause this to be called on
                     // arbitrary elements.
@@ -355,7 +356,9 @@ impl RawLayoutElementHelpers for Element {
                     let this: &HTMLTableCellElement = mem::transmute(self);
                     this.get_colspan()
                 } else {
-                    panic!("I'm not a table cell!")
+                    // Don't panic since `display` can cause this to be called on arbitrary
+                    // elements.
+                    None
                 }
             }
         }
@@ -364,7 +367,7 @@ impl RawLayoutElementHelpers for Element {
     #[inline]
     #[allow(unrooted_must_root)]
     unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
-                                                    -> Option<SimpleColor> {
+                                                    -> Option<RGBA> {
         match attribute {
             BgColorSimpleColorAttribute => {
                 if self.is_htmlbodyelement() {
@@ -376,8 +379,14 @@ impl RawLayoutElementHelpers for Element {
                 } else if self.is_htmltablecellelement() {
                     let this: &HTMLTableCellElement = mem::transmute(self);
                     this.get_background_color()
+                } else if self.is_htmltablerowelement() {
+                    let this: &HTMLTableRowElement = mem::transmute(self);
+                    this.get_background_color()
+                } else if self.is_htmltablesectionelement() {
+                    let this: &HTMLTableSectionElement = mem::transmute(self);
+                    this.get_background_color()
                 } else {
-                    panic!("I'm not a body, table, or table cell!")
+                    None
                 }
             }
         }
@@ -1011,7 +1020,10 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(self, selectors: DOMString) -> Fallible<bool> {
-        match parse_selector_list_from_str(selectors.as_slice()) {
+        let parser_context = ParserContext {
+            origin: AuthorOrigin,
+        };
+        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
                 let root: JSRef<Node> = NodeCast::from_ref(self);
