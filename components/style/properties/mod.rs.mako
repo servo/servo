@@ -1111,6 +1111,8 @@ pub mod longhands {
         }
     </%self:single_component_value>
 
+    ${predefined_type("text-indent", "LengthOrPercentage", "computed::LP_Length(Au(0))")}
+
     ${new_style_struct("Text", is_inherited=False)}
 
     <%self:longhand name="text-decoration">

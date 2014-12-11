@@ -234,6 +234,7 @@ impl Flow for TableRowFlow {
                                                       containing_block_inline_size);
 
         self.block_flow.propagate_assigned_inline_size_to_children(
+            layout_context,
             inline_start_content_edge,
             containing_block_inline_size,
             Some(self.column_computed_inline_sizes.as_slice()));

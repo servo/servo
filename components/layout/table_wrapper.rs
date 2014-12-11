@@ -299,12 +299,14 @@ impl Flow for TableWrapperFlow {
         match assigned_column_inline_sizes {
             None => {
                 self.block_flow.propagate_assigned_inline_size_to_children(
+                    layout_context,
                     inline_start_content_edge,
                     content_inline_size,
                     None)
             }
             Some(ref assigned_column_inline_sizes) => {
                 self.block_flow.propagate_assigned_inline_size_to_children(
+                    layout_context,
                     inline_start_content_edge,
                     content_inline_size,
                     Some(assigned_column_inline_sizes.as_slice()));

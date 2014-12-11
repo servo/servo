@@ -177,11 +177,13 @@ struct LineBreaker {
     lines: Vec<Line>,
     /// The current position in the block direction.
     cur_b: Au,
+    /// The computed value of the indentation for the first line (`text-indent`, CSS 2.1 § 16.1).
+    first_line_indentation: Au,
 }
 
 impl LineBreaker {
-    /// Creates a new `LineBreaker` with a set of floats.
-    fn new(float_context: Floats) -> LineBreaker {
+    /// Creates a new `LineBreaker` with a set of floats and the indentation of the first line.
+    fn new(float_context: Floats, first_line_indentation: Au) -> LineBreaker {
         LineBreaker {
             new_fragments: Vec::new(),
             work_list: RingBuf::new(),
@@ -193,6 +195,7 @@ impl LineBreaker {
             floats: float_context,
             lines: Vec::new(),
             cur_b: Au(0),
+            first_line_indentation: first_line_indentation,
         }
     }
 
@@ -325,7 +328,7 @@ impl LineBreaker {
         let placement_inline_size = if first_fragment.can_split() {
             Au(0)
         } else {
-            first_fragment.border_box.size.inline
+            first_fragment.border_box.size.inline + self.indentation_for_pending_fragment()
         };
 
         // Try to place the fragment between floats.
@@ -486,9 +489,9 @@ impl LineBreaker {
         // If we're not going to overflow the green zone vertically, we might still do so
         // horizontally. We'll try to place the whole fragment on this line and break somewhere if
         // it doesn't fit.
-
+        let indentation = self.indentation_for_pending_fragment();
         let new_inline_size = self.pending_line.bounds.size.inline +
-            fragment.border_box.size.inline;
+            fragment.border_box.size.inline + indentation;
         if new_inline_size <= green_zone.inline {
             debug!("LineBreaker: fragment fits without splitting");
             self.push_fragment_to_line(fragment);
@@ -506,7 +509,8 @@ impl LineBreaker {
         }
 
         // Split it up!
-        let available_inline_size = green_zone.inline - self.pending_line.bounds.size.inline;
+        let available_inline_size = green_zone.inline - self.pending_line.bounds.size.inline -
+            indentation;
         let (inline_start_fragment, inline_end_fragment) =
             match fragment.find_split_info_for_inline_size(CharIndex(0),
                                                            available_inline_size,
@@ -535,7 +539,7 @@ impl LineBreaker {
 
         // Push the first fragment onto the line we're working on and start off the next line with
         // the second fragment. If there's no second fragment, the next line will start off empty.
-        match (inline_start_fragment, inline_end_fragment) { 
+        match (inline_start_fragment, inline_end_fragment) {
             (Some(inline_start_fragment), Some(inline_end_fragment)) => {
                 self.push_fragment_to_line(inline_start_fragment);
                 self.work_list.push_front(inline_end_fragment)
@@ -551,6 +555,7 @@ impl LineBreaker {
 
     /// Pushes a fragment to the current line unconditionally.
     fn push_fragment_to_line(&mut self, fragment: Fragment) {
+        let indentation = self.indentation_for_pending_fragment();
         if self.pending_line_is_empty() {
             assert!(self.new_fragments.len() <= (u16::MAX as uint));
             self.pending_line.range.reset(FragmentIndex(self.new_fragments.len() as int),
@@ -559,10 +564,20 @@ impl LineBreaker {
 
         self.pending_line.range.extend_by(FragmentIndex(1));
         self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline +
-            fragment.border_box.size.inline;
+            fragment.border_box.size.inline +
+            indentation;
         self.pending_line.bounds.size.block = max(self.pending_line.bounds.size.block,
                                                   fragment.border_box.size.block);
         self.new_fragments.push(fragment);
+    }
+
+    /// Returns the indentation that needs to be applied before the fragment we're reflowing.
+    fn indentation_for_pending_fragment(&self) -> Au {
+        if self.pending_line_is_empty() && self.lines.is_empty() {
+            self.first_line_indentation
+        } else {
+            Au(0)
+        }
     }
 
     /// Returns true if the pending line is empty and false otherwise.
@@ -698,6 +713,11 @@ pub struct InlineFlow {
     /// The minimum depth below the baseline for each line, as specified by the line block-size and
     /// font style.
     pub minimum_depth_below_baseline: Au,
+
+    /// The amount of indentation to use on the first line. This is determined by our block parent
+    /// (because percentages are relative to the containing block, and we aren't in a position to
+    /// compute things relative to our parent's containing block).
+    pub first_line_indentation: Au,
 }
 
 impl InlineFlow {
@@ -708,6 +728,7 @@ impl InlineFlow {
             lines: Vec::new(),
             minimum_block_size_above_baseline: Au(0),
             minimum_depth_below_baseline: Au(0),
+            first_line_indentation: Au(0),
         }
     }
 
@@ -787,21 +808,22 @@ impl InlineFlow {
     /// Sets fragment positions in the inline direction based on alignment for one line.
     fn set_inline_fragment_positions(fragments: &mut InlineFragments,
                                      line: &Line,
-                                     line_align: text_align::T) {
+                                     line_align: text_align::T,
+                                     indentation: Au) {
         // Figure out how much inline-size we have.
         let slack_inline_size = max(Au(0), line.green_zone.inline - line.bounds.size.inline);
 
         // Set the fragment inline positions based on that alignment.
-        let mut offset = line.bounds.start.i;
-        offset = offset + match line_align {
-            // So sorry, but justified text is more complicated than shuffling line
-            // coordinates.
-            //
-            // TODO(burg, issue #213): Implement `text-align: justify`.
-            text_align::left | text_align::justify => Au(0),
-            text_align::center => slack_inline_size.scale_by(0.5),
-            text_align::right => slack_inline_size,
-        };
+        let mut inline_start_position_for_fragment = line.bounds.start.i + indentation +
+                match line_align {
+                // So sorry, but justified text is more complicated than shuffling line
+                // coordinates.
+                //
+                // TODO(burg, issue #213): Implement `text-align: justify`.
+                text_align::left | text_align::justify => Au(0),
+                text_align::center => slack_inline_size.scale_by(0.5),
+                text_align::right => slack_inline_size,
+            };
 
         for fragment_index in range(line.range.begin(), line.range.end()) {
             let fragment = fragments.get_mut(fragment_index.to_uint());
@@ -999,9 +1021,15 @@ impl Flow for InlineFlow {
         self.fragments.merge_broken_lines();
         self.lines = Vec::new();
 
+        // Determine how much indentation the first line wants.
+        let mut indentation = if self.fragments.is_empty() {
+            Au(0)
+        } else {
+            self.first_line_indentation
+        };
 
         // Perform line breaking.
-        let mut scanner = LineBreaker::new(self.base.floats.clone());
+        let mut scanner = LineBreaker::new(self.base.floats.clone(), indentation);
         scanner.scan_for_lines(self, layout_context);
 
         // Now, go through each line and lay out the fragments inside.
@@ -1010,7 +1038,8 @@ impl Flow for InlineFlow {
             // Lay out fragments in the inline direction.
             InlineFlow::set_inline_fragment_positions(&mut self.fragments,
                                                       line,
-                                                      self.base.flags.text_align());
+                                                      self.base.flags.text_align(),
+                                                      indentation);
 
             // Set the block-start position of the current line.
             // `line_height_offset` is updated at the end of the previous loop.
@@ -1110,6 +1139,9 @@ impl Flow for InlineFlow {
                 largest_depth_below_baseline;
             line_distance_from_flow_block_start = line_distance_from_flow_block_start +
                 line.bounds.size.block;
+
+            // We're no longer on the first line, so set indentation to zero.
+            indentation = Au(0)
         } // End of `lines.iter_mut()` loop.
 
         // Assign block sizes for any inline-block descendants.
