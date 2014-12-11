@@ -206,7 +206,6 @@ pub trait RawLayoutElementHelpers {
 }
 
 #[inline]
-#[allow(unrooted_must_root)]
 unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name: &Atom) -> Option<&'a JS<Attr>> {
     // cast to point to T in RefCell<T> directly
     let attrs: *const Vec<JS<Attr>> = mem::transmute(&elem.attrs);
@@ -219,7 +218,6 @@ unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name
 
 impl RawLayoutElementHelpers for Element {
     #[inline]
-    #[allow(unrooted_must_root)]
     unsafe fn get_attr_val_for_layout<'a>(&'a self, namespace: &Namespace, name: &Atom)
                                           -> Option<&'a str> {
         get_attr_for_layout(self, namespace, name).map(|attr| {
@@ -229,7 +227,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unrooted_must_root)]
     unsafe fn get_attr_vals_for_layout<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
         let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().filter_map(|attr: &JS<Attr>| {
@@ -243,7 +240,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unrooted_must_root)]
     unsafe fn get_attr_atom_for_layout(&self, namespace: &Namespace, name: &Atom)
                                       -> Option<Atom> {
         let attrs = self.attrs.borrow_for_layout();
@@ -258,7 +254,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unrooted_must_root)]
     unsafe fn has_class_for_layout(&self, name: &Atom) -> bool {
         let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
@@ -273,7 +268,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unrooted_must_root)]
     unsafe fn get_classes_for_layout(&self) -> Option<&'static [Atom]> {
         let attrs = self.attrs.borrow_for_layout();
         (*attrs).iter().find(|attr: & &JS<Attr>| {
@@ -286,7 +280,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unrooted_must_root)]
     unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
                                               -> LengthOrPercentageOrAuto {
         match length_attribute {
@@ -301,7 +294,6 @@ impl RawLayoutElementHelpers for Element {
     }
 
     #[inline]
-    #[allow(unrooted_must_root)]
     unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
                                                -> Option<i32> {
         match integer_attribute {
@@ -347,7 +339,6 @@ pub trait LayoutElementHelpers {
 }
 
 impl LayoutElementHelpers for JS<Element> {
-    #[allow(unrooted_must_root)]
     #[inline]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
         if (*self.unsafe_get()).namespace != ns!(HTML) {
