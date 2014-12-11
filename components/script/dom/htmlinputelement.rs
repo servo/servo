@@ -505,11 +505,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
         } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() &&
             (self.input_type.get() == InputText || self.input_type.get() == InputPassword) {
                 let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
-                keyevent.map(|event| {
-                    match self.textinput.borrow_mut().handle_keydown(event) {
+                keyevent.map(|keyevent| {
+                    match self.textinput.borrow_mut().handle_keydown(keyevent) {
                         TriggerDefaultAction => (),
                         DispatchInput => {
                             self.force_relayout();
+                            event.PreventDefault();
                         }
                         Nothing => (),
                     }
