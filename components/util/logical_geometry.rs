@@ -6,7 +6,7 @@
 
 use geom::{Size2D, Point2D, SideOffsets2D, Rect};
 use std::cmp::{min, max};
-use std::fmt::{Show, Formatter, FormatError};
+use std::fmt::{Show, Formatter, Error};
 use std::num::Zero;
 
 bitflags!(
@@ -49,7 +49,7 @@ impl WritingMode {
 }
 
 impl Show for WritingMode {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         if self.is_vertical() {
             try!(write!(formatter, "V"));
             if self.is_vertical_lr() {
@@ -122,12 +122,12 @@ impl DebugWritingMode {
 
 impl Show for DebugWritingMode {
     #[cfg(ndebug)]
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter, "?")
     }
 
     #[cfg(not(ndebug))]
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         self.mode.fmt(formatter)
     }
 }
@@ -142,7 +142,7 @@ pub struct LogicalSize<T> {
 }
 
 impl<T: Show> Show for LogicalSize<T> {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter, "LogicalSize({}, i{}×b{})",
                self.debug_writing_mode, self.inline, self.block)
     }
@@ -279,7 +279,7 @@ pub struct LogicalPoint<T> {
 }
 
 impl<T: Show> Show for LogicalPoint<T> {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter, "LogicalPoint({} (i{}, b{}))",
                self.debug_writing_mode, self.i, self.b)
     }
@@ -454,7 +454,7 @@ pub struct LogicalMargin<T> {
 }
 
 impl<T: Show> Show for LogicalMargin<T> {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter,
                "LogicalMargin({}, inline: {}..{} block: {}..{})",
                self.debug_writing_mode,
@@ -736,7 +736,7 @@ pub struct LogicalRect<T> {
 }
 
 impl<T: Show> Show for LogicalRect<T> {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter,
                "LogicalRect({}, i{}×b{}, @ (i{},b{}))",
                self.debug_writing_mode,

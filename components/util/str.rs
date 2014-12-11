@@ -4,9 +4,8 @@
 
 use geometry::Au;
 
-use std::from_str::FromStr;
 use std::iter::Filter;
-use std::str::{CharEq, CharSplits};
+use std::str::{CharEq, CharSplits, FromStr};
 use unicode::char::to_lowercase;
 
 pub type DOMString = String;

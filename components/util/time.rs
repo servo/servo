@@ -123,7 +123,7 @@ impl Formatable for TimeProfilerCategory {
             PaintingPrepBuffCategory => "Buffer Prep",
             PaintingCategory => "Painting",
         };
-        format!("{:s}{}", padding, name)
+        format!("{}{}", padding, name)
     }
 }
 
@@ -219,7 +219,7 @@ impl TimeProfiler {
     }
 
     fn print_buckets(&mut self) {
-        println!("{:35s} {:14} {:9} {:30} {:15s} {:15s} {:-15s} {:-15s} {:-15s}",
+        println!("{:35} {:14} {:9} {:30} {:15} {:15} {:-15} {:-15} {:-15}",
                  "_category_", "_incremental?_", "_iframe?_",
                  "            _url_", "    _mean (ms)_", "  _median (ms)_",
                  "     _min (ms)_", "     _max (ms)_", "      _events_");
@@ -238,7 +238,7 @@ impl TimeProfiler {
                      data.as_slice()[data_len / 2],
                      data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                      data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
-                println!("{:-35s}{} {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
+                println!("{:-35}{} {:15.4} {:15.4} {:15.4} {:15.4} {:15}",
                          category.format(), meta.format(), mean, median, min, max, data_len);
             }
         }
@@ -283,7 +283,7 @@ pub fn time<T>(msg: &str, callback: || -> T) -> T{
     let end_time = precise_time_ns();
     let ms = (end_time - start_time) as f64 / 1000000f64;
     if ms >= 5f64 {
-        debug!("{:s} took {} ms", msg, ms);
+        debug!("{} took {} ms", msg, ms);
     }
     return val;
 }
