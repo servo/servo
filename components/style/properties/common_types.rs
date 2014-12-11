@@ -25,6 +25,7 @@ pub mod specified {
         Au_(Au),  // application units
         Em(CSSFloat),
         Ex(CSSFloat),
+        Rem(CSSFloat),
 
         /// HTML5 "character width", as defined in HTML5 § 14.5.4.
         ///
@@ -34,7 +35,6 @@ pub mod specified {
 
         // XXX uncomment when supported:
 //        Ch(CSSFloat),
-//        Rem(CSSFloat),
 //        Vw(CSSFloat),
 //        Vh(CSSFloat),
 //        Vmin(CSSFloat),
@@ -73,6 +73,7 @@ pub mod specified {
                 "pc" => Ok(Au_(Au((value * AU_PER_PC) as i32))),
                 "em" => Ok(Em(value)),
                 "ex" => Ok(Ex(value)),
+                "rem" => Ok(Rem(value)),
                 _ => Err(())
             }
         }
@@ -463,6 +464,7 @@ pub mod computed {
         pub color: longhands::color::computed_value::T,
         pub text_decoration: longhands::text_decoration::computed_value::T,
         pub font_size: longhands::font_size::computed_value::T,
+        pub root_font_size: longhands::font_size::computed_value::T,
         pub display: longhands::display::computed_value::T,
         pub positioned: bool,
         pub floated: bool,
@@ -471,19 +473,19 @@ pub mod computed {
         pub border_bottom_present: bool,
         pub border_left_present: bool,
         pub is_root_element: bool,
-        // TODO, as needed: root font size, viewport size, etc.
+        // TODO, as needed: viewport size, etc.
     }
 
     #[allow(non_snake_case)]
     #[inline]
     pub fn compute_Au(value: specified::Length, context: &Context) -> Au {
-        compute_Au_with_font_size(value, context.font_size)
+        compute_Au_with_font_size(value, context.font_size, context.root_font_size)
     }
 
     /// A special version of `compute_Au` used for `font-size`.
     #[allow(non_snake_case)]
     #[inline]
-    pub fn compute_Au_with_font_size(value: specified::Length, reference_font_size: Au) -> Au {
+    pub fn compute_Au_with_font_size(value: specified::Length, reference_font_size: Au, root_font_size: Au) -> Au {
         match value {
             specified::Au_(value) => value,
             specified::Em(value) => reference_font_size.scale_by(value),
@@ -491,6 +493,7 @@ pub mod computed {
                 let x_height = 0.5;  // TODO: find that from the font
                 reference_font_size.scale_by(value * x_height)
             },
+            specified::Rem(value) => root_font_size.scale_by(value),
             specified::ServoCharacterWidth(value) => {
                 // This applies the *converting a character width to pixels* algorithm as specified
                 // in HTML5 § 14.5.4.

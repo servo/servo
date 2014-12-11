@@ -1878,6 +1878,7 @@ pub struct ComputedValues {
     % endfor
     shareable: bool,
     pub writing_mode: WritingMode,
+    pub root_font_size: Au,
 }
 
 impl ComputedValues {
@@ -2037,7 +2038,8 @@ lazy_static! {
             }),
         % endfor
         shareable: true,
-        writing_mode: WritingMode::empty()
+        writing_mode: WritingMode::empty(),
+        root_font_size: longhands::font_size::get_initial_value(),
     };
 }
 
@@ -2135,6 +2137,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
             ${style_struct.ident}: style_${style_struct.ident},
         % endfor
         shareable: shareable,
+        root_font_size: parent_style.root_font_size,
     }
 }
 
@@ -2176,6 +2179,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                 inherited_style.get_inheritedtext()._servo_text_decorations_in_effect,
             // To be overridden by applicable declarations:
             font_size: inherited_font_style.font_size,
+            root_font_size: inherited_style.root_font_size,
             display: longhands::display::get_initial_value(),
             color: inherited_style.get_color().color,
             text_decoration: longhands::text_decoration::get_initial_value(),
@@ -2208,7 +2212,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                 FontSizeDeclaration(ref value) => {
                     context.font_size = match *value {
                         SpecifiedValue(specified_value) => computed::compute_Au_with_font_size(
-                            specified_value, context.inherited_font_size),
+                            specified_value, context.inherited_font_size, context.root_font_size),
                         Initial => longhands::font_size::get_initial_value(),
                         Inherit => context.inherited_font_size,
                     }
@@ -2346,12 +2350,17 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
         box_.display = longhands::display::to_computed_value(box_.display, &context);
     }
 
+    if is_root_element {
+        context.root_font_size = context.font_size;
+    }
+
     (ComputedValues {
         writing_mode: get_writing_mode(&*style_inheritedbox),
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.ident}: style_${style_struct.ident},
         % endfor
         shareable: shareable,
+        root_font_size: context.root_font_size,
     }, cacheable)
 }
 
@@ -2374,6 +2383,7 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
         % endfor
         shareable: false,
         writing_mode: parent_style.writing_mode,
+        root_font_size: parent_style.root_font_size,
     };
     {
         let border = result.border.make_unique();
