@@ -568,7 +568,7 @@ source = "git+https://github.com/servo/rust-stb-image#97d7e440e80e41a304647363c3
 [[package]]
 name = "string_cache"
 version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#ae950525434b642eff5f4904f5e0c76cd6ea99b9"
+source = "git+https://github.com/servo/string-cache#a18a432fd274e816fc41876536f70e5380abb677"
 dependencies = [
  "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
  "phf 0.0.0 (git+https://github.com/sfackler/rust-phf)",
@@ -580,7 +580,7 @@ dependencies = [
 [[package]]
 name = "string_cache_macros"
 version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#ae950525434b642eff5f4904f5e0c76cd6ea99b9"
+source = "git+https://github.com/servo/string-cache#a18a432fd274e816fc41876536f70e5380abb677"
 dependencies = [
  "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
 ]
