@@ -228,15 +228,15 @@ dependencies = [
 [[package]]
 name = "gl_common"
 version = "0.0.1"
-source = "git+https://github.com/bjz/gl-rs.git#79cd3b3f9f19aa0e39f6af572fc8673a6d9760bc"
+source = "git+https://github.com/bjz/gl-rs.git#c76c23fc9a0dae824b45550d4b823cdb726f242d"
 
 [[package]]
 name = "gl_generator"
 version = "0.0.1"
-source = "git+https://github.com/bjz/gl-rs.git#79cd3b3f9f19aa0e39f6af572fc8673a6d9760bc"
+source = "git+https://github.com/bjz/gl-rs.git#c76c23fc9a0dae824b45550d4b823cdb726f242d"
 dependencies = [
  "gl_common 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
- "khronos_api 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "khronos_api 0.0.2 (git+https://github.com/bjz/gl-rs.git)",
  "rust-xml 0.1.0 (git+https://github.com/netvl/rust-xml)",
 ]
 
@@ -313,8 +313,8 @@ dependencies = [
 
 [[package]]
 name = "khronos_api"
-version = "0.0.1"
-source = "git+https://github.com/bjz/gl-rs.git#79cd3b3f9f19aa0e39f6af572fc8673a6d9760bc"
+version = "0.0.2"
+source = "git+https://github.com/bjz/gl-rs.git#c76c23fc9a0dae824b45550d4b823cdb726f242d"
 
 [[package]]
 name = "layers"
