@@ -1098,18 +1098,38 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn find_topmost_layer_at_point_for_layer(&self,
                                              layer: Rc<Layer<CompositorData>>,
-                                             point: TypedPoint2D<LayerPixel, f32>)
+                                             point: TypedPoint2D<LayerPixel, f32>,
+                                             clip_rect: &TypedRect<LayerPixel, f32>)
                                              -> Option<HitTestResult> {
-        let child_point = point - layer.bounds.borrow().origin;
+        let layer_bounds = *layer.bounds.borrow();
+        let masks_to_bounds = *layer.masks_to_bounds.borrow();
+        if layer_bounds.is_empty() && masks_to_bounds {
+            return None;
+        }
+
+        let clipped_layer_bounds = match clip_rect.intersection(&layer_bounds) {
+            Some(rect) => rect,
+            None => return None,
+        };
+
+        let clip_rect_for_children = if masks_to_bounds {
+            Rect(Zero::zero(), clipped_layer_bounds.size)
+        } else {
+            clipped_layer_bounds.translate(&clip_rect.origin)
+        };
+
+        let child_point = point - layer_bounds.origin;
         for child in layer.children().iter().rev() {
-            let result = self.find_topmost_layer_at_point_for_layer(child.clone(), child_point);
+            let result = self.find_topmost_layer_at_point_for_layer(child.clone(),
+                                                                    child_point,
+                                                                    &clip_rect_for_children);
             if result.is_some() {
                 return result;
             }
         }
 
         let point = point - *layer.content_offset.borrow();
-        if !layer.bounds.borrow().contains(&point) {
+        if !clipped_layer_bounds.contains(&point) {
             return None;
         }
 
@@ -1120,7 +1140,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                    point: TypedPoint2D<LayerPixel, f32>)
                                    -> Option<HitTestResult> {
         match self.scene.root {
-            Some(ref layer) => self.find_topmost_layer_at_point_for_layer(layer.clone(), point),
+            Some(ref layer) => self.find_topmost_layer_at_point_for_layer(layer.clone(),
+                                                                          point,
+                                                                          &*layer.bounds.borrow()),
+
             None => None,
         }
     }
@@ -1178,10 +1201,11 @@ fn create_root_layer_for_pipeline_and_rect(pipeline: &CompositionPipeline,
                                                WantsScrollEvents,
                                                opts::get().tile_size);
 
+    // All root layers mask to bounds.
+    *root_layer.masks_to_bounds.borrow_mut() = true;
+
     match frame_rect {
         Some(ref frame_rect) => {
-            *root_layer.masks_to_bounds.borrow_mut() = true;
-
             let frame_rect = frame_rect.to_untyped();
             *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
         }
