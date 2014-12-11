@@ -25,7 +25,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#452939480f5ef7640714f16c6a9e5d02e0e2d147"
+source = "git+https://github.com/servo/rust-azure#e8323588209b47a07b67f61812c75dfeb2ad6851"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -600,7 +600,7 @@ source = "git+https://github.com/rust-lang/semver#7dca047a9cd40e929a4545b37a1917
 [[package]]
 name = "skia-sys"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia?ref=upstream-2014-06-16#c3dd8cacbddbfc20b0dae9b456ac1545b0402cff"
+source = "git+https://github.com/servo/skia?ref=upstream-2014-06-16#35649d0cddfd89c0bfee0ff558da7291e26d30c3"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
