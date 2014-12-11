@@ -434,11 +434,10 @@ impl Page {
     pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         let frame = self.frame();
         let document = frame.as_ref().unwrap().document.root();
-        let root = document.GetDocumentElement().root();
-        if root.is_none() {
-            return None;
-        }
-        let root = root.unwrap();
+        let root = match document.GetDocumentElement().root() {
+            None => return None,
+            Some(root) => root,
+        };
         let root: JSRef<Node> = NodeCast::from_ref(*root);
         let address = match self.layout().hit_test(root.to_trusted_node_address(), *point) {
             Ok(HitTestResponse(node_address)) => {
@@ -455,11 +454,10 @@ impl Page {
     pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<Vec<UntrustedNodeAddress>> {
         let frame = self.frame();
         let document = frame.as_ref().unwrap().document.root();
-        let root = document.GetDocumentElement().root();
-        if root.is_none() {
-            return None;
-        }
-        let root = root.unwrap();
+        let root = match document.GetDocumentElement().root() {
+            None => return None,
+            Some(root) => root,
+        };
         let root: JSRef<Node> = NodeCast::from_ref(*root);
         let address = match self.layout().mouse_over(root.to_trusted_node_address(), *point) {
             Ok(MouseOverResponse(node_address)) => {
@@ -475,9 +473,9 @@ impl Page {
 
 fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
     let clip_rect = Rect(Point2D(geometry::to_frac_px(clip_rect.origin.x) as f32,
-                                    geometry::to_frac_px(clip_rect.origin.y) as f32),
-                            Size2D(geometry::to_frac_px(clip_rect.size.width) as f32,
-                                   geometry::to_frac_px(clip_rect.size.height) as f32));
+                                 geometry::to_frac_px(clip_rect.origin.y) as f32),
+                         Size2D(geometry::to_frac_px(clip_rect.size.width) as f32,
+                                geometry::to_frac_px(clip_rect.size.height) as f32));
 
     // We only need to move the clip rect if the viewport is getting near the edge of
     // our preexisting clip rect. We use half of the size of the viewport as a heuristic
