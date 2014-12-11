@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#d323c3c7c248d3d5a2d46a6a5ee61c6e92aec0b0"
+source = "git+https://github.com/servo/rust-azure#e8323588209b47a07b67f61812c75dfeb2ad6851"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -24,7 +24,7 @@ dependencies = [
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
- "skia-sys 0.0.20130412 (git+https://github.com/servo/skia)",
+ "skia-sys 0.0.20130412 (git+https://github.com/servo/skia?ref=upstream-2014-06-16)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
@@ -194,12 +194,12 @@ source = "git+https://github.com/servo/rust-freetype#e55b06110fb2d74a2db68ead740
 [[package]]
 name = "freetype-sys"
 version = "2.4.11"
-source = "git+https://github.com/servo/libfreetype2#5b6499164106f094937565595c7b96d07de55521"
+source = "git+https://github.com/servo/libfreetype2#f5c49c0da1d5bc6b206c4176344012ac37524243"
 
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#e5e74911ac6d3201009879b72499d6c681302611"
+source = "git+https://github.com/servo/rust-geom#95e746133b4a35b53eb259304668b63ee8de42b8"
 
 [[package]]
 name = "gfx"
@@ -296,7 +296,7 @@ dependencies = [
  "move-acceptor 0.0.1 (git+https://github.com/reem/rust-move-acceptor)",
  "openssl 0.0.1 (git+https://github.com/servo/rust-openssl)",
  "typeable 0.0.3 (git+https://github.com/reem/rust-typeable)",
- "unsafe-any 0.1.1 (git+https://github.com/reem/rust-unsafe-any)",
+ "unsafe-any 0.1.0 (git+https://github.com/reem/rust-unsafe-any)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
 ]
 
@@ -547,7 +547,7 @@ dependencies = [
 [[package]]
 name = "skia-sys"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia#79aa9354837bc195b83fa041b9632ea628e6f7d0"
+source = "git+https://github.com/servo/skia?ref=upstream-2014-06-16#35649d0cddfd89c0bfee0ff558da7291e26d30c3"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
@@ -604,8 +604,8 @@ source = "git+https://github.com/reem/rust-typeable#db8975daaa3889871f67eea11bae
 
 [[package]]
 name = "unsafe-any"
-version = "0.1.1"
-source = "git+https://github.com/reem/rust-unsafe-any#eb3fe87bea85f375b8fcefa0cdecfd131fae9624"
+version = "0.1.0"
+source = "git+https://github.com/reem/rust-unsafe-any#2863af363bbd83079b6773920bba5b736408db33"
 
 [[package]]
 name = "url"
