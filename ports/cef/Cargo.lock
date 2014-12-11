@@ -288,7 +288,7 @@ dependencies = [
 [[package]]
 name = "glfw"
 version = "0.0.1"
-source = "git+https://github.com/servo/glfw-rs?ref=servo#46f82b46589720f202ab2d4a99e4f4fd48df6469"
+source = "git+https://github.com/servo/glfw-rs?ref=servo#1b05fdc7eab45e1d462758ab991065ee78593b7f"
 dependencies = [
  "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?ref=cargo-3.0.4)",
  "semver 0.1.3 (git+https://github.com/rust-lang/semver)",
