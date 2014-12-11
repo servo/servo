@@ -15,6 +15,7 @@ use std::mem::replace;
 use std::result;
 use sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
+use time::precise_time_ns;
 use url::Url;
 
 pub enum Msg {
@@ -313,7 +314,12 @@ impl ImageCache {
                 self.task_pool.execute(proc() {
                     let url = url_clone;
                     debug!("image_cache_task: started image decode for {:s}", url.serialize());
+                    let start_time = precise_time_ns();
                     let image = load_from_memory(data.as_slice());
+                    let end_time = precise_time_ns();
+                    let required_time = (end_time - start_time) as f64 / 1000000f64;
+                    debug!("Time taken to decode url: {} in is {} ms",
+                           url.serialize(), required_time);
                     let image = image.map(|image| Arc::new(box image));
                     to_cache.send(StoreImage(url.clone(), image));
                     debug!("image_cache_task: ended image decode for {:s}", url.serialize());
