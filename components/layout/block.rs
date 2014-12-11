@@ -2090,7 +2090,7 @@ pub trait ISizeAndMarginsComputer {
         // recalculated, but this time using the value of 'min-inline-size' as the computed value
         // for 'inline-size'.
         let computed_min_inline_size = specified(block.fragment().style().min_inline_size(),
-                                           containing_block_inline_size);
+                                                 containing_block_inline_size);
         if computed_min_inline_size > solution.inline_size {
             input.computed_inline_size = Specified(computed_min_inline_size);
             solution = self.solve_inline_size_constraints(block, &input);
