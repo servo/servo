@@ -899,6 +899,9 @@
         "url": "/XMLHttpRequest/resources/image.gif"
       },
       {
+        "url": "/XMLHttpRequest/resources/img.jpg"
+      },
+      {
         "url": "/XMLHttpRequest/resources/infinite-redirects.py"
       },
       {
@@ -1218,6 +1221,9 @@
       },
       {
         "url": "/dom/nodes/Document-Element-getElementsByTagName.js"
+      },
+      {
+        "url": "/dom/nodes/Document-Element-getElementsByTagNameNS.js"
       },
       {
         "url": "/dom/nodes/Document-contentType/resources/blob.txt"
@@ -1896,6 +1902,9 @@
       },
       {
         "url": "/html/obsolete/requirements-for-implementations/other-elements-attributes-and-apis/original-id.json"
+      },
+      {
+        "url": "/html/rendering/bindings/the-select-element-0/option-label-ref.html"
       },
       {
         "url": "/html/rendering/interactive-media/links-forms-and-navigation/original-id.json"
@@ -2834,9 +2843,6 @@
         "url": "/pointerevents/pointerevent_support.js"
       },
       {
-        "url": "/progress-events/tests/submissions/Samsung/resources/img.jpg"
-      },
-      {
         "url": "/progress-events/tests/submissions/Samsung/resources/no-content-length.py"
       },
       {
@@ -2925,6 +2931,30 @@
       },
       {
         "url": "/shadow-dom/testcommon.js"
+      },
+      {
+        "url": "/subresource-integrity/loads-scripts-with-badly-encoded-digest.js"
+      },
+      {
+        "url": "/subresource-integrity/loads-scripts-with-correct-content-type.js"
+      },
+      {
+        "url": "/subresource-integrity/loads-scripts-with-improper-integrity-uri-scheme.js"
+      },
+      {
+        "url": "/subresource-integrity/loads-scripts-with-incorrect-content-type.js"
+      },
+      {
+        "url": "/subresource-integrity/loads-scripts-with-matching-digest.js"
+      },
+      {
+        "url": "/subresource-integrity/loads-scripts-with-non-matching-digest.js"
+      },
+      {
+        "url": "/subresource-integrity/loads-scripts-with-weak-digest-algorithms.js"
+      },
+      {
+        "url": "/subresource-integrity/support/generate_javascript.py"
       },
       {
         "url": "/touch-events/multi-touch-interactions.js"
@@ -5364,6 +5394,11 @@
         "ref_type": "==",
         "ref_url": "/html/editing/the-hidden-attribute/hidden-2-ref.svg",
         "url": "/html/editing/the-hidden-attribute/hidden-2.svg"
+      },
+      {
+        "ref_type": "==",
+        "ref_url": "/html/rendering/bindings/the-select-element-0/option-label-ref.html",
+        "url": "/html/rendering/bindings/the-select-element-0/option-label.html"
       },
       {
         "ref_type": "==",
@@ -10302,6 +10337,9 @@
         "url": "/XMLHttpRequest/responsexml-non-well-formed.htm"
       },
       {
+        "url": "/XMLHttpRequest/security-consideration.sub.html"
+      },
+      {
         "url": "/XMLHttpRequest/send-accept-language.htm"
       },
       {
@@ -10935,6 +10973,9 @@
         "url": "/dom/nodes/DOMImplementation-hasFeature.html"
       },
       {
+        "url": "/dom/nodes/Document-URL.sub.html"
+      },
+      {
         "url": "/dom/nodes/Document-adoptNode.html"
       },
       {
@@ -11134,6 +11175,9 @@
       },
       {
         "url": "/dom/nodes/Element-getElementsByTagName.html"
+      },
+      {
+        "url": "/dom/nodes/Element-getElementsByTagNameNS.html"
       },
       {
         "url": "/dom/nodes/Element-lastElementChild.html"
@@ -11398,6 +11442,9 @@
       },
       {
         "url": "/dom/traversal/TreeWalker-walking-outside-a-tree.html"
+      },
+      {
+        "url": "/domparsing/DOMParser-parseFromString-html.html"
       },
       {
         "url": "/domparsing/insert-adjacent.html"
@@ -15057,9 +15104,6 @@
         "url": "/progress-events/tests/submissions/Samsung/firing-events-http-no-content-length.html"
       },
       {
-        "url": "/progress-events/tests/submissions/Samsung/security-consideration.sub.html"
-      },
-      {
         "url": "/proximity/DeviceProximityEvent_tests.html"
       },
       {
@@ -15516,6 +15560,9 @@
         "url": "/shadow-dom/user-interaction/ranges-and-selections/test-002.html"
       },
       {
+        "url": "/subresource-integrity/subresource-integrity.html"
+      },
+      {
         "url": "/touch-events/create-touch-touchlist.html"
       },
       {
@@ -15601,6 +15648,15 @@
       },
       {
         "url": "/web-animations/animation-node/animation-node-before.html"
+      },
+      {
+        "url": "/web-animations/animation-node/animation-node-next-sibling.html"
+      },
+      {
+        "url": "/web-animations/animation-node/animation-node-parent.html"
+      },
+      {
+        "url": "/web-animations/animation-node/animation-node-previous-sibling.html"
       },
       {
         "url": "/web-animations/animation-node/animation-node-remove.html"
@@ -17707,6 +17763,6 @@
     "deleted": [],
     "items": {}
   },
-  "rev": "a467a3312ae3730e9e1ce0fd1cc200a2dbeadbe6",
+  "rev": "badfd02aa085e25bd79f18902afbafcc8bc884b5",
   "url_base": "/"
 }
