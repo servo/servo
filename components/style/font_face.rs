@@ -9,7 +9,7 @@ use std::ascii::AsciiExt;
 use parsing_utils::{BufferedIter, ParserIter, parse_slice_comma_separated};
 use properties::longhands::font_family::parse_one_family;
 use properties::computed_values::font_family::FamilyName;
-use stylesheets::{CSSRule, CSSFontFaceRule, CSSStyleRule, CSSMediaRule};
+use stylesheets::CSSRule;
 use media_queries::Device;
 use url::{Url, UrlParser};
 
@@ -18,11 +18,11 @@ pub fn iter_font_face_rules_inner(rules: &[CSSRule], device: &Device,
                                     callback: |family: &str, source: &Source|) {
     for rule in rules.iter() {
         match *rule {
-            CSSStyleRule(_) => {},
-            CSSMediaRule(ref rule) => if rule.media_queries.evaluate(device) {
+            CSSRule::Style(_) => {},
+            CSSRule::Media(ref rule) => if rule.media_queries.evaluate(device) {
                 iter_font_face_rules_inner(rule.rules.as_slice(), device, |f, s| callback(f, s))
             },
-            CSSFontFaceRule(ref rule) => {
+            CSSRule::FontFace(ref rule) => {
                 for source in rule.sources.iter() {
                     callback(rule.family.as_slice(), source)
                 }
@@ -102,7 +102,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
     }
 
     match (maybe_family, maybe_sources) {
-        (Some(family), Some(sources)) => parent_rules.push(CSSFontFaceRule(FontFaceRule {
+        (Some(family), Some(sources)) => parent_rules.push(CSSRule::FontFace(FontFaceRule {
             family: family,
             sources: sources,
         })),

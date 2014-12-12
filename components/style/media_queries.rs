@@ -8,7 +8,7 @@ use cssparser::ast::*;
 
 use errors::{ErrorLoggerIterator, log_css_error};
 use geom::size::TypedSize2D;
-use stylesheets::{CSSRule, CSSMediaRule, parse_style_rule, parse_nested_at_rule};
+use stylesheets::{CSSRule, parse_style_rule, parse_nested_at_rule};
 use namespaces::NamespaceMap;
 use parsing_utils::{BufferedIter, ParserIter};
 use properties::common_types::*;
@@ -113,7 +113,7 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>,
                 rule.name.as_slice().to_ascii_lower().as_slice(), rule, &mut rules, namespaces, base_url),
         }
     }
-    parent_rules.push(CSSMediaRule(MediaRule {
+    parent_rules.push(CSSRule::Media(MediaRule {
         media_queries: media_queries,
         rules: rules,
     }))

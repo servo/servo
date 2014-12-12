@@ -29,9 +29,9 @@ pub struct Stylesheet {
 
 
 pub enum CSSRule {
-    CSSStyleRule(StyleRule),
-    CSSMediaRule(MediaRule),
-    CSSFontFaceRule(FontFaceRule),
+    Style(StyleRule),
+    Media(MediaRule),
+    FontFace(FontFaceRule),
 }
 
 
@@ -135,7 +135,7 @@ pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut Vec<CSSRule>,
     // FIXME: avoid doing this for valid selectors
     let serialized = prelude.iter().to_css();
     match selectors::parse_selector_list(prelude.into_iter(), namespaces) {
-        Ok(selectors) => parent_rules.push(CSSStyleRule(StyleRule{
+        Ok(selectors) => parent_rules.push(CSSRule::Style(StyleRule{
             selectors: selectors,
             declarations: properties::parse_property_declaration_list(block.into_iter(), base_url)
         })),
@@ -161,11 +161,11 @@ pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
                             callback: |&StyleRule|) {
     for rule in rules.iter() {
         match *rule {
-            CSSStyleRule(ref rule) => callback(rule),
-            CSSMediaRule(ref rule) => if rule.media_queries.evaluate(device) {
+            CSSRule::Style(ref rule) => callback(rule),
+            CSSRule::Media(ref rule) => if rule.media_queries.evaluate(device) {
                 iter_style_rules(rule.rules.as_slice(), device, |s| callback(s))
             },
-            CSSFontFaceRule(_) => {},
+            CSSRule::FontFace(_) => {},
         }
     }
 }
@@ -173,7 +173,7 @@ pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
 pub fn iter_stylesheet_media_rules(stylesheet: &Stylesheet, callback: |&MediaRule|) {
     for rule in stylesheet.rules.iter() {
         match *rule {
-            CSSMediaRule(ref rule) => callback(rule),
+            CSSRule::Media(ref rule) => callback(rule),
             _ => {}
         }
     }
