@@ -128,4 +128,29 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
         element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
         Ok(())
     }
+
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-toggle
+    fn Toggle(self, token: DOMString, force: Option<bool>) -> Fallible<bool> {
+        let element = self.element.root();
+        let mut atoms = element.get_tokenlist_attribute(&self.local_name);
+        let token = try!(self.check_token_exceptions(token.as_slice()));
+        match atoms.iter().position(|atom| *atom == token) {
+            Some(index) => match force {
+                Some(true) => Ok(true),
+                _ => {
+                    atoms.remove(index);
+                    element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    Ok(false)
+                }
+            },
+            None => match force {
+                Some(false) => Ok(false),
+                _ => {
+                    atoms.push(token);
+                    element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    Ok(true)
+                }
+            }
+        }
+    }
 }
