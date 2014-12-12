@@ -77,12 +77,10 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         let result = style_attribute.as_ref().and_then(|declarations| {
             if index as uint > declarations.normal.len() {
                 declarations.important
-                            .as_slice()
                             .get(index as uint - declarations.normal.len())
                             .map(|decl| format!("{} !important", decl))
             } else {
                 declarations.normal
-                            .as_slice()
                             .get(index as uint)
                             .map(|decl| format!("{}", decl))
             }
