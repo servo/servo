@@ -95,7 +95,7 @@ pub struct _cef_life_span_handler_t {
       browser: *mut interfaces::cef_browser_t) -> libc::c_int>,
 
   //
-  // Called when a browser has recieved a request to close. This may result
+  // Called when a browser has received a request to close. This may result
   // directly from a call to cef_browser_host_t::close_browser() or indirectly
   // if the browser is a top-level OS window created by CEF and the user
   // attempts to close the window. This function will be called after the
@@ -318,7 +318,7 @@ impl CefLifeSpanHandler {
   }
 
   //
-  // Called when a browser has recieved a request to close. This may result
+  // Called when a browser has received a request to close. This may result
   // directly from a call to cef_browser_host_t::close_browser() or indirectly
   // if the browser is a top-level OS window created by CEF and the user
   // attempts to close the window. This function will be called after the

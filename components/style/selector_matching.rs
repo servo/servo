@@ -663,7 +663,7 @@ fn matches_compound_selector<'a,E,N>(selector: &CompoundSelector,
 /// candidates for "d1" becomes less than before and d1 .
 ///
 /// The next example is siblings. When the selector "b1 + b2 ~ d1 a" is
-/// providied and we cannot *find* an appropriate brother node for b1,
+/// provided and we cannot *find* an appropriate brother node for b1,
 /// the selector matching raises NotMatchedAndRestartFromClosestDescendant.
 /// The selectors ("b1 + b2 ~") doesn't match and matching restart from "d1".
 ///

@@ -46,7 +46,7 @@ impl Stylesheet {
             mut input: I, base_url: Url, protocol_encoding_label: Option<&str>,
             environment_encoding: Option<EncodingRef>, origin: StylesheetOrigin) -> Stylesheet {
         let mut bytes = vec!();
-        // TODO: incremental decoding and tokinization/parsing
+        // TODO: incremental decoding and tokenization/parsing
         for chunk in input {
             bytes.push_all(chunk.as_slice())
         }

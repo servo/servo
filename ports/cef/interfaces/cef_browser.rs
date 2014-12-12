@@ -864,7 +864,7 @@ pub struct _cef_browser_host_t {
 
   //
   // Search for |searchText|. |identifier| can be used to have multiple searches
-  // running simultaniously. |forward| indicates whether to search forward or
+  // running simultaneously. |forward| indicates whether to search forward or
   // backward within the page. |matchCase| indicates whether the search should
   // be case-sensitive. |findNext| indicates whether this is the first request
   // or a follow-up.
@@ -1089,7 +1089,7 @@ pub struct _cef_browser_host_t {
   // being cancelled. |x| and |y| are mouse coordinates relative to the upper-
   // left corner of the view. If the web view is both the drag source and the
   // drag target then all DragTarget* functions should be called before
-  // DragSource* mthods. This function is only used when window rendering is
+  // DragSource* methods. This function is only used when window rendering is
   // disabled.
   //
   pub drag_source_ended_at: Option<extern "C" fn(this: *mut cef_browser_host_t,
@@ -1101,7 +1101,7 @@ pub struct _cef_browser_host_t {
   // cef_render_handler_t::StartDragging call has completed. This function may
   // be called immediately without first calling DragSourceEndedAt to cancel a
   // drag operation. If the web view is both the drag source and the drag target
-  // then all DragTarget* functions should be called before DragSource* mthods.
+  // then all DragTarget* functions should be called before DragSource* methods.
   // This function is only used when window rendering is disabled.
   //
   pub drag_source_system_drag_ended: Option<extern "C" fn(
@@ -1416,7 +1416,7 @@ impl CefBrowserHost {
 
   //
   // Search for |searchText|. |identifier| can be used to have multiple searches
-  // running simultaniously. |forward| indicates whether to search forward or
+  // running simultaneously. |forward| indicates whether to search forward or
   // backward within the page. |matchCase| indicates whether the search should
   // be case-sensitive. |findNext| indicates whether this is the first request
   // or a follow-up.
@@ -1888,7 +1888,7 @@ impl CefBrowserHost {
   // being cancelled. |x| and |y| are mouse coordinates relative to the upper-
   // left corner of the view. If the web view is both the drag source and the
   // drag target then all DragTarget* functions should be called before
-  // DragSource* mthods. This function is only used when window rendering is
+  // DragSource* methods. This function is only used when window rendering is
   // disabled.
   //
   pub fn drag_source_ended_at(&self, x: libc::c_int, y: libc::c_int,
@@ -1911,7 +1911,7 @@ impl CefBrowserHost {
   // cef_render_handler_t::StartDragging call has completed. This function may
   // be called immediately without first calling DragSourceEndedAt to cancel a
   // drag operation. If the web view is both the drag source and the drag target
-  // then all DragTarget* functions should be called before DragSource* mthods.
+  // then all DragTarget* functions should be called before DragSource* methods.
   // This function is only used when window rendering is disabled.
   //
   pub fn drag_source_system_drag_ended(&self) -> () {

@@ -128,7 +128,7 @@ pub struct Line {
     /// ~~~
     pub bounds: LogicalRect<Au>,
 
-    /// The green zone is the greatest extent from wich a line can extend to
+    /// The green zone is the greatest extent from which a line can extend to
     /// before it collides with a float.
     ///
     /// ~~~text
@@ -307,7 +307,7 @@ impl LineBreaker {
         let splittable = first_fragment.can_split();
         debug!("LineBreaker: fragment size: {}, splittable: {}", first_fragment_size, splittable);
 
-        // Initally, pretend a splittable fragment has zero inline-size. We will move it later if
+        // Initially, pretend a splittable fragment has zero inline-size. We will move it later if
         // it has nonzero inline-size and that causes problems.
         let placement_inline_size = if splittable {
             Au(0)
