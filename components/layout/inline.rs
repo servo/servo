@@ -158,27 +158,32 @@ int_range_index! {
     struct FragmentIndex(int)
 }
 
-/// The line wrapping mode, controlled by the `white-space` property as described in CSS 2.1 §
-/// 16.6.
-#[deriving(PartialEq, Eq)]
-enum WrapMode {
-    /// `normal`.
-    WrapNormally,
-    /// `nowrap`.
-    NoWrap,
+bitflags! {
+    flags InlineReflowFlags: u8 {
+        #[doc="The `white-space: nowrap` property from CSS 2.1 § 16.6 is in effect."]
+        const NO_WRAP_INLINE_REFLOW_FLAG = 0x01
+    }
 }
 
+/// Arranges fragments into lines, splitting them up as necessary.
 struct LineBreaker {
+    /// The floats we need to flow around.
     floats: Floats,
     new_fragments: Vec<Fragment>,
     work_list: RingBuf<Fragment>,
+    /// The line we're currently working on.
     pending_line: Line,
+    /// The lines we've already committed.
     lines: Vec<Line>,
-    cur_b: Au,  // Current position on the block direction
+    /// The current position in the block direction.
+    cur_b: Au,
+    /// The computed value of the indentation for the first line (`text-indent`, CSS 2.1 § 16.1).
+    first_line_indentation: Au,
 }
 
 impl LineBreaker {
-    fn new(float_context: Floats) -> LineBreaker {
+    /// Creates a new `LineBreaker` with a set of floats and the indentation of the first line.
+    fn new(float_context: Floats, first_line_indentation: Au) -> LineBreaker {
         LineBreaker {
             new_fragments: Vec::new(),
             work_list: RingBuf::new(),
@@ -189,22 +194,20 @@ impl LineBreaker {
             },
             floats: float_context,
             lines: Vec::new(),
-            cur_b: Au(0)
+            cur_b: Au(0),
+            first_line_indentation: first_line_indentation,
         }
     }
 
-    fn floats(&mut self) -> Floats {
-        self.floats.clone()
-    }
-
+    /// Resets the `LineBreaker` to the initial state it had after a call to `new`.
     fn reset_scanner(&mut self) {
-        debug!("Resetting LineBreaker's state for flow.");
         self.lines = Vec::new();
         self.new_fragments = Vec::new();
         self.cur_b = Au(0);
         self.reset_line();
     }
 
+    /// Reinitializes the pending line to blank data.
     fn reset_line(&mut self) {
         self.pending_line.range.reset(num::zero(), num::zero());
         self.pending_line.bounds = LogicalRect::new(self.floats.writing_mode,
@@ -215,70 +218,80 @@ impl LineBreaker {
         self.pending_line.green_zone = LogicalSize::zero(self.floats.writing_mode)
     }
 
+    /// Reflows fragments for the given inline flow.
     fn scan_for_lines(&mut self, flow: &mut InlineFlow, layout_context: &LayoutContext) {
         self.reset_scanner();
 
+        debug!("LineBreaker: scanning for lines, {} fragments", flow.fragments.len());
         let mut old_fragments = mem::replace(&mut flow.fragments, InlineFragments::new());
-
-        {
-            // Enter a new scope so that `old_fragment_iter`'s borrow is released.
-            debug!("Scanning for lines. {} fragments.", old_fragments.len());
-            let mut old_fragment_iter = old_fragments.fragments.iter();
-            loop {
-                // acquire the next fragment to lay out from work list or fragment list
-                let cur_fragment = if self.work_list.is_empty() {
-                    match old_fragment_iter.next() {
-                        None => break,
-                        Some(fragment) => {
-                            debug!("LineBreaker: Working with fragment from flow: b{}",
-                                   fragment.debug_id());
-                            (*fragment).clone()
-                        }
-                    }
-                } else {
-                    let fragment = self.work_list.pop_front().unwrap();
-                    debug!("LineBreaker: Working with fragment from work list: b{}",
-                           fragment.debug_id());
-                    fragment
-                };
-
-                let fragment_was_appended = match cur_fragment.white_space() {
-                    white_space::normal => {
-                        self.try_append_to_line(cur_fragment, flow, layout_context, WrapNormally)
-                    }
-                    white_space::pre => self.try_append_to_line_by_new_line(cur_fragment),
-                    white_space::nowrap => {
-                        self.try_append_to_line(cur_fragment, flow, layout_context, NoWrap)
-                    }
-                };
-
-                if !fragment_was_appended {
-                    debug!("LineBreaker: Fragment wasn't appended, because line {:u} was full.",
-                            self.lines.len());
-                    self.flush_current_line();
-                } else {
-                    debug!("LineBreaker: appended a fragment to line {:u}", self.lines.len());
-                }
-            }
-
-            if self.pending_line.range.length() > num::zero() {
-                debug!("LineBreaker: Partially full line {:u} inline_start at end of scanning.",
-                        self.lines.len());
-                self.flush_current_line();
-            }
-        }
-
+        self.reflow_fragments(old_fragments.fragments.iter(), flow, layout_context);
         old_fragments.fragments = mem::replace(&mut self.new_fragments, vec![]);
         flow.fragments = old_fragments;
         flow.lines = mem::replace(&mut self.lines, Vec::new());
     }
 
-    fn flush_current_line(&mut self) {
-        debug!("LineBreaker: Flushing line {:u}: {}",
-               self.lines.len(), self.pending_line);
+    /// Reflows the given fragments, which have been plucked out of the inline flow.
+    fn reflow_fragments<'a,I>(&mut self,
+                              mut old_fragment_iter: I,
+                              flow: &'a InlineFlow,
+                              layout_context: &LayoutContext)
+                              where I: Iterator<&'a Fragment> {
+        loop {
+            // Acquire the next fragment to lay out from the work list or fragment list, as
+            // appropriate.
+            let fragment = if self.work_list.is_empty() {
+                match old_fragment_iter.next() {
+                    None => break,
+                    Some(fragment) => {
+                        debug!("LineBreaker: working with fragment from flow: {}", fragment);
+                        (*fragment).clone()
+                    }
+                }
+            } else {
+                debug!("LineBreaker: working with fragment from work list: {}",
+                       self.work_list.front());
+                self.work_list.pop_front().unwrap()
+            };
 
-        // clear line and add line mapping
-        debug!("LineBreaker: Saving information for flushed line {:u}.", self.lines.len());
+            // Set up our reflow flags.
+            let flags = match fragment.style().get_inheritedtext().white_space {
+                white_space::normal => InlineReflowFlags::empty(),
+                white_space::pre | white_space::nowrap => NO_WRAP_INLINE_REFLOW_FLAG,
+            };
+
+            // Try to append the fragment, and commit the line (so we can try again with the next
+            // line) if we couldn't.
+            match fragment.style().get_inheritedtext().white_space {
+                white_space::normal | white_space::nowrap => {
+                    if !self.append_fragment_to_line_if_possible(fragment,
+                                                                 flow,
+                                                                 layout_context,
+                                                                 flags) {
+                        self.flush_current_line()
+                    }
+                }
+                white_space::pre => {
+                    // FIXME(pcwalton): Surely we can unify
+                    // `append_fragment_to_line_if_possible` and
+                    // `try_append_to_line_by_new_line` by adding another bit in the reflow
+                    // flags.
+                    if !self.try_append_to_line_by_new_line(fragment) {
+                        self.flush_current_line()
+                    }
+                }
+            }
+        }
+
+        if !self.pending_line_is_empty() {
+            debug!("LineBreaker: partially full line {} at end of scanning; committing it",
+                    self.lines.len());
+            self.flush_current_line()
+        }
+    }
+
+    /// Commits a line to the list.
+    fn flush_current_line(&mut self) {
+        debug!("LineBreaker: flushing line {}: {}", self.lines.len(), self.pending_line);
         self.lines.push(self.pending_line);
         self.cur_b = self.pending_line.bounds.start.b + self.pending_line.bounds.size.block;
         self.reset_line();
@@ -299,50 +312,48 @@ impl LineBreaker {
     /// Computes the position of a line that has only the provided fragment. Returns the bounding
     /// rect of the line's green zone (whose origin coincides with the line's origin) and the
     /// actual inline-size of the first fragment after splitting.
-    fn initial_line_placement(&self, first_fragment: &Fragment, ceiling: Au, flow: &InlineFlow)
+    fn initial_line_placement(&self,
+                              flow: &InlineFlow,
+                              first_fragment: &Fragment,
+                              ceiling: Au)
                               -> (LogicalRect<Au>, Au) {
-        debug!("LineBreaker: Trying to place first fragment of line {}", self.lines.len());
-
-        let first_fragment_size = first_fragment.border_box.size;
-        let splittable = first_fragment.can_split();
-        debug!("LineBreaker: fragment size: {}, splittable: {}", first_fragment_size, splittable);
+        debug!("LineBreaker: trying to place first fragment of line {}; fragment size: {}, \
+                splittable: {}",
+               self.lines.len(),
+               first_fragment.border_box.size,
+               first_fragment.can_split());
 
         // Initially, pretend a splittable fragment has zero inline-size. We will move it later if
         // it has nonzero inline-size and that causes problems.
-        let placement_inline_size = if splittable {
+        let placement_inline_size = if first_fragment.can_split() {
             Au(0)
         } else {
-            first_fragment_size.inline
+            first_fragment.border_box.size.inline + self.indentation_for_pending_fragment()
         };
 
-        let info = PlacementInfo {
+        // Try to place the fragment between floats.
+        let line_bounds = self.floats.place_between_floats(&PlacementInfo {
             size: LogicalSize::new(self.floats.writing_mode,
                                    placement_inline_size,
-                                   first_fragment_size.block),
+                                   first_fragment.border_box.size.block),
             ceiling: ceiling,
             max_inline_size: flow.base.position.size.inline,
             kind: FloatLeft,
-        };
+        });
 
-        let line_bounds = self.floats.place_between_floats(&info);
-
-        debug!("LineBreaker: found position for line: {} using placement_info: {}",
-               line_bounds,
-               info);
-
-        // Simple case: if the fragment fits, then we can stop here
-        if line_bounds.size.inline > first_fragment_size.inline {
-            debug!("LineBreaker: case=fragment fits");
-            return (line_bounds, first_fragment_size.inline);
+        // Simple case: if the fragment fits, then we can stop here.
+        if line_bounds.size.inline > first_fragment.border_box.size.inline {
+            debug!("LineBreaker: fragment fits on line {}", self.lines.len());
+            return (line_bounds, first_fragment.border_box.size.inline);
         }
 
-        // If not, but we can't split the fragment, then we'll place
-        // the line here and it will overflow.
-        if !splittable {
-            debug!("LineBreaker: case=line doesn't fit, but is unsplittable");
+        // If not, but we can't split the fragment, then we'll place the line here and it will
+        // overflow.
+        if !first_fragment.can_split() {
+            debug!("LineBreaker: line doesn't fit, but is unsplittable");
         }
 
-        (line_bounds, first_fragment_size.inline)
+        (line_bounds, first_fragment.border_box.size.inline)
     }
 
     /// Performs float collision avoidance. This is called when adding a fragment is going to
@@ -359,17 +370,17 @@ impl LineBreaker {
     ///
     /// Returns false if and only if we should break the line.
     fn avoid_floats(&mut self,
-                    in_fragment: Fragment,
                     flow: &InlineFlow,
-                    new_block_size: Au,
-                    line_is_empty: bool)
+                    in_fragment: Fragment,
+                    new_block_size: Au)
                     -> bool {
         debug!("LineBreaker: entering float collision avoider!");
 
         // First predict where the next line is going to be.
-        let this_line_y = self.pending_line.bounds.start.b;
         let (next_line, first_fragment_inline_size) =
-            self.initial_line_placement(&in_fragment, this_line_y, flow);
+            self.initial_line_placement(flow,
+                                        &in_fragment,
+                                        self.pending_line.bounds.start.b);
         let next_green_zone = next_line.size;
 
         let new_inline_size = self.pending_line.bounds.size.inline + first_fragment_inline_size;
@@ -382,7 +393,7 @@ impl LineBreaker {
             self.pending_line.bounds.start = next_line.start;
             self.pending_line.green_zone = next_green_zone;
 
-            assert!(!line_is_empty, "Non-terminating line breaking");
+            debug_assert!(!self.pending_line_is_empty(), "Non-terminating line breaking");
             self.work_list.push_front(in_fragment);
             return true
         }
@@ -392,14 +403,17 @@ impl LineBreaker {
         false
     }
 
+    /// Tries to append the given fragment to the line for `pre`-formatted text, splitting it if
+    /// necessary. Returns true if we successfully pushed the fragment to the line or false if we
+    /// couldn't.
     fn try_append_to_line_by_new_line(&mut self, in_fragment: Fragment) -> bool {
-        let no_newline_positions = match in_fragment.newline_positions() {
+        let should_push = match in_fragment.newline_positions() {
             None => true,
             Some(ref positions) => positions.is_empty(),
         };
-        if no_newline_positions {
-            debug!("LineBreaker: Did not find a new-line character, so pushing the fragment to \
-                   the line without splitting.");
+        if should_push {
+            debug!("LineBreaker: did not find a newline character; pushing the fragment to \
+                   the line without splitting");
             self.push_fragment_to_line(in_fragment);
             return true
         }
@@ -408,7 +422,7 @@ impl LineBreaker {
 
         let (inline_start, inline_end, run) =
             in_fragment.find_split_info_by_new_line()
-                       .expect("LineBreaker: This split case makes no sense!");
+                       .expect("LineBreaker: this split case makes no sense!");
         let writing_mode = self.floats.writing_mode;
 
         let split_fragment = |split: SplitInfo| {
@@ -441,136 +455,134 @@ impl LineBreaker {
         false
     }
 
-    /// Tries to append the given fragment to the line, splitting it if necessary. Returns false if
-    /// and only if we should break the line.
-    ///
-    /// `wrap_mode` controls whether wrapping happens.
-    fn try_append_to_line(&mut self,
-                          in_fragment: Fragment,
-                          flow: &InlineFlow,
-                          layout_context: &LayoutContext,
-                          wrap_mode: WrapMode)
-                          -> bool {
-        let line_is_empty = self.pending_line.range.length() == num::zero();
-        if line_is_empty {
-            let (line_bounds, _) = self.initial_line_placement(&in_fragment, self.cur_b, flow);
+    /// Tries to append the given fragment to the line, splitting it if necessary. Returns true if
+    /// we successfully pushed the fragment to the line or false if we couldn't.
+    fn append_fragment_to_line_if_possible(&mut self,
+                                           fragment: Fragment,
+                                           flow: &InlineFlow,
+                                           layout_context: &LayoutContext,
+                                           flags: InlineReflowFlags)
+                                           -> bool {
+        // Determine initial placement for the fragment if we need to.
+        if self.pending_line_is_empty() {
+            let (line_bounds, _) = self.initial_line_placement(flow, &fragment, self.cur_b);
             self.pending_line.bounds.start = line_bounds.start;
             self.pending_line.green_zone = line_bounds.size;
         }
 
-        debug!("LineBreaker: Trying to append fragment to line {:u} (fragment size: {}, green \
-                zone: {}): {}",
+        debug!("LineBreaker: trying to append to line {} (fragment size: {}, green zone: {}): {}",
                self.lines.len(),
-               in_fragment.border_box.size,
+               fragment.border_box.size,
                self.pending_line.green_zone,
-               in_fragment);
-
-        let green_zone = self.pending_line.green_zone;
+               fragment);
 
         // NB: At this point, if `green_zone.inline < self.pending_line.bounds.size.inline` or
         // `green_zone.block < self.pending_line.bounds.size.block`, then we committed a line that
         // overlaps with floats.
-
-        let new_block_size = self.new_block_size_for_line(&in_fragment, layout_context);
+        let green_zone = self.pending_line.green_zone;
+        let new_block_size = self.new_block_size_for_line(&fragment, layout_context);
         if new_block_size > green_zone.block {
-            // Uh-oh. Float collision imminent. Enter the float collision avoider
-            return self.avoid_floats(in_fragment, flow, new_block_size, line_is_empty)
+            // Uh-oh. Float collision imminent. Enter the float collision avoider!
+            return self.avoid_floats(flow, fragment, new_block_size)
         }
 
         // If we're not going to overflow the green zone vertically, we might still do so
         // horizontally. We'll try to place the whole fragment on this line and break somewhere if
         // it doesn't fit.
-
+        let indentation = self.indentation_for_pending_fragment();
         let new_inline_size = self.pending_line.bounds.size.inline +
-            in_fragment.border_box.size.inline;
+            fragment.border_box.size.inline + indentation;
         if new_inline_size <= green_zone.inline {
-            debug!("LineBreaker: case=fragment fits without splitting");
-            self.push_fragment_to_line(in_fragment);
+            debug!("LineBreaker: fragment fits without splitting");
+            self.push_fragment_to_line(fragment);
             return true
         }
 
-        if (!in_fragment.can_split() && line_is_empty) || wrap_mode == NoWrap {
-            // TODO(eatkinson, issue #224): Signal that horizontal overflow happened?
-            debug!("LineBreaker: case=fragment can't split and line {:u} is empty, so \
-                    overflowing.",
+        // If we can't split the fragment or aren't allowed to because of the wrapping mode, then
+        // just overflow.
+        if (!fragment.can_split() && self.pending_line_is_empty()) ||
+                flags.contains(NO_WRAP_INLINE_REFLOW_FLAG) {
+            debug!("LineBreaker: fragment can't split and line {} is empty, so overflowing",
                     self.lines.len());
-            self.push_fragment_to_line(in_fragment);
+            self.push_fragment_to_line(fragment);
             return true
         }
 
-        let available_inline_size = green_zone.inline - self.pending_line.bounds.size.inline;
-        let split = in_fragment.find_split_info_for_inline_size(CharIndex(0),
-                                                                available_inline_size,
-                                                                line_is_empty);
-        match split.map(|(inline_start, inline_end, run)| {
-            let split_fragment = |split: SplitInfo| {
-                let info = box ScannedTextFragmentInfo::new(run.clone(),
-                                                            split.range,
-                                                            Vec::new(),
-                                                            in_fragment.border_box.size);
-                let size = LogicalSize::new(self.floats.writing_mode,
-                                            split.inline_size,
-                                            in_fragment.border_box.size.block);
-                in_fragment.transform(size, info)
+        // Split it up!
+        let available_inline_size = green_zone.inline - self.pending_line.bounds.size.inline -
+            indentation;
+        let (inline_start_fragment, inline_end_fragment) =
+            match fragment.find_split_info_for_inline_size(CharIndex(0),
+                                                           available_inline_size,
+                                                           self.pending_line_is_empty()) {
+                None => {
+                    debug!("LineBreaker: fragment was unsplittable; deferring to next line: {}",
+                           fragment);
+                    self.work_list.push_front(fragment);
+                    return false
+                }
+                Some((start_split_info, end_split_info, run)) => {
+                    let split_fragment = |split: SplitInfo| {
+                        let info = box ScannedTextFragmentInfo::new(run.clone(),
+                                                                    split.range,
+                                                                    Vec::new(),
+                                                                    fragment.border_box.size);
+                        let size = LogicalSize::new(self.floats.writing_mode,
+                                                    split.inline_size,
+                                                    fragment.border_box.size.block);
+                        fragment.transform(size, info)
+                    };
+                    (start_split_info.map(|x| split_fragment(x)),
+                     end_split_info.map(|x| split_fragment(x)))
+                }
             };
 
-            (inline_start.map(|x| {
-                debug!("LineBreaker: Left split {}", x);
-                split_fragment(x)
-             }),
-             inline_end.map(|x| {
-                 debug!("LineBreaker: Right split {}", x);
-                 split_fragment(x)
-             }))
-        }) {
-            None => {
-                debug!("LineBreaker: Tried to split unsplittable render fragment! Deferring to \
-                        next line. {}",
-                       in_fragment);
-                self.work_list.push_front(in_fragment);
-                false
-            },
-            Some((Some(inline_start_fragment), Some(inline_end_fragment))) => {
-                debug!("LineBreaker: Line break found! Pushing inline_start fragment to line and \
-                        deferring inline_end fragment to next line.");
+        // Push the first fragment onto the line we're working on and start off the next line with
+        // the second fragment. If there's no second fragment, the next line will start off empty.
+        match (inline_start_fragment, inline_end_fragment) {
+            (Some(inline_start_fragment), Some(inline_end_fragment)) => {
                 self.push_fragment_to_line(inline_start_fragment);
-                self.work_list.push_front(inline_end_fragment);
-                true
+                self.work_list.push_front(inline_end_fragment)
             },
-            Some((Some(inline_start_fragment), None)) => {
-                debug!("LineBreaker: Pushing inline_start fragment to line.");
-                self.push_fragment_to_line(inline_start_fragment);
-                true
-            },
-            Some((None, Some(inline_end_fragment))) => {
-                debug!("LineBreaker: Pushing inline_end fragment to line.");
-                self.push_fragment_to_line(inline_end_fragment);
-                true
-            },
-            Some((None, None)) => {
-                debug!("LineBreaker: Nothing to do.");
-                true
-            },
+            (Some(fragment), None) | (None, Some(fragment)) => {
+                self.push_fragment_to_line(fragment)
+            }
+            (None, None) => {}
         }
+
+        true
     }
 
-    // An unconditional push
+    /// Pushes a fragment to the current line unconditionally.
     fn push_fragment_to_line(&mut self, fragment: Fragment) {
-        debug!("LineBreaker: Pushing fragment {} to line {:u}",
-               fragment.debug_id(),
-               self.lines.len());
-
-        if self.pending_line.range.length() == num::zero() {
+        let indentation = self.indentation_for_pending_fragment();
+        if self.pending_line_is_empty() {
             assert!(self.new_fragments.len() <= (u16::MAX as uint));
             self.pending_line.range.reset(FragmentIndex(self.new_fragments.len() as int),
                                           num::zero());
         }
+
         self.pending_line.range.extend_by(FragmentIndex(1));
         self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline +
-            fragment.border_box.size.inline;
+            fragment.border_box.size.inline +
+            indentation;
         self.pending_line.bounds.size.block = max(self.pending_line.bounds.size.block,
                                                   fragment.border_box.size.block);
         self.new_fragments.push(fragment);
+    }
+
+    /// Returns the indentation that needs to be applied before the fragment we're reflowing.
+    fn indentation_for_pending_fragment(&self) -> Au {
+        if self.pending_line_is_empty() && self.lines.is_empty() {
+            self.first_line_indentation
+        } else {
+            Au(0)
+        }
+    }
+
+    /// Returns true if the pending line is empty and false otherwise.
+    fn pending_line_is_empty(&self) -> bool {
+        self.pending_line.range.length() == num::zero()
     }
 }
 
@@ -701,6 +713,11 @@ pub struct InlineFlow {
     /// The minimum depth below the baseline for each line, as specified by the line block-size and
     /// font style.
     pub minimum_depth_below_baseline: Au,
+
+    /// The amount of indentation to use on the first line. This is determined by our block parent
+    /// (because percentages are relative to the containing block, and we aren't in a position to
+    /// compute things relative to our parent's containing block).
+    pub first_line_indentation: Au,
 }
 
 impl InlineFlow {
@@ -711,6 +728,7 @@ impl InlineFlow {
             lines: Vec::new(),
             minimum_block_size_above_baseline: Au(0),
             minimum_depth_below_baseline: Au(0),
+            first_line_indentation: Au(0),
         }
     }
 
@@ -790,32 +808,33 @@ impl InlineFlow {
     /// Sets fragment positions in the inline direction based on alignment for one line.
     fn set_inline_fragment_positions(fragments: &mut InlineFragments,
                                      line: &Line,
-                                     line_align: text_align::T) {
+                                     line_align: text_align::T,
+                                     indentation: Au) {
         // Figure out how much inline-size we have.
         let slack_inline_size = max(Au(0), line.green_zone.inline - line.bounds.size.inline);
 
         // Set the fragment inline positions based on that alignment.
-        let mut offset = line.bounds.start.i;
-        offset = offset + match line_align {
-            // So sorry, but justified text is more complicated than shuffling line
-            // coordinates.
-            //
-            // TODO(burg, issue #213): Implement `text-align: justify`.
-            text_align::left | text_align::justify => Au(0),
-            text_align::center => slack_inline_size.scale_by(0.5),
-            text_align::right => slack_inline_size,
-        };
+        let mut inline_start_position_for_fragment = line.bounds.start.i + indentation +
+                match line_align {
+                // So sorry, but justified text is more complicated than shuffling line
+                // coordinates.
+                //
+                // TODO(burg, issue #213): Implement `text-align: justify`.
+                text_align::left | text_align::justify => Au(0),
+                text_align::center => slack_inline_size.scale_by(0.5),
+                text_align::right => slack_inline_size,
+            };
 
         for fragment_index in range(line.range.begin(), line.range.end()) {
             let fragment = fragments.get_mut(fragment_index.to_uint());
             let size = fragment.border_box.size;
             fragment.border_box = LogicalRect::new(fragment.style.writing_mode,
-                                                   offset,
+                                                   inline_start_position_for_fragment,
                                                    fragment.border_box.start.b,
                                                    size.inline,
                                                    size.block);
             fragment.update_late_computed_inline_position_if_necessary();
-            offset = offset + size.inline;
+            inline_start_position_for_fragment = inline_start_position_for_fragment + size.inline;
         }
     }
 
@@ -987,7 +1006,7 @@ impl Flow for InlineFlow {
         // TODO(pcwalton): Cache the line scanner?
         debug!("assign_block_size_inline: floats in: {}", self.base.floats);
 
-        // assign block-size for inline fragments
+        // Assign the block-size for the inline fragments.
         let containing_block_block_size =
             self.base.block_container_explicit_block_size.unwrap_or(Au(0));
         for fragment in self.fragments.fragments.iter_mut() {
@@ -995,24 +1014,32 @@ impl Flow for InlineFlow {
                 containing_block_block_size);
         }
 
+        // Reset our state, so that we handle incremental reflow correctly.
+        //
+        // TODO(pcwalton): Do something smarter, like Gecko and WebKit?
         debug!("lines: {}", self.lines);
-
         self.fragments.merge_broken_lines();
-
         self.lines = Vec::new();
 
-        let scanner_floats = self.base.floats.clone();
-        let mut scanner = LineBreaker::new(scanner_floats);
-        scanner.scan_for_lines(self, layout_context);
+        // Determine how much indentation the first line wants.
+        let mut indentation = if self.fragments.is_empty() {
+            Au(0)
+        } else {
+            self.first_line_indentation
+        };
 
-        // All lines use text alignment of the flow.
-        let text_align = self.base.flags.text_align();
+        // Perform line breaking.
+        let mut scanner = LineBreaker::new(self.base.floats.clone(), indentation);
+        scanner.scan_for_lines(self, layout_context);
 
         // Now, go through each line and lay out the fragments inside.
         let mut line_distance_from_flow_block_start = Au(0);
         for line in self.lines.iter_mut() {
             // Lay out fragments in the inline direction.
-            InlineFlow::set_inline_fragment_positions(&mut self.fragments, line, text_align);
+            InlineFlow::set_inline_fragment_positions(&mut self.fragments,
+                                                      line,
+                                                      self.base.flags.text_align(),
+                                                      indentation);
 
             // Set the block-start position of the current line.
             // `line_height_offset` is updated at the end of the previous loop.
@@ -1112,7 +1139,10 @@ impl Flow for InlineFlow {
                 largest_depth_below_baseline;
             line_distance_from_flow_block_start = line_distance_from_flow_block_start +
                 line.bounds.size.block;
-        } // End of `lines.each` loop.
+
+            // We're no longer on the first line, so set indentation to zero.
+            indentation = Au(0)
+        } // End of `lines.iter_mut()` loop.
 
         // Assign block sizes for any inline-block descendants.
         for kid in self.base.child_iter() {
@@ -1128,7 +1158,7 @@ impl Flow for InlineFlow {
             None => Au(0),
         };
 
-        self.base.floats = scanner.floats();
+        self.base.floats = scanner.floats.clone();
         self.base.floats.translate(LogicalSize::new(self.base.writing_mode,
                                                     Au(0),
                                                     -self.base.position.size.block));

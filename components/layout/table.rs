@@ -315,6 +315,7 @@ impl Flow for TableFlow {
         self.block_flow.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
 
         self.block_flow.propagate_assigned_inline_size_to_children(
+            layout_context,
             inline_start_content_edge,
             content_inline_size,
             Some(self.column_computed_inline_sizes.as_slice()));
