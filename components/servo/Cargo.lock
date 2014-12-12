@@ -477,7 +477,7 @@ dependencies = [
 [[package]]
 name = "mime"
 version = "0.0.1"
-source = "git+https://github.com/hyperium/mime.rs#5264e04655974f85c8d6581395cc24597266c653"
+source = "git+https://github.com/hyperium/mime.rs#7898f1c29c7f5d35d0c3c7aed37ebcfc95a40873"
 
 [[package]]
 name = "move-acceptor"
