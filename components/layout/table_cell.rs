@@ -45,10 +45,8 @@ impl TableCellFlow {
 
     /// Assign block-size for table-cell flow.
     ///
-    /// TODO(#2015, pcwalton): This doesn't handle floats right.
-    ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
-    /// methods
+    /// methods.
     #[inline(always)]
     fn assign_block_size_table_cell_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         self.block_flow.assign_block_size_block_base(layout_context, MarginsMayNotCollapse)

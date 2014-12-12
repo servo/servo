@@ -14,7 +14,7 @@ use flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
 use flow;
 use fragment::{Fragment, FragmentBoundsIterator};
 use layout_debug;
-use table::{ColumnInlineSize, InternalTable};
+use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
 use model::{MaybeAuto, Specified, Auto};
 use wrapper::ThreadSafeLayoutNode;
 
@@ -30,8 +30,11 @@ use sync::Arc;
 pub struct TableRowFlow {
     pub block_flow: BlockFlow,
 
-    /// Information about the inline-sizes of each column.
-    pub column_inline_sizes: Vec<ColumnInlineSize>,
+    /// Information about the intrinsic inline-sizes of each column.
+    pub column_intrinsic_inline_sizes: Vec<ColumnIntrinsicInlineSize>,
+
+    /// Information about the computed inline-sizes of each column.
+    pub column_computed_inline_sizes: Vec<ColumnComputedInlineSize>,
 }
 
 impl TableRowFlow {
@@ -40,7 +43,8 @@ impl TableRowFlow {
                                   -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
-            column_inline_sizes: Vec::new()
+            column_intrinsic_inline_sizes: Vec::new(),
+            column_computed_inline_sizes: Vec::new(),
         }
     }
 
@@ -49,7 +53,8 @@ impl TableRowFlow {
                      -> TableRowFlow {
         TableRowFlow {
             block_flow: BlockFlow::from_node(constructor, node),
-            column_inline_sizes: Vec::new()
+            column_intrinsic_inline_sizes: Vec::new(),
+            column_computed_inline_sizes: Vec::new(),
         }
     }
 
@@ -150,8 +155,12 @@ impl Flow for TableRowFlow {
         &mut self.block_flow
     }
 
-    fn column_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnInlineSize> {
-        &mut self.column_inline_sizes
+    fn column_intrinsic_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnIntrinsicInlineSize> {
+        &mut self.column_intrinsic_inline_sizes
+    }
+
+    fn column_computed_inline_sizes<'a>(&'a mut self) -> &'a mut Vec<ColumnComputedInlineSize> {
+        &mut self.column_computed_inline_sizes
     }
 
     /// Recursively (bottom-up) determines the context's preferred and minimum inline-sizes. When
@@ -180,7 +189,7 @@ impl Flow for TableRowFlow {
             // Collect minimum and preferred inline-sizes of the cell for automatic table layout
             // calculation.
             let child_base = flow::mut_base(kid);
-            let child_column_inline_size = ColumnInlineSize {
+            let child_column_inline_size = ColumnIntrinsicInlineSize {
                 minimum_length: match child_specified_inline_size {
                     LPA_Auto | LPA_Percentage(_) => {
                         child_base.intrinsic_inline_sizes.minimum_inline_size
@@ -199,7 +208,7 @@ impl Flow for TableRowFlow {
             };
             min_inline_size = min_inline_size + child_column_inline_size.minimum_length;
             pref_inline_size = pref_inline_size + child_column_inline_size.preferred;
-            self.column_inline_sizes.push(child_column_inline_size);
+            self.column_intrinsic_inline_sizes.push(child_column_inline_size);
         }
         self.block_flow.base.intrinsic_inline_sizes.minimum_inline_size = min_inline_size;
         self.block_flow.base.intrinsic_inline_sizes.preferred_inline_size = max(min_inline_size,
@@ -208,7 +217,7 @@ impl Flow for TableRowFlow {
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
-    fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("table_row::assign_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_row");
@@ -221,13 +230,13 @@ impl Flow for TableRowFlow {
 
         let inline_size_computer = InternalTable;
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
-                                                      ctx,
+                                                      layout_context,
                                                       containing_block_inline_size);
 
-        self.block_flow
-            .propagate_assigned_inline_size_to_children(inline_start_content_edge,
-                                                        containing_block_inline_size,
-                                                        Some(self.column_inline_sizes.as_slice()));
+        self.block_flow.propagate_assigned_inline_size_to_children(
+            inline_start_content_edge,
+            containing_block_inline_size,
+            Some(self.column_computed_inline_sizes.as_slice()));
     }
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {

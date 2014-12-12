@@ -47,7 +47,7 @@ use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{Auto, IntrinsicISizes, MarginCollapseInfo, MarginsCollapse, MarginsCollapseThrough};
 use model::{MaybeAuto, NoCollapsibleMargins, Specified, specified, specified_or_none};
-use table::ColumnInlineSize;
+use table::ColumnComputedInlineSize;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::Size2D;
@@ -1258,7 +1258,7 @@ impl BlockFlow {
             &mut self,
             inline_start_content_edge: Au,
             content_inline_size: Au,
-            optional_column_inline_sizes: Option<&[ColumnInlineSize]>) {
+            optional_column_computed_inline_sizes: Option<&[ColumnComputedInlineSize]>) {
         // Keep track of whether floats could impact each child.
         let mut inline_start_floats_impact_child =
             self.base.flags.contains(IMPACTED_BY_LEFT_FLOATS);
@@ -1369,12 +1369,12 @@ impl BlockFlow {
             }
 
             // Handle tables.
-            match optional_column_inline_sizes {
-                Some(ref column_inline_sizes) => {
+            match optional_column_computed_inline_sizes {
+                Some(ref column_computed_inline_sizes) => {
                     propagate_column_inline_sizes_to_child(kid,
                                                            i,
                                                            content_inline_size,
-                                                           *column_inline_sizes,
+                                                           *column_computed_inline_sizes,
                                                            &mut inline_start_margin_edge)
                 }
                 None => {}
@@ -2551,22 +2551,24 @@ impl ISizeAndMarginsComputer for FloatReplaced {
     }
 }
 
-fn propagate_column_inline_sizes_to_child(kid: &mut Flow,
-                                          child_index: uint,
-                                          content_inline_size: Au,
-                                          column_inline_sizes: &[ColumnInlineSize],
-                                          inline_start_margin_edge: &mut Au) {
+fn propagate_column_inline_sizes_to_child(
+        kid: &mut Flow,
+        child_index: uint,
+        content_inline_size: Au,
+        column_computed_inline_sizes: &[ColumnComputedInlineSize],
+        inline_start_margin_edge: &mut Au) {
     // If kid is table_rowgroup or table_row, the column inline-sizes info should be copied from
     // its parent.
     //
     // FIXME(pcwalton): This seems inefficient. Reference count it instead?
     let inline_size = if kid.is_table() || kid.is_table_rowgroup() || kid.is_table_row() {
-        *kid.column_inline_sizes() = column_inline_sizes.iter().map(|&x| x).collect();
+        *kid.column_computed_inline_sizes() =
+            column_computed_inline_sizes.iter().map(|&x| x).collect();
 
         // ISize of kid flow is our content inline-size.
         content_inline_size
     } else if kid.is_table_cell() {
-        column_inline_sizes[child_index].minimum_length
+        column_computed_inline_sizes[child_index].size
     } else {
         // ISize of kid flow is our content inline-size.
         content_inline_size
