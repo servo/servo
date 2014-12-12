@@ -99,10 +99,18 @@ impl CompositorEventListener for NullCompositor {
 
             Msg::CreateOrUpdateRootLayer(..) |
             Msg::CreateOrUpdateDescendantLayer(..) |
-            Msg::SetLayerOrigin(..) | Msg::Paint(..) |
-            Msg::ChangeReadyState(..) | Msg::ChangePaintState(..) | Msg::ScrollFragmentPoint(..) |
-            Msg::LoadComplete | Msg::PaintMsgDiscarded(..) | Msg::ScrollTimeout(..) | Msg::ChangePageTitle(..) |
-            Msg::ChangePageLoadData(..) | Msg::KeyEvent(..) => ()
+            Msg::SetLayerOrigin(..) |
+            Msg::Paint(..) |
+            Msg::ChangeReadyState(..) |
+            Msg::ChangePaintState(..) |
+            Msg::ScrollFragmentPoint(..) |
+            Msg::LoadComplete |
+            Msg::PaintMsgDiscarded(..) |
+            Msg::ScrollTimeout(..) |
+            Msg::ChangePageTitle(..) |
+            Msg::ChangePageLoadData(..) |
+            Msg::KeyEvent(..) |
+            Msg::SetCursor(..) => {}
         }
         true
     }

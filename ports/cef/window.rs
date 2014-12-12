@@ -10,7 +10,7 @@
 use eutil::Downcast;
 use interfaces::CefBrowser;
 use render_handler::CefRenderHandlerExtensions;
-use types::cef_rect_t;
+use types::{cef_cursor_handle_t, cef_rect_t};
 use wrappers::Utf16Encoder;
 
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
@@ -25,9 +25,21 @@ use servo_msg::constellation_msg::{Key, KeyModifiers};
 use servo_msg::compositor_msg::{Blank, FinishedLoading, Loading, PerformingLayout, PaintState};
 use servo_msg::compositor_msg::{ReadyState};
 use servo_msg::constellation_msg::LoadData;
+use servo_util::cursor::Cursor;
 use servo_util::geometry::ScreenPx;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+#[cfg(target_os="macos")]
+use servo_util::cursor::{AliasCursor, AllScrollCursor, ColResizeCursor, ContextMenuCursor};
+#[cfg(target_os="macos")]
+use servo_util::cursor::{CopyCursor, CrosshairCursor, EResizeCursor, EwResizeCursor};
+#[cfg(target_os="macos")]
+use servo_util::cursor::{GrabCursor, GrabbingCursor, NResizeCursor, NoCursor, NoDropCursor};
+#[cfg(target_os="macos")]
+use servo_util::cursor::{NsResizeCursor, NotAllowedCursor, PointerCursor, RowResizeCursor};
+#[cfg(target_os="macos")]
+use servo_util::cursor::{SResizeCursor, TextCursor, VerticalTextCursor, WResizeCursor};
 
 #[cfg(target_os="macos")]
 use std::ptr;
@@ -86,6 +98,42 @@ impl Window {
     /// Currently unimplemented.
     pub fn wait_events(&self) -> WindowEvent {
         WindowEvent::Idle
+    }
+
+    /// Returns the Cocoa cursor for a CSS cursor. These match Firefox, except where Firefox
+    /// bundles custom resources (which we don't yet do).
+    #[cfg(target_os="macos")]
+    fn cursor_handle_for_cursor(&self, cursor: Cursor) -> cef_cursor_handle_t {
+        use cocoa::base::{class, msg_send, selector};
+
+        let cocoa_name = match cursor {
+            NoCursor => return 0 as cef_cursor_handle_t,
+            ContextMenuCursor => "contextualMenuCursor",
+            GrabbingCursor => "closedHandCursor",
+            CrosshairCursor => "crosshairCursor",
+            CopyCursor => "dragCopyCursor",
+            AliasCursor => "dragLinkCursor",
+            TextCursor => "IBeamCursor",
+            GrabCursor | AllScrollCursor => "openHandCursor",
+            NoDropCursor | NotAllowedCursor => "operationNotAllowedCursor",
+            PointerCursor => "pointingHandCursor",
+            SResizeCursor => "resizeDownCursor",
+            WResizeCursor => "resizeLeftCursor",
+            EwResizeCursor | ColResizeCursor => "resizeLeftRightCursor",
+            EResizeCursor => "resizeRightCursor",
+            NResizeCursor => "resizeUpCursor",
+            NsResizeCursor | RowResizeCursor => "resizeUpDownCursor",
+            VerticalTextCursor => "IBeamCursorForVerticalLayout",
+            _ => "arrowCursor",
+        };
+        unsafe {
+            msg_send()(class("NSCursor"), selector(cocoa_name))
+        }
+    }
+
+    #[cfg(not(target_os="macos"))]
+    fn cursor_handle_for_cursor(&self, _: Cursor) -> cef_cursor_handle_t {
+        0
     }
 }
 
@@ -264,6 +312,20 @@ impl WindowMethods for Window {
 
     fn handle_key(&self, _: Key, _: KeyModifiers) {
         // TODO(negge)
+    }
+
+    fn set_cursor(&self, cursor: Cursor) {
+        let browser = self.cef_browser.borrow();
+        match *browser {
+            None => {}
+            Some(ref browser) => {
+                let cursor_handle = self.cursor_handle_for_cursor(cursor);
+                browser.get_host()
+                       .get_client()
+                       .get_render_handler()
+                       .on_cursor_change(browser.clone(), cursor_handle)
+            }
+        }
     }
 }
 

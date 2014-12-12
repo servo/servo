@@ -13,8 +13,7 @@ use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBoundsIterator};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use layout_debug;
-use parallel::UnsafeFlow;
-use parallel;
+use parallel::{mod, UnsafeFlow};
 use sequential;
 use util::{LayoutDataAccess, LayoutDataWrapper, OpaqueNodeMethods, ToGfxColor};
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
@@ -26,7 +25,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::color;
-use gfx::display_list::{DisplayList, OpaqueNode, StackingContext};
+use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, StackingContext};
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::{mod, PaintInitMsg, PaintChan, PaintLayer};
 use layout_traits;
@@ -40,22 +39,25 @@ use script::layout_interface::{ContentBoxesQuery, ContentBoxQuery, ExitNowMsg, G
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, LoadStylesheetMsg};
 use script::layout_interface::{MouseOverResponse, Msg, NoQuery, PrepareToExitMsg};
 use script::layout_interface::{ReapLayoutDataMsg, Reflow, ReflowForDisplay, ReflowMsg};
-use script::layout_interface::{ScriptLayoutChan, SetQuirksModeMsg, TrustedNodeAddress};
+use script::layout_interface::{ReflowForScriptQuery, ScriptLayoutChan, SetQuirksModeMsg};
+use script::layout_interface::{TrustedNodeAddress};
 use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
+use servo_msg::constellation_msg::{SetCursorMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_net::resource_task::{ResourceTask, load_bytes_iter};
+use servo_util::cursor::DefaultCursor;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalPoint;
 use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
-use servo_util::time::{TimeProfilerChan, profile, TimerMetadataFrameType, TimerMetadataReflowType};
-use servo_util::time;
+use servo_util::time::{mod, ProfilerMetadata, TimeProfilerChan, TimerMetadataFrameType};
+use servo_util::time::{TimerMetadataReflowType, profile};
 use servo_util::workqueue::WorkQueue;
 use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
@@ -72,6 +74,9 @@ use url::Url;
 pub struct LayoutTaskData {
     /// The local image cache.
     pub local_image_cache: Arc<Mutex<LocalImageCache<UntrustedNodeAddress>>>,
+
+    /// The channel on which messages can be sent to the constellation.
+    pub constellation_chan: ConstellationChan,
 
     /// The size of the viewport.
     pub screen_size: Size2D<Au>,
@@ -111,9 +116,6 @@ pub struct LayoutTask {
 
     //// The channel to send messages to ourself.
     pub chan: LayoutChan,
-
-    /// The channel on which messages can be sent to the constellation.
-    pub constellation_chan: ConstellationChan,
 
     /// The channel on which messages can be sent to the script task.
     pub script_chan: ScriptControlChan,
@@ -262,7 +264,6 @@ impl LayoutTask {
             port: port,
             pipeline_port: pipeline_port,
             chan: chan,
-            constellation_chan: constellation_chan,
             script_chan: script_chan,
             paint_chan: paint_chan,
             time_profiler_chan: time_profiler_chan,
@@ -273,6 +274,7 @@ impl LayoutTask {
             rw_data: Arc::new(Mutex::new(
                 LayoutTaskData {
                     local_image_cache: local_image_cache,
+                    constellation_chan: constellation_chan,
                     screen_size: screen_size,
                     stacking_context: None,
                     stylist: box Stylist::new(device),
@@ -302,7 +304,7 @@ impl LayoutTask {
         SharedLayoutContext {
             image_cache: rw_data.local_image_cache.clone(),
             screen_size: rw_data.screen_size.clone(),
-            constellation_chan: self.constellation_chan.clone(),
+            constellation_chan: rw_data.constellation_chan.clone(),
             layout_chan: self.chan.clone(),
             font_cache_task: self.font_cache_task.clone(),
             stylist: &*rw_data.stylist,
@@ -397,9 +399,7 @@ impl LayoutTask {
             },
             ReflowMsg(data) => {
                 profile(time::LayoutPerformCategory,
-                        Some((&data.url,
-                        if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
-                        if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental })),
+                        self.profiler_metadata(&*data),
                         self.time_profiler_chan.clone(),
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
             },
@@ -573,9 +573,7 @@ impl LayoutTask {
                 // NOTE: this currently computes borders, so any pruning should separate that
                 // operation out.
                 parallel::traverse_flow_tree_preorder(layout_root,
-                                                      &data.url,
-                                                      if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
-                                                      if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental },
+                                                      self.profiler_metadata(data),
                                                       self.time_profiler_chan.clone(),
                                                       shared_layout_context,
                                                       traversal);
@@ -624,16 +622,14 @@ impl LayoutTask {
                                          data: &Reflow,
                                          node: &mut LayoutNode,
                                          layout_root: &mut FlowRef,
-                                         shared_layout_ctx: &mut SharedLayoutContext,
+                                         shared_layout_context: &mut SharedLayoutContext,
                                          rw_data: &mut RWGuard<'a>) {
         let writing_mode = flow::base(&**layout_root).writing_mode;
         profile(time::LayoutDispListBuildCategory,
-                Some((&data.url,
-                if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
-                if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental })),
-                     self.time_profiler_chan.clone(),
-                     || {
-            shared_layout_ctx.dirty =
+                self.profiler_metadata(data),
+                self.time_profiler_chan.clone(),
+                || {
+            shared_layout_context.dirty =
                 flow::base(&**layout_root).position.to_physical(writing_mode,
                                                                      rw_data.screen_size);
             flow::mut_base(&mut **layout_root).stacking_relative_position =
@@ -645,15 +641,13 @@ impl LayoutTask {
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
                 None => {
-                    sequential::build_display_list_for_subtree(layout_root, shared_layout_ctx);
+                    sequential::build_display_list_for_subtree(layout_root, shared_layout_context);
                 }
                 Some(ref mut traversal) => {
                     parallel::build_display_list_for_subtree(layout_root,
-                                                             &data.url,
-                                                             if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
-                                                             if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental },
+                                                             self.profiler_metadata(data),
                                                              self.time_profiler_chan.clone(),
-                                                             shared_layout_ctx,
+                                                             shared_layout_context,
                                                              traversal);
                 }
             }
@@ -746,9 +740,9 @@ impl LayoutTask {
         rw_data.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
-        let mut shared_layout_ctx = self.build_shared_layout_context(rw_data.deref(),
-                                                                     node,
-                                                                     &data.url);
+        let mut shared_layout_context = self.build_shared_layout_context(rw_data.deref(),
+                                                                         node,
+                                                                         &data.url);
 
         // Handle conditions where the entire flow tree is invalid.
         let screen_size_changed = current_screen_size != old_screen_size;
@@ -775,19 +769,17 @@ impl LayoutTask {
         }
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
-                                      Some((&data.url,
-                                      if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
-                                      if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental })),
+                                      self.profiler_metadata(data),
                                       self.time_profiler_chan.clone(),
                                       || {
             // Perform CSS selector matching and flow construction.
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
                 None => {
-                    sequential::traverse_dom_preorder(*node, &shared_layout_ctx);
+                    sequential::traverse_dom_preorder(*node, &shared_layout_context);
                 }
                 Some(ref mut traversal) => {
-                    parallel::traverse_dom_preorder(*node, &shared_layout_ctx, traversal)
+                    parallel::traverse_dom_preorder(*node, &shared_layout_context, traversal)
                 }
             }
 
@@ -795,13 +787,12 @@ impl LayoutTask {
         });
 
         profile(time::LayoutRestyleDamagePropagation,
-                Some((&data.url,
-                if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
-                if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental })),
+                self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
-            if opts::get().nonincremental_layout ||
-                    layout_root.deref_mut().compute_layout_damage().contains(REFLOW_ENTIRE_DOCUMENT) {
+            if opts::get().nonincremental_layout || layout_root.deref_mut()
+                                                               .compute_layout_damage()
+                                                               .contains(REFLOW_ENTIRE_DOCUMENT) {
                 layout_root.deref_mut().reflow_entire_document()
             }
         });
@@ -818,42 +809,45 @@ impl LayoutTask {
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         profile(time::LayoutMainCategory,
-                Some((&data.url,
-                if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
-                if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental })),
+                self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
                 None => {
                     // Sequential mode.
-                    self.solve_constraints(&mut layout_root, &shared_layout_ctx)
+                    self.solve_constraints(&mut layout_root, &shared_layout_context)
                 }
                 Some(_) => {
                     // Parallel mode.
                     self.solve_constraints_parallel(data,
                                                     rw_data,
                                                     &mut layout_root,
-                                                    &mut shared_layout_ctx);
+                                                    &mut shared_layout_context);
                 }
             }
         });
 
         // Build the display list if necessary, and send it to the painter.
-        if data.goal == ReflowForDisplay {
-            self.build_display_list_for_reflow(data,
-                                               node,
-                                               &mut layout_root,
-                                               &mut shared_layout_ctx,
-                                               &mut rw_data);
+        match data.goal {
+            ReflowForDisplay => {
+                self.build_display_list_for_reflow(data,
+                                                   node,
+                                                   &mut layout_root,
+                                                   &mut shared_layout_context,
+                                                   &mut rw_data);
+            }
+            ReflowForScriptQuery => {}
         }
 
         match data.query_type {
-            ContentBoxQuery(node) =>
-                self.process_content_box_request(node, &mut layout_root, &mut rw_data),
-            ContentBoxesQuery(node) =>
-                self.process_content_boxes_request(node, &mut layout_root, &mut rw_data),
-            NoQuery => {},
+            ContentBoxQuery(node) => {
+                self.process_content_box_request(node, &mut layout_root, &mut rw_data)
+            }
+            ContentBoxesQuery(node) => {
+                self.process_content_boxes_request(node, &mut layout_root, &mut rw_data)
+            }
+            NoQuery => {}
         }
 
         self.first_reflow.set(false);
@@ -896,11 +890,13 @@ impl LayoutTask {
         }
     }
 
-    // When images can't be loaded in time to display they trigger
-    // this callback in some task somewhere. This will send a message
-    // to the script task, and ultimately cause the image to be
-    // re-requested. We probably don't need to go all the way back to
-    // the script task for this.
+    /// When images can't be loaded in time to display they trigger
+    /// this callback in some task somewhere. This will send a message
+    /// to the script task, and ultimately cause the image to be
+    /// re-requested. We probably don't need to go all the way back to
+    /// the script task for this.
+    ///
+    /// FIXME(pcwalton): Rewrite all of this.
     fn make_on_image_available_cb(&self) -> Box<ImageResponder<UntrustedNodeAddress>+Send> {
         // This has a crazy signature because the image cache needs to
         // make multiple copies of the callback, and the dom event
@@ -918,6 +914,21 @@ impl LayoutTask {
         let mut layout_data_ref = layout_data.borrow_mut();
         let _: Option<LayoutDataWrapper> = mem::transmute(
             mem::replace(&mut *layout_data_ref, None));
+    }
+
+    /// Returns profiling information which is passed to the time profiler.
+    fn profiler_metadata<'a>(&self, data: &'a Reflow) -> ProfilerMetadata<'a> {
+        Some((&data.url,
+              if data.iframe {
+                TimerMetadataFrameType::IFrame
+              } else {
+                TimerMetadataFrameType::RootWindow
+              },
+              if self.first_reflow.get() {
+                TimerMetadataReflowType::FirstReflow
+              } else {
+                TimerMetadataReflowType::Incremental
+              }))
     }
 }
 
@@ -951,7 +962,7 @@ impl LayoutRPC for LayoutRPCImpl {
                     let mut result = Vec::new();
                     stacking_context.hit_test(point, &mut result, true);
                     if !result.is_empty() {
-                        Some(HitTestResponse(result[0]))
+                        Some(HitTestResponse(result[0].node.to_untrusted_node_address()))
                     } else {
                         None
                     }
@@ -967,7 +978,7 @@ impl LayoutRPC for LayoutRPCImpl {
 
     fn mouse_over(&self, _: TrustedNodeAddress, point: Point2D<f32>)
                   -> Result<MouseOverResponse, ()> {
-        let mut mouse_over_list: Vec<UntrustedNodeAddress> = vec!();
+        let mut mouse_over_list: Vec<DisplayItemMetadata> = vec!();
         let point = Point2D(Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
         {
             let &LayoutRPCImpl(ref rw_data) = self;
@@ -978,12 +989,25 @@ impl LayoutRPC for LayoutRPCImpl {
                     stacking_context.hit_test(point, &mut mouse_over_list, false);
                 }
             }
+
+            // Compute the new cursor.
+            let cursor = if !mouse_over_list.is_empty() {
+                mouse_over_list[0].cursor
+            } else {
+                DefaultCursor
+            };
+            let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
+            constellation_chan.send(SetCursorMsg(cursor));
         }
 
         if mouse_over_list.is_empty() {
             Err(())
         } else {
-            Ok(MouseOverResponse(mouse_over_list))
+            let response_list =
+                mouse_over_list.iter()
+                               .map(|metadata| metadata.node.to_untrusted_node_address())
+                               .collect();
+            Ok(MouseOverResponse(response_list))
         }
     }
 }

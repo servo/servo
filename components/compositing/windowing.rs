@@ -13,6 +13,7 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use servo_msg::compositor_msg::{PaintState, ReadyState};
 use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
+use servo_util::cursor::Cursor;
 use servo_util::geometry::ScreenPx;
 use std::fmt::{FormatError, Formatter, Show};
 use std::rc::Rc;
@@ -123,6 +124,9 @@ pub trait WindowMethods {
     /// some type of platform-specific graphics context current. Returns true if the composite may
     /// proceed and false if it should not.
     fn prepare_for_composite(&self) -> bool;
+
+    /// Sets the cursor to be used in the window.
+    fn set_cursor(&self, cursor: Cursor);
 
     /// Process a key event.
     fn handle_key(&self, key: Key, mods: KeyModifiers);
