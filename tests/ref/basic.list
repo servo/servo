@@ -194,3 +194,6 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == outlines_simple_a.html outlines_simple_ref.html
 == outlines_wrap_a.html outlines_wrap_ref.html
 == letter_spacing_a.html letter_spacing_ref.html
+!= border_black_groove.html border_black_solid.html
+!= border_black_ridge.html border_black_solid.html
+!= border_black_ridge.html border_black_groove.html
