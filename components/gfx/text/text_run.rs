@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use font::{Font, RunMetrics, FontMetrics};
+use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
+use font::{ShapingOptions};
+use platform::font_template::FontTemplateData;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::vec::{Comparator, FullBinarySearchMethods};
 use std::slice::Items;
 use sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
-use font::FontHandleMethods;
-use platform::font_template::FontTemplateData;
 
 /// A single "paragraph" of text in one font size and style.
 #[deriving(Clone)]
@@ -117,8 +117,8 @@ impl<'a> Iterator<Range<CharIndex>> for LineIterator<'a> {
 }
 
 impl<'a> TextRun {
-    pub fn new(font: &mut Font, text: String) -> TextRun {
-        let glyphs = TextRun::break_and_shape(font, text.as_slice());
+    pub fn new(font: &mut Font, text: String, options: &ShapingOptions) -> TextRun {
+        let glyphs = TextRun::break_and_shape(font, text.as_slice(), options);
         let run = TextRun {
             text: Arc::new(text),
             font_metrics: font.metrics.clone(),
@@ -129,7 +129,8 @@ impl<'a> TextRun {
         return run;
     }
 
-    pub fn break_and_shape(font: &mut Font, text: &str) -> Vec<GlyphRun> {
+    pub fn break_and_shape(font: &mut Font, text: &str, options: &ShapingOptions)
+                           -> Vec<GlyphRun> {
         // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
         let mut glyphs = vec!();
         let (mut byte_i, mut char_i) = (0u, CharIndex(0));
@@ -165,8 +166,14 @@ impl<'a> TextRun {
                 let slice = text.slice(byte_last_boundary, byte_i);
                 debug!("creating glyph store for slice {} (ws? {}), {} - {} in run {}",
                         slice, !cur_slice_is_whitespace, byte_last_boundary, byte_i, text);
+
+                let mut options = *options;
+                if !cur_slice_is_whitespace {
+                    options.flags.insert(IS_WHITESPACE_SHAPING_FLAG);
+                }
+
                 glyphs.push(GlyphRun {
-                    glyph_store: font.shape_text(slice, !cur_slice_is_whitespace),
+                    glyph_store: font.shape_text(slice, &options),
                     range: Range::new(char_last_boundary, char_i - char_last_boundary),
                 });
                 byte_last_boundary = byte_i;
@@ -182,8 +189,14 @@ impl<'a> TextRun {
             let slice = text.slice_from(byte_last_boundary);
             debug!("creating glyph store for final slice {} (ws? {}), {} - {} in run {}",
                 slice, cur_slice_is_whitespace, byte_last_boundary, text.len(), text);
+
+            let mut options = *options;
+            if cur_slice_is_whitespace {
+                options.flags.insert(IS_WHITESPACE_SHAPING_FLAG);
+            }
+
             glyphs.push(GlyphRun {
-                glyph_store: font.shape_text(slice, cur_slice_is_whitespace),
+                glyph_store: font.shape_text(slice, &options),
                 range: Range::new(char_last_boundary, char_i - char_last_boundary),
             });
         }
