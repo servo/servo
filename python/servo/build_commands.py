@@ -46,6 +46,8 @@ class MachCommands(CommandBase):
             android = self.config["build"]["android"]
 
         opts = []
+        features = []
+
         if release:
             opts += ["--release"]
         if target:
@@ -54,8 +56,17 @@ class MachCommands(CommandBase):
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
+        if android:
+            # Ensure the APK builder submodule has been built first
+            apk_builder_dir = "support/android-rs-glue"
+            with cd(path.join(apk_builder_dir, "apk-builder")):
+                subprocess.call(["cargo", "build"], env=self.build_env())
 
-        features = []
+            # FIXME: This can be simplified when glutin becomes the default
+            #        and glfw has been removed.
+            opts += ["--target", "arm-linux-androideabi", "--no-default-features"]
+            features += ["glutin"]
+
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
 
@@ -72,16 +83,9 @@ class MachCommands(CommandBase):
                     env=self.build_env())
             env['OPENSSL_PATH'] = path.join(self.android_support_dir(), "openssl-1.0.1j")
 
-            make_opts = []
-            if opts:
-                make_opts += ["CARGO_OPTS=" + " ".join(opts)]
-            status = subprocess.call(
-                ["make", "-C", "ports/android"] + make_opts,
-                env=env)
-        else:
-            status = subprocess.call(
-                ["cargo", "build"] + opts,
-                env=env, cwd=self.servo_crate())
+        status = subprocess.call(
+            ["cargo", "build"] + opts,
+            env=env, cwd=self.servo_crate())
         elapsed = time() - build_start
 
         print("Build completed in %0.2fs" % elapsed)
