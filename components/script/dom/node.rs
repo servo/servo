@@ -194,7 +194,7 @@ pub struct SharedLayoutData {
 /// Encapsulates the abstract layout data.
 pub struct LayoutData {
     chan: Option<LayoutChan>,
-    pub shared_data: SharedLayoutData,
+    _shared_data: SharedLayoutData,
     _data: *const (),
 }
 

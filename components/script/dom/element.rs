@@ -528,8 +528,6 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     fn remove_inline_style_property(self, property: DOMString) {
-        //FIXME: Rust bug incorrectly thinks inline_declarations doesn't need mut,
-        //       and allow(unused_mut) on this method does nothing.
         let mut inline_declarations = self.style_attribute.borrow_mut();
         inline_declarations.as_mut().map(|declarations| {
             let index = declarations.normal
@@ -557,47 +555,44 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     }
 
     fn update_inline_style(self, property_decl: style::PropertyDeclaration, important: bool) {
-        //FIXME: Rust bug incorrectly thinks inline_declarations doesn't need mut,
-        //       and allow(unused_mut) on this method does nothing.
-        let mut inline_declarations = self.style_attribute.borrow_mut();
-        let exists = inline_declarations.is_some();
-        if exists {
-            let declarations = inline_declarations.deref_mut().as_mut().unwrap();
-            let mut existing_declarations = if important {
-                declarations.important.clone()
+        let mut inline_declarations = self.style_attribute().borrow_mut();
+        if let Some(ref mut declarations) = *inline_declarations.deref_mut() {
+            let existing_declarations = if important {
+                declarations.important.make_unique()
             } else {
-                declarations.normal.clone()
+                declarations.normal.make_unique()
             };
-            for declaration in existing_declarations.make_unique().iter_mut() {
+
+            for declaration in existing_declarations.iter_mut() {
                 if declaration.name() == property_decl.name() {
                     *declaration = property_decl;
                     return;
                 }
             }
-            existing_declarations.make_unique().push(property_decl);
-        } else {
-            let (important, normal) = if important {
-                (vec!(property_decl), vec!())
-            } else {
-                (vec!(), vec!(property_decl))
-            };
-
-            *inline_declarations = Some(style::PropertyDeclarationBlock {
-                important: Arc::new(important),
-                normal: Arc::new(normal),
-            });
+            existing_declarations.push(property_decl);
+            return;
         }
+
+        let (important, normal) = if important {
+            (vec!(property_decl), vec!())
+        } else {
+            (vec!(), vec!(property_decl))
+        };
+
+        *inline_declarations = Some(style::PropertyDeclarationBlock {
+            important: Arc::new(important),
+            normal: Arc::new(normal),
+        });
     }
 
     fn get_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration> {
-        let mut inline_declarations = self.style_attribute.borrow();
+        let inline_declarations = self.style_attribute.borrow();
         inline_declarations.as_ref().and_then(|declarations| {
-            for declaration in declarations.normal.iter().chain(declarations.important.iter()) {
-                if declaration.matches(property.as_slice()) {
-                    return Some(declaration.clone());
-                }
-            }
-            None
+            declarations.normal
+                        .iter()
+                        .chain(declarations.important.iter())
+                        .find(|decl| decl.matches(property.as_slice()))
+                        .map(|decl| decl.clone())
         })
     }
 }

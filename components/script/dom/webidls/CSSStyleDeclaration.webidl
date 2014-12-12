@@ -23,8 +23,7 @@ interface CSSStyleDeclaration {
   //[Throws]
   //void setPropertyPriority(DOMString property, [TreatNullAs=EmptyString] DOMString priority);
   DOMString removeProperty(DOMString property);
-// Not implemented yet:
-//  readonly attribute CSSRule? parentRule;
+  //readonly attribute CSSRule? parentRule;
   [SetterThrows]
            attribute DOMString cssFloat;
 };

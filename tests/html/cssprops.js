@@ -3,10 +3,8 @@ function run_tests(properties) {
     var name = Object.keys(properties)[property];
     var generator = create_value_generator(properties[name]);
     var prop = properties[name].property || name;
-    //setTimeout(function(name, generator, prop) {
-      while (run_test(name, generator, prop)) {
-      }
-    //}, 0, name, generator, prop);
+    while (run_test(name, generator, prop)) {
+    }
   }
 }
 
@@ -85,7 +83,6 @@ function to_idl(property) {
 }
 
 function run_test(property, generator, prop) {
-  //console.log("testing " + property + ' ' + to_idl(property));
   var elem = document.createElement('div');
   document.getElementById('parent').appendChild(elem);
   var style = generate_inline_style(property, generator());

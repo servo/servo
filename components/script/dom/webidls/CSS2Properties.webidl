@@ -4,7 +4,8 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * http://dev.w3.org/csswg/cssom/
+ * http://mxr.mozilla.org/mozilla-central/source/dom/webidl/CSS2Properties.webidl.in
+ * http://mxr.mozilla.org/mozilla-central/source/dom/bindings/GenerateCSS2PropertiesWebIDL.py
  *
  */
 
