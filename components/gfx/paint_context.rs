@@ -604,7 +604,7 @@ impl<'a> PaintContext<'a>  {
 
         if color.r != 0.0 || color.g != 0.0 || color.b != 0.0 {
             darker_color = self.scale_color(color, if is_groove { 1.0/3.0 } else { 2.0/3.0 });
-            lighter_color = self.scale_color(color, if is_groove { 1.5/3.0 } else { 2.5/3.0 });
+            lighter_color = color;
         } else {
             // You can't scale black color (i.e. 'scaled = 0 * scale', equals black).
             darker_color = Color::new(0.3, 0.3, 0.3, color.a);
