@@ -5,7 +5,7 @@
 //! A windowing implementation using glutin.
 
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
-use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing::windowing::{WindowEvent, WindowMethods, KeyEvent};
 use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass, ScrollWindowEvent};
 use compositing::windowing::{ZoomWindowEvent, PinchZoomWindowEvent, NavigationWindowEvent};
@@ -17,6 +17,8 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
+use msg::constellation_msg;
+use msg::constellation_msg::{Key, KeyEscape, KeyEqual, KeyMinus, KeyBackspace, KeyPageUp, KeyPageDown, CONTROL, SHIFT, ALT};
 use msg::compositor_msg::{IdlePaintState, PaintState, PaintingPaintState};
 use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
 use msg::constellation_msg::LoadData;
@@ -253,6 +255,33 @@ impl WindowMethods for Window {
             display: GetCurrentDisplay(),
         }
     }
+
+    /// Helper function to handle keyboard events.
+    fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
+        match key {
+            // TODO(negge): handle window close event
+            KeyEscape => {},
+            KeyEqual if mods.contains(CONTROL) => { // Ctrl-+
+                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
+            }
+            KeyMinus if mods.contains(CONTROL) => { // Ctrl--
+                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.0/1.1));
+            }
+            KeyBackspace if mods.contains(SHIFT) => { // Shift-Backspace
+                self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
+            }
+            KeyBackspace => { // Backspace
+                self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
+            }
+            KeyPageDown => {
+                self.scroll_window(0.0, -self.framebuffer_size().as_f32().to_untyped().height);
+            }
+            KeyPageUp => {
+                self.scroll_window(0.0, self.framebuffer_size().as_f32().to_untyped().height);
+            }
+            _ => {}
+        }
+    }
 }
 
 impl Window {
@@ -293,6 +322,33 @@ impl Window {
     }
 }
 
+fn glutin_mods_to_script_mods(modifiers: KeyModifiers) -> constellation_msg::KeyModifiers {
+    let mut result = constellation_msg::KeyModifiers::from_bits(0).unwrap();
+    if modifiers.intersects(LEFT_SHIFT | RIGHT_SHIFT) {
+        result.insert(SHIFT);
+    }
+    if modifiers.intersects(LEFT_CONTROL | RIGHT_CONTROL) {
+        result.insert(CONTROL);
+    }
+    if modifiers.intersects(LEFT_ALT | RIGHT_ALT) {
+        result.insert(ALT);
+    }
+    result
+}
+
+fn glutin_key_to_script_key(key: glutin::VirtualKeyCode) -> Result<constellation_msg::Key, ()> {
+    // TODO(negge): add more key mappings
+    match key {
+        glutin::Escape => Ok(KeyEscape),
+        glutin::Equals => Ok(KeyEqual),
+        glutin::Minus => Ok(KeyMinus),
+        glutin::Back => Ok(KeyBackspace),
+        glutin::PageDown => Ok(KeyPageDown),
+        glutin::PageUp => Ok(KeyPageUp),
+        _ => Err(()),
+    }
+}
+
 impl Window {
     fn handle_window_event(&self, event: glutin::Event) -> bool {
         match event {
@@ -307,7 +363,16 @@ impl Window {
                         (_, glutin::RShift) => self.toggle_modifier(RIGHT_SHIFT),
                         (_, glutin::LAlt) => self.toggle_modifier(LEFT_ALT),
                         (_, glutin::RAlt) => self.toggle_modifier(RIGHT_ALT),
-                        (glutin::Pressed, key_code) => return self.handle_key(key_code),
+                        (glutin::Pressed, key_code) => {
+                            match glutin_key_to_script_key(key_code) {
+                                Ok(key) => {
+                                    let state = constellation_msg::Pressed;
+                                    let modifiers = glutin_mods_to_script_mods(self.key_modifiers.get());
+                                    self.event_queue.borrow_mut().push(KeyEvent(key, state, modifiers));
+                                }
+                                _ => {}
+                            }
+                        }
                         (_, _) => {}
                     }
                 }
@@ -369,34 +434,6 @@ impl Window {
         let event = ScrollWindowEvent(TypedPoint2D(dx as f32, dy as f32),
                                       TypedPoint2D(mouse_pos.x as i32, mouse_pos.y as i32));
         self.event_queue.borrow_mut().push(event);
-    }
-
-    /// Helper function to handle keyboard events.
-    fn handle_key(&self, key: glutin::VirtualKeyCode) -> bool {
-        match key {
-            glutin::Escape => return true,
-            glutin::Equals if self.ctrl_pressed() => { // Ctrl-+
-                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
-            }
-            glutin::Minus if self.ctrl_pressed() => { // Ctrl--
-                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.0/1.1));
-            }
-            glutin::Back if self.shift_pressed() => { // Shift-Backspace
-                self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
-            }
-            glutin::Back => { // Backspace
-                self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
-            }
-            glutin::PageDown => {
-                self.scroll_window(0.0, -self.framebuffer_size().as_f32().to_untyped().height);
-            }
-            glutin::PageUp => {
-                self.scroll_window(0.0, self.framebuffer_size().as_f32().to_untyped().height);
-            }
-            _ => {}
-        }
-
-        false
     }
 
     /// Helper function to handle a click
