@@ -26,6 +26,7 @@ pub enum LengthAttribute {
 pub enum IntegerAttribute {
     /// `<input size>`
     SizeIntegerAttribute,
+    ColsIntegerAttribute,
 }
 
 /// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
@@ -152,6 +153,23 @@ impl PresentationalHintSynthesis for Stylist {
                             }
                             _ => specified::Au_(Au::from_px(value as int)),
                         };
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                WidthDeclaration(SpecifiedValue(specified::LPA_Length(
+                                            value)))));
+                        *shareable = false
+                    }
+                    Some(_) | None => {}
+                }
+            }
+            name if *name == atom!("textarea") => {
+                match element.get_integer_attribute(ColsIntegerAttribute) {
+                    Some(value) if value != 0 => {
+                        // TODO ServoCharacterWidth uses the size math for <input type="text">, but
+                        // the math for <textarea> is a little different since we need to take
+                        // scrollbar size into consideration (but we don't have a scrollbar yet!)
+                        //
+                        // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-width
+                        let value = specified::ServoCharacterWidth(value);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 WidthDeclaration(SpecifiedValue(specified::LPA_Length(
                                             value)))));
