@@ -143,7 +143,7 @@ impl Flow for TableRowGroupFlow {
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent context.
-    fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("table_rowgroup::assign_inline_sizes {:x}",
                                             self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_rowgroup");
@@ -157,10 +157,11 @@ impl Flow for TableRowGroupFlow {
 
         let inline_size_computer = InternalTable;
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
-                                                      ctx,
+                                                      layout_context,
                                                       containing_block_inline_size);
 
         self.block_flow.propagate_assigned_inline_size_to_children(
+            layout_context,
             inline_start_content_edge,
             content_inline_size,
             Some(self.column_computed_inline_sizes.as_slice()));

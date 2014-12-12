@@ -1256,6 +1256,7 @@ impl BlockFlow {
     #[inline(always)]
     pub fn propagate_assigned_inline_size_to_children(
             &mut self,
+            layout_context: &LayoutContext,
             inline_start_content_edge: Au,
             content_inline_size: Au,
             optional_column_computed_inline_sizes: Option<&[ColumnComputedInlineSize]>) {
@@ -1304,6 +1305,13 @@ impl BlockFlow {
             }
             (LPA_Percentage(_), None) | (LPA_Auto, _) => None,
             (LPA_Length(length), _) => Some(length),
+        };
+
+        // Calculate containing block inline size.
+        let containing_block_size = if flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            self.containing_block_size(layout_context.shared.screen_size).inline
+        } else {
+            content_inline_size
         };
 
         for (i, kid) in self.base.child_iter().enumerate() {
@@ -1383,7 +1391,16 @@ impl BlockFlow {
             // Per CSS 2.1 § 16.3.1, text alignment propagates to all children in flow.
             //
             // TODO(#2018, pcwalton): Do this in the cascade instead.
-            flow::mut_base(kid).flags.propagate_text_alignment_from_parent(flags.clone())
+            flow::mut_base(kid).flags.propagate_text_alignment_from_parent(flags.clone());
+
+            // Handle `text-indent` on behalf of any inline children that we have. This is
+            // necessary because any percentages are relative to the containing block, which only
+            // we know.
+            if kid.is_inline_flow() {
+                kid.as_inline().first_line_indentation =
+                    specified(self.fragment.style().get_inheritedtext().text_indent,
+                              containing_block_size);
+            }
         }
     }
 
@@ -1609,7 +1626,8 @@ impl Flow for BlockFlow {
         let padding_and_borders = self.fragment.border_padding.inline_start_end();
         let content_inline_size = self.fragment.border_box.size.inline - padding_and_borders;
 
-        self.propagate_assigned_inline_size_to_children(inline_start_content_edge,
+        self.propagate_assigned_inline_size_to_children(layout_context,
+                                                        inline_start_content_edge,
                                                         content_inline_size,
                                                         None);
     }
@@ -2090,7 +2108,7 @@ pub trait ISizeAndMarginsComputer {
         // recalculated, but this time using the value of 'min-inline-size' as the computed value
         // for 'inline-size'.
         let computed_min_inline_size = specified(block.fragment().style().min_inline_size(),
-                                           containing_block_inline_size);
+                                                 containing_block_inline_size);
         if computed_min_inline_size > solution.inline_size {
             input.computed_inline_size = Specified(computed_min_inline_size);
             solution = self.solve_inline_size_constraints(block, &input);
