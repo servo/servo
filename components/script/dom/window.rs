@@ -98,14 +98,6 @@ impl Window {
         &*self.page
     }
 
-    pub fn navigation_start(&self) -> u64 {
-        self.navigation_start
-    }
-
-    pub fn navigation_start_precise(&self) -> f64 {
-        self.navigation_start_precise
-    }
-
     pub fn get_url(&self) -> Url {
         self.page().get_url()
     }
@@ -267,7 +259,10 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Performance(self) -> Temporary<Performance> {
-        self.performance.or_init(|| Performance::new(self))
+        self.performance.or_init(|| {
+            Performance::new(self, self.navigation_start,
+                             self.navigation_start_precise)
+        })
     }
 
     global_event_handlers!()
