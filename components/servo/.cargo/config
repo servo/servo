@@ -1,0 +1,2 @@
+[target.arm-linux-androideabi]
+linker = "../../support/android-rs-glue/apk-builder/target/apk-builder"
