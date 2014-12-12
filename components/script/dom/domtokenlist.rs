@@ -100,4 +100,18 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
             }).unwrap_or(false)
         })
     }
+
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-add
+    fn Add(self, tokens: Vec<DOMString>) -> ErrorResult {
+        let element = self.element.root();
+        let mut atoms = element.get_tokenlist_attribute(&self.local_name);
+        for token in tokens.iter() {
+            let token = try!(self.check_token_exceptions(token.as_slice()));
+            if !atoms.iter().any(|atom| *atom == token) {
+                atoms.push(token);
+            }
+        }
+        element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        Ok(())
+    }
 }
