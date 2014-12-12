@@ -26,6 +26,7 @@ use libc::c_int;
 use msg::compositor_msg::{Blank, FinishedLoading, IdlePaintState, Loading, PaintState};
 use msg::compositor_msg::{PaintingPaintState, PerformingLayout, ReadyState};
 use msg::constellation_msg::{mod, LoadData};
+use msg::constellation_msg::{Key, KeyModifiers, KeyEscape, KeyEqual, KeyMinus, KeyBackspace, KeyPageUp, KeyPageDown, CONTROL, SHIFT};
 use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
 use std::rc::Rc;
@@ -206,6 +207,35 @@ impl WindowMethods for Window {
          box receiver as Box<CompositorReceiver>)
     }
 
+
+    /// Helper function to handle keyboard events.
+    fn handle_key(&self, key: Key, mods: KeyModifiers) {
+        match key {
+            KeyEscape => self.glfw_window.set_should_close(true),
+            KeyEqual if mods.contains(CONTROL) => { // Ctrl-+
+                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
+            }
+            KeyMinus if mods.contains(CONTROL) => { // Ctrl--
+                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.0/1.1));
+            }
+            KeyBackspace if mods.contains(SHIFT) => { // Shift-Backspace
+                self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
+            }
+            KeyBackspace => { // Backspace
+                self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
+            }
+            KeyPageDown => {
+                let (_, height) = self.glfw_window.get_size();
+                self.scroll_window(0.0, -height as f32);
+            }
+            KeyPageUp => {
+                let (_, height) = self.glfw_window.get_size();
+                self.scroll_window(0.0, height as f32);
+            }
+            _ => {}
+        }
+    }
+
     fn prepare_for_composite(&self) -> bool {
         true
     }
@@ -221,9 +251,6 @@ impl Window {
     fn handle_window_event(&self, window: &glfw::Window, event: glfw::WindowEvent) {
         match event {
             glfw::KeyEvent(key, _, action, mods) => {
-                if action == glfw::Press {
-                    self.handle_key(key, mods);
-                }
                 let key = glfw_key_to_script_key(key);
                 let state = match action {
                     glfw::Press => constellation_msg::Pressed,
@@ -330,34 +357,6 @@ impl Window {
                     }
                 }
             }
-        }
-    }
-
-    /// Helper function to handle keyboard events.
-    fn handle_key(&self, key: glfw::Key, mods: glfw::Modifiers) {
-        match key {
-            glfw::KeyEscape => self.glfw_window.set_should_close(true),
-            glfw::KeyEqual if mods.contains(glfw::Control) => { // Ctrl-+
-                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
-            }
-            glfw::KeyMinus if mods.contains(glfw::Control) => { // Ctrl--
-                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.0/1.1));
-            }
-            glfw::KeyBackspace if mods.contains(glfw::Shift) => { // Shift-Backspace
-                self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
-            }
-            glfw::KeyBackspace => { // Backspace
-                self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
-            }
-            glfw::KeyPageDown => {
-                let (_, height) = self.glfw_window.get_size();
-                self.scroll_window(0.0, -height as f32);
-            }
-            glfw::KeyPageUp => {
-                let (_, height) = self.glfw_window.get_size();
-                self.scroll_window(0.0, height as f32);
-            }
-            _ => {}
         }
     }
 

@@ -21,6 +21,7 @@ use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::{c_char, c_void};
+use servo_msg::constellation_msg::{Key, KeyModifiers};
 use servo_msg::compositor_msg::{Blank, FinishedLoading, Loading, PerformingLayout, PaintState};
 use servo_msg::compositor_msg::{ReadyState};
 use servo_msg::constellation_msg::LoadData;
@@ -259,6 +260,10 @@ impl WindowMethods for Window {
         let frame = browser.get_main_frame();
         let frame = frame.downcast();
         *frame.url.borrow_mut() = load_data.url.to_string()
+    }
+
+    fn handle_key(&self, _: Key, _: KeyModifiers) {
+        // TODO(negge)
     }
 }
 
