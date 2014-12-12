@@ -114,4 +114,18 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
         element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
         Ok(())
     }
+
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-remove
+    fn Remove(self, tokens: Vec<DOMString>) -> ErrorResult {
+        let element = self.element.root();
+        let mut atoms = element.get_tokenlist_attribute(&self.local_name);
+        for token in tokens.iter() {
+            let token = try!(self.check_token_exceptions(token.as_slice()));
+            atoms.iter().position(|atom| *atom == token).and_then(|index| {
+                atoms.remove(index)
+            });
+        }
+        element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        Ok(())
+    }
 }
