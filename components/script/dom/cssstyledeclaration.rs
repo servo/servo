@@ -4,25 +4,25 @@
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
-use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::ErrorResult;
 use dom::bindings::js::{JS, JSRef, OptionalRootedRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::DocumentHelpers;
 use dom::element::{Element, ElementHelpers};
+use dom::node::window_from_node;
 use dom::htmlelement::HTMLElement;
 use dom::node::{document_from_node, NodeDamage, Node};
 use servo_util::str::DOMString;
 use string_cache::Atom;
 use style::{is_supported_property, longhands_from_shorthand, parse_style_attribute};
 use style::PropertyDeclaration;
-use url::Url;
 
 use std::ascii::AsciiExt;
 
 #[dom_struct]
 pub struct CSSStyleDeclaration {
     reflector_: Reflector,
-    owner: Option<JS<HTMLElement>>,
+    owner: JS<HTMLElement>,
 }
 
 fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
@@ -39,10 +39,10 @@ fn serialize_value(declaration: &PropertyDeclaration) -> DOMString {
 }
 
 impl CSSStyleDeclaration {
-    pub fn new_inherited(owner: Option<JSRef<HTMLElement>>) -> CSSStyleDeclaration {
+    pub fn new_inherited(owner: JSRef<HTMLElement>) -> CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
-            owner: owner.map(|owner| JS::from_rooted(owner)),
+            owner: JS::from_rooted(owner),
         }
     }
 }
@@ -53,28 +53,39 @@ trait PrivateCSSStyleDeclarationHelpers {
 
 impl<'a> PrivateCSSStyleDeclarationHelpers for JSRef<'a, CSSStyleDeclaration> {
     fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
-        self.owner.root().and_then(|owner| {
-            let element: JSRef<Element> = ElementCast::from_ref(*owner);
-            element.get_inline_style_declaration(property).map(|decl| decl.clone())
-        })
+        let owner = self.owner.root();
+        let element: JSRef<Element> = ElementCast::from_ref(*owner);
+        element.get_inline_style_declaration(property).map(|decl| decl.clone())
     }
 }
 
 impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
-    fn CssText(self) -> DOMString {
-        "".to_string()
-    }
-
-    fn SetCssText(self, _cssText: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
     fn Length(self) -> u32 {
-        0
+        let owner = self.owner.root();
+        let elem: JSRef<Element> = ElementCast::from_ref(*owner);
+        let style_attribute = elem.style_attribute().borrow();
+        style_attribute.as_ref().map(|declarations| {
+            declarations.normal.len() + declarations.important.len()
+        }).unwrap_or(0) as u32
     }
 
-    fn Item(self, _index: u32) -> DOMString {
-        "".to_string()
+    fn Item(self, index: u32) -> DOMString {
+        let owner = self.owner.root();
+        let elem: JSRef<Element> = ElementCast::from_ref(*owner);
+        let style_attribute = elem.style_attribute().borrow();
+        style_attribute.as_ref().and_then(|declarations| {
+            if index as uint > declarations.normal.len() {
+                declarations.important
+                            .iter()
+                            .nth(index as uint - declarations.normal.len())
+                            .map(|decl| format!("{} !important", decl))
+            } else {
+                declarations.normal
+                            .iter()
+                            .nth(index as uint)
+                            .map(|decl| format!("{}", decl))
+            }
+        }).unwrap_or("".to_string())
     }
 
     //http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
@@ -98,10 +109,10 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
                 //       2. If declaration is null, return the empty string and terminate these
                 //          steps.
-                //XXXjdm ambiguous? this suggests that if we're missing a longhand we return nothing at all.
-                if declaration.is_some() {
+                match declaration {
                     //       3. Append the declaration to list.
-                    list.push(declaration.unwrap());
+                    Some(declaration) => list.push(declaration),
+                    None => return "".to_string(),
                 }
             }
 
@@ -114,26 +125,19 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         //    declaration and terminate these steps.
         // 4. Return the empty string.
         let declaration = self.get_declaration(&property);
-        declaration.as_ref().map(|declaration| serialize_value(declaration))
+        declaration.as_ref()
+                   .map(|declaration| serialize_value(declaration))
                    .unwrap_or("".to_string())
     }
 
-    fn GetPropertyPriority(self, _property: DOMString) -> DOMString {
-        "".to_string()
-    }
-
-    fn SetProperty(self, _property: DOMString, _value: DOMString,
-                   _priority: DOMString) -> ErrorResult {
-        Ok(())
-    }
-
-    fn SetPropertyValue(self, property: DOMString, value: DOMString) -> ErrorResult {
+    fn SetProperty(self, property: DOMString, value: DOMString,
+                   priority: DOMString) -> ErrorResult {
         // 1. If the readonly flag is set, throw a NoModificationAllowedError exception
         //    and terminate these steps.
         //TODO
 
         // 2. Let property be property converted to ASCII lowercase.
-        let property = Atom::from_slice(property.as_slice().to_ascii_lower().as_slice());
+        let property = property.as_slice().to_ascii_lower();
 
         // 3. If property is not a case-sensitive match for a supported CSS property,
         //    terminate this algorithm.
@@ -144,38 +148,50 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         // 4. If value is the empty string, invoke removeProperty() with property as argument
         //    and terminate this algorithm.
         if value.is_empty() {
-            //TODO: self.RemoveProperty(property)
+            self.RemoveProperty(property.clone());
             return Ok(());
         }
 
-        // 5. Let component value list be the result of parsing value for property property.
-        let mut synthesized_declaration = property.as_slice().to_string();
+        // 5. If priority is not the empty string and is not an ASCII case-insensitive match
+        //    for the string "important", terminate this algorithm.
+        let priority = priority.as_slice().to_ascii_lower();
+        if priority.as_slice() != "!important" && !priority.is_empty() {
+            return Ok(());
+        }
+
+        // 6. Let `component value list` be the result of parsing value for property `property`.
+        let mut synthesized_declaration = String::from_str(property.as_slice());
         synthesized_declaration.push_str(": ");
         synthesized_declaration.push_str(value.as_slice());
-        //XXXjdm need page url
-        let decl_block = parse_style_attribute(synthesized_declaration.as_slice(),
-                                               &Url::parse("http://localhost").unwrap());
 
-        // 6. If component value list is null terminate these steps.
+        let owner = self.owner.root();
+        let window = window_from_node(*owner).root();
+        let page = window.page();
+        let decl_block = parse_style_attribute(synthesized_declaration.as_slice(),
+                                               &page.get_url());
+
+        // 7. If `component value list` is null terminate these steps.
         if decl_block.normal.len() == 0 {
             return Ok(());
         }
 
         let owner = self.owner.root();
-        let element: JSRef<Element> = ElementCast::from_ref(**owner.as_ref().unwrap());
+        let element: JSRef<Element> = ElementCast::from_ref(*owner);
 
+        //XXXjdm https://www.w3.org/Bugs/Public/show_bug.cgi?id=27589
         assert!(decl_block.important.len() == 0);
+
         for decl in decl_block.normal.iter() {
-            // 7. If property is a shorthand property, then for each longhand property
+            // 8. If property is a shorthand property, then for each longhand property
             //    longhand that property maps to, in canonical order, set the CSS
             //    declaration value longhand to the appropriate value(s) from component
             //    value list, and with the list of declarations being the declarations.
 
-            // 8. Otherwise, set the CSS declaration value property to the
+            // 9. Otherwise, set the CSS declaration value property to the
             //    value component value list, and with the list of declarations
             //    being the declarations.
 
-            element.update_inline_style(decl.clone());
+            element.update_inline_style(decl.clone(), !priority.is_empty());
         }
 
         let document = document_from_node(element).root();
@@ -184,16 +200,57 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         Ok(())
     }
 
-    fn SetPropertyPriority(self, _property: DOMString, _priority: DOMString) -> ErrorResult {
-        Ok(())
+    fn SetPropertyValue(self, property: DOMString, value: DOMString) -> ErrorResult {
+        self.SetProperty(property, value, "".to_string())
     }
 
-    fn RemoveProperty(self, _property: DOMString) -> Fallible<DOMString> {
-        Ok("".to_string())
+    fn RemoveProperty(self, property: DOMString) -> DOMString {
+        // 1. If the readonly flag is set, throw a NoModificationAllowedError exception
+        //    and terminate these steps.
+        //TODO
+
+        // 2. Let `property` be property converted to ASCII lowercase.
+        let property = property.as_slice().to_ascii_lower();
+
+        // 3. Let `value` be the return value of invoking getPropertyValue() with `property`
+        //    as argument.
+        let value = self.GetPropertyValue(property.clone());
+
+        // 4. If `property` is a shorthand property, for each longhand property `longhand` that
+        //    `property` maps to, invoke removeProperty() with `longhand` as argument.
+        let longhand_properties = longhands_from_shorthand(property.as_slice());
+        match longhand_properties {
+            Some(longhands) => {
+                for longhand in longhands.iter() {
+                    self.RemoveProperty(longhand.clone());
+                }
+            }
+
+            // 5. Otherwise, if `property` is a case-sensitive match for a property name of a
+            //    CSS declaration in the declarations, remove that CSS declaration.
+            None => {
+                let owner = self.owner.root();
+                let elem: JSRef<Element> = ElementCast::from_ref(*owner);
+                elem.remove_inline_style_property(property)
+            }
+        }
+
+        // 6. Return value.
+        value
     }
 
-    fn IndexedGetter(self, _index: u32, _found: &mut bool) -> DOMString {
-        "".to_string()
+    fn CssFloat(self) -> DOMString {
+        self.GetPropertyValue("float".to_string())
+    }
+
+    fn SetCssFloat(self, value: DOMString) -> ErrorResult {
+        self.SetPropertyValue("float".to_string(), value)
+    }
+
+    fn IndexedGetter(self, index: u32, found: &mut bool) -> DOMString {
+        let rval = self.Item(index);
+        *found = index < self.Length();
+        rval
     }
 }
 

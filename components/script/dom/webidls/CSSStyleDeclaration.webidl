@@ -9,23 +9,23 @@
  */
 
 interface CSSStyleDeclaration {
-  [SetterThrows]
-           attribute DOMString cssText;
+  //[SetterThrows]
+  //         attribute DOMString cssText;
   readonly attribute unsigned long length;
   getter DOMString item(unsigned long index);
   DOMString getPropertyValue(DOMString property);
-  DOMString getPropertyPriority(DOMString property);
+  //DOMString getPropertyPriority(DOMString property);
   [Throws]
   void setProperty(DOMString property, [TreatNullAs=EmptyString] DOMString value,
                                        [TreatNullAs=EmptyString] optional DOMString priority = "");
   [Throws]
   void setPropertyValue(DOMString property, [TreatNullAs=EmptyString] DOMString value);
-  [Throws]
-  void setPropertyPriority(DOMString property, [TreatNullAs=EmptyString] DOMString priority);
-  [Throws]
+  //[Throws]
+  //void setPropertyPriority(DOMString property, [TreatNullAs=EmptyString] DOMString priority);
   DOMString removeProperty(DOMString property);
 // Not implemented yet:
 //  readonly attribute CSSRule? parentRule;
-//           attribute DOMString cssFloat;
+  [SetterThrows]
+           attribute DOMString cssFloat;
 };
 

@@ -40,7 +40,7 @@ macro_rules! css_setter(
 impl CSS2Properties {
     fn new_inherited(owner: JSRef<HTMLElement>) -> CSS2Properties {
         CSS2Properties {
-            cssstyledeclaration: CSSStyleDeclaration::new_inherited(Some(owner)),
+            cssstyledeclaration: CSSStyleDeclaration::new_inherited(owner),
         }
     }
 

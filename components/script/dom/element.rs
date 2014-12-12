@@ -466,7 +466,8 @@ pub trait ElementHelpers<'a> {
     fn style_attribute(self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>>;
     fn summarize(self) -> Vec<AttrInfo>;
     fn is_void(self) -> bool;
-    fn update_inline_style(self, property_decl: style::PropertyDeclaration);
+    fn remove_inline_style_property(self, property: DOMString);
+    fn update_inline_style(self, property_decl: style::PropertyDeclaration, important: bool);
     fn get_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration>;
 }
 
@@ -526,26 +527,64 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         }
     }
 
-    fn update_inline_style(self, property_decl: style::PropertyDeclaration) {
+    fn remove_inline_style_property(self, property: DOMString) {
+        //FIXME: Rust bug incorrectly thinks inline_declarations doesn't need mut,
+        //       and allow(unused_mut) on this method does nothing.
+        let mut inline_declarations = self.style_attribute.borrow_mut();
+        inline_declarations.as_mut().map(|declarations| {
+            let index = declarations.normal
+                                    .iter()
+                                    .position(|decl| decl.name() == property);
+            match index {
+                Some(index) => {
+                    declarations.normal.make_unique().remove(index);
+                    return;
+                }
+                None => ()
+            }
+
+            let index = declarations.important
+                                    .iter()
+                                    .position(|decl| decl.name() == property);
+            match index {
+                Some(index) => {
+                    declarations.important.make_unique().remove(index);
+                    return;
+                }
+                None => ()
+            }
+        });
+    }
+
+    fn update_inline_style(self, property_decl: style::PropertyDeclaration, important: bool) {
         //FIXME: Rust bug incorrectly thinks inline_declarations doesn't need mut,
         //       and allow(unused_mut) on this method does nothing.
         let mut inline_declarations = self.style_attribute.borrow_mut();
         let exists = inline_declarations.is_some();
         if exists {
             let declarations = inline_declarations.deref_mut().as_mut().unwrap();
-            for declaration in declarations.normal.make_unique()
-                                                  .iter_mut()
-                                                  .chain(declarations.important.make_unique().iter_mut()) {
-                if declaration.name().as_slice() == property_decl.name().as_slice() {
+            let mut existing_declarations = if important {
+                declarations.important.clone()
+            } else {
+                declarations.normal.clone()
+            };
+            for declaration in existing_declarations.make_unique().iter_mut() {
+                if declaration.name() == property_decl.name() {
                     *declaration = property_decl;
                     return;
                 }
             }
-            declarations.normal.make_unique().push(property_decl);
+            existing_declarations.make_unique().push(property_decl);
         } else {
+            let (important, normal) = if important {
+                (vec!(property_decl), vec!())
+            } else {
+                (vec!(), vec!(property_decl))
+            };
+
             *inline_declarations = Some(style::PropertyDeclarationBlock {
-                important: Arc::new(vec!()),
-                normal: Arc::new(vec!(property_decl)),
+                important: Arc::new(important),
+                normal: Arc::new(normal),
             });
         }
     }

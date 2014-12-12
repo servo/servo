@@ -7,5 +7,5 @@
 
 [NoInterfaceObject]
 interface ElementCSSInlineStyle {
-  [SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
+  [SameObject/*, PutForwards=cssText*/] readonly attribute CSSStyleDeclaration style;
 };

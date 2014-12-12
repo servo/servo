@@ -5,6 +5,7 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 pub use std::ascii::AsciiExt;
+use std::fmt;
 use std::fmt::Show;
 
 use servo_util::logical_geometry::{WritingMode, LogicalMargin};
@@ -2670,6 +2671,12 @@ impl PropertyDeclaration {
             % endfor
             _ => PropertyDeclarationParseResult::UnknownProperty,
         }
+    }
+}
+
+impl Show for PropertyDeclaration {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}: {}", self.name(), self.value())
     }
 }
 
