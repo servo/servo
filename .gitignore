@@ -25,6 +25,7 @@
 *.pyc
 *.swp
 *.swo
+*.csv
 .DS_Store
 servo-test
 Servo.app
