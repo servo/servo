@@ -138,7 +138,7 @@ struct ImageCache {
     port: Receiver<Msg>,
     /// A copy of the shared chan to give to child tasks
     chan: Sender<Msg>,
-    /// The state of processsing an image for a URL
+    /// The state of processing an image for a URL
     state_map: HashMap<Url, ImageState>,
     /// List of clients waiting on a WaitForImage response
     wait_map: HashMap<Url, Arc<Mutex<Vec<Sender<ImageResponseMsg>>>>>,

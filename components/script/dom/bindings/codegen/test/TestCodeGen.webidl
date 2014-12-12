@@ -105,7 +105,7 @@ interface TestInterface {
   TestInterface? receiveNullableSelf();
   TestInterface receiveWeakSelf();
   TestInterface? receiveWeakNullableSelf();
-  // A verstion to test for casting to TestInterface&
+  // A version to test for casting to TestInterface&
   void passSelf(TestInterface arg);
   // A version we can use to test for the exact type passed in
   void passSelf2(TestInterface arg);
@@ -136,7 +136,7 @@ interface TestInterface {
   TestNonCastableInterface? receiveNullableOther();
   TestNonCastableInterface receiveWeakOther();
   TestNonCastableInterface? receiveWeakNullableOther();
-  // A verstion to test for casting to TestNonCastableInterface&
+  // A version to test for casting to TestNonCastableInterface&
   void passOther(TestNonCastableInterface arg);
   // A version we can use to test for the exact type passed in
   void passOther2(TestNonCastableInterface arg);
@@ -153,7 +153,7 @@ interface TestInterface {
   TestExternalInterface? receiveNullableExternal();
   TestExternalInterface receiveWeakExternal();
   TestExternalInterface? receiveWeakNullableExternal();
-  // A verstion to test for casting to TestExternalInterface&
+  // A version to test for casting to TestExternalInterface&
   void passExternal(TestExternalInterface arg);
   // A version we can use to test for the exact type passed in
   void passExternal2(TestExternalInterface arg);
@@ -170,7 +170,7 @@ interface TestInterface {
   TestCallbackInterface? receiveNullableCallbackInterface();
   TestCallbackInterface receiveWeakCallbackInterface();
   TestCallbackInterface? receiveWeakNullableCallbackInterface();
-  // A verstion to test for casting to TestCallbackInterface&
+  // A version to test for casting to TestCallbackInterface&
   void passCallbackInterface(TestCallbackInterface arg);
   // A version we can use to test for the exact type passed in
   void passCallbackInterface2(TestCallbackInterface arg);

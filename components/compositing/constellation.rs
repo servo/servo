@@ -773,7 +773,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             }
         }
         // Being here means either there are no pending frames, or none of the pending
-        // changes would be overriden by changing the subframe associated with source_id.
+        // changes would be overridden by changing the subframe associated with source_id.
 
         let parent = source_frame.parent.clone();
         let subpage_id = source_frame.pipeline.subpage_id;

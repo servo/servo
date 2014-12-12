@@ -237,7 +237,7 @@ impl Floats {
 
         // FIXME(eatkinson): This assertion is too strong and fails in some cases. It is OK to
         // return negative inline-sizes since we check against that inline-end away, but we should
-        // still undersrtand why they occur and add a stronger assertion here.
+        // still understand why they occur and add a stronger assertion here.
         // assert!(max_inline-start < min_inline-end);
 
         assert!(block_start <= block_end, "Float position error");

@@ -387,7 +387,7 @@ impl<'a> DetailedGlyphStore {
             return;
         }
 
-        // Sorting a unique vector is surprisingly hard. The follwing
+        // Sorting a unique vector is surprisingly hard. The following
         // code is a good argument for using DVecs, but they require
         // immutable locations thus don't play well with freezing.
 

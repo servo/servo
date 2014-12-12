@@ -25,13 +25,13 @@ impl WritingMode {
         self.intersects(FLAG_VERTICAL)
     }
 
-    /// Asuming .is_vertical(), does the block direction go left to right?
+    /// Assuming .is_vertical(), does the block direction go left to right?
     #[inline]
     pub fn is_vertical_lr(&self) -> bool {
         self.intersects(FLAG_VERTICAL_LR)
     }
 
-    /// Asuming .is_vertical(), does the inline direction go top to bottom?
+    /// Assuming .is_vertical(), does the inline direction go top to bottom?
     #[inline]
     pub fn is_inline_tb(&self) -> bool {
         !(self.intersects(FLAG_SIDEWAYS_LEFT) ^ self.intersects(FLAG_RTL))
@@ -403,7 +403,7 @@ impl<T: Copy + Sub<T, T>> LogicalPoint<T> {
 
 impl<T: Add<T,T>> LogicalPoint<T> {
     /// This doesn’t really makes sense,
-    /// but happens when dealing with mutliple origins.
+    /// but happens when dealing with multiple origins.
     #[inline]
     pub fn add_point(&self, other: &LogicalPoint<T>) -> LogicalPoint<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);

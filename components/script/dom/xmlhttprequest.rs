@@ -252,7 +252,7 @@ impl XMLHttpRequest {
                 let (chan, cors_port) = channel();
                 let req2 = req.clone();
                 // TODO: this exists only to make preflight check non-blocking
-                // perhaps shoud be handled by the resource_loader?
+                // perhaps should be handled by the resource_loader?
                 spawn_named("XHR:Cors", proc() {
                     let response = req2.http_fetch();
                     chan.send(response);

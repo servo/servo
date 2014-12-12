@@ -1168,7 +1168,7 @@ pub struct _cef_v8value_t {
   pub get_int_value: Option<extern "C" fn(this: *mut cef_v8value_t) -> i32>,
 
   //
-  // Return an unisgned int value.  The underlying data will be converted to if
+  // Return an unsigned int value.  The underlying data will be converted to if
   // necessary.
   //
   pub get_uint_value: Option<extern "C" fn(this: *mut cef_v8value_t) -> u32>,
@@ -1714,7 +1714,7 @@ impl CefV8Value {
   }
 
   //
-  // Return an unisgned int value.  The underlying data will be converted to if
+  // Return an unsigned int value.  The underlying data will be converted to if
   // necessary.
   //
   pub fn get_uint_value(&self) -> u32 {
