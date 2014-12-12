@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl::Color;
+use constellation_msg::{Key, KeyState, KeyModifiers};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use layers::platform::surface::NativeGraphicsMetadata;
@@ -115,4 +116,5 @@ pub trait ScriptListener {
     fn set_title(&mut self, pipeline_id: PipelineId, new_title: Option<String>);
     fn close(&mut self);
     fn dup(&mut self) -> Box<ScriptListener+'static>;
+    fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers);
 }

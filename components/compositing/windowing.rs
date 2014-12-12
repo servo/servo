@@ -123,5 +123,7 @@ pub trait WindowMethods {
     /// some type of platform-specific graphics context current. Returns true if the composite may
     /// proceed and false if it should not.
     fn prepare_for_composite(&self) -> bool;
-}
 
+    /// Process a key event.
+    fn handle_key(&self, key: Key, mods: KeyModifiers);
+}

@@ -5,12 +5,13 @@
 //! A windowing implementation using GLUT.
 
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
-use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing::windowing::{WindowEvent, WindowMethods, KeyEvent};
 use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent, MouseWindowEventClass};
 use compositing::windowing::{ScrollWindowEvent, ZoomWindowEvent, NavigationWindowEvent};
 use compositing::windowing::{MouseWindowClickEvent, MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
 use compositing::windowing::{Forward, Back};
-
+use msg::constellation_msg;
+use msg::constellation_msg::{Key, KeyModifiers, KeyEscape, KeyEqual, KeyMinus, KeyBackspace, KeyPageUp, KeyPageDown, CONTROL, SHIFT, ALT};
 use libc::{c_int, c_uchar};
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
@@ -23,7 +24,7 @@ use msg::compositor_msg::{Blank, IdlePaintState, PaintState, ReadyState};
 use msg::constellation_msg::LoadData;
 use util::geometry::ScreenPx;
 
-use glut::glut::{ACTIVE_SHIFT, WindowHeight};
+use glut::glut::{ACTIVE_SHIFT, ACTIVE_ALT, ACTIVE_CTRL, WindowHeight};
 use glut::glut::WindowWidth;
 use glut::glut;
 
@@ -91,8 +92,17 @@ impl Window {
         struct KeyboardCallbackState;
         impl glut::KeyboardCallback for KeyboardCallbackState {
             fn call(&self, key: c_uchar, _x: c_int, _y: c_int) {
-                let tmp = local_window();
-                tmp.handle_key(key)
+                debug!("got key: {}", key);
+                match glut_key_to_script_key(key) {
+                    Ok(key) => {
+                        // TOOD(negge): Add code to manage glut key up/down state.
+                        let state = constellation_msg::Pressed;
+                        let modifiers = glut_mods_to_script_mods();
+                        let tmp = local_window();
+                        tmp.event_queue.borrow_mut().push(KeyEvent(key, state, modifiers));
+                    }
+                    _ => {}
+                }
             }
         }
         glut::keyboard_func(box KeyboardCallbackState);
@@ -139,6 +149,33 @@ impl Window {
         glut::check_loop();
 
         self.event_queue.borrow_mut().remove(0).unwrap_or(IdleWindowEvent)
+    }
+}
+
+fn glut_mods_to_script_mods() -> KeyModifiers {
+    let mut result = KeyModifiers::from_bits(0).unwrap();
+    let modifiers = glut::get_modifiers();
+    if (modifiers & ACTIVE_SHIFT) != 0 {
+        result.insert(SHIFT);
+    }
+    if (modifiers & ACTIVE_CTRL) != 0 {
+        result.insert(CONTROL);
+    }
+    if (modifiers & ACTIVE_ALT) != 0 {
+        result.insert(ALT);
+    }
+    result
+}
+
+fn glut_key_to_script_key(key: u8) -> Result<constellation_msg::Key, ()> {
+    // TODO(negge): add more key mappings
+    match key {
+        43 => Ok(KeyEqual),
+        45 => Ok(KeyMinus),
+        50 => Ok(KeyPageDown),
+        56 => Ok(KeyPageUp),
+        127 => Ok(KeyBackspace),
+        _ => Err(()),
     }
 }
 
@@ -218,6 +255,33 @@ impl WindowMethods for Window {
     fn prepare_for_composite(&self) -> bool {
         true
     }
+
+    /// Helper function to handle keyboard events.
+    fn handle_key(&self, key: Key, mods: KeyModifiers) {
+        match key {
+            KeyEqual => {
+                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
+            }
+            KeyMinus => {
+                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.0/1.1));
+            }
+            KeyPageDown => {
+                self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0f32, -5.0f32),
+                                                                     TypedPoint2D(0i32, -5i32)));
+            }
+            KeyPageUp => {
+                self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0f32, 5.0f32),
+                                                                     TypedPoint2D(0i32, 5i32)));
+            }
+            KeyBackspace if mods.contains(SHIFT) => {
+                self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
+            }
+            KeyBackspace => {
+                self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
+            }
+            _ => {}
+        }
+    }
 }
 
 impl Window {
@@ -244,29 +308,6 @@ impl Window {
     //         }
     //     }
     // }
-
-    /// Helper function to handle keyboard events.
-    fn handle_key(&self, key: u8) {
-        debug!("got key: {}", key);
-        let modifiers = glut::get_modifiers();
-        match key {
-            43 => self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1)),
-            45 => self.event_queue.borrow_mut().push(ZoomWindowEvent(0.909090909)),
-            56 => self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0f32, 5.0f32),
-                                                                       TypedPoint2D(0i32, 5i32))),
-            50 => self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(0.0f32, -5.0f32),
-                                                                       TypedPoint2D(0i32, -5i32))),
-            127 => {
-                if (modifiers & ACTIVE_SHIFT) != 0 {
-                    self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
-                }
-                else {
-                    self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
-                }
-            }
-            _ => {}
-        }
-    }
 
     /// Helper function to handle a click
     fn handle_mouse(&self, button: c_int, state: c_int, x: c_int, y: c_int) {
