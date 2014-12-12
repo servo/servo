@@ -103,7 +103,7 @@ fn redirect_output(file_no: c_int) {
 #[cfg(target_os="android")]
 fn setup_logging() {
     use libc::consts::os::posix88::{STDERR_FILENO, STDOUT_FILENO};
-    //os::setenv("RUST_LOG", "servo,gfx,msg,util,layers,js,glut,std,rt,extra");
+    //os::setenv("RUST_LOG", "servo,gfx,msg,util,layers,js,std,rt,extra");
     redirect_output(STDERR_FILENO);
     redirect_output(STDOUT_FILENO);
 }
