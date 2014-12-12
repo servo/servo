@@ -35,7 +35,7 @@ use page::{Page, IterablePage, Frame};
 use timers::TimerId;
 use devtools;
 
-use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, GetRootNode};
+use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, GetRootNode, DevtoolsPageInfo};
 use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, GetDocumentElement};
 use devtools_traits::{GetChildren, GetLayout, ModifyAttribute};
 use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
@@ -185,6 +185,7 @@ pub struct ScriptTask {
     /// For receiving commands from an optional devtools server. Will be ignored if
     /// no such server exists.
     devtools_port: DevtoolsControlPort,
+    devtools_sender: Sender<DevtoolScriptControlMsg>,
 
     /// The JavaScript runtime.
     js_runtime: js::rust::rt,
@@ -344,13 +345,7 @@ impl ScriptTask {
                              constellation_chan.clone(),
                              js_context.clone());
 
-        // Notify devtools that a new script global exists.
-        //FIXME: Move this into handle_load after we create a window instead.
         let (devtools_sender, devtools_receiver) = channel();
-        devtools_chan.as_ref().map(|chan| {
-            chan.send(NewGlobal(id, devtools_sender.clone()));
-        });
-
         ScriptTask {
             page: DOMRefCell::new(Rc::new(page)),
 
@@ -365,6 +360,7 @@ impl ScriptTask {
             compositor: DOMRefCell::new(compositor),
             devtools_chan: devtools_chan,
             devtools_port: devtools_receiver,
+            devtools_sender: devtools_sender,
 
             js_runtime: js_runtime,
             js_context: DOMRefCell::new(Some(js_context)),
@@ -824,10 +820,23 @@ impl ScriptTask {
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
         let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
 
-        *page.fragment_name.borrow_mut() = final_url.fragment;
+        *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(LoadCompleteMsg);
+
+        // Notify devtools that a new script global exists.
+        match self.devtools_chan {
+            None => {}
+            Some(ref chan) => {
+                let page_info = DevtoolsPageInfo {
+                    title: document.Title(),
+                    url: final_url
+                };
+                chan.send(NewGlobal(pipeline_id, self.devtools_sender.clone(),
+                                    page_info));
+            }
+        }
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {
