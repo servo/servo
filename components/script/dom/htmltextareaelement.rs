@@ -35,6 +35,7 @@ pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     textinput: DOMRefCell<TextInput>,
     cols: Cell<u32>,
+    rows: Cell<u32>,
 
     // https://html.spec.whatwg.org/multipage/forms.html#concept-textarea-dirty
     value_changed: Cell<bool>,
@@ -52,6 +53,7 @@ pub trait LayoutHTMLTextAreaElementHelpers {
 
 pub trait RawLayoutHTMLTextAreaElementHelpers {
     unsafe fn get_cols_for_layout(&self) -> u32;
+    unsafe fn get_rows_for_layout(&self) -> u32;
 }
 
 impl LayoutHTMLTextAreaElementHelpers for JS<HTMLTextAreaElement> {
@@ -66,6 +68,11 @@ impl RawLayoutHTMLTextAreaElementHelpers for HTMLTextAreaElement {
     unsafe fn get_cols_for_layout(&self) -> u32 {
         self.cols.get()
     }
+
+    #[allow(unrooted_must_root)]
+    unsafe fn get_rows_for_layout(&self) -> u32 {
+        self.rows.get()
+    }
 }
 
 static DEFAULT_COLS: u32 = 20;
@@ -77,6 +84,7 @@ impl HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(Multiple, "".to_string())),
             cols: Cell::new(DEFAULT_COLS),
+            rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),
         }
     }
@@ -205,6 +213,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
                     _ => panic!("Expected a UIntAttrValue"),
                 }
             },
+            &atom!("rows") => {
+                match *attr.value() {
+                    UIntAttrValue(_, value) => self.rows.set(value),
+                    _ => panic!("Expected a UIntAttrValue"),
+                }
+            },
             _ => ()
         }
     }
@@ -224,6 +238,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             },
             &atom!("cols") => {
                 self.cols.set(DEFAULT_COLS);
+            },
+            &atom!("rows") => {
+                self.rows.set(DEFAULT_ROWS);
             },
             _ => ()
         }

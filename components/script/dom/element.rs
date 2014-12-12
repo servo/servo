@@ -50,8 +50,8 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
 use style::{mod, AuthorOrigin, BgColorSimpleColorAttribute, BorderUnsignedIntegerAttribute};
 use style::{ColSpanUnsignedIntegerAttribute, IntegerAttribute, LengthAttribute, ParserContext};
-use style::{SimpleColorAttribute, SizeIntegerAttribute, ColsIntegerAttribute, UnsignedIntegerAttribute};
-use style::{WidthLengthAttribute, matches};
+use style::{SimpleColorAttribute, SizeIntegerAttribute, ColsIntegerAttribute, RowsIntegerAttribute};
+use style::{UnsignedIntegerAttribute, WidthLengthAttribute, matches};
 use servo_util::namespace;
 use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
@@ -330,6 +330,13 @@ impl RawLayoutElementHelpers for Element {
                 }
                 let this: &HTMLTextAreaElement = mem::transmute(self);
                 Some(this.get_cols_for_layout() as i32)
+            }
+            RowsIntegerAttribute => {
+                if !self.is_htmltextareaelement() {
+                    panic!("I'm not a textarea element!")
+                }
+                let this: &HTMLTextAreaElement = mem::transmute(self);
+                Some(this.get_rows_for_layout() as i32)
             }
         }
     }
