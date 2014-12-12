@@ -1088,6 +1088,29 @@ pub mod longhands {
     // TODO: initial value should be 'start' (CSS Text Level 3, direction-dependent.)
     ${single_keyword("text-align", "left right center justify")}
 
+    <%self:single_component_value name="letter-spacing">
+        pub type SpecifiedValue = Option<specified::Length>;
+        pub mod computed_value {
+            use super::super::Au;
+            pub type T = Option<Au>;
+        }
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            None
+        }
+        #[inline]
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                                 -> computed_value::T {
+            value.map(|length| computed::compute_Au(length, context))
+        }
+        pub fn from_component_value(input: &ComponentValue, _: &Url) -> Result<SpecifiedValue,()> {
+            match input {
+                &Ident(ref value) if value.eq_ignore_ascii_case("normal") => Ok(None),
+                _ => specified::Length::parse_non_negative(input).map(|length| Some(length)),
+            }
+        }
+    </%self:single_component_value>
+
     ${new_style_struct("Text", is_inherited=False)}
 
     <%self:longhand name="text-decoration">
