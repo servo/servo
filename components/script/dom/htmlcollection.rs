@@ -62,7 +62,10 @@ impl HTMLCollection {
             namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for AllElementFilter {
-            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
+            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
+                if NodeCast::from_ref(elem) == root {
+                    return false
+                }
                 match self.namespace_filter {
                     None => true,
                     Some(ref namespace) => *elem.namespace() == *namespace
@@ -119,7 +122,10 @@ impl HTMLCollection {
             namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for TagNameNSFilter {
-            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
+            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
+                if NodeCast::from_ref(elem) == root {
+                    return false
+                }
                 let ns_match = match self.namespace_filter {
                     Some(ref namespace) => {
                         *elem.namespace() == *namespace
