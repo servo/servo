@@ -38,7 +38,7 @@ use servo_util::geometry::{mod, Au, ZERO_POINT, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, WritingMode};
 use servo_util::opts;
 use std::default::Default;
-use style::computed::{AngleAoc, CornerAoc, LP_Length, LP_Percentage, LengthOrPercentage};
+use style::computed::{AngleOrCorner, LP_Length, LP_Percentage, LengthOrPercentage};
 use style::computed::{LinearGradient, LinearGradientImage, UrlImage};
 use style::computed_values::{background_attachment, background_repeat, border_style, overflow};
 use style::computed_values::{visibility};
@@ -315,13 +315,13 @@ impl FragmentDisplayListBuilding for Fragment {
         // This is the distance between the center and the ending point; i.e. half of the distance
         // between the starting point and the ending point.
         let delta = match gradient.angle_or_corner {
-            AngleAoc(angle) => {
+            AngleOrCorner::Angle(angle) => {
                 Point2D(Au((angle.radians().sin() *
                              absolute_bounds.size.width.to_f64().unwrap() / 2.0) as i32),
                         Au((-angle.radians().cos() *
                              absolute_bounds.size.height.to_f64().unwrap() / 2.0) as i32))
             }
-            CornerAoc(horizontal, vertical) => {
+            AngleOrCorner::Corner(horizontal, vertical) => {
                 let x_factor = match horizontal {
                     Left => -1,
                     Right => 1,

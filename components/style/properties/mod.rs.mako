@@ -13,7 +13,7 @@ pub use url::Url;
 pub use cssparser::*;
 pub use cssparser::ast::*;
 pub use geom::SideOffsets2D;
-pub use self::common_types::specified::{Angle, AngleAoc, AngleOrCorner, Bottom, CornerAoc};
+pub use self::common_types::specified::{Angle, AngleOrCorner, Bottom};
 pub use self::common_types::specified::{Left, Right, Top};
 
 use errors::{ErrorLoggerIterator, log_css_error};

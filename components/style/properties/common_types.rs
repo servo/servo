@@ -295,8 +295,8 @@ pub mod specified {
     /// Specified values for an angle or a corner in a linear gradient.
     #[deriving(Clone, PartialEq)]
     pub enum AngleOrCorner {
-        AngleAoc(Angle),
-        CornerAoc(HorizontalDirection, VerticalDirection),
+        Angle(Angle),
+        Corner(HorizontalDirection, VerticalDirection),
     }
 
     /// Specified values for one color stop in a linear gradient.
@@ -360,11 +360,11 @@ pub mod specified {
                         Dimension(ref value, ref unit) => {
                             match Angle::parse_dimension(value.value, unit.as_slice()) {
                                 Ok(angle) => {
-                                    (AngleAoc(angle), true)
+                                    (AngleOrCorner::Angle(angle), true)
                                 }
                                 Err(()) => {
                                     source.push_back(token);
-                                    (AngleAoc(Angle(PI)), false)
+                                    (AngleOrCorner::Angle(Angle(PI)), false)
                                 }
                             }
                         }
@@ -404,19 +404,19 @@ pub mod specified {
                             }
 
                             (match (horizontal, vertical) {
-                                (None, Some(Top)) => AngleAoc(Angle(0.0)),
-                                (Some(Right), None) => AngleAoc(Angle(PI * 0.5)),
-                                (None, Some(Bottom)) => AngleAoc(Angle(PI)),
-                                (Some(Left), None) => AngleAoc(Angle(PI * 1.5)),
+                                (None, Some(Top)) => AngleOrCorner::Angle(Angle(0.0)),
+                                (Some(Right), None) => AngleOrCorner::Angle(Angle(PI * 0.5)),
+                                (None, Some(Bottom)) => AngleOrCorner::Angle(Angle(PI)),
+                                (Some(Left), None) => AngleOrCorner::Angle(Angle(PI * 1.5)),
                                 (Some(horizontal), Some(vertical)) => {
-                                    CornerAoc(horizontal, vertical)
+                                    AngleOrCorner::Corner(horizontal, vertical)
                                 }
                                 (None, None) => return Err(()),
                             }, true)
                         }
                         _ => {
                             source.push_back(token);
-                            (AngleAoc(Angle(PI)), false)
+                            (AngleOrCorner::Angle(Angle(PI)), false)
                         }
                     }
                 }
@@ -448,7 +448,7 @@ pub mod specified {
 }
 
 pub mod computed {
-    pub use super::specified::{Angle, AngleAoc, AngleOrCorner, CornerAoc, HorizontalDirection};
+    pub use super::specified::{Angle, AngleOrCorner, HorizontalDirection};
     pub use super::specified::{VerticalDirection};
     pub use cssparser::Color as CSSColor;
     pub use super::super::longhands::computed_as_specified as compute_CSSColor;
