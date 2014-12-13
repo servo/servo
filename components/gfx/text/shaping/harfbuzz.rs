@@ -42,8 +42,8 @@ use harfbuzz::{hb_shape, hb_buffer_get_glyph_infos};
 use libc::{c_uint, c_int, c_void, c_char};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
-use std::mem;
 use std::char;
+use std::mem;
 use std::cmp;
 use std::ptr;
 
@@ -436,8 +436,12 @@ impl Shaper {
                 // for now, just pretend that every character is a cluster start.
                 // (i.e., pretend there are no combining character sequences).
                 // 1-to-1 mapping of character to glyph also treated as ligature start.
+                //
+                // NB: When we acquire the ability to handle ligatures that cross word boundaries,
+                // we'll need to do something special to handle `word-spacing` properly.
                 let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
-                let advance = self.advance_for_shaped_glyph(shape.advance, options);
+                let character = text.char_at(char_byte_span.begin() as uint);
+                let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
                 let data = GlyphData::new(shape.codepoint,
                                           advance,
                                           shape.offset,
@@ -488,11 +492,22 @@ impl Shaper {
         glyphs.finalize_changes();
     }
 
-    fn advance_for_shaped_glyph(&self, advance: Au, options: &ShapingOptions) -> Au {
+    fn advance_for_shaped_glyph(&self, mut advance: Au, character: char, options: &ShapingOptions)
+                                -> Au {
         match options.letter_spacing {
-            None => advance,
-            Some(spacing) => advance + spacing,
+            None => {}
+            Some(letter_spacing) => advance = advance + letter_spacing,
+        };
+
+        // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
+        // space (U+00A0) left in the text after the white space processing rules have been
+        // applied. The effect of the property on other word-separator characters is undefined."
+        // We elect to only space the two required code points.
+        if character == ' ' || character == '\u00a0' {
+            advance = advance + options.word_spacing
         }
+
+        advance
     }
 }
 

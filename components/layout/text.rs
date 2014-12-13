@@ -107,16 +107,19 @@ impl TextRunScanner {
             let compression;
             let text_transform;
             let letter_spacing;
+            let word_spacing;
             {
                 let in_fragment = self.clump.front().unwrap();
                 let font_style = in_fragment.style().get_font_arc();
+                let inherited_text_style = in_fragment.style().get_inheritedtext();
                 fontgroup = font_context.get_layout_font_group_for_style(font_style);
                 compression = match in_fragment.white_space() {
                     white_space::normal | white_space::nowrap => CompressWhitespaceNewline,
                     white_space::pre => CompressNone,
                 };
-                text_transform = in_fragment.style().get_inheritedtext().text_transform;
-                letter_spacing = in_fragment.style().get_inheritedtext().letter_spacing;
+                text_transform = inherited_text_style.text_transform;
+                letter_spacing = inherited_text_style.letter_spacing;
+                word_spacing = inherited_text_style.word_spacing.unwrap_or(Au(0));
             }
 
             // First, transform/compress text of all the nodes.
@@ -160,6 +163,7 @@ impl TextRunScanner {
             // `ﬁ n a l l y`.
             let options = ShapingOptions {
                 letter_spacing: letter_spacing,
+                word_spacing: word_spacing,
                 flags: match letter_spacing {
                     Some(Au(0)) | None => ShapingFlags::empty(),
                     Some(_) => IGNORE_LIGATURES_SHAPING_FLAG,
