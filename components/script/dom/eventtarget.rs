@@ -230,11 +230,11 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     {
         let event_listener = listener.map(|listener|
                                           EventListener::new(listener.callback()));
-        self.set_inline_event_listener(ty.to_string(), event_listener);
+        self.set_inline_event_listener(ty.into_string(), event_listener);
     }
 
     fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<T> {
-        let listener = self.get_inline_event_listener(ty.to_string());
+        let listener = self.get_inline_event_listener(ty.into_string());
         listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
 

@@ -36,7 +36,7 @@ impl Blob {
             reflector_: Reflector::new(),
             type_: type_,
             bytes: bytes,
-            typeString: "".to_string(),
+            typeString: "".into_string(),
             global: GlobalField::from_rooted(global)
             //isClosed_: false
         }
@@ -97,7 +97,7 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
         };
         /*
         let relativeContentType = match contentType {
-            None => "".to_string(),
+            None => "".into_string(),
             Some(str) => str
         };
         */

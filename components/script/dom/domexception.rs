@@ -130,6 +130,6 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
             DOMErrorName::EncodingError => "The encoding operation (either encoded or decoding) failed."
         };
 
-        message.to_string()
+        message.into_string()
     }
 }

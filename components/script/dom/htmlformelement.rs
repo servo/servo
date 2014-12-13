@@ -158,7 +158,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         // TODO: Handle browsing contexts
         // TODO: Handle validation
         let event = Event::new(Window(*win),
-                               "submit".to_string(),
+                               "submit".into_string(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
         event.set_trusted(true);
@@ -186,7 +186,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
 
         let parsed_data = match enctype {
             FormEncType::UrlEncoded => serialize(form_data.iter().map(|d| (d.name.as_slice(), d.value.as_slice()))),
-            _ => "".to_string() // TODO: Add serializers for the other encoding types
+            _ => "".into_string() // TODO: Add serializers for the other encoding types
         };
 
         let mut load_data = LoadData::new(action_components);
@@ -214,7 +214,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         fn clean_crlf(s: &str) -> DOMString {
             // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
             // Step 4
-            let mut buf = "".to_string();
+            let mut buf = "".into_string();
             let mut prev = ' ';
             for ch in s.chars() {
                 match ch {
@@ -284,7 +284,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                         "image" => None, // Unimplemented
                         "radio" | "checkbox" => {
                             if value.is_empty() {
-                                value = "on".to_string();
+                                value = "on".into_string();
                             }
                             Some(FormDatum {
                                 ty: ty,
@@ -346,7 +346,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
 
         let win = window_from_node(self).root();
         let event = Event::new(Window(*win),
-                               "reset".to_string(),
+                               "reset".into_string(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
@@ -516,7 +516,7 @@ pub trait FormControl<'a> : Copy {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or("".to_string(), |t| owner(*t.root()))
+            self.form_owner().map_or("".into_string(), |t| owner(*t.root()))
         }
     }
     fn to_element(self) -> JSRef<'a, Element>;

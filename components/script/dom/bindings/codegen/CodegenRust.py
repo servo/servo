@@ -683,7 +683,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             default = "None"
         else:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
-            value = "str::from_utf8(data).unwrap().to_string()"
+            value = "str::from_utf8(data).unwrap().into_string()"
             if type.nullable():
                 value = "Some(%s)" % value
 
@@ -2772,7 +2772,7 @@ pub const strings: &'static [&'static str] = &[
 
 impl ToJSValConvertible for super::%s {
   fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-    strings[*self as uint].to_string().to_jsval(cx)
+    strings[*self as uint].into_string().to_jsval(cx)
   }
 }
 """ % (",\n  ".join(['"%s"' % val for val in enum.values()]), enum.identifier.name)

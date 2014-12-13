@@ -126,7 +126,7 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
     }
 
     if !(elem.is_void()) {
-        open_elements.push(elem.local_name().as_slice().to_string());
+        open_elements.push(elem.local_name().as_slice().into_string());
     }
 }
 

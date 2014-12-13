@@ -9,7 +9,7 @@ pub struct NavigatorInfo;
 
 impl NavigatorInfo {
     pub fn Product() -> DOMString {
-        "Gecko".to_string()
+        "Gecko".into_string()
     }
 
     pub fn TaintEnabled() -> bool {
@@ -17,21 +17,21 @@ impl NavigatorInfo {
     }
 
     pub fn AppName() -> DOMString {
-        "Netscape".to_string() // Like Gecko/Webkit
+        "Netscape".into_string() // Like Gecko/Webkit
     }
 
     pub fn AppCodeName() -> DOMString {
-        "Mozilla".to_string()
+        "Mozilla".into_string()
     }
 
     pub fn Platform() -> DOMString {
-        "".to_string()
+        "".into_string()
     }
 
     pub fn UserAgent() -> DOMString {
         match opts::get().user_agent {
             Some(ref user_agent) => user_agent.clone(),
-            None => "".to_string(),
+            None => "".into_string(),
         }
     }
 }
