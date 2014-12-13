@@ -160,7 +160,7 @@ impl Font {
 
         let glyphs = Arc::new(glyphs);
         self.shape_cache.insert(ShapeCacheEntry {
-            text: text.to_string(),
+            text: text.into_string(),
             options: *options,
         }, glyphs.clone());
         glyphs

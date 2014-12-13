@@ -127,13 +127,13 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
 #[cfg(target_os="linux")]
 pub fn get_last_resort_font_families() -> Vec<String> {
     vec!(
-        "Fira Sans".to_string(),
-        "DejaVu Sans".to_string(),
-        "Arial".to_string()
+        "Fira Sans".into_string(),
+        "DejaVu Sans".into_string(),
+        "Arial".into_string()
     )
 }
 
 #[cfg(target_os="android")]
 pub fn get_last_resort_font_families() -> Vec<String> {
-    vec!("Roboto".to_string())
+    vec!("Roboto".into_string())
 }
