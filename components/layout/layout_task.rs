@@ -493,7 +493,7 @@ impl LayoutTask {
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
         iter_font_face_rules(&sheet, &rw_data.stylist.device, |family, src| {
-            self.font_cache_task.add_web_font(family.to_string(), (*src).clone());
+            self.font_cache_task.add_web_font(family.into_string(), (*src).clone());
         });
         rw_data.stylist.add_stylesheet(sheet);
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
