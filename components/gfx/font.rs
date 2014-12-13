@@ -115,6 +115,8 @@ pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
     pub letter_spacing: Option<Au>,
+    /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
+    pub word_spacing: Au,
     /// Various flags.
     pub flags: ShapingFlags,
 }
