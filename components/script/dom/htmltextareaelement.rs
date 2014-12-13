@@ -83,7 +83,7 @@ impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTextAreaElement, localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_string())),
+            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".into_string())),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),
@@ -151,7 +151,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-type
     fn Type(self) -> DOMString {
-        "textarea".to_string()
+        "textarea".into_string()
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-defaultvalue

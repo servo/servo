@@ -54,7 +54,7 @@ impl HTMLLinkElement {
 
 fn get_attr(element: JSRef<Element>, name: &Atom) -> Option<String> {
     let elem = element.get_attribute(ns!(""), name).root();
-    elem.map(|e| e.value().as_slice().to_string())
+    elem.map(|e| e.value().as_slice().into_string())
 }
 
 fn is_stylesheet(value: &Option<String>) -> bool {

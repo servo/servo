@@ -76,7 +76,7 @@ impl Event {
             current_target: Default::default(),
             target: Default::default(),
             phase: Cell::new(EventPhase::None),
-            type_: DOMRefCell::new("".to_string()),
+            type_: DOMRefCell::new("".into_string()),
             canceled: Cell::new(false),
             cancelable: Cell::new(false),
             bubbles: Cell::new(false),

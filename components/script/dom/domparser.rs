@@ -49,7 +49,7 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                        -> Fallible<Temporary<Document>> {
         let window = self.window.root().clone();
         let url = window.get_url();
-        let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as uint].to_string();
+        let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as uint].into_string();
         match ty {
             Text_html => {
                 let document = Document::new(window, Some(url.clone()),

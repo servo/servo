@@ -821,7 +821,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_url_attribute(self, name: &Atom) -> DOMString {
         assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
         if !self.has_attribute(name) {
-            return "".to_string();
+            return "".into_string();
         }
         let url = self.get_string_attribute(name);
         let doc = document_from_node(self).root();
@@ -830,7 +830,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         // XXXManishearth this doesn't handle `javascript:` urls properly
         match UrlParser::new().base_url(base).parse(url.as_slice()) {
             Ok(parsed) => parsed.serialize(),
-            Err(_) => "".to_string()
+            Err(_) => "".into_string()
         }
     }
     fn set_url_attribute(self, name: &Atom, value: DOMString) {
@@ -840,7 +840,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_string_attribute(self, name: &Atom) -> DOMString {
         match self.get_attribute(ns!(""), name) {
             Some(x) => x.root().Value(),
-            None => "".to_string()
+            None => "".into_string()
         }
     }
     fn set_string_attribute(self, name: &Atom, value: DOMString) {
@@ -894,12 +894,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn GetNamespaceURI(self) -> Option<DOMString> {
         match self.namespace {
             ns!("") => None,
-            Namespace(ref ns) => Some(ns.as_slice().to_string())
+            Namespace(ref ns) => Some(ns.as_slice().into_string())
         }
     }
 
     fn LocalName(self) -> DOMString {
-        self.local_name.as_slice().to_string()
+        self.local_name.as_slice().into_string()
     }
 
     // http://dom.spec.whatwg.org/#dom-element-prefix
@@ -1055,7 +1055,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         // Step 9.
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.do_set_attribute(local_name.clone(), value, name,
-                              namespace.clone(), prefix.map(|s| s.to_string()),
+                              namespace.clone(), prefix.map(|s| s.into_string()),
                               |attr| {
             *attr.local_name() == local_name &&
             *attr.namespace() == namespace

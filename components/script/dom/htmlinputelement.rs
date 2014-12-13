@@ -116,7 +116,7 @@ impl HTMLInputElement {
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, "".to_string())),
+            textinput: DOMRefCell::new(TextInput::new(Single, "".into_string())),
             activation_state: DOMRefCell::new(InputActivationState::new())
         }
     }
@@ -149,15 +149,15 @@ impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
         unsafe fn get_raw_attr_value(input: JS<HTMLInputElement>) -> Option<String> {
             let elem: JS<Element> = input.transmute_copy();
             (*elem.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("value"))
-                                .map(|s| s.to_string())
+                                .map(|s| s.into_string())
         }
 
         match (*self.unsafe_get()).input_type.get() {
-            InputType::InputCheckbox | InputType::InputRadio => "".to_string(),
-            InputType::InputFile | InputType::InputImage => "".to_string(),
-            InputType::InputButton => get_raw_attr_value(self).unwrap_or_else(|| "".to_string()),
-            InputType::InputSubmit => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_SUBMIT_VALUE.to_string()),
-            InputType::InputReset => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_RESET_VALUE.to_string()),
+            InputType::InputCheckbox | InputType::InputRadio => "".into_string(),
+            InputType::InputFile | InputType::InputImage => "".into_string(),
+            InputType::InputButton => get_raw_attr_value(self).unwrap_or_else(|| "".into_string()),
+            InputType::InputSubmit => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_SUBMIT_VALUE.into_string()),
+            InputType::InputReset => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_RESET_VALUE.into_string()),
             InputType::InputPassword => {
                 let raw = get_raw_textinput_value(self);
                 String::from_char(raw.char_len(), '●')
@@ -312,7 +312,7 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
 
     // There is no DOM tree manipulation here, so this is safe
     let mut iter = unsafe {
-        doc_node.query_selector_iter("input[type=radio]".to_string()).unwrap()
+        doc_node.query_selector_iter("input[type=radio]".into_string()).unwrap()
                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
                 .filter(|&r| in_same_group(r, owner.root_ref(), group) && broadcaster != r)
     };
@@ -438,7 +438,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             }
             &atom!("value") => {
                 if !self.value_changed.get() {
-                    self.textinput.borrow_mut().set_content(attr.value().as_slice().to_string());
+                    self.textinput.borrow_mut().set_content(attr.value().as_slice().into_string());
                     self.force_relayout();
                 }
             }
@@ -487,7 +487,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             }
             &atom!("value") => {
                 if !self.value_changed.get() {
-                    self.textinput.borrow_mut().set_content("".to_string());
+                    self.textinput.borrow_mut().set_content("".into_string());
                     self.force_relayout();
                 }
             }
@@ -643,7 +643,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
 
                     // Safe since we only manipulate the DOM tree after finding an element
                     let checked_member = unsafe {
-                        doc_node.query_selector_iter("input[type=radio]".to_string()).unwrap()
+                        doc_node.query_selector_iter("input[type=radio]".into_string()).unwrap()
                                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
                                 .filter(|&r| in_same_group(r, owner.root_ref(),
                                                            group.as_ref().map(|gr| gr.as_slice())))
@@ -743,7 +743,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 if self.mutable() {
                     let win = window_from_node(*self).root();
                     let event = Event::new(GlobalRef::Window(*win),
-                                           "input".to_string(),
+                                           "input".into_string(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable).root();
                     event.set_trusted(true);
@@ -751,7 +751,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     target.DispatchEvent(*event).ok();
 
                     let event = Event::new(GlobalRef::Window(*win),
-                                           "change".to_string(),
+                                           "change".into_string(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable).root();
                     event.set_trusted(true);
@@ -774,7 +774,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         // This is safe because we are stopping after finding the first element
         // and only then performing actions which may modify the DOM tree
         unsafe {
-            node.query_selector_iter("input[type=submit]".to_string()).unwrap()
+            node.query_selector_iter("input[type=submit]".into_string()).unwrap()
                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
                 .find(|r| r.form_owner() == owner)
                 .map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));

@@ -338,7 +338,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.ready_state.set(state);
 
         let window = self.window.root();
-        let event = Event::new(GlobalRef::Window(*window), "readystatechange".to_string(),
+        let event = Event::new(GlobalRef::Window(*window), "readystatechange".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
@@ -424,9 +424,9 @@ impl Document {
                 Some(string) => string.clone(),
                 None => match is_html_document {
                     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    IsHTMLDocument::HTMLDocument => "text/html".to_string(),
+                    IsHTMLDocument::HTMLDocument => "text/html".into_string(),
                     // http://dom.spec.whatwg.org/#concept-document-content-type
-                    IsHTMLDocument::NonHTMLDocument => "application/xml".to_string()
+                    IsHTMLDocument::NonHTMLDocument => "application/xml".into_string()
                 }
             },
             last_modified: DOMRefCell::new(None),
@@ -434,7 +434,7 @@ impl Document {
             // http://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(NoQuirks),
             // http://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: DOMRefCell::new("UTF-8".to_string()),
+            encoding_name: DOMRefCell::new("UTF-8".into_string()),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             images: Default::default(),
             embeds: Default::default(),
@@ -522,8 +522,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-compatmode
     fn CompatMode(self) -> DOMString {
         match self.quirks_mode.get() {
-            LimitedQuirks | NoQuirks => "CSS1Compat".to_string(),
-            Quirks => "BackCompat".to_string()
+            LimitedQuirks | NoQuirks => "CSS1Compat".into_string(),
+            Quirks => "BackCompat".into_string()
         }
     }
 
@@ -641,7 +641,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         }
 
         let name = QualName::new(ns, Atom::from_slice(local_name_from_qname));
-        Ok(Element::create(name, prefix_from_qname.map(|s| s.to_string()), self,
+        Ok(Element::create(name, prefix_from_qname.map(|s| s.into_string()), self,
                            ElementCreator::ScriptCreated))
     }
 
@@ -656,7 +656,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let name = Atom::from_slice(local_name.as_slice());
         // repetition used because string_cache::atom::Atom is non-copyable
         let l_name = Atom::from_slice(local_name.as_slice());
-        let value = AttrValue::String("".to_string());
+        let value = AttrValue::String("".into_string());
 
         Ok(Attr::new(*window, name, value, l_name, ns!(""), None, None))
     }
@@ -804,7 +804,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                         }
                     },
                     None => {
-                        let new_title = HTMLTitleElement::new("title".to_string(), None, self).root();
+                        let new_title = HTMLTitleElement::new("title".into_string(), None, self).root();
                         let new_title: JSRef<Node> = NodeCast::from_ref(*new_title);
 
                         if !title.is_empty() {

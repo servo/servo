@@ -51,7 +51,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetFloatAttribute(self, _: f32) {}
     fn DoubleAttribute(self) -> f64 { 0. }
     fn SetDoubleAttribute(self, _: f64) {}
-    fn StringAttribute(self) -> DOMString { "".to_string() }
+    fn StringAttribute(self) -> DOMString { "".into_string() }
     fn SetStringAttribute(self, _: DOMString) {}
     fn ByteStringAttribute(self) -> ByteString { ByteString::new(vec!()) }
     fn SetByteStringAttribute(self, _: ByteString) {}
@@ -64,7 +64,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetInterfaceAttribute(self, _: JSRef<Blob>) {}
     fn UnionAttribute(self) -> HTMLElementOrLong { eLong(0) }
     fn SetUnionAttribute(self, _: HTMLElementOrLong) {}
-    fn Union2Attribute(self) -> EventOrString { eString("".to_string()) }
+    fn Union2Attribute(self) -> EventOrString { eString("".into_string()) }
     fn SetUnion2Attribute(self, _: EventOrString) {}
     fn ArrayAttribute(self, _: *mut JSContext) -> *mut JSObject { NullValue().to_object_or_null() }
     fn AnyAttribute(self, _: *mut JSContext) -> JSVal { NullValue() }
@@ -94,7 +94,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetDoubleAttributeNullable(self, _: Option<f64>) {}
     fn GetByteStringAttributeNullable(self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn SetByteStringAttributeNullable(self, _: Option<ByteString>) {}
-    fn GetStringAttributeNullable(self) -> Option<DOMString> { Some("".to_string()) }
+    fn GetStringAttributeNullable(self) -> Option<DOMString> { Some("".into_string()) }
     fn SetStringAttributeNullable(self, _: Option<DOMString>) {}
     fn GetEnumAttributeNullable(self) -> Option<TestEnum> { Some(_empty) }
     fn GetInterfaceAttributeNullable(self) -> Option<Temporary<Blob>> {
@@ -104,7 +104,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetInterfaceAttributeNullable(self, _: Option<JSRef<Blob>>) {}
     fn GetUnionAttributeNullable(self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
     fn SetUnionAttributeNullable(self, _: Option<HTMLElementOrLong>) {}
-    fn GetUnion2AttributeNullable(self) -> Option<EventOrString> { Some(eString("".to_string())) }
+    fn GetUnion2AttributeNullable(self) -> Option<EventOrString> { Some(eString("".into_string())) }
     fn SetUnion2AttributeNullable(self, _: Option<EventOrString>) {}
     fn ReceiveVoid(self) -> () {}
     fn ReceiveBoolean(self) -> bool { false }
@@ -118,7 +118,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn ReceiveUnsignedLongLong(self) -> u64 { 0 }
     fn ReceiveFloat(self) -> f32 { 0. }
     fn ReceiveDouble(self) -> f64 { 0. }
-    fn ReceiveString(self) -> DOMString { "".to_string() }
+    fn ReceiveString(self) -> DOMString { "".into_string() }
     fn ReceiveByteString(self) -> ByteString { ByteString::new(vec!()) }
     fn ReceiveEnum(self) -> TestEnum { _empty }
     fn ReceiveInterface(self) -> Temporary<Blob> {
@@ -127,7 +127,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     }
     fn ReceiveAny(self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveUnion(self) -> HTMLElementOrLong { eLong(0) }
-    fn ReceiveUnion2(self) -> EventOrString { eString("".to_string()) }
+    fn ReceiveUnion2(self) -> EventOrString { eString("".into_string()) }
 
     fn ReceiveNullableBoolean(self) -> Option<bool> { Some(false) }
     fn ReceiveNullableByte(self) -> Option<i8> { Some(0) }
@@ -140,7 +140,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn ReceiveNullableUnsignedLongLong(self) -> Option<u64> { Some(0) }
     fn ReceiveNullableFloat(self) -> Option<f32> { Some(0.) }
     fn ReceiveNullableDouble(self) -> Option<f64> { Some(0.) }
-    fn ReceiveNullableString(self) -> Option<DOMString> { Some("".to_string()) }
+    fn ReceiveNullableString(self) -> Option<DOMString> { Some("".into_string()) }
     fn ReceiveNullableByteString(self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(self) -> Option<TestEnum> { Some(_empty) }
     fn ReceiveNullableInterface(self) -> Option<Temporary<Blob>> {
@@ -148,7 +148,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
         Some(Blob::new(&global.root_ref(), None))
     }
     fn ReceiveNullableUnion(self) -> Option<HTMLElementOrLong> { Some(eLong(0)) }
-    fn ReceiveNullableUnion2(self) -> Option<EventOrString> { Some(eString("".to_string())) }
+    fn ReceiveNullableUnion2(self) -> Option<EventOrString> { Some(eString("".into_string())) }
 
     fn PassBoolean(self, _: bool) {}
     fn PassByte(self, _: i8) {}

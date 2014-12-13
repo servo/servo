@@ -143,11 +143,11 @@ impl Attr {
 
 impl<'a> AttrMethods for JSRef<'a, Attr> {
     fn LocalName(self) -> DOMString {
-        self.local_name().as_slice().to_string()
+        self.local_name().as_slice().into_string()
     }
 
     fn Value(self) -> DOMString {
-        self.value().as_slice().to_string()
+        self.value().as_slice().into_string()
     }
 
     fn SetValue(self, value: DOMString) {
@@ -180,14 +180,14 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Name(self) -> DOMString {
-        self.name.as_slice().to_string()
+        self.name.as_slice().into_string()
     }
 
     fn GetNamespaceURI(self) -> Option<DOMString> {
         let Namespace(ref atom) = self.namespace;
         match atom.as_slice() {
             "" => None,
-            url => Some(url.to_string()),
+            url => Some(url.into_string()),
         }
     }
 
@@ -242,7 +242,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     fn summarize(self) -> AttrInfo {
         let Namespace(ref ns) = self.namespace;
         AttrInfo {
-            namespace: ns.as_slice().to_string(),
+            namespace: ns.as_slice().into_string(),
             name: self.Name(),
             value: self.Value(),
         }
