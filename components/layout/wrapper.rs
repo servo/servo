@@ -187,7 +187,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
     fn text(&self) -> String {
         unsafe {
             if let Some(text) = TextCast::to_js(self.get_jsmanaged()) {
-                (*text.unsafe_get()).characterdata().data_for_layout().to_string()
+                (*text.unsafe_get()).characterdata().data_for_layout().into_string()
             } else if let Some(input) = HTMLInputElementCast::to_js(self.get_jsmanaged()) {
                 input.get_value_for_layout()
             } else if let Some(area) = HTMLTextAreaElementCast::to_js(self.get_jsmanaged()) {
@@ -634,10 +634,10 @@ fn get_content(content_list: &content::T) -> String {
             let iter = &mut value.clone().into_iter().peekable();
             match iter.next() {
                 Some(content::StringContent(content)) => content,
-                _ => "".to_string(),
+                _ => "".into_string(),
             }
         }
-        _ => "".to_string(),
+        _ => "".into_string(),
     }
 }
 
