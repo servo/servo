@@ -10,12 +10,13 @@ use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers, ElementHelpers};
-use dom::node::{Node, NodeHelpers};
+use dom::node::{Node, NodeHelpers, TreeIterator};
 use dom::window::Window;
 use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
 use std::ascii::AsciiExt;
+use std::iter::{FilterMap, Skip};
 use string_cache::{Atom, Namespace};
 
 pub trait CollectionFilter : JSTraceable {
@@ -62,10 +63,7 @@ impl HTMLCollection {
             namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for AllElementFilter {
-            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
-                if NodeCast::from_ref(elem) == root {
-                    return false
-                }
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 match self.namespace_filter {
                     None => true,
                     Some(ref namespace) => *elem.namespace() == *namespace
@@ -88,10 +86,7 @@ impl HTMLCollection {
             ascii_lower_tag: Atom,
         }
         impl CollectionFilter for TagNameFilter {
-            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
-                if NodeCast::from_ref(elem) == root {
-                    return false
-                }
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 if elem.html_element_in_html_document() {
                     *elem.local_name() == self.ascii_lower_tag
                 } else {
@@ -122,10 +117,7 @@ impl HTMLCollection {
             namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for TagNameNSFilter {
-            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
-                if NodeCast::from_ref(elem) == root {
-                    return false
-                }
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 let ns_match = match self.namespace_filter {
                     Some(ref namespace) => {
                         *elem.namespace() == *namespace
@@ -149,8 +141,8 @@ impl HTMLCollection {
             classes: Vec<Atom>
         }
         impl CollectionFilter for ClassNameFilter {
-            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
-                (NodeCast::from_ref(elem) != root) && self.classes.iter().all(|class| elem.has_class(class))
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
+                self.classes.iter().all(|class| elem.has_class(class))
             }
         }
         let filter = ClassNameFilter {
@@ -171,6 +163,15 @@ impl HTMLCollection {
         }
         HTMLCollection::create(window, root, box ElementChildFilter)
     }
+
+    fn traverse<'a>(root: JSRef<'a, Node>)
+                    -> FilterMap<'a, JSRef<'a, Node>,
+                                 JSRef<'a, Element>,
+                                 Skip<TreeIterator<'a>>> {
+        root.traverse_preorder()
+            .skip(1)
+            .filter_map(ElementCast::to_ref)
+    }
 }
 
 impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
@@ -180,11 +181,9 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
             Static(ref elems) => elems.len() as u32,
             Live(ref root, ref filter) => {
                 let root = root.root();
-                root.traverse_preorder()
-                    .filter(|&child| {
-                        let elem: Option<JSRef<Element>> = ElementCast::to_ref(child);
-                        elem.map_or(false, |elem| filter.filter(elem, *root))
-                    }).count() as u32
+                HTMLCollection::traverse(*root)
+                    .filter(|element| filter.filter(*element, *root))
+                    .count() as u32
             }
         }
     }
@@ -198,17 +197,11 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 .map(|elem| Temporary::new(elem.clone())),
             Live(ref root, ref filter) => {
                 let root = root.root();
-                root.traverse_preorder()
-                    .filter_map(|node| {
-                        let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
-                        match elem {
-                            Some(ref elem) if filter.filter(*elem, *root) => Some(elem.clone()),
-                            _ => None
-                        }
-                    })
+                HTMLCollection::traverse(*root)
+                    .filter(|element| filter.filter(*element, *root))
                     .nth(index as uint)
                     .clone()
-                    .map(|elem| Temporary::from_rooted(elem))
+                    .map(Temporary::from_rooted)
             }
         }
     }
@@ -230,18 +223,12 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 .map(|maybe_elem| Temporary::from_rooted(*maybe_elem)),
             Live(ref root, ref filter) => {
                 let root = root.root();
-                root.traverse_preorder()
-                    .filter_map(|node| {
-                        let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
-                        match elem {
-                            Some(ref elem) if filter.filter(*elem, *root) => Some(elem.clone()),
-                            _ => None
-                        }
-                    })
+                HTMLCollection::traverse(*root)
+                    .filter(|element| filter.filter(*element, *root))
                     .find(|elem| {
                         elem.get_string_attribute(&atom!("name")) == key ||
                         elem.get_string_attribute(&atom!("id")) == key })
-                    .map(|maybe_elem| Temporary::from_rooted(maybe_elem))
+                    .map(Temporary::from_rooted)
             }
         }
     }
