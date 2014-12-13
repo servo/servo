@@ -1125,9 +1125,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let child_point = point - layer_bounds.origin;
         for child in layer.children().iter().rev() {
+            // Translate the clip rect into the child's coordinate system.
+            let clip_rect_for_child =
+                clip_rect_for_children.translate(&-*child.content_offset.borrow());
             let result = self.find_topmost_layer_at_point_for_layer(child.clone(),
                                                                     child_point,
-                                                                    &clip_rect_for_children);
+                                                                    &clip_rect_for_child);
             if result.is_some() {
                 return result;
             }
@@ -1145,9 +1148,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                    point: TypedPoint2D<LayerPixel, f32>)
                                    -> Option<HitTestResult> {
         match self.scene.root {
-            Some(ref layer) => self.find_topmost_layer_at_point_for_layer(layer.clone(),
-                                                                          point,
-                                                                          &*layer.bounds.borrow()),
+            Some(ref layer) => {
+                self.find_topmost_layer_at_point_for_layer(layer.clone(),
+                                                           point,
+                                                           &*layer.bounds.borrow())
+            }
 
             None => None,
         }
