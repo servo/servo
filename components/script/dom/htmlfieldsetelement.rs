@@ -6,7 +6,7 @@ use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFieldSetElementDerived, NodeCast};
+use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -54,11 +54,10 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         #[jstraceable]
         struct ElementsFilter;
         impl CollectionFilter for ElementsFilter {
-            fn filter<'a>(&self, elem: JSRef<'a, Element>, root: JSRef<'a, Node>) -> bool {
+            fn filter<'a>(&self, elem: JSRef<'a, Element>, _root: JSRef<'a, Node>) -> bool {
                 static TAG_NAMES: StaticStringVec = &["button", "fieldset", "input",
                     "keygen", "object", "output", "select", "textarea"];
-                let root: JSRef<Element> = ElementCast::to_ref(root).unwrap();
-                elem != root && TAG_NAMES.iter().any(|&tag_name| tag_name == elem.local_name().as_slice())
+                TAG_NAMES.iter().any(|&tag_name| tag_name == elem.local_name().as_slice())
             }
         }
         let node: JSRef<Node> = NodeCast::from_ref(self);

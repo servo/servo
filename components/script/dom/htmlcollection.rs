@@ -16,7 +16,7 @@ use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
 use std::ascii::AsciiExt;
-use std::iter::FilterMap;
+use std::iter::{FilterMap, Skip};
 use string_cache::{Atom, Namespace};
 
 pub trait CollectionFilter : JSTraceable {
@@ -63,10 +63,7 @@ impl HTMLCollection {
             namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for AllElementFilter {
-            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
-                if NodeCast::from_ref(elem) == root {
-                    return false
-                }
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 match self.namespace_filter {
                     None => true,
                     Some(ref namespace) => *elem.namespace() == *namespace
@@ -89,10 +86,7 @@ impl HTMLCollection {
             ascii_lower_tag: Atom,
         }
         impl CollectionFilter for TagNameFilter {
-            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
-                if NodeCast::from_ref(elem) == root {
-                    return false
-                }
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 if elem.html_element_in_html_document() {
                     *elem.local_name() == self.ascii_lower_tag
                 } else {
@@ -123,10 +117,7 @@ impl HTMLCollection {
             namespace_filter: Option<Namespace>
         }
         impl CollectionFilter for TagNameNSFilter {
-            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
-                if NodeCast::from_ref(elem) == root {
-                    return false
-                }
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
                 let ns_match = match self.namespace_filter {
                     Some(ref namespace) => {
                         *elem.namespace() == *namespace
@@ -150,8 +141,8 @@ impl HTMLCollection {
             classes: Vec<Atom>
         }
         impl CollectionFilter for ClassNameFilter {
-            fn filter(&self, elem: JSRef<Element>, root: JSRef<Node>) -> bool {
-                (NodeCast::from_ref(elem) != root) && self.classes.iter().all(|class| elem.has_class(class))
+            fn filter(&self, elem: JSRef<Element>, _root: JSRef<Node>) -> bool {
+                self.classes.iter().all(|class| elem.has_class(class))
             }
         }
         let filter = ClassNameFilter {
@@ -176,8 +167,9 @@ impl HTMLCollection {
     fn traverse<'a>(root: JSRef<'a, Node>)
                     -> FilterMap<'a, JSRef<'a, Node>,
                                  JSRef<'a, Element>,
-                                 TreeIterator<'a>> {
+                                 Skip<TreeIterator<'a>>> {
         root.traverse_preorder()
+            .skip(1)
             .filter_map(ElementCast::to_ref)
     }
 }
