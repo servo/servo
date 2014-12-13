@@ -1136,6 +1136,10 @@ pub mod longhands {
 
     ${predefined_type("text-indent", "LengthOrPercentage", "computed::LP_Length(Au(0))")}
 
+    // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
+    // name per CSS-TEXT 6.2.
+    ${single_keyword("overflow-wrap", "normal break-word")}
+
     ${new_style_struct("Text", is_inherited=False)}
 
     <%self:longhand name="text-decoration">
@@ -1747,6 +1751,15 @@ pub mod shorthands {
         })
     </%self:shorthand>
 
+    // Per CSS-TEXT 6.2, "for legacy reasons, UAs must treat `word-wrap` as an alternate name for
+    // the `overflow-wrap` property, as if it were a shorthand of `overflow-wrap`."
+    <%self:shorthand name="word-wrap" sub_properties="overflow-wrap">
+        overflow_wrap::parse(input, base_url).map(|specified_value| {
+            Longhands {
+                overflow_wrap: Some(specified_value),
+            }
+        })
+    </%self:shorthand>
 }
 
 

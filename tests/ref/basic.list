@@ -199,3 +199,4 @@ fragment=top != ../html/acid2.html acid2_ref.html
 != border_black_ridge.html border_black_groove.html
 == text_indent_a.html text_indent_ref.html
 == word_spacing_a.html word_spacing_ref.html
+== overflow_wrap_a.html overflow_wrap_ref.html

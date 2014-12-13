@@ -25,7 +25,7 @@ use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 use geom::{Point2D, Rect, Size2D};
 use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::CharIndex;
-use gfx::text::text_run::TextRun;
+use gfx::text::text_run::{TextRun, TextRunSlice};
 use script_traits::UntrustedNodeAddress;
 use serialize::{Encodable, Encoder};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
@@ -44,8 +44,8 @@ use string_cache::Atom;
 use style::{ComputedValues, TElement, TNode, cascade_anonymous};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::computed_values::{LengthOrPercentageOrNone};
-use style::computed_values::{LPA_Auto, clear, position, text_align, text_decoration};
-use style::computed_values::{vertical_align, white_space};
+use style::computed_values::{LPA_Auto, clear, overflow_wrap, position, text_align};
+use style::computed_values::{text_decoration, vertical_align, white_space};
 use sync::{Arc, Mutex};
 use url::Url;
 
@@ -395,6 +395,8 @@ impl ScannedTextFragmentInfo {
     }
 }
 
+/// Describes how to split a fragment. This is used during line breaking as part of the return
+/// value of `find_split_info_for_inline_size()`.
 #[deriving(Show)]
 pub struct SplitInfo {
     // TODO(bjz): this should only need to be a single character index, but both values are
@@ -410,6 +412,16 @@ impl SplitInfo {
             inline_size: info.run.advance_for_range(&range),
         }
     }
+}
+
+/// Describes how to split a fragment into two. This contains up to two `SplitInfo`s.
+pub struct SplitResult {
+    /// The part of the fragment that goes on the first line.
+    pub inline_start: Option<SplitInfo>,
+    /// The part of the fragment that goes on the second line.
+    pub inline_end: Option<SplitInfo>,
+    /// The text run which is being split.
+    pub text_run: Arc<Box<TextRun>>,
 }
 
 /// Data for an unscanned text fragment. Unscanned text fragments are the results of flow
@@ -1097,104 +1109,149 @@ impl Fragment {
         }
     }
 
-    /// Attempts to find the split positions of a text fragment so that its inline-size is
-    /// no more than `max_inline-size`.
+    /// Attempts to find the split positions of a text fragment so that its inline-size is no more
+    /// than `max_inline_size`.
     ///
-    /// A return value of `None` indicates that the fragment could not be split.
-    /// Otherwise the information pertaining to the split is returned. The inline-start
-    /// and inline-end split information are both optional due to the possibility of
-    /// them being whitespace.
-    pub fn find_split_info_for_inline_size(&self,
-                                           start: CharIndex,
-                                           max_inline_size: Au,
-                                           starts_line: bool)
-                                           -> Option<(Option<SplitInfo>,
-                                                      Option<SplitInfo>,
-                                                      Arc<Box<TextRun>>)> {
-        match self.specific {
+    /// A return value of `None` indicates that the fragment could not be split. Otherwise the
+    /// information pertaining to the split is returned. The inline-start and inline-end split
+    /// information are both optional due to the possibility of them being whitespace.
+    pub fn calculate_split_position(&self, max_inline_size: Au, starts_line: bool)
+                                    -> Option<SplitResult> {
+        let text_fragment_info = match self.specific {
             GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment |
             TableCellFragment | TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
-            InlineAbsoluteHypotheticalFragment(_) => None,
+            InlineAbsoluteHypotheticalFragment(_) => return None,
             TableColumnFragment(_) => panic!("Table column fragments do not have inline_size"),
             UnscannedTextFragment(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             }
-            ScannedTextFragment(ref text_fragment_info) => {
-                let mut pieces_processed_count: uint = 0;
-                let mut remaining_inline_size: Au = max_inline_size;
-                let mut inline_start_range = Range::new(text_fragment_info.range.begin() + start,
-                                                        CharIndex(0));
-                let mut inline_end_range: Option<Range<CharIndex>> = None;
+            ScannedTextFragment(ref text_fragment_info) => text_fragment_info,
+        };
 
-                debug!("split_to_inline_size: splitting text fragment \
-                        (strlen={}, range={}, avail_inline_size={})",
-                       text_fragment_info.run.text.len(),
-                       text_fragment_info.range,
-                       max_inline_size);
-
-                for (glyphs, offset, slice_range) in text_fragment_info.run.iter_slices_for_range(
-                        &text_fragment_info.range) {
-                    debug!("split_to_inline_size: considering slice (offset={}, range={}, \
-                                                               remain_inline_size={})",
-                           offset,
-                           slice_range,
-                           remaining_inline_size);
-
-                    let metrics = text_fragment_info.run.metrics_for_slice(glyphs, &slice_range);
-                    let advance = metrics.advance_width;
-
-                    let should_continue;
-                    if advance <= remaining_inline_size || glyphs.is_whitespace() {
-                        should_continue = true;
-
-                        if starts_line && pieces_processed_count == 0 && glyphs.is_whitespace() {
-                            debug!("split_to_inline_size: case=skipping leading trimmable whitespace");
-                            inline_start_range.shift_by(slice_range.length());
-                        } else {
-                            debug!("split_to_inline_size: case=enlarging span");
-                            remaining_inline_size = remaining_inline_size - advance;
-                            inline_start_range.extend_by(slice_range.length());
-                        }
-                    } else {
-                        // The advance is more than the remaining inline-size.
-                        should_continue = false;
-                        let slice_begin = offset + slice_range.begin();
-
-                        if slice_begin < text_fragment_info.range.end() {
-                            // There are still some things inline-start over at the end of the line. Create
-                            // the inline-end chunk.
-                            let inline_end_range_end = text_fragment_info.range.end() - slice_begin;
-                            inline_end_range = Some(Range::new(slice_begin, inline_end_range_end));
-                            debug!("split_to_inline_size: case=splitting remainder with inline_end range={}",
-                                   inline_end_range);
-                        }
-                    }
-
-                    pieces_processed_count += 1;
-
-                    if !should_continue {
-                        break
-                    }
-                }
-
-                let inline_start_is_some = inline_start_range.length() > CharIndex(0);
-
-                if (pieces_processed_count == 1 || !inline_start_is_some) && !starts_line {
-                    None
-                } else {
-                    let inline_start = if inline_start_is_some {
-                        Some(SplitInfo::new(inline_start_range, &**text_fragment_info))
-                    } else {
-                         None
-                    };
-                    let inline_end = inline_end_range.map(|inline_end_range| {
-                        SplitInfo::new(inline_end_range, &**text_fragment_info)
-                    });
-
-                    Some((inline_start, inline_end, text_fragment_info.run.clone()))
-                }
+        let mut flags = SplitOptions::empty();
+        if starts_line {
+            flags.insert(STARTS_LINE);
+            if self.style().get_inheritedtext().overflow_wrap == overflow_wrap::break_word {
+                flags.insert(RETRY_AT_CHARACTER_BOUNDARIES)
             }
         }
+
+        let natural_word_breaking_strategy =
+            text_fragment_info.run.natural_word_slices_in_range(&text_fragment_info.range);
+        self.calculate_split_position_using_breaking_strategy(natural_word_breaking_strategy,
+                                                              max_inline_size,
+                                                              flags)
+    }
+
+    /// A helper method that uses the breaking strategy described by `slice_iterator` (at present,
+    /// either natural word breaking or character breaking) to split this fragment.
+    fn calculate_split_position_using_breaking_strategy<'a,I>(&self,
+                                                              mut slice_iterator: I,
+                                                              max_inline_size: Au,
+                                                              flags: SplitOptions)
+                                                              -> Option<SplitResult>
+                                                              where I: Iterator<TextRunSlice<'a>> {
+        let text_fragment_info = match self.specific {
+            GenericFragment | IframeFragment(_) | ImageFragment(_) | TableFragment |
+            TableCellFragment | TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
+            InlineAbsoluteHypotheticalFragment(_) => return None,
+            TableColumnFragment(_) => panic!("Table column fragments do not have inline_size"),
+            UnscannedTextFragment(_) => {
+                panic!("Unscanned text fragments should have been scanned by now!")
+            }
+            ScannedTextFragment(ref text_fragment_info) => text_fragment_info,
+        };
+
+        let mut pieces_processed_count: uint = 0;
+        let mut remaining_inline_size = max_inline_size;
+        let mut inline_start_range = Range::new(text_fragment_info.range.begin(), CharIndex(0));
+        let mut inline_end_range = None;
+
+        debug!("calculate_split_position: splitting text fragment (strlen={}, range={}, \
+                max_inline_size={})",
+               text_fragment_info.run.text.len(),
+               text_fragment_info.range,
+               max_inline_size);
+
+        for slice in slice_iterator {
+            debug!("calculate_split_position: considering slice (offset={}, slice range={}, \
+                    remaining_inline_size={})",
+                   slice.offset,
+                   slice.range,
+                   remaining_inline_size);
+
+            let metrics = text_fragment_info.run.metrics_for_slice(slice.glyphs, &slice.range);
+            let advance = metrics.advance_width;
+
+            // Have we found the split point?
+            if advance <= remaining_inline_size || slice.glyphs.is_whitespace() {
+                // Keep going; we haven't found the split point yet.
+                if flags.contains(STARTS_LINE) && pieces_processed_count == 0 &&
+                        slice.glyphs.is_whitespace() {
+                    debug!("calculate_split_position: skipping leading trimmable whitespace");
+                    inline_start_range.shift_by(slice.range.length());
+                } else {
+                    debug!("split_to_inline_size: enlarging span");
+                    remaining_inline_size = remaining_inline_size - advance;
+                    inline_start_range.extend_by(slice.range.length());
+                }
+                pieces_processed_count += 1;
+                continue
+            }
+
+            // The advance is more than the remaining inline-size, so split here.
+            let slice_begin = slice.text_run_range().begin();
+            if slice_begin < text_fragment_info.range.end() {
+                // There still some things left over at the end of the line, so create the
+                // inline-end chunk.
+                let mut inline_end = slice.text_run_range();
+                inline_end.extend_to(text_fragment_info.range.end());
+                inline_end_range = Some(inline_end);
+                debug!("calculate_split_position: splitting remainder with inline-end range={}",
+                       inline_end);
+            }
+
+            pieces_processed_count += 1;
+            break
+        }
+
+        // If we failed to find a suitable split point, we're on the verge of overflowing the line.
+        let inline_start_is_some = inline_start_range.length() > CharIndex(0);
+        if pieces_processed_count == 1 || !inline_start_is_some {
+            // If we've been instructed to retry at character boundaries (probably via
+            // `overflow-wrap: break-word`), do so.
+            if flags.contains(RETRY_AT_CHARACTER_BOUNDARIES) {
+                let character_breaking_strategy =
+                    text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
+                let mut flags = flags;
+                flags.remove(RETRY_AT_CHARACTER_BOUNDARIES);
+                return self.calculate_split_position_using_breaking_strategy(
+                    character_breaking_strategy,
+                    max_inline_size,
+                    flags)
+            }
+
+            // We aren't at the start of the line, so don't overflow. Let inline layout wrap to the
+            // next line instead.
+            if !flags.contains(STARTS_LINE) {
+                return None
+            }
+        }
+
+        let inline_start = if inline_start_is_some {
+            Some(SplitInfo::new(inline_start_range, &**text_fragment_info))
+        } else {
+            None
+        };
+        let inline_end = inline_end_range.map(|inline_end_range| {
+            SplitInfo::new(inline_end_range, &**text_fragment_info)
+        });
+
+        Some(SplitResult {
+            inline_start: inline_start,
+            inline_end: inline_end,
+            text_run: text_fragment_info.run.clone(),
+        })
     }
 
     /// Returns true if this fragment is an unscanned text fragment that consists entirely of
@@ -1531,6 +1588,18 @@ bitflags! {
     }
 }
 
+bitflags! {
+    // Various flags we can use when splitting fragments. See
+    // `calculate_split_position_using_breaking_strategy()`.
+    flags SplitOptions: u8 {
+        #[doc="True if this is the first fragment on the line."]
+        const STARTS_LINE = 0x01,
+        #[doc="True if we should attempt to split at character boundaries if this split fails. \
+               This is used to implement `overflow-wrap: break-word`."]
+        const RETRY_AT_CHARACTER_BOUNDARIES = 0x02
+    }
+}
+
 /// A top-down fragment bounds iteration handler.
 pub trait FragmentBoundsIterator {
     /// The operation to perform.
@@ -1540,3 +1609,4 @@ pub trait FragmentBoundsIterator {
     /// we skip the operation for this fragment, but continue processing siblings.
     fn should_process(&mut self, fragment: &Fragment) -> bool;
 }
+
