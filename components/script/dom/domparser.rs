@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyStateValues;
 use dom::bindings::codegen::Bindings::DOMParserBinding;
 use dom::bindings::codegen::Bindings::DOMParserBinding::DOMParserMethods;
 use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
@@ -10,8 +11,11 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
-use dom::document::{Document, HTMLDocument, NonHTMLDocument, NotFromParser};
+use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument};
+use dom::document::{FromParser, NotFromParser};
+use dom::servohtmlparser::ServoHTMLParser;
 use dom::window::Window;
+use parse::Parser;
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -39,19 +43,27 @@ impl DOMParser {
 }
 
 impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
+    // http://domparsing.spec.whatwg.org/#the-domparser-interface
     fn ParseFromString(self,
-                       _s: DOMString,
+                       s: DOMString,
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Temporary<Document>> {
-        let window = self.window.root();
-        //FIXME: these should probably be FromParser when we actually parse the string (#3756).
+        let window = self.window.root().clone();
+        let url = Some(window.get_url());
+        let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as uint].to_string();
         match ty {
             Text_html => {
-                Ok(Document::new(*window, None, HTMLDocument, Some("text/html".to_string()),
-                                 NotFromParser))
+                let document = Document::new(window, url.clone(), HTMLDocument,
+                                             Some(content_type), FromParser).root().clone();
+                let parser = ServoHTMLParser::new(url.clone(), document).root().clone();
+                parser.parse_chunk(s);
+                parser.finish();
+                document.set_ready_state(DocumentReadyStateValues::Complete);
+                Ok(Temporary::from_rooted(document))
             }
             Text_xml => {
-                Ok(Document::new(*window, None, NonHTMLDocument, Some("text/xml".to_string()),
+                //FIXME: this should probably be FromParser when we actually parse the string (#3756).
+                Ok(Document::new(window, url.clone(), NonHTMLDocument, Some(content_type),
                                  NotFromParser))
             }
             _ => {
