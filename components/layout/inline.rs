@@ -512,18 +512,17 @@ impl LineBreaker {
         let available_inline_size = green_zone.inline - self.pending_line.bounds.size.inline -
             indentation;
         let (inline_start_fragment, inline_end_fragment) =
-            match fragment.find_split_info_for_inline_size(CharIndex(0),
-                                                           available_inline_size,
-                                                           self.pending_line_is_empty()) {
+            match fragment.calculate_split_position(available_inline_size,
+                                                    self.pending_line_is_empty()) {
                 None => {
                     debug!("LineBreaker: fragment was unsplittable; deferring to next line: {}",
                            fragment);
                     self.work_list.push_front(fragment);
                     return false
                 }
-                Some((start_split_info, end_split_info, run)) => {
+                Some(split_result) => {
                     let split_fragment = |split: SplitInfo| {
-                        let info = box ScannedTextFragmentInfo::new(run.clone(),
+                        let info = box ScannedTextFragmentInfo::new(split_result.text_run.clone(),
                                                                     split.range,
                                                                     Vec::new(),
                                                                     fragment.border_box.size);
@@ -532,8 +531,8 @@ impl LineBreaker {
                                                     fragment.border_box.size.block);
                         fragment.transform(size, info)
                     };
-                    (start_split_info.map(|x| split_fragment(x)),
-                     end_split_info.map(|x| split_fragment(x)))
+                    (split_result.inline_start.map(|x| split_fragment(x)),
+                     split_result.inline_end.map(|x| split_fragment(x)))
                 }
             };
 
