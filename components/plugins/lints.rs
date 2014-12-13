@@ -17,7 +17,7 @@ declare_lint!(UNROOTED_MUST_ROOT, Deny,
               "Warn and report usage of unrooted jsmanaged objects")
 declare_lint!(PRIVATIZE, Deny,
               "Allows to enforce private fields for struct definitions")
-declare_lint!(STR_TO_STRING, Warn,
+declare_lint!(STR_TO_STRING, Deny,
               "Warn when a String could use into_string() instead of to_string()")
 
 
