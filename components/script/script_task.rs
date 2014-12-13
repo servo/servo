@@ -533,35 +533,11 @@ impl ScriptTask {
         // Process the gathered events.
         for msg in sequential.into_iter() {
             match msg {
-                // TODO(tkuehn) need to handle auxiliary layouts for iframes
-                FromConstellation(AttachLayoutMsg(_)) => panic!("should have handled AttachLayoutMsg already"),
-                FromConstellation(LoadMsg(id, load_data)) => self.load(id, load_data),
-                FromScript(TriggerLoadMsg(id, load_data)) => self.trigger_load(id, load_data),
-                FromScript(TriggerFragmentMsg(id, url)) => self.trigger_fragment(id, url),
-                FromConstellation(SendEventMsg(id, event)) => self.handle_event(id, event),
-                FromScript(FireTimerMsg(FromWindow(id), timer_id)) => self.handle_fire_timer_msg(id, timer_id),
-                FromScript(FireTimerMsg(FromWorker, _)) => panic!("Worker timeouts must not be sent to script task"),
-                FromScript(NavigateMsg(direction)) => self.handle_navigate_msg(direction),
-                FromConstellation(ReflowCompleteMsg(id, reflow_id)) => self.handle_reflow_complete_msg(id, reflow_id),
-                FromConstellation(ResizeInactiveMsg(id, new_size)) => self.handle_resize_inactive_msg(id, new_size),
-                FromConstellation(ExitPipelineMsg(id)) => if self.handle_exit_pipeline_msg(id) { return false },
-                FromConstellation(ViewportMsg(..)) => panic!("should have handled ViewportMsg already"),
-                FromScript(ExitWindowMsg(id)) => self.handle_exit_window_msg(id),
-                FromConstellation(ResizeMsg(..)) => panic!("should have handled ResizeMsg already"),
-                FromConstellation(GetTitleMsg(pipeline_id)) => {
-                    self.handle_get_title_msg(pipeline_id)
-                }
-                FromScript(XHRProgressMsg(addr, progress)) => XMLHttpRequest::handle_progress(addr, progress),
-                FromScript(XHRReleaseMsg(addr)) => XMLHttpRequest::handle_release(addr),
-                FromScript(DOMMessage(..)) => panic!("unexpected message"),
-                FromScript(WorkerPostMessage(addr, data, nbytes)) => Worker::handle_message(addr, data, nbytes),
-                FromScript(WorkerRelease(addr)) => Worker::handle_release(addr),
-                FromDevtools(EvaluateJS(id, s, reply)) => devtools::handle_evaluate_js(&*self.page.borrow(), id, s, reply),
-                FromDevtools(GetRootNode(id, reply)) => devtools::handle_get_root_node(&*self.page.borrow(), id, reply),
-                FromDevtools(GetDocumentElement(id, reply)) => devtools::handle_get_document_element(&*self.page.borrow(), id, reply),
-                FromDevtools(GetChildren(id, node_id, reply)) => devtools::handle_get_children(&*self.page.borrow(), id, node_id, reply),
-                FromDevtools(GetLayout(id, node_id, reply)) => devtools::handle_get_layout(&*self.page.borrow(), id, node_id, reply),
-                FromDevtools(ModifyAttribute(id, node_id, modifications)) => devtools::handle_modify_attribute(&*self.page.borrow(), id, node_id, modifications),
+                FromConstellation(ExitPipelineMsg(id)) =>
+                    if self.handle_exit_pipeline_msg(id) { return false },
+                FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
+                FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
+                FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
             }
         }
 
@@ -571,6 +547,74 @@ impl ScriptTask {
         }
 
         true
+    }
+
+    fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
+        match msg {
+            // TODO(tkuehn) need to handle auxiliary layouts for iframes
+            AttachLayoutMsg(_) =>
+                panic!("should have handled AttachLayoutMsg already"),
+            LoadMsg(id, load_data) =>
+                self.load(id, load_data),
+            SendEventMsg(id, event) =>
+                self.handle_event(id, event),
+            ReflowCompleteMsg(id, reflow_id) =>
+                self.handle_reflow_complete_msg(id, reflow_id),
+            ResizeInactiveMsg(id, new_size) =>
+                self.handle_resize_inactive_msg(id, new_size),
+            ViewportMsg(..) =>
+                panic!("should have handled ViewportMsg already"),
+            ResizeMsg(..) =>
+                panic!("should have handled ResizeMsg already"),
+            ExitPipelineMsg(..) =>
+                panic!("should have handled ExitPipelineMsg already"),
+            GetTitleMsg(pipeline_id) =>
+                self.handle_get_title_msg(pipeline_id),
+        }
+    }
+
+    fn handle_msg_from_script(&self, msg: ScriptMsg) {
+        match msg {
+            TriggerLoadMsg(id, load_data) =>
+                self.trigger_load(id, load_data),
+            TriggerFragmentMsg(id, url) =>
+                self.trigger_fragment(id, url),
+            FireTimerMsg(FromWindow(id), timer_id) =>
+                self.handle_fire_timer_msg(id, timer_id),
+            FireTimerMsg(FromWorker, _) =>
+                panic!("Worker timeouts must not be sent to script task"),
+            NavigateMsg(direction) =>
+                self.handle_navigate_msg(direction),
+            ExitWindowMsg(id) =>
+                self.handle_exit_window_msg(id),
+            XHRProgressMsg(addr, progress) =>
+                XMLHttpRequest::handle_progress(addr, progress),
+            XHRReleaseMsg(addr) =>
+                XMLHttpRequest::handle_release(addr),
+            DOMMessage(..) =>
+                panic!("unexpected message"),
+            WorkerPostMessage(addr, data, nbytes) =>
+                Worker::handle_message(addr, data, nbytes),
+            WorkerRelease(addr) =>
+                Worker::handle_release(addr),
+        }
+    }
+
+    fn handle_msg_from_devtools(&self, msg: DevtoolScriptControlMsg) {
+        match msg {
+            EvaluateJS(id, s, reply) =>
+                devtools::handle_evaluate_js(&*self.page.borrow(), id, s, reply),
+            GetRootNode(id, reply) =>
+                devtools::handle_get_root_node(&*self.page.borrow(), id, reply),
+            GetDocumentElement(id, reply) =>
+                devtools::handle_get_document_element(&*self.page.borrow(), id, reply),
+            GetChildren(id, node_id, reply) =>
+                devtools::handle_get_children(&*self.page.borrow(), id, node_id, reply),
+            GetLayout(id, node_id, reply) =>
+                devtools::handle_get_layout(&*self.page.borrow(), id, node_id, reply),
+            ModifyAttribute(id, node_id, modifications) =>
+                devtools::handle_modify_attribute(&*self.page.borrow(), id, node_id, modifications),
+        }
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
