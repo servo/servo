@@ -139,7 +139,7 @@ pub mod longhands {
             % if derived_from is None:
                 pub fn parse_specified(_input: &[ComponentValue], _base_url: &Url)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
-                    parse(_input, _base_url).map(super::SpecifiedValue)
+                    parse(_input, _base_url).map(super::DeclaredValue::SpecifiedValue)
                 }
             % endif
         </%self:raw_longhand>
@@ -704,7 +704,7 @@ pub mod longhands {
 
     ${new_style_struct("Background", is_inherited=False)}
     ${predefined_type("background-color", "CSSColor",
-                      "RGBAColor(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
+                      "Color::RGBA(RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
     <%self:single_component_value name="background-image">
         use super::common_types::specified as common_specified;
@@ -867,8 +867,8 @@ pub mod longhands {
         pub fn parse_specified(input: &[ComponentValue], _base_url: &Url)
                                -> Result<DeclaredValue<SpecifiedValue>, ()> {
             match one_component_value(input).and_then(Color::parse) {
-                Ok(RGBAColor(rgba)) => Ok(DeclaredValue::SpecifiedValue(rgba)),
-                Ok(CurrentColor) => Ok(DeclaredValue::Inherit),
+                Ok(Color::RGBA(rgba)) => Ok(DeclaredValue::SpecifiedValue(rgba)),
+                Ok(Color::CurrentColor) => Ok(DeclaredValue::Inherit),
                 Err(()) => Err(()),
             }
         }
@@ -1067,13 +1067,13 @@ pub mod longhands {
                 Err(()) => (),
             }
             match try!(get_ident_lower(input)).as_slice() {
-                "xx-small" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 3 / 5)),
-                "x-small" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 3 / 4)),
-                "small" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 8 / 9)),
-                "medium" => Ok(specified::Au_(Au::from_px(MEDIUM_PX))),
-                "large" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 6 / 5)),
-                "x-large" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 3 / 2)),
-                "xx-large" => Ok(specified::Au_(Au::from_px(MEDIUM_PX) * 2)),
+                "xx-small" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 3 / 5)),
+                "x-small" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 3 / 4)),
+                "small" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 8 / 9)),
+                "medium" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX))),
+                "large" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 6 / 5)),
+                "x-large" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 3 / 2)),
+                "xx-large" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 2)),
 
                 // https://github.com/servo/servo/issues/3423#issuecomment-56321664
                 "smaller" => Ok(specified::Em(0.85)),
@@ -1587,7 +1587,7 @@ pub mod shorthands {
         fn parse_one_set_of_border_radii<'a,I>(mut input: Peekable< &'a ComponentValue,I >)
                                          -> Result<[specified::LengthOrPercentage, ..4],()>
                                          where I: Iterator< &'a ComponentValue > {
-            let (mut count, mut values) = (0u, [specified::LengthOrPercentage::Length(specified::Au_(Au(0))), ..4]);
+            let (mut count, mut values) = (0u, [specified::LengthOrPercentage::Length(specified::Length::Au(Au(0))), ..4]);
             while count < 4 {
                 let token = match input.peek() {
                     None => break,
@@ -1830,9 +1830,9 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
         ErrorLoggerIterator(parse_declaration_list(input)).collect();
     for item in items.into_iter().rev() {
         match item {
-            DeclAtRule(rule) => log_css_error(
+            DeclarationListItem::AtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
-            Declaration_(Declaration{ location: l, name: n, value: v, important: i}) => {
+            DeclarationListItem::Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
                 let (list, seen) = if i {
                     (&mut important_declarations, &mut important_seen)
@@ -2035,8 +2035,8 @@ impl ComputedValues {
     #[inline]
     pub fn resolve_color(&self, color: computed::CSSColor) -> RGBA {
         match color {
-            RGBAColor(rgba) => rgba,
-            CurrentColor => self.get_color().color,
+            Color::RGBA(rgba) => rgba,
+            Color::CurrentColor => self.get_color().color,
         }
     }
 
@@ -2141,27 +2141,27 @@ fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> Writing
     use servo_util::logical_geometry;
     let mut flags = WritingMode::empty();
     match inheritedbox_style.direction {
-        computed_values::direction::ltr => {},
-        computed_values::direction::rtl => {
+        computed_values::direction::T::ltr => {},
+        computed_values::direction::T::rtl => {
             flags.insert(logical_geometry::FLAG_RTL);
         },
     }
     match inheritedbox_style.writing_mode {
-        computed_values::writing_mode::horizontal_tb => {},
-        computed_values::writing_mode::vertical_rl => {
+        computed_values::writing_mode::T::horizontal_tb => {},
+        computed_values::writing_mode::T::vertical_rl => {
             flags.insert(logical_geometry::FLAG_VERTICAL);
         },
-        computed_values::writing_mode::vertical_lr => {
+        computed_values::writing_mode::T::vertical_lr => {
             flags.insert(logical_geometry::FLAG_VERTICAL);
             flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
     }
     match inheritedbox_style.text_orientation {
-        computed_values::text_orientation::sideways_right => {},
-        computed_values::text_orientation::sideways_left => {
+        computed_values::text_orientation::T::sideways_right => {},
+        computed_values::text_orientation::T::sideways_left => {
             flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
-        computed_values::text_orientation::sideways => {
+        computed_values::text_orientation::T::sideways => {
             if flags.intersects(logical_geometry::FLAG_VERTICAL_LR) {
                 flags.insert(logical_geometry::FLAG_SIDEWAYS_LEFT);
             }
@@ -2369,13 +2369,13 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                 }
                 PropertyDeclaration::PositionDeclaration(ref value) => {
                     context.positioned = match get_specified!(get_box, position, value) {
-                        longhands::position::absolute | longhands::position::fixed => true,
+                        longhands::position::T::absolute | longhands::position::T::fixed => true,
                         _ => false,
                     }
                 }
                 PropertyDeclaration::FloatDeclaration(ref value) => {
                     context.floated = get_specified!(get_box, float, value)
-                                      != longhands::float::none;
+                                      != longhands::float::T::none;
                 }
                 PropertyDeclaration::TextDecorationDeclaration(ref value) => {
                     context.text_decoration = get_specified!(get_text, text_decoration, value);
@@ -2384,8 +2384,8 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                     PropertyDeclaration::Border${side.capitalize()}StyleDeclaration(ref value) => {
                         context.border_${side}_present =
                         match get_specified!(get_border, border_${side}_style, value) {
-                            longhands::border_top_style::none |
-                            longhands::border_top_style::hidden => false,
+                            longhands::border_top_style::T::none |
+                            longhands::border_top_style::T::hidden => false,
                             _ => true,
                         };
                     }

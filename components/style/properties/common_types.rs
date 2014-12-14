@@ -22,7 +22,7 @@ pub mod specified {
 
     #[deriving(Clone, Show)]
     pub enum Length {
-        Au_(Au),  // application units
+        Au(Au),  // application units
         Em(CSSFloat),
         Ex(CSSFloat),
         Rem(CSSFloat),
@@ -52,7 +52,7 @@ pub mod specified {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
                 => Length::parse_dimension(value.value, unit.as_slice()),
-                &Number(ref value) if value.value == 0. =>  Ok(Au_(Au(0))),
+                &Number(ref value) if value.value == 0. =>  Ok(Length::Au(Au(0))),
                 _ => Err(())
             }
         }
@@ -66,11 +66,11 @@ pub mod specified {
         pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
             match unit.to_ascii_lower().as_slice() {
                 "px" => Ok(Length::from_px(value)),
-                "in" => Ok(Au_(Au((value * AU_PER_IN) as i32))),
-                "cm" => Ok(Au_(Au((value * AU_PER_CM) as i32))),
-                "mm" => Ok(Au_(Au((value * AU_PER_MM) as i32))),
-                "pt" => Ok(Au_(Au((value * AU_PER_PT) as i32))),
-                "pc" => Ok(Au_(Au((value * AU_PER_PC) as i32))),
+                "in" => Ok(Length::Au(Au((value * AU_PER_IN) as i32))),
+                "cm" => Ok(Length::Au(Au((value * AU_PER_CM) as i32))),
+                "mm" => Ok(Length::Au(Au((value * AU_PER_MM) as i32))),
+                "pt" => Ok(Length::Au(Au((value * AU_PER_PT) as i32))),
+                "pc" => Ok(Length::Au(Au((value * AU_PER_PC) as i32))),
                 "em" => Ok(Em(value)),
                 "ex" => Ok(Ex(value)),
                 "rem" => Ok(Rem(value)),
@@ -79,7 +79,7 @@ pub mod specified {
         }
         #[inline]
         pub fn from_px(px_value: CSSFloat) -> Length {
-            Au_(Au((px_value * AU_PER_PX) as i32))
+            Length::Au(Au((px_value * AU_PER_PX) as i32))
         }
     }
 
@@ -99,7 +99,7 @@ pub mod specified {
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0. =>
                     Ok(LengthOrPercentage::Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. =>
-                    Ok(LengthOrPercentage::Length(Au_(Au(0)))),
+                    Ok(LengthOrPercentage::Length(Length::Au(Au(0)))),
                 _ => Err(())
             }
         }
@@ -129,7 +129,7 @@ pub mod specified {
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0. =>
                     Ok(LengthOrPercentageOrAuto::Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. =>
-                    Ok(LengthOrPercentageOrAuto::Length(Au_(Au(0)))),
+                    Ok(LengthOrPercentageOrAuto::Length(Length::Au(Au(0)))),
                 &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("auto") =>
                     Ok(LengthOrPercentageOrAuto::Auto),
                 _ => Err(())
@@ -159,7 +159,7 @@ pub mod specified {
                 => Length::parse_dimension(value.value, unit.as_slice()).map(LengthOrPercentageOrNone::Length),
                 &ast::Percentage(ref value) if negative_ok || value.value >= 0.
                 => Ok(LengthOrPercentageOrNone::Percentage(value.value / 100.)),
-                &Number(ref value) if value.value == 0. => Ok(LengthOrPercentageOrNone::Length(Au_(Au(0)))),
+                &Number(ref value) if value.value == 0. => Ok(LengthOrPercentageOrNone::Length(Length::Au(Au(0)))),
                 &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => Ok(LengthOrPercentageOrNone::None),
                 _ => Err(())
             }
@@ -192,7 +192,7 @@ pub mod specified {
                 &Dimension(ref value, ref unit) =>
                     Length::parse_dimension(value.value, unit.as_slice()).map(Pos_Length),
                 &ast::Percentage(ref value) => Ok(Pos_Percentage(value.value / 100.)),
-                &Number(ref value) if value.value == 0. => Ok(Pos_Length(Au_(Au(0)))),
+                &Number(ref value) if value.value == 0. => Ok(Pos_Length(Length::Au(Au(0)))),
                 &Ident(ref value) => {
                     if value.as_slice().eq_ignore_ascii_case("center") { Ok(Pos_Center) }
                     else if value.as_slice().eq_ignore_ascii_case("left") { Ok(Pos_Left) }
@@ -491,7 +491,7 @@ pub mod computed {
     #[inline]
     pub fn compute_Au_with_font_size(value: specified::Length, reference_font_size: Au, root_font_size: Au) -> Au {
         match value {
-            specified::Au_(value) => value,
+            specified::Length::Au(value) => value,
             specified::Em(value) => reference_font_size.scale_by(value),
             specified::Ex(value) => {
                 let x_height = 0.5;  // TODO: find that from the font
