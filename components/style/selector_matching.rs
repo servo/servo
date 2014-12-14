@@ -21,7 +21,7 @@ use string_cache::Atom;
 use legacy::{IntegerAttribute, LengthAttribute};
 use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock, SpecifiedValue};
+use properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue};
 use properties::{specified};
 use selectors::*;
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
@@ -498,13 +498,13 @@ impl Stylist {
                     LengthOrPercentageOrAuto::Percentage(percentage) => {
                         let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                PropertyDeclaration::WidthDeclaration(SpecifiedValue(width_value))));
+                                PropertyDeclaration::WidthDeclaration(DeclaredValue::SpecifiedValue(width_value))));
                         *shareable = false
                     }
                     LengthOrPercentageOrAuto::Length(length) => {
                         let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Au_(length));
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                PropertyDeclaration::WidthDeclaration(SpecifiedValue(width_value))));
+                                PropertyDeclaration::WidthDeclaration(DeclaredValue::SpecifiedValue(width_value))));
                         *shareable = false
                     }
                 };
@@ -523,7 +523,7 @@ impl Stylist {
                             _ => specified::Au_(Au::from_px(value as int)),
                         };
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                PropertyDeclaration::WidthDeclaration(SpecifiedValue(specified::LengthOrPercentageOrAuto::Length(
+                                PropertyDeclaration::WidthDeclaration(DeclaredValue::SpecifiedValue(specified::LengthOrPercentageOrAuto::Length(
                                             value)))));
                         *shareable = false
                     }
