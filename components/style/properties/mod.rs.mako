@@ -121,9 +121,9 @@ pub mod longhands {
                 pub fn parse_declared(input: &[ComponentValue], base_url: &Url)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     match CSSWideKeyword::parse(input) {
-                        Ok(InheritKeyword) => Ok(Inherit),
-                        Ok(InitialKeyword) => Ok(Initial),
-                        Ok(UnsetKeyword) => Ok(${
+                        Ok(InheritKeyword) => Ok(DeclaredValue::Inherit),
+                        Ok(InitialKeyword) => Ok(DeclaredValue::Initial),
+                        Ok(UnsetKeyword) => Ok(DeclaredValue::${
                             "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"}),
                         Err(()) => parse_specified(input, base_url),
                     }
@@ -867,8 +867,8 @@ pub mod longhands {
         pub fn parse_specified(input: &[ComponentValue], _base_url: &Url)
                                -> Result<DeclaredValue<SpecifiedValue>, ()> {
             match one_component_value(input).and_then(Color::parse) {
-                Ok(RGBAColor(rgba)) => Ok(SpecifiedValue(rgba)),
-                Ok(CurrentColor) => Ok(Inherit),
+                Ok(RGBAColor(rgba)) => Ok(DeclaredValue::SpecifiedValue(rgba)),
+                Ok(CurrentColor) => Ok(DeclaredValue::Inherit),
                 Err(()) => Err(()),
             }
         }
@@ -966,23 +966,23 @@ pub mod longhands {
             match input {
                 &Ident(ref value) => {
                     match value.as_slice().to_ascii_lower().as_slice() {
-                        "bold" => Ok(SpecifiedWeight700),
-                        "normal" => Ok(SpecifiedWeight400),
-                        "bolder" => Ok(Bolder),
-                        "lighter" => Ok(Lighter),
+                        "bold" => Ok(SpecifiedValue::SpecifiedWeight700),
+                        "normal" => Ok(SpecifiedValue::SpecifiedWeight400),
+                        "bolder" => Ok(SpecifiedValue::Bolder),
+                        "lighter" => Ok(SpecifiedValue::Lighter),
                         _ => Err(()),
                     }
                 },
                 &Number(ref value) => match value.int_value {
-                    Some(100) => Ok(SpecifiedWeight100),
-                    Some(200) => Ok(SpecifiedWeight200),
-                    Some(300) => Ok(SpecifiedWeight300),
-                    Some(400) => Ok(SpecifiedWeight400),
-                    Some(500) => Ok(SpecifiedWeight500),
-                    Some(600) => Ok(SpecifiedWeight600),
-                    Some(700) => Ok(SpecifiedWeight700),
-                    Some(800) => Ok(SpecifiedWeight800),
-                    Some(900) => Ok(SpecifiedWeight900),
+                    Some(100) => Ok(SpecifiedValue::SpecifiedWeight100),
+                    Some(200) => Ok(SpecifiedValue::SpecifiedWeight200),
+                    Some(300) => Ok(SpecifiedValue::SpecifiedWeight300),
+                    Some(400) => Ok(SpecifiedValue::SpecifiedWeight400),
+                    Some(500) => Ok(SpecifiedValue::SpecifiedWeight500),
+                    Some(600) => Ok(SpecifiedValue::SpecifiedWeight600),
+                    Some(700) => Ok(SpecifiedValue::SpecifiedWeight700),
+                    Some(800) => Ok(SpecifiedValue::SpecifiedWeight800),
+                    Some(900) => Ok(SpecifiedValue::SpecifiedWeight900),
                     _ => Err(()),
                 },
                 _ => Err(())
@@ -998,42 +998,45 @@ pub mod longhands {
             impl T {
                 pub fn is_bold(self) -> bool {
                     match self {
-                        Weight900 | Weight800 | Weight700 | Weight600 => true,
+                        T::Weight900 | T::Weight800 |
+                        T::Weight700 | T::Weight600 => true,
                         _ => false
                     }
                 }
             }
         }
         #[inline]
-        pub fn get_initial_value() -> computed_value::T { Weight400 }  // normal
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T::Weight400  // normal
+        }
         #[inline]
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                               -> computed_value::T {
             match value {
                 % for weight in range(100, 901, 100):
-                    SpecifiedWeight${weight} => Weight${weight},
+                    SpecifiedWeight${weight} => computed_value::T::Weight${weight},
                 % endfor
                 Bolder => match context.inherited_font_weight {
-                    Weight100 => Weight400,
-                    Weight200 => Weight400,
-                    Weight300 => Weight400,
-                    Weight400 => Weight700,
-                    Weight500 => Weight700,
-                    Weight600 => Weight900,
-                    Weight700 => Weight900,
-                    Weight800 => Weight900,
-                    Weight900 => Weight900,
+                    computed_value::T::Weight100 => computed_value::T::Weight400,
+                    computed_value::T::Weight200 => computed_value::T::Weight400,
+                    computed_value::T::Weight300 => computed_value::T::Weight400,
+                    computed_value::T::Weight400 => computed_value::T::Weight700,
+                    computed_value::T::Weight500 => computed_value::T::Weight700,
+                    computed_value::T::Weight600 => computed_value::T::Weight900,
+                    computed_value::T::Weight700 => computed_value::T::Weight900,
+                    computed_value::T::Weight800 => computed_value::T::Weight900,
+                    computed_value::T::Weight900 => computed_value::T::Weight900,
                 },
                 Lighter => match context.inherited_font_weight {
-                    Weight100 => Weight100,
-                    Weight200 => Weight100,
-                    Weight300 => Weight100,
-                    Weight400 => Weight100,
-                    Weight500 => Weight100,
-                    Weight600 => Weight400,
-                    Weight700 => Weight400,
-                    Weight800 => Weight700,
-                    Weight900 => Weight700,
+                    computed_value::T::Weight100 => computed_value::T::Weight100,
+                    computed_value::T::Weight200 => computed_value::T::Weight100,
+                    computed_value::T::Weight300 => computed_value::T::Weight100,
+                    computed_value::T::Weight400 => computed_value::T::Weight100,
+                    computed_value::T::Weight500 => computed_value::T::Weight100,
+                    computed_value::T::Weight600 => computed_value::T::Weight400,
+                    computed_value::T::Weight700 => computed_value::T::Weight400,
+                    computed_value::T::Weight800 => computed_value::T::Weight700,
+                    computed_value::T::Weight900 => computed_value::T::Weight700,
                 },
             }
         }
@@ -1837,15 +1840,15 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
                     (&mut normal_declarations, &mut normal_seen)
                 };
                 match PropertyDeclaration::parse(n.as_slice(), v.as_slice(), list, base_url, seen) {
-                    UnknownProperty => log_css_error(l, format!(
+                    PropertyDeclarationParseResult::UnknownProperty => log_css_error(l, format!(
                         "Unsupported property: {}:{}", n, v.iter().to_css()).as_slice()),
-                    ExperimentalProperty => log_css_error(l, format!(
+                    PropertyDeclarationParseResult::ExperimentalProperty => log_css_error(l, format!(
                         "Experimental property, use `servo --enable_experimental` \
                          or `servo -e` to enable: {}:{}",
                         n, v.iter().to_css()).as_slice()),
-                    InvalidValue => log_css_error(l, format!(
+                    PropertyDeclarationParseResult::InvalidValue => log_css_error(l, format!(
                         "Invalid value: {}:{}", n, v.iter().to_css()).as_slice()),
-                    ValidOrIgnoredDeclaration => (),
+                    PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => (),
                 }
             }
         }
@@ -1867,9 +1870,9 @@ impl CSSWideKeyword {
     pub fn parse(input: &[ComponentValue]) -> Result<CSSWideKeyword, ()> {
         one_component_value(input).and_then(get_ident_lower).and_then(|keyword| {
             match keyword.as_slice() {
-                "initial" => Ok(InitialKeyword),
-                "inherit" => Ok(InheritKeyword),
-                "unset" => Ok(UnsetKeyword),
+                "initial" => Ok(CSSWideKeyword::InitialKeyword),
+                "inherit" => Ok(CSSWideKeyword::InheritKeyword),
+                "unset" => Ok(CSSWideKeyword::UnsetKeyword),
                 _ => Err(())
             }
         })
@@ -1914,30 +1917,30 @@ impl PropertyDeclaration {
                     "${property.name}" => {
                         % if property.experimental:
                             if !::servo_util::opts::experimental_enabled() {
-                                return ExperimentalProperty
+                                return PropertyDeclarationParseResult::ExperimentalProperty
                             }
                         % endif
                         if seen.get_${property.ident}() {
-                            return ValidOrIgnoredDeclaration
+                            return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         }
                         match longhands::${property.ident}::parse_declared(value, base_url) {
                             Ok(value) => {
                                 seen.set_${property.ident}();
-                                result_list.push(${property.camel_case}Declaration(value));
-                                ValidOrIgnoredDeclaration
+                                result_list.push(PropertyDeclaration::${property.camel_case}Declaration(value));
+                                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                             },
-                            Err(()) => InvalidValue,
+                            Err(()) => PropertyDeclarationParseResult::InvalidValue,
                         }
                     },
                 % else:
-                    "${property.name}" => UnknownProperty,
+                    "${property.name}" => PropertyDeclarationParseResult::UnknownProperty,
                 % endif
             % endfor
             % for shorthand in SHORTHANDS:
                 "${shorthand.name}" => {
                     if ${" && ".join("seen.get_%s()" % sub_property.ident
                                      for sub_property in shorthand.sub_properties)} {
-                        return ValidOrIgnoredDeclaration
+                        return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                     }
                     match CSSWideKeyword::parse(value) {
                         Ok(InheritKeyword) => {
@@ -1945,53 +1948,55 @@ impl PropertyDeclaration {
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
                                     result_list.push(
-                                        ${sub_property.camel_case}Declaration(Inherit));
+                                        PropertyDeclaration::${sub_property.camel_case}Declaration(
+                                            DeclaredValue::Inherit));
                                 }
                             % endfor
-                            ValidOrIgnoredDeclaration
+                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
                         Ok(InitialKeyword) => {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
                                     result_list.push(
-                                        ${sub_property.camel_case}Declaration(Initial));
+                                        PropertyDeclaration::${sub_property.camel_case}Declaration(
+                                            DeclaredValue::Initial));
                                 }
                             % endfor
-                            ValidOrIgnoredDeclaration
+                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
                         Ok(UnsetKeyword) => {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
-                                    result_list.push(${sub_property.camel_case}Declaration(
-                                        ${"Inherit" if sub_property.style_struct.inherited else "Initial"}
+                                    result_list.push(PropertyDeclaration::${sub_property.camel_case}Declaration(
+                                        DeclaredValue::${"Inherit" if sub_property.style_struct.inherited else "Initial"}
                                     ));
                                 }
                             % endfor
-                            ValidOrIgnoredDeclaration
+                            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
                         Err(()) => match shorthands::${shorthand.ident}::parse(value, base_url) {
                             Ok(result) => {
                                 % for sub_property in shorthand.sub_properties:
                                     if !seen.get_${sub_property.ident}() {
                                         seen.set_${sub_property.ident}();
-                                        result_list.push(${sub_property.camel_case}Declaration(
+                                        result_list.push(PropertyDeclaration::${sub_property.camel_case}Declaration(
                                             match result.${sub_property.ident} {
-                                                Some(value) => SpecifiedValue(value),
-                                                None => Initial,
+                                                Some(value) => DeclaredValue::SpecifiedValue(value),
+                                                None => DeclaredValue::Initial,
                                             }
                                         ));
                                     }
                                 % endfor
-                                ValidOrIgnoredDeclaration
+                                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                             },
-                            Err(()) => InvalidValue,
+                            Err(()) => PropertyDeclarationParseResult::InvalidValue,
                         }
                     }
                 },
             % endfor
-            _ => UnknownProperty,
+            _ => PropertyDeclarationParseResult::UnknownProperty,
         }
     }
 }
@@ -2214,21 +2219,21 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
-                            ${property.camel_case}Declaration(ref ${'_' if not style_struct.inherited else ''}declared_value) => {
+                            PropertyDeclaration::${property.camel_case}Declaration(ref ${'_' if not style_struct.inherited else ''}declared_value) => {
                                 % if style_struct.inherited:
                                     if seen.get_${property.ident}() {
                                         continue
                                     }
                                     seen.set_${property.ident}();
                                     let computed_value = match *declared_value {
-                                        SpecifiedValue(ref specified_value)
+                                        DeclaredValue::SpecifiedValue(ref specified_value)
                                         => longhands::${property.ident}::to_computed_value(
                                             (*specified_value).clone(),
                                             context
                                         ),
-                                        Initial
+                                        DeclaredValue::Initial
                                         => longhands::${property.ident}::get_initial_value(),
-                                        Inherit => {
+                                        DeclaredValue::Inherit => {
                                             // This is a bit slow, but this is rare so it shouldn't
                                             // matter.
                                             //
@@ -2260,7 +2265,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
                                 % endif
                             }
                         % else:
-                            ${property.camel_case}Declaration(_) => {
+                            PropertyDeclaration::${property.camel_case}Declaration(_) => {
                                 // Do not allow stylesheets to set derived properties.
                             }
                         % endif
@@ -2335,9 +2340,9 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
     macro_rules! get_specified(
         ($style_struct_getter: ident, $property: ident, $declared_value: expr) => {
             match *$declared_value {
-                SpecifiedValue(specified_value) => specified_value,
-                Initial => longhands::$property::get_initial_value(),
-                Inherit => inherited_style.$style_struct_getter().$property.clone(),
+                DeclaredValue::SpecifiedValue(specified_value) => specified_value,
+                DeclaredValue::Initial => longhands::$property::get_initial_value(),
+                DeclaredValue::Inherit => inherited_style.$style_struct_getter().$property.clone(),
             }
         };
     )
@@ -2348,35 +2353,35 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
         // Declarations are stored in reverse source order, we want them in forward order here.
         for declaration in sub_list.declarations.iter().rev() {
             match *declaration {
-                FontSizeDeclaration(ref value) => {
+                PropertyDeclaration::FontSizeDeclaration(ref value) => {
                     context.font_size = match *value {
-                        SpecifiedValue(specified_value) => computed::compute_Au_with_font_size(
+                        DeclaredValue::SpecifiedValue(specified_value) => computed::compute_Au_with_font_size(
                             specified_value, context.inherited_font_size, context.root_font_size),
-                        Initial => longhands::font_size::get_initial_value(),
-                        Inherit => context.inherited_font_size,
+                        DeclaredValue::Initial => longhands::font_size::get_initial_value(),
+                        DeclaredValue::Inherit => context.inherited_font_size,
                     }
                 }
-                ColorDeclaration(ref value) => {
+                PropertyDeclaration::ColorDeclaration(ref value) => {
                     context.color = get_specified!(get_color, color, value);
                 }
-                DisplayDeclaration(ref value) => {
+                PropertyDeclaration::DisplayDeclaration(ref value) => {
                     context.display = get_specified!(get_box, display, value);
                 }
-                PositionDeclaration(ref value) => {
+                PropertyDeclaration::PositionDeclaration(ref value) => {
                     context.positioned = match get_specified!(get_box, position, value) {
                         longhands::position::absolute | longhands::position::fixed => true,
                         _ => false,
                     }
                 }
-                FloatDeclaration(ref value) => {
+                PropertyDeclaration::FloatDeclaration(ref value) => {
                     context.floated = get_specified!(get_box, float, value)
                                       != longhands::float::none;
                 }
-                TextDecorationDeclaration(ref value) => {
+                PropertyDeclaration::TextDecorationDeclaration(ref value) => {
                     context.text_decoration = get_specified!(get_text, text_decoration, value);
                 }
                 % for side in ["top", "right", "bottom", "left"]:
-                    Border${side.capitalize()}StyleDeclaration(ref value) => {
+                    PropertyDeclaration::Border${side.capitalize()}StyleDeclaration(ref value) => {
                         context.border_${side}_present =
                         match get_specified!(get_border, border_${side}_style, value) {
                             longhands::border_top_style::none |
@@ -2422,20 +2427,20 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                 % for style_struct in STYLE_STRUCTS:
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
-                            ${property.camel_case}Declaration(ref declared_value) => {
+                            PropertyDeclaration::${property.camel_case}Declaration(ref declared_value) => {
                                 if seen.get_${property.ident}() {
                                     continue
                                 }
                                 seen.set_${property.ident}();
                                 let computed_value = match *declared_value {
-                                    SpecifiedValue(ref specified_value)
+                                    DeclaredValue::SpecifiedValue(ref specified_value)
                                     => longhands::${property.ident}::to_computed_value(
                                         (*specified_value).clone(),
                                         &context
                                     ),
-                                    Initial
+                                    DeclaredValue::Initial
                                     => longhands::${property.ident}::get_initial_value(),
-                                    Inherit => {
+                                    DeclaredValue::Inherit => {
                                         // This is a bit slow, but this is rare so it shouldn't
                                         // matter.
                                         //
@@ -2462,7 +2467,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                                 % endif
                             }
                         % else:
-                            ${property.camel_case}Declaration(_) => {
+                            PropertyDeclaration::${property.camel_case}Declaration(_) => {
                                 // Do not allow stylesheets to set derived properties.
                             }
                         % endif
