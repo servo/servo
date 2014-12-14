@@ -524,14 +524,14 @@ pub mod longhands {
                       "computed::LP_Length(Au(0))",
                       "parse_non_negative")}
     ${predefined_type("max-width", "LengthOrPercentageOrNone",
-                      "computed::LPN_None",
+                      "computed::LengthOrPercentageOrNone::None",
                       "parse_non_negative")}
 
     ${predefined_type("min-height", "LengthOrPercentage",
                       "computed::LP_Length(Au(0))",
                       "parse_non_negative")}
     ${predefined_type("max-height", "LengthOrPercentageOrNone",
-                      "computed::LPN_None",
+                      "computed::LengthOrPercentageOrNone::None",
                       "parse_non_negative")}
 
     ${switch_to_style_struct("InheritedBox")}
@@ -2548,5 +2548,5 @@ pub mod computed_values {
     pub use super::common_types::computed::{
         LengthOrPercentage, LP_Length, LP_Percentage,
         LengthOrPercentageOrAuto, LPA_Length, LPA_Percentage, LPA_Auto,
-        LengthOrPercentageOrNone, LPN_Length, LPN_Percentage, LPN_None};
+        LengthOrPercentageOrNone};
 }

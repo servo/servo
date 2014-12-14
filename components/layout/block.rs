@@ -59,8 +59,8 @@ use servo_util::opts;
 use std::cmp::{max, min};
 use std::fmt;
 use style::ComputedValues;
-use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
-use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage, box_sizing, display, float};
+use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LengthOrPercentageOrNone};
+use style::computed_values::{LP_Length, LP_Percentage, box_sizing, display, float};
 use style::computed_values::{overflow, position};
 use sync::Arc;
 
@@ -331,11 +331,12 @@ impl CandidateBSizeIterator {
             (LPA_Length(length), _) => Specified(length),
         };
         let max_block_size = match (fragment.style.max_block_size(), block_container_block_size) {
-            (LPN_Percentage(percent), Some(block_container_block_size)) => {
+            (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) => {
                 Some(block_container_block_size.scale_by(percent))
             }
-            (LPN_Percentage(_), None) | (LPN_None, _) => None,
-            (LPN_Length(length), _) => Some(length),
+            (LengthOrPercentageOrNone::Percentage(_), None) |
+            (LengthOrPercentageOrNone::None, _) => None,
+            (LengthOrPercentageOrNone::Length(length), _) => Some(length),
         };
         let min_block_size = match (fragment.style.min_block_size(), block_container_block_size) {
             (LP_Percentage(percent), Some(block_container_block_size)) => {

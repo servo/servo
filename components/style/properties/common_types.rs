@@ -539,17 +539,20 @@ pub mod computed {
 
     #[deriving(PartialEq, Clone, Show)]
     pub enum LengthOrPercentageOrNone {
-        LPN_Length(Au),
-        LPN_Percentage(CSSFloat),
-        LPN_None,
+        Length(Au),
+        Percentage(CSSFloat),
+        None,
     }
     #[allow(non_snake_case)]
     pub fn compute_LengthOrPercentageOrNone(value: specified::LengthOrPercentageOrNone,
                                             context: &Context) -> LengthOrPercentageOrNone {
         match value {
-            specified::LengthOrPercentageOrNone::Length(value) => LPN_Length(compute_Au(value, context)),
-            specified::LengthOrPercentageOrNone::Percentage(value) => LPN_Percentage(value),
-            specified::LengthOrPercentageOrNone::None => LPN_None,
+            specified::LengthOrPercentageOrNone::Length(value) =>
+                LengthOrPercentageOrNone::Length(compute_Au(value, context)),
+            specified::LengthOrPercentageOrNone::Percentage(value) =>
+                LengthOrPercentageOrNone::Percentage(value),
+            specified::LengthOrPercentageOrNone::None =>
+                LengthOrPercentageOrNone::None,
         }
     }
 

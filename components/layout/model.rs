@@ -365,9 +365,9 @@ impl MaybeAuto {
 
 pub fn specified_or_none(length: computed::LengthOrPercentageOrNone, containing_length: Au) -> Option<Au> {
     match length {
-        computed::LPN_None => None,
-        computed::LPN_Percentage(percent) => Some(containing_length.scale_by(percent)),
-        computed::LPN_Length(length) => Some(length),
+        computed::LengthOrPercentageOrNone::None => None,
+        computed::LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
+        computed::LengthOrPercentageOrNone::Length(length) => Some(length),
     }
 }
 
