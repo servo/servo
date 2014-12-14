@@ -408,10 +408,18 @@ pub mod specified {
                             }
 
                             (match (horizontal, vertical) {
-                                (None, Some(Top)) => AngleOrCorner::Angle(Angle(0.0)),
-                                (Some(Right), None) => AngleOrCorner::Angle(Angle(PI * 0.5)),
-                                (None, Some(Bottom)) => AngleOrCorner::Angle(Angle(PI)),
-                                (Some(Left), None) => AngleOrCorner::Angle(Angle(PI * 1.5)),
+                                (None, Some(VerticalDirection::Top)) => {
+                                    AngleOrCorner::Angle(Angle(0.0))
+                                },
+                                (Some(HorizontalDirection::Right), None) => {
+                                    AngleOrCorner::Angle(Angle(PI * 0.5))
+                                },
+                                (None, Some(VerticalDirection::Bottom)) => {
+                                    AngleOrCorner::Angle(Angle(PI))
+                                },
+                                (Some(HorizontalDirection::Left), None) => {
+                                    AngleOrCorner::Angle(Angle(PI * 1.5))
+                                },
                                 (Some(horizontal), Some(vertical)) => {
                                     AngleOrCorner::Corner(horizontal, vertical)
                                 }
