@@ -71,9 +71,9 @@ pub mod specified {
                 "mm" => Ok(Length::Au(Au((value * AU_PER_MM) as i32))),
                 "pt" => Ok(Length::Au(Au((value * AU_PER_PT) as i32))),
                 "pc" => Ok(Length::Au(Au((value * AU_PER_PC) as i32))),
-                "em" => Ok(Em(value)),
-                "ex" => Ok(Ex(value)),
-                "rem" => Ok(Rem(value)),
+                "em" => Ok(Length::Em(value)),
+                "ex" => Ok(Length::Ex(value)),
+                "rem" => Ok(Length::Rem(value)),
                 _ => Err(())
             }
         }
@@ -249,8 +249,8 @@ pub mod specified {
     /// Specified values for an image according to CSS-IMAGES.
     #[deriving(Clone)]
     pub enum Image {
-        UrlImage(Url),
-        LinearGradientImage(LinearGradient),
+        Url(Url),
+        LinearGradient(LinearGradient),
     }
 
     impl Image {
@@ -259,11 +259,11 @@ pub mod specified {
             match component_value {
                 &ast::URL(ref url) => {
                     let image_url = super::parse_url(url.as_slice(), base_url);
-                    Ok(UrlImage(image_url))
+                    Ok(Image::Url(image_url))
                 },
                 &ast::Function(ref name, ref args) => {
                     if name.as_slice().eq_ignore_ascii_case("linear-gradient") {
-                        Ok(LinearGradientImage(try!(
+                        Ok(Image::LinearGradient(try!(
                                     super::specified::LinearGradient::parse_function(
                                     args.as_slice()))))
                     } else {
@@ -277,9 +277,9 @@ pub mod specified {
         pub fn to_computed_value(self, context: &super::computed::Context)
                                  -> super::computed::Image {
             match self {
-                UrlImage(url) => super::computed::UrlImage(url),
-                LinearGradientImage(linear_gradient) => {
-                    super::computed::LinearGradientImage(
+                Image::Url(url) => super::computed::Image::Url(url),
+                Image::LinearGradient(linear_gradient) => {
+                    super::computed::Image::LinearGradient(
                         super::computed::LinearGradient::compute(linear_gradient, context))
                 }
             }
@@ -383,16 +383,16 @@ pub mod specified {
                                                 let ident = ident.as_slice();
                                                 if ident.eq_ignore_ascii_case("top") &&
                                                         vertical.is_none() {
-                                                    vertical = Some(Top)
+                                                    vertical = Some(VerticalDirection::Top)
                                                 } else if ident.eq_ignore_ascii_case("bottom") &&
                                                         vertical.is_none() {
-                                                    vertical = Some(Bottom)
+                                                    vertical = Some(VerticalDirection::Bottom)
                                                 } else if ident.eq_ignore_ascii_case("left") &&
                                                         horizontal.is_none() {
-                                                    horizontal = Some(Left)
+                                                    horizontal = Some(HorizontalDirection::Left)
                                                 } else if ident.eq_ignore_ascii_case("right") &&
                                                         horizontal.is_none() {
-                                                    horizontal = Some(Right)
+                                                    horizontal = Some(HorizontalDirection::Right)
                                                 } else {
                                                     return Err(())
                                                 }
@@ -492,13 +492,13 @@ pub mod computed {
     pub fn compute_Au_with_font_size(value: specified::Length, reference_font_size: Au, root_font_size: Au) -> Au {
         match value {
             specified::Length::Au(value) => value,
-            specified::Em(value) => reference_font_size.scale_by(value),
-            specified::Ex(value) => {
+            specified::Length::Em(value) => reference_font_size.scale_by(value),
+            specified::Length::Ex(value) => {
                 let x_height = 0.5;  // TODO: find that from the font
                 reference_font_size.scale_by(value * x_height)
             },
-            specified::Rem(value) => root_font_size.scale_by(value),
-            specified::ServoCharacterWidth(value) => {
+            specified::Length::Rem(value) => root_font_size.scale_by(value),
+            specified::Length::ServoCharacterWidth(value) => {
                 // This applies the *converting a character width to pixels* algorithm as specified
                 // in HTML5 § 14.5.4.
                 //
@@ -568,8 +568,8 @@ pub mod computed {
     /// Computed values for an image according to CSS-IMAGES.
     #[deriving(Clone, PartialEq)]
     pub enum Image {
-        UrlImage(Url),
-        LinearGradientImage(LinearGradient),
+        Url(Url),
+        LinearGradient(LinearGradient),
     }
 
     /// Computed values for a CSS linear gradient.
