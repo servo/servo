@@ -10,7 +10,7 @@ use fragment::Fragment;
 
 use style::computed_values as computed;
 use geom::SideOffsets2D;
-use style::computed_values::{LengthOrPercentageOrAuto, LP_Length, LP_Percentage};
+use style::computed_values::{LengthOrPercentageOrAuto, LengthOrPercentage};
 use style::ComputedValues;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalMargin;
@@ -119,7 +119,7 @@ impl MarginCollapseInfo {
                 match fragment.style().content_block_size() {
                     LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Length(Au(0)) | LengthOrPercentageOrAuto::Percentage(0.) => {
                         match fragment.style().min_block_size() {
-                            LP_Length(Au(0)) | LP_Percentage(0.) => {
+                            LengthOrPercentage::Length(Au(0)) | LengthOrPercentage::Percentage(0.) => {
                                 MarginsCollapseThroughFinalMarginState
                             },
                             _ => {
@@ -373,8 +373,8 @@ pub fn specified_or_none(length: computed::LengthOrPercentageOrNone, containing_
 
 pub fn specified(length: computed::LengthOrPercentage, containing_length: Au) -> Au {
     match length {
-        computed::LP_Length(length) => length,
-        computed::LP_Percentage(p) => containing_length.scale_by(p)
+        computed::LengthOrPercentage::Length(length) => length,
+        computed::LengthOrPercentage::Percentage(p) => containing_length.scale_by(p)
     }
 }
 

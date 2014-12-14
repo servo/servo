@@ -223,7 +223,7 @@ pub mod longhands {
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("padding-" + side, "LengthOrPercentage",
-                          "computed::LP_Length(Au(0))",
+                          "computed::LengthOrPercentage::Length(Au(0))",
                           "parse_non_negative")}
     % endfor
 
@@ -302,7 +302,7 @@ pub mod longhands {
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             computed_value::T {
-                radius: computed::LP_Length(Au(0)),
+                radius: computed::LengthOrPercentage::Length(Au(0)),
             }
         }
         #[inline]
@@ -521,14 +521,14 @@ pub mod longhands {
     </%self:single_component_value>
 
     ${predefined_type("min-width", "LengthOrPercentage",
-                      "computed::LP_Length(Au(0))",
+                      "computed::LengthOrPercentage::Length(Au(0))",
                       "parse_non_negative")}
     ${predefined_type("max-width", "LengthOrPercentageOrNone",
                       "computed::LengthOrPercentageOrNone::None",
                       "parse_non_negative")}
 
     ${predefined_type("min-height", "LengthOrPercentage",
-                      "computed::LP_Length(Au(0))",
+                      "computed::LengthOrPercentage::Length(Au(0))",
                       "parse_non_negative")}
     ${predefined_type("max-height", "LengthOrPercentageOrNone",
                       "computed::LengthOrPercentageOrNone::None",
@@ -635,8 +635,8 @@ pub mod longhands {
                 % endfor
                 SpecifiedLengthOrPercentage(value)
                 => match computed::compute_LengthOrPercentage(value, context) {
-                    computed::LP_Length(value) => Length(value),
-                    computed::LP_Percentage(value) => Percentage(value)
+                    computed::LengthOrPercentage::Length(value) => Length(value),
+                    computed::LengthOrPercentage::Percentage(value) => Percentage(value)
                 }
             }
         }
@@ -812,8 +812,8 @@ pub mod longhands {
             #[inline]
             pub fn get_initial_value() -> computed_value::T {
                 computed_value::T {
-                    horizontal: computed::LP_Percentage(0.0),
-                    vertical: computed::LP_Percentage(0.0),
+                    horizontal: computed::LengthOrPercentage::Percentage(0.0),
+                    vertical: computed::LengthOrPercentage::Percentage(0.0),
                 }
             }
 
@@ -1059,8 +1059,8 @@ pub mod longhands {
         pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
                                     -> Result<SpecifiedValue, ()> {
             match specified::LengthOrPercentage::parse_non_negative(input) {
-                Ok(specified::LP_Length(value)) => return Ok(value),
-                Ok(specified::LP_Percentage(value)) => return Ok(specified::Em(value)),
+                Ok(specified::LengthOrPercentage::Length(value)) => return Ok(value),
+                Ok(specified::LengthOrPercentage::Percentage(value)) => return Ok(specified::Em(value)),
                 Err(()) => (),
             }
             match try!(get_ident_lower(input)).as_slice() {
@@ -1134,7 +1134,7 @@ pub mod longhands {
         }
     </%self:single_component_value>
 
-    ${predefined_type("text-indent", "LengthOrPercentage", "computed::LP_Length(Au(0))")}
+    ${predefined_type("text-indent", "LengthOrPercentage", "computed::LengthOrPercentage::Length(Au(0))")}
 
     // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
     // name per CSS-TEXT 6.2.
@@ -1584,7 +1584,7 @@ pub mod shorthands {
         fn parse_one_set_of_border_radii<'a,I>(mut input: Peekable< &'a ComponentValue,I >)
                                          -> Result<[specified::LengthOrPercentage, ..4],()>
                                          where I: Iterator< &'a ComponentValue > {
-            let (mut count, mut values) = (0u, [specified::LP_Length(specified::Au_(Au(0))), ..4]);
+            let (mut count, mut values) = (0u, [specified::LengthOrPercentage::Length(specified::Au_(Au(0))), ..4]);
             while count < 4 {
                 let token = match input.peek() {
                     None => break,
@@ -2546,7 +2546,7 @@ pub mod computed_values {
 
     pub use cssparser::RGBA;
     pub use super::common_types::computed::{
-        LengthOrPercentage, LP_Length, LP_Percentage,
+        LengthOrPercentage,
         LengthOrPercentageOrAuto,
         LengthOrPercentageOrNone};
 }

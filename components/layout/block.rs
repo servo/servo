@@ -60,7 +60,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::ComputedValues;
 use style::computed_values::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use style::computed_values::{LP_Length, LP_Percentage, box_sizing, display, float};
+use style::computed_values::{LengthOrPercentage, box_sizing, display, float};
 use style::computed_values::{overflow, position};
 use sync::Arc;
 
@@ -339,11 +339,11 @@ impl CandidateBSizeIterator {
             (LengthOrPercentageOrNone::Length(length), _) => Some(length),
         };
         let min_block_size = match (fragment.style.min_block_size(), block_container_block_size) {
-            (LP_Percentage(percent), Some(block_container_block_size)) => {
+            (LengthOrPercentage::Percentage(percent), Some(block_container_block_size)) => {
                 block_container_block_size.scale_by(percent)
             }
-            (LP_Percentage(_), None) => Au(0),
-            (LP_Length(length), _) => length,
+            (LengthOrPercentage::Percentage(_), None) => Au(0),
+            (LengthOrPercentage::Length(length), _) => length,
         };
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.

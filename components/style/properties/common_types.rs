@@ -85,19 +85,21 @@ pub mod specified {
 
     #[deriving(Clone, Show)]
     pub enum LengthOrPercentage {
-        LP_Length(Length),
-        LP_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        Length(Length),
+        Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
     }
 
     impl LengthOrPercentage {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
                               -> Result<LengthOrPercentage, ()> {
             match input {
-                &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
-                => Length::parse_dimension(value.value, unit.as_slice()).map(LP_Length),
-                &ast::Percentage(ref value) if negative_ok || value.value >= 0.
-                => Ok(LP_Percentage(value.value / 100.)),
-                &Number(ref value) if value.value == 0. =>  Ok(LP_Length(Au_(Au(0)))),
+                &Dimension(ref value, ref unit) if negative_ok || value.value >= 0. =>
+                    Length::parse_dimension(value.value, unit.as_slice())
+                        .map(LengthOrPercentage::Length),
+                &ast::Percentage(ref value) if negative_ok || value.value >= 0. =>
+                    Ok(LengthOrPercentage::Percentage(value.value / 100.)),
+                &Number(ref value) if value.value == 0. =>
+                    Ok(LengthOrPercentage::Length(Au_(Au(0)))),
                 _ => Err(())
             }
         }
@@ -205,11 +207,11 @@ pub mod specified {
         #[inline]
         pub fn to_length_or_percentage(self) -> LengthOrPercentage {
             match self {
-                Pos_Length(x) => LP_Length(x),
-                Pos_Percentage(x) => LP_Percentage(x),
-                Pos_Center => LP_Percentage(0.5),
-                Pos_Left | Pos_Top => LP_Percentage(0.0),
-                Pos_Right | Pos_Bottom => LP_Percentage(1.0),
+                Pos_Length(x) => LengthOrPercentage::Length(x),
+                Pos_Percentage(x) => LengthOrPercentage::Percentage(x),
+                Pos_Center => LengthOrPercentage::Percentage(0.5),
+                Pos_Left | Pos_Top => LengthOrPercentage::Percentage(0.0),
+                Pos_Right | Pos_Bottom => LengthOrPercentage::Percentage(1.0),
             }
         }
     }
@@ -510,16 +512,18 @@ pub mod computed {
 
     #[deriving(PartialEq, Clone, Show)]
     pub enum LengthOrPercentage {
-        LP_Length(Au),
-        LP_Percentage(CSSFloat),
+        Length(Au),
+        Percentage(CSSFloat),
     }
 
     #[allow(non_snake_case)]
     pub fn compute_LengthOrPercentage(value: specified::LengthOrPercentage, context: &Context)
                                    -> LengthOrPercentage {
         match value {
-            specified::LP_Length(value) => LP_Length(compute_Au(value, context)),
-            specified::LP_Percentage(value) => LP_Percentage(value),
+            specified::LengthOrPercentage::Length(value) =>
+                LengthOrPercentage::Length(compute_Au(value, context)),
+            specified::LengthOrPercentage::Percentage(value) =>
+                LengthOrPercentage::Percentage(value),
         }
     }
 

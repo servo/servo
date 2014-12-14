@@ -38,7 +38,7 @@ use servo_util::geometry::{mod, Au, ZERO_POINT, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, WritingMode};
 use servo_util::opts;
 use std::default::Default;
-use style::computed::{AngleOrCorner, LP_Length, LP_Percentage, LengthOrPercentage};
+use style::computed::{AngleOrCorner, LengthOrPercentage};
 use style::computed::{LinearGradient, LinearGradientImage, UrlImage};
 use style::computed_values::{background_attachment, background_repeat, border_style, overflow};
 use style::computed_values::{visibility};
@@ -967,8 +967,8 @@ fn fmin(a: f32, b: f32) -> f32 {
 
 fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32 {
     match position {
-        LP_Length(Au(length)) => fmin(1.0, (length as f32) / (total_length as f32)),
-        LP_Percentage(percentage) => percentage as f32,
+        LengthOrPercentage::Length(Au(length)) => fmin(1.0, (length as f32) / (total_length as f32)),
+        LengthOrPercentage::Percentage(percentage) => percentage as f32,
     }
 }
 
