@@ -9,6 +9,8 @@ multiple times and thus triggering reflows multiple times.
 */
 
 use image_cache_task::{Msg, ImageCacheTask, ImageResponseMsg};
+use image_cache_task::ImageResponseMsg::*;
+use image_cache_task::Msg::*;
 
 use std::comm::{Receiver, channel};
 use std::collections::HashMap;
