@@ -42,8 +42,9 @@ use util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
+use style::computed_values::{border_style, cursor, filter, image_rendering, mix_blend_mode};
+use style::computed_values::{pointer_events};
 use style::properties::ComputedValues;
-use style::computed_values::{border_style, cursor, filter, mix_blend_mode, pointer_events};
 
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
 // layout to use.
@@ -763,6 +764,10 @@ pub struct ImageDisplayItem {
     /// the bounds of this display item, then the image will be repeated in the appropriate
     /// direction to tile the entire bounds.
     pub stretch_size: Size2D<Au>,
+
+    /// The algorithm we should use to stretch the image. See `image_rendering` in CSS-IMAGES-3 §
+    /// 5.3.
+    pub image_rendering: image_rendering::T,
 }
 
 /// Paints a gradient.
@@ -937,7 +942,9 @@ impl DisplayItem {
                         bounds.origin.y = bounds.origin.y + y_offset;
                         bounds.size = image_item.stretch_size;
 
-                        paint_context.draw_image(&bounds, image_item.image.clone());
+                        paint_context.draw_image(&bounds,
+                                                 image_item.image.clone(),
+                                                 image_item.image_rendering.clone());
 
                         x_offset = x_offset + image_item.stretch_size.width;
                     }
