@@ -827,8 +827,8 @@ pub struct CommonStyleAffectingAttributeInfo {
 }
 
 pub enum CommonStyleAffectingAttributeMode {
-    AttrIsPresentMode(CommonStyleAffectingAttributes),
-    AttrIsEqualMode(&'static str, CommonStyleAffectingAttributes),
+    IsPresent(CommonStyleAffectingAttributes),
+    IsEqual(&'static str, CommonStyleAffectingAttributes),
 }
 
 // NB: This must match the order in `layout::css::matching::CommonStyleAffectingAttributes`.
@@ -837,23 +837,23 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
     [
         CommonStyleAffectingAttributeInfo {
             atom: atom!("hidden"),
-            mode: AttrIsPresentMode(HIDDEN_ATTRIBUTE),
+            mode: CommonStyleAffectingAttributeMode::IsPresent(HIDDEN_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("nowrap"),
-            mode: AttrIsPresentMode(NO_WRAP_ATTRIBUTE),
+            mode: CommonStyleAffectingAttributeMode::IsPresent(NO_WRAP_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("align"),
-            mode: AttrIsEqualMode("left", ALIGN_LEFT_ATTRIBUTE),
+            mode: CommonStyleAffectingAttributeMode::IsEqual("left", ALIGN_LEFT_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("align"),
-            mode: AttrIsEqualMode("center", ALIGN_CENTER_ATTRIBUTE),
+            mode: CommonStyleAffectingAttributeMode::IsEqual("center", ALIGN_CENTER_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("align"),
-            mode: AttrIsEqualMode("right", ALIGN_RIGHT_ATTRIBUTE),
+            mode: CommonStyleAffectingAttributeMode::IsEqual("right", ALIGN_RIGHT_ATTRIBUTE),
         }
     ]
 }
@@ -899,8 +899,8 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             // `can_share_style_with()` as well.
             if common_style_affecting_attributes().iter().all(|common_attr_info| {
                 !(common_attr_info.atom == attr.name && match common_attr_info.mode {
-                    AttrIsPresentMode(_) => true,
-                    AttrIsEqualMode(..) => false,
+                    CommonStyleAffectingAttributeMode::IsPresent(_) => true,
+                    CommonStyleAffectingAttributeMode::IsEqual(..) => false,
                 })
             }) {
                 *shareable = false;
@@ -911,8 +911,8 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             if value.as_slice() != "DIR" &&
                     common_style_affecting_attributes().iter().all(|common_attr_info| {
                         !(common_attr_info.atom == attr.name && match common_attr_info.mode {
-                            AttrIsEqualMode(target_value, _) => target_value == value.as_slice(),
-                            AttrIsPresentMode(_) => false,
+                            CommonStyleAffectingAttributeMode::IsEqual(target_value, _) => target_value == value.as_slice(),
+                            CommonStyleAffectingAttributeMode::IsPresent(_) => false,
                         })
                     }) {
                 // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in

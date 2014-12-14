@@ -39,7 +39,6 @@ pub use stylesheets::{Stylesheet, iter_font_face_rules};
 pub use selector_matching::{Stylist, StylesheetOrigin};
 pub use selector_matching::{DeclarationBlock, CommonStyleAffectingAttributes};
 pub use selector_matching::{CommonStyleAffectingAttributeInfo, CommonStyleAffectingAttributeMode};
-pub use selector_matching::{AttrIsPresentMode, AttrIsEqualMode};
 pub use selector_matching::{matches, matches_simple_selector, common_style_affecting_attributes};
 pub use selector_matching::{RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE,SELECTOR_WHITESPACE};
 pub use properties::{cascade, cascade_anonymous, computed};

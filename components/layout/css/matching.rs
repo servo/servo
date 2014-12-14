@@ -19,7 +19,7 @@ use std::hash::{Hash, sip};
 use std::slice::Items;
 use string_cache::{Atom, Namespace};
 use style::{mod, After, Before, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
-use style::{AttrIsEqualMode, AttrIsPresentMode, CommonStyleAffectingAttributes, cascade};
+use style::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes, cascade};
 use sync::Arc;
 
 pub struct ApplicableDeclarations {
@@ -153,12 +153,12 @@ fn create_common_style_affecting_attributes_from_element(element: &LayoutElement
     let mut flags = CommonStyleAffectingAttributes::empty();
     for attribute_info in style::common_style_affecting_attributes().iter() {
         match attribute_info.mode {
-            AttrIsPresentMode(flag) => {
+            CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                 if element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
                     flags.insert(flag)
                 }
             }
-            AttrIsEqualMode(target_value, flag) => {
+            CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
                 match element.get_attr(&ns!(""), &attribute_info.atom) {
                     Some(element_value) if element_value == target_value => {
                         flags.insert(flag)
@@ -270,13 +270,13 @@ impl StyleSharingCandidate {
 
         for attribute_info in style::common_style_affecting_attributes().iter() {
             match attribute_info.mode {
-                AttrIsPresentMode(flag) => {
+                CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                     if self.common_style_affecting_attributes.contains(flag) !=
                             element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
                         return false
                     }
                 }
-                AttrIsEqualMode(target_value, flag) => {
+                CommonStyleAffectingAttributeMode::IsEqual(target_value, flag) => {
                     match element.get_attr(&ns!(""), &attribute_info.atom) {
                         Some(ref element_value) if self.common_style_affecting_attributes
                                                        .contains(flag) &&
