@@ -47,7 +47,7 @@ pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
 pub use properties::{Angle, AngleOrCorner};
-pub use properties::{Left, Right, Bottom, Top};
+pub use properties::{HorizontalDirection, VerticalDirection};
 pub use node::{TElement, TElementAttributes, TNode};
 pub use selectors::{PseudoElement, Before, After, SelectorList, parse_selector_list_from_str};
 pub use selectors::{AttrSelector, NamespaceConstraint, SpecificNamespace, AnyNamespace};
