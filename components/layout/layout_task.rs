@@ -61,7 +61,7 @@ use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
-use style::{AuthorOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
+use style::{StylesheetOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
 use style::{Device, Screen};
 use sync::{Arc, Mutex, MutexGuard};
 use url::Url;
@@ -482,7 +482,7 @@ impl LayoutTask {
                                                 final_url,
                                                 protocol_encoding_label,
                                                 Some(environment_encoding),
-                                                AuthorOrigin);
+                                                StylesheetOrigin::Author);
         self.handle_add_stylesheet(sheet, possibly_locked_rw_data);
     }
 

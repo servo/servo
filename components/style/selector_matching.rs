@@ -27,9 +27,9 @@ use selectors::*;
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
 
 pub enum StylesheetOrigin {
-    UserAgentOrigin,
-    AuthorOrigin,
-    UserOrigin,
+    UserAgent,
+    Author,
+    User,
 }
 
 /// The definition of whitespace per CSS Selectors Level 3 § 4.
@@ -305,7 +305,7 @@ impl Stylist {
                 Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
                 None,
                 None,
-                UserAgentOrigin);
+                StylesheetOrigin::UserAgent);
             stylist.add_stylesheet(ua_stylesheet);
         }
         stylist
@@ -320,17 +320,17 @@ impl Stylist {
 
             for stylesheet in self.stylesheets.iter() {
                 let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
-                    UserAgentOrigin => (
+                    StylesheetOrigin::UserAgent => (
                         &mut self.element_map.user_agent,
                         &mut self.before_map.user_agent,
                         &mut self.after_map.user_agent,
                     ),
-                    AuthorOrigin => (
+                    StylesheetOrigin::Author => (
                         &mut self.element_map.author,
                         &mut self.before_map.author,
                         &mut self.after_map.author,
                     ),
-                    UserOrigin => (
+                    StylesheetOrigin::User => (
                         &mut self.element_map.user,
                         &mut self.before_map.user,
                         &mut self.after_map.user,
