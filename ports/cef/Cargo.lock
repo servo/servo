@@ -351,13 +351,12 @@ source = "git+https://github.com/servo/html5ever#976a4ba8c4576a187507a953b61901e
 [[package]]
 name = "hyper"
 version = "0.0.1"
-source = "git+https://github.com/servo/hyper?ref=servo#dd9d1830f35f7a8371b1b3bcb2d3e9cf2763f33f"
+source = "git+https://github.com/servo/hyper?ref=servo#fd5b5b202b653ae72407b3fb081f635dd643c412"
 dependencies = [
  "cookie 0.0.1 (git+https://github.com/servo/cookie-rs)",
  "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
- "move-acceptor 0.0.1 (git+https://github.com/reem/rust-move-acceptor)",
  "openssl 0.0.2 (git+https://github.com/servo/rust-openssl)",
- "typeable 0.0.3 (git+https://github.com/reem/rust-typeable)",
+ "time 0.1.1 (git+https://github.com/rust-lang/time)",
  "unsafe-any 0.1.0 (git+https://github.com/reem/rust-unsafe-any)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
 ]
@@ -448,11 +447,6 @@ dependencies = [
 name = "mime"
 version = "0.0.1"
 source = "git+https://github.com/hyperium/mime.rs#7898f1c29c7f5d35d0c3c7aed37ebcfc95a40873"
-
-[[package]]
-name = "move-acceptor"
-version = "0.0.1"
-source = "git+https://github.com/reem/rust-move-acceptor#25c5c33a83f605fdd0f3d37d2589e2b0b4e6cbd1"
 
 [[package]]
 name = "mozjs-sys"
@@ -668,11 +662,6 @@ source = "git+https://github.com/rust-lang/time#4c7585dee9e418a9da793574869f292d
 dependencies = [
  "gcc 0.0.2 (git+https://github.com/alexcrichton/gcc-rs)",
 ]
-
-[[package]]
-name = "typeable"
-version = "0.0.3"
-source = "git+https://github.com/reem/rust-typeable#db8975daaa3889871f67eea11baeaefd8e706eaf"
 
 [[package]]
 name = "unsafe-any"
