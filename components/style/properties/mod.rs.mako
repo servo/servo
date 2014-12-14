@@ -169,14 +169,14 @@ pub mod longhands {
             }
             pub type SpecifiedValue = computed_value::T;
             #[inline] pub fn get_initial_value() -> computed_value::T {
-                ${to_rust_ident(values.split()[0])}
+                T::${to_rust_ident(values.split()[0])}
             }
             pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
                                         -> Result<SpecifiedValue, ()> {
                 get_ident_lower(v).and_then(|keyword| {
                     match keyword.as_slice() {
                         % for value in values.split():
-                            "${value}" => Ok(${to_rust_ident(value)}),
+                            "${value}" => Ok(T::${to_rust_ident(value)}),
                         % endfor
                         _ => Err(()),
                     }
@@ -551,7 +551,7 @@ pub mod longhands {
                 &ast::Number(ref value) if value.value >= 0.
                 => Ok(SpecifiedNumber(value.value)),
                 &ast::Percentage(ref value) if value.value >= 0.
-                => Ok(SpecifiedLength(specified::Em(value.value / 100.))),
+                => Ok(SpecifiedLength(specified::Length::Em(value.value / 100.))),
                 &Dimension(ref value, ref unit) if value.value >= 0.
                 => specified::Length::parse_dimension(value.value, unit.as_slice())
                     .map(SpecifiedLength),
@@ -894,7 +894,7 @@ pub mod longhands {
             impl FontFamily {
                 pub fn name(&self) -> &str {
                     match *self {
-                        FamilyName(ref name) => name.as_slice(),
+                        FontFamily::FamilyName(ref name) => name.as_slice(),
                     }
                 }
             }
@@ -904,7 +904,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            vec![FamilyName("serif".to_string())]
+            vec![FontFamily::FamilyName("serif".to_string())]
         }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
@@ -915,7 +915,7 @@ pub mod longhands {
         pub fn parse_one_family<'a>(iter: ParserIter) -> Result<FontFamily, ()> {
             // TODO: avoid copying strings?
             let mut idents = match iter.next() {
-                Some(&QuotedString(ref value)) => return Ok(FamilyName(value.clone())),
+                Some(&QuotedString(ref value)) => return Ok(FontFamily::FamilyName(value.clone())),
                 Some(&Ident(ref value)) => {
 //                    match value.as_slice().to_ascii_lower().as_slice() {
 //                        "serif" => return Ok(Serif),
@@ -943,7 +943,7 @@ pub mod longhands {
                     None => break,
                 }
             }
-            Ok(FamilyName(idents.connect(" ")))
+            Ok(FontFamily::FamilyName(idents.connect(" ")))
         }
     </%self:longhand>
 
@@ -1063,7 +1063,7 @@ pub mod longhands {
                                     -> Result<SpecifiedValue, ()> {
             match specified::LengthOrPercentage::parse_non_negative(input) {
                 Ok(specified::LengthOrPercentage::Length(value)) => return Ok(value),
-                Ok(specified::LengthOrPercentage::Percentage(value)) => return Ok(specified::Em(value)),
+                Ok(specified::LengthOrPercentage::Percentage(value)) => return Ok(specified::Length::Em(value)),
                 Err(()) => (),
             }
             match try!(get_ident_lower(input)).as_slice() {
@@ -1076,8 +1076,8 @@ pub mod longhands {
                 "xx-large" => Ok(specified::Length::Au(Au::from_px(MEDIUM_PX) * 2)),
 
                 // https://github.com/servo/servo/issues/3423#issuecomment-56321664
-                "smaller" => Ok(specified::Em(0.85)),
-                "larger" => Ok(specified::Em(1.2)),
+                "smaller" => Ok(specified::Length::Em(0.85)),
+                "larger" => Ok(specified::Length::Em(1.2)),
 
                 _ => return Err(())
             }
@@ -1233,7 +1233,7 @@ pub mod longhands {
             // Start with no declarations if this is a block; otherwise, start with the
             // declarations in effect and add in the text decorations that this inline specifies.
             let mut result = match context.display {
-                display::computed_value::inline => context.inherited_text_decorations_in_effect,
+                display::computed_value::T::inline => context.inherited_text_decorations_in_effect,
                 _ => {
                     SpecifiedValue {
                         underline: None,
