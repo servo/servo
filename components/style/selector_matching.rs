@@ -346,8 +346,8 @@ impl Stylist {
                             for selector in $style_rule.selectors.iter() {
                                 let map = match selector.pseudo_element {
                                     None => &mut element_map,
-                                    Some(Before) => &mut before_map,
-                                    Some(After) => &mut after_map,
+                                    Some(PseudoElement::Before) => &mut before_map,
+                                    Some(PseudoElement::After) => &mut after_map,
                                 };
                                 map.$priority.insert(Rule {
                                         selector: selector.compound_selectors.clone(),
@@ -420,8 +420,8 @@ impl Stylist {
 
         let map = match pseudo_element {
             None => &self.element_map,
-            Some(Before) => &self.before_map,
-            Some(After) => &self.after_map,
+            Some(PseudoElement::Before) => &self.before_map,
+            Some(PseudoElement::After) => &self.after_map,
         };
 
         let mut shareable = true;
@@ -629,7 +629,7 @@ fn matches_compound_selector<'a,E,N>(selector: &CompoundSelector,
                                      -> bool
                                      where E: TElement<'a>, N: TNode<'a,E> {
     match matches_compound_selector_internal(selector, element, parent_bf, shareable) {
-        Matched => true,
+        SelectorMatchingResult::Matched => true,
         _ => false
     }
 }
@@ -644,21 +644,21 @@ fn matches_compound_selector<'a,E,N>(selector: &CompoundSelector,
 /// the succeeding selectors never matches.
 /// It is raised when
 ///   Child combinator cannot find the candidate element.
-///   Descendant combinator cannot find the candidate element.
+///   Combinator::Descendant combinator cannot find the candidate element.
 ///
 /// When NotMatchedAndRestartFromClosestDescendant appears, the selector
-/// matching does backtracking and restarts from the closest Descendant
+/// matching does backtracking and restarts from the closest Combinator::Descendant
 /// combinator.
 /// It is raised when
-///   NextSibling combinator cannot find the candidate element.
-///   LaterSibling combinator cannot find the candidate element.
+///   Combinator::NextSibling combinator cannot find the candidate element.
+///   Combinator::LaterSibling combinator cannot find the candidate element.
 ///   Child combinator doesn't match on the found element.
 ///
 /// When NotMatchedAndRestartFromClosestLaterSibling appears, the selector
-/// matching does backtracking and restarts from the closest LaterSibling
+/// matching does backtracking and restarts from the closest Combinator::LaterSibling
 /// combinator.
 /// It is raised when
-///   NextSibling combinator doesn't match on the found element.
+///   Combinator::NextSibling combinator doesn't match on the found element.
 ///
 /// For example, when the selector "d1 d2 a" is provided and we cannot *find*
 /// an appropriate ancestor node for "d1", this selector matching raises
@@ -707,7 +707,7 @@ fn can_fast_reject<'a,E,N>(mut selector: &CompoundSelector,
     loop {
          match selector.next {
              None => break,
-             Some((ref cs, Descendant)) => selector = &**cs,
+             Some((ref cs, Combinator::Descendant)) => selector = &**cs,
              Some((ref cs, _)) => {
                  selector = &**cs;
                  continue;
@@ -762,10 +762,10 @@ fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
         None => SelectorMatchingResult::Matched,
         Some((ref next_selector, combinator)) => {
             let (siblings, candidate_not_found) = match combinator {
-                Child => (false, SelectorMatchingResult::NotMatchedGlobally),
-                Descendant => (false, SelectorMatchingResult::NotMatchedGlobally),
-                NextSibling => (true, SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant),
-                LaterSibling => (true, SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant),
+                Combinator::Child => (false, SelectorMatchingResult::NotMatchedGlobally),
+                Combinator::Descendant => (false, SelectorMatchingResult::NotMatchedGlobally),
+                Combinator::NextSibling => (true, SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant),
+                Combinator::LaterSibling => (true, SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant),
             };
             let mut node = (*element).clone();
             loop {
@@ -785,25 +785,25 @@ fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
                                                                     shareable);
                     match (result, combinator) {
                         // Return the status immediately.
-                        (Matched, _) => return result,
-                        (NotMatchedGlobally, _) => return result,
+                        (SelectorMatchingResult::Matched, _) => return result,
+                        (SelectorMatchingResult::NotMatchedGlobally, _) => return result,
 
                         // Upgrade the failure status to
                         // NotMatchedAndRestartFromClosestDescendant.
-                        (_, Child) => return SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant,
+                        (_, Combinator::Child) => return SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant,
 
                         // Return the status directly.
-                        (_, NextSibling) => return result,
+                        (_, Combinator::NextSibling) => return result,
 
                         // If the failure status is NotMatchedAndRestartFromClosestDescendant
-                        // and combinator is LaterSibling, give up this LaterSibling matching
+                        // and combinator is Combinator::LaterSibling, give up this Combinator::LaterSibling matching
                         // and restart from the closest descendant combinator.
-                        (SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant, LaterSibling) => return result,
+                        (SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant, Combinator::LaterSibling) => return result,
 
-                        // The Descendant combinator and the status is
+                        // The Combinator::Descendant combinator and the status is
                         // NotMatchedAndRestartFromClosestLaterSibling or
                         // NotMatchedAndRestartFromClosestDescendant,
-                        // or the LaterSibling combinator and the status is
+                        // or the Combinator::LaterSibling combinator and the status is
                         // NotMatchedAndRestartFromClosestDescendant
                         // can continue to matching on the next candidate element.
                         _ => {},
@@ -924,8 +924,8 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             }
             element.match_attr(attr, |attr_value| {
                 match case_sensitivity {
-                    CaseSensitive => attr_value == value.as_slice(),
-                    CaseInsensitive => attr_value.eq_ignore_ascii_case(value.as_slice()),
+                    CaseSensitivity::CaseSensitive => attr_value == value.as_slice(),
+                    CaseSensitivity::CaseInsensitive => attr_value.eq_ignore_ascii_case(value.as_slice()),
                 }
             })
         }
