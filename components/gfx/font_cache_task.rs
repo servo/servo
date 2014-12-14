@@ -16,7 +16,7 @@ use platform::font_template::FontTemplateData;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 use servo_util::task::spawn_named;
 use servo_util::str::LowercaseString;
-use style::{Source, LocalSource, UrlSource_};
+use style::Source;
 
 /// A list of font templates that make up a given font family.
 struct FontFamily {
@@ -128,7 +128,7 @@ impl FontCache {
                     }
 
                     match src {
-                        UrlSource_(ref url_source) => {
+                        Source::Url(ref url_source) => {
                             let url = &url_source.url;
                             let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
                             match maybe_resource {
@@ -141,7 +141,7 @@ impl FontCache {
                                 }
                             }
                         }
-                        LocalSource(ref local_family_name) => {
+                        Source::Local(ref local_family_name) => {
                             let family = &mut self.web_families[family_name];
                             get_variations_for_family(local_family_name.as_slice(), |path| {
                                 family.add_template(path.as_slice(), None);
