@@ -71,7 +71,7 @@ impl MediaQuery {
 #[deriving(PartialEq)]
 pub enum MediaQueryType {
     All,  // Always true
-    MediaType_(MediaType),
+    MediaType(MediaType),
 }
 
 #[deriving(PartialEq)]
@@ -190,10 +190,10 @@ fn parse_media_query(iter: ParserIter) -> Result<MediaQuery, ()> {
     let media_type = match iter.next() {
         Some(&Ident(ref value)) => {
             match value.as_slice().to_ascii_lower().as_slice() {
-                "screen" => MediaType_(Screen),
-                "print" => MediaType_(Print),
-                "all" => All,
-                _ => MediaType_(Unknown),       // Unknown media types never match
+                "screen" => MediaQueryType::MediaType(Screen),
+                "print" => MediaQueryType::MediaType(Print),
+                "all" => MediaQueryType::All,
+                _ => MediaQueryType::MediaType(Unknown),       // Unknown media types never match
             }
         }
         Some(component_value) => {
@@ -207,7 +207,7 @@ fn parse_media_query(iter: ParserIter) -> Result<MediaQuery, ()> {
             let expression = try!(parse_media_query_expression(iter));
             expressions.push(expression);
 
-            All
+            MediaQueryType::All
         }
         None => return Err(()),
     };
@@ -241,7 +241,7 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
     let mut media_queries = vec!();
 
     if iter.is_eof() {
-        media_queries.push(MediaQuery::new(None, All, vec!()));
+        media_queries.push(MediaQuery::new(None, MediaQueryType::All, vec!()));
     } else {
         loop {
             // Attempt to parse a media query.
@@ -265,7 +265,7 @@ pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
             // Otherwise, create a 'not all' media query, that will never match.
             let media_query = match (media_query_result, trailing_tokens) {
                 (Ok(media_query), false) => media_query,
-                _ => MediaQuery::new(Some(Not), All, vec!()),
+                _ => MediaQuery::new(Some(Not), MediaQueryType::All, vec!()),
             };
             media_queries.push(media_query);
 
@@ -284,9 +284,9 @@ impl MediaQueryList {
         self.media_queries.iter().any(|mq| {
             // Check if media matches. Unknown media never matches.
             let media_match = match mq.media_type {
-                MediaType_(Unknown) => false,
-                MediaType_(media_type) => media_type == device.media_type,
-                All => true,
+                MediaQueryType::MediaType(Unknown) => false,
+                MediaQueryType::MediaType(media_type) => media_type == device.media_type,
+                MediaQueryType::All => true,
             };
 
             // Check if all conditions match (AND condition)
@@ -341,7 +341,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
     }
@@ -352,7 +352,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == MediaType_(Screen), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Screen), css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -360,7 +360,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Only), css.to_string());
-            assert!(q.media_type == MediaType_(Screen), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Screen), css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -368,7 +368,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == MediaType_(Screen), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Screen), css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
     }
@@ -379,7 +379,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == MediaType_(Print), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Print), css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -387,7 +387,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Only), css.to_string());
-            assert!(q.media_type == MediaType_(Print), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Print), css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -395,7 +395,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == MediaType_(Print), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Print), css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
     }
@@ -406,7 +406,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == MediaType_(Unknown), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Unknown), css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -414,7 +414,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Only), css.to_string());
-            assert!(q.media_type == MediaType_(Unknown), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Unknown), css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -422,7 +422,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == MediaType_(Unknown), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Unknown), css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
     }
@@ -433,7 +433,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -441,7 +441,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Only), css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -449,7 +449,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
     }
@@ -460,12 +460,12 @@ mod tests {
             assert!(list.media_queries.len() == 2, css.to_string());
             let q0 = &list.media_queries[0];
             assert!(q0.qualifier == None, css.to_string());
-            assert!(q0.media_type == MediaType_(Screen), css.to_string());
+            assert!(q0.media_type == MediaQueryType::MediaType(Screen), css.to_string());
             assert!(q0.expressions.len() == 0, css.to_string());
 
             let q1 = &list.media_queries[1];
             assert!(q1.qualifier == None, css.to_string());
-            assert!(q1.media_type == MediaType_(Print), css.to_string());
+            assert!(q1.media_type == MediaQueryType::MediaType(Print), css.to_string());
             assert!(q1.expressions.len() == 0, css.to_string());
         });
     }
@@ -476,7 +476,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 1, css.to_string());
             match q.expressions[0] {
                 Width(Min(w)) => assert!(w == Au::from_px(100)),
@@ -488,7 +488,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 1, css.to_string());
             match q.expressions[0] {
                 Width(Max(w)) => assert!(w == Au::from_px(43)),
@@ -503,7 +503,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == MediaType_(Screen), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Screen), css.to_string());
             assert!(q.expressions.len() == 1, css.to_string());
             match q.expressions[0] {
                 Width(Min(w)) => assert!(w == Au::from_px(100)),
@@ -515,7 +515,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == MediaType_(Print), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Print), css.to_string());
             assert!(q.expressions.len() == 1, css.to_string());
             match q.expressions[0] {
                 Width(Max(w)) => assert!(w == Au::from_px(43)),
@@ -527,7 +527,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == MediaType_(Unknown), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Unknown), css.to_string());
             assert!(q.expressions.len() == 1, css.to_string());
             match q.expressions[0] {
                 Width(Max(w)) => assert!(w == Au::from_px(52)),
@@ -542,7 +542,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == None, css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 2, css.to_string());
             match q.expressions[0] {
                 Width(Min(w)) => assert!(w == Au::from_px(100)),
@@ -558,7 +558,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == MediaType_(Screen), css.to_string());
+            assert!(q.media_type == MediaQueryType::MediaType(Screen), css.to_string());
             assert!(q.expressions.len() == 2, css.to_string());
             match q.expressions[0] {
                 Width(Min(w)) => assert!(w == Au::from_px(100)),
@@ -577,7 +577,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -585,7 +585,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -593,7 +593,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -601,7 +601,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -609,7 +609,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -617,7 +617,7 @@ mod tests {
             assert!(list.media_queries.len() == 1, css.to_string());
             let q = &list.media_queries[0];
             assert!(q.qualifier == Some(Not), css.to_string());
-            assert!(q.media_type == All, css.to_string());
+            assert!(q.media_type == MediaQueryType::All, css.to_string());
             assert!(q.expressions.len() == 0, css.to_string());
         });
 
@@ -625,11 +625,11 @@ mod tests {
             assert!(list.media_queries.len() == 2, css.to_string());
             let q0 = &list.media_queries[0];
             assert!(q0.qualifier == Some(Not), css.to_string());
-            assert!(q0.media_type == All, css.to_string());
+            assert!(q0.media_type == MediaQueryType::All, css.to_string());
             assert!(q0.expressions.len() == 0, css.to_string());
             let q1 = &list.media_queries[1];
             assert!(q1.qualifier == None, css.to_string());
-            assert!(q1.media_type == MediaType_(Print), css.to_string());
+            assert!(q1.media_type == MediaQueryType::MediaType(Print), css.to_string());
             assert!(q1.expressions.len() == 0, css.to_string());
         });
 
@@ -637,11 +637,11 @@ mod tests {
             assert!(list.media_queries.len() == 2, css.to_string());
             let q0 = &list.media_queries[0];
             assert!(q0.qualifier == None, css.to_string());
-            assert!(q0.media_type == MediaType_(Screen), css.to_string());
+            assert!(q0.media_type == MediaQueryType::MediaType(Screen), css.to_string());
             assert!(q0.expressions.len() == 0, css.to_string());
             let q1 = &list.media_queries[1];
             assert!(q1.qualifier == Some(Not), css.to_string());
-            assert!(q1.media_type == All, css.to_string());
+            assert!(q1.media_type == MediaQueryType::All, css.to_string());
             assert!(q1.expressions.len() == 0, css.to_string());
         });
     }
