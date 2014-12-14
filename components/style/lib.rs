@@ -34,7 +34,7 @@ extern crate "util" as servo_util;
 
 
 // Public API
-pub use media_queries::{Device, Screen};
+pub use media_queries::Device;
 pub use stylesheets::{Stylesheet, iter_font_face_rules};
 pub use selector_matching::{Stylist, StylesheetOrigin};
 pub use selector_matching::{DeclarationBlock, CommonStyleAffectingAttributes};
@@ -48,12 +48,12 @@ pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
 pub use properties::{Angle, AngleOrCorner};
 pub use properties::{HorizontalDirection, VerticalDirection};
 pub use node::{TElement, TElementAttributes, TNode};
-pub use selectors::{PseudoElement, Before, After, SelectorList, parse_selector_list_from_str};
-pub use selectors::{AttrSelector, NamespaceConstraint, SpecificNamespace, AnyNamespace};
-pub use selectors::{SimpleSelector,LocalNameSelector};
+pub use selectors::{PseudoElement, SelectorList, parse_selector_list_from_str};
+pub use selectors::{AttrSelector, NamespaceConstraint};
+pub use selectors::SimpleSelector;
 pub use cssparser::{Color, RGBA};
 pub use legacy::{IntegerAttribute, LengthAttribute};
-pub use font_face::{Source, LocalSource, UrlSource_};
+pub use font_face::{Source};
 
 mod stylesheets;
 mod errors;
