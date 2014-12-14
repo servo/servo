@@ -8,7 +8,7 @@ extra message traffic, it also avoids waiting on the same image
 multiple times and thus triggering reflows multiple times.
 */
 
-use image_cache_task::{Msg, ImageCacheTask, ImageResponseMsg};
+use image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use image_cache_task::ImageResponseMsg::*;
 use image_cache_task::Msg::*;
 
