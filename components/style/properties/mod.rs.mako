@@ -121,9 +121,9 @@ pub mod longhands {
                 pub fn parse_declared(input: &[ComponentValue], base_url: &Url)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     match CSSWideKeyword::parse(input) {
-                        Ok(InheritKeyword) => Ok(DeclaredValue::Inherit),
-                        Ok(InitialKeyword) => Ok(DeclaredValue::Initial),
-                        Ok(UnsetKeyword) => Ok(DeclaredValue::${
+                        Ok(CSSWideKeyword::InheritKeyword) => Ok(DeclaredValue::Inherit),
+                        Ok(CSSWideKeyword::InitialKeyword) => Ok(DeclaredValue::Initial),
+                        Ok(CSSWideKeyword::UnsetKeyword) => Ok(DeclaredValue::${
                             "Inherit" if THIS_STYLE_STRUCT.inherited else "Initial"}),
                         Err(()) => parse_specified(input, base_url),
                     }
@@ -1021,9 +1021,9 @@ pub mod longhands {
                               -> computed_value::T {
             match value {
                 % for weight in range(100, 901, 100):
-                    SpecifiedWeight${weight} => computed_value::T::Weight${weight},
+                    SpecifiedValue::SpecifiedWeight${weight} => computed_value::T::Weight${weight},
                 % endfor
-                Bolder => match context.inherited_font_weight {
+                SpecifiedValue::Bolder => match context.inherited_font_weight {
                     computed_value::T::Weight100 => computed_value::T::Weight400,
                     computed_value::T::Weight200 => computed_value::T::Weight400,
                     computed_value::T::Weight300 => computed_value::T::Weight400,
@@ -1034,7 +1034,7 @@ pub mod longhands {
                     computed_value::T::Weight800 => computed_value::T::Weight900,
                     computed_value::T::Weight900 => computed_value::T::Weight900,
                 },
-                Lighter => match context.inherited_font_weight {
+                SpecifiedValue::Lighter => match context.inherited_font_weight {
                     computed_value::T::Weight100 => computed_value::T::Weight100,
                     computed_value::T::Weight200 => computed_value::T::Weight100,
                     computed_value::T::Weight300 => computed_value::T::Weight100,
@@ -1950,7 +1950,7 @@ impl PropertyDeclaration {
                         return PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                     }
                     match CSSWideKeyword::parse(value) {
-                        Ok(InheritKeyword) => {
+                        Ok(CSSWideKeyword::InheritKeyword) => {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
@@ -1961,7 +1961,7 @@ impl PropertyDeclaration {
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
-                        Ok(InitialKeyword) => {
+                        Ok(CSSWideKeyword::InitialKeyword) => {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
@@ -1972,7 +1972,7 @@ impl PropertyDeclaration {
                             % endfor
                             PropertyDeclarationParseResult::ValidOrIgnoredDeclaration
                         },
-                        Ok(UnsetKeyword) => {
+                        Ok(CSSWideKeyword::UnsetKeyword) => {
                             % for sub_property in shorthand.sub_properties:
                                 if !seen.get_${sub_property.ident}() {
                                     seen.set_${sub_property.ident}();
