@@ -106,8 +106,8 @@ pub struct AttrSelector {
 
 #[deriving(Eq, PartialEq, Clone, Hash)]
 pub enum NamespaceConstraint {
-    AnyNamespace,
-    SpecificNamespace(Namespace),
+    Any,
+    Specific(Namespace),
 }
 
 
@@ -169,11 +169,11 @@ fn parse_selector<I: Iterator<ComponentValue>>(
         let combinator = match iter.peek() {
             None => break,  // EOF
             Some(&Comma) => break,
-            Some(&Delim('>')) => { iter.next(); Child },
-            Some(&Delim('+')) => { iter.next(); NextSibling },
-            Some(&Delim('~')) => { iter.next(); LaterSibling },
+            Some(&Delim('>')) => { iter.next(); Combinator::Child },
+            Some(&Delim('+')) => { iter.next(); Combinator::NextSibling },
+            Some(&Delim('~')) => { iter.next(); Combinator::LaterSibling },
             Some(_) => {
-                if any_whitespace { Descendant }
+                if any_whitespace { Combinator::Descendant }
                 else { return Err(()) }
             }
         };
@@ -221,21 +221,35 @@ fn compute_specificity(mut selector: &CompoundSelector,
                                     specificity: &mut Specificity) {
         for simple_selector in simple_selectors.iter() {
             match simple_selector {
-                &LocalNameSelector(..) => specificity.element_selectors += 1,
-                &IDSelector(..) => specificity.id_selectors += 1,
-                &ClassSelector(..)
-                | &AttrExists(..) | &AttrEqual(..) | &AttrIncludes(..) | &AttrDashMatch(..)
-                | &AttrPrefixMatch(..) | &AttrSubstringMatch(..) | &AttrSuffixMatch(..)
-                | &AnyLink | &Link | &Visited | &Hover | &Disabled | &Enabled
-                | &FirstChild | &LastChild | &OnlyChild | &Root | &Checked
-//                | &Empty | &Lang(*)
-                | &NthChild(..) | &NthLastChild(..)
-                | &NthOfType(..) | &NthLastOfType(..)
-                | &FirstOfType | &LastOfType | &OnlyOfType
-                => specificity.class_like_selectors += 1,
-                &NamespaceSelector(..) => (),
-                &Negation(ref negated)
-                => simple_selectors_specificity(negated.as_slice(), specificity),
+                &SimpleSelector::LocalNameSelector(..) =>
+                    specificity.element_selectors += 1,
+                &SimpleSelector::IDSelector(..) =>
+                    specificity.id_selectors += 1,
+                &SimpleSelector::ClassSelector(..) |
+                &SimpleSelector::AttrExists(..) |
+                &SimpleSelector::AttrEqual(..) |
+                &SimpleSelector::AttrIncludes(..) |
+                &SimpleSelector::AttrDashMatch(..) |
+                &SimpleSelector::AttrPrefixMatch(..) |
+                &SimpleSelector::AttrSubstringMatch(..) |
+                &SimpleSelector::AttrSuffixMatch(..) |
+                &SimpleSelector::AnyLink | &SimpleSelector::Link |
+                &SimpleSelector::Visited | &SimpleSelector::Hover |
+                &SimpleSelector::Disabled | &SimpleSelector::Enabled |
+                &SimpleSelector::FirstChild | &SimpleSelector::LastChild |
+                &SimpleSelector::OnlyChild | &SimpleSelector::Root |
+                &SimpleSelector::Checked |
+//                &SimpleSelector::Empty | &SimpleSelector::Lang(*) |
+                &SimpleSelector::NthChild(..) |
+                &SimpleSelector::NthLastChild(..) |
+                &SimpleSelector::NthOfType(..) |
+                &SimpleSelector::NthLastOfType(..) |
+                &SimpleSelector::FirstOfType | &SimpleSelector::LastOfType |
+                &SimpleSelector::OnlyOfType =>
+                    specificity.class_like_selectors += 1,
+                &SimpleSelector::NamespaceSelector(..) => (),
+                &SimpleSelector::Negation(ref negated) =>
+                    simple_selectors_specificity(negated.as_slice(), specificity),
             }
         }
     }
@@ -265,8 +279,8 @@ fn parse_simple_selectors<I: Iterator<ComponentValue>>(
     loop {
         match try!(parse_one_simple_selector(iter, namespaces, /* inside_negation = */ false)) {
             None => break,
-            Some(SimpleSelectorResult(s)) => { simple_selectors.push(s); empty = false },
-            Some(PseudoElementResult(p)) => { pseudo_element = Some(p); empty = false; break },
+            Some(SimpleSelectorParseResult::SimpleSelector(s)) => { simple_selectors.push(s); empty = false },
+            Some(SimpleSelectorParseResult::PseudoElement(p)) => { pseudo_element = Some(p); empty = false; break },
         }
     }
     if empty { Err(()) }  // An empty selector is invalid
@@ -286,12 +300,14 @@ fn parse_type_selector<I: Iterator<ComponentValue>>(
         Some((namespace, local_name)) => {
             let mut simple_selectors = vec!();
             match namespace {
-                SpecificNamespace(ns) => simple_selectors.push(NamespaceSelector(ns)),
-                AnyNamespace => (),
+                NamespaceConstraint::Specific(ns) => {
+                    simple_selectors.push(SimpleSelector::NamespaceSelector(ns))
+                },
+                NamespaceConstraint::Any => (),
             }
             match local_name {
                 Some(name) => {
-                    simple_selectors.push(LocalNameSelector(LocalName {
+                    simple_selectors.push(SimpleSelector::LocalNameSelector(LocalName {
                         name: Atom::from_slice(name.as_slice()),
                         lower_name: Atom::from_slice(name.into_ascii_lower().as_slice())
                     }))
@@ -305,8 +321,8 @@ fn parse_type_selector<I: Iterator<ComponentValue>>(
 
 
 enum SimpleSelectorParseResult {
-    SimpleSelectorResult(SimpleSelector),
-    PseudoElementResult(PseudoElement),
+    SimpleSelector(SimpleSelector),
+    PseudoElement(PseudoElement),
 }
 
 /// Parse a simple selector other than a type selector.
@@ -319,21 +335,21 @@ fn parse_one_simple_selector<I: Iterator<ComponentValue>>(
                              -> Result<Option<SimpleSelectorParseResult>, ()> {
     match iter.peek() {
         Some(&IDHash(_)) => match iter.next() {
-            Some(IDHash(id)) => Ok(Some(SimpleSelectorResult(
-                IDSelector(Atom::from_slice(id.as_slice()))))),
+            Some(IDHash(id)) => Ok(Some(SimpleSelectorParseResult::SimpleSelector(
+                SimpleSelector::IDSelector(Atom::from_slice(id.as_slice()))))),
             _ => panic!("Implementation error, this should not happen."),
         },
         Some(&Delim('.')) => {
             iter.next();
             match iter.next() {
-                Some(Ident(class)) => Ok(Some(SimpleSelectorResult(
-                    ClassSelector(Atom::from_slice(class.as_slice()))))),
+                Some(Ident(class)) => Ok(Some(SimpleSelectorParseResult::SimpleSelector(
+                    SimpleSelector::ClassSelector(Atom::from_slice(class.as_slice()))))),
                 _ => Err(()),
             }
         }
         Some(&SquareBracketBlock(_)) => match iter.next() {
             Some(SquareBracketBlock(content))
-            => Ok(Some(SimpleSelectorResult(try!(parse_attribute_selector(content, namespaces))))),
+            => Ok(Some(SimpleSelectorParseResult::SimpleSelector(try!(parse_attribute_selector(content, namespaces))))),
             _ => panic!("Implementation error, this should not happen."),
         },
         Some(&Colon) => {
@@ -344,22 +360,26 @@ fn parse_one_simple_selector<I: Iterator<ComponentValue>>(
                         match name.as_slice().to_ascii_lower().as_slice() {
                             // Supported CSS 2.1 pseudo-elements only.
                             // ** Do not add to this list! **
-                            "before" => Ok(Some(PseudoElementResult(Before))),
-                            "after" => Ok(Some(PseudoElementResult(After))),
-//                            "first-line" => PseudoElementResult(FirstLine),
-//                            "first-letter" => PseudoElementResult(FirstLetter),
+                            "before" =>
+                                Ok(Some(SimpleSelectorParseResult::PseudoElement(
+                                    PseudoElement::Before))),
+                            "after" =>
+                                Ok(Some(SimpleSelectorParseResult::PseudoElement(
+                                    PseudoElement::After))),
+//                            "first-line" => SimpleSelectorParseResult::PseudoElement(PseudoElement::FirstLine),
+//                            "first-letter" => SimpleSelectorParseResult::PseudoElement(PseudoElement::FirstLetter),
                             _ => Err(())
                         }
                     },
-                    Ok(result) => Ok(Some(SimpleSelectorResult(result))),
+                    Ok(result) => Ok(Some(SimpleSelectorParseResult::SimpleSelector(result))),
                 },
                 Some(Function(name, arguments))
-                => Ok(Some(SimpleSelectorResult(try!(parse_functional_pseudo_class(
+                => Ok(Some(SimpleSelectorParseResult::SimpleSelector(try!(parse_functional_pseudo_class(
                         name, arguments, namespaces, inside_negation))))),
                 Some(Colon) => {
                     match iter.next() {
                         Some(Ident(name))
-                        => Ok(Some(PseudoElementResult(try!(parse_pseudo_element(name))))),
+                        => Ok(Some(SimpleSelectorParseResult::PseudoElement(try!(parse_pseudo_element(name))))),
                         _ => Err(()),
                     }
                 }
@@ -379,8 +399,8 @@ fn parse_qualified_name<I: Iterator<ComponentValue>>(
                         -> Result<Option<(NamespaceConstraint, Option<String>)>, ()> {
     let default_namespace = |local_name| {
         let namespace = match namespaces.default {
-            Some(ref ns) => SpecificNamespace(ns.clone()),
-            None => AnyNamespace,
+            Some(ref ns) => NamespaceConstraint::Specific(ns.clone()),
+            None => NamespaceConstraint::Any,
         };
         Ok(Some((namespace, local_name)))
     };
@@ -410,24 +430,24 @@ fn parse_qualified_name<I: Iterator<ComponentValue>>(
                         None => return Err(()),  // Undeclared namespace prefix
                         Some(ref ns) => (*ns).clone(),
                     };
-                    explicit_namespace(iter, SpecificNamespace(namespace))
+                    explicit_namespace(iter, NamespaceConstraint::Specific(namespace))
                 },
                 _ if in_attr_selector => Ok(Some(
-                    (SpecificNamespace(ns!("")), Some(value)))),
+                    (NamespaceConstraint::Specific(ns!("")), Some(value)))),
                 _ => default_namespace(Some(value)),
             }
         },
         Some(&Delim('*')) => {
             iter.next();  // Consume '*'
             match iter.peek() {
-                Some(&Delim('|')) => explicit_namespace(iter, AnyNamespace),
+                Some(&Delim('|')) => explicit_namespace(iter, NamespaceConstraint::Any),
                 _ => {
                     if !in_attr_selector { default_namespace(None) }
                     else { Err(()) }
                 },
             }
         },
-        Some(&Delim('|')) => explicit_namespace(iter, SpecificNamespace(ns!(""))),
+        Some(&Delim('|')) => explicit_namespace(iter, NamespaceConstraint::Specific(ns!(""))),
         _ => Ok(None),
     }
 }
@@ -448,20 +468,37 @@ fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &Namespace
     skip_whitespace(iter);
     // TODO: deal with empty value or value containing whitespace (see spec)
     let result = match iter.next() {
-        None => AttrExists(attr),  // [foo]
-        Some(Delim('=')) => AttrEqual(
-            attr, try!(parse_attribute_value(iter)),
-            try!(parse_attribute_flags(iter))),  // [foo=bar]
-        Some(IncludeMatch) => AttrIncludes(attr, try!(parse_attribute_value(iter))),  // [foo~=bar]
+        // [foo]
+        None => SimpleSelector::AttrExists(attr),
+
+        // [foo=bar]
+        Some(Delim('=')) =>
+            SimpleSelector::AttrEqual(attr, try!(parse_attribute_value(iter)),
+                                      try!(parse_attribute_flags(iter))),
+
+        // [foo~=bar]
+        Some(IncludeMatch) =>
+            SimpleSelector::AttrIncludes(attr, try!(parse_attribute_value(iter))),
+
+        // [foo|=bar]
         Some(DashMatch) => {
             let value = try!(parse_attribute_value(iter));
             let dashing_value = format!("{}-", value);
-            AttrDashMatch(attr, value, dashing_value)  // [foo|=bar]
+            SimpleSelector::AttrDashMatch(attr, value, dashing_value)
         },
-        Some(PrefixMatch) => AttrPrefixMatch(attr, try!(parse_attribute_value(iter))),  // [foo^=bar]
+
+        // [foo^=bar]
+        Some(PrefixMatch) =>
+            SimpleSelector::AttrPrefixMatch(attr, try!(parse_attribute_value(iter))),
+
         // [foo*=bar]
-        Some(SubstringMatch) => AttrSubstringMatch(attr, try!(parse_attribute_value(iter))),
-        Some(SuffixMatch) => AttrSuffixMatch(attr, try!(parse_attribute_value(iter))),  // [foo$=bar]
+        Some(SubstringMatch) =>
+            SimpleSelector::AttrSubstringMatch(attr, try!(parse_attribute_value(iter))),
+
+        // [foo$=bar]
+        Some(SuffixMatch) =>
+            SimpleSelector::AttrSuffixMatch(attr, try!(parse_attribute_value(iter))),
+
         _ => return Err(())
     };
     skip_whitespace(iter);
@@ -482,9 +519,9 @@ fn parse_attribute_flags<I: Iterator<ComponentValue>>(iter: &mut Iter<I>)
                          -> Result<CaseSensitivity, ()> {
     skip_whitespace(iter);
     match iter.next() {
-        None => Ok(CaseSensitive),
+        None => Ok(CaseSensitivity::CaseSensitive),
         Some(Ident(ref value)) if value.as_slice().eq_ignore_ascii_case("i")
-        => Ok(CaseInsensitive),
+        => Ok(CaseSensitivity::CaseInsensitive),
         _ => Err(())
     }
 }
@@ -492,20 +529,20 @@ fn parse_attribute_flags<I: Iterator<ComponentValue>>(iter: &mut Iter<I>)
 
 fn parse_simple_pseudo_class(name: &str) -> Result<SimpleSelector, ()> {
     match name.to_ascii_lower().as_slice() {
-        "any-link" => Ok(AnyLink),
-        "link" => Ok(Link),
-        "visited" => Ok(Visited),
-        "hover" => Ok(Hover),
-        "disabled" => Ok(Disabled),
-        "enabled" => Ok(Enabled),
-        "checked" => Ok(Checked),
-        "first-child" => Ok(FirstChild),
-        "last-child"  => Ok(LastChild),
-        "only-child"  => Ok(OnlyChild),
-        "root" => Ok(Root),
-        "first-of-type" => Ok(FirstOfType),
-        "last-of-type"  => Ok(LastOfType),
-        "only-of-type"  => Ok(OnlyOfType),
+        "any-link" => Ok(SimpleSelector::AnyLink),
+        "link" => Ok(SimpleSelector::Link),
+        "visited" => Ok(SimpleSelector::Visited),
+        "hover" => Ok(SimpleSelector::Hover),
+        "disabled" => Ok(SimpleSelector::Disabled),
+        "enabled" => Ok(SimpleSelector::Enabled),
+        "checked" => Ok(SimpleSelector::Checked),
+        "first-child" => Ok(SimpleSelector::FirstChild),
+        "last-child"  => Ok(SimpleSelector::LastChild),
+        "only-child"  => Ok(SimpleSelector::OnlyChild),
+        "root" => Ok(SimpleSelector::Root),
+        "first-of-type" => Ok(SimpleSelector::FirstOfType),
+        "last-of-type"  => Ok(SimpleSelector::LastOfType),
+        "only-of-type"  => Ok(SimpleSelector::OnlyOfType),
 //        "empty" => Ok(Empty),
         _ => Err(())
     }
@@ -517,10 +554,10 @@ fn parse_functional_pseudo_class(name: String, arguments: Vec<ComponentValue>,
                                  -> Result<SimpleSelector, ()> {
     match name.as_slice().to_ascii_lower().as_slice() {
 //        "lang" => parse_lang(arguments),
-        "nth-child"        => parse_nth(arguments.as_slice()).map(|(a, b)| NthChild(a, b)),
-        "nth-last-child"   => parse_nth(arguments.as_slice()).map(|(a, b)| NthLastChild(a, b)),
-        "nth-of-type"      => parse_nth(arguments.as_slice()).map(|(a, b)| NthOfType(a, b)),
-        "nth-last-of-type" => parse_nth(arguments.as_slice()).map(|(a, b)| NthLastOfType(a, b)),
+        "nth-child"        => parse_nth(arguments.as_slice()).map(|(a, b)| SimpleSelector::NthChild(a, b)),
+        "nth-last-child"   => parse_nth(arguments.as_slice()).map(|(a, b)| SimpleSelector::NthLastChild(a, b)),
+        "nth-of-type"      => parse_nth(arguments.as_slice()).map(|(a, b)| SimpleSelector::NthOfType(a, b)),
+        "nth-last-of-type" => parse_nth(arguments.as_slice()).map(|(a, b)| SimpleSelector::NthLastOfType(a, b)),
         "not" => if inside_negation { Err(()) } else { parse_negation(arguments, namespaces) },
         _ => Err(())
     }
@@ -530,8 +567,8 @@ fn parse_functional_pseudo_class(name: String, arguments: Vec<ComponentValue>,
 fn parse_pseudo_element(name: String) -> Result<PseudoElement, ()> {
     match name.as_slice().to_ascii_lower().as_slice() {
         // All supported pseudo-elements
-        "before" => Ok(Before),
-        "after" => Ok(After),
+        "before" => Ok(PseudoElement::Before),
+        "after" => Ok(PseudoElement::After),
 //        "first-line" => Some(FirstLine),
 //        "first-letter" => Some(FirstLetter),
         _ => Err(())
@@ -556,10 +593,11 @@ fn parse_negation(arguments: Vec<ComponentValue>, namespaces: &NamespaceMap)
                   -> Result<SimpleSelector, ()> {
     let iter = &mut arguments.into_iter().peekable();
     match try!(parse_type_selector(iter, namespaces)) {
-        Some(type_selector) => Ok(Negation(type_selector)),
+        Some(type_selector) => Ok(SimpleSelector::Negation(type_selector)),
         None => {
             match try!(parse_one_simple_selector(iter, namespaces, /* inside_negation = */ true)) {
-                Some(SimpleSelectorResult(simple_selector)) => Ok(Negation(vec![simple_selector])),
+                Some(SimpleSelectorParseResult::SimpleSelector(simple_selector)) =>
+                    Ok(SimpleSelector::Negation(vec![simple_selector])),
                 _ => Err(())
             }
         },
@@ -613,7 +651,7 @@ mod tests {
         assert!(parse("") == Err(()))
         assert!(parse("EeÉ") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(LocalNameSelector(LocalName {
+                simple_selectors: vec!(SimpleSelector::LocalNameSelector(LocalName {
                     name: Atom::from_slice("EeÉ"),
                     lower_name: Atom::from_slice("eeÉ") })),
                 next: None,
@@ -623,7 +661,7 @@ mod tests {
         })))
         assert!(parse(".foo") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(ClassSelector(Atom::from_slice("foo"))),
+                simple_selectors: vec!(SimpleSelector::ClassSelector(Atom::from_slice("foo"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -631,7 +669,7 @@ mod tests {
         })))
         assert!(parse("#bar") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(IDSelector(Atom::from_slice("bar"))),
+                simple_selectors: vec!(SimpleSelector::IDSelector(Atom::from_slice("bar"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -639,11 +677,11 @@ mod tests {
         })))
         assert!(parse("e.foo#bar") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(LocalNameSelector(LocalName {
+                simple_selectors: vec!(SimpleSelector::LocalNameSelector(LocalName {
                                             name: Atom::from_slice("e"),
                                             lower_name: Atom::from_slice("e") }),
-                                       ClassSelector(Atom::from_slice("foo")),
-                                       IDSelector(Atom::from_slice("bar"))),
+                                       SimpleSelector::ClassSelector(Atom::from_slice("foo")),
+                                       SimpleSelector::IDSelector(Atom::from_slice("bar"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -653,12 +691,12 @@ mod tests {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(IDSelector(Atom::from_slice("bar"))),
                 next: Some((box CompoundSelector {
-                    simple_selectors: vec!(LocalNameSelector(LocalName {
+                    simple_selectors: vec!(SimpleSelector::LocalNameSelector(LocalName {
                                                 name: Atom::from_slice("e"),
                                                 lower_name: Atom::from_slice("e") }),
-                                           ClassSelector(Atom::from_slice("foo"))),
+                                           SimpleSelector::ClassSelector(Atom::from_slice("foo"))),
                     next: None,
-                }, Descendant)),
+                }, Combinator::Descendant)),
             }),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
@@ -671,7 +709,7 @@ mod tests {
                 simple_selectors: vec!(AttrExists(AttrSelector {
                     name: Atom::from_slice("Foo"),
                     lower_name: Atom::from_slice("foo"),
-                    namespace: SpecificNamespace(ns!("")),
+                    namespace: NamespaceConstraint::Specific(ns!("")),
                 })),
                 next: None,
             }),
@@ -686,7 +724,7 @@ mod tests {
                 simple_selectors: vec!(AttrExists(AttrSelector {
                     name: Atom::from_slice("Foo"),
                     lower_name: Atom::from_slice("foo"),
-                    namespace: SpecificNamespace(ns!("")),
+                    namespace: NamespaceConstraint::Specific(ns!("")),
                 })),
                 next: None,
             }),
@@ -724,7 +762,7 @@ mod tests {
                         name: atom!("div"),
                         lower_name: atom!("div") })),
                     next: None,
-                }, Descendant)),
+                }, Combinator::Descendant)),
             }),
             pseudo_element: Some(After),
             specificity: specificity(0, 0, 2),
