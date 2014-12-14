@@ -4,6 +4,9 @@
 
 //! A task that takes a URL and streams back the binary data.
 
+use self::ControlMsg::*;
+use self::ProgressMsg::*;
+
 use about_loader;
 use data_loader;
 use file_loader;
