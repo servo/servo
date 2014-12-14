@@ -8,12 +8,12 @@
 /// Legacy presentational attributes that take a length as defined in HTML5 § 2.4.4.4.
 pub enum LengthAttribute {
     /// `<td width>`
-    WidthLengthAttribute,
+    Width,
 }
 
 /// Legacy presentational attributes that take an integer as defined in HTML5 § 2.4.4.2.
 pub enum IntegerAttribute {
     /// `<input size>`
-    SizeIntegerAttribute,
+    Size,
 }
 

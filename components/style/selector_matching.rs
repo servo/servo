@@ -18,7 +18,7 @@ use servo_util::sort;
 use servo_util::str::LengthOrPercentageOrAuto;
 use string_cache::Atom;
 
-use legacy::{SizeIntegerAttribute, WidthLengthAttribute};
+use legacy::{IntegerAttribute, LengthAttribute};
 use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock, SpecifiedValue, WidthDeclaration};
@@ -493,7 +493,7 @@ impl Stylist {
         let element = node.as_element();
         match element.get_local_name() {
             name if *name == atom!("td") => {
-                match element.get_length_attribute(WidthLengthAttribute) {
+                match element.get_length_attribute(LengthAttribute::Width) {
                     LengthOrPercentageOrAuto::Auto => {}
                     LengthOrPercentageOrAuto::Percentage(percentage) => {
                         let width_value = specified::LPA_Percentage(percentage);
@@ -510,7 +510,7 @@ impl Stylist {
                 };
             }
             name if *name == atom!("input") => {
-                match element.get_integer_attribute(SizeIntegerAttribute) {
+                match element.get_integer_attribute(IntegerAttribute::Size) {
                     Some(value) if value != 0 => {
                         // Per HTML 4.01 § 17.4, this value is in characters if `type` is `text` or
                         // `password` and in pixels otherwise.

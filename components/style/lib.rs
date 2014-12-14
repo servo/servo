@@ -53,7 +53,7 @@ pub use selectors::{PseudoElement, Before, After, SelectorList, parse_selector_l
 pub use selectors::{AttrSelector, NamespaceConstraint, SpecificNamespace, AnyNamespace};
 pub use selectors::{SimpleSelector,LocalNameSelector};
 pub use cssparser::{Color, RGBA};
-pub use legacy::{IntegerAttribute, LengthAttribute, SizeIntegerAttribute, WidthLengthAttribute};
+pub use legacy::{IntegerAttribute, LengthAttribute};
 pub use font_face::{Source, LocalSource, UrlSource_};
 
 mod stylesheets;

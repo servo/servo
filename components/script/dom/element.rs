@@ -38,7 +38,7 @@ use dom::node::{window_from_node, LayoutNodeHelpers};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
-use style::{IntegerAttribute, LengthAttribute, SizeIntegerAttribute, WidthLengthAttribute};
+use style::{IntegerAttribute, LengthAttribute};
 use style::{matches, parse_selector_list_from_str};
 use style;
 use servo_util::namespace;
@@ -283,7 +283,7 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn get_length_attribute_for_layout(&self, length_attribute: LengthAttribute)
                                               -> LengthOrPercentageOrAuto {
         match length_attribute {
-            WidthLengthAttribute => {
+            LengthAttribute::Width => {
                 if !self.is_htmltablecellelement() {
                     panic!("I'm not a table cell!")
                 }
@@ -297,7 +297,7 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
                                                -> Option<i32> {
         match integer_attribute {
-            SizeIntegerAttribute => {
+            IntegerAttribute::Size => {
                 if !self.is_htmlinputelement() {
                     panic!("I'm not a form input!")
                 }
