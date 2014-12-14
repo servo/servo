@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use self::Command::*;
+use self::Reply::*;
+
 use platform::font_list::get_available_families;
 use platform::font_list::get_system_default_family;
 use platform::font_list::get_variations_for_family;
