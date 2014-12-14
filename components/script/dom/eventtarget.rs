@@ -107,7 +107,8 @@ impl EventTarget {
 pub trait EventTargetHelpers {
     fn dispatch_event_with_target(self,
                                   target: Option<JSRef<EventTarget>>,
-                                  event: JSRef<Event>) -> Fallible<bool>;
+                                  event: JSRef<Event>) -> bool;
+    fn dispatch_event(self, event: JSRef<Event>) -> bool;
     fn set_inline_event_listener(self,
                                  ty: DOMString,
                                  listener: Option<EventListener>);
@@ -128,11 +129,12 @@ pub trait EventTargetHelpers {
 impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     fn dispatch_event_with_target(self,
                                   target: Option<JSRef<EventTarget>>,
-                                  event: JSRef<Event>) -> Fallible<bool> {
-        if event.dispatching() || !event.initialized() {
-            return Err(InvalidState);
-        }
-        Ok(dispatch_event(self, target, event))
+                                  event: JSRef<Event>) -> bool {
+        dispatch_event(self, target, event)
+    }
+
+    fn dispatch_event(self, event: JSRef<Event>) -> bool {
+        self.dispatch_event_with_target(None, event)
     }
 
     fn set_inline_event_listener(self,
@@ -290,7 +292,10 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
     }
 
     fn DispatchEvent(self, event: JSRef<Event>) -> Fallible<bool> {
-        self.dispatch_event_with_target(None, event)
+        if event.dispatching() || !event.initialized() {
+            return Err(InvalidState);
+        }
+        Ok(self.dispatch_event(event))
     }
 }
 
