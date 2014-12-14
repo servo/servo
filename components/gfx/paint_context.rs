@@ -4,6 +4,9 @@
 
 //! Painting of display lists using Moz2D/Azure.
 
+use self::DashSize::*;
+use self::Direction::*;
+
 use azure::azure::AzIntSize;
 use azure::azure_hl::{B8G8R8A8, A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GradientStop, Linear};
