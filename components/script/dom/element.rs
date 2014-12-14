@@ -17,11 +17,12 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLInputElementDerived, HTMLTableCellElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, NodeCast, EventTargetCast, ElementCast};
+use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter, Syntax};
-use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
+use dom::bindings::utils::xml_name_type;
+use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
 use dom::create::create_element;
 use dom::domrect::DOMRect;
 use dom::domrectlist::DOMRectList;
