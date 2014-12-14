@@ -230,7 +230,7 @@ pub mod longhands {
     ${new_style_struct("Border", is_inherited=False)}
 
     % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("border-%s-color" % side, "CSSColor", "CurrentColor")}
+        ${predefined_type("border-%s-color" % side, "CSSColor", "super::super::computed::CSSColor::CurrentColor")}
     % endfor
 
     ${single_keyword("border-top-style", values="none solid double dotted dashed hidden groove ridge inset outset")}
@@ -358,7 +358,7 @@ pub mod longhands {
     ${new_style_struct("Outline", is_inherited=False)}
 
     // TODO(pcwalton): `invert`
-    ${predefined_type("outline-color", "CSSColor", "CurrentColor")}
+    ${predefined_type("outline-color", "CSSColor", "super::super::computed::CSSColor::CurrentColor")}
 
     <%self:single_component_value name="outline-style">
         pub use super::border_top_style::{get_initial_value, to_computed_value};
@@ -413,12 +413,13 @@ pub mod longhands {
 //            }
             if context.positioned || context.floated || context.is_root_element {
                 match value {
-                    inline_table => table,
-                    inline | inline_block
-                    | table_row_group | table_column | table_column_group
-                    | table_header_group | table_footer_group | table_row
-                    | table_cell | table_caption
-                    => block,
+                    T::inline_table => T::table,
+                    T::inline | T::inline_block |
+                    T::table_row_group | T::table_column |
+                    T::table_column_group | T::table_header_group |
+                    T::table_footer_group | T::table_row | T::table_cell |
+                    T::table_caption
+                    => T::block,
                     _ => value,
                 }
             } else {
@@ -463,23 +464,23 @@ pub mod longhands {
             impl T {
                 pub fn number_or_zero(self) -> i32 {
                     match self {
-                        Auto => 0,
-                        Number(value) => value,
+                        T::Auto => 0,
+                        T::Number(value) => value,
                     }
                 }
             }
         }
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            Auto
+            T::Auto
         }
         fn from_component_value(input: &ComponentValue, _: &Url) -> Result<SpecifiedValue,()> {
             match *input {
-                Ident(ref keyword) if keyword.as_slice().eq_ignore_ascii_case("auto") => Ok(Auto),
+                Ident(ref keyword) if keyword.as_slice().eq_ignore_ascii_case("auto") => Ok(T::Auto),
                 ast::Number(ast::NumericValue {
                     int_value: Some(value),
                     ..
-                }) => Ok(Number(value as i32)),
+                }) => Ok(T::Number(value as i32)),
                 _ => Err(())
             }
         }
@@ -539,24 +540,24 @@ pub mod longhands {
     <%self:single_component_value name="line-height">
         #[deriving(Clone)]
         pub enum SpecifiedValue {
-            SpecifiedNormal,
-            SpecifiedLength(specified::Length),
-            SpecifiedNumber(CSSFloat),
+            Normal,
+            Length(specified::Length),
+            Number(CSSFloat),
             // percentage are the same as em.
         }
         /// normal | <number> | <length> | <percentage>
         pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
                                     -> Result<SpecifiedValue, ()> {
             match input {
-                &ast::Number(ref value) if value.value >= 0.
-                => Ok(SpecifiedNumber(value.value)),
-                &ast::Percentage(ref value) if value.value >= 0.
-                => Ok(SpecifiedLength(specified::Length::Em(value.value / 100.))),
-                &Dimension(ref value, ref unit) if value.value >= 0.
-                => specified::Length::parse_dimension(value.value, unit.as_slice())
-                    .map(SpecifiedLength),
-                &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("normal")
-                => Ok(SpecifiedNormal),
+                &ast::Number(ref value) if value.value >= 0. =>
+                    Ok(SpecifiedValue::Number(value.value)),
+                &ast::Percentage(ref value) if value.value >= 0. =>
+                    Ok(SpecifiedValue::Length(specified::Length::Em(value.value / 100.))),
+                &Dimension(ref value, ref unit) if value.value >= 0. =>
+                    specified::Length::parse_dimension(value.value, unit.as_slice())
+                        .map(SpecifiedValue::Length),
+                &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("normal") =>
+                    Ok(SpecifiedValue::Normal),
                 _ => Err(()),
             }
         }
@@ -570,14 +571,14 @@ pub mod longhands {
             }
         }
         #[inline]
-        pub fn get_initial_value() -> computed_value::T { Normal }
+        pub fn get_initial_value() -> computed_value::T { T::Normal }
         #[inline]
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                               -> computed_value::T {
             match value {
-                SpecifiedNormal => Normal,
-                SpecifiedLength(value) => Length(computed::compute_Au(value, context)),
-                SpecifiedNumber(value) => Number(value),
+                SpecifiedValue::Normal => T::Normal,
+                SpecifiedValue::Length(value) => T::Length(computed::compute_Au(value, context)),
+                SpecifiedValue::Number(value) => T::Number(value),
             }
         }
     </%self:single_component_value>
@@ -591,9 +592,9 @@ pub mod longhands {
         #[deriving(Clone)]
         pub enum SpecifiedValue {
             % for keyword in vertical_align_keywords:
-                Specified_${to_rust_ident(keyword)},
+                ${to_rust_ident(keyword)},
             % endfor
-            SpecifiedLengthOrPercentage(specified::LengthOrPercentage),
+            LengthOrPercentage(specified::LengthOrPercentage),
         }
         /// baseline | sub | super | top | text-top | middle | bottom | text-bottom
         /// | <percentage> | <length>
@@ -603,13 +604,13 @@ pub mod longhands {
                 &Ident(ref value) => {
                     match value.as_slice().to_ascii_lower().as_slice() {
                         % for keyword in vertical_align_keywords:
-                        "${keyword}" => Ok(Specified_${to_rust_ident(keyword)}),
+                        "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
                         % endfor
                         _ => Err(()),
                     }
                 },
                 _ => specified::LengthOrPercentage::parse_non_negative(input)
-                     .map(SpecifiedLengthOrPercentage)
+                     .map(SpecifiedValue::LengthOrPercentage)
             }
         }
         pub mod computed_value {
@@ -625,18 +626,18 @@ pub mod longhands {
             }
         }
         #[inline]
-        pub fn get_initial_value() -> computed_value::T { baseline }
+        pub fn get_initial_value() -> computed_value::T { SpecifiedValue::baseline }
         #[inline]
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                               -> computed_value::T {
             match value {
                 % for keyword in vertical_align_keywords:
-                    Specified_${to_rust_ident(keyword)} => ${to_rust_ident(keyword)},
+                    SpecifiedValue::${to_rust_ident(keyword)} => computed_value::T::${to_rust_ident(keyword)},
                 % endfor
-                SpecifiedLengthOrPercentage(value)
+                SpecifiedValue::LengthOrPercentage(value)
                 => match computed::compute_LengthOrPercentage(value, context) {
-                    computed::LengthOrPercentage::Length(value) => Length(value),
-                    computed::LengthOrPercentage::Percentage(value) => Percentage(value)
+                    computed::LengthOrPercentage::Length(value) => T::Length(value),
+                    computed::LengthOrPercentage::Percentage(value) => T::Percentage(value)
                 }
             }
         }
@@ -672,7 +673,7 @@ pub mod longhands {
                 }
             }
             pub type SpecifiedValue = computed_value::T;
-            #[inline] pub fn get_initial_value() -> computed_value::T  { normal }
+            #[inline] pub fn get_initial_value() -> computed_value::T  { T::normal }
 
             // normal | none | [ <string> ]+
             // TODO: <uri>, <counter>, attr(<identifier>), open-quote, close-quote, no-open-quote, no-close-quote
@@ -680,8 +681,8 @@ pub mod longhands {
                 match one_component_value(input) {
                     Ok(&Ident(ref keyword)) => {
                         match keyword.as_slice().to_ascii_lower().as_slice() {
-                            "normal" => return Ok(normal),
-                            "none" => return Ok(none),
+                            "normal" => return Ok(T::normal),
+                            "none" => return Ok(T::none),
                             _ => ()
                         }
                     },
@@ -691,11 +692,11 @@ pub mod longhands {
                 for component_value in input.skip_whitespace() {
                     match component_value {
                         &QuotedString(ref value)
-                        => content.push(StringContent(value.clone())),
+                        => content.push(ContentItem::StringContent(value.clone())),
                         _ => return Err(())  // invalid/unsupported value
                     }
                 }
-                Ok(Content(content))
+                Ok(T::Content(content))
             }
     </%self:longhand>
     // CSS 2.1, Section 13 - Paged media
@@ -765,13 +766,13 @@ pub mod longhands {
                         -> Result<SpecifiedValue,()> {
                     let (horiz, vert) = match (category(first), category(second)) {
                         // Don't allow two vertical keywords or two horizontal keywords.
-                        (HorizontalKeyword, HorizontalKeyword) |
-                        (VerticalKeyword, VerticalKeyword) => return Err(()),
+                        (PositionCategory::HorizontalKeyword, PositionCategory::HorizontalKeyword) |
+                        (PositionCategory::VerticalKeyword, PositionCategory::VerticalKeyword) => return Err(()),
 
                         // Swap if both are keywords and vertical precedes horizontal.
-                        (VerticalKeyword, HorizontalKeyword) |
-                        (VerticalKeyword, OtherKeyword) |
-                        (OtherKeyword, HorizontalKeyword) => (second, first),
+                        (PositionCategory::VerticalKeyword, PositionCategory::HorizontalKeyword) |
+                        (PositionCategory::VerticalKeyword, PositionCategory::OtherKeyword) |
+                        (PositionCategory::OtherKeyword, PositionCategory::HorizontalKeyword) => (second, first),
 
                         // By default, horizontal is first.
                         _ => (first, second),
@@ -792,11 +793,17 @@ pub mod longhands {
             }
             fn category(p: specified::PositionComponent) -> PositionCategory {
                 match p {
-                    specified::Pos_Left | specified::Pos_Right => HorizontalKeyword,
-                    specified::Pos_Top | specified::Pos_Bottom => VerticalKeyword,
-                    specified::Pos_Center => OtherKeyword,
-                    specified::Pos_Length(_) |
-                    specified::Pos_Percentage(_) => LengthOrPercentage,
+                    specified::PositionComponent::Left |
+                    specified::PositionComponent::Right =>
+                        PositionCategory::HorizontalKeyword,
+                    specified::PositionComponent::Top |
+                    specified::PositionComponent::Bottom =>
+                        PositionCategory::VerticalKeyword,
+                    specified::PositionComponent::Center =>
+                        PositionCategory::OtherKeyword,
+                    specified::PositionComponent::Length(_) |
+                    specified::PositionComponent::Percentage(_) =>
+                        PositionCategory::LengthOrPercentage,
                 }
             }
 
@@ -820,7 +827,7 @@ pub mod longhands {
             pub fn parse_one(first: &ComponentValue) -> Result<SpecifiedValue, ()> {
                 let first = try!(specified::PositionComponent::parse(first));
                 // If only one value is provided, use `center` for the second.
-                SpecifiedValue::new(first, specified::Pos_Center)
+                SpecifiedValue::new(first, specified::PositionComponent::Center)
             }
 
             pub fn parse_two(first: &ComponentValue, second: &ComponentValue)
