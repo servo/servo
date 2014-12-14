@@ -38,6 +38,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString backgroundRepeat;
   [TreatNullAs=EmptyString] attribute DOMString backgroundImage;
   [TreatNullAs=EmptyString] attribute DOMString backgroundAttachment;
+  [TreatNullAs=EmptyString] attribute DOMString backgroundSize;
 
   [TreatNullAs=EmptyString] attribute DOMString border;
   [TreatNullAs=EmptyString] attribute DOMString borderColor;
@@ -178,4 +179,6 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString maxWidth;
 
   [TreatNullAs=EmptyString] attribute DOMString zIndex;
+
+  [TreatNullAs=EmptyString] attribute DOMString imageRendering;
 };
