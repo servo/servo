@@ -9,11 +9,11 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLTableElementTypeId;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -23,14 +23,14 @@ pub struct HTMLTableElement {
 
 impl HTMLTableElementDerived for EventTarget {
     fn is_htmltableelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTableElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableElement))
     }
 }
 
 impl HTMLTableElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableElement {
         HTMLTableElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTableElement, localName, prefix, document)
         }
     }
 

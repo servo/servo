@@ -20,14 +20,14 @@ use dom::bindings::js::{Comparable, JS, JSRef, Root, Temporary, OptionalRootable
 use dom::bindings::js::{ResultRootable, RootedReference, MutNullableJS};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{AttributeHandlers, Element, HTMLInputElementTypeId};
+use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
 use dom::event::{Event, Bubbles, NotCancelable, EventHelpers};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::htmlformelement::{InputElement, FormControl, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use textinput::{Single, TextInput, TriggerDefaultAction, DispatchInput, Nothing};
 
@@ -93,7 +93,7 @@ impl InputActivationState {
 
 impl HTMLInputElementDerived for EventTarget {
     fn is_htmlinputelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLInputElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLInputElement))
     }
 }
 
@@ -102,7 +102,7 @@ static DEFAULT_INPUT_SIZE: u32 = 20;
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLInputElement {
         HTMLInputElement {
-            htmlelement: HTMLElement::new_inherited(HTMLInputElementTypeId, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLInputElement, localName, prefix, document),
             input_type: Cell::new(InputText),
             checked: Cell::new(false),
             indeterminate: Cell::new(false),

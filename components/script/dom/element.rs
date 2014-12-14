@@ -29,12 +29,12 @@ use dom::domrectlist::DOMRectList;
 use dom::document::{Document, DocumentHelpers, LayoutDocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::event::Event;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
+use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
 use dom::htmlserializer::serialize;
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
-use dom::node::{ElementNodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node, CLICK_IN_PROGRESS};
+use dom::node::{NodeTypeId, Node, NodeHelpers, NodeIterator, document_from_node, CLICK_IN_PROGRESS};
 use dom::node::{window_from_node, LayoutNodeHelpers};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -68,7 +68,7 @@ impl ElementDerived for EventTarget {
     #[inline]
     fn is_element(&self) -> bool {
         match *self.type_id() {
-            NodeTargetTypeId(ElementNodeTypeId(_)) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(_)) => true,
             _ => false
         }
     }
@@ -83,75 +83,75 @@ impl Reflectable for Element {
 #[deriving(PartialEq, Show)]
 #[jstraceable]
 pub enum ElementTypeId {
-    HTMLElementTypeId,
-    HTMLAnchorElementTypeId,
-    HTMLAppletElementTypeId,
-    HTMLAreaElementTypeId,
-    HTMLAudioElementTypeId,
-    HTMLBaseElementTypeId,
-    HTMLBRElementTypeId,
-    HTMLBodyElementTypeId,
-    HTMLButtonElementTypeId,
-    HTMLCanvasElementTypeId,
-    HTMLDataElementTypeId,
-    HTMLDataListElementTypeId,
-    HTMLDirectoryElementTypeId,
-    HTMLDListElementTypeId,
-    HTMLDivElementTypeId,
-    HTMLEmbedElementTypeId,
-    HTMLFieldSetElementTypeId,
-    HTMLFontElementTypeId,
-    HTMLFormElementTypeId,
-    HTMLFrameElementTypeId,
-    HTMLFrameSetElementTypeId,
-    HTMLHRElementTypeId,
-    HTMLHeadElementTypeId,
-    HTMLHeadingElementTypeId,
-    HTMLHtmlElementTypeId,
-    HTMLIFrameElementTypeId,
-    HTMLImageElementTypeId,
-    HTMLInputElementTypeId,
-    HTMLLabelElementTypeId,
-    HTMLLegendElementTypeId,
-    HTMLLinkElementTypeId,
-    HTMLLIElementTypeId,
-    HTMLMapElementTypeId,
-    HTMLMediaElementTypeId,
-    HTMLMetaElementTypeId,
-    HTMLMeterElementTypeId,
-    HTMLModElementTypeId,
-    HTMLObjectElementTypeId,
-    HTMLOListElementTypeId,
-    HTMLOptGroupElementTypeId,
-    HTMLOptionElementTypeId,
-    HTMLOutputElementTypeId,
-    HTMLParagraphElementTypeId,
-    HTMLParamElementTypeId,
-    HTMLPreElementTypeId,
-    HTMLProgressElementTypeId,
-    HTMLQuoteElementTypeId,
-    HTMLScriptElementTypeId,
-    HTMLSelectElementTypeId,
-    HTMLSourceElementTypeId,
-    HTMLSpanElementTypeId,
-    HTMLStyleElementTypeId,
-    HTMLTableElementTypeId,
-    HTMLTableCaptionElementTypeId,
-    HTMLTableDataCellElementTypeId,
-    HTMLTableHeaderCellElementTypeId,
-    HTMLTableColElementTypeId,
-    HTMLTableRowElementTypeId,
-    HTMLTableSectionElementTypeId,
-    HTMLTemplateElementTypeId,
-    HTMLTextAreaElementTypeId,
-    HTMLTimeElementTypeId,
-    HTMLTitleElementTypeId,
-    HTMLTrackElementTypeId,
-    HTMLUListElementTypeId,
-    HTMLVideoElementTypeId,
-    HTMLUnknownElementTypeId,
+    HTMLElement,
+    HTMLAnchorElement,
+    HTMLAppletElement,
+    HTMLAreaElement,
+    HTMLAudioElement,
+    HTMLBaseElement,
+    HTMLBRElement,
+    HTMLBodyElement,
+    HTMLButtonElement,
+    HTMLCanvasElement,
+    HTMLDataElement,
+    HTMLDataListElement,
+    HTMLDirectoryElement,
+    HTMLDListElement,
+    HTMLDivElement,
+    HTMLEmbedElement,
+    HTMLFieldSetElement,
+    HTMLFontElement,
+    HTMLFormElement,
+    HTMLFrameElement,
+    HTMLFrameSetElement,
+    HTMLHRElement,
+    HTMLHeadElement,
+    HTMLHeadingElement,
+    HTMLHtmlElement,
+    HTMLIFrameElement,
+    HTMLImageElement,
+    HTMLInputElement,
+    HTMLLabelElement,
+    HTMLLegendElement,
+    HTMLLinkElement,
+    HTMLLIElement,
+    HTMLMapElement,
+    HTMLMediaElement,
+    HTMLMetaElement,
+    HTMLMeterElement,
+    HTMLModElement,
+    HTMLObjectElement,
+    HTMLOListElement,
+    HTMLOptGroupElement,
+    HTMLOptionElement,
+    HTMLOutputElement,
+    HTMLParagraphElement,
+    HTMLParamElement,
+    HTMLPreElement,
+    HTMLProgressElement,
+    HTMLQuoteElement,
+    HTMLScriptElement,
+    HTMLSelectElement,
+    HTMLSourceElement,
+    HTMLSpanElement,
+    HTMLStyleElement,
+    HTMLTableElement,
+    HTMLTableCaptionElement,
+    HTMLTableDataCellElement,
+    HTMLTableHeaderCellElement,
+    HTMLTableColElement,
+    HTMLTableRowElement,
+    HTMLTableSectionElement,
+    HTMLTemplateElement,
+    HTMLTextAreaElement,
+    HTMLTimeElement,
+    HTMLTitleElement,
+    HTMLTrackElement,
+    HTMLUListElement,
+    HTMLVideoElement,
+    HTMLUnknownElement,
 
-    ElementTypeId_,
+    Element,
 }
 
 #[deriving(PartialEq)]
@@ -172,7 +172,7 @@ impl Element {
 
     pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JSRef<Document>) -> Element {
         Element {
-            node: Node::new_inherited(ElementNodeTypeId(type_id), document),
+            node: Node::new_inherited(NodeTypeId::Element(type_id), document),
             local_name: Atom::from_slice(local_name.as_slice()),
             namespace: namespace,
             prefix: prefix,
@@ -184,7 +184,7 @@ impl Element {
     }
 
     pub fn new(local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<Element> {
-        Node::reflect_node(box Element::new_inherited(ElementTypeId_, local_name, namespace, prefix, document),
+        Node::reflect_node(box Element::new_inherited(ElementTypeId::Element, local_name, namespace, prefix, document),
                            document, ElementBinding::Wrap)
     }
 }
@@ -1116,9 +1116,9 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         match node.type_id() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
-            ElementNodeTypeId(HTMLAnchorElementTypeId) |
-            ElementNodeTypeId(HTMLAreaElementTypeId) |
-            ElementNodeTypeId(HTMLLinkElementTypeId) => self.get_attr(&ns!(""), &atom!("href")),
+            NodeTypeId::Element(ElementTypeId::HTMLAnchorElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLAreaElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLLinkElement) => self.get_attr(&ns!(""), &atom!("href")),
             _ => None,
          }
     }
@@ -1205,7 +1205,7 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
     fn as_maybe_activatable(&'a self) -> Option<&'a Activatable + 'a> {
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         match node.type_id() {
-            ElementNodeTypeId(HTMLInputElementTypeId) => {
+            NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
                 let element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
                 Some(element as &'a Activatable + 'a)
             },

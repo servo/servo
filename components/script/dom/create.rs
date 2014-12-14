@@ -29,7 +29,7 @@ use dom::htmlformelement::HTMLFormElement;
 use dom::htmlframeelement::HTMLFrameElement;
 use dom::htmlframesetelement::HTMLFrameSetElement;
 use dom::htmlheadelement::HTMLHeadElement;
-use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
+use dom::htmlheadingelement::HeadingLevel::*;
 use dom::htmlheadingelement::HTMLHeadingElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;

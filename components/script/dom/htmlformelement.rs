@@ -13,13 +13,12 @@ use dom::bindings::global::Window;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, AttributeHandlers, HTMLFormElementTypeId, HTMLTextAreaElementTypeId, HTMLDataListElementTypeId};
-use dom::element::{HTMLInputElementTypeId, HTMLButtonElementTypeId, HTMLObjectElementTypeId, HTMLSelectElementTypeId};
+use dom::element::{Element, AttributeHandlers, ElementTypeId};
 use dom::event::{Event, EventHelpers, Bubbles, Cancelable};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlinputelement::HTMLInputElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
+use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use hyper::method::Post;
 use servo_msg::constellation_msg::LoadData;
 use servo_util::str::DOMString;
@@ -36,14 +35,14 @@ pub struct HTMLFormElement {
 
 impl HTMLFormElementDerived for EventTarget {
     fn is_htmlformelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLFormElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLFormElement))
     }
 }
 
 impl HTMLFormElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFormElement {
         HTMLFormElement {
-            htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLFormElement, localName, prefix, document)
         }
     }
 
@@ -231,12 +230,12 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             if child.get_disabled_state() {
                 return None;
             }
-            if child.ancestors().any(|a| a.type_id() == ElementNodeTypeId(HTMLDataListElementTypeId)) {
+            if child.ancestors().any(|a| a.type_id() == NodeTypeId::Element(ElementTypeId::HTMLDataListElement)) {
                 return None;
             }
             // XXXManishearth don't include it if it is a button but not the submitter
             match child.type_id() {
-                ElementNodeTypeId(HTMLInputElementTypeId) => {
+                NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
                     let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child).unwrap();
                     let ty = input.Type();
                     let name = input.Name();
@@ -283,19 +282,19 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                         })
                     }
                 }
-                ElementNodeTypeId(HTMLButtonElementTypeId) => {
+                NodeTypeId::Element(ElementTypeId::HTMLButtonElement) => {
                     // Unimplemented
                     None
                 }
-                ElementNodeTypeId(HTMLSelectElementTypeId) => {
+                NodeTypeId::Element(ElementTypeId::HTMLSelectElement) => {
                     // Unimplemented
                     None
                 }
-                ElementNodeTypeId(HTMLObjectElementTypeId) => {
+                NodeTypeId::Element(ElementTypeId::HTMLObjectElement) => {
                     // Unimplemented
                     None
                 }
-                ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
+                NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) => {
                     // Unimplemented
                     None
                 }

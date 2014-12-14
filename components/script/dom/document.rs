@@ -35,10 +35,9 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ScriptCreated, AttributeHandlers, get_attribute_parts};
-use dom::element::{HTMLHeadElementTypeId, HTMLTitleElementTypeId};
-use dom::element::{HTMLBodyElementTypeId, HTMLFrameSetElementTypeId};
+use dom::element::ElementTypeId;
 use dom::event::{Event, DoesNotBubble, NotCancelable};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
+use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::htmlelement::HTMLElement;
@@ -49,7 +48,7 @@ use dom::location::Location;
 use dom::mouseevent::MouseEvent;
 use dom::keyboardevent::KeyboardEvent;
 use dom::messageevent::MessageEvent;
-use dom::node::{Node, ElementNodeTypeId, DocumentNodeTypeId, NodeHelpers};
+use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::node::{CloneChildren, DoNotCloneChildren};
 use dom::nodelist::NodeList;
 use dom::text::Text;
@@ -107,7 +106,7 @@ pub struct Document {
 
 impl DocumentDerived for EventTarget {
     fn is_document(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(DocumentNodeTypeId)
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Document)
     }
 }
 
@@ -412,7 +411,7 @@ impl Document {
         };
 
         Document {
-            node: Node::new_without_doc(DocumentNodeTypeId),
+            node: Node::new_without_doc(NodeTypeId::Document),
             window: JS::from_rooted(window),
             idmap: DOMRefCell::new(HashMap::new()),
             implementation: Default::default(),
@@ -764,7 +763,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.GetDocumentElement().root().map(|root| {
             let root: JSRef<Node> = NodeCast::from_ref(*root);
             root.traverse_preorder()
-                .find(|node| node.type_id() == ElementNodeTypeId(HTMLTitleElementTypeId))
+                .find(|node| node.type_id() == NodeTypeId::Element(ElementTypeId::HTMLTitleElement))
                 .map(|title_elem| {
                     for text in title_elem.children().filter_map::<JSRef<Text>>(TextCast::to_ref) {
                         title.push_str(text.characterdata().data().as_slice());
@@ -780,11 +779,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.GetDocumentElement().root().map(|root| {
             let root: JSRef<Node> = NodeCast::from_ref(*root);
             let head_node = root.traverse_preorder().find(|child| {
-                child.type_id() == ElementNodeTypeId(HTMLHeadElementTypeId)
+                child.type_id() == NodeTypeId::Element(ElementTypeId::HTMLHeadElement)
             });
             head_node.map(|head| {
                 let title_node = head.children().find(|child| {
-                    child.type_id() == ElementNodeTypeId(HTMLTitleElementTypeId)
+                    child.type_id() == NodeTypeId::Element(ElementTypeId::HTMLTitleElement)
                 });
 
                 match title_node {
@@ -829,8 +828,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let node: JSRef<Node> = NodeCast::from_ref(*root);
             node.children().find(|child| {
                 match child.type_id() {
-                    ElementNodeTypeId(HTMLBodyElementTypeId) |
-                    ElementNodeTypeId(HTMLFrameSetElementTypeId) => true,
+                    NodeTypeId::Element(ElementTypeId::HTMLBodyElement) |
+                    NodeTypeId::Element(ElementTypeId::HTMLFrameSetElement) => true,
                     _ => false
                 }
             }).map(|node| {
@@ -849,8 +848,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
         let node: JSRef<Node> = NodeCast::from_ref(new_body);
         match node.type_id() {
-            ElementNodeTypeId(HTMLBodyElementTypeId) |
-            ElementNodeTypeId(HTMLFrameSetElementTypeId) => {}
+            NodeTypeId::Element(ElementTypeId::HTMLBodyElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLFrameSetElement) => {}
             _ => return Err(HierarchyRequest)
         }
 

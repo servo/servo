@@ -11,7 +11,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary, RootedReference};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, KeyboardEventTypeId};
+use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use servo_msg::constellation_msg;
@@ -37,14 +37,14 @@ pub struct KeyboardEvent {
 
 impl KeyboardEventDerived for Event {
     fn is_keyboardevent(&self) -> bool {
-        *self.type_id() == KeyboardEventTypeId
+        *self.type_id() == EventTypeId::KeyboardEvent
     }
 }
 
 impl KeyboardEvent {
     fn new_inherited() -> KeyboardEvent {
         KeyboardEvent {
-            uievent: UIEvent::new_inherited(KeyboardEventTypeId),
+            uievent: UIEvent::new_inherited(EventTypeId::KeyboardEvent),
             key: RefCell::new("".to_string()),
             code: RefCell::new("".to_string()),
             location: Cell::new(0),

@@ -37,12 +37,12 @@ pub enum ListenerPhase {
 #[deriving(PartialEq)]
 #[jstraceable]
 pub enum EventTargetTypeId {
-    NodeTargetTypeId(NodeTypeId),
-    WebSocketTypeId,
-    WindowTypeId,
-    WorkerTypeId,
-    WorkerGlobalScopeTypeId(WorkerGlobalScopeId),
-    XMLHttpRequestTargetTypeId(XMLHttpRequestId)
+    Node(NodeTypeId),
+    WebSocket,
+    Window,
+    Worker,
+    WorkerGlobalScope(WorkerGlobalScopeId),
+    XMLHttpRequestTarget(XMLHttpRequestId)
 }
 
 #[deriving(PartialEq)]

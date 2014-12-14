@@ -15,7 +15,7 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, WindowTypeId, EventTargetHelpers};
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
@@ -382,7 +382,7 @@ impl Window {
                image_cache_task: ImageCacheTask)
                -> Temporary<Window> {
         let win = box Window {
-            eventtarget: EventTarget::new_inherited(WindowTypeId),
+            eventtarget: EventTarget::new_inherited(EventTargetTypeId::Window),
             script_chan: script_chan,
             control_chan: control_chan,
             console: Default::default(),

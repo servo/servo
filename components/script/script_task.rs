@@ -17,14 +17,13 @@ use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentHelpers, FromParser};
-use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
-use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId, ActivationElementHelpers};
+use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, Bubbles, DoesNotBubble, Cancelable, NotCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node;
-use dom::node::{ElementNodeTypeId, Node, NodeHelpers};
+use dom::node::{NodeTypeId, Node, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
@@ -238,12 +237,12 @@ trait PrivateScriptTaskHelpers {
 impl<'a> PrivateScriptTaskHelpers for JSRef<'a, Node> {
     fn click_event_filter_by_disabled_state(&self) -> bool {
         match self.type_id() {
-            ElementNodeTypeId(HTMLButtonElementTypeId) |
-            ElementNodeTypeId(HTMLInputElementTypeId) |
-            // ElementNodeTypeId(HTMLKeygenElementTypeId) |
-            ElementNodeTypeId(HTMLOptionElementTypeId) |
-            ElementNodeTypeId(HTMLSelectElementTypeId) |
-            ElementNodeTypeId(HTMLTextAreaElementTypeId) if self.get_disabled_state() => true,
+            NodeTypeId::Element(ElementTypeId::HTMLButtonElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLInputElement) |
+            // NodeTypeId::Element(ElementTypeId::HTMLKeygenElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLOptionElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLSelectElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) if self.get_disabled_state() => true,
             _ => false
         }
     }

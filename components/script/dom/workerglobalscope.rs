@@ -9,7 +9,7 @@ use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::console::Console;
-use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use dom::window::{base64_atob, base64_btoa};
@@ -29,7 +29,7 @@ use url::{Url, UrlParser};
 
 #[deriving(PartialEq)]
 #[jstraceable]
-pub enum WorkerGlobalScopeId {
+pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,
 }
 
@@ -53,7 +53,7 @@ impl WorkerGlobalScope {
                          resource_task: ResourceTask,
                          script_chan: ScriptChan) -> WorkerGlobalScope {
         WorkerGlobalScope {
-            eventtarget: EventTarget::new_inherited(WorkerGlobalScopeTypeId(type_id)),
+            eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
             worker_url: worker_url,
             js_context: cx,
             resource_task: resource_task,

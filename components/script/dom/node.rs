@@ -34,11 +34,8 @@ use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument, No
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{AttributeHandlers, Element, ScriptCreated, ElementTypeId};
-use dom::element::{HTMLAnchorElementTypeId, HTMLButtonElementTypeId, ElementHelpers};
-use dom::element::{HTMLInputElementTypeId, HTMLSelectElementTypeId};
-use dom::element::{HTMLTextAreaElementTypeId, HTMLOptGroupElementTypeId};
-use dom::element::{HTMLOptionElementTypeId, HTMLFieldSetElementTypeId};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementHelpers;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
@@ -115,7 +112,7 @@ pub struct Node {
 impl NodeDerived for EventTarget {
     fn is_node(&self) -> bool {
         match *self.type_id() {
-            NodeTargetTypeId(_) => true,
+            EventTargetTypeId::Node(_) => true,
             _ => false
         }
     }
@@ -156,16 +153,16 @@ impl NodeFlags {
     pub fn new(type_id: NodeTypeId) -> NodeFlags {
         let dirty = HAS_CHANGED | IS_DIRTY | HAS_DIRTY_SIBLINGS | HAS_DIRTY_DESCENDANTS;
         match type_id {
-            DocumentNodeTypeId => IS_IN_DOC | dirty,
+            NodeTypeId::Document => IS_IN_DOC | dirty,
             // The following elements are enabled by default.
-            ElementNodeTypeId(HTMLButtonElementTypeId) |
-            ElementNodeTypeId(HTMLInputElementTypeId) |
-            ElementNodeTypeId(HTMLSelectElementTypeId) |
-            ElementNodeTypeId(HTMLTextAreaElementTypeId) |
-            ElementNodeTypeId(HTMLOptGroupElementTypeId) |
-            ElementNodeTypeId(HTMLOptionElementTypeId) |
-            //ElementNodeTypeId(HTMLMenuItemElementTypeId) |
-            ElementNodeTypeId(HTMLFieldSetElementTypeId) => IN_ENABLED_STATE | dirty,
+            NodeTypeId::Element(ElementTypeId::HTMLButtonElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLInputElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLSelectElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLOptGroupElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLOptionElement) |
+            //NodeTypeId::Element(ElementTypeId::HTMLMenuItemElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLFieldSetElement) => IN_ENABLED_STATE | dirty,
             _ => dirty,
         }
     }
@@ -258,13 +255,13 @@ impl LayoutDataRef {
 #[deriving(PartialEq, Show)]
 #[jstraceable]
 pub enum NodeTypeId {
-    DoctypeNodeTypeId,
-    DocumentFragmentNodeTypeId,
-    CommentNodeTypeId,
-    DocumentNodeTypeId,
-    ElementNodeTypeId(ElementTypeId),
-    TextNodeTypeId,
-    ProcessingInstructionNodeTypeId,
+    Doctype,
+    DocumentFragment,
+    Comment,
+    Document,
+    Element(ElementTypeId),
+    Text,
+    ProcessingInstruction,
 }
 
 trait PrivateNodeHelpers {
@@ -559,29 +556,29 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     #[inline]
     fn is_element(self) -> bool {
         match self.type_id {
-            ElementNodeTypeId(..) => true,
+            NodeTypeId::Element(..) => true,
             _ => false
         }
     }
 
     #[inline]
     fn is_document(self) -> bool {
-        self.type_id == DocumentNodeTypeId
+        self.type_id == NodeTypeId::Document
     }
 
     #[inline]
     fn is_anchor_element(self) -> bool {
-        self.type_id == ElementNodeTypeId(HTMLAnchorElementTypeId)
+        self.type_id == NodeTypeId::Element(ElementTypeId::HTMLAnchorElement)
     }
 
     #[inline]
     fn is_doctype(self) -> bool {
-        self.type_id == DoctypeNodeTypeId
+        self.type_id == NodeTypeId::DocumentType
     }
 
     #[inline]
     fn is_text(self) -> bool {
-        self.type_id == TextNodeTypeId
+        self.type_id == NodeTypeId::Text
     }
 
     fn get_flag(self, flag: NodeFlags) -> bool {
@@ -1184,7 +1181,7 @@ impl Node {
 
     fn new_(type_id: NodeTypeId, doc: Option<JSRef<Document>>) -> Node {
         Node {
-            eventtarget: EventTarget::new_inherited(NodeTargetTypeId(type_id)),
+            eventtarget: EventTarget::new_inherited(EventTargetTypeId::Node(type_id)),
             type_id: type_id,
 
             parent_node: Default::default(),
@@ -1244,9 +1241,9 @@ impl Node {
                   -> Fallible<Temporary<Node>> {
         // Step 1.
         match parent.type_id() {
-            DocumentNodeTypeId |
-            DocumentFragmentNodeTypeId |
-            ElementNodeTypeId(..) => (),
+            NodeTypeId::Document |
+            NodeTypeId::DocumentFragment |
+            NodeTypeId::Element(..) => (),
             _ => return Err(HierarchyRequest)
         }
 
@@ -1263,29 +1260,29 @@ impl Node {
 
         // Step 4-5.
         match node.type_id() {
-            TextNodeTypeId => {
+            NodeTypeId::Text => {
                 if parent.is_document() {
                     return Err(HierarchyRequest);
                 }
             },
-            DoctypeNodeTypeId => {
+            NodeTypeId::DocumentType => {
                 if !parent.is_document() {
                     return Err(HierarchyRequest);
                 }
             },
-            DocumentFragmentNodeTypeId |
-            ElementNodeTypeId(_) |
-            ProcessingInstructionNodeTypeId |
-            CommentNodeTypeId => (),
-            DocumentNodeTypeId => return Err(HierarchyRequest)
+            NodeTypeId::DocumentFragment |
+            NodeTypeId::Element(_) |
+            NodeTypeId::ProcessingInstruction |
+            NodeTypeId::Comment => (),
+            NodeTypeId::Document => return Err(HierarchyRequest)
         }
 
         // Step 6.
         match parent.type_id() {
-            DocumentNodeTypeId => {
+            NodeTypeId::Document => {
                 match node.type_id() {
                     // Step 6.1
-                    DocumentFragmentNodeTypeId => {
+                    NodeTypeId::DocumentFragment => {
                         // Step 6.1.1(b)
                         if node.children().any(|c| c.is_text()) {
                             return Err(HierarchyRequest);
@@ -1312,7 +1309,7 @@ impl Node {
                         }
                     },
                     // Step 6.2
-                    ElementNodeTypeId(_) => {
+                    NodeTypeId::Element(_) => {
                         if !parent.child_elements().is_empty() {
                             return Err(HierarchyRequest);
                         }
@@ -1327,7 +1324,7 @@ impl Node {
                         }
                     },
                     // Step 6.3
-                    DoctypeNodeTypeId => {
+                    NodeTypeId::DocumentType => {
                         if parent.children().any(|c| c.is_doctype()) {
                             return Err(HierarchyRequest);
                         }
@@ -1346,10 +1343,10 @@ impl Node {
                             },
                         }
                     },
-                    TextNodeTypeId |
-                    ProcessingInstructionNodeTypeId |
-                    CommentNodeTypeId => (),
-                    DocumentNodeTypeId => unreachable!(),
+                    NodeTypeId::Text |
+                    NodeTypeId::ProcessingInstruction |
+                    NodeTypeId::Comment => (),
+                    NodeTypeId::Document => unreachable!(),
                 }
             },
             _ => (),
@@ -1402,7 +1399,7 @@ impl Node {
         // Step 1-3: ranges.
 
         match node.type_id() {
-            DocumentFragmentNodeTypeId => {
+            NodeTypeId::DocumentFragment => {
                 // Step 4.
                 // Step 5: DocumentFragment, mutation records.
                 // Step 6: DocumentFragment.
@@ -1453,7 +1450,7 @@ impl Node {
         let addedNodes = match node {
             None => vec!(),
             Some(node) => match node.type_id() {
-                DocumentFragmentNodeTypeId => node.children().collect(),
+                NodeTypeId::DocumentFragment => node.children().collect(),
                 _ => vec!(node.clone()),
             },
         };
@@ -1527,23 +1524,23 @@ impl Node {
         // Step 2.
         // XXXabinader: clone() for each node as trait?
         let copy: Root<Node> = match node.type_id() {
-            DoctypeNodeTypeId => {
+            NodeTypeId::DocumentType => {
                 let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
                 let doctype = DocumentType::new(doctype.name().clone(),
                                                 Some(doctype.public_id().clone()),
                                                 Some(doctype.system_id().clone()), *document);
                 NodeCast::from_temporary(doctype)
             },
-            DocumentFragmentNodeTypeId => {
+            NodeTypeId::DocumentFragment => {
                 let doc_fragment = DocumentFragment::new(*document);
                 NodeCast::from_temporary(doc_fragment)
             },
-            CommentNodeTypeId => {
+            NodeTypeId::Comment => {
                 let comment: JSRef<Comment> = CommentCast::to_ref(node).unwrap();
                 let comment = Comment::new(comment.characterdata().data().clone(), *document);
                 NodeCast::from_temporary(comment)
             },
-            DocumentNodeTypeId => {
+            NodeTypeId::Document => {
                 let document: JSRef<Document> = DocumentCast::to_ref(node).unwrap();
                 let is_html_doc = match document.is_html_document() {
                     true => HTMLDocument,
@@ -1554,7 +1551,7 @@ impl Node {
                                              is_html_doc, None, NotFromParser);
                 NodeCast::from_temporary(document)
             },
-            ElementNodeTypeId(..) => {
+            NodeTypeId::Element(..) => {
                 let element: JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 let name = QualName {
                     ns: element.namespace().clone(),
@@ -1564,12 +1561,12 @@ impl Node {
                     element.prefix().as_ref().map(|p| p.as_slice().to_string()), *document, ScriptCreated);
                 NodeCast::from_temporary(element)
             },
-            TextNodeTypeId => {
+            NodeTypeId::Text => {
                 let text: JSRef<Text> = TextCast::to_ref(node).unwrap();
                 let text = Text::new(text.characterdata().data().clone(), *document);
                 NodeCast::from_temporary(text)
             },
-            ProcessingInstructionNodeTypeId => {
+            NodeTypeId::ProcessingInstruction => {
                 let pi: JSRef<ProcessingInstruction> = ProcessingInstructionCast::to_ref(node).unwrap();
                 let pi = ProcessingInstruction::new(pi.target().clone(),
                                                     pi.characterdata().data().clone(), *document);
@@ -1586,13 +1583,13 @@ impl Node {
 
         // Step 4 (some data already copied in step 2).
         match node.type_id() {
-            DocumentNodeTypeId => {
+            NodeTypeId::Document => {
                 let node_doc: JSRef<Document> = DocumentCast::to_ref(node).unwrap();
                 let copy_doc: JSRef<Document> = DocumentCast::to_ref(*copy).unwrap();
                 copy_doc.set_encoding_name(node_doc.encoding_name().clone());
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
-            ElementNodeTypeId(..) => {
+            NodeTypeId::Element(..) => {
                 let node_elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 let copy_elem: JSRef<Element> = ElementCast::to_ref(*copy).unwrap();
 
@@ -1656,36 +1653,36 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-node-nodetype
     fn NodeType(self) -> u16 {
         match self.type_id {
-            ElementNodeTypeId(_)            => NodeConstants::ELEMENT_NODE,
-            TextNodeTypeId                  => NodeConstants::TEXT_NODE,
-            ProcessingInstructionNodeTypeId => NodeConstants::PROCESSING_INSTRUCTION_NODE,
-            CommentNodeTypeId               => NodeConstants::COMMENT_NODE,
-            DocumentNodeTypeId              => NodeConstants::DOCUMENT_NODE,
-            DoctypeNodeTypeId               => NodeConstants::DOCUMENT_TYPE_NODE,
-            DocumentFragmentNodeTypeId      => NodeConstants::DOCUMENT_FRAGMENT_NODE,
+            NodeTypeId::Element(_)            => NodeConstants::ELEMENT_NODE,
+            NodeTypeId::Text                  => NodeConstants::TEXT_NODE,
+            NodeTypeId::ProcessingInstruction => NodeConstants::PROCESSING_INSTRUCTION_NODE,
+            NodeTypeId::Comment               => NodeConstants::COMMENT_NODE,
+            NodeTypeId::Document              => NodeConstants::DOCUMENT_NODE,
+            NodeTypeId::DocumentType          => NodeConstants::DOCUMENT_TYPE_NODE,
+            NodeTypeId::DocumentFragment      => NodeConstants::DOCUMENT_FRAGMENT_NODE,
         }
     }
 
     // http://dom.spec.whatwg.org/#dom-node-nodename
     fn NodeName(self) -> DOMString {
         match self.type_id {
-            ElementNodeTypeId(..) => {
+            NodeTypeId::Element(..) => {
                 let elem: JSRef<Element> = ElementCast::to_ref(self).unwrap();
                 elem.TagName()
             }
-            TextNodeTypeId => "#text".to_string(),
-            ProcessingInstructionNodeTypeId => {
+            NodeTypeId::Text => "#text".to_string(),
+            NodeTypeId::ProcessingInstruction => {
                 let processing_instruction: JSRef<ProcessingInstruction> =
                     ProcessingInstructionCast::to_ref(self).unwrap();
                 processing_instruction.Target()
             }
-            CommentNodeTypeId => "#comment".to_string(),
-            DoctypeNodeTypeId => {
+            NodeTypeId::Comment => "#comment".to_string(),
+            NodeTypeId::DocumentType => {
                 let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(self).unwrap();
                 doctype.name().clone()
             },
-            DocumentFragmentNodeTypeId => "#document-fragment".to_string(),
-            DocumentNodeTypeId => "#document".to_string()
+            NodeTypeId::DocumentFragment => "#document-fragment".to_string(),
+            NodeTypeId::Document => "#document".to_string()
         }
     }
 
@@ -1698,13 +1695,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-node-ownerdocument
     fn GetOwnerDocument(self) -> Option<Temporary<Document>> {
         match self.type_id {
-            ElementNodeTypeId(..) |
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId |
-            DoctypeNodeTypeId |
-            DocumentFragmentNodeTypeId => Some(self.owner_doc()),
-            DocumentNodeTypeId => None
+            NodeTypeId::Element(..) |
+            NodeTypeId::Comment |
+            NodeTypeId::Text |
+            NodeTypeId::ProcessingInstruction |
+            NodeTypeId::DocumentType |
+            NodeTypeId::DocumentFragment => Some(self.owner_doc()),
+            NodeTypeId::Document => None
         }
     }
 
@@ -1761,9 +1758,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
     fn GetNodeValue(self) -> Option<DOMString> {
         match self.type_id {
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId => {
+            NodeTypeId::Comment |
+            NodeTypeId::Text |
+            NodeTypeId::ProcessingInstruction => {
                 let chardata: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
                 Some(chardata.Data())
             }
@@ -1776,9 +1773,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-node-nodevalue
     fn SetNodeValue(self, val: Option<DOMString>) {
         match self.type_id {
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId => {
+            NodeTypeId::Comment |
+            NodeTypeId::Text |
+            NodeTypeId::ProcessingInstruction => {
                 self.SetTextContent(val)
             }
             _ => {}
@@ -1788,19 +1785,19 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-node-textcontent
     fn GetTextContent(self) -> Option<DOMString> {
         match self.type_id {
-            DocumentFragmentNodeTypeId |
-            ElementNodeTypeId(..) => {
+            NodeTypeId::DocumentFragment |
+            NodeTypeId::Element(..) => {
                 let content = Node::collect_text_contents(self.traverse_preorder());
                 Some(content)
             }
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId => {
+            NodeTypeId::Comment |
+            NodeTypeId::Text |
+            NodeTypeId::ProcessingInstruction => {
                 let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
                 Some(characterdata.Data())
             }
-            DoctypeNodeTypeId |
-            DocumentNodeTypeId => {
+            NodeTypeId::DocumentType |
+            NodeTypeId::Document => {
                 None
             }
         }
@@ -1810,8 +1807,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     fn SetTextContent(self, value: Option<DOMString>) {
         let value = null_str_as_empty(&value);
         match self.type_id {
-            DocumentFragmentNodeTypeId |
-            ElementNodeTypeId(..) => {
+            NodeTypeId::DocumentFragment |
+            NodeTypeId::Element(..) => {
                 // Step 1-2.
                 let node = if value.len() == 0 {
                     None
@@ -1823,9 +1820,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 // Step 3.
                 Node::replace_all(node.root_ref(), self);
             }
-            CommentNodeTypeId |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId => {
+            NodeTypeId::Comment |
+            NodeTypeId::Text |
+            NodeTypeId::ProcessingInstruction => {
                 self.wait_until_safe_to_modify_dom();
 
                 let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(self).unwrap();
@@ -1835,8 +1832,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 let document = self.owner_doc().root();
                 document.content_changed(self);
             }
-            DoctypeNodeTypeId |
-            DocumentNodeTypeId => {}
+            NodeTypeId::DocumentType |
+            NodeTypeId::Document => {}
         }
     }
 
@@ -1855,9 +1852,9 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
         // Step 1.
         match self.type_id {
-            DocumentNodeTypeId |
-            DocumentFragmentNodeTypeId |
-            ElementNodeTypeId(..) => (),
+            NodeTypeId::Document |
+            NodeTypeId::DocumentFragment |
+            NodeTypeId::Element(..) => (),
             _ => return Err(HierarchyRequest)
         }
 
@@ -1873,23 +1870,23 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
         // Step 4-5.
         match node.type_id() {
-            TextNodeTypeId if self.is_document() => return Err(HierarchyRequest),
-            DoctypeNodeTypeId if !self.is_document() => return Err(HierarchyRequest),
-            DocumentFragmentNodeTypeId |
-            DoctypeNodeTypeId |
-            ElementNodeTypeId(..) |
-            TextNodeTypeId |
-            ProcessingInstructionNodeTypeId |
-            CommentNodeTypeId => (),
-            DocumentNodeTypeId => return Err(HierarchyRequest)
+            NodeTypeId::Text if self.is_document() => return Err(HierarchyRequest),
+            NodeTypeId::DocumentType if !self.is_document() => return Err(HierarchyRequest),
+            NodeTypeId::DocumentFragment |
+            NodeTypeId::DocumentType |
+            NodeTypeId::Element(..) |
+            NodeTypeId::Text |
+            NodeTypeId::ProcessingInstruction |
+            NodeTypeId::Comment => (),
+            NodeTypeId::Document => return Err(HierarchyRequest)
         }
 
         // Step 6.
         match self.type_id {
-            DocumentNodeTypeId => {
+            NodeTypeId::Document => {
                 match node.type_id() {
                     // Step 6.1
-                    DocumentFragmentNodeTypeId => {
+                    NodeTypeId::DocumentFragment => {
                         // Step 6.1.1(b)
                         if node.children().any(|c| c.is_text()) {
                             return Err(HierarchyRequest);
@@ -1911,7 +1908,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                         }
                     },
                     // Step 6.2
-                    ElementNodeTypeId(..) => {
+                    NodeTypeId::Element(..) => {
                         if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
                             return Err(HierarchyRequest);
                         }
@@ -1921,7 +1918,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                         }
                     },
                     // Step 6.3
-                    DoctypeNodeTypeId => {
+                    NodeTypeId::DocumentType => {
                         if self.children().any(|c| c.is_doctype() && c != child) {
                             return Err(HierarchyRequest);
                         }
@@ -1931,10 +1928,10 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                             return Err(HierarchyRequest);
                         }
                     },
-                    TextNodeTypeId |
-                    ProcessingInstructionNodeTypeId |
-                    CommentNodeTypeId => (),
-                    DocumentNodeTypeId => unreachable!()
+                    NodeTypeId::Text |
+                    NodeTypeId::ProcessingInstruction |
+                    NodeTypeId::Comment => (),
+                    NodeTypeId::Document => unreachable!()
                 }
             },
             _ => ()
@@ -1967,7 +1964,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         // Step 12-14.
         // Step 13: mutation records.
         child.node_removed(self.is_in_doc());
-        if node.type_id() == DocumentFragmentNodeTypeId {
+        if node.type_id() == NodeTypeId::DocumentFragment {
             for child_node in node.children() {
                 child_node.node_inserted();
             }
@@ -2066,13 +2063,13 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
             match node.type_id() {
                 // Step 3.
-                DoctypeNodeTypeId if !is_equal_doctype(this, node) => return false,
-                ElementNodeTypeId(..) if !is_equal_element(this, node) => return false,
-                ProcessingInstructionNodeTypeId if !is_equal_processinginstruction(this, node) => return false,
-                TextNodeTypeId |
-                CommentNodeTypeId if !is_equal_characterdata(this, node) => return false,
+                NodeTypeId::DocumentType if !is_equal_doctype(this, node) => return false,
+                NodeTypeId::Element(..) if !is_equal_element(this, node) => return false,
+                NodeTypeId::ProcessingInstruction if !is_equal_processinginstruction(this, node) => return false,
+                NodeTypeId::Text |
+                NodeTypeId::Comment if !is_equal_characterdata(this, node) => return false,
                 // Step 4.
-                ElementNodeTypeId(..) if !is_equal_element_attrs(this, node) => return false,
+                NodeTypeId::Element(..) if !is_equal_element_attrs(this, node) => return false,
                 _ => ()
             }
 

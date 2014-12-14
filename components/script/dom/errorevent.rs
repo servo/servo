@@ -13,7 +13,7 @@ use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventTypeId, ErrorEventTypeId, EventBubbles, Bubbles, DoesNotBubble, EventCancelable, Cancelable, NotCancelable};
+use dom::event::{Event, EventTypeId, EventBubbles, Bubbles, DoesNotBubble, EventCancelable, Cancelable, NotCancelable};
 use servo_util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
@@ -32,7 +32,7 @@ pub struct ErrorEvent {
 
 impl ErrorEventDerived for Event {
     fn is_errorevent(&self) -> bool {
-        *self.type_id() == ErrorEventTypeId
+        *self.type_id() == EventTypeId::ErrorEvent
     }
 }
 
@@ -49,7 +49,7 @@ impl ErrorEvent {
     }
 
     pub fn new_uninitialized(global: &GlobalRef) -> Temporary<ErrorEvent> {
-        reflect_dom_object(box ErrorEvent::new_inherited(ErrorEventTypeId),
+        reflect_dom_object(box ErrorEvent::new_inherited(EventTypeId::ErrorEvent),
                            *global,
                            ErrorEventBinding::Wrap)
     }

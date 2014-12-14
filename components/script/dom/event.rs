@@ -27,14 +27,14 @@ pub enum EventPhase {
 #[deriving(PartialEq)]
 #[jstraceable]
 pub enum EventTypeId {
-    CustomEventTypeId,
-    HTMLEventTypeId,
-    KeyboardEventTypeId,
-    MessageEventTypeId,
-    MouseEventTypeId,
-    ProgressEventTypeId,
-    UIEventTypeId,
-    ErrorEventTypeId
+    CustomEvent,
+    HTMLEvent,
+    KeyboardEvent,
+    MessageEvent,
+    MouseEvent,
+    ProgressEvent,
+    UIEvent,
+    ErrorEvent
 }
 
 #[deriving(PartialEq)]
@@ -90,7 +90,7 @@ impl Event {
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Temporary<Event> {
-        reflect_dom_object(box Event::new_inherited(HTMLEventTypeId),
+        reflect_dom_object(box Event::new_inherited(EventTypeId::HTMLEvent),
                            global,
                            EventBinding::Wrap)
     }

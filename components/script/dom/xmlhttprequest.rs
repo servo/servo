@@ -19,10 +19,11 @@ use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
 use dom::event::{Event, DoesNotBubble, Cancelable};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::progressevent::ProgressEvent;
 use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
+use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
 
 use encoding::all::UTF_8;
@@ -61,14 +62,6 @@ use url::{Url, UrlParser};
 
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams, StringOrURLSearchParams};
 pub type SendParam = StringOrURLSearchParams;
-
-
-#[deriving(PartialEq)]
-#[jstraceable]
-pub enum XMLHttpRequestId {
-    XMLHttpRequestTypeId,
-    XMLHttpRequestUploadTypeId
-}
 
 #[deriving(PartialEq)]
 #[jstraceable]
@@ -152,7 +145,7 @@ pub struct XMLHttpRequest {
 impl XMLHttpRequest {
     fn new_inherited(global: &GlobalRef) -> XMLHttpRequest {
         XMLHttpRequest {
-            eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
+            eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestEventTargetTypeId::XMLHttpRequest),
             ready_state: Cell::new(Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),

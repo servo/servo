@@ -12,7 +12,7 @@ use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
-use dom::eventtarget::{EventTarget, EventTargetHelpers, WorkerTypeId};
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use script_task::{ScriptChan, DOMMessage};
 
@@ -44,7 +44,7 @@ pub struct Worker {
 impl Worker {
     fn new_inherited(global: &GlobalRef, sender: ScriptChan) -> Worker {
         Worker {
-            eventtarget: EventTarget::new_inherited(WorkerTypeId),
+            eventtarget: EventTarget::new_inherited(EventTargetTypeId::Worker),
             refcount: Cell::new(0),
             global: GlobalField::from_rooted(global),
             sender: sender,
