@@ -44,7 +44,7 @@ use string_cache::Atom;
 use style::{ComputedValues, TElement, TNode, cascade_anonymous};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::computed_values::{LengthOrPercentageOrNone};
-use style::computed_values::{LPA_Auto, clear, overflow_wrap, position, text_align};
+use style::computed_values::{clear, overflow_wrap, position, text_align};
 use style::computed_values::{text_decoration, vertical_align, white_space};
 use sync::{Arc, Mutex};
 use url::Url;
@@ -842,12 +842,12 @@ impl Fragment {
         fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>)
                       -> LogicalSize<Au> {
             let offsets = style.logical_position();
-            let offset_i = if offsets.inline_start != LPA_Auto {
+            let offset_i = if offsets.inline_start != LengthOrPercentageOrAuto::Auto {
                 MaybeAuto::from_style(offsets.inline_start, container_size.inline).specified_or_zero()
             } else {
                 -MaybeAuto::from_style(offsets.inline_end, container_size.inline).specified_or_zero()
             };
-            let offset_b = if offsets.block_start != LPA_Auto {
+            let offset_b = if offsets.block_start != LengthOrPercentageOrAuto::Auto {
                 MaybeAuto::from_style(offsets.block_start, container_size.inline).specified_or_zero()
             } else {
                 -MaybeAuto::from_style(offsets.block_end, container_size.inline).specified_or_zero()

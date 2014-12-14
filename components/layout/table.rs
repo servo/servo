@@ -24,7 +24,7 @@ use servo_util::logical_geometry::LogicalRect;
 use std::cmp::max;
 use std::fmt;
 use style::{ComputedValues, CSSFloat};
-use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, table_layout};
+use style::computed_values::{LengthOrPercentageOrAuto, table_layout};
 use sync::Arc;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
@@ -179,12 +179,12 @@ impl Flow for TableFlow {
                 for specified_inline_size in kid.as_table_colgroup().inline_sizes.iter() {
                     self.column_intrinsic_inline_sizes.push(ColumnIntrinsicInlineSize {
                         minimum_length: match *specified_inline_size {
-                            LPA_Auto | LPA_Percentage(_) => Au(0),
-                            LPA_Length(length) => length,
+                            LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Percentage(_) => Au(0),
+                            LengthOrPercentageOrAuto::Length(length) => length,
                         },
                         percentage: match *specified_inline_size {
-                            LPA_Auto | LPA_Length(_) => 0.0,
-                            LPA_Percentage(percentage) => percentage,
+                            LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Length(_) => 0.0,
+                            LengthOrPercentageOrAuto::Percentage(percentage) => percentage,
                         },
                         preferred: Au(0),
                         constrained: false,

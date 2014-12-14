@@ -496,13 +496,13 @@ impl Stylist {
                 match element.get_length_attribute(LengthAttribute::Width) {
                     LengthOrPercentageOrAuto::Auto => {}
                     LengthOrPercentageOrAuto::Percentage(percentage) => {
-                        let width_value = specified::LPA_Percentage(percentage);
+                        let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 WidthDeclaration(SpecifiedValue(width_value))));
                         *shareable = false
                     }
                     LengthOrPercentageOrAuto::Length(length) => {
-                        let width_value = specified::LPA_Length(specified::Au_(length));
+                        let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Au_(length));
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 WidthDeclaration(SpecifiedValue(width_value))));
                         *shareable = false
@@ -523,7 +523,7 @@ impl Stylist {
                             _ => specified::Au_(Au::from_px(value as int)),
                         };
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(specified::LPA_Length(
+                                WidthDeclaration(SpecifiedValue(specified::LengthOrPercentageOrAuto::Length(
                                             value)))));
                         *shareable = false
                     }

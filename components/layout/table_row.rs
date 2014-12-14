@@ -22,7 +22,7 @@ use servo_util::geometry::Au;
 use std::cmp::max;
 use std::fmt;
 use style::ComputedValues;
-use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage};
+use style::computed_values::LengthOrPercentageOrAuto;
 use sync::Arc;
 
 /// A single row of a table.
@@ -191,19 +191,19 @@ impl Flow for TableRowFlow {
             let child_base = flow::mut_base(kid);
             let child_column_inline_size = ColumnIntrinsicInlineSize {
                 minimum_length: match child_specified_inline_size {
-                    LPA_Auto | LPA_Percentage(_) => {
+                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Percentage(_) => {
                         child_base.intrinsic_inline_sizes.minimum_inline_size
                     }
-                    LPA_Length(length) => length,
+                    LengthOrPercentageOrAuto::Length(length) => length,
                 },
                 percentage: match child_specified_inline_size {
-                    LPA_Auto | LPA_Length(_) => 0.0,
-                    LPA_Percentage(percentage) => percentage,
+                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Length(_) => 0.0,
+                    LengthOrPercentageOrAuto::Percentage(percentage) => percentage,
                 },
                 preferred: child_base.intrinsic_inline_sizes.preferred_inline_size,
                 constrained: match child_specified_inline_size {
-                    LPA_Length(_) => true,
-                    LPA_Auto | LPA_Percentage(_) => false,
+                    LengthOrPercentageOrAuto::Length(_) => true,
+                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Percentage(_) => false,
                 },
             };
             min_inline_size = min_inline_size + child_column_inline_size.minimum_length;

@@ -216,7 +216,7 @@ pub mod longhands {
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("margin-" + side, "LengthOrPercentageOrAuto",
-                          "computed::LPA_Length(Au(0))")}
+                          "computed::LengthOrPercentageOrAuto::Length(Au(0))")}
     % endfor
 
     ${new_style_struct("Padding", is_inherited=False)}
@@ -391,7 +391,7 @@ pub mod longhands {
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type(side, "LengthOrPercentageOrAuto",
-                          "computed::LPA_Auto")}
+                          "computed::LengthOrPercentageOrAuto::Auto")}
     % endfor
 
     // CSS 2.1, Section 9 - Visual formatting model
@@ -494,7 +494,7 @@ pub mod longhands {
     ${switch_to_style_struct("Box")}
 
     ${predefined_type("width", "LengthOrPercentageOrAuto",
-                      "computed::LPA_Auto",
+                      "computed::LengthOrPercentageOrAuto::Auto",
                       "parse_non_negative")}
     <%self:single_component_value name="height">
         pub type SpecifiedValue = specified::LengthOrPercentageOrAuto;
@@ -502,7 +502,7 @@ pub mod longhands {
             pub type T = super::super::computed::LengthOrPercentageOrAuto;
         }
         #[inline]
-        pub fn get_initial_value() -> computed_value::T { computed::LPA_Auto }
+        pub fn get_initial_value() -> computed_value::T { computed::LengthOrPercentageOrAuto::Auto }
         #[inline]
         pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
                                               -> Result<SpecifiedValue, ()> {
@@ -511,9 +511,9 @@ pub mod longhands {
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                               -> computed_value::T {
             match (value, context.inherited_height) {
-                (specified::LPA_Percentage(_), computed::LPA_Auto)
+                (specified::LengthOrPercentageOrAuto::Percentage(_), computed::LengthOrPercentageOrAuto::Auto)
                 if !context.is_root_element && !context.positioned => {
-                    computed::LPA_Auto
+                    computed::LengthOrPercentageOrAuto::Auto
                 },
                 _ => computed::compute_LengthOrPercentageOrAuto(value, context)
             }
@@ -2547,6 +2547,6 @@ pub mod computed_values {
     pub use cssparser::RGBA;
     pub use super::common_types::computed::{
         LengthOrPercentage, LP_Length, LP_Percentage,
-        LengthOrPercentageOrAuto, LPA_Length, LPA_Percentage, LPA_Auto,
+        LengthOrPercentageOrAuto,
         LengthOrPercentageOrNone};
 }

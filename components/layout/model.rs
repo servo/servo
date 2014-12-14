@@ -10,7 +10,7 @@ use fragment::Fragment;
 
 use style::computed_values as computed;
 use geom::SideOffsets2D;
-use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LP_Length, LP_Percentage};
+use style::computed_values::{LengthOrPercentageOrAuto, LP_Length, LP_Percentage};
 use style::ComputedValues;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalMargin;
@@ -117,7 +117,7 @@ impl MarginCollapseInfo {
         let state = match self.state {
             AccumulatingCollapsibleTopMargin => {
                 match fragment.style().content_block_size() {
-                    LPA_Auto | LPA_Length(Au(0)) | LPA_Percentage(0.) => {
+                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Length(Au(0)) | LengthOrPercentageOrAuto::Percentage(0.) => {
                         match fragment.style().min_block_size() {
                             LP_Length(Au(0)) | LP_Percentage(0.) => {
                                 MarginsCollapseThroughFinalMarginState
@@ -333,11 +333,11 @@ impl MaybeAuto {
     pub fn from_style(length: computed::LengthOrPercentageOrAuto, containing_length: Au)
                       -> MaybeAuto {
         match length {
-            computed::LPA_Auto => Auto,
-            computed::LPA_Percentage(percent) => {
+            computed::LengthOrPercentageOrAuto::Auto => Auto,
+            computed::LengthOrPercentageOrAuto::Percentage(percent) => {
                 Specified(containing_length.scale_by(percent))
             }
-            computed::LPA_Length(length) => Specified(length)
+            computed::LengthOrPercentageOrAuto::Length(length) => Specified(length)
         }
     }
 

@@ -114,20 +114,22 @@ pub mod specified {
 
     #[deriving(Clone)]
     pub enum LengthOrPercentageOrAuto {
-        LPA_Length(Length),
-        LPA_Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
-        LPA_Auto,
+        Length(Length),
+        Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
+        Auto,
     }
     impl LengthOrPercentageOrAuto {
         fn parse_internal(input: &ComponentValue, negative_ok: bool)
                      -> Result<LengthOrPercentageOrAuto, ()> {
             match input {
-                &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
-                => Length::parse_dimension(value.value, unit.as_slice()).map(LPA_Length),
-                &ast::Percentage(ref value) if negative_ok || value.value >= 0.
-                => Ok(LPA_Percentage(value.value / 100.)),
-                &Number(ref value) if value.value == 0. => Ok(LPA_Length(Au_(Au(0)))),
-                &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("auto") => Ok(LPA_Auto),
+                &Dimension(ref value, ref unit) if negative_ok || value.value >= 0. =>
+                    Length::parse_dimension(value.value, unit.as_slice()).map(LengthOrPercentageOrAuto::Length),
+                &ast::Percentage(ref value) if negative_ok || value.value >= 0. =>
+                    Ok(LengthOrPercentageOrAuto::Percentage(value.value / 100.)),
+                &Number(ref value) if value.value == 0. =>
+                    Ok(LengthOrPercentageOrAuto::Length(Au_(Au(0)))),
+                &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("auto") =>
+                    Ok(LengthOrPercentageOrAuto::Auto),
                 _ => Err(())
             }
         }
@@ -523,17 +525,20 @@ pub mod computed {
 
     #[deriving(PartialEq, Clone, Show)]
     pub enum LengthOrPercentageOrAuto {
-        LPA_Length(Au),
-        LPA_Percentage(CSSFloat),
-        LPA_Auto,
+        Length(Au),
+        Percentage(CSSFloat),
+        Auto,
     }
     #[allow(non_snake_case)]
     pub fn compute_LengthOrPercentageOrAuto(value: specified::LengthOrPercentageOrAuto,
                                             context: &Context) -> LengthOrPercentageOrAuto {
         match value {
-            specified::LPA_Length(value) => LPA_Length(compute_Au(value, context)),
-            specified::LPA_Percentage(value) => LPA_Percentage(value),
-            specified::LPA_Auto => LPA_Auto,
+            specified::LengthOrPercentageOrAuto::Length(value) =>
+                LengthOrPercentageOrAuto::Length(compute_Au(value, context)),
+            specified::LengthOrPercentageOrAuto::Percentage(value) =>
+                LengthOrPercentageOrAuto::Percentage(value),
+            specified::LengthOrPercentageOrAuto::Auto =>
+                LengthOrPercentageOrAuto::Auto,
         }
     }
 

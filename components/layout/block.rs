@@ -59,7 +59,7 @@ use servo_util::opts;
 use std::cmp::{max, min};
 use std::fmt;
 use style::ComputedValues;
-use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LengthOrPercentageOrNone};
+use style::computed_values::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::computed_values::{LP_Length, LP_Percentage, box_sizing, display, float};
 use style::computed_values::{overflow, position};
 use sync::Arc;
@@ -324,11 +324,11 @@ impl CandidateBSizeIterator {
         // `min-height` and `max-height`, percentage values are ignored.
 
         let block_size = match (fragment.style.content_block_size(), block_container_block_size) {
-            (LPA_Percentage(percent), Some(block_container_block_size)) => {
+            (LengthOrPercentageOrAuto::Percentage(percent), Some(block_container_block_size)) => {
                 Specified(block_container_block_size.scale_by(percent))
             }
-            (LPA_Percentage(_), None) | (LPA_Auto, _) => Auto,
-            (LPA_Length(length), _) => Specified(length),
+            (LengthOrPercentageOrAuto::Percentage(_), None) | (LengthOrPercentageOrAuto::Auto, _) => Auto,
+            (LengthOrPercentageOrAuto::Length(length), _) => Specified(length),
         };
         let max_block_size = match (fragment.style.max_block_size(), block_container_block_size) {
             (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) => {
@@ -1147,11 +1147,11 @@ impl BlockFlow {
             // calculated during assign-inline-size.
             let margin = self.fragment.style().logical_margin();
             let margin_block_start = match margin.block_start {
-                LPA_Auto => Auto,
+                LengthOrPercentageOrAuto::Auto => Auto,
                 _ => Specified(self.fragment.margin.block_start)
             };
             let margin_block_end = match margin.block_end {
-                LPA_Auto => Auto,
+                LengthOrPercentageOrAuto::Auto => Auto,
                 _ => Specified(self.fragment.margin.block_end)
             };
 
@@ -1301,11 +1301,11 @@ impl BlockFlow {
         let content_block_size = self.fragment.style().content_block_size();
         let explicit_content_size = match (content_block_size,
                                            self.base.block_container_explicit_block_size) {
-            (LPA_Percentage(percent), Some(container_size)) => {
+            (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
                 Some(container_size.scale_by(percent))
             }
-            (LPA_Percentage(_), None) | (LPA_Auto, _) => None,
-            (LPA_Length(length), _) => Some(length),
+            (LengthOrPercentageOrAuto::Percentage(_), None) | (LengthOrPercentageOrAuto::Auto, _) => None,
+            (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
         };
 
         // Calculate containing block inline size.
@@ -1510,7 +1510,7 @@ impl Flow for BlockFlow {
         // and preferred width, rather than bubbling up children inline
         // width.
         let fixed_width = match self.fragment.style().get_box().width {
-            LPA_Length(_) => true,
+            LengthOrPercentageOrAuto::Length(_) => true,
             _ => false,
         };
 
@@ -1839,16 +1839,16 @@ impl Flow for BlockFlow {
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
-                self.fragment.style().logical_position().inline_start == LPA_Auto &&
-                self.fragment.style().logical_position().inline_end == LPA_Auto {
+                self.fragment.style().logical_position().inline_start == LengthOrPercentageOrAuto::Auto &&
+                self.fragment.style().logical_position().inline_end == LengthOrPercentageOrAuto::Auto {
             self.base.position.start.i = inline_position
         }
     }
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
-                self.fragment.style().logical_position().block_start == LPA_Auto &&
-                self.fragment.style().logical_position().block_end == LPA_Auto {
+                self.fragment.style().logical_position().block_start == LengthOrPercentageOrAuto::Auto &&
+                self.fragment.style().logical_position().block_end == LengthOrPercentageOrAuto::Auto {
             self.base.position.start.b = block_position
         }
     }
