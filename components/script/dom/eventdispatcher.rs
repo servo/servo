@@ -16,6 +16,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
                               pseudo_target: Option<JSRef<'b, EventTarget>>,
                               event: JSRef<Event>) -> bool {
     assert!(!event.dispatching());
+    assert!(event.initialized());
 
     event.set_target(match pseudo_target {
         Some(pseudo_target) => pseudo_target,
