@@ -626,7 +626,7 @@ pub mod longhands {
             }
         }
         #[inline]
-        pub fn get_initial_value() -> computed_value::T { SpecifiedValue::baseline }
+        pub fn get_initial_value() -> computed_value::T { T::baseline }
         #[inline]
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                               -> computed_value::T {
