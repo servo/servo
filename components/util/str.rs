@@ -134,7 +134,7 @@ pub enum LengthOrPercentageOrAuto {
     Length(Au),
 }
 
-/// Parses a length per HTML5 § 2.4.4.4. If unparseable, `AutoLpa` is returned.
+/// Parses a length per HTML5 § 2.4.4.4. If unparseable, `Auto` is returned.
 pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     value = value.trim_left_chars(Whitespace);
     if value.len() == 0 {

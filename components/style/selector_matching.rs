@@ -15,7 +15,7 @@ use servo_util::geometry::Au;
 use servo_util::resource_files::read_resource_file;
 use servo_util::smallvec::VecLike;
 use servo_util::sort;
-use servo_util::str::{AutoLpa, LengthLpa, PercentageLpa};
+use servo_util::str::LengthOrPercentageOrAuto;
 use string_cache::Atom;
 
 use legacy::{SizeIntegerAttribute, WidthLengthAttribute};
@@ -494,14 +494,14 @@ impl Stylist {
         match element.get_local_name() {
             name if *name == atom!("td") => {
                 match element.get_length_attribute(WidthLengthAttribute) {
-                    AutoLpa => {}
-                    PercentageLpa(percentage) => {
+                    LengthOrPercentageOrAuto::Auto => {}
+                    LengthOrPercentageOrAuto::Percentage(percentage) => {
                         let width_value = specified::LPA_Percentage(percentage);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 WidthDeclaration(SpecifiedValue(width_value))));
                         *shareable = false
                     }
-                    LengthLpa(length) => {
+                    LengthOrPercentageOrAuto::Length(length) => {
                         let width_value = specified::LPA_Length(specified::Au_(length));
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 WidthDeclaration(SpecifiedValue(width_value))));

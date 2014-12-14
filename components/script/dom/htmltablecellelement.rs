@@ -15,7 +15,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::ElementNodeTypeId;
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::{AutoLpa, DOMString, LengthOrPercentageOrAuto};
+use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 use servo_util::str;
 use std::cell::Cell;
 
@@ -39,7 +39,7 @@ impl HTMLTableCellElement {
     pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableCellElement {
         HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document),
-            width: Cell::new(AutoLpa)
+            width: Cell::new(LengthOrPercentageOrAuto::Auto)
         }
     }
 
@@ -84,7 +84,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
         }
 
         match attr.local_name() {
-            &atom!("width") => self.width.set(AutoLpa),
+            &atom!("width") => self.width.set(LengthOrPercentageOrAuto::Auto),
             _ => ()
         }
     }
