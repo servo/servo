@@ -30,10 +30,11 @@ pub struct Blob {
 }
 
 impl Blob {
-    pub fn new_inherited(global: &GlobalRef, bytes: Option<Vec<u8>>) -> Blob {
+    pub fn new_inherited(global: &GlobalRef, type_: BlobType,
+                         bytes: Option<Vec<u8>>) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            type_: BlobTypeId,
+            type_: type_,
             bytes: bytes,
             typeString: "".to_string(),
             global: GlobalField::from_rooted(global)
@@ -42,7 +43,7 @@ impl Blob {
     }
 
     pub fn new(global: &GlobalRef, bytes: Option<Vec<u8>>) -> Temporary<Blob> {
-        reflect_dom_object(box Blob::new_inherited(global, bytes),
+        reflect_dom_object(box Blob::new_inherited(global, BlobTypeId, bytes),
                            *global,
                            BlobBinding::Wrap)
     }
