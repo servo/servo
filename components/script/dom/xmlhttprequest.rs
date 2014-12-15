@@ -46,7 +46,7 @@ use libc;
 use libc::c_void;
 
 use net::resource_task::{ResourceTask, ResourceCORSData, Load, LoadData, LoadResponse, Payload, Done};
-use cors::{allow_cross_origin_request, CORSRequest, CORSMode, ForcedPreflightMode};
+use cors::{allow_cross_origin_request, CORSRequest, RequestMode};
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 
@@ -577,9 +577,9 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         // CORS stuff
         let referer_url = self.global.root().root_ref().get_url();
         let mode = if self.upload_events.get() {
-            ForcedPreflightMode
+            RequestMode::ForcedPreflight
         } else {
-            CORSMode
+            RequestMode::CORS
         };
         let cors_request = CORSRequest::maybe_new(referer_url.clone(), load_data.url.clone(), mode,
                                                   load_data.method.clone(), load_data.headers.clone());

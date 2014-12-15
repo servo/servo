@@ -42,8 +42,8 @@ pub struct CORSRequest {
 /// `same-origin` and `no CORS` modes are unnecessary for XHR.
 #[deriving(PartialEq, Clone)]
 pub enum RequestMode {
-    CORSMode, // CORS
-    ForcedPreflightMode // CORS-with-forced-preflight
+    CORS, // CORS
+    ForcedPreflight // CORS-with-forced-preflight
 }
 
 impl CORSRequest {
