@@ -14,22 +14,21 @@ use servo_util::str::DOMString;
 pub struct File {
     blob: Blob,
     name: DOMString,
-    type_: BlobType
 }
 
 impl File {
-    fn new_inherited(global: &GlobalRef, _file_bits: JSRef<Blob>, name: DOMString) -> File {
+    fn new_inherited(global: &GlobalRef, type_: BlobType,
+                     _file_bits: JSRef<Blob>, name: DOMString) -> File {
         File {
-            blob: Blob::new_inherited(global, None),
+            blob: Blob::new_inherited(global, type_, None),
             name: name,
-            type_: FileTypeId
         }
         // XXXManishearth Once Blob is able to store data
         // the relevant subfields of file_bits should be copied over
     }
 
     pub fn new(global: &GlobalRef, file_bits: JSRef<Blob>, name: DOMString) -> Temporary<File> {
-        reflect_dom_object(box File::new_inherited(global, file_bits, name),
+        reflect_dom_object(box File::new_inherited(global, FileTypeId, file_bits, name),
                            *global,
                            FileBinding::Wrap)
     }
