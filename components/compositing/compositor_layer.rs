@@ -4,9 +4,7 @@
 
 use compositor_task::LayerProperties;
 use pipeline::CompositionPipeline;
-use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
-use windowing::MouseWindowMouseUpEvent;
-use windowing::WindowMethods;
+use windowing::{MouseWindowEvent, WindowMethods};
 
 use azure::azure_hl;
 use geom::length::Length;
@@ -22,6 +20,8 @@ use layers::platform::surface::NativeSurfaceMethods;
 use script_traits::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent, SendEventMsg};
 use script_traits::{ScriptControlChan};
 use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId, ScrollPolicy};
+use std::num::Float;
+use std::num::FloatMath;
 use std::rc::Rc;
 
 pub struct CompositorData {
@@ -117,6 +117,9 @@ pub trait CompositorLayer {
     fn scroll_layer_and_all_child_layers(&self,
                                          new_offset: TypedPoint2D<LayerPixel, f32>)
                                          -> bool;
+
+    /// Return a flag describing how this layer deals with scroll events.
+    fn wants_scroll_events(&self) -> WantsScrollEventsFlag;
 }
 
 #[deriving(PartialEq, Clone)]
@@ -260,8 +263,8 @@ impl CompositorLayer for Layer<CompositorData> {
                            -> ScrollEventResult {
         // If this layer doesn't want scroll events, neither it nor its children can handle scroll
         // events.
-        if self.extra_data.borrow().wants_scroll_events != WantsScrollEvents {
-            return ScrollEventUnhandled;
+        if self.wants_scroll_events() != WantsScrollEventsFlag::WantsScrollEvents {
+            return ScrollEventResult::ScrollEventUnhandled;
         }
 
         //// Allow children to scroll.
@@ -271,7 +274,7 @@ impl CompositorLayer for Layer<CompositorData> {
             let child_bounds = child.bounds.borrow();
             if child_bounds.contains(&new_cursor) {
                 let result = child.handle_scroll_event(delta, new_cursor - child_bounds.origin);
-                if result != ScrollEventUnhandled {
+                if result != ScrollEventResult::ScrollEventUnhandled {
                     return result;
                 }
             }
@@ -292,7 +295,7 @@ impl CompositorLayer for Layer<CompositorData> {
                     Length(new_offset.y.get().clamp(&min_y, &0.0)));
 
         if self.extra_data.borrow().scroll_offset == new_offset {
-            return ScrollPositionUnchanged;
+            return ScrollEventResult::ScrollPositionUnchanged;
         }
 
         // The scroll offset is just a record of the scroll position of this scrolling root,
@@ -305,9 +308,9 @@ impl CompositorLayer for Layer<CompositorData> {
         }
 
         if result {
-            return ScrollPositionChanged;
+            return ScrollEventResult::ScrollPositionChanged;
         } else {
-            return ScrollPositionUnchanged;
+            return ScrollEventResult::ScrollPositionUnchanged;
         }
     }
 
@@ -316,9 +319,12 @@ impl CompositorLayer for Layer<CompositorData> {
                         cursor: TypedPoint2D<LayerPixel, f32>) {
         let event_point = cursor.to_untyped();
         let message = match event {
-            MouseWindowClickEvent(button, _) => ClickEvent(button, event_point),
-            MouseWindowMouseDownEvent(button, _) => MouseDownEvent(button, event_point),
-            MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, event_point),
+            MouseWindowEvent::MouseWindowClickEvent(button, _) =>
+                ClickEvent(button, event_point),
+            MouseWindowEvent::MouseWindowMouseDownEvent(button, _) =>
+                MouseDownEvent(button, event_point),
+            MouseWindowEvent::MouseWindowMouseUpEvent(button, _) =>
+                MouseUpEvent(button, event_point),
         };
         let pipeline = &self.extra_data.borrow().pipeline;
         let ScriptControlChan(ref chan) = pipeline.script_chan;
@@ -354,6 +360,10 @@ impl CompositorLayer for Layer<CompositorData> {
         }
 
         return result;
+    }
+
+    fn wants_scroll_events(&self) -> WantsScrollEventsFlag {
+        self.extra_data.borrow().wants_scroll_events
     }
 
 }
