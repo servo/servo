@@ -12,7 +12,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
-use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument};
+use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::servohtmlparser::ServoHTMLParser;
 use dom::window::Window;
