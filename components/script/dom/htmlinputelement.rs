@@ -29,7 +29,9 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::htmlformelement::{InputElement, FormControl, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use textinput::{Single, TextInput, TriggerDefaultAction, DispatchInput, Nothing};
+use textinput::TextInput;
+use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
+use textinput::Lines::Single;
 
 use servo_util::str::DOMString;
 use string_cache::Atom;

@@ -21,7 +21,9 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, document_from_node};
-use textinput::{Multiple, TextInput, TriggerDefaultAction, DispatchInput, Nothing};
+use textinput::TextInput;
+use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
+use textinput::Lines::Multiple;
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::DOMString;
