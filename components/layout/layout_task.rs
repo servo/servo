@@ -590,6 +590,8 @@ impl LayoutTask {
                                        requested_node: TrustedNodeAddress,
                                        layout_root: &mut FlowRef,
                                        rw_data: &mut RWGuard<'a>) {
+        // FIXME(pcwalton): This has not been updated to handle the stacking context relative
+        // stuff. So the position is wrong in most cases.
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
         let mut iterator = UnioningFragmentBoundsIterator::new(requested_node);
         sequential::iterate_through_flow_tree_fragment_bounds(layout_root, &mut iterator);
@@ -600,6 +602,8 @@ impl LayoutTask {
                                          requested_node: TrustedNodeAddress,
                                          layout_root: &mut FlowRef,
                                          rw_data: &mut RWGuard<'a>) {
+        // FIXME(pcwalton): This has not been updated to handle the stacking context relative
+        // stuff. So the position is wrong in most cases.
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
         let mut iterator = CollectingFragmentBoundsIterator::new(requested_node);
         sequential::iterate_through_flow_tree_fragment_bounds(layout_root, &mut iterator);

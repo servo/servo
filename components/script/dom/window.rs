@@ -21,7 +21,7 @@ use dom::navigator::Navigator;
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
-use layout_interface::NoQuery;
+use layout_interface::{NoQuery, ReflowForDisplay, ReflowGoal, ReflowQueryType};
 use page::Page;
 use script_task::{ExitWindowMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
 use script_task::FromWindow;
@@ -299,9 +299,7 @@ impl Reflectable for Window {
 }
 
 pub trait WindowHelpers {
-    fn reflow(self);
-    fn flush_layout(self);
-    fn wait_until_safe_to_modify_dom(self);
+    fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType);
     fn init_browser_context(self, doc: JSRef<Document>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
@@ -334,18 +332,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         })
     }
 
-    fn reflow(self) {
-        self.page().damage();
-    }
-
-    fn flush_layout(self) {
-        self.page().flush_layout(NoQuery);
-    }
-
-    fn wait_until_safe_to_modify_dom(self) {
-        // FIXME: This disables concurrent layout while we are modifying the DOM, since
-        //        our current architecture is entirely unsafe in the presence of races.
-        self.page().join_layout();
+    fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType) {
+        self.page().flush_layout(goal, query);
     }
 
     fn init_browser_context(self, doc: JSRef<Document>) {
@@ -369,7 +357,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
 
     fn handle_fire_timer(self, timer_id: TimerId) {
         self.timers.fire_timer(timer_id, self.clone());
-        self.flush_layout();
+        self.flush_layout(ReflowForDisplay, NoQuery);
     }
 }
 
