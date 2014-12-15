@@ -1612,7 +1612,7 @@ impl Node {
         vtable_for(&node).cloning_steps(*copy, maybe_doc, clone_children);
 
         // Step 6.
-        if clone_children == CloneChildren {
+        if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
                 let child_copy = Node::clone(child, Some(document), clone_children).root();
                 let _inserted_node = Node::pre_insert(*child_copy, *copy, None);
@@ -2014,7 +2014,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 
     // http://dom.spec.whatwg.org/#dom-node-clonenode
     fn CloneNode(self, deep: bool) -> Temporary<Node> {
-        Node::clone(self, None, if deep { CloneChildren } else { DoNotCloneChildren })
+        Node::clone(self, None, if deep {
+            CloneChildrenFlag::CloneChildren
+        } else {
+            CloneChildrenFlag::DoNotCloneChildren
+        })
     }
 
     // http://dom.spec.whatwg.org/#dom-node-isequalnode

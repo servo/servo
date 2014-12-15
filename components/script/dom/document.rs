@@ -49,8 +49,7 @@ use dom::location::Location;
 use dom::mouseevent::MouseEvent;
 use dom::keyboardevent::KeyboardEvent;
 use dom::messageevent::MessageEvent;
-use dom::node::{Node, NodeHelpers, NodeTypeId};
-use dom::node::{CloneChildren, DoNotCloneChildren};
+use dom::node::{Node, NodeHelpers, NodeTypeId, CloneChildrenFlag};
 use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::processinginstruction::ProcessingInstruction;
@@ -700,8 +699,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
         // Step 2.
         let clone_children = match deep {
-            true => CloneChildren,
-            false => DoNotCloneChildren
+            true => CloneChildrenFlag::CloneChildren,
+            false => CloneChildrenFlag::DoNotCloneChildren
         };
 
         Ok(Node::clone(node, Some(self), clone_children))
