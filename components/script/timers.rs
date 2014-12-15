@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::callback::ReportExceptions;
+use dom::bindings::callback::ExceptionHandling::ReportExceptions;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
