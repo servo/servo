@@ -19,7 +19,7 @@ use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, HTMLDocument, DocumentHelpers, FromParser};
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
-use dom::event::{Event, EventHelpers, Bubbles, DoesNotBubble, Cancelable, NotCancelable};
+use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
@@ -851,7 +851,8 @@ impl ScriptTask {
 
         // https://html.spec.whatwg.org/multipage/#the-end step 4
         let event = Event::new(global::Window(*window), "DOMContentLoaded".to_string(),
-                               DoesNotBubble, NotCancelable).root();
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(*document);
         let _ = doctarget.DispatchEvent(*event);
 
@@ -862,7 +863,9 @@ impl ScriptTask {
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         document.set_ready_state(DocumentReadyStateValues::Complete);
 
-        let event = Event::new(global::Window(*window), "load".to_string(), DoesNotBubble, NotCancelable).root();
+        let event = Event::new(global::Window(*window), "load".to_string(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
         let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
 
@@ -1132,7 +1135,8 @@ impl ScriptTask {
                                 let event =
                                     Event::new(global::Window(*window),
                                                "click".to_string(),
-                                               Bubbles, Cancelable).root();
+                                               EventBubbles::Bubbles,
+                                               EventCancelable::Cancelable).root();
                                 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
                                 event.set_trusted(true);
                                 // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps

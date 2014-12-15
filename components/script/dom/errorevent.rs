@@ -13,7 +13,7 @@ use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventTypeId, EventBubbles, Bubbles, DoesNotBubble, EventCancelable, Cancelable, NotCancelable};
+use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use servo_util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
@@ -65,7 +65,8 @@ impl ErrorEvent {
                error: JSVal) -> Temporary<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global).root();
         let event: JSRef<Event> = EventCast::from_ref(*ev);
-        event.InitEvent(type_, bubbles == Bubbles, cancelable == Cancelable);
+        event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
+                        cancelable == EventCancelable::Cancelable);
         *ev.message.borrow_mut() = message;
         *ev.filename.borrow_mut() = filename;
         ev.lineno.set(lineno);

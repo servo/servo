@@ -22,7 +22,7 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
-use dom::event::{Event, Bubbles, NotCancelable, EventHelpers};
+use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::keyboardevent::KeyboardEvent;
@@ -683,14 +683,16 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     let win = window_from_node(*self).root();
                     let event = Event::new(Window(*win),
                                            "input".to_string(),
-                                           Bubbles, NotCancelable).root();
+                                           EventBubbles::Bubbles,
+                                           EventCancelable::NotCancelable).root();
                     event.set_trusted(true);
                     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
                     target.DispatchEvent(*event).ok();
 
                     let event = Event::new(Window(*win),
                                            "change".to_string(),
-                                           Bubbles, NotCancelable).root();
+                                           EventBubbles::Bubbles,
+                                           EventCancelable::NotCancelable).root();
                     event.set_trusted(true);
                     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
                     target.DispatchEvent(*event).ok();

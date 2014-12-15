@@ -19,7 +19,7 @@ use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRoota
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
-use dom::event::{Event, DoesNotBubble, Cancelable};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::progressevent::ProgressEvent;
 use dom::urlsearchparams::URLSearchParamsHelpers;
@@ -811,7 +811,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let global = self.global.root();
         let event = Event::new(global.root_ref(),
                                "readystatechange".to_string(),
-                               DoesNotBubble, Cancelable).root();
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         target.dispatch_event_with_target(None, *event).ok();
     }

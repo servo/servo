@@ -37,7 +37,7 @@ use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ScriptCreated, AttributeHandlers, get_attribute_parts};
 use dom::element::ElementTypeId;
-use dom::event::{Event, DoesNotBubble, NotCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
@@ -343,7 +343,8 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         let window = self.window.root();
         let event = Event::new(global::Window(*window), "readystatechange".to_string(),
-                               DoesNotBubble, NotCancelable).root();
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         let _ = target.DispatchEvent(*event);
     }
