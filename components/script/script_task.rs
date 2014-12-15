@@ -28,7 +28,7 @@ use dom::node::{NodeTypeId, Node, NodeHelpers};
 use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
-use parse::html::{InputString, InputUrl, parse_html};
+use parse::html::{HTMLInput, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, NoQuery, ReflowForDisplay};
 use layout_interface;
 use page::{Page, IterablePage, Frame};
@@ -824,13 +824,13 @@ impl ScriptTask {
                 *page.mut_url() = Some((final_url.clone(), true));
             }
 
-            (InputUrl(load_response), final_url)
+            (HTMLInput::InputUrl(load_response), final_url)
         } else {
             let evalstr = load_data.url.non_relative_scheme_data().unwrap();
             let jsval = window.evaluate_js_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
                                                           StringificationBehavior::Empty);
-            (InputString(strval.unwrap_or("".to_string())), doc_url)
+            (HTMLInput::InputString(strval.unwrap_or("".to_string())), doc_url)
         };
 
         parse_html(*document, parser_input, &final_url);
