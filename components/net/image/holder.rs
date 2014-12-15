@@ -7,7 +7,6 @@ use image_cache_task::{ImageReady, ImageNotReady, ImageFailed};
 use local_image_cache::LocalImageCache;
 
 use geom::size::Size2D;
-use std::mem;
 use sync::{Arc, Mutex};
 use url::Url;
 
@@ -87,24 +86,13 @@ impl<NodeAddress: Send> ImageHolder<NodeAddress> {
                 local_image_cache.get_image(node_address, &self.url)
             };
             match port.recv() {
-                ImageReady(image) => {
-                    self.image = Some(image);
-                }
-                ImageNotReady => {
-                    debug!("image not ready for {:s}", self.url.serialize());
-                }
-                ImageFailed => {
-                    debug!("image decoding failed for {:s}", self.url.serialize());
-                }
+                ImageReady(image) => self.image = Some(image),
+                ImageNotReady => debug!("image not ready for {:s}", self.url.serialize()),
+                ImageFailed => debug!("image decoding failed for {:s}", self.url.serialize()),
             }
         }
 
-        // Clone isn't pure so we have to swap out the mutable image option
-        let image = mem::replace(&mut self.image, None);
-        let result = image.clone();
-        mem::replace(&mut self.image, image);
-
-        return result;
+        return self.image.clone();
     }
 
     pub fn url(&self) -> &Url {
