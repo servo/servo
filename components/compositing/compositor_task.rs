@@ -62,7 +62,7 @@ impl CompositorReceiver for Receiver<Msg> {
 /// Implementation of the abstract `ScriptListener` interface.
 impl ScriptListener for Box<CompositorProxy+'static+Send> {
     fn set_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
-        let msg = ChangeReadyState(pipeline_id, ready_state);
+        let msg = Msg::ChangeReadyState(pipeline_id, ready_state);
         self.send(msg);
     }
 
@@ -70,12 +70,12 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
                              point: Point2D<f32>) {
-        self.send(ScrollFragmentPoint(pipeline_id, layer_id, point));
+        self.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point));
     }
 
     fn close(&mut self) {
         let (chan, port) = channel();
-        self.send(Exit(chan));
+        self.send(Msg::Exit(chan));
         port.recv();
     }
 
@@ -84,12 +84,12 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
     }
 
     fn set_title(&mut self, pipeline_id: PipelineId, title: Option<String>) {
-        self.send(ChangePageTitle(pipeline_id, title))
+        self.send(Msg::ChangePageTitle(pipeline_id, title))
     }
 
     fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
         if state == Pressed {
-            self.send(KeyEvent(key, modifiers));
+            self.send(Msg::KeyEvent(key, modifiers));
         }
     }
 }
@@ -124,7 +124,7 @@ impl LayerProperties {
 impl PaintListener for Box<CompositorProxy+'static+Send> {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
         let (chan, port) = channel();
-        self.send(GetGraphicsMetadata(chan));
+        self.send(Msg::GetGraphicsMetadata(chan));
         port.recv()
     }
 
@@ -132,7 +132,7 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
              pipeline_id: PipelineId,
              epoch: Epoch,
              replies: Vec<(LayerId, Box<LayerBufferSet>)>) {
-        self.send(Paint(pipeline_id, epoch, replies));
+        self.send(Msg::Paint(pipeline_id, epoch, replies));
     }
 
     fn initialize_layers_for_pipeline(&mut self,
@@ -146,20 +146,20 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
         for metadata in metadata.iter() {
             let layer_properties = LayerProperties::new(pipeline_id, epoch, metadata);
             if first {
-                self.send(CreateOrUpdateRootLayer(layer_properties));
+                self.send(Msg::CreateOrUpdateRootLayer(layer_properties));
                 first = false
             } else {
-                self.send(CreateOrUpdateDescendantLayer(layer_properties));
+                self.send(Msg::CreateOrUpdateDescendantLayer(layer_properties));
             }
         }
     }
 
     fn paint_msg_discarded(&mut self) {
-        self.send(PaintMsgDiscarded);
+        self.send(Msg::PaintMsgDiscarded);
     }
 
     fn set_paint_state(&mut self, pipeline_id: PipelineId, paint_state: PaintState) {
-        self.send(ChangePaintState(pipeline_id, paint_state))
+        self.send(Msg::ChangePaintState(pipeline_id, paint_state))
     }
 }
 
@@ -205,7 +205,7 @@ pub enum Msg {
     /// Sets the channel to the current layout and paint tasks, along with their ID.
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// Sends an updated version of the frame tree.
-    FrameTreeUpdateMsg(FrameTreeDiff, Sender<()>),
+    FrameTreeUpdate(FrameTreeDiff, Sender<()>),
     /// The load of a page has completed.
     LoadComplete,
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
@@ -218,24 +218,24 @@ pub enum Msg {
 impl Show for Msg {
     fn fmt(&self, f: &mut Formatter) -> Result<(),FormatError> {
         match *self {
-            Exit(..) => write!(f, "Exit"),
-            ShutdownComplete(..) => write!(f, "ShutdownComplete"),
-            GetGraphicsMetadata(..) => write!(f, "GetGraphicsMetadata"),
-            CreateOrUpdateRootLayer(..) => write!(f, "CreateOrUpdateRootLayer"),
-            CreateOrUpdateDescendantLayer(..) => write!(f, "CreateOrUpdateDescendantLayer"),
-            SetLayerOrigin(..) => write!(f, "SetLayerOrigin"),
-            ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
-            Paint(..) => write!(f, "Paint"),
-            ChangeReadyState(..) => write!(f, "ChangeReadyState"),
-            ChangePaintState(..) => write!(f, "ChangePaintState"),
-            ChangePageTitle(..) => write!(f, "ChangePageTitle"),
-            ChangePageLoadData(..) => write!(f, "ChangePageLoadData"),
-            PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
-            SetIds(..) => write!(f, "SetIds"),
-            FrameTreeUpdateMsg(..) => write!(f, "FrameTreeUpdateMsg"),
-            LoadComplete => write!(f, "LoadComplete"),
-            ScrollTimeout(..) => write!(f, "ScrollTimeout"),
-            KeyEvent(..) => write!(f, "KeyEvent"),
+            Msg::Exit(..) => write!(f, "Exit"),
+            Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),
+            Msg::GetGraphicsMetadata(..) => write!(f, "GetGraphicsMetadata"),
+            Msg::CreateOrUpdateRootLayer(..) => write!(f, "CreateOrUpdateRootLayer"),
+            Msg::CreateOrUpdateDescendantLayer(..) => write!(f, "CreateOrUpdateDescendantLayer"),
+            Msg::SetLayerOrigin(..) => write!(f, "SetLayerOrigin"),
+            Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
+            Msg::Paint(..) => write!(f, "Paint"),
+            Msg::ChangeReadyState(..) => write!(f, "ChangeReadyState"),
+            Msg::ChangePaintState(..) => write!(f, "ChangePaintState"),
+            Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
+            Msg::ChangePageLoadData(..) => write!(f, "ChangePageLoadData"),
+            Msg::PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
+            Msg::SetIds(..) => write!(f, "SetIds"),
+            Msg::FrameTreeUpdate(..) => write!(f, "FrameTreeUpdateMsg"),
+            Msg::LoadComplete => write!(f, "LoadComplete"),
+            Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
+            Msg::KeyEvent(..) => write!(f, "KeyEvent"),
         }
     }
 }

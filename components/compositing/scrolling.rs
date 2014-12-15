@@ -4,7 +4,7 @@
 
 //! A timer thread that gives the painting task a little time to catch up when the user scrolls.
 
-use compositor_task::{CompositorProxy, ScrollTimeout};
+use compositor_task::{CompositorProxy, Msg};
 
 use native::task::NativeTaskBuilder;
 use std::io::timer;
@@ -47,11 +47,11 @@ impl ScrollingTimerProxy {
     }
 
     pub fn scroll_event_processed(&mut self, timestamp: u64) {
-        self.sender.send(ScrollEventProcessedMsg(timestamp))
+        self.sender.send(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp))
     }
 
     pub fn shutdown(&mut self) {
-        self.sender.send(ExitMsg);
+        self.sender.send(ToScrollingTimerMsg::ExitMsg);
     }
 }
 
@@ -59,13 +59,13 @@ impl ScrollingTimer {
     pub fn run(&mut self) {
         loop {
             match self.receiver.recv_opt() {
-                Ok(ScrollEventProcessedMsg(timestamp)) => {
+                Ok(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp)) => {
                     let target = timestamp as i64 + TIMEOUT;
                     let delta = target - (time::precise_time_ns() as i64);
                     timer::sleep(Duration::nanoseconds(delta));
-                    self.compositor_proxy.send(ScrollTimeout(timestamp));
+                    self.compositor_proxy.send(Msg::ScrollTimeout(timestamp));
                 }
-                Ok(ExitMsg) | Err(_) => break,
+                Ok(ToScrollingTimerMsg::ExitMsg) | Err(_) => break,
             }
         }
     }
