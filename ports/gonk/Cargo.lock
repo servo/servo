@@ -79,7 +79,7 @@ dependencies = [
 [[package]]
 name = "core_foundation"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-core-foundation#6fa0b908f3912e20d081193e83bf5a9aa958fb83"
+source = "git+https://github.com/servo/rust-core-foundation#d2dbe4fb6f6892521a37735cd7a97098d1b64808"
 
 [[package]]
 name = "core_graphics"
