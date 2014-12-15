@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::attr::{AttrValue, StringAttrValue};
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementCast;
 use dom::bindings::codegen::InheritTypes::HTMLAreaElementCast;
@@ -86,7 +85,7 @@ pub trait VirtualMethods {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match self.super_type() {
             Some(ref s) => s.parse_plain_attribute(name, value),
-            _ => StringAttrValue(value),
+            _ => AttrValue::String(value),
         }
     }
 

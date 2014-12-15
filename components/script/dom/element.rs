@@ -6,7 +6,7 @@
 
 use dom::activation::Activatable;
 use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpers, AttrHelpersForLayout};
-use dom::attr::{AttrValue, StringAttrValue, UIntAttrValue, AtomAttrValue};
+use dom::attr::AttrValue;
 use dom::namednodemap::NamedNodeMap;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -535,7 +535,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             vtable_for(&NodeCast::from_ref(self))
                 .parse_plain_attribute(local_name, value)
         } else {
-            StringAttrValue(value)
+            AttrValue::String(value)
         }
     }
 
@@ -631,7 +631,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
     fn set_string_attribute(self, name: &Atom, value: DOMString) {
         assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
-        self.set_attribute(name, StringAttrValue(value));
+        self.set_attribute(name, AttrValue::String(value));
     }
 
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString) {
@@ -647,8 +647,8 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         match attribute {
             Some(attribute) => {
                 match *attribute.value() {
-                    UIntAttrValue(_, value) => value,
-                    _ => panic!("Expected a UIntAttrValue: \
+                    AttrValue::UInt(_, value) => value,
+                    _ => panic!("Expected an AttrValue::UInt: \
                                  implement parse_plain_attribute"),
                 }
             }
@@ -657,7 +657,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
     fn set_uint_attribute(self, name: &Atom, value: u32) {
         assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
-        self.set_attribute(name, UIntAttrValue(value.to_string(), value));
+        self.set_attribute(name, AttrValue::UInt(value.to_string(), value));
     }
 }
 
@@ -1149,8 +1149,8 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         self.get_attribute(ns!(""), &atom!("id")).map(|attr| {
             let attr = attr.root();
             match *attr.value() {
-                AtomAttrValue(ref val) => val.clone(),
-                _ => panic!("`id` attribute should be AtomAttrValue"),
+                AttrValue::Atom(ref val) => val.clone(),
+                _ => panic!("`id` attribute should be AttrValue::Atom"),
             }
         })
     }

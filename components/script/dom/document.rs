@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrHelpers, StringAttrValue};
+use dom::attr::{Attr, AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
@@ -651,7 +651,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let name = Atom::from_slice(local_name.as_slice());
         // repetition used because string_cache::atom::Atom is non-copyable
         let l_name = Atom::from_slice(local_name.as_slice());
-        let value = StringAttrValue("".to_string());
+        let value = AttrValue::String("".to_string());
 
         Ok(Attr::new(*window, name, value, l_name, ns!(""), None, None))
     }

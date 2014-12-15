@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::Activatable;
-use dom::attr::{Attr, AttrValue, UIntAttrValue};
+use dom::attr::{Attr, AttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -369,8 +369,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             }
             &atom!("size") => {
                 match *attr.value() {
-                    UIntAttrValue(_, value) => self.size.set(value),
-                    _ => panic!("Expected a UIntAttrValue"),
+                    AttrValue::UInt(_, value) => self.size.set(value),
+                    _ => panic!("Expected an AttrValue::UInt"),
                 }
                 self.force_relayout();
             }
