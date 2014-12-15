@@ -817,7 +817,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                                "readystatechange".to_string(),
                                DoesNotBubble, Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.dispatch_event_with_target(None, *event).ok();
+        target.dispatch_event(*event);
     }
 
     fn process_partial_response(self, progress: XHRProgress) {
@@ -957,7 +957,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             EventTargetCast::from_ref(self)
         };
         let event: JSRef<Event> = EventCast::from_ref(*progressevent);
-        target.dispatch_event_with_target(None, event).ok();
+        target.dispatch_event(event);
     }
 
     fn dispatch_upload_progress_event(self, type_: DOMString, partial_load: Option<u64>) {

@@ -81,7 +81,7 @@ impl MessageEvent {
             scope, "message".to_string(), false, false, message,
             "".to_string(), "".to_string()).root();
         let event: JSRef<Event> = EventCast::from_ref(*messageevent);
-        target.dispatch_event_with_target(None, event).unwrap();
+        target.dispatch_event(event);
     }
 }
 
