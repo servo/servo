@@ -115,7 +115,7 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#the-form-element:concept-form-submit
     fn Submit(self) {
-        self.submit(FromFormSubmitMethod, FormElement(self));
+        self.submit(FromFormSubmitMethod, FormSubmitter::FormElement(self));
     }
 }
 
@@ -353,8 +353,8 @@ pub enum FormSubmitter<'a> {
 impl<'a> FormSubmitter<'a> {
     fn action(&self) -> DOMString {
         match *self {
-            FormElement(form) => form.Action(),
-            InputElement(input_element) => {
+            FormSubmitter::FormElement(form) => form.Action(),
+            FormSubmitter::InputElement(input_element) => {
                 // FIXME(pcwalton): Make this a static atom.
                 input_element.get_form_attribute(&Atom::from_slice("formaction"),
                                                  |i| i.FormAction(),
@@ -365,8 +365,8 @@ impl<'a> FormSubmitter<'a> {
 
     fn enctype(&self) -> FormEncType {
         let attr = match *self {
-            FormElement(form) => form.Enctype(),
-            InputElement(input_element) => {
+            FormSubmitter::FormElement(form) => form.Enctype(),
+            FormSubmitter::InputElement(input_element) => {
                 // FIXME(pcwalton): Make this a static atom.
                 input_element.get_form_attribute(&Atom::from_slice("formenctype"),
                                                  |i| i.FormEnctype(),
@@ -384,8 +384,8 @@ impl<'a> FormSubmitter<'a> {
 
     fn method(&self) -> FormMethod {
         let attr = match *self {
-            FormElement(form) => form.Method(),
-            InputElement(input_element) => {
+            FormSubmitter::FormElement(form) => form.Method(),
+            FormSubmitter::InputElement(input_element) => {
                 // FIXME(pcwalton): Make this a static atom.
                 input_element.get_form_attribute(&Atom::from_slice("formmethod"),
                                                  |i| i.FormMethod(),
@@ -401,8 +401,8 @@ impl<'a> FormSubmitter<'a> {
 
     fn target(&self) -> DOMString {
         match *self {
-            FormElement(form) => form.Target(),
-            InputElement(input_element) => {
+            FormSubmitter::FormElement(form) => form.Target(),
+            FormSubmitter::InputElement(input_element) => {
                 // FIXME(pcwalton): Make this a static atom.
                 input_element.get_form_attribute(&Atom::from_slice("formtarget"),
                                                  |i| i.FormTarget(),

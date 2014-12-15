@@ -26,7 +26,7 @@ use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::keyboardevent::KeyboardEvent;
-use dom::htmlformelement::{InputElement, FormControl, HTMLFormElement, HTMLFormElementHelpers, NotFromFormSubmitMethod};
+use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElement, HTMLFormElementHelpers, SubmittedFrom};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use textinput::TextInput;
@@ -674,7 +674,8 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 if self.mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
-                        o.root().submit(NotFromFormSubmitMethod, InputElement(self.clone()))
+                        o.root().submit(SubmittedFrom::NotFromFormSubmitMethod,
+                                        FormSubmitter::InputElement(self.clone()))
                     });
                 }
             },
