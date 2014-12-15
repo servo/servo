@@ -13,6 +13,7 @@ use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
 use msg::compositor_msg::{Blank, IdlePaintState};
 use msg::compositor_msg::{ReadyState, PaintState};
+use msg::constellation_msg::{Key, KeyModifiers};
 use msg::constellation_msg::LoadData;
 use std::cell::Cell;
 use std::comm::Receiver;
@@ -808,6 +809,9 @@ impl WindowMethods for Window {
         NativeGraphicsMetadata {
             display: self.dpy,
         }
+    }
+
+    fn handle_key(&self, _: Key, _: KeyModifiers) {
     }
 
     fn create_compositor_channel(window: &Option<Rc<Window>>)
