@@ -848,7 +848,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString) {
         assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
-        self.set_attribute(name, AttrValue::from_tokenlist(value));
+        self.set_attribute(name, AttrValue::from_serialized_tokenlist(value));
     }
 
     fn get_uint_attribute(self, name: &Atom) -> u32 {
@@ -1290,7 +1290,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("id") => AttrValue::from_atomic(value),
-            &atom!("class") => AttrValue::from_tokenlist(value),
+            &atom!("class") => AttrValue::from_serialized_tokenlist(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

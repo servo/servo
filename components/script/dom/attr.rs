@@ -37,7 +37,7 @@ pub enum AttrValue {
 }
 
 impl AttrValue {
-    pub fn from_tokenlist(tokens: DOMString) -> AttrValue {
+    pub fn from_serialized_tokenlist(tokens: DOMString) -> AttrValue {
         let atoms = split_html_space_chars(tokens.as_slice())
             .map(|token| Atom::from_slice(token)).collect();
         AttrValue::TokenList(tokens, atoms)
