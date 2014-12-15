@@ -200,3 +200,5 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == text_indent_a.html text_indent_ref.html
 == word_spacing_a.html word_spacing_ref.html
 == overflow_wrap_a.html overflow_wrap_ref.html
+== inset.html inset_ref.html
+== outset.html outset_ref.html
