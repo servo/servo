@@ -30,7 +30,7 @@ use script_task::ScriptMsg::{XHRProgressMsg, XHRReleaseMsg};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{DecodeReplace, Encoding, EncodingRef, EncodeReplace};
+use encoding::types::{DecoderTrap, Encoding, EncodingRef, EncoderTrap};
 
 use hyper::header::Headers;
 use hyper::header::common::{Accept, ContentLength, ContentType};
@@ -701,7 +701,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             },
             _ if self.ready_state.get() != XHRDone => NullValue(),
             Json => {
-                let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecodeReplace).unwrap().to_string();
+                let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_string();
                 let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
                 let mut vp = UndefinedValue();
                 unsafe {
@@ -1009,7 +1009,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(self.response.borrow().as_slice(), DecodeReplace).unwrap().to_string()
+        encoding.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_string()
     }
     fn filter_response_headers(self) -> Headers {
         // http://fetch.spec.whatwg.org/#concept-response-header-list
@@ -1051,7 +1051,7 @@ impl Extractable for SendParam {
         // http://fetch.spec.whatwg.org/#concept-fetchbodyinit-extract
         let encoding = UTF_8 as EncodingRef;
         match *self {
-            eString(ref s) => encoding.encode(s.as_slice(), EncodeReplace).unwrap(),
+            eString(ref s) => encoding.encode(s.as_slice(), EncoderTrap::Replace).unwrap(),
             eURLSearchParams(ref usp) => usp.root().serialize(None) // Default encoding is UTF8
         }
     }

@@ -19,7 +19,7 @@ use dom::text::Text;
 use parse::Parser;
 
 use encoding::all::UTF_8;
-use encoding::types::{Encoding, DecodeReplace};
+use encoding::types::{Encoding, DecoderTrap};
 
 use servo_net::resource_task::{Payload, Done, LoadResponse};
 use servo_util::task_state;
@@ -185,7 +185,7 @@ pub fn parse_html(document: JSRef<Document>,
                         match msg {
                             Payload(data) => {
                                 // FIXME: use Vec<u8> (html5ever #34)
-                                let data = UTF_8.decode(data.as_slice(), DecodeReplace).unwrap();
+                                let data = UTF_8.decode(data.as_slice(), DecoderTrap::Replace).unwrap();
                                 parser.parse_chunk(data);
                             }
                             Done(Err(err)) => {

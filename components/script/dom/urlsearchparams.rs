@@ -15,7 +15,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 
 use encoding::all::UTF_8;
-use encoding::types::{EncodingRef, EncodeReplace};
+use encoding::types::{EncodingRef, EncoderTrap};
 
 use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
@@ -112,7 +112,7 @@ impl URLSearchParamsHelpers for URLSearchParams {
 
             let value = value.as_slice();
             // XXXManishearth should this be a strict encoding? Can unwrap()ing the result fail?
-            let value = encoding.encode(value, EncodeReplace).unwrap();
+            let value = encoding.encode(value, EncoderTrap::Replace).unwrap();
             let mut buf = vec!();
             for i in value.iter() {
                 let append = match *i {

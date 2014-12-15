@@ -23,7 +23,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
 use encoding::all::UTF_8;
-use encoding::types::{Encoding, DecodeReplace};
+use encoding::types::{Encoding, DecoderTrap};
 use servo_net::resource_task::load_whole_resource;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::cell::Cell;
@@ -186,7 +186,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                         match load_whole_resource(&page.resource_task, url) {
                             Ok((metadata, bytes)) => {
                                 // TODO: use the charset from step 13.
-                                let source = UTF_8.decode(bytes.as_slice(), DecodeReplace).unwrap();
+                                let source = UTF_8.decode(bytes.as_slice(), DecoderTrap::Replace).unwrap();
                                 (source, metadata.final_url)
                             }
                             Err(_) => {
