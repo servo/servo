@@ -6,6 +6,8 @@
 /// coupling between these two components, and enables the DOM to be placed in a separate crate
 /// from layout.
 
+pub use self::Msg::*;
+
 use dom::node::LayoutDataRef;
 
 use geom::point::Point2D;
