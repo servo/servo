@@ -6,7 +6,7 @@ use dom::bindings::callback::ExceptionHandling::ReportExceptions;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Root};
-use dom::eventtarget::{Capturing, Bubbling, EventTarget};
+use dom::eventtarget::{EventTarget, ListenerPhase};
 use dom::event::{Event, EventPhase};
 use dom::node::{Node, NodeHelpers};
 use dom::virtualmethods::vtable_for;
@@ -42,7 +42,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
 
     /* capturing */
     for cur_target in chain.as_slice().iter().rev() {
-        let stopped = match cur_target.get_listeners_for(type_.as_slice(), Capturing) {
+        let stopped = match cur_target.get_listeners_for(type_.as_slice(), ListenerPhase::Capturing) {
             Some(listeners) => {
                 event.set_current_target(cur_target.deref().clone());
                 for listener in listeners.iter() {
@@ -87,7 +87,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         event.set_phase(EventPhase::Bubbling);
 
         for cur_target in chain.iter() {
-            let stopped = match cur_target.get_listeners_for(type_.as_slice(), Bubbling) {
+            let stopped = match cur_target.get_listeners_for(type_.as_slice(), ListenerPhase::Bubbling) {
                 Some(listeners) => {
                     event.set_current_target(cur_target.deref().clone());
                     for listener in listeners.iter() {
