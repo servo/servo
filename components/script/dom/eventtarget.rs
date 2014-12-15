@@ -13,8 +13,8 @@ use dom::bindings::utils::{Reflectable, Reflector};
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;
-use dom::workerglobalscope::WorkerGlobalScopeId;
-use dom::xmlhttprequest::XMLHttpRequestId;
+use dom::workerglobalscope::WorkerGlobalScopeTypeId;
+use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::virtualmethods::VirtualMethods;
 use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
 use js::jsapi::{JSContext, JSObject};
@@ -41,8 +41,8 @@ pub enum EventTargetTypeId {
     WebSocket,
     Window,
     Worker,
-    WorkerGlobalScope(WorkerGlobalScopeId),
-    XMLHttpRequestTarget(XMLHttpRequestId)
+    WorkerGlobalScope(WorkerGlobalScopeTypeId),
+    XMLHttpRequestTarget(XMLHttpRequestEventTargetTypeId)
 }
 
 #[deriving(PartialEq)]
