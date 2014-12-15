@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Root};
 use dom::eventtarget::{Capturing, Bubbling, EventTarget};
-use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing};
+use dom::event::{Event, EventPhase};
 use dom::node::{Node, NodeHelpers};
 use dom::virtualmethods::vtable_for;
 
@@ -36,7 +36,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         vec!()
     };
 
-    event.set_phase(PhaseCapturing);
+    event.set_phase(EventPhase::Capturing);
 
     //FIXME: The "callback this value" should be currentTarget
 
@@ -66,7 +66,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
 
     /* at target */
     if !event.stop_propagation() {
-        event.set_phase(PhaseAtTarget);
+        event.set_phase(EventPhase::AtTarget);
         event.set_current_target(target.clone());
 
         let opt_listeners = target.get_listeners(type_.as_slice());
@@ -84,7 +84,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
 
     /* bubbling */
     if event.bubbles() && !event.stop_propagation() {
-        event.set_phase(PhaseBubbling);
+        event.set_phase(EventPhase::Bubbling);
 
         for cur_target in chain.iter() {
             let stopped = match cur_target.get_listeners_for(type_.as_slice(), Bubbling) {
@@ -132,7 +132,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     }
 
     event.set_dispatching(false);
-    event.set_phase(PhaseNone);
+    event.set_phase(EventPhase::None);
     event.clear_current_target();
 
     !event.DefaultPrevented()

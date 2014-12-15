@@ -18,10 +18,10 @@ use time;
 
 #[jstraceable]
 pub enum EventPhase {
-    PhaseNone      = EventConstants::NONE as int,
-    PhaseCapturing = EventConstants::CAPTURING_PHASE as int,
-    PhaseAtTarget  = EventConstants::AT_TARGET as int,
-    PhaseBubbling  = EventConstants::BUBBLING_PHASE as int,
+    None      = EventConstants::NONE as int,
+    Capturing = EventConstants::CAPTURING_PHASE as int,
+    AtTarget  = EventConstants::AT_TARGET as int,
+    Bubbling  = EventConstants::BUBBLING_PHASE as int,
 }
 
 #[deriving(PartialEq)]
