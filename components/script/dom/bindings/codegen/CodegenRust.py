@@ -1673,7 +1673,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::conversions::FromJSValConvertible',
         'dom::bindings::conversions::ToJSValConvertible',
-        'dom::bindings::conversions::Default',
+        'dom::bindings::conversions::StringificationBehavior::Default',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::JS',
         'dom::types::*',
