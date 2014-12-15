@@ -1693,14 +1693,12 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         name = str(t)
         if not name in unionStructs:
             provider = descriptor or config.getDescriptorProvider()
-            unionStructs[name] = CGNamespace(name,
-                CGImports(CGList([
-                    CGUnionStruct(t, provider),
-                    CGUnionConversionStruct(t, provider)
-                ]), [], imports),
-                public=True)
+            unionStructs[name] = CGList([
+                CGUnionStruct(t, provider),
+                CGUnionConversionStruct(t, provider)
+            ])
 
-    return CGList(SortedDictValues(unionStructs), "\n\n")
+    return CGImports(CGList(SortedDictValues(unionStructs), "\n\n"), [], imports)
 
 
 class Argument():
@@ -2876,7 +2874,7 @@ class CGUnionStruct(CGThing):
             "    e%s(%s)," % (v["name"], v["typeName"]) for v in templateVars
         ]
         enumConversions = [
-            "            e%s(ref inner) => inner.to_jsval(cx)," % v["name"] for v in templateVars
+            "            %s::e%s(ref inner) => inner.to_jsval(cx)," % (self.type, v["name"]) for v in templateVars
         ]
         # XXXManishearth The following should be #[must_root],
         # however we currently allow it till #2661 is fixed
@@ -2922,9 +2920,9 @@ class CGUnionConversionStruct(CGThing):
                 return (
                     "match %s::TryConvertTo%s(cx, value) {\n"
                     "    Err(_) => return Err(()),\n"
-                    "    Ok(Some(value)) => return Ok(e%s(value)),\n"
+                    "    Ok(Some(value)) => return Ok(%s::e%s(value)),\n"
                     "    Ok(None) => (),\n"
-                    "}\n") % (self.type, name, name)
+                    "}\n") % (self.type, name, self.type, name)
 
             typeNames = [get_name(memberType) for memberType in interfaceMemberTypes]
             interfaceObject = CGList(CGGeneric(get_match(typeName)) for typeName in typeNames)
@@ -2990,9 +2988,9 @@ class CGUnionConversionStruct(CGThing):
             match = (
                     "match %s::TryConvertTo%s(cx, value) {\n"
                     "    Err(_) => return Err(()),\n"
-                    "    Ok(Some(value)) => return Ok(e%s(value)),\n"
+                    "    Ok(Some(value)) => return Ok(%s::e%s(value)),\n"
                     "    Ok(None) => (),\n"
-                    "}\n") % (self.type, name, name)
+                    "}\n") % (self.type, name, self.type, name)
             conversions.append(CGGeneric(match))
             names.append(name)
 
