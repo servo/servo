@@ -7,7 +7,8 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
-use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
+use dom::bindings::error::{Fallible, ErrorResult};
+use dom::bindings::error::Error::IndexSize;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;

@@ -4,7 +4,8 @@
 
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::error::{ErrorResult, Fallible, Syntax, Network, FailureUnknown};
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::Error::{Syntax, Network, FailureUnknown};
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};

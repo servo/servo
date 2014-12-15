@@ -11,8 +11,9 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestRespo
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Json, Text};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAccess};
-use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::Error::{InvalidState, InvalidAccess};
+use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, WorkerRoot};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::str::ByteString;

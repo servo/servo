@@ -7,7 +7,8 @@ use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::Dedicat
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
-use dom::bindings::error::{ErrorResult, DataClone};
+use dom::bindings::error::ErrorResult;
+use dom::bindings::error::Error::DataClone;
 use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector};

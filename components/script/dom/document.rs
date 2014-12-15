@@ -20,8 +20,9 @@ use dom::bindings::codegen::InheritTypes::{HTMLAnchorElementDerived, HTMLAppletE
 use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
-use dom::bindings::error::{ErrorResult, Fallible, NotSupported, InvalidCharacter};
-use dom::bindings::error::{HierarchyRequest, NamespaceError};
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::Error::{NotSupported, InvalidCharacter};
+use dom::bindings::error::Error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};

@@ -17,7 +17,8 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::codegen::InheritTypes::{ElementDerived, HTMLInputElementDerived, HTMLTableCellElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, NodeCast, EventTargetCast, ElementCast};
-use dom::bindings::error::{ErrorResult, Fallible, NamespaceError, InvalidCharacter, Syntax};
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::Error::{NamespaceError, InvalidCharacter, Syntax};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, Root};
 use dom::bindings::utils::{Reflectable, Reflector};

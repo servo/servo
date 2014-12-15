@@ -19,7 +19,8 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDeri
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
-use dom::bindings::error::{Fallible, NotFound, HierarchyRequest, Syntax};
+use dom::bindings::error::Fallible;
+use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};

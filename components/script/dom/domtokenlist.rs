@@ -5,7 +5,8 @@
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
-use dom::bindings::error::{Fallible, InvalidCharacter, Syntax};
+use dom::bindings::error::Fallible;
+use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
