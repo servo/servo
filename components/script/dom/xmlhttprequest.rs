@@ -25,6 +25,8 @@ use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
+use script_task::ScriptChan;
+use script_task::ScriptMsg::{XHRProgressMsg, XHRReleaseMsg};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -45,7 +47,6 @@ use libc::c_void;
 
 use net::resource_task::{ResourceTask, ResourceCORSData, Load, LoadData, LoadResponse, Payload, Done};
 use cors::{allow_cross_origin_request, CORSRequest, CORSMode, ForcedPreflightMode};
-use script_task::{ScriptChan, XHRProgressMsg, XHRReleaseMsg};
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 

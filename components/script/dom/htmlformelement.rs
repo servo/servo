@@ -22,7 +22,8 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_n
 use hyper::method::Post;
 use servo_msg::constellation_msg::LoadData;
 use servo_util::str::DOMString;
-use script_task::{ScriptChan, TriggerLoadMsg};
+use script_task::ScriptChan;
+use script_task::ScriptMsg::TriggerLoadMsg;
 use std::ascii::OwnedAsciiExt;
 use url::UrlParser;
 use url::form_urlencoded::serialize;

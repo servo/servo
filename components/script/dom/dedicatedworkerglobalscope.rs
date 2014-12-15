@@ -17,9 +17,9 @@ use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use dom::xmlhttprequest::XMLHttpRequest;
-use script_task::{ScriptTask, ScriptChan};
-use script_task::{ScriptMsg, FromWorker,  DOMMessage, FireTimerMsg, XHRProgressMsg, XHRReleaseMsg, WorkerRelease};
-use script_task::WorkerPostMessage;
+use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
+use script_task::ScriptMsg::{DOMMessage, FireTimerMsg, XHRProgressMsg};
+use script_task::ScriptMsg::{XHRReleaseMsg, WorkerRelease, WorkerPostMessage};
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
@@ -144,7 +144,7 @@ impl DedicatedWorkerGlobalScope {
                     Ok(WorkerRelease(addr)) => {
                         Worker::handle_release(addr)
                     },
-                    Ok(FireTimerMsg(FromWorker, timer_id)) => {
+                    Ok(FireTimerMsg(TimerSource::FromWorker, timer_id)) => {
                         scope.handle_fire_timer(timer_id);
                     }
                     Ok(_) => panic!("Unexpected message"),

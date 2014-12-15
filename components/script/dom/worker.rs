@@ -14,7 +14,8 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use script_task::{ScriptChan, DOMMessage};
+use script_task::ScriptChan;
+use script_task::ScriptMsg::DOMMessage;
 
 use servo_util::str::DOMString;
 

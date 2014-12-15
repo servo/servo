@@ -13,7 +13,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use dom::window::{base64_atob, base64_btoa};
-use script_task::{ScriptChan, FromWorker};
+use script_task::{ScriptChan, TimerSource};
 use timers::{Interval, NonInterval, TimerId, TimerManager};
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
@@ -151,7 +151,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
                                             args,
                                             timeout,
                                             NonInterval,
-                                            FromWorker,
+                                            TimerSource::FromWorker,
                                             self.script_chan.clone())
     }
 
@@ -164,7 +164,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
                                             args,
                                             timeout,
                                             Interval,
-                                            FromWorker,
+                                            TimerSource::FromWorker,
                                             self.script_chan.clone())
     }
 

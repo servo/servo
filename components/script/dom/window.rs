@@ -23,8 +23,8 @@ use dom::screen::Screen;
 use dom::storage::Storage;
 use layout_interface::NoQuery;
 use page::Page;
-use script_task::{ExitWindowMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
-use script_task::FromWindow;
+use script_task::{TimerSource, ScriptChan};
+use script_task::ScriptMsg::{ExitWindowMsg, TriggerLoadMsg, TriggerFragmentMsg};
 use script_traits::ScriptControlChan;
 use timers::{Interval, NonInterval, TimerId, TimerManager};
 
@@ -219,7 +219,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
                                             args,
                                             timeout,
                                             NonInterval,
-                                            FromWindow(self.page.id.clone()),
+                                            TimerSource::FromWindow(self.page.id.clone()),
                                             self.script_chan.clone())
     }
 
@@ -232,7 +232,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
                                             args,
                                             timeout,
                                             Interval,
-                                            FromWindow(self.page.id.clone()),
+                                            TimerSource::FromWindow(self.page.id.clone()),
                                             self.script_chan.clone())
     }
 
