@@ -56,7 +56,7 @@ use std::cell::Cell;
 use std::comm::{Sender, Receiver, channel};
 use std::default::Default;
 use std::io::Timer;
-use std::from_str::FromStr;
+use std::str::FromStr;
 use std::time::duration::Duration;
 use std::num::Zero;
 use time;

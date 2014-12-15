@@ -4,9 +4,9 @@
 
 //! The `ByteString` struct.
 
-use std::from_str::FromStr;
 use std::hash::{Hash, sip};
 use std::str;
+use std::str::FromStr;
 
 /// Encapsulates the IDL `ByteString` type.
 #[deriving(Clone,Eq,PartialEq)]

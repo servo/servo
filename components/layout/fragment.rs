@@ -39,7 +39,7 @@ use servo_util::smallvec::SmallVec;
 use servo_util::str::is_whitespace;
 use std::cmp::{max, min};
 use std::fmt;
-use std::from_str::FromStr;
+use std::str::FromStr;
 use string_cache::Atom;
 use style::{ComputedValues, TElement, TNode, cascade_anonymous};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto};
