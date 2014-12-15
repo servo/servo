@@ -171,10 +171,10 @@ pub fn parse_html(document: JSRef<Document>,
     task_state::enter(IN_HTML_PARSER);
 
     match input {
-        InputString(s) => {
+        HTMLInput::InputString(s) => {
             parser.parse_chunk(s);
         }
-        InputUrl(load_response) => {
+        HTMLInput::InputUrl(load_response) => {
             match load_response.metadata.content_type {
                 Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
                     let page = format!("<html><body><img src='{:s}' /></body></html>", url.serialize());
