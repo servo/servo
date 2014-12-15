@@ -30,7 +30,7 @@ use dom::bindings::utils;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
-use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument, NotFromParser};
+use dom::document::{Document, DocumentHelpers, IsHTMLDocument, NotFromParser};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{AttributeHandlers, Element, ScriptCreated, ElementTypeId};
@@ -1543,8 +1543,8 @@ impl Node {
             NodeTypeId::Document => {
                 let document: JSRef<Document> = DocumentCast::to_ref(node).unwrap();
                 let is_html_doc = match document.is_html_document() {
-                    true => HTMLDocument,
-                    false => NonHTMLDocument
+                    true => IsHTMLDocument::HTMLDocument,
+                    false => IsHTMLDocument::NonHTMLDocument,
                 };
                 let window = document.window().root();
                 let document = Document::new(*window, Some(document.url().clone()),

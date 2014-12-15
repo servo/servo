@@ -53,7 +53,8 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
         let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as uint].to_string();
         match ty {
             Text_html => {
-                let document = Document::new(window, url.clone(), HTMLDocument,
+                let document = Document::new(window, url.clone(),
+                                             IsHTMLDocument::HTMLDocument,
                                              Some(content_type), FromParser).root().clone();
                 let parser = ServoHTMLParser::new(url.clone(), document).root().clone();
                 parser.parse_chunk(s);
@@ -63,8 +64,9 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
             }
             Text_xml => {
                 //FIXME: this should probably be FromParser when we actually parse the string (#3756).
-                Ok(Document::new(window, url.clone(), NonHTMLDocument, Some(content_type),
-                                 NotFromParser))
+                Ok(Document::new(window, url.clone(),
+                                 IsHTMLDocument::NonHTMLDocument,
+                                 Some(content_type), NotFromParser))
             }
             _ => {
                 Err(FailureUnknown)

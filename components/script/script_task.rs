@@ -777,8 +777,9 @@ impl ScriptTask {
         } else {
             url.clone()
         };
-        let document = Document::new(*window, Some(doc_url.clone()), HTMLDocument,
-                                     None, FromParser).root();
+        let document = Document::new(*window, Some(doc_url.clone()),
+                                     IsHTMLDocument::HTMLDocument, None,
+                                     FromParser).root();
 
         window.init_browser_context(*document);
 

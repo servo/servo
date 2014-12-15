@@ -419,9 +419,9 @@ impl Document {
                 Some(string) => string.clone(),
                 None => match is_html_document {
                     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
-                    HTMLDocument => "text/html".to_string(),
+                    IsHTMLDocument::HTMLDocument => "text/html".to_string(),
                     // http://dom.spec.whatwg.org/#concept-document-content-type
-                    NonHTMLDocument => "application/xml".to_string()
+                    IsHTMLDocument::NonHTMLDocument => "application/xml".to_string()
                 }
             },
             last_modified: DOMRefCell::new(None),
@@ -430,7 +430,7 @@ impl Document {
             quirks_mode: Cell::new(NoQuirks),
             // http://dom.spec.whatwg.org/#concept-document-encoding
             encoding_name: DOMRefCell::new("UTF-8".to_string()),
-            is_html_document: is_html_document == HTMLDocument,
+            is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             images: Default::default(),
             embeds: Default::default(),
             links: Default::default(),
@@ -446,7 +446,8 @@ impl Document {
 
     // http://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Document>> {
-        Ok(Document::new(global.as_window(), None, NonHTMLDocument, None, NotFromParser))
+        Ok(Document::new(global.as_window(), None,
+                         IsHTMLDocument::NonHTMLDocument, None, NotFromParser))
     }
 
     pub fn new(window: JSRef<Window>,
