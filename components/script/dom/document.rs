@@ -406,7 +406,7 @@ impl Document {
                      source: DocumentSource) -> Document {
         let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
-        let ready_state = if source == FromParser {
+        let ready_state = if source == DocumentSource::FromParser {
             DocumentReadyStateValues::Loading
         } else {
             DocumentReadyStateValues::Complete
@@ -449,7 +449,8 @@ impl Document {
     // http://dom.spec.whatwg.org/#dom-document
     pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Document>> {
         Ok(Document::new(global.as_window(), None,
-                         IsHTMLDocument::NonHTMLDocument, None, NotFromParser))
+                         IsHTMLDocument::NonHTMLDocument, None,
+                         DocumentSource::NotFromParser))
     }
 
     pub fn new(window: JSRef<Window>,

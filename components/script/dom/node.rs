@@ -31,7 +31,7 @@ use dom::bindings::utils;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
-use dom::document::{Document, DocumentHelpers, IsHTMLDocument, NotFromParser};
+use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::element::{AttributeHandlers, Element, ScriptCreated, ElementTypeId};
@@ -1549,7 +1549,8 @@ impl Node {
                 };
                 let window = document.window().root();
                 let document = Document::new(*window, Some(document.url().clone()),
-                                             is_html_doc, None, NotFromParser);
+                                             is_html_doc, None,
+                                             DocumentSource::NotFromParser);
                 NodeCast::from_temporary(document)
             },
             NodeTypeId::Element(..) => {

@@ -15,7 +15,7 @@ use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
-use dom::document::NotFromParser;
+use dom::document::DocumentSource;
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -78,7 +78,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
 
         // Step 1.
         let doc = Document::new(*win, None, IsHTMLDocument::NonHTMLDocument,
-                                None, NotFromParser).root();
+                                None, DocumentSource::NotFromParser).root();
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
             None
@@ -124,7 +124,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
 
         // Step 1-2.
         let doc = Document::new(*win, None, IsHTMLDocument::HTMLDocument, None,
-                                NotFromParser).root();
+                                DocumentSource::NotFromParser).root();
         let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
 
         {

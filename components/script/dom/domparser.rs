@@ -13,7 +13,7 @@ use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument};
-use dom::document::{FromParser, NotFromParser};
+use dom::document::DocumentSource;
 use dom::servohtmlparser::ServoHTMLParser;
 use dom::window::Window;
 use parse::Parser;
@@ -56,7 +56,8 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
             Text_html => {
                 let document = Document::new(window, url.clone(),
                                              IsHTMLDocument::HTMLDocument,
-                                             Some(content_type), FromParser).root().clone();
+                                             Some(content_type),
+                                             DocumentSource::FromParser).root().clone();
                 let parser = ServoHTMLParser::new(url.clone(), document).root().clone();
                 parser.parse_chunk(s);
                 parser.finish();
@@ -67,7 +68,8 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                 //FIXME: this should probably be FromParser when we actually parse the string (#3756).
                 Ok(Document::new(window, url.clone(),
                                  IsHTMLDocument::NonHTMLDocument,
-                                 Some(content_type), NotFromParser))
+                                 Some(content_type),
+                                 DocumentSource::NotFromParser))
             }
             _ => {
                 Err(FailureUnknown)
