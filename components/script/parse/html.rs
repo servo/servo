@@ -9,7 +9,7 @@ use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
 use dom::documenttype::DocumentType;
-use dom::element::{Element, AttributeHandlers, ElementHelpers, ParserCreated};
+use dom::element::{Element, AttributeHandlers, ElementHelpers, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlscriptelement::HTMLScriptElementHelpers;
 use dom::node::{Node, NodeHelpers, TrustedNodeAddress};
@@ -77,7 +77,8 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
             -> TrustedNodeAddress {
         let doc = self.document.root();
-        let elem = Element::create(name, None, *doc, ParserCreated).root();
+        let elem = Element::create(name, None, *doc,
+                                   ElementCreator::ParserCreated).root();
 
         for attr in attrs.into_iter() {
             elem.set_attribute_from_parser(attr.name, attr.value, None);

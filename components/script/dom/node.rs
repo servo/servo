@@ -34,7 +34,7 @@ use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
-use dom::element::{AttributeHandlers, Element, ScriptCreated, ElementTypeId};
+use dom::element::{AttributeHandlers, Element, ElementCreator, ElementTypeId};
 use dom::element::ElementHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::nodelist::NodeList;
@@ -1560,7 +1560,8 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().as_ref().map(|p| p.as_slice().to_string()), *document, ScriptCreated);
+                    element.prefix().as_ref().map(|p| p.as_slice().to_string()),
+                    *document, ElementCreator::ScriptCreated);
                 NodeCast::from_temporary(element)
             },
             NodeTypeId::Text => {

@@ -15,8 +15,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCas
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{ElementTypeId, Element, AttributeHandlers};
-use dom::element::{ElementCreator, ParserCreated};
+use dom::element::{ElementTypeId, Element, AttributeHandlers, ElementCreator};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, CloneChildrenFlag};
@@ -64,8 +63,8 @@ impl HTMLScriptElement {
         HTMLScriptElement {
             htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLScriptElement, localName, prefix, document),
             already_started: Cell::new(false),
-            parser_inserted: Cell::new(creator == ParserCreated),
-            non_blocking: Cell::new(creator != ParserCreated),
+            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
+            non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
         }
     }

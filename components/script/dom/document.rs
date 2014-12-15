@@ -35,7 +35,7 @@ use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
-use dom::element::{Element, ScriptCreated, AttributeHandlers, get_attribute_parts};
+use dom::element::{Element, ElementCreator, AttributeHandlers, get_attribute_parts};
 use dom::element::ElementTypeId;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
@@ -593,7 +593,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             local_name
         };
         let name = QualName::new(ns!(HTML), Atom::from_slice(local_name.as_slice()));
-        Ok(Element::create(name, None, self, ScriptCreated))
+        Ok(Element::create(name, None, self, ElementCreator::ScriptCreated))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createelementns
@@ -638,7 +638,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
         let name = QualName::new(ns, Atom::from_slice(local_name_from_qname));
         Ok(Element::create(name, prefix_from_qname.map(|s| s.to_string()), self,
-                           ScriptCreated))
+                           ElementCreator::ScriptCreated))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createattribute
