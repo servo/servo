@@ -62,7 +62,8 @@ use std::num::Zero;
 use time;
 use url::{Url, UrlParser};
 
-use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams, StringOrURLSearchParams};
+use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
+use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 pub type SendParam = StringOrURLSearchParams;
 
 #[deriving(PartialEq)]
