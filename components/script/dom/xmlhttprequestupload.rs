@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestUploadBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Temporary;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 
@@ -18,7 +19,7 @@ pub struct XMLHttpRequestUpload {
 impl XMLHttpRequestUpload {
     fn new_inherited() -> XMLHttpRequestUpload {
         XMLHttpRequestUpload {
-            eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId::XMLHttpRequestUpload)
+            eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestEventTargetTypeId::XMLHttpRequestUpload)
         }
     }
     pub fn new(global: GlobalRef) -> Temporary<XMLHttpRequestUpload> {
@@ -35,6 +36,6 @@ impl Reflectable for XMLHttpRequestUpload {
 
 impl XMLHttpRequestUploadDerived for EventTarget {
     fn is_xmlhttprequestupload(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::XMLHttpRequestEventTarget(XMLHttpRequestTypeId::XMLHttpRequestUpload)
+        *self.type_id() == EventTargetTypeId::XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId::XMLHttpRequestUpload)
     }
 }

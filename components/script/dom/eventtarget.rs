@@ -43,7 +43,7 @@ pub enum EventTargetTypeId {
     Window,
     Worker,
     WorkerGlobalScope(WorkerGlobalScopeTypeId),
-    XMLHttpRequestTarget(XMLHttpRequestEventTargetTypeId)
+    XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId)
 }
 
 #[deriving(PartialEq)]
