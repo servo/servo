@@ -7,6 +7,8 @@
 /// from layout.
 
 pub use self::Msg::*;
+pub use self::ReflowGoal::*;
+pub use self::ReflowQueryType::*;
 
 use dom::node::LayoutDataRef;
 
