@@ -2751,35 +2751,36 @@ def getEnumValueName(value):
 class CGEnum(CGThing):
     def __init__(self, enum):
         CGThing.__init__(self)
+
+        decl = """
+#[repr(uint)]
+#[deriving(PartialEq)]
+#[jstraceable]
+pub enum %s {
+  %s
+}
+""" % (enum.identifier.name, ",\n  ".join(map(getEnumValueName, enum.values())))
+
         inner = """
 use dom::bindings::conversions::ToJSValConvertible;
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
 
-#[repr(uint)]
-#[deriving(PartialEq)]
-#[jstraceable]
-pub enum valuelist {
-  %s
-}
-
 pub const strings: &'static [&'static str] = &[
   %s,
 ];
 
-impl ToJSValConvertible for valuelist {
+impl ToJSValConvertible for %s {
   fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
     strings[*self as uint].to_string().to_jsval(cx)
   }
 }
-""" % (",\n  ".join(map(getEnumValueName, enum.values())),
-       ",\n  ".join(['"%s"' % val for val in enum.values()]))
+""" % (",\n  ".join(['"%s"' % val for val in enum.values()]), enum.identifier.name)
 
         self.cgRoot = CGList([
+            CGGeneric(decl),
             CGNamespace.build([enum.identifier.name + "Values"],
                               CGIndenter(CGGeneric(inner)), public=True),
-            CGGeneric("pub type %s = self::%sValues::valuelist;\n" %
-                                      (enum.identifier.name, enum.identifier.name)),
         ])
 
     def define(self):

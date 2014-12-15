@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyStateValues;
 use dom::bindings::codegen::Bindings::DOMParserBinding;
 use dom::bindings::codegen::Bindings::DOMParserBinding::DOMParserMethods;
-use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
+use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{Text_html, Text_xml};
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::FailureUnknown;
 use dom::bindings::global::GlobalRef;

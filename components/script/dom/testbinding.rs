@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestBindingMethods;
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnum;
-use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnumValues::_empty;
+use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnum::_empty;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
