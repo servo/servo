@@ -11,7 +11,8 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
-use dom::bindings::conversions::{FromJSValConvertible, Empty};
+use dom::bindings::conversions::FromJSValConvertible;
+use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
@@ -827,7 +828,8 @@ impl ScriptTask {
         } else {
             let evalstr = load_data.url.non_relative_scheme_data().unwrap();
             let jsval = window.evaluate_js_with_result(evalstr);
-            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval, Empty);
+            let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
+                                                          StringificationBehavior::Empty);
             (InputString(strval.unwrap_or("".to_string())), doc_url)
         };
 
