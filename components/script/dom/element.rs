@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use dom::activation::Activatable;
-use dom::attr::{Attr, ReplacedAttr, FirstSetAttr, AttrHelpers, AttrHelpersForLayout};
+use dom::attr::{Attr, AttrSettingType, AttrHelpers, AttrHelpersForLayout};
 use dom::attr::AttrValue;
 use dom::namednodemap::NamedNodeMap;
 use dom::bindings::cell::DOMRefCell;
@@ -516,13 +516,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
                                      .map(|attr| attr.root())
                                      .position(|attr| cb(*attr));
         let (idx, set_type) = match idx {
-            Some(idx) => (idx, ReplacedAttr),
+            Some(idx) => (idx, AttrSettingType::ReplacedAttr),
             None => {
                 let window = window_from_node(self).root();
                 let attr = Attr::new(*window, local_name, value.clone(),
                                      name, namespace.clone(), prefix, Some(self));
                 self.attrs.borrow_mut().push_unrooted(&attr);
-                (self.attrs.borrow().len() - 1, FirstSetAttr)
+                (self.attrs.borrow().len() - 1, AttrSettingType::FirstSetAttr)
             }
         };
 

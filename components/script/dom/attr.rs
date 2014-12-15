@@ -146,7 +146,7 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
             Some(o) => {
                 let owner = o.root();
                 let value = owner.parse_attribute(&self.namespace, self.local_name(), value);
-                self.set_value(ReplacedAttr, value, *owner);
+                self.set_value(AttrSettingType::ReplacedAttr, value, *owner);
             }
         }
     }
@@ -207,7 +207,8 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
         let namespace_is_null = self.namespace == ns!("");
 
         match set_type {
-            ReplacedAttr if namespace_is_null => vtable_for(&node).before_remove_attr(self),
+            AttrSettingType::ReplacedAttr if namespace_is_null =>
+                vtable_for(&node).before_remove_attr(self),
             _ => ()
         }
 
