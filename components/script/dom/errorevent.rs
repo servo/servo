@@ -13,7 +13,7 @@ use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventTypeId, ErrorEventTypeId};
+use dom::event::{Event, EventTypeId, ErrorEventTypeId, EventBubbles, Bubbles, DoesNotBubble, EventCancelable, Cancelable, NotCancelable};
 use servo_util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
@@ -56,8 +56,8 @@ impl ErrorEvent {
 
     pub fn new(global: &GlobalRef,
                type_: DOMString,
-               can_bubble: bool,
-               cancelable: bool,
+               bubbles: EventBubbles,
+               cancelable: EventCancelable,
                message: DOMString,
                filename: DOMString,
                lineno: u32,
@@ -65,7 +65,7 @@ impl ErrorEvent {
                error: JSVal) -> Temporary<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global).root();
         let event: JSRef<Event> = EventCast::from_ref(*ev);
-        event.InitEvent(type_, can_bubble, cancelable);
+        event.InitEvent(type_, bubbles == Bubbles, cancelable == Cancelable);
         *ev.message.borrow_mut() = message;
         *ev.filename.borrow_mut() = filename;
         ev.lineno.set(lineno);
@@ -91,8 +91,12 @@ impl ErrorEvent {
 
         let col_num = init.colno.unwrap_or(0);
 
+        let bubbles = if init.parent.bubbles { Bubbles } else { DoesNotBubble };
+
+        let cancelable = if init.parent.cancelable { Cancelable } else { NotCancelable };
+
         let event = ErrorEvent::new(global, type_,
-                                init.parent.bubbles, init.parent.cancelable,
+                                bubbles, cancelable,
                                 msg, file_name,
                                 line_num, col_num, init.error);
         Ok(event)
