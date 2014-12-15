@@ -2770,7 +2770,7 @@ pub const strings: &'static [&'static str] = &[
   %s,
 ];
 
-impl ToJSValConvertible for %s {
+impl ToJSValConvertible for super::%s {
   fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
     strings[*self as uint].to_string().to_jsval(cx)
   }
