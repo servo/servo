@@ -6,8 +6,8 @@
 //! `<input size>`, and so forth.
 
 use node::{TElement, TElementAttributes, TNode};
-use properties::{BackgroundColorDeclaration, BorderBottomWidthDeclaration};
-use properties::{BorderLeftWidthDeclaration, BorderRightWidthDeclaration};
+use properties::{BackgroundColorDeclaration, BorderBottomWidthDeclaration, CSSFloat};
+use properties::{BorderLeftWidthDeclaration, BorderRightWidthDeclaration, HeightDeclaration};
 use properties::{BorderTopWidthDeclaration, SpecifiedValue, WidthDeclaration, specified};
 use selector_matching::{DeclarationBlock, Stylist};
 
@@ -26,6 +26,8 @@ pub enum LengthAttribute {
 pub enum IntegerAttribute {
     /// `<input size>`
     SizeIntegerAttribute,
+    ColsIntegerAttribute,
+    RowsIntegerAttribute,
 }
 
 /// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
@@ -154,6 +156,36 @@ impl PresentationalHintSynthesis for Stylist {
                         };
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 WidthDeclaration(SpecifiedValue(specified::LPA_Length(
+                                            value)))));
+                        *shareable = false
+                    }
+                    Some(_) | None => {}
+                }
+            }
+            name if *name == atom!("textarea") => {
+                match element.get_integer_attribute(ColsIntegerAttribute) {
+                    Some(value) if value != 0 => {
+                        // TODO(mttr) ServoCharacterWidth uses the size math for <input type="text">, but
+                        // the math for <textarea> is a little different since we need to take
+                        // scrollbar size into consideration (but we don't have a scrollbar yet!)
+                        //
+                        // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-width
+                        let value = specified::ServoCharacterWidth(value);
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                WidthDeclaration(SpecifiedValue(specified::LPA_Length(
+                                            value)))));
+                        *shareable = false
+                    }
+                    Some(_) | None => {}
+                }
+                match element.get_integer_attribute(RowsIntegerAttribute) {
+                    Some(value) if value != 0 => {
+                        // TODO(mttr) This should take scrollbar size into consideration.
+                        //
+                        // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-height
+                        let value = specified::Em(value as CSSFloat);
+                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
+                                HeightDeclaration(SpecifiedValue(specified::LPA_Length(
                                             value)))));
                         *shareable = false
                     }

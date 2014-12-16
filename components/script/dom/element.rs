@@ -19,7 +19,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, ElementDerived, EventTar
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLTableElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, HTMLTableCellElementDerived};
-use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived};
+use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextAreaElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, Root};
@@ -41,6 +41,7 @@ use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
 use dom::htmltablerowelement::{HTMLTableRowElement, HTMLTableRowElementHelpers};
 use dom::htmltablesectionelement::{HTMLTableSectionElement, HTMLTableSectionElementHelpers};
+use dom::htmltextareaelement::{HTMLTextAreaElement, RawLayoutHTMLTextAreaElementHelpers};
 use dom::node::{CLICK_IN_PROGRESS, ElementNodeTypeId, LayoutNodeHelpers, Node, NodeHelpers};
 use dom::node::{NodeIterator, NodeStyleDamaged, OtherNodeDamage, document_from_node};
 use dom::node::{window_from_node};
@@ -49,8 +50,8 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
 use style::{mod, AuthorOrigin, BgColorSimpleColorAttribute, BorderUnsignedIntegerAttribute};
 use style::{ColSpanUnsignedIntegerAttribute, IntegerAttribute, LengthAttribute, ParserContext};
-use style::{SimpleColorAttribute, SizeIntegerAttribute, UnsignedIntegerAttribute};
-use style::{WidthLengthAttribute, matches};
+use style::{SimpleColorAttribute, SizeIntegerAttribute, ColsIntegerAttribute, RowsIntegerAttribute};
+use style::{UnsignedIntegerAttribute, WidthLengthAttribute, matches};
 use servo_util::namespace;
 use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
@@ -322,6 +323,20 @@ impl RawLayoutElementHelpers for Element {
                 }
                 let this: &HTMLInputElement = mem::transmute(self);
                 Some(this.get_size_for_layout() as i32)
+            }
+            ColsIntegerAttribute => {
+                if !self.is_htmltextareaelement() {
+                    panic!("I'm not a textarea element!")
+                }
+                let this: &HTMLTextAreaElement = mem::transmute(self);
+                Some(this.get_cols_for_layout() as i32)
+            }
+            RowsIntegerAttribute => {
+                if !self.is_htmltextareaelement() {
+                    panic!("I'm not a textarea element!")
+                }
+                let this: &HTMLTextAreaElement = mem::transmute(self);
+                Some(this.get_rows_for_layout() as i32)
             }
         }
     }
