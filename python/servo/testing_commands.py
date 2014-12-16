@@ -210,7 +210,9 @@ class MachCommands(CommandBase):
             # Allow the first argument to be a relative path from Servo's root
             # directory, converting it to `--include some/wpt/test.html`
             maybe_path = path.normpath(params[0])
-            wpt_path = path.join('tests', 'wpt', 'web-platform-tests')
+            is_csswg = params[-1] is '--csswg'
+            test_dir = 'csswg-test' if is_csswg else 'web-platform-tests'
+            wpt_path = path.join('tests', 'wpt', test_dir)
 
             if path.exists(maybe_path) and wpt_path in maybe_path:
                 params = ["--include",
@@ -225,10 +227,8 @@ class MachCommands(CommandBase):
              category='testing')
     @CommandArgument(
         'params', default=None, nargs='...',
-        help="Command-line arguments to be passed through to wpt/run-csswg.sh")
+        help="Command-line arguments to be passed through to wpt/run.sh")
     def test_csswg(self, params=None):
         if params is None:
             params = []
-        return subprocess.call(
-            ["bash", path.join("tests", "wpt", "run-csswg.sh")] + params,
-            env=self.build_env())
+        return Registrar.dispatch("test-wpt", context=self.context, params=params+['--csswg'])
