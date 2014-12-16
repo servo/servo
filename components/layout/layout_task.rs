@@ -626,7 +626,7 @@ impl LayoutTask {
                                          layout_root: &mut FlowRef,
                                          shared_layout_ctx: &mut SharedLayoutContext,
                                          rw_data: &mut RWGuard<'a>) {
-        let writing_mode = flow::base(layout_root.deref()).writing_mode;
+        let writing_mode = flow::base(&**layout_root).writing_mode;
         profile(time::LayoutDispListBuildCategory,
                 Some((&data.url,
                 if data.iframe { TimeIFrame } else { TimeRootWindow },
@@ -634,13 +634,13 @@ impl LayoutTask {
                      self.time_profiler_chan.clone(),
                      || {
             shared_layout_ctx.dirty =
-                flow::base(layout_root.deref()).position.to_physical(writing_mode,
+                flow::base(&**layout_root).position.to_physical(writing_mode,
                                                                      rw_data.screen_size);
-            flow::mut_base(layout_root.deref_mut()).stacking_relative_position =
+            flow::mut_base(&mut **layout_root).stacking_relative_position =
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              rw_data.screen_size);
 
-            flow::mut_base(layout_root.deref_mut()).clip_rect = data.page_clip_rect;
+            flow::mut_base(&mut **layout_root).clip_rect = data.page_clip_rect;
 
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
@@ -684,7 +684,7 @@ impl LayoutTask {
             }
 
             let root_size = {
-                let root_flow = flow::base(layout_root.deref());
+                let root_flow = flow::base(&**layout_root);
                 root_flow.position.size.to_physical(root_flow.writing_mode)
             };
             let mut display_list = box DisplayList::new();
