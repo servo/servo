@@ -38,8 +38,12 @@ pub enum AttrValue {
 
 impl AttrValue {
     pub fn from_serialized_tokenlist(tokens: DOMString) -> AttrValue {
-        let atoms = split_html_space_chars(tokens.as_slice())
-            .map(|token| Atom::from_slice(token)).collect();
+        let mut atoms: Vec<Atom> = vec!();
+        for token in split_html_space_chars(tokens.as_slice()).map(|slice| Atom::from_slice(slice)) {
+            if !atoms.iter().any(|atom| *atom == token) {
+                atoms.push(token);
+            }
+        }
         AttrValue::TokenList(tokens, atoms)
     }
 
