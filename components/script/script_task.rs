@@ -495,7 +495,7 @@ impl ScriptTask {
                     let page = self.page.borrow_mut();
                     let inner_page = page.find(id).expect("Page rect message sent to nonexistent pipeline");
                     if inner_page.set_page_clip_rect_with_new_viewport(rect) {
-                        let page = get_page(&*self.page.borrow(), id);
+                        let page = get_page(&*page, id);
                         self.force_reflow(&*page);
                     }
                 }
