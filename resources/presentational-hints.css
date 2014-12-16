@@ -57,12 +57,8 @@ table:matches([rules=none i], [rules=groups i], [rules=rows i], [rules=cols i], 
   border-collapse: collapse;
 }
 
-table[border] {
+table:-servo-nonzero-border {
   border-style: outset;
-  /*
-  FIXME: only if border is not equivalent to zero
-  https://html.spec.whatwg.org/multipage/rendering.html#magic-border-selector
-  */
 }
 table[frame=void i] { border-style: hidden; }
 table[frame=above i] { border-style: outset hidden hidden hidden; }
@@ -74,12 +70,14 @@ table[frame=vsides i] { border-style: hidden outset; }
 table[frame=box i], table[frame=border i] { border-style: outset; }
 
 
-table[border] > tr > :matches(td, th),
-table[border] > :matches(thead, tbody, tfoot) > tr > :matches(td, th) {
-  /*
-  FIXME: only if border is not equivalent to zero
-  https://html.spec.whatwg.org/multipage/rendering.html#magic-border-selector
-  */
+table:-servo-nonzero-border > tr > td,
+table:-servo-nonzero-border > tr > th,
+table:-servo-nonzero-border > thead > tr > td,
+table:-servo-nonzero-border > thead > tr > th,
+table:-servo-nonzero-border > tbody > tr > td,
+table:-servo-nonzero-border > tbody > tr > th,
+table:-servo-nonzero-border > tfoot > tr > td,
+table:-servo-nonzero-border > tfoot > tr > th {
   border-width: 1px;
   border-style: inset;
 }

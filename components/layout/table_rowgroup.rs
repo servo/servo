@@ -9,11 +9,10 @@
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayNotCollapse};
 use construct::FlowConstructor;
 use context::LayoutContext;
-use flow::{TableRowGroupFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use flow::{Flow, FlowClass, TableRowGroupFlowClass};
 use fragment::{Fragment, FragmentBoundsIterator};
 use layout_debug;
-use model::IntrinsicISizesContribution;
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableFlow};
+use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
@@ -24,6 +23,7 @@ use sync::Arc;
 /// A table formatting context.
 #[deriving(Encodable)]
 pub struct TableRowGroupFlow {
+    /// Fields common to all block flows.
     pub block_flow: BlockFlow,
 
     /// Information about the intrinsic inline-sizes of each column.
@@ -91,54 +91,11 @@ impl Flow for TableRowGroupFlow {
         &mut self.column_computed_inline_sizes
     }
 
-
-    /// Recursively (bottom-up) determines the context's preferred and minimum inline-sizes. When
-    /// called on this context, all child contexts have had their min/pref inline-sizes set. This
-    /// function must decide min/pref inline-sizes based on child context inline-sizes and
-    /// dimensions of any fragments it is responsible for flowing.
-    ///
-    /// Min/pref inline-sizes set by this function are used in automatic table layout calculation.
-    ///
-    /// Also, this function finds the specified column inline-sizes from the first row. These are
-    /// used in fixed table layout calculation.
     fn bubble_inline_sizes(&mut self) {
         let _scope = layout_debug_scope!("table_rowgroup::bubble_inline_sizes {:x}",
                                          self.block_flow.base.debug_id());
-
-        let mut computation = IntrinsicISizesContribution::new();
-        for kid in self.block_flow.base.child_iter() {
-            assert!(kid.is_table_row());
-
-            // Calculate minimum and preferred inline sizes for automatic table layout.
-            if self.column_intrinsic_inline_sizes.is_empty() {
-                // We're the first row.
-                self.column_intrinsic_inline_sizes = kid.column_intrinsic_inline_sizes().clone();
-            } else {
-                let mut child_intrinsic_sizes =
-                    TableFlow::update_column_inline_sizes(&mut self.column_intrinsic_inline_sizes,
-                                                          kid.column_intrinsic_inline_sizes());
-
-                // update the number of column inline-sizes from table-rows.
-                let column_count = self.column_intrinsic_inline_sizes.len();
-                let child_column_count = kid.column_intrinsic_inline_sizes().len();
-                for i in range(column_count, child_column_count) {
-                    let this_column_inline_size = (*kid.column_intrinsic_inline_sizes())[i];
-
-                    // FIXME(pcwalton): Ignoring the percentage here seems dubious.
-                    child_intrinsic_sizes.minimum_inline_size =
-                        child_intrinsic_sizes.minimum_inline_size +
-                        this_column_inline_size.minimum_length;
-                    child_intrinsic_sizes.preferred_inline_size =
-                        child_intrinsic_sizes.preferred_inline_size +
-                        this_column_inline_size.preferred;
-                    self.column_intrinsic_inline_sizes.push(this_column_inline_size);
-                }
-
-                computation.union_block(&child_intrinsic_sizes)
-            }
-        }
-
-        self.block_flow.base.intrinsic_inline_sizes = computation.finish()
+        // Proper calculation of intrinsic sizes in table layout requires access to the entire
+        // table, which we don't have yet. Defer to our parent.
     }
 
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.

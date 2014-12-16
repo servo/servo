@@ -10,12 +10,11 @@ use encoding::EncodingRef;
 
 use cssparser::{decode_stylesheet_bytes, tokenize, parse_stylesheet_rules, ToCss};
 use cssparser::ast::*;
-use selectors;
+use selectors::{mod, ParserContext};
 use properties;
 use errors::{ErrorLoggerIterator, log_css_error};
 use namespaces::{NamespaceMap, parse_namespace_rule};
-use media_queries::{Device, MediaRule, parse_media_rule};
-use media_queries;
+use media_queries::{mod, Device, MediaRule};
 use font_face::{FontFaceRule, Source, parse_font_face_rule, iter_font_face_rules_inner};
 use selector_matching::StylesheetOrigin;
 
@@ -53,9 +52,12 @@ impl Stylesheet {
         Stylesheet::from_bytes(bytes.as_slice(), base_url, protocol_encoding_label, environment_encoding, origin)
     }
 
-    pub fn from_bytes(
-            bytes: &[u8], base_url: Url, protocol_encoding_label: Option<&str>,
-            environment_encoding: Option<EncodingRef>, origin: StylesheetOrigin) -> Stylesheet {
+    pub fn from_bytes(bytes: &[u8],
+                      base_url: Url,
+                      protocol_encoding_label: Option<&str>,
+                      environment_encoding: Option<EncodingRef>,
+                      origin: StylesheetOrigin)
+                      -> Stylesheet {
         // TODO: bytes.as_slice could be bytes.container_as_bytes()
         let (string, _) = decode_stylesheet_bytes(
             bytes.as_slice(), protocol_encoding_label, environment_encoding);
@@ -67,6 +69,11 @@ impl Stylesheet {
         static STATE_IMPORTS: uint = 2;
         static STATE_NAMESPACES: uint = 3;
         static STATE_BODY: uint = 4;
+
+        let parser_context = ParserContext {
+            origin: origin,
+        };
+
         let mut state: uint = STATE_CHARSET;
 
         let mut rules = vec!();
@@ -77,7 +84,7 @@ impl Stylesheet {
             match rule {
                 QualifiedRule_(rule) => {
                     next_state = STATE_BODY;
-                    parse_style_rule(rule, &mut rules, &namespaces, &base_url)
+                    parse_style_rule(&parser_context, rule, &mut rules, &namespaces, &base_url)
                 },
                 AtRule_(rule) => {
                     let lower_name = rule.name.as_slice().to_ascii_lower();
@@ -114,7 +121,12 @@ impl Stylesheet {
                         },
                         _ => {
                             next_state = STATE_BODY;
-                            parse_nested_at_rule(lower_name.as_slice(), rule, &mut rules, &namespaces, &base_url)
+                            parse_nested_at_rule(&parser_context,
+                                                 lower_name.as_slice(),
+                                                 rule,
+                                                 &mut rules,
+                                                 &namespaces,
+                                                 &base_url)
                         },
                     }
                 },
@@ -128,13 +140,36 @@ impl Stylesheet {
     }
 }
 
+// lower_name is passed explicitly to avoid computing it twice.
+pub fn parse_nested_at_rule(context: &ParserContext,
+                            lower_name: &str,
+                            rule: AtRule,
+                            parent_rules: &mut Vec<CSSRule>,
+                            namespaces: &NamespaceMap,
+                            base_url: &Url) {
+    match lower_name {
+        "media" => {
+            media_queries::parse_media_rule(context, rule, parent_rules, namespaces, base_url)
+        }
+        "font-face" => parse_font_face_rule(rule, parent_rules, base_url),
+        _ => log_css_error(rule.location,
+                           format!("Unsupported at-rule: @{:s}", lower_name).as_slice())
+    }
+}
 
-pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut Vec<CSSRule>,
-                        namespaces: &NamespaceMap, base_url: &Url) {
-    let QualifiedRule { location, prelude, block} = rule;
+pub fn parse_style_rule(context: &ParserContext,
+                        rule: QualifiedRule,
+                        parent_rules: &mut Vec<CSSRule>,
+                        namespaces: &NamespaceMap,
+                        base_url: &Url) {
+    let QualifiedRule {
+        location,
+        prelude,
+        block
+    } = rule;
     // FIXME: avoid doing this for valid selectors
     let serialized = prelude.iter().to_css();
-    match selectors::parse_selector_list(prelude.into_iter(), namespaces) {
+    match selectors::parse_selector_list(context, prelude.into_iter(), namespaces) {
         Ok(selectors) => parent_rules.push(CSSStyleRule(StyleRule{
             selectors: selectors,
             declarations: properties::parse_property_declaration_list(block.into_iter(), base_url)
@@ -143,19 +178,6 @@ pub fn parse_style_rule(rule: QualifiedRule, parent_rules: &mut Vec<CSSRule>,
             "Invalid/unsupported selector: {}", serialized).as_slice()),
     }
 }
-
-
-// lower_name is passed explicitly to avoid computing it twice.
-pub fn parse_nested_at_rule(lower_name: &str, rule: AtRule,
-                            parent_rules: &mut Vec<CSSRule>, namespaces: &NamespaceMap, base_url: &Url) {
-    match lower_name {
-        "media" => parse_media_rule(rule, parent_rules, namespaces, base_url),
-        "font-face" => parse_font_face_rule(rule, parent_rules, base_url),
-        _ => log_css_error(rule.location,
-                           format!("Unsupported at-rule: @{:s}", lower_name).as_slice())
-    }
-}
-
 
 pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
                             callback: |&StyleRule|) {

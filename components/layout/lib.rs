@@ -14,6 +14,7 @@
 #[phase(plugin, link)]
 extern crate log;
 
+extern crate cssparser;
 extern crate geom;
 extern crate gfx;
 extern crate layout_traits;
@@ -70,8 +71,6 @@ pub mod incremental;
 pub mod wrapper;
 
 pub mod css {
-    mod node_util;
-
     pub mod matching;
     pub mod node_style;
 }

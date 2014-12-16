@@ -32,6 +32,7 @@ use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use dom::node::{Node, TrustedNodeAddress};
 
 use collections::hash::{Hash, Hasher};
+use cssparser::RGBA;
 use geom::rect::Rect;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
@@ -48,7 +49,7 @@ use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_util::smallvec::{SmallVec1, SmallVec};
-use servo_util::str::LengthOrPercentageOrAuto;
+use servo_util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::comm::{Receiver, Sender};
@@ -214,6 +215,7 @@ no_jsmanaged_fields!(LayoutChan)
 no_jsmanaged_fields!(WindowProxyHandler)
 no_jsmanaged_fields!(UntrustedNodeAddress)
 no_jsmanaged_fields!(LengthOrPercentageOrAuto)
+no_jsmanaged_fields!(RGBA)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]

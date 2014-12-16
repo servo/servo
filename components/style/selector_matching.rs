@@ -11,21 +11,31 @@ use sync::Arc;
 use url::Url;
 
 use servo_util::bloom::BloomFilter;
-use servo_util::geometry::Au;
 use servo_util::resource_files::read_resource_file;
 use servo_util::smallvec::VecLike;
 use servo_util::sort;
-use servo_util::str::{AutoLpa, LengthLpa, PercentageLpa};
 use string_cache::Atom;
 
-use legacy::{SizeIntegerAttribute, WidthLengthAttribute};
+use legacy::PresentationalHintSynthesis;
 use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock, SpecifiedValue, WidthDeclaration};
-use properties::{specified};
-use selectors::*;
+use properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use selectors::{After, AnyLink, AttrDashMatch, AttrEqual};
+use selectors::{AttrExists, AttrIncludes, AttrPrefixMatch};
+use selectors::{AttrSubstringMatch, AttrSuffixMatch, Before, CaseInsensitive, CaseSensitive};
+use selectors::{Checked, Child, ClassSelector};
+use selectors::{CompoundSelector, Descendant, Disabled, Enabled, FirstChild, FirstOfType};
+use selectors::{Hover, IDSelector, LastChild, LastOfType};
+use selectors::{LaterSibling, LocalName, LocalNameSelector};
+use selectors::{NamespaceSelector, Link, Negation};
+use selectors::{NextSibling, NthChild};
+use selectors::{NthLastChild, NthLastOfType};
+use selectors::{NthOfType, OnlyChild, OnlyOfType, PseudoElement, Root};
+use selectors::{SelectorList, ServoNonzeroBorder, SimpleSelector, Visited};
+use selectors::{get_selector_list_selectors};
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
 
+#[deriving(Clone, PartialEq)]
 pub enum StylesheetOrigin {
     UserAgentOrigin,
     AuthorOrigin,
@@ -295,7 +305,6 @@ impl Stylist {
             after_map: PerPseudoElementSelectorMap::new(),
             rules_source_order: 0u,
         };
-        // FIXME: Add quirks-mode.css in quirks mode.
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
         //        (Does it make a difference?)
@@ -391,6 +400,15 @@ impl Stylist {
         self.is_dirty |= is_dirty;
     }
 
+    pub fn add_quirks_mode_stylesheet(&mut self) {
+        self.add_stylesheet(Stylesheet::from_bytes(
+            read_resource_file(["quirks-mode.css"]).unwrap().as_slice(),
+            Url::parse("chrome:///quirks-mode.css").unwrap(),
+            None,
+            None,
+            UserAgentOrigin))
+    }
+
     pub fn add_stylesheet(&mut self, stylesheet: Stylesheet) {
         self.stylesheets.push(stylesheet);
         self.is_dirty = true;
@@ -476,62 +494,6 @@ impl Stylist {
                                                         &mut shareable);
 
         shareable
-    }
-
-    /// Synthesizes rules from various HTML attributes (mostly legacy junk from HTML4) that confer
-    /// *presentational hints* as defined in the HTML5 specification. This handles stuff like
-    /// `<body bgcolor>`, `<input size>`, `<td width>`, and so forth.
-    fn synthesize_presentational_hints_for_legacy_attributes<'a,E,N,V>(
-                                                             &self,
-                                                             node: &N,
-                                                             matching_rules_list: &mut V,
-                                                             shareable: &mut bool)
-                                                             where E: TElement<'a> +
-                                                                      TElementAttributes,
-                                                                   N: TNode<'a,E>,
-                                                                   V: VecLike<DeclarationBlock> {
-        let element = node.as_element();
-        match element.get_local_name() {
-            name if *name == atom!("td") => {
-                match element.get_length_attribute(WidthLengthAttribute) {
-                    AutoLpa => {}
-                    PercentageLpa(percentage) => {
-                        let width_value = specified::LPA_Percentage(percentage);
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(width_value))));
-                        *shareable = false
-                    }
-                    LengthLpa(length) => {
-                        let width_value = specified::LPA_Length(specified::Au_(length));
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(width_value))));
-                        *shareable = false
-                    }
-                };
-            }
-            name if *name == atom!("input") => {
-                match element.get_integer_attribute(SizeIntegerAttribute) {
-                    Some(value) if value != 0 => {
-                        // Per HTML 4.01 § 17.4, this value is in characters if `type` is `text` or
-                        // `password` and in pixels otherwise.
-                        //
-                        // FIXME(pcwalton): More use of atoms, please!
-                        let value = match element.get_attr(&ns!(""), &atom!("type")) {
-                            Some("text") | Some("password") => {
-                                specified::ServoCharacterWidth(value)
-                            }
-                            _ => specified::Au_(Au::from_px(value as int)),
-                        };
-                        matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(specified::LPA_Length(
-                                            value)))));
-                        *shareable = false
-                    }
-                    Some(_) | None => {}
-                }
-            }
-            _ => {}
-        }
     }
 }
 
@@ -858,6 +820,13 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
     ]
 }
 
+/// Attributes that, if present, disable style sharing. All legacy HTML attributes must be in
+/// either this list or `common_style_affecting_attributes`. See the comment in
+/// `synthesize_presentational_hints_for_legacy_attributes`.
+pub fn rare_style_affecting_attributes() -> [Atom, ..3] {
+    [ atom!("bgcolor"), atom!("border"), atom!("colspan") ]
+}
+
 /// Determines whether the given element matches the given single selector.
 ///
 /// NB: If you add support for any new kinds of selectors to this routine, be sure to set
@@ -1052,6 +1021,12 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
                 matches_generic_nth_child(element, 0, 1, true, true)
         }
 
+        ServoNonzeroBorder => {
+            *shareable = false;
+            let elem = element.as_element();
+            elem.has_nonzero_border()
+        }
+
         Negation(ref negated) => {
             *shareable = false;
             !negated.iter().all(|s| matches_simple_selector(s, element, shareable))
@@ -1204,12 +1179,16 @@ mod tests {
     /// Each sublist of the result contains the Rules for one StyleRule.
     fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         use namespaces::NamespaceMap;
-        use selectors::parse_selector_list;
+        use selectors::{ParserContext, parse_selector_list};
+        use selector_matching::AuthorOrigin;
         use cssparser::tokenize;
 
         let namespaces = NamespaceMap::new();
         css_selectors.iter().enumerate().map(|(i, selectors)| {
-            parse_selector_list(tokenize(*selectors).map(|(c, _)| c), &namespaces)
+            let context = ParserContext {
+                origin: AuthorOrigin,
+            };
+            parse_selector_list(&context, tokenize(*selectors).map(|(c, _)| c), &namespaces)
             .unwrap().into_iter().map(|s| {
                 Rule {
                     selector: s.compound_selectors.clone(),

@@ -50,7 +50,7 @@ use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
-use style::{parse_selector_list_from_str, matches, SelectorList};
+use style::{matches, AuthorOrigin, ParserContext, SelectorList};
 
 use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
@@ -60,8 +60,7 @@ use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{FilterMap, Peekable};
 use std::mem;
-use style;
-use style::ComputedValues;
+use style::{mod, ComputedValues};
 use sync::Arc;
 use uuid;
 use string_cache::QualName;
@@ -741,7 +740,10 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
-        match parse_selector_list_from_str(selectors.as_slice()) {
+        let parser_context = ParserContext {
+            origin: AuthorOrigin,
+        };
+        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
@@ -758,11 +760,15 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     /// Get an iterator over all nodes which match a set of selectors
     /// Be careful not to do anything which may manipulate the DOM tree whilst iterating, otherwise
     /// the iterator may be invalidated
-    unsafe fn query_selector_iter(self, selectors: DOMString) -> Fallible<QuerySelectorIterator<'a>> {
+    unsafe fn query_selector_iter(self, selectors: DOMString)
+                                  -> Fallible<QuerySelectorIterator<'a>> {
         // Step 1.
         let nodes;
         let root = self.ancestors().last().unwrap_or(self.clone());
-        match parse_selector_list_from_str(selectors.as_slice()) {
+        let parser_context = ParserContext {
+            origin: AuthorOrigin,
+        };
+        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
