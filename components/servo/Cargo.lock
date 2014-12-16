@@ -58,7 +58,7 @@ dependencies = [
 [[package]]
 name = "cocoa"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-cocoa#084f8e1baf40391eb12819d16765af25ca96c7ec"
+source = "git+https://github.com/servo/rust-cocoa#19d6f6977dcedbf29000b65d83df66cf589c20c3"
 
 [[package]]
 name = "compile_msg"
