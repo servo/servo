@@ -657,15 +657,7 @@ pub struct DescendantIter<'a> {
 
 impl<'a> Iterator<&'a mut Flow + 'a> for DescendantIter<'a> {
     fn next(&mut self) -> Option<&'a mut Flow + 'a> {
-        match self.iter.next() {
-            None => None,
-            Some(ref mut flow) => {
-                unsafe {
-                    let result: &'a mut Flow = mem::transmute(flow.deref_mut());
-                    Some(result)
-                }
-            }
-        }
+        self.iter.next().map(|flow| &mut **flow)
     }
 }
 
