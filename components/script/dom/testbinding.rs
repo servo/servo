@@ -17,7 +17,7 @@ use dom::bindings::utils::{Reflector, Reflectable};
 use dom::blob::Blob;
 use servo_util::str::DOMString;
 
-use js::jsapi::JSContext;
+use js::jsapi::{JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};
 
 #[dom_struct]
@@ -64,6 +64,7 @@ impl<'a> TestBindingMethods for JSRef<'a, TestBinding> {
     fn SetUnionAttribute(self, _: HTMLElementOrLong) {}
     fn Union2Attribute(self) -> EventOrString { eString("".to_string()) }
     fn SetUnion2Attribute(self, _: EventOrString) {}
+    fn ArrayAttribute(self, _: *mut JSContext) -> *mut JSObject { NullValue().to_object_or_null() }
     fn AnyAttribute(self, _: *mut JSContext) -> JSVal { NullValue() }
     fn SetAnyAttribute(self, _: *mut JSContext, _: JSVal) {}
 

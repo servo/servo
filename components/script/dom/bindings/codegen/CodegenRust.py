@@ -4020,8 +4020,7 @@ class CGInterfaceTrait(CGThing):
                 elif m.isAttr() and not m.isStatic():
                     name = CGSpecializedGetter.makeNativeName(descriptor, m)
                     infallible = 'infallible' in descriptor.getExtendedAttributes(m, getter=True)
-                    needCx = typeNeedsCx(m.type)
-                    yield name, attribute_arguments(needCx), return_type(descriptor, m.type, infallible)
+                    yield name, attribute_arguments(typeNeedsCx(m.type, True)), return_type(descriptor, m.type, infallible)
 
                     if not m.readonly:
                         name = CGSpecializedSetter.makeNativeName(descriptor, m)
@@ -4030,7 +4029,7 @@ class CGInterfaceTrait(CGThing):
                             rettype = "()"
                         else:
                             rettype = "ErrorResult"
-                        yield name, attribute_arguments(needCx, m.type), rettype
+                        yield name, attribute_arguments(typeNeedsCx(m.type, False), m.type), rettype
 
             if descriptor.proxy:
                 for name, operation in descriptor.operations.iteritems():
