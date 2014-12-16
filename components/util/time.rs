@@ -293,8 +293,5 @@ pub fn parse_http_timestamp(timestamp: &str) -> Option<Tm> {
     }
 
     // ANSI C's asctime() format
-    match strptime(timestamp, "%c") {
-        Ok(t) => Some(t),
-        Err(_) => None,
-    }
+    strptime(timestamp, "%c").ok()
 }

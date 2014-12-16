@@ -18,6 +18,8 @@ use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::Url;
 
+//FIXME: it would be nice to reduce the numbers of procs here, but it's hard to make a consistent
+//       interface with the other loaders that don't need the cache.
 pub fn factory<'a>(cache: Arc<Mutex<MemoryCache>>)
                    -> proc(load_data: LoadData, start_chan: Sender<LoadResponse>): 'a {
     proc(load_data: LoadData, start_chan: Sender<LoadResponse>) {
@@ -68,7 +70,7 @@ fn load(mut load_data: LoadData, start_chan: Sender<LoadResponse>, cache: Arc<Mu
     let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
 
-    info!("checking cache for {}", url);
+    debug!("checking cache for {}", url);
     let cache_result = {
         let mut cache = cache.lock();
         cache.process_pending_request(&load_data, start_chan.clone())
@@ -90,16 +92,16 @@ fn load(mut load_data: LoadData, start_chan: Sender<LoadResponse>, cache: Arc<Mu
 
     let start_chan = match cache_result {
         Uncacheable(reason) => {
-            info!("request for {} can't be cached: {}", url, reason);
+            debug!("request for {} can't be cached: {}", url, reason);
             UncachedPendingResource(start_chan)
         }
         CachedContentPending => return,
         NewCacheEntry(key) => {
-            info!("new cache entry for {}", url);
+            debug!("new cache entry for {}", url);
             CachedPendingResource(key, cache)
         }
         Revalidate(key, _) => {
-            info!("revalidating {}", url);
+            debug!("revalidating {}", url);
             CachedPendingResource(key, cache)
         }
     };

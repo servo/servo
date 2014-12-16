@@ -52,17 +52,15 @@ fn run_http_server(source_dir: String) -> (Sender<ServerMsg>, u16) {
     let (tx, rx) = channel();
     let (port_sender, port_receiver) = channel();
     task::spawn(proc() {
-        let mut prc = match Command::new("python")
+        let mut prc = Command::new("python")
             .args(["../httpserver.py"])
             .stdin(Ignored)
             .stdout(CreatePipe(false, true))
             .stderr(Ignored)
             .cwd(&Path::new(source_dir))
             .spawn()
-        {
-            Ok(p) => p,
-            _ => panic!("Unable to spawn server."),
-        };
+            .ok()
+            .expect("Unable to spawn server.");
 
         let mut bytes = vec!();
         loop {
