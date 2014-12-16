@@ -563,6 +563,13 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
+    fn get_indeterminate_state(self) -> bool {
+        unsafe {
+            self.element.get_indeterminate_state_for_layout()
+        }
+    }
+
+    #[inline]
     fn has_class(self, name: &Atom) -> bool {
         unsafe {
             self.element.has_class_for_layout(name)

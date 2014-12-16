@@ -2,23 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast, HTMLFormElementCast};
 use dom::bindings::global::Window;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, HTMLFormElementTypeId, HTMLTextAreaElementTypeId, HTMLDataListElementTypeId};
 use dom::element::{HTMLInputElementTypeId, HTMLButtonElementTypeId, HTMLObjectElementTypeId, HTMLSelectElementTypeId};
+use dom::element::{HTMLOutputElementTypeId};
 use dom::event::{Event, EventHelpers, Bubbles, Cancelable};
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlinputelement::HTMLInputElement;
+use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
 use hyper::method::Post;
 use servo_msg::constellation_msg::LoadData;
@@ -29,9 +32,12 @@ use url::UrlParser;
 use url::form_urlencoded::serialize;
 use string_cache::Atom;
 
+use std::cell::Cell;
+
 #[dom_struct]
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
+    marked_for_reset: Cell<bool>,
 }
 
 impl HTMLFormElementDerived for EventTarget {
@@ -43,7 +49,8 @@ impl HTMLFormElementDerived for EventTarget {
 impl HTMLFormElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFormElement {
         HTMLFormElement {
-            htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, prefix, document),
+            marked_for_reset: Cell::new(false),
         }
     }
 
@@ -117,6 +124,11 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     fn Submit(self) {
         self.submit(FromFormSubmitMethod, FormElement(self));
     }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-reset
+    fn Reset(self) {
+        self.reset(FromFormResetMethod);
+    }
 }
 
 pub enum SubmittedFrom {
@@ -124,11 +136,18 @@ pub enum SubmittedFrom {
     NotFromFormSubmitMethod
 }
 
+pub enum ResetFrom {
+    FromFormResetMethod,
+    NotFromFormResetMethod
+}
+
 pub trait HTMLFormElementHelpers {
     // https://html.spec.whatwg.org/multipage/forms.html#concept-form-submit
     fn submit(self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter);
     // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
     fn get_form_dataset(self, submitter: Option<FormSubmitter>) -> Vec<FormDatum>;
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-reset
+    fn reset(self, submit_method_flag: ResetFrom);
 }
 
 impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
@@ -316,6 +335,59 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         };
         ret
     }
+
+    fn reset(self, _reset_method_flag: ResetFrom) {
+        // https://html.spec.whatwg.org/multipage/forms.html#locked-for-reset
+        if self.marked_for_reset.get() {
+            return;
+        } else {
+            self.marked_for_reset.set(true);
+        }
+
+        let win = window_from_node(self).root();
+        let event = Event::new(Window(*win),
+                               "reset".to_string(),
+                               Bubbles, Cancelable).root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        target.DispatchEvent(*event).ok();
+        if event.DefaultPrevented() {
+            return;
+        }
+
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+
+        // TODO: This is an incorrect way of getting controls owned
+        //       by the form, but good enough until html5ever lands
+        for child in node.traverse_preorder() {
+            match child.type_id() {
+                ElementNodeTypeId(HTMLInputElementTypeId) => {
+                    let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child)
+                                                                               .unwrap();
+                    input.reset()
+                }
+                // TODO HTMLKeygenElement unimplemented
+                //ElementNodeTypeID(HTMLKeygenElementTypeId) => {
+                //    // Unimplemented
+                //    {}
+                //}
+                ElementNodeTypeId(HTMLSelectElementTypeId) => {
+                    // Unimplemented
+                    {}
+                }
+                ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
+                    let textarea: JSRef<HTMLTextAreaElement> = HTMLTextAreaElementCast::to_ref(child)
+                                                                                        .unwrap();
+                    textarea.reset()
+                }
+                ElementNodeTypeId(HTMLOutputElementTypeId) => {
+                    // Unimplemented
+                    {}
+                }
+                _ => {}
+            }
+        };
+        self.marked_for_reset.set(false);
+    }
 }
 
 impl Reflectable for HTMLFormElement {
@@ -412,7 +484,30 @@ impl<'a> FormSubmitter<'a> {
 }
 
 pub trait FormControl<'a> : Copy {
-    fn form_owner(self) -> Option<Temporary<HTMLFormElement>>;
+    // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
+    //        but we need html5ever to do it correctly
+    fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
+        // https://html.spec.whatwg.org/multipage/forms.html#reset-the-form-owner
+        let elem = self.to_element();
+        let owner = elem.get_string_attribute(&atom!("form"));
+        if !owner.is_empty() {
+            let doc = document_from_node(elem).root();
+            let owner = doc.GetElementById(owner).root();
+            match owner {
+                Some(o) => {
+                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(*o);
+                    if maybe_form.is_some() {
+                        return maybe_form.map(Temporary::from_rooted);
+                    }
+                },
+                _ => ()
+            }
+        }
+        let node: JSRef<Node> = NodeCast::from_ref(elem);
+        node.ancestors().filter_map(|a| HTMLFormElementCast::to_ref(a)).next()
+            .map(Temporary::from_rooted)
+    }
+
     fn get_form_attribute(self,
                           attr: &Atom,
                           input: |Self| -> DOMString,
@@ -426,4 +521,5 @@ pub trait FormControl<'a> : Copy {
     fn to_element(self) -> JSRef<'a, Element>;
     // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
     fn mutable(self) -> bool;
+    fn reset(self);
 }

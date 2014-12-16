@@ -35,7 +35,7 @@ use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
-use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers};
+use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers, HTMLInputElementHelpers};
 use dom::htmlserializer::serialize;
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementHelpers};
@@ -212,6 +212,7 @@ pub trait RawLayoutElementHelpers {
     unsafe fn get_integer_attribute_for_layout(&self, integer_attribute: IntegerAttribute)
                                                -> Option<i32>;
     unsafe fn get_checked_state_for_layout(&self) -> bool;
+    unsafe fn get_indeterminate_state_for_layout(&self) -> bool;
     unsafe fn get_unsigned_integer_attribute_for_layout(&self, attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32>;
     unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
@@ -351,6 +352,18 @@ impl RawLayoutElementHelpers for Element {
         let this: &HTMLInputElement = mem::transmute(self);
         this.get_checked_state_for_layout()
     }
+
+    #[inline]
+    #[allow(unrooted_must_root)]
+    unsafe fn get_indeterminate_state_for_layout(&self) -> bool {
+        // TODO progress elements can also be matched with :indeterminate
+        if !self.is_htmlinputelement() {
+            return false
+        }
+        let this: &HTMLInputElement = mem::transmute(self);
+        this.get_indeterminate_state_for_layout()
+    }
+
 
     unsafe fn get_unsigned_integer_attribute_for_layout(&self,
                                                         attribute: UnsignedIntegerAttribute)
@@ -1286,6 +1299,12 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
     fn get_checked_state(self) -> bool {
         match HTMLInputElementCast::to_ref(self) {
             Some(input) => input.Checked(),
+            None => false,
+        }
+    }
+    fn get_indeterminate_state(self) -> bool {
+        match HTMLInputElementCast::to_ref(self) {
+            Some(input) => input.get_indeterminate_state(),
             None => false,
         }
     }

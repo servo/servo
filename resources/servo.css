@@ -11,6 +11,7 @@ input[type="radio"]     { font-family: monospace !important; border: none !impor
 
 input[type="checkbox"]::before { content: "[ ]"; padding: 0; }
 input[type="checkbox"]:checked::before { content: "[✓]"; }
+input[type="checkbox"]:indeterminate::before { content: "[-]"; }
 input[type="radio"]::before { content: "( )"; padding: 0; }
 input[type="radio"]:checked::before { content: "(●)"; }
 

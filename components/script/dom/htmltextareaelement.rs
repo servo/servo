@@ -12,13 +12,14 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{AttributeHandlers, HTMLTextAreaElementTypeId};
+use dom::element::{AttributeHandlers, HTMLTextAreaElementTypeId, Element};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, NodeTargetTypeId};
 use dom::htmlelement::HTMLElement;
+use dom::htmlformelement::FormControl;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, OtherNodeDamage, ElementNodeTypeId};
 use dom::node::{document_from_node};
@@ -124,6 +125,12 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-placeholder
     make_setter!(SetPlaceholder, "placeholder")
 
+    // https://html.spec.whatwg.org/multipage/forms.html#attr-textarea-readonly
+    make_bool_getter!(ReadOnly)
+
+    // https://html.spec.whatwg.org/multipage/forms.html#attr-textarea-readonly
+    make_bool_setter!(SetReadOnly, "readonly")
+
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-required
     make_bool_getter!(Required)
 
@@ -161,7 +168,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
         if !self.value_changed.get() {
-            self.SetValue(node.GetTextContent().unwrap());
+            self.reset();
         }
     }
 
@@ -172,7 +179,9 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-value
     fn SetValue(self, value: DOMString) {
+        // TODO move the cursor to the end of the field
         self.textinput.borrow_mut().set_content(value);
+        self.value_changed.set(true);
         self.force_relayout();
     }
 }
@@ -286,8 +295,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             _ => (),
         }
 
-        if child.is_text() {
-            self.SetValue(self.DefaultValue());
+        if child.is_text() && !self.value_changed.get() {
+            self.reset();
         }
     }
 
@@ -324,5 +333,23 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
 impl Reflectable for HTMLTextAreaElement {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.htmlelement.reflector()
+    }
+}
+
+impl<'a> FormControl<'a> for JSRef<'a, HTMLTextAreaElement> {
+    fn to_element(self) -> JSRef<'a, Element> {
+        ElementCast::from_ref(self)
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
+    fn mutable(self) -> bool {
+        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-fe-mutable
+        !(self.Disabled() || self.ReadOnly())
+    }
+
+    fn reset(self) {
+        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-form-reset-control
+        self.SetValue(self.DefaultValue());
+        self.value_changed.set(false);
     }
 }
