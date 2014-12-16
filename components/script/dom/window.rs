@@ -382,7 +382,7 @@ impl Window {
             browser_context: DOMRefCell::new(None),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
-            navigation_start_precise: time::precise_time_s(),
+            navigation_start_precise: time::precise_time_ns() as f64,
             screen: Default::default(),
             session_storage: Default::default(),
             timers: TimerManager::new()
