@@ -52,6 +52,7 @@ pub mod flow_ref;
 pub mod fragment;
 pub mod layout_task;
 pub mod inline;
+pub mod list_item;
 pub mod model;
 pub mod parallel;
 pub mod sequential;

@@ -30,6 +30,7 @@ use fragment::{TableColumnFragment, TableColumnFragmentInfo, TableFragment, Tabl
 use fragment::{TableWrapperFragment, UnscannedTextFragment, UnscannedTextFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::InlineFlow;
+use list_item::{mod, ListItemFlow};
 use parallel;
 use table_wrapper::TableWrapperFlow;
 use table::TableFlow;
@@ -59,7 +60,7 @@ use std::collections::DList;
 use std::mem;
 use std::sync::atomic::Relaxed;
 use style::ComputedValues;
-use style::computed_values::{display, position, float};
+use style::computed_values::{display, position, float, list_style_position};
 use sync::Arc;
 use url::Url;
 
@@ -471,38 +472,25 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    /// Build block flow for current node using information from children nodes.
-    ///
-    /// Consume results from children and combine them, handling {ib} splits.
-    /// Block flows and inline flows thus created will become the children of
-    /// this block flow.
-    /// Also, deal with the absolute and fixed descendants bubbled up by
-    /// children nodes.
-    fn build_flow_for_block(&mut self, mut flow: FlowRef, node: &ThreadSafeLayoutNode)
-                            -> ConstructionResult {
+    /// Constructs a block flow, beginning with the given `initial_fragment` if present and then
+    /// appending the construction results of children to the child list of the block flow. {ib}
+    /// splits and absolutely-positioned descendants are handled correctly.
+    fn build_flow_for_block_starting_with_fragment(&mut self,
+                                                   mut flow: FlowRef,
+                                                   node: &ThreadSafeLayoutNode,
+                                                   initial_fragment: Option<Fragment>)
+                                                   -> ConstructionResult {
         // Gather up fragments for the inline flows we might need to create.
         let mut inline_fragment_accumulator = InlineFragmentsAccumulator::new();
         let mut consecutive_siblings = vec!();
-        let mut first_fragment = true;
 
-        // Special case: If this is generated content, then we need to initialize the accumulator
-        // with the fragment corresponding to that content.
-        if node.get_pseudo_element_type() != Normal ||
-           node.type_id() == Some(ElementNodeTypeId(HTMLInputElementTypeId)) ||
-           node.type_id() == Some(ElementNodeTypeId(HTMLTextAreaElementTypeId)) {
-            // A TextArea's text contents are displayed through the input text
-            // box, so don't construct them.
-            // TODO Maybe this belongs somewhere else?
-            if node.type_id() == Some(ElementNodeTypeId(HTMLTextAreaElementTypeId)) {
-                for kid in node.children() {
-                    kid.set_flow_construction_result(NoConstructionResult)
-                }
+        let mut first_fragment = match initial_fragment {
+            None => true,
+            Some(initial_fragment) => {
+                inline_fragment_accumulator.fragments.push_back(initial_fragment);
+                false
             }
-            let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::new(node));
-            let fragment = Fragment::new_from_specific_info(node, fragment_info);
-            inline_fragment_accumulator.fragments.push_back(fragment);
-            first_fragment = false;
-        }
+        };
 
         // List of absolute descendants, in tree order.
         let mut abs_descendants = Descendants::new();
@@ -550,6 +538,39 @@ impl<'a> FlowConstructor<'a> {
             }
         }
         FlowConstructionResult(flow, abs_descendants)
+    }
+
+    /// Constructs a flow for the given block node and its children. This method creates an
+    /// initial fragment as appropriate and then dispatches to
+    /// `build_flow_for_block_starting_with_fragment`. Currently the following kinds of flows get
+    /// initial content:
+    ///
+    /// * Generated content gets the initial content specified by the `content` attribute of the
+    ///   CSS.
+    /// * `<input>` and `<textarea>` elements get their content.
+    ///
+    /// FIXME(pcwalton): It is not clear to me that there isn't a cleaner way to handle
+    /// `<textarea>`.
+    fn build_flow_for_block(&mut self, flow: FlowRef, node: &ThreadSafeLayoutNode)
+                            -> ConstructionResult {
+        let initial_fragment = if node.get_pseudo_element_type() != Normal ||
+           node.type_id() == Some(ElementNodeTypeId(HTMLInputElementTypeId)) ||
+           node.type_id() == Some(ElementNodeTypeId(HTMLTextAreaElementTypeId)) {
+            // A TextArea's text contents are displayed through the input text
+            // box, so don't construct them.
+            if node.type_id() == Some(ElementNodeTypeId(HTMLTextAreaElementTypeId)) {
+                for kid in node.children() {
+                    kid.set_flow_construction_result(NoConstructionResult)
+                }
+            }
+            Some(Fragment::new_from_specific_info(
+                    node,
+                    UnscannedTextFragment(UnscannedTextFragmentInfo::new(node))))
+        } else {
+            None
+        };
+
+        self.build_flow_for_block_starting_with_fragment(flow, node, initial_fragment)
     }
 
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
@@ -905,6 +926,59 @@ impl<'a> FlowConstructor<'a> {
         self.build_flow_for_block(FlowRef::new(flow), node)
     }
 
+    /// Builds a flow for a node with `display: list-item`. This yields a `ListItemFlow` with
+    /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
+    fn build_flow_for_list_item(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
+        let marker_fragment = match node.style().get_list().list_style_image {
+            Some(ref url) => {
+                Some(Fragment::new_from_specific_info(
+                    node,
+                    self.build_fragment_info_for_image(node, Some((*url).clone()))))
+            }
+            None => {
+                match list_item::static_text_for_list_style_type(node.style()
+                                                                     .get_list()
+                                                                     .list_style_type) {
+                    None => None,
+                    Some(text) => {
+                        let text = text.to_string();
+                        let mut unscanned_marker_fragments = DList::new();
+                        unscanned_marker_fragments.push_back(Fragment::new_from_specific_info(
+                            node,
+                            UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(text))));
+                        let marker_fragments = TextRunScanner::new().scan_for_runs(
+                            self.layout_context.font_context(),
+                            unscanned_marker_fragments);
+                        debug_assert!(marker_fragments.len() == 1);
+                        marker_fragments.fragments.into_iter().next()
+                    }
+                }
+            }
+        };
+
+        // If the list marker is outside, it becomes the special "outside fragment" that list item
+        // flows have. If it's inside, it's just a plain old fragment. Note that this means that
+        // we adopt Gecko's behavior rather than WebKit's when the marker causes an {ib} split,
+        // which has caused some malaise (Bugzilla #36854) but CSS 2.1 § 12.5.1 lets me do it, so
+        // there.
+        let flow;
+        let initial_fragment;
+        match node.style().get_list().list_style_position {
+            list_style_position::outside => {
+                flow = box ListItemFlow::from_node_and_marker(self, node, marker_fragment);
+                initial_fragment = None;
+            }
+            list_style_position::inside => {
+                flow = box ListItemFlow::from_node_and_marker(self, node, None);
+                initial_fragment = marker_fragment;
+            }
+        }
+
+        self.build_flow_for_block_starting_with_fragment(FlowRef::new(flow as Box<Flow>),
+                                                         node,
+                                                         initial_fragment)
+    }
+
     /// Creates a fragment for a node with `display: table-column`.
     fn build_fragments_for_table_column(&mut self, node: &ThreadSafeLayoutNode)
                                         -> ConstructionResult {
@@ -1056,6 +1130,11 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // below.
             (display::block, _, position::absolute) | (_, _, position::fixed) => {
                 node.set_flow_construction_result(self.build_flow_for_nonfloated_block(node))
+            }
+
+            // List items contribute their own special flows.
+            (display::list_item, _, _) => {
+                node.set_flow_construction_result(self.build_flow_for_list_item(node))
             }
 
             // Inline items that are absolutely-positioned contribute inline fragment construction
