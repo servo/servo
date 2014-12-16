@@ -398,7 +398,7 @@ pub mod longhands {
 
     ${new_style_struct("Box", is_inherited=False)}
 
-    // TODO: don't parse values we don't support
+    // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
     <%self:single_keyword_computed name="display"
             values="inline block inline-block
             table inline-table table-row-group table-header-group table-footer-group
@@ -698,6 +698,45 @@ pub mod longhands {
                 Ok(Content(content))
             }
     </%self:longhand>
+
+    ${new_style_struct("List", is_inherited=True)}
+
+    ${single_keyword("list-style-position", "outside inside")}
+
+    // TODO(pcwalton): Implement the full set of counter styles per CSS-COUNTER-STYLES [1] 6.1:
+    //
+    //     decimal, decimal-leading-zero, arabic-indic, armenian, upper-armenian, lower-armenian,
+    //     bengali, cambodian, khmer, cjk-decimal, devanagiri, georgian, gujarati, gurmukhi,
+    //     hebrew, kannada, lao, malayalam, mongolian, myanmar, oriya, persian, lower-roman,
+    //     upper-roman, telugu, thai, tibetan
+    //
+    // [1]: http://dev.w3.org/csswg/css-counter-styles/
+    ${single_keyword("list-style-type",
+                     "disc none circle square disclosure-open disclosure-closed")}
+
+    <%self:single_component_value name="list-style-image">
+        pub use super::computed_as_specified as to_computed_value;
+        #[deriving(Clone)]
+        pub type SpecifiedValue = Option<Url>;
+        pub mod computed_value {
+            use url::Url;
+            #[deriving(Clone, PartialEq)]
+            pub type T = Option<Url>;
+        }
+        pub fn from_component_value(input: &ComponentValue, base_url: &Url)
+                                    -> Result<SpecifiedValue,()> {
+            match *input {
+                URL(ref url) => Ok(Some(super::parse_url(url.as_slice(), base_url))),
+                Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => Ok(None),
+                _ => Err(()),
+            }
+        }
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            None
+        }
+    </%self:single_component_value>
+
     // CSS 2.1, Section 13 - Paged media
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
@@ -1902,6 +1941,102 @@ pub mod shorthands {
                 overflow_wrap: Some(specified_value),
             }
         })
+    </%self:shorthand>
+
+    <%self:shorthand name="list-style"
+                     sub_properties="list-style-image list-style-position list-style-type">
+        // `none` is ambiguous until we've finished parsing the shorthands, so we count the number
+        // of times we see it.
+        let mut nones = 0u8;
+        let (mut image, mut position, mut list_style_type, mut any) = (None, None, None, false);
+        for component_value in input.skip_whitespace() {
+            match component_value {
+                &Ident(ref value) if value.eq_ignore_ascii_case("none") => {
+                    nones = nones + 1;
+                    if nones > 2 {
+                        return Err(())
+                    }
+                    any = true;
+                    continue
+                }
+                _ => {}
+            }
+
+            if list_style_type.is_none() {
+                match list_style_type::from_component_value(component_value, base_url) {
+                    Ok(v) => {
+                        list_style_type = Some(v);
+                        any = true;
+                        continue
+                    },
+                    Err(()) => ()
+                }
+            }
+
+            if image.is_none() {
+                match list_style_image::from_component_value(component_value, base_url) {
+                    Ok(v) => {
+                        image = Some(v);
+                        any = true;
+                        continue
+                    },
+                    Err(()) => (),
+                }
+            }
+
+            if position.is_none() {
+                match list_style_position::from_component_value(component_value, base_url) {
+                    Ok(v) => {
+                        position = Some(v);
+                        any = true;
+                        continue
+                    },
+                    Err(()) => ()
+                }
+            }
+        }
+
+        // If there are two `none`s, then we can't have a type or image; if there is one `none`,
+        // then we can't have both a type *and* an image; if there is no `none` then we're fine as
+        // long as we parsed something.
+        match (any, nones, list_style_type, image) {
+            (true, 2, None, None) => {
+                Ok(Longhands {
+                    list_style_position: position,
+                    list_style_image: Some(None),
+                    list_style_type: Some(list_style_type::none),
+                })
+            }
+            (true, 1, None, Some(image)) => {
+                Ok(Longhands {
+                    list_style_position: position,
+                    list_style_image: Some(image),
+                    list_style_type: Some(list_style_type::none),
+                })
+            }
+            (true, 1, Some(list_style_type), None) => {
+                Ok(Longhands {
+                    list_style_position: position,
+                    list_style_image: Some(None),
+                    list_style_type: Some(list_style_type),
+                })
+            }
+            (true, 1, None, None) => {
+                Ok(Longhands {
+                    list_style_position: position,
+                    list_style_image: Some(None),
+                    list_style_type: Some(list_style_type::none),
+                })
+            }
+            (true, 0, list_style_type, image) => {
+                Ok(Longhands {
+                    list_style_position: position,
+                    list_style_image: image,
+                    list_style_type: list_style_type,
+                })
+            }
+            _ => Err(()),
+        }
     </%self:shorthand>
 }
 
