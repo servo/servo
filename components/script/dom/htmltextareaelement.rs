@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrValue};
+use dom::attr::{Attr, AttrValue, UIntAttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -34,6 +34,8 @@ use std::cell::Cell;
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     textinput: DOMRefCell<TextInput>,
+    cols: Cell<u32>,
+    rows: Cell<u32>,
 
     // https://html.spec.whatwg.org/multipage/forms.html#concept-textarea-dirty
     value_changed: Cell<bool>,
@@ -49,10 +51,27 @@ pub trait LayoutHTMLTextAreaElementHelpers {
     unsafe fn get_value_for_layout(self) -> String;
 }
 
+pub trait RawLayoutHTMLTextAreaElementHelpers {
+    unsafe fn get_cols_for_layout(&self) -> u32;
+    unsafe fn get_rows_for_layout(&self) -> u32;
+}
+
 impl LayoutHTMLTextAreaElementHelpers for JS<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     unsafe fn get_value_for_layout(self) -> String {
         (*self.unsafe_get()).textinput.borrow_for_layout().get_content()
+    }
+}
+
+impl RawLayoutHTMLTextAreaElementHelpers for HTMLTextAreaElement {
+    #[allow(unrooted_must_root)]
+    unsafe fn get_cols_for_layout(&self) -> u32 {
+        self.cols.get()
+    }
+
+    #[allow(unrooted_must_root)]
+    unsafe fn get_rows_for_layout(&self) -> u32 {
+        self.rows.get()
     }
 }
 
@@ -64,6 +83,8 @@ impl HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(Multiple, "".to_string())),
+            cols: Cell::new(DEFAULT_COLS),
+            rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),
         }
     }
@@ -186,6 +207,18 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
                 node.set_disabled_state(true);
                 node.set_enabled_state(false);
             },
+            &atom!("cols") => {
+                match *attr.value() {
+                    UIntAttrValue(_, value) => self.cols.set(value),
+                    _ => panic!("Expected a UIntAttrValue"),
+                }
+            },
+            &atom!("rows") => {
+                match *attr.value() {
+                    UIntAttrValue(_, value) => self.rows.set(value),
+                    _ => panic!("Expected a UIntAttrValue"),
+                }
+            },
             _ => ()
         }
     }
@@ -202,6 +235,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
                 node.set_disabled_state(false);
                 node.set_enabled_state(true);
                 node.check_ancestors_disabled_state_for_form_control();
+            },
+            &atom!("cols") => {
+                self.cols.set(DEFAULT_COLS);
+            },
+            &atom!("rows") => {
+                self.rows.set(DEFAULT_ROWS);
             },
             _ => ()
         }

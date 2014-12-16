@@ -57,7 +57,7 @@ pub use cssparser::{Color, RGBA};
 pub use legacy::{BgColorSimpleColorAttribute, BorderUnsignedIntegerAttribute};
 pub use legacy::{ColSpanUnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
 pub use legacy::{SimpleColorAttribute, SizeIntegerAttribute, UnsignedIntegerAttribute};
-pub use legacy::{WidthLengthAttribute};
+pub use legacy::{WidthLengthAttribute, ColsIntegerAttribute, RowsIntegerAttribute};
 pub use font_face::{Source, LocalSource, UrlSource_};
 
 mod stylesheets;
