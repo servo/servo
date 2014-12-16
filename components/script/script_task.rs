@@ -1070,7 +1070,7 @@ impl ScriptTask {
                 let event: JSRef<Event> = EventCast::from_ref(*uievent);
 
                 let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
-                let _ = wintarget.dispatch_event_with_target(None, event);
+                wintarget.dispatch_event(event);
             }
             None => ()
         }

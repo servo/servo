@@ -49,7 +49,7 @@ pub trait Activatable : Copy {
                                     0, None).root();
         let event: JSRef<Event> = EventCast::from_ref(*mouse);
         event.set_trusted(true);
-        target.dispatch_event_with_target(None, event).ok();
+        target.dispatch_event(event);
 
         // Step 5
         if event.DefaultPrevented() {
