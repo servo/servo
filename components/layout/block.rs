@@ -1774,8 +1774,8 @@ impl Flow for BlockFlow {
         } else {
             self.base.stacking_relative_position
         };
-        let clip_rect = self.fragment.clip_rect_for_children(self.base.clip_rect,
-                                                             origin_for_children);
+        let clip_rect = self.fragment.clip_rect_for_children(&self.base.clip_rect,
+                                                             &origin_for_children);
 
         // Process children.
         let writing_mode = self.base.writing_mode;
