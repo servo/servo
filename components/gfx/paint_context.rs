@@ -642,8 +642,7 @@ impl<'a> PaintContext<'a> {
         let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);
         // select and scale the color appropriately.
         let scaled_color    = match direction {
-            Top             => self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     }),
-            Left            => self.scale_color(color, if is_inset { 1.0/6.0 } else { 0.5     }),
+            Top | Left      => self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     }),
             Right | Bottom  => self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 })
         };
         self.draw_border_path(&original_bounds, direction, border, radius, scaled_color);
