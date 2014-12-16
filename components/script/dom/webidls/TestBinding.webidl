@@ -71,6 +71,7 @@ interface TestBinding {
            attribute Blob interfaceAttribute;
            attribute (HTMLElement or long) unionAttribute;
            attribute (Event or DOMString) union2Attribute;
+  readonly attribute Uint8ClampedArray arrayAttribute;
            attribute any anyAttribute;
 
            attribute boolean? booleanAttributeNullable;
