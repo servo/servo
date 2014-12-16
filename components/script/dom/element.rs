@@ -1381,7 +1381,7 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
                 Some(elem) => {
                     // Step 5-6
                     elem.pre_click_activation();
-                    target.dispatch_event_with_target(None, event).ok();
+                    target.dispatch_event(event);
                     if !event.DefaultPrevented() {
                         // post click activation
                         elem.activation_behavior();
@@ -1390,10 +1390,10 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
                     }
                 }
                 // Step 6
-                None => {target.dispatch_event_with_target(None, event).ok();}
+                None => {target.dispatch_event(event);}
             },
             // Step 6
-            None => {target.dispatch_event_with_target(None, event).ok();}
+            None => {target.dispatch_event(event);}
         }
         // Step 7
         self.set_click_in_progress(false);
