@@ -9,7 +9,7 @@ interface HTMLInputElement : HTMLElement {
   //         attribute DOMString alt;
   //         attribute DOMString autocomplete;
   //         attribute boolean autofocus;
-  //         attribute boolean defaultChecked;
+           attribute boolean defaultChecked;
            attribute boolean checked;
   //         attribute DOMString dirName;
            attribute boolean disabled;
@@ -38,7 +38,7 @@ interface HTMLInputElement : HTMLElement {
   //         attribute DOMString src;
   //         attribute DOMString step;
            attribute DOMString type;
-  //         attribute DOMString defaultValue;
+           attribute DOMString defaultValue;
   [TreatNullAs=EmptyString] attribute DOMString value;
   //         attribute Date? valueAsDate;
   //         attribute unrestricted double valueAsNumber;

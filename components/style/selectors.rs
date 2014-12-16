@@ -75,6 +75,7 @@ pub enum SimpleSelector {
     Disabled,
     Enabled,
     Checked,
+    Indeterminate,
     FirstChild, LastChild, OnlyChild,
 //    Empty,
     Root,
@@ -167,7 +168,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 | &AttrExists(..) | &AttrEqual(..) | &AttrIncludes(..) | &AttrDashMatch(..)
                 | &AttrPrefixMatch(..) | &AttrSubstringMatch(..) | &AttrSuffixMatch(..)
                 | &AnyLink | &Link | &Visited | &Hover | &Disabled | &Enabled
-                | &FirstChild | &LastChild | &OnlyChild | &Root | &Checked
+                | &FirstChild | &LastChild | &OnlyChild | &Root | &Checked | &Indeterminate
 //                | &Empty | &Lang(*)
                 | &NthChild(..) | &NthLastChild(..)
                 | &NthOfType(..) | &NthLastOfType(..)
@@ -568,6 +569,7 @@ fn parse_simple_pseudo_class(context: &ParserContext, name: &str) -> Result<Simp
         "disabled" => Ok(Disabled),
         "enabled" => Ok(Enabled),
         "checked" => Ok(Checked),
+        "indeterminate" => Ok(Indeterminate),
         "first-child" => Ok(FirstChild),
         "last-child"  => Ok(LastChild),
         "only-child"  => Ok(OnlyChild),

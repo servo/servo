@@ -23,7 +23,7 @@ use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::{After, AnyLink, AttrDashMatch, AttrEqual};
 use selectors::{AttrExists, AttrIncludes, AttrPrefixMatch};
 use selectors::{AttrSubstringMatch, AttrSuffixMatch, Before, CaseInsensitive, CaseSensitive};
-use selectors::{Checked, Child, ClassSelector};
+use selectors::{Checked, Child, ClassSelector, Indeterminate};
 use selectors::{CompoundSelector, Descendant, Disabled, Enabled, FirstChild, FirstOfType};
 use selectors::{Hover, IDSelector, LastChild, LastOfType};
 use selectors::{LaterSibling, LocalName, LocalNameSelector};
@@ -971,6 +971,12 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             *shareable = false;
             let elem = element.as_element();
             elem.get_checked_state()
+        }
+        // https://html.spec.whatwg.org/multipage/scripting.html#selector-indeterminate
+        Indeterminate => {
+            *shareable = false;
+            let elem = element.as_element();
+            elem.get_indeterminate_state()
         }
         FirstChild => {
             *shareable = false;
