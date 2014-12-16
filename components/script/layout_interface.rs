@@ -29,6 +29,9 @@ pub enum Msg {
     /// Adds the given stylesheet to the document.
     LoadStylesheetMsg(Url),
 
+    /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
+    SetQuirksModeMsg,
+
     /// Requests a reflow.
     ReflowMsg(Box<Reflow>),
 

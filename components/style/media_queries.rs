@@ -8,12 +8,14 @@ use cssparser::ast::*;
 
 use errors::{ErrorLoggerIterator, log_css_error};
 use geom::size::TypedSize2D;
-use stylesheets::{CSSRule, CSSMediaRule, parse_style_rule, parse_nested_at_rule};
+use selectors::ParserContext;
+use stylesheets::{CSSRule, CSSMediaRule};
 use namespaces::NamespaceMap;
 use parsing_utils::{BufferedIter, ParserIter};
 use properties::common_types::*;
 use properties::longhands;
 use servo_util::geometry::ViewportPx;
+use stylesheets;
 use url::Url;
 
 pub struct MediaRule {
@@ -95,8 +97,11 @@ impl Device {
     }
 }
 
-pub fn parse_media_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>,
-                        namespaces: &NamespaceMap, base_url: &Url) {
+pub fn parse_media_rule(context: &ParserContext,
+                        rule: AtRule,
+                        parent_rules: &mut Vec<CSSRule>,
+                        namespaces: &NamespaceMap,
+                        base_url: &Url) {
     let media_queries = parse_media_query_list(rule.prelude.as_slice());
     let block = match rule.block {
         Some(block) => block,
@@ -108,9 +113,17 @@ pub fn parse_media_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>,
     let mut rules = vec!();
     for rule in ErrorLoggerIterator(parse_rule_list(block.into_iter())) {
         match rule {
-            QualifiedRule_(rule) => parse_style_rule(rule, &mut rules, namespaces, base_url),
-            AtRule_(rule) => parse_nested_at_rule(
-                rule.name.as_slice().to_ascii_lower().as_slice(), rule, &mut rules, namespaces, base_url),
+            QualifiedRule_(rule) => {
+                stylesheets::parse_style_rule(context, rule, &mut rules, namespaces, base_url)
+            }
+            AtRule_(rule) => {
+                stylesheets::parse_nested_at_rule(context,
+                                                  rule.name.as_slice().to_ascii_lower().as_slice(),
+                                                  rule,
+                                                  &mut rules,
+                                                  namespaces,
+                                                  base_url)
+            }
         }
     }
     parent_rules.push(CSSMediaRule(MediaRule {

@@ -101,7 +101,7 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-cssparser#cbbfd66f794bd019bbdeaefc88b29eff455b62e5"
+source = "git+https://github.com/servo/rust-cssparser#3f98f1308b769b5d61efc6c133ac520df2b074ac"
 dependencies = [
  "encoding 0.2.0 (git+https://github.com/lifthrasiir/rust-encoding)",
 ]
