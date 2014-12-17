@@ -13,19 +13,17 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 // use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary};
+use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary, MutHeap};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
-
-use std::cell::Cell;
 
 // http://dom.spec.whatwg.org/#interface-treewalker
 #[dom_struct]
 pub struct TreeWalker {
     reflector_: Reflector,
     root_node: JS<Node>,
-    current_node: Cell<JS<Node>>,
+    current_node: MutHeap<JS<Node>>,
     what_to_show: u32,
     filter: Filter
 }
@@ -37,7 +35,7 @@ impl TreeWalker {
         TreeWalker {
             reflector_: Reflector::new(),
             root_node: JS::from_rooted(root_node),
-            current_node: Cell::new(JS::from_rooted(root_node)),
+            current_node: MutHeap::new(JS::from_rooted(root_node)),
             what_to_show: what_to_show,
             filter: filter
         }
