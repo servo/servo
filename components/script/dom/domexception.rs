@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::DOMExceptionBinding;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionConstants;
 use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
-use dom::bindings::error;
 use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
@@ -42,21 +41,21 @@ pub enum DOMErrorName {
 impl DOMErrorName {
     fn from_error(error: Error) -> DOMErrorName {
         match error {
-            error::IndexSize => IndexSizeError,
-            error::NotFound => NotFoundError,
-            error::HierarchyRequest => HierarchyRequestError,
-            error::InvalidCharacter => InvalidCharacterError,
-            error::NotSupported => NotSupportedError,
-            error::InvalidState => InvalidStateError,
-            error::Syntax => SyntaxError,
-            error::NamespaceError => NamespaceError,
-            error::InvalidAccess => InvalidAccessError,
-            error::Security => SecurityError,
-            error::Network => NetworkError,
-            error::Abort => AbortError,
-            error::Timeout => TimeoutError,
-            error::DataClone => DataCloneError,
-            error::FailureUnknown => panic!(),
+            Error::IndexSize => DOMErrorName::IndexSizeError,
+            Error::NotFound => DOMErrorName::NotFoundError,
+            Error::HierarchyRequest => DOMErrorName::HierarchyRequestError,
+            Error::InvalidCharacter => DOMErrorName::InvalidCharacterError,
+            Error::NotSupported => DOMErrorName::NotSupportedError,
+            Error::InvalidState => DOMErrorName::InvalidStateError,
+            Error::Syntax => DOMErrorName::SyntaxError,
+            Error::NamespaceError => DOMErrorName::NamespaceError,
+            Error::InvalidAccess => DOMErrorName::InvalidAccessError,
+            Error::Security => DOMErrorName::SecurityError,
+            Error::Network => DOMErrorName::NetworkError,
+            Error::Abort => DOMErrorName::AbortError,
+            Error::Timeout => DOMErrorName::TimeoutError,
+            Error::DataClone => DOMErrorName::DataCloneError,
+            Error::FailureUnknown => panic!(),
         }
     }
 }
@@ -95,7 +94,7 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
     fn Code(self) -> u16 {
         match self.code {
             // http://dom.spec.whatwg.org/#concept-throw
-            EncodingError => 0,
+            DOMErrorName::EncodingError => 0,
             code => code as u16
         }
     }
@@ -108,27 +107,27 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
     // http://dom.spec.whatwg.org/#error-names-0
     fn Message(self) -> DOMString {
         let message = match self.code {
-            IndexSizeError => "The index is not in the allowed range.",
-            HierarchyRequestError => "The operation would yield an incorrect node tree.",
-            WrongDocumentError => "The object is in the wrong document.",
-            InvalidCharacterError => "The string contains invalid characters.",
-            NoModificationAllowedError => "The object can not be modified.",
-            NotFoundError => "The object can not be found here.",
-            NotSupportedError => "The operation is not supported.",
-            InvalidStateError => "The object is in an invalid state.",
-            SyntaxError => "The string did not match the expected pattern.",
-            InvalidModificationError => "The object can not be modified in this way.",
-            NamespaceError => "The operation is not allowed by Namespaces in XML.",
-            InvalidAccessError => "The object does not support the operation or argument.",
-            SecurityError => "The operation is insecure.",
-            NetworkError => "A network error occurred.",
-            AbortError => "The operation was aborted.",
-            URLMismatchError => "The given URL does not match another URL.",
-            QuotaExceededError => "The quota has been exceeded.",
-            TimeoutError => "The operation timed out.",
-            InvalidNodeTypeError => "The supplied node is incorrect or has an incorrect ancestor for this operation.",
-            DataCloneError => "The object can not be cloned.",
-            EncodingError => "The encoding operation (either encoded or decoding) failed."
+            DOMErrorName::IndexSizeError => "The index is not in the allowed range.",
+            DOMErrorName::HierarchyRequestError => "The operation would yield an incorrect node tree.",
+            DOMErrorName::WrongDocumentError => "The object is in the wrong document.",
+            DOMErrorName::InvalidCharacterError => "The string contains invalid characters.",
+            DOMErrorName::NoModificationAllowedError => "The object can not be modified.",
+            DOMErrorName::NotFoundError => "The object can not be found here.",
+            DOMErrorName::NotSupportedError => "The operation is not supported.",
+            DOMErrorName::InvalidStateError => "The object is in an invalid state.",
+            DOMErrorName::SyntaxError => "The string did not match the expected pattern.",
+            DOMErrorName::InvalidModificationError => "The object can not be modified in this way.",
+            DOMErrorName::NamespaceError => "The operation is not allowed by Namespaces in XML.",
+            DOMErrorName::InvalidAccessError => "The object does not support the operation or argument.",
+            DOMErrorName::SecurityError => "The operation is insecure.",
+            DOMErrorName::NetworkError => "A network error occurred.",
+            DOMErrorName::AbortError => "The operation was aborted.",
+            DOMErrorName::URLMismatchError => "The given URL does not match another URL.",
+            DOMErrorName::QuotaExceededError => "The quota has been exceeded.",
+            DOMErrorName::TimeoutError => "The operation timed out.",
+            DOMErrorName::InvalidNodeTypeError => "The supplied node is incorrect or has an incorrect ancestor for this operation.",
+            DOMErrorName::DataCloneError => "The object can not be cloned.",
+            DOMErrorName::EncodingError => "The encoding operation (either encoded or decoding) failed."
         };
 
         message.to_string()

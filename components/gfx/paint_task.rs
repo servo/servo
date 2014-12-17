@@ -4,6 +4,10 @@
 
 //! The task that handles all painting.
 
+use self::Msg::*;
+use self::MsgFromWorkerThread::*;
+use self::MsgToWorkerThread::*;
+
 use buffer_map::BufferMap;
 use display_list::{mod, StackingContext};
 use font_cache_task::FontCacheTask;

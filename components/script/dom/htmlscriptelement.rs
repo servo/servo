@@ -15,16 +15,15 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCas
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
-use dom::element::{ElementCreator, ParserCreated};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::{ElementTypeId, Element, AttributeHandlers, ElementCreator};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node, CloneChildrenFlag};
+use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
 use encoding::all::UTF_8;
-use encoding::types::{Encoding, DecodeReplace};
+use encoding::types::{Encoding, DecoderTrap};
 use servo_net::resource_task::load_whole_resource;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::cell::Cell;
@@ -54,7 +53,7 @@ pub struct HTMLScriptElement {
 
 impl HTMLScriptElementDerived for EventTarget {
     fn is_htmlscriptelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLScriptElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLScriptElement))
     }
 }
 
@@ -62,10 +61,10 @@ impl HTMLScriptElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
-            htmlelement: HTMLElement::new_inherited(HTMLScriptElementTypeId, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLScriptElement, localName, prefix, document),
             already_started: Cell::new(false),
-            parser_inserted: Cell::new(creator == ParserCreated),
-            non_blocking: Cell::new(creator != ParserCreated),
+            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
+            non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
         }
     }
@@ -187,7 +186,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                         match load_whole_resource(&page.resource_task, url) {
                             Ok((metadata, bytes)) => {
                                 // TODO: use the charset from step 13.
-                                let source = UTF_8.decode(bytes.as_slice(), DecodeReplace).unwrap();
+                                let source = UTF_8.decode(bytes.as_slice(), DecoderTrap::Replace).unwrap();
                                 (source, metadata.final_url)
                             }
                             Err(_) => {

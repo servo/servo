@@ -6,7 +6,7 @@ use std::cmp::{max, min};
 use std::iter;
 use std::fmt;
 use std::num;
-use std::num::{Bounded, Zero};
+use std::num::{Int, Bounded, Zero};
 
 /// An index type to be used by a `Range`
 pub trait RangeIndex: Copy
@@ -52,6 +52,30 @@ macro_rules! int_range_index {
         }
 
         impl RangeIndex for $Self {}
+        impl ::std::num::Int for $Self {
+            fn zero() -> $Self { $Self(0) }
+            fn one() -> $Self { $Self(1) }
+            fn min_value() -> $Self { $Self(::std::num::Int::min_value()) }
+            fn max_value() -> $Self { $Self(::std::num::Int::max_value()) }
+            fn count_ones(self) -> uint { self.get().count_ones() }
+            fn leading_zeros(self) -> uint { self.get().leading_zeros() }
+            fn trailing_zeros(self) -> uint { self.get().trailing_zeros() }
+            fn rotate_left(self, n: uint) -> $Self { $Self(self.get().rotate_left(n)) }
+            fn rotate_right(self, n: uint) -> $Self { $Self(self.get().rotate_right(n)) }
+            fn swap_bytes(self) -> $Self { $Self(self.get().swap_bytes()) }
+            fn checked_add(self, other: $Self) -> Option<$Self> {
+                self.get().checked_add(other.get()).map($Self)
+            }
+            fn checked_sub(self, other: $Self) -> Option<$Self> {
+                self.get().checked_sub(other.get()).map($Self)
+            }
+            fn checked_mul(self, other: $Self) -> Option<$Self> {
+                self.get().checked_mul(other.get()).map($Self)
+            }
+            fn checked_div(self, other: $Self) -> Option<$Self> {
+                self.get().checked_div(other.get()).map($Self)
+            }
+        }
 
         impl IntRangeIndex<$T> for $Self  {
             #[inline]
@@ -106,6 +130,60 @@ macro_rules! int_range_index {
 
             fn to_u64(&self) -> Option<u64> {
                 Some(self.get() as u64)
+            }
+        }
+
+        impl ::std::num::NumCast for $Self {
+            fn from<T: ToPrimitive>(n: T) -> Option<$Self> {
+                n.to_int().map($Self)
+            }
+        }
+
+        impl Div<$Self, $Self> for $Self {
+            fn div(&self, other: &$Self) -> $Self {
+                $Self(self.get() / other.get())
+            }
+        }
+
+        impl Rem<$Self, $Self> for $Self {
+            fn rem(&self, other: &$Self) -> $Self {
+                $Self(self.get() % other.get())
+            }
+        }
+
+        impl Not<$Self> for $Self {
+            fn not(&self) -> $Self {
+                $Self(!self.get())
+            }
+        }
+
+        impl BitAnd<$Self, $Self> for $Self {
+            fn bitand(&self, other: &$Self) -> $Self {
+                $Self(self.get() & other.get())
+            }
+        }
+
+        impl BitOr<$Self, $Self> for $Self {
+            fn bitor(&self, other: &$Self) -> $Self {
+                $Self(self.get() | other.get())
+            }
+        }
+
+        impl BitXor<$Self, $Self> for $Self {
+            fn bitxor(&self, other: &$Self) -> $Self {
+                $Self(self.get() ^ other.get())
+            }
+        }
+
+        impl Shl<uint, $Self> for $Self {
+            fn shl(&self, n: &uint) -> $Self {
+                $Self(self.get() << *n)
+            }
+        }
+
+        impl Shr<uint, $Self> for $Self {
+            fn shr(&self, n: &uint) -> $Self {
+                $Self(self.get() >> *n)
             }
         }
     )
@@ -282,7 +360,7 @@ impl<I: RangeIndex> Range<I> {
 }
 
 /// Methods for `Range`s with indices based on integer values
-impl<T: Int, I: IntRangeIndex<T>> Range<I> {
+impl<T: Int+Bounded, I: IntRangeIndex<T>> Range<I> {
     /// Returns an iterater that increments over `[begin, end)`.
     #[inline]
     pub fn each_index(&self) -> EachIndex<T, I> {

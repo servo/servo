@@ -18,23 +18,23 @@ use time;
 
 #[jstraceable]
 pub enum EventPhase {
-    PhaseNone      = EventConstants::NONE as int,
-    PhaseCapturing = EventConstants::CAPTURING_PHASE as int,
-    PhaseAtTarget  = EventConstants::AT_TARGET as int,
-    PhaseBubbling  = EventConstants::BUBBLING_PHASE as int,
+    None      = EventConstants::NONE as int,
+    Capturing = EventConstants::CAPTURING_PHASE as int,
+    AtTarget  = EventConstants::AT_TARGET as int,
+    Bubbling  = EventConstants::BUBBLING_PHASE as int,
 }
 
 #[deriving(PartialEq)]
 #[jstraceable]
 pub enum EventTypeId {
-    CustomEventTypeId,
-    HTMLEventTypeId,
-    KeyboardEventTypeId,
-    MessageEventTypeId,
-    MouseEventTypeId,
-    ProgressEventTypeId,
-    UIEventTypeId,
-    ErrorEventTypeId
+    CustomEvent,
+    HTMLEvent,
+    KeyboardEvent,
+    MessageEvent,
+    MouseEvent,
+    ProgressEvent,
+    UIEvent,
+    ErrorEvent
 }
 
 #[deriving(PartialEq)]
@@ -75,7 +75,7 @@ impl Event {
             reflector_: Reflector::new(),
             current_target: Default::default(),
             target: Default::default(),
-            phase: Cell::new(PhaseNone),
+            phase: Cell::new(EventPhase::None),
             type_: DOMRefCell::new("".to_string()),
             canceled: Cell::new(false),
             cancelable: Cell::new(false),
@@ -90,7 +90,7 @@ impl Event {
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Temporary<Event> {
-        reflect_dom_object(box Event::new_inherited(HTMLEventTypeId),
+        reflect_dom_object(box Event::new_inherited(EventTypeId::HTMLEvent),
                            global,
                            EventBinding::Wrap)
     }
@@ -100,15 +100,15 @@ impl Event {
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Temporary<Event> {
         let event = Event::new_uninitialized(global).root();
-        event.InitEvent(type_, bubbles == Bubbles, cancelable == Cancelable);
+        event.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
         Temporary::from_rooted(*event)
     }
 
     pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
-        let bubbles = if init.bubbles { Bubbles } else { DoesNotBubble };
-        let cancelable = if init.cancelable { Cancelable } else { NotCancelable };
+        let bubbles = if init.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
+        let cancelable = if init.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
         Ok(Event::new(*global, type_, bubbles, cancelable))
     }
 

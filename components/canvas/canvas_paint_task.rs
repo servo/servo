@@ -42,11 +42,11 @@ impl CanvasPaintTask {
 
             loop {
                 match port.recv() {
-                    FillRect(ref rect) => painter.fill_rect(rect),
-                    StrokeRect(ref rect) => painter.stroke_rect(rect),
-                    ClearRect(ref rect) => painter.clear_rect(rect),
-                    Recreate(size) => painter.recreate(size),
-                    Close => break,
+                    CanvasMsg::FillRect(ref rect) => painter.fill_rect(rect),
+                    CanvasMsg::StrokeRect(ref rect) => painter.stroke_rect(rect),
+                    CanvasMsg::ClearRect(ref rect) => painter.clear_rect(rect),
+                    CanvasMsg::Recreate(size) => painter.recreate(size),
+                    CanvasMsg::Close => break,
                 }
             }
         });

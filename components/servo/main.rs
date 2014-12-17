@@ -42,9 +42,7 @@ use servo_util::rtinstrument;
 #[cfg(not(test))]
 use servo::Browser;
 #[cfg(not(test))]
-use compositing::windowing::{IdleWindowEvent, InitializeCompositingWindowEvent, ResizeWindowEvent};
-#[cfg(not(test))]
-use compositing::windowing::{WindowEvent};
+use compositing::windowing::WindowEvent;
 
 #[cfg(not(any(test,target_os="android")))]
 use std::os;
@@ -135,11 +133,11 @@ fn main() {
             }
         }
 
-        browser.browser.handle_event(InitializeCompositingWindowEvent);
+        browser.browser.handle_event(WindowEvent::InitializeCompositing);
 
         loop {
             let should_continue = match window {
-                None => browser.browser.handle_event(IdleWindowEvent),
+                None => browser.browser.handle_event(WindowEvent::Idle),
                 Some(ref window) => {
                     let event = window.wait_events();
                     browser.browser.handle_event(event)
@@ -171,7 +169,7 @@ fn main() {
 impl app::NestedEventLoopListener for BrowserWrapper {
     fn handle_event_from_nested_event_loop(&mut self, event: WindowEvent) -> bool {
         let is_resize = match event {
-            ResizeWindowEvent(..) => true,
+            WindowEvent::Resize(..) => true,
             _ => false,
         };
         if !self.browser.handle_event(event) {

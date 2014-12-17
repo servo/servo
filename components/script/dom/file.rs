@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::blob::{Blob, BlobType, FileTypeId};
+use dom::blob::{Blob, BlobTypeId};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -17,7 +17,7 @@ pub struct File {
 }
 
 impl File {
-    fn new_inherited(global: &GlobalRef, type_: BlobType,
+    fn new_inherited(global: &GlobalRef, type_: BlobTypeId,
                      _file_bits: JSRef<Blob>, name: DOMString) -> File {
         File {
             blob: Blob::new_inherited(global, type_, None),
@@ -28,7 +28,7 @@ impl File {
     }
 
     pub fn new(global: &GlobalRef, file_bits: JSRef<Blob>, name: DOMString) -> Temporary<File> {
-        reflect_dom_object(box File::new_inherited(global, FileTypeId, file_bits, name),
+        reflect_dom_object(box File::new_inherited(global, BlobTypeId::File, file_bits, name),
                            *global,
                            FileBinding::Wrap)
     }

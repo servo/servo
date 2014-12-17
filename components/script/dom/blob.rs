@@ -14,15 +14,15 @@ use servo_util::str::DOMString;
 use std::cmp::{min, max};
 
 #[jstraceable]
-pub enum BlobType {
-    BlobTypeId,
-    FileTypeId
+pub enum BlobTypeId {
+    Blob,
+    File,
 }
 
 #[dom_struct]
 pub struct Blob {
     reflector_: Reflector,
-    type_: BlobType,
+    type_: BlobTypeId,
     bytes: Option<Vec<u8>>,
     typeString: DOMString,
     global: GlobalField
@@ -30,7 +30,7 @@ pub struct Blob {
 }
 
 impl Blob {
-    pub fn new_inherited(global: &GlobalRef, type_: BlobType,
+    pub fn new_inherited(global: &GlobalRef, type_: BlobTypeId,
                          bytes: Option<Vec<u8>>) -> Blob {
         Blob {
             reflector_: Reflector::new(),
@@ -43,7 +43,7 @@ impl Blob {
     }
 
     pub fn new(global: &GlobalRef, bytes: Option<Vec<u8>>) -> Temporary<Blob> {
-        reflect_dom_object(box Blob::new_inherited(global, BlobTypeId, bytes),
+        reflect_dom_object(box Blob::new_inherited(global, BlobTypeId::Blob, bytes),
                            *global,
                            BlobBinding::Wrap)
     }
@@ -133,7 +133,7 @@ impl Reflectable for Blob {
 impl FileDerived for Blob {
     fn is_file(&self) -> bool {
         match self.type_ {
-            FileTypeId => true,
+            BlobTypeId::File => true,
             _ => false
         }
     }

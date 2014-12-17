@@ -4,7 +4,7 @@
 
 //! Style retrieval from DOM elements.
 
-use wrapper::{After, Before, Normal, ThreadSafeLayoutNode};
+use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 use std::mem;
 use style::ComputedValues;
@@ -27,7 +27,7 @@ impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
         unsafe {
             let layout_data_ref = self.borrow_layout_data();
             match self.get_pseudo_element_type() {
-                Before(_) => {
+                PseudoElementType::Before(_) => {
                      mem::transmute(layout_data_ref.as_ref()
                                                    .unwrap()
                                                    .data
@@ -35,7 +35,7 @@ impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
                                                    .as_ref()
                                                    .unwrap())
                 }
-                After(_) => {
+                PseudoElementType::After(_) => {
                     mem::transmute(layout_data_ref.as_ref()
                                                   .unwrap()
                                                   .data
@@ -43,7 +43,7 @@ impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
                                                   .as_ref()
                                                   .unwrap())
                 }
-                Normal => {
+                PseudoElementType::Normal => {
                     mem::transmute(layout_data_ref.as_ref()
                                                   .unwrap()
                                                   .shared_data
@@ -66,9 +66,9 @@ impl<'ln> StyledNode for ThreadSafeLayoutNode<'ln> {
 
         let style =
             match self.get_pseudo_element_type() {
-                Before(_) => &mut layout_data.data.before_style,
-                After (_) => &mut layout_data.data.after_style,
-                Normal    => &mut layout_data.shared_data.style,
+                PseudoElementType::Before(_) => &mut layout_data.data.before_style,
+                PseudoElementType::After (_) => &mut layout_data.data.after_style,
+                PseudoElementType::Normal    => &mut layout_data.shared_data.style,
             };
 
         *style = None;

@@ -27,6 +27,7 @@ use core_text::font::CTFont;
 use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
 use core_text::font_descriptor::{kCTFontDefaultOrientation};
 
+use std::num::Float;
 use std::ptr;
 use sync::Arc;
 

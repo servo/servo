@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, ProgressEventTypeId};
+use dom::event::{Event, EventTypeId};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -23,14 +23,14 @@ pub struct ProgressEvent {
 
 impl ProgressEventDerived for Event {
     fn is_progressevent(&self) -> bool {
-        *self.type_id() == ProgressEventTypeId
+        *self.type_id() == EventTypeId::ProgressEvent
     }
 }
 
 impl ProgressEvent {
     fn new_inherited(length_computable: bool, loaded: u64, total: u64) -> ProgressEvent {
         ProgressEvent {
-            event: Event::new_inherited(ProgressEventTypeId),
+            event: Event::new_inherited(EventTypeId::ProgressEvent),
             length_computable: length_computable,
             loaded: loaded,
             total: total

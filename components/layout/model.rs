@@ -10,7 +10,7 @@ use fragment::Fragment;
 
 use style::computed_values as computed;
 use geom::SideOffsets2D;
-use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LP_Length, LP_Percentage};
+use style::computed_values::{LengthOrPercentageOrAuto, LengthOrPercentage};
 use style::ComputedValues;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalMargin;
@@ -62,26 +62,26 @@ impl AdjoiningMargins {
 /// Represents the block-start and block-end margins of a flow with collapsible margins. See CSS 2.1 § 8.3.1.
 pub enum CollapsibleMargins {
     /// Margins may not collapse with this flow.
-    NoCollapsibleMargins(Au, Au),
+    None(Au, Au),
 
     /// Both the block-start and block-end margins (specified here in that order) may collapse, but the
     /// margins do not collapse through this flow.
-    MarginsCollapse(AdjoiningMargins, AdjoiningMargins),
+    Collapse(AdjoiningMargins, AdjoiningMargins),
 
     /// Margins collapse *through* this flow. This means, essentially, that the flow doesn’t
     /// have any border, padding, or out-of-flow (floating or positioned) content
-    MarginsCollapseThrough(AdjoiningMargins),
+    CollapseThrough(AdjoiningMargins),
 }
 
 impl CollapsibleMargins {
     pub fn new() -> CollapsibleMargins {
-        NoCollapsibleMargins(Au(0), Au(0))
+        CollapsibleMargins::None(Au(0), Au(0))
     }
 }
 
 enum FinalMarginState {
-    MarginsCollapseThroughFinalMarginState,
-    BottomMarginCollapsesFinalMarginState,
+    MarginsCollapseThrough,
+    BottomMarginCollapses,
 }
 
 pub struct MarginCollapseInfo {
@@ -94,7 +94,7 @@ impl MarginCollapseInfo {
     /// TODO(#2012, pcwalton): Remove this method once `fragment` is not an `Option`.
     pub fn new() -> MarginCollapseInfo {
         MarginCollapseInfo {
-            state: AccumulatingCollapsibleTopMargin,
+            state: MarginCollapseState::AccumulatingCollapsibleTopMargin,
             block_start_margin: AdjoiningMargins::new(),
             margin_in: AdjoiningMargins::new(),
         }
@@ -104,7 +104,7 @@ impl MarginCollapseInfo {
                                  fragment: &Fragment,
                                  can_collapse_block_start_margin_with_kids: bool) {
         if !can_collapse_block_start_margin_with_kids {
-            self.state = AccumulatingMarginIn
+            self.state = MarginCollapseState::AccumulatingMarginIn
         }
 
         self.block_start_margin = AdjoiningMargins::from_margin(fragment.margin.block_start)
@@ -115,28 +115,28 @@ impl MarginCollapseInfo {
                                                   can_collapse_block_end_margin_with_kids: bool)
                                                   -> (CollapsibleMargins, Au) {
         let state = match self.state {
-            AccumulatingCollapsibleTopMargin => {
+            MarginCollapseState::AccumulatingCollapsibleTopMargin => {
                 match fragment.style().content_block_size() {
-                    LPA_Auto | LPA_Length(Au(0)) | LPA_Percentage(0.) => {
+                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Length(Au(0)) | LengthOrPercentageOrAuto::Percentage(0.) => {
                         match fragment.style().min_block_size() {
-                            LP_Length(Au(0)) | LP_Percentage(0.) => {
-                                MarginsCollapseThroughFinalMarginState
+                            LengthOrPercentage::Length(Au(0)) | LengthOrPercentage::Percentage(0.) => {
+                                FinalMarginState::MarginsCollapseThrough
                             },
                             _ => {
                                 // If the fragment has non-zero min-block-size, margins may not
                                 // collapse through it.
-                                BottomMarginCollapsesFinalMarginState
+                                FinalMarginState::BottomMarginCollapses
                             }
                         }
                     },
                     _ => {
                         // If the fragment has an explicitly specified block-size, margins may not
                         // collapse through it.
-                        BottomMarginCollapsesFinalMarginState
+                        FinalMarginState::BottomMarginCollapses
                     }
                 }
             }
-            AccumulatingMarginIn => BottomMarginCollapsesFinalMarginState,
+            MarginCollapseState::AccumulatingMarginIn => FinalMarginState::BottomMarginCollapses,
         };
 
         // Different logic is needed here depending on whether this flow can collapse its block-end
@@ -144,26 +144,26 @@ impl MarginCollapseInfo {
         let block_end_margin = fragment.margin.block_end;
         if !can_collapse_block_end_margin_with_kids {
             match state {
-                MarginsCollapseThroughFinalMarginState => {
+                FinalMarginState::MarginsCollapseThrough => {
                     let advance = self.block_start_margin.collapse();
                     self.margin_in.union(AdjoiningMargins::from_margin(block_end_margin));
-                    (MarginsCollapse(self.block_start_margin, self.margin_in), advance)
+                    (CollapsibleMargins::Collapse(self.block_start_margin, self.margin_in), advance)
                 }
-                BottomMarginCollapsesFinalMarginState => {
+                FinalMarginState::BottomMarginCollapses => {
                     let advance = self.margin_in.collapse();
                     self.margin_in.union(AdjoiningMargins::from_margin(block_end_margin));
-                    (MarginsCollapse(self.block_start_margin, self.margin_in), advance)
+                    (CollapsibleMargins::Collapse(self.block_start_margin, self.margin_in), advance)
                 }
             }
         } else {
             match state {
-                MarginsCollapseThroughFinalMarginState => {
+                FinalMarginState::MarginsCollapseThrough => {
                     self.block_start_margin.union(AdjoiningMargins::from_margin(block_end_margin));
-                    (MarginsCollapseThrough(self.block_start_margin), Au(0))
+                    (CollapsibleMargins::CollapseThrough(self.block_start_margin), Au(0))
                 }
-                BottomMarginCollapsesFinalMarginState => {
+                FinalMarginState::BottomMarginCollapses => {
                     self.margin_in.union(AdjoiningMargins::from_margin(block_end_margin));
-                    (MarginsCollapse(self.block_start_margin, self.margin_in), Au(0))
+                    (CollapsibleMargins::Collapse(self.block_start_margin, self.margin_in), Au(0))
                 }
             }
         }
@@ -171,8 +171,8 @@ impl MarginCollapseInfo {
 
     pub fn current_float_ceiling(&mut self) -> Au {
         match self.state {
-            AccumulatingCollapsibleTopMargin => self.block_start_margin.collapse(),
-            AccumulatingMarginIn => self.margin_in.collapse(),
+            MarginCollapseState::AccumulatingCollapsibleTopMargin => self.block_start_margin.collapse(),
+            MarginCollapseState::AccumulatingMarginIn => self.margin_in.collapse(),
         }
     }
 
@@ -181,27 +181,27 @@ impl MarginCollapseInfo {
     /// that should be added to the Y offset during block layout.
     pub fn advance_block_start_margin(&mut self, child_collapsible_margins: &CollapsibleMargins) -> Au {
         match (self.state, *child_collapsible_margins) {
-            (AccumulatingCollapsibleTopMargin, NoCollapsibleMargins(block_start, _)) => {
-                self.state = AccumulatingMarginIn;
+            (MarginCollapseState::AccumulatingCollapsibleTopMargin, CollapsibleMargins::None(block_start, _)) => {
+                self.state = MarginCollapseState::AccumulatingMarginIn;
                 block_start
             }
-            (AccumulatingCollapsibleTopMargin, MarginsCollapse(block_start, _)) => {
+            (MarginCollapseState::AccumulatingCollapsibleTopMargin, CollapsibleMargins::Collapse(block_start, _)) => {
                 self.block_start_margin.union(block_start);
-                self.state = AccumulatingMarginIn;
+                self.state = MarginCollapseState::AccumulatingMarginIn;
                 Au(0)
             }
-            (AccumulatingMarginIn, NoCollapsibleMargins(block_start, _)) => {
+            (MarginCollapseState::AccumulatingMarginIn, CollapsibleMargins::None(block_start, _)) => {
                 let previous_margin_value = self.margin_in.collapse();
                 self.margin_in = AdjoiningMargins::new();
                 previous_margin_value + block_start
             }
-            (AccumulatingMarginIn, MarginsCollapse(block_start, _)) => {
+            (MarginCollapseState::AccumulatingMarginIn, CollapsibleMargins::Collapse(block_start, _)) => {
                 self.margin_in.union(block_start);
                 let margin_value = self.margin_in.collapse();
                 self.margin_in = AdjoiningMargins::new();
                 margin_value
             }
-            (_, MarginsCollapseThrough(_)) => {
+            (_, CollapsibleMargins::CollapseThrough(_)) => {
                 // For now, we ignore this; this will be handled by `advance_block-end_margin` below.
                 Au(0)
             }
@@ -213,23 +213,23 @@ impl MarginCollapseInfo {
     /// that should be added to the Y offset during block layout.
     pub fn advance_block_end_margin(&mut self, child_collapsible_margins: &CollapsibleMargins) -> Au {
         match (self.state, *child_collapsible_margins) {
-            (AccumulatingCollapsibleTopMargin, NoCollapsibleMargins(..)) |
-            (AccumulatingCollapsibleTopMargin, MarginsCollapse(..)) => {
+            (MarginCollapseState::AccumulatingCollapsibleTopMargin, CollapsibleMargins::None(..)) |
+            (MarginCollapseState::AccumulatingCollapsibleTopMargin, CollapsibleMargins::Collapse(..)) => {
                 // Can't happen because the state will have been replaced with
-                // `AccumulatingMarginIn` above.
+                // `MarginCollapseState::AccumulatingMarginIn` above.
                 panic!("should not be accumulating collapsible block_start margins anymore!")
             }
-            (AccumulatingCollapsibleTopMargin, MarginsCollapseThrough(margin)) => {
+            (MarginCollapseState::AccumulatingCollapsibleTopMargin, CollapsibleMargins::CollapseThrough(margin)) => {
                 self.block_start_margin.union(margin);
                 Au(0)
             }
-            (AccumulatingMarginIn, NoCollapsibleMargins(_, block_end)) => {
+            (MarginCollapseState::AccumulatingMarginIn, CollapsibleMargins::None(_, block_end)) => {
                 assert_eq!(self.margin_in.most_positive, Au(0));
                 assert_eq!(self.margin_in.most_negative, Au(0));
                 block_end
             }
-            (AccumulatingMarginIn, MarginsCollapse(_, block_end)) |
-            (AccumulatingMarginIn, MarginsCollapseThrough(block_end)) => {
+            (MarginCollapseState::AccumulatingMarginIn, CollapsibleMargins::Collapse(_, block_end)) |
+            (MarginCollapseState::AccumulatingMarginIn, CollapsibleMargins::CollapseThrough(block_end)) => {
                 self.margin_in.union(block_end);
                 Au(0)
             }
@@ -333,19 +333,19 @@ impl MaybeAuto {
     pub fn from_style(length: computed::LengthOrPercentageOrAuto, containing_length: Au)
                       -> MaybeAuto {
         match length {
-            computed::LPA_Auto => Auto,
-            computed::LPA_Percentage(percent) => {
-                Specified(containing_length.scale_by(percent))
+            computed::LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
+            computed::LengthOrPercentageOrAuto::Percentage(percent) => {
+                MaybeAuto::Specified(containing_length.scale_by(percent))
             }
-            computed::LPA_Length(length) => Specified(length)
+            computed::LengthOrPercentageOrAuto::Length(length) => MaybeAuto::Specified(length)
         }
     }
 
     #[inline]
     pub fn specified_or_default(&self, default: Au) -> Au {
         match *self {
-            Auto => default,
-            Specified(value) => value,
+            MaybeAuto::Auto => default,
+            MaybeAuto::Specified(value) => value,
         }
     }
 
@@ -357,24 +357,24 @@ impl MaybeAuto {
     #[inline]
     pub fn map(&self, mapper: |Au| -> Au) -> MaybeAuto {
         match *self {
-            Auto => Auto,
-            Specified(value) => Specified(mapper(value)),
+            MaybeAuto::Auto => MaybeAuto::Auto,
+            MaybeAuto::Specified(value) => MaybeAuto::Specified(mapper(value)),
         }
     }
 }
 
 pub fn specified_or_none(length: computed::LengthOrPercentageOrNone, containing_length: Au) -> Option<Au> {
     match length {
-        computed::LPN_None => None,
-        computed::LPN_Percentage(percent) => Some(containing_length.scale_by(percent)),
-        computed::LPN_Length(length) => Some(length),
+        computed::LengthOrPercentageOrNone::None => None,
+        computed::LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
+        computed::LengthOrPercentageOrNone::Length(length) => Some(length),
     }
 }
 
 pub fn specified(length: computed::LengthOrPercentage, containing_length: Au) -> Au {
     match length {
-        computed::LP_Length(length) => length,
-        computed::LP_Percentage(p) => containing_length.scale_by(p)
+        computed::LengthOrPercentage::Length(length) => length,
+        computed::LengthOrPercentage::Percentage(p) => containing_length.scale_by(p)
     }
 }
 

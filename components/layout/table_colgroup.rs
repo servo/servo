@@ -8,8 +8,8 @@
 
 use context::LayoutContext;
 use css::node_style::StyledNode;
-use flow::{BaseFlow, ForceNonfloated, TableColGroupFlowClass, FlowClass, Flow};
-use fragment::{Fragment, FragmentBoundsIterator, TableColumnFragment};
+use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag};
+use fragment::{Fragment, FragmentBoundsIterator, SpecificFragmentInfo};
 use layout_debug;
 use wrapper::ThreadSafeLayoutNode;
 
@@ -44,7 +44,7 @@ impl TableColGroupFlow {
                                    -> TableColGroupFlow {
         let writing_mode = node.style().writing_mode;
         TableColGroupFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloated),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::ForceNonfloated),
             fragment: Some(fragment),
             cols: fragments,
             inline_sizes: vec!(),
@@ -54,7 +54,7 @@ impl TableColGroupFlow {
 
 impl Flow for TableColGroupFlow {
     fn class(&self) -> FlowClass {
-        TableColGroupFlowClass
+        FlowClass::TableColGroup
     }
 
     fn as_table_colgroup<'a>(&'a mut self) -> &'a mut TableColGroupFlow {
@@ -69,7 +69,7 @@ impl Flow for TableColGroupFlow {
             // Retrieve the specified value from the appropriate CSS property.
             let inline_size = fragment.style().content_inline_size();
             let span: int = match fragment.specific {
-                TableColumnFragment(col_fragment) => max(col_fragment.span, 1),
+                SpecificFragmentInfo::TableColumn(col_fragment) => max(col_fragment.span, 1),
                 _ => panic!("non-table-column fragment inside table column?!"),
             };
             for _ in range(0, span) {

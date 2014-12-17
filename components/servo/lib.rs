@@ -117,7 +117,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             for url in opts.urls.iter() {
                 let url = match url::Url::parse(url.as_slice()) {
                     Ok(url) => url,
-                    Err(url::RelativeUrlWithoutBase)
+                    Err(url::ParseError::RelativeUrlWithoutBase)
                     => url::Url::from_file_path(&cwd.join(url.as_slice())).unwrap(),
                     Err(_) => panic!("URL parsing failed"),
                 };

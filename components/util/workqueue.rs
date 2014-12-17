@@ -33,17 +33,17 @@ pub struct WorkUnit<QueueData, WorkData> {
 /// Messages from the supervisor to the worker.
 enum WorkerMsg<QueueData, WorkData> {
     /// Tells the worker to start work.
-    StartMsg(Worker<WorkUnit<QueueData, WorkData>>, *mut AtomicUint, *const QueueData),
-    /// Tells the worker to stop. It can be restarted again with a `StartMsg`.
-    StopMsg,
+    Start(Worker<WorkUnit<QueueData, WorkData>>, *mut AtomicUint, *const QueueData),
+    /// Tells the worker to stop. It can be restarted again with a `WorkerMsg::Start`.
+    Stop,
     /// Tells the worker thread to terminate.
-    ExitMsg,
+    Exit,
 }
 
 /// Messages to the supervisor.
 enum SupervisorMsg<QueueData, WorkData> {
-    FinishedMsg,
-    ReturnDequeMsg(uint, Worker<WorkUnit<QueueData, WorkData>>),
+    Finished,
+    ReturnDeque(uint, Worker<WorkUnit<QueueData, WorkData>>),
 }
 
 /// Information that the supervisor thread keeps about the worker threads.
@@ -81,9 +81,9 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
         loop {
             // Wait for a start message.
             let (mut deque, ref_count, queue_data) = match self.port.recv() {
-                StartMsg(deque, ref_count, queue_data) => (deque, ref_count, queue_data),
-                StopMsg => panic!("unexpected stop message"),
-                ExitMsg => return,
+                WorkerMsg::Start(deque, ref_count, queue_data) => (deque, ref_count, queue_data),
+                WorkerMsg::Stop => panic!("unexpected stop message"),
+                WorkerMsg::Exit => return,
             };
 
             let mut back_off_sleep = 0 as u32;
@@ -125,11 +125,11 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
 
                             if i == SPIN_COUNT {
                                 match self.port.try_recv() {
-                                    Ok(StopMsg) => {
+                                    Ok(WorkerMsg::Stop) => {
                                         should_continue = false;
                                         break
                                     }
-                                    Ok(ExitMsg) => return,
+                                    Ok(WorkerMsg::Exit) => return,
                                     Ok(_) => panic!("unexpected message"),
                                     _ => {}
                                 }
@@ -158,13 +158,13 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                 // the last work unit in the queue, then send a message on the channel.
                 unsafe {
                     if (*ref_count).fetch_sub(1, SeqCst) == 1 {
-                        self.chan.send(FinishedMsg)
+                        self.chan.send(SupervisorMsg::Finished)
                     }
                 }
             }
 
             // Give the deque back to the supervisor.
-            self.chan.send(ReturnDequeMsg(self.index, deque))
+            self.chan.send(SupervisorMsg::ReturnDeque(self.index, deque))
         }
     }
 }
@@ -283,7 +283,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         // Tell the workers to start.
         let mut work_count = AtomicUint::new(self.work_count);
         for worker in self.workers.iter_mut() {
-            worker.chan.send(StartMsg(worker.deque.take().unwrap(), &mut work_count, &self.data))
+            worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(), &mut work_count, &self.data))
         }
 
         // Wait for the work to finish.
@@ -292,21 +292,21 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
 
         // Tell everyone to stop.
         for worker in self.workers.iter() {
-            worker.chan.send(StopMsg)
+            worker.chan.send(WorkerMsg::Stop)
         }
 
         // Get our deques back.
         for _ in range(0, self.workers.len()) {
             match self.port.recv() {
-                ReturnDequeMsg(index, deque) => self.workers[index].deque = Some(deque),
-                FinishedMsg => panic!("unexpected finished message!"),
+                SupervisorMsg::ReturnDeque(index, deque) => self.workers[index].deque = Some(deque),
+                SupervisorMsg::Finished => panic!("unexpected finished message!"),
             }
         }
     }
 
     pub fn shutdown(&mut self) {
         for worker in self.workers.iter() {
-            worker.chan.send(ExitMsg)
+            worker.chan.send(WorkerMsg::Exit)
         }
     }
 }

@@ -38,19 +38,19 @@ impl NodeList {
     }
 
     pub fn new_simple_list(window: JSRef<Window>, elements: Vec<JSRef<Node>>) -> Temporary<NodeList> {
-        NodeList::new(window, Simple(elements.iter().map(|element| JS::from_rooted(*element)).collect()))
+        NodeList::new(window, NodeListType::Simple(elements.iter().map(|element| JS::from_rooted(*element)).collect()))
     }
 
     pub fn new_child_list(window: JSRef<Window>, node: JSRef<Node>) -> Temporary<NodeList> {
-        NodeList::new(window, Children(JS::from_rooted(node)))
+        NodeList::new(window, NodeListType::Children(JS::from_rooted(node)))
     }
 }
 
 impl<'a> NodeListMethods for JSRef<'a, NodeList> {
     fn Length(self) -> u32 {
         match self.list_type {
-            Simple(ref elems) => elems.len() as u32,
-            Children(ref node) => {
+            NodeListType::Simple(ref elems) => elems.len() as u32,
+            NodeListType::Children(ref node) => {
                 let node = node.root();
                 node.children().count() as u32
             }
@@ -60,8 +60,8 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
     fn Item(self, index: u32) -> Option<Temporary<Node>> {
         match self.list_type {
             _ if index >= self.Length() => None,
-            Simple(ref elems) => Some(Temporary::new(elems[index as uint].clone())),
-            Children(ref node) => {
+            NodeListType::Simple(ref elems) => Some(Temporary::new(elems[index as uint].clone())),
+            NodeListType::Children(ref node) => {
                 let node = node.root();
                 node.children().nth(index as uint)
                                        .map(|child| Temporary::from_rooted(child))

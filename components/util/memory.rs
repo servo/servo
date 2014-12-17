@@ -28,9 +28,9 @@ impl MemoryProfilerChan {
 
 pub enum MemoryProfilerMsg {
     /// Message used to force print the memory profiling metrics.
-    PrintMsg,
+    Print,
     /// Tells the memory profiler to shut down.
-    ExitMsg,
+    Exit,
 }
 
 pub struct MemoryProfiler {
@@ -47,7 +47,7 @@ impl MemoryProfiler {
                 spawn_named("Memory profiler timer", proc() {
                     loop {
                         sleep(period);
-                        if chan.send_opt(PrintMsg).is_err() {
+                        if chan.send_opt(MemoryProfilerMsg::Print).is_err() {
                             break;
                         }
                     }
@@ -64,7 +64,7 @@ impl MemoryProfiler {
                 spawn_named("Memory profiler", proc() {
                     loop {
                         match port.recv_opt() {
-                            Err(_) | Ok(ExitMsg) => break,
+                            Err(_) | Ok(MemoryProfilerMsg::Exit) => break,
                             _ => {}
                         }
                     }
@@ -96,11 +96,11 @@ impl MemoryProfiler {
 
     fn handle_msg(&self, msg: MemoryProfilerMsg) -> bool {
         match msg {
-            PrintMsg => {
+            MemoryProfilerMsg::Print => {
                 self.handle_print_msg();
                 true
             },
-            ExitMsg => false
+            MemoryProfilerMsg::Exit => false
         }
     }
 
@@ -108,16 +108,16 @@ impl MemoryProfiler {
         match nbytes {
             Some(nbytes) => {
                 let mebi = 1024f64 * 1024f64;
-                println!("{:16s}: {:12.2f}", path, (nbytes as f64) / mebi);
+                println!("{:16}: {:12.2}", path, (nbytes as f64) / mebi);
             }
             None => {
-                println!("{:16s}: {:>12s}", path, "???");
+                println!("{:16}: {:>12}", path, "???");
             }
         }
     }
 
     fn handle_print_msg(&self) {
-        println!("{:16s}: {:12s}", "_category_", "_size (MiB)_");
+        println!("{:16}: {:12}", "_category_", "_size (MiB)_");
 
         // Virtual and physical memory usage, as reported by the OS.
         MemoryProfiler::print_measurement("vsize",          get_vsize());

@@ -37,7 +37,7 @@ use dom::bindings::codegen::PrototypeList;
 //       remove Option<Self> arguments.
 pub trait IDLInterface {
     /// Returns the prototype ID.
-    fn get_prototype_id(_: Option<Self>) -> PrototypeList::id::ID;
+    fn get_prototype_id(_: Option<Self>) -> PrototypeList::id;
     /// Returns the prototype depth, i.e., the number of interfaces this
     /// interface inherits from.
     fn get_prototype_depth(_: Option<Self>) -> uint;
@@ -256,7 +256,7 @@ pub enum StringificationBehavior {
 
 impl default::Default for StringificationBehavior {
     fn default() -> StringificationBehavior {
-        Default
+        StringificationBehavior::Default
     }
 }
 
@@ -283,7 +283,7 @@ pub fn jsid_to_str(cx: *mut JSContext, id: jsid) -> DOMString {
 
 impl FromJSValConvertible<StringificationBehavior> for DOMString {
     fn from_jsval(cx: *mut JSContext, value: JSVal, nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
-        if nullBehavior == Empty && value.is_null() {
+        if nullBehavior == StringificationBehavior::Empty && value.is_null() {
             Ok("".to_string())
         } else {
             let jsstr = unsafe { JS_ValueToString(cx, value) };

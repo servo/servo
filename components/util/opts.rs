@@ -179,7 +179,7 @@ pub fn default_opts() -> Opts {
         dump_flow_tree: false,
         validate_display_list_geometry: false,
         profile_tasks: false,
-        render_api: OpenGL,
+        render_api: RenderApi::OpenGL,
     }
 }
 
@@ -298,8 +298,8 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     };
 
     let render_api = match opt_match.opt_str("r").unwrap_or("gl".to_string()).as_slice() {
-        "mesa" => Mesa,
-        "gl" => OpenGL,
+        "mesa" => RenderApi::Mesa,
+        "gl" => RenderApi::OpenGL,
         _ => {
             args_fail("Unknown render api specified");
             return false;

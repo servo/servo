@@ -4,17 +4,18 @@
 
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::error::{ErrorResult, Fallible, Syntax, Network, FailureUnknown};
+use dom::bindings::error::{ErrorResult, Fallible};
+use dom::bindings::error::Error::{Syntax, Network, FailureUnknown};
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::console::Console;
-use dom::eventtarget::{EventTarget, WorkerGlobalScopeTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use dom::window::{base64_atob, base64_btoa};
-use script_task::{ScriptChan, FromWorker};
-use timers::{Interval, NonInterval, TimerId, TimerManager};
+use script_task::{ScriptChan, TimerSource};
+use timers::{IsInterval, TimerId, TimerManager};
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 use servo_util::str::DOMString;
@@ -29,7 +30,7 @@ use url::{Url, UrlParser};
 
 #[deriving(PartialEq)]
 #[jstraceable]
-pub enum WorkerGlobalScopeId {
+pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,
 }
 
@@ -47,13 +48,13 @@ pub struct WorkerGlobalScope {
 }
 
 impl WorkerGlobalScope {
-    pub fn new_inherited(type_id: WorkerGlobalScopeId,
+    pub fn new_inherited(type_id: WorkerGlobalScopeTypeId,
                          worker_url: Url,
                          cx: Rc<Cx>,
                          resource_task: ResourceTask,
                          script_chan: ScriptChan) -> WorkerGlobalScope {
         WorkerGlobalScope {
-            eventtarget: EventTarget::new_inherited(WorkerGlobalScopeTypeId(type_id)),
+            eventtarget: EventTarget::new_inherited(EventTargetTypeId::WorkerGlobalScope(type_id)),
             worker_url: worker_url,
             js_context: cx,
             resource_task: resource_task,
@@ -150,8 +151,8 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            NonInterval,
-                                            FromWorker,
+                                            IsInterval::NonInterval,
+                                            TimerSource::FromWorker,
                                             self.script_chan.clone())
     }
 
@@ -163,8 +164,8 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            Interval,
-                                            FromWorker,
+                                            IsInterval::Interval,
+                                            TimerSource::FromWorker,
                                             self.script_chan.clone())
     }
 

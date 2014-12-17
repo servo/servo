@@ -7,7 +7,7 @@ use interfaces::cef_app_t;
 use types::{cef_main_args_t, cef_settings_t};
 use window;
 
-use compositing::windowing::{IdleWindowEvent, WindowEvent};
+use compositing::windowing::WindowEvent;
 use geom::size::TypedSize2D;
 use glfw_app;
 use libc::{c_char, c_int, c_void};
@@ -141,10 +141,10 @@ pub extern "C" fn cef_run_message_loop() {
     let mut the_globals = globals.get();
     let the_globals = the_globals.as_mut().unwrap();
     match **the_globals {
-        OnScreenGlobals(ref window, ref browser) => {
+        ServoCefGlobals::OnScreenGlobals(ref window, ref browser) => {
             while browser.borrow_mut().handle_event(window.borrow_mut().wait_events()) {}
         }
-        OffScreenGlobals(ref window, ref browser) => {
+        ServoCefGlobals::OffScreenGlobals(ref window, ref browser) => {
             while browser.borrow_mut().handle_event(window.borrow_mut().wait_events()) {}
         }
     }
@@ -152,7 +152,7 @@ pub extern "C" fn cef_run_message_loop() {
 
 #[no_mangle]
 pub extern "C" fn cef_do_message_loop_work() {
-    send_window_event(IdleWindowEvent)
+    send_window_event(WindowEvent::Idle)
 }
 
 #[no_mangle]
@@ -177,7 +177,7 @@ pub fn send_window_event(event: WindowEvent) {
     };
     loop {
         match **the_globals {
-            OnScreenGlobals(_, ref browser) => {
+            ServoCefGlobals::OnScreenGlobals(_, ref browser) => {
                 match browser.try_borrow_mut() {
                     None => {
                         // We're trying to send an event while processing another one. This will
@@ -198,7 +198,7 @@ pub fn send_window_event(event: WindowEvent) {
                     }
                 }
             }
-            OffScreenGlobals(_, ref browser) => {
+            ServoCefGlobals::OffScreenGlobals(_, ref browser) => {
                 match browser.try_borrow_mut() {
                     None => {
                         // We're trying to send an event while processing another one. This will
@@ -233,8 +233,8 @@ macro_rules! browser_method_delegate(
                     Some(the_globals) => the_globals,
                 };
                 match **the_globals {
-                    OnScreenGlobals(_, ref browser) => browser.borrow_mut().$method(),
-                    OffScreenGlobals(_, ref browser) => browser.borrow_mut().$method(),
+                    ServoCefGlobals::OnScreenGlobals(_, ref browser) => browser.borrow_mut().$method(),
+                    ServoCefGlobals::OffScreenGlobals(_, ref browser) => browser.borrow_mut().$method(),
                 }
             }
         )*

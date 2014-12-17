@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use interfaces::{CefBrowser, CefRenderHandler};
-use types::PET_VIEW;
+use types::cef_paint_element_type_t::PET_VIEW;
 
 use std::ptr;
 

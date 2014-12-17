@@ -8,14 +8,14 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDeri
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLStyleElementTypeId;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{AddStylesheetMsg, LayoutChan};
 use servo_util::str::DOMString;
-use style::{AuthorOrigin, Stylesheet};
+use style::{StylesheetOrigin, Stylesheet};
 
 #[dom_struct]
 pub struct HTMLStyleElement {
@@ -24,14 +24,14 @@ pub struct HTMLStyleElement {
 
 impl HTMLStyleElementDerived for EventTarget {
     fn is_htmlstyleelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLStyleElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLStyleElement))
     }
 }
 
 impl HTMLStyleElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLStyleElement {
         HTMLStyleElement {
-            htmlelement: HTMLElement::new_inherited(HTMLStyleElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLStyleElement, localName, prefix, document)
         }
     }
 
@@ -55,7 +55,8 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         let url = win.page().get_url();
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
-        let sheet = Stylesheet::from_str(data.as_slice(), url, AuthorOrigin);
+        let sheet = Stylesheet::from_str(data.as_slice(), url,
+                                         StylesheetOrigin::Author);
         let LayoutChan(ref layout_chan) = win.page().layout_chan;
         layout_chan.send(AddStylesheetMsg(sheet));
     }

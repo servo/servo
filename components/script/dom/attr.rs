@@ -30,32 +30,32 @@ pub enum AttrSettingType {
 #[deriving(PartialEq, Clone)]
 #[jstraceable]
 pub enum AttrValue {
-    StringAttrValue(DOMString),
-    TokenListAttrValue(DOMString, Vec<Atom>),
-    UIntAttrValue(DOMString, u32),
-    AtomAttrValue(Atom),
+    String(DOMString),
+    TokenList(DOMString, Vec<Atom>),
+    UInt(DOMString, u32),
+    Atom(Atom),
 }
 
 impl AttrValue {
     pub fn from_tokenlist(tokens: DOMString) -> AttrValue {
         let atoms = split_html_space_chars(tokens.as_slice())
             .map(|token| Atom::from_slice(token)).collect();
-        TokenListAttrValue(tokens, atoms)
+        AttrValue::TokenList(tokens, atoms)
     }
 
     pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
         let result: u32 = from_str(string.as_slice()).unwrap_or(default);
-        UIntAttrValue(string, result)
+        AttrValue::UInt(string, result)
     }
 
     pub fn from_atomic(string: DOMString) -> AttrValue {
         let value = Atom::from_slice(string.as_slice());
-        AtomAttrValue(value)
+        AttrValue::Atom(value)
     }
 
     pub fn tokens<'a>(&'a self) -> Option<&'a [Atom]> {
         match *self {
-            TokenListAttrValue(_, ref tokens) => Some(tokens.as_slice()),
+            AttrValue::TokenList(_, ref tokens) => Some(tokens.as_slice()),
             _ => None
         }
     }
@@ -64,10 +64,10 @@ impl AttrValue {
 impl Str for AttrValue {
     fn as_slice<'a>(&'a self) -> &'a str {
         match *self {
-            StringAttrValue(ref value) |
-            TokenListAttrValue(ref value, _) |
-            UIntAttrValue(ref value, _) => value.as_slice(),
-            AtomAttrValue(ref value) => value.as_slice(),
+            AttrValue::String(ref value) |
+            AttrValue::TokenList(ref value, _) |
+            AttrValue::UInt(ref value, _) => value.as_slice(),
+            AttrValue::Atom(ref value) => value.as_slice(),
         }
     }
 }
@@ -141,12 +141,12 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     fn SetValue(self, value: DOMString) {
         match self.owner {
             None => {
-                *self.value.borrow_mut() = StringAttrValue(value)
+                *self.value.borrow_mut() = AttrValue::String(value)
             }
             Some(o) => {
                 let owner = o.root();
                 let value = owner.parse_attribute(&self.namespace, self.local_name(), value);
-                self.set_value(ReplacedAttr, value, *owner);
+                self.set_value(AttrSettingType::ReplacedAttr, value, *owner);
             }
         }
     }
@@ -207,7 +207,8 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
         let namespace_is_null = self.namespace == ns!("");
 
         match set_type {
-            ReplacedAttr if namespace_is_null => vtable_for(&node).before_remove_attr(self),
+            AttrSettingType::ReplacedAttr if namespace_is_null =>
+                vtable_for(&node).before_remove_attr(self),
             _ => ()
         }
 
@@ -255,7 +256,7 @@ impl AttrHelpersForLayout for Attr {
     unsafe fn value_atom_forever(&self) -> Option<Atom> {
         let value = self.value.borrow_for_layout();
         match *value {
-            AtomAttrValue(ref val) => Some(val.clone()),
+            AttrValue::Atom(ref val) => Some(val.clone()),
             _ => None,
         }
     }
@@ -265,7 +266,7 @@ impl AttrHelpersForLayout for Attr {
         // This transmute is used to cheat the lifetime restriction.
         let value = mem::transmute::<&AttrValue, &AttrValue>(self.value.borrow_for_layout());
         match *value {
-            TokenListAttrValue(_, ref tokens) => Some(tokens.as_slice()),
+            AttrValue::TokenList(_, ref tokens) => Some(tokens.as_slice()),
             _ => None,
         }
     }
