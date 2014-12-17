@@ -27,11 +27,9 @@ use std::rc::Rc;
 use time::{mod, Timespec};
 use util::geometry::ScreenPx;
 use util::opts::{RenderApi, Mesa, OpenGL};
+use gleam::gl;
 use glutin;
 use NestedEventLoopListener;
-
-#[cfg(not(target_os="android"))]
-use gleam::gl;
 
 #[cfg(target_os="linux")]
 use std::ptr;
@@ -145,6 +143,11 @@ impl Window {
 
             last_title_set_time: Cell::new(Timespec::new(0, 0)),
         };
+
+        gl::clear_color(0.6, 0.6, 0.6, 1.0);
+        gl::clear(gl::COLOR_BUFFER_BIT);
+        gl::finish();
+        window.present();
 
         Rc::new(window)
     }
@@ -415,11 +418,6 @@ impl Window {
     #[inline]
     fn ctrl_pressed(&self) -> bool {
         self.key_modifiers.get().intersects(LEFT_CONTROL | RIGHT_CONTROL)
-    }
-
-    #[inline]
-    fn shift_pressed(&self) -> bool {
-        self.key_modifiers.get().intersects(LEFT_SHIFT | RIGHT_SHIFT)
     }
 
     fn toggle_modifier(&self, modifier: KeyModifiers) {
