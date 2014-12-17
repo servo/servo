@@ -1000,6 +1000,15 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             _ => panic!("no layout data for this node"),
         }
     }
+
+    /// Returns true if this node contributes content. This is used in the implementation of
+    /// `empty_cells` per CSS 2.1 § 17.6.1.1.
+    pub fn is_content(&self) -> bool {
+        match self.type_id() {
+            Some(NodeTypeId::Element(..)) | Some(NodeTypeId::Text(..)) => true,
+            _ => false
+        }
+    }
 }
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {

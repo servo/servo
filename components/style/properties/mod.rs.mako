@@ -1326,6 +1326,10 @@ pub mod longhands {
 
     ${single_keyword("table-layout", "auto fixed")}
 
+    ${new_style_struct("InheritedTable", is_inherited=True)}
+
+    ${single_keyword("empty-cells", "show hide")}
+
     // CSS 2.1, Section 18 - User interface
 
 

@@ -59,7 +59,7 @@ use std::iter::Zip;
 use std::raw;
 use std::sync::atomic::{AtomicUint, SeqCst};
 use std::slice::MutItems;
-use style::computed_values::{clear, float, position, text_align};
+use style::computed_values::{clear, empty_cells, float, position, text_align};
 use style::ComputedValues;
 use sync::Arc;
 
@@ -1067,12 +1067,18 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
     fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> FlowRef {
         let flow = match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {
-                let fragment = Fragment::new_anonymous_table_fragment(node, SpecificFragmentInfo::TableRow);
+                let fragment =
+                    Fragment::new_anonymous_table_fragment(node,
+                                                           SpecificFragmentInfo::TableRow);
                 box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow>
             },
             FlowClass::TableRow => {
-                let fragment = Fragment::new_anonymous_table_fragment(node, SpecificFragmentInfo::TableCell);
-                box TableCellFlow::from_node_and_fragment(node, fragment) as Box<Flow>
+                let fragment =
+                    Fragment::new_anonymous_table_fragment(node,
+                                                           SpecificFragmentInfo::TableCell);
+                let hide = node.style().get_inheritedtable().empty_cells == empty_cells::hide;
+                box TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide) as
+                    Box<Flow>
             },
             _ => {
                 panic!("no need to generate a missing child")
