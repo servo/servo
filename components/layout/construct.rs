@@ -52,7 +52,8 @@ use std::collections::DList;
 use std::mem;
 use std::sync::atomic::Relaxed;
 use style::ComputedValues;
-use style::computed_values::{display, empty_cells, float, list_style_position, position};
+use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
+use style::computed_values::{position};
 use sync::Arc;
 use url::Url;
 
@@ -778,19 +779,26 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    /// TableCaptionFlow is populated underneath TableWrapperFlow
-    fn place_table_caption_under_table_wrapper(&mut self,
-                                               table_wrapper_flow: &mut FlowRef,
-                                               node: &ThreadSafeLayoutNode) {
+    /// Places any table captions found under the given table wrapper, if the value of their
+    /// `caption-side` property is equal to the given `side`.
+    fn place_table_caption_under_table_wrapper_on_side(&mut self,
+                                                       table_wrapper_flow: &mut FlowRef,
+                                                       node: &ThreadSafeLayoutNode,
+                                                       side: caption_side::T) {
+        // Only flows that are table captions are matched here.
         for kid in node.children() {
             match kid.swap_out_construction_result() {
-                ConstructionResult::None | ConstructionResult::ConstructionItem(_) => {}
-                ConstructionResult::Flow(kid_flow, _) => {
-                    // Only kid flows with table-caption are matched here.
-                    if kid_flow.deref().is_table_caption() {
+                ConstructionResult::Flow(mut kid_flow, _) => {
+                    if kid_flow.deref().is_table_caption() &&
+                        kid_flow.as_block()
+                                .fragment
+                                .style()
+                                .get_inheritedtable()
+                                .caption_side == side {
                         table_wrapper_flow.add_new_child(kid_flow);
                     }
                 }
+                ConstructionResult::None | ConstructionResult::ConstructionItem(_) => {}
             }
         }
     }
@@ -842,17 +850,19 @@ impl<'a> FlowConstructor<'a> {
         let table_flow = box TableFlow::from_node_and_fragment(node, table_fragment);
         let table_flow = FlowRef::new(table_flow as Box<Flow>);
 
-        // We first populate the TableFlow with other flows than TableCaptionFlow.
-        // We then populate the TableWrapperFlow with TableCaptionFlow, and attach
-        // the TableFlow to the TableWrapperFlow
+        // First populate the table flow with its children.
         let construction_result = self.build_flow_for_block(table_flow, node);
-        self.place_table_caption_under_table_wrapper(&mut wrapper_flow, node);
 
         let mut abs_descendants = Descendants::new();
         let mut fixed_descendants = Descendants::new();
 
-        // NOTE: The order of captions and table are not the same order as in the DOM tree.
-        // All caption blocks are placed before the table flow
+        // The order of the caption and the table are not necessarily the same order as in the DOM
+        // tree. All caption blocks are placed before or after the table flow, depending on the
+        // value of `caption-side`.
+        self.place_table_caption_under_table_wrapper_on_side(&mut wrapper_flow,
+                                                             node,
+                                                             caption_side::top);
+
         match construction_result {
             ConstructionResult::Flow(table_flow, table_abs_descendants) => {
                 wrapper_flow.add_new_child(table_flow);
@@ -860,6 +870,11 @@ impl<'a> FlowConstructor<'a> {
             }
             _ => {}
         }
+
+        // If the value of `caption-side` is `bottom`, place it now.
+        self.place_table_caption_under_table_wrapper_on_side(&mut wrapper_flow,
+                                                             node,
+                                                             caption_side::bottom);
 
         // The flow is done.
         wrapper_flow.finish();
