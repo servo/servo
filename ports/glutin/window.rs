@@ -27,11 +27,9 @@ use std::rc::Rc;
 use time::{mod, Timespec};
 use util::geometry::ScreenPx;
 use util::opts::{RenderApi, Mesa, OpenGL};
+use gleam::gl;
 use glutin;
 use NestedEventLoopListener;
-
-#[cfg(not(target_os="android"))]
-use gleam::gl;
 
 #[cfg(target_os="linux")]
 use std::ptr;
