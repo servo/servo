@@ -213,3 +213,5 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == table_colspan_fixed_a.html table_colspan_fixed_ref.html
 == legacy_td_bgcolor_attribute_a.html legacy_td_bgcolor_attribute_ref.html
 == legacy_table_border_attribute_a.html legacy_table_border_attribute_ref.html
+== inset.html inset_ref.html
+== outset.html outset_ref.html
