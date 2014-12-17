@@ -14,25 +14,25 @@ use style::computed_values::float;
 /// The kind of float: left or right.
 #[deriving(Clone, Encodable, Show)]
 pub enum FloatKind {
-    FloatLeft,
-    FloatRight
+    Left,
+    Right
 }
 
 impl FloatKind {
     pub fn from_property(property: float::T) -> FloatKind {
         match property {
             float::none => panic!("can't create a float type from an unfloated property"),
-            float::left => FloatLeft,
-            float::right => FloatRight,
+            float::left => FloatKind::Left,
+            float::right => FloatKind::Right,
         }
     }
 }
 
 /// The kind of clearance: left, right, or both.
 pub enum ClearType {
-    ClearLeft,
-    ClearRight,
-    ClearBoth,
+    Left,
+    Right,
+    Both,
 }
 
 /// Information about a single float.
@@ -184,7 +184,7 @@ impl Floats {
 
             debug!("float_pos: {}, float_size: {}", float_pos, float_size);
             match float.kind {
-                FloatLeft if float_pos.i + float_size.inline > max_inline_start &&
+                FloatKind::Left if float_pos.i + float_size.inline > max_inline_start &&
                         float_pos.b + float_size.block > block_start &&
                         float_pos.b < block_start + block_size => {
                     max_inline_start = float_pos.i + float_size.inline;
@@ -196,7 +196,7 @@ impl Floats {
                             max_inline_start is {}",
                            max_inline_start);
                 }
-                FloatRight if float_pos.i < min_inline_end &&
+                FloatKind::Right if float_pos.i < min_inline_end &&
                        float_pos.b + float_size.block > block_start &&
                        float_pos.b < block_start + block_size => {
                     min_inline_end = float_pos.i;
@@ -207,7 +207,7 @@ impl Floats {
                             is {}",
                             min_inline_end);
                 }
-                FloatLeft | FloatRight => {}
+                FloatKind::Left | FloatKind::Right => {}
             }
         }
 
@@ -307,7 +307,7 @@ impl Floats {
         // If no floats, use this fast path.
         if !self.list.is_present() {
             match info.kind {
-                FloatLeft => {
+                FloatKind::Left => {
                     return LogicalRect::new(
                         self.writing_mode,
                         Au(0),
@@ -315,7 +315,7 @@ impl Floats {
                         info.max_inline_size,
                         Au(i32::MAX))
                 }
-                FloatRight => {
+                FloatKind::Right => {
                     return LogicalRect::new(
                         self.writing_mode,
                         info.max_inline_size - info.size.inline,
@@ -338,7 +338,7 @@ impl Floats {
                 // TODO(eatkinson): integrate with overflow
                 None => {
                     return match info.kind {
-                        FloatLeft => {
+                        FloatKind::Left => {
                             LogicalRect::new(
                                 self.writing_mode,
                                 Au(0),
@@ -346,7 +346,7 @@ impl Floats {
                                 info.max_inline_size,
                                 Au(i32::MAX))
                         }
-                        FloatRight => {
+                        FloatKind::Right => {
                             LogicalRect::new(
                                 self.writing_mode,
                                 info.max_inline_size - info.size.inline,
@@ -367,7 +367,7 @@ impl Floats {
                                                                 rect.size.inline);
                         let block_size = block_size.unwrap_or(Au(i32::MAX));
                         return match info.kind {
-                            FloatLeft => {
+                            FloatKind::Left => {
                                 LogicalRect::new(
                                     self.writing_mode,
                                     rect.start.i,
@@ -375,7 +375,7 @@ impl Floats {
                                     rect.size.inline,
                                     block_size)
                             }
-                            FloatRight => {
+                            FloatKind::Right => {
                                 LogicalRect::new(
                                     self.writing_mode,
                                     rect.start.i + rect.size.inline - info.size.inline,
@@ -399,9 +399,9 @@ impl Floats {
         let mut clearance = Au(0);
         for float in list.floats.iter() {
             match (clear, float.kind) {
-                (ClearLeft, FloatLeft) |
-                (ClearRight, FloatRight) |
-                (ClearBoth, _) => {
+                (ClearType::Left, FloatKind::Left) |
+                (ClearType::Right, FloatKind::Right) |
+                (ClearType::Both, _) => {
                     let b = self.offset.block + float.bounds.start.b + float.bounds.size.block;
                     clearance = max(clearance, b);
                 }

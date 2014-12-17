@@ -14,7 +14,7 @@ use types::cef_rect_t;
 use wrappers::Utf16Encoder;
 
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
-use compositing::windowing::{IdleWindowEvent, WindowEvent, WindowMethods};
+use compositing::windowing::{WindowEvent, WindowMethods};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use gleam::gl;
@@ -85,7 +85,7 @@ impl Window {
 
     /// Currently unimplemented.
     pub fn wait_events(&self) -> WindowEvent {
-        IdleWindowEvent
+        WindowEvent::Idle
     }
 }
 

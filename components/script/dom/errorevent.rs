@@ -13,7 +13,7 @@ use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventTypeId, ErrorEventTypeId, EventBubbles, Bubbles, DoesNotBubble, EventCancelable, Cancelable, NotCancelable};
+use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use servo_util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
@@ -32,7 +32,7 @@ pub struct ErrorEvent {
 
 impl ErrorEventDerived for Event {
     fn is_errorevent(&self) -> bool {
-        *self.type_id() == ErrorEventTypeId
+        *self.type_id() == EventTypeId::ErrorEvent
     }
 }
 
@@ -49,7 +49,7 @@ impl ErrorEvent {
     }
 
     pub fn new_uninitialized(global: &GlobalRef) -> Temporary<ErrorEvent> {
-        reflect_dom_object(box ErrorEvent::new_inherited(ErrorEventTypeId),
+        reflect_dom_object(box ErrorEvent::new_inherited(EventTypeId::ErrorEvent),
                            *global,
                            ErrorEventBinding::Wrap)
     }
@@ -65,7 +65,8 @@ impl ErrorEvent {
                error: JSVal) -> Temporary<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global).root();
         let event: JSRef<Event> = EventCast::from_ref(*ev);
-        event.InitEvent(type_, bubbles == Bubbles, cancelable == Cancelable);
+        event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
+                        cancelable == EventCancelable::Cancelable);
         *ev.message.borrow_mut() = message;
         *ev.filename.borrow_mut() = filename;
         ev.lineno.set(lineno);
@@ -91,9 +92,9 @@ impl ErrorEvent {
 
         let col_num = init.colno.unwrap_or(0);
 
-        let bubbles = if init.parent.bubbles { Bubbles } else { DoesNotBubble };
+        let bubbles = if init.parent.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
 
-        let cancelable = if init.parent.cancelable { Cancelable } else { NotCancelable };
+        let cancelable = if init.parent.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
 
         let event = ErrorEvent::new(global, type_,
                                 bubbles, cancelable,

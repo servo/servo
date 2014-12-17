@@ -425,7 +425,7 @@ def typeNeedsRooting(type, descriptorProvider):
 
 def union_native_type(t):
     name = t.unroll().name
-    return 'UnionTypes::%s::%s' % (name, name)
+    return 'UnionTypes::%s' % name
 
 
 def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
@@ -741,7 +741,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
         if defaultValue is not None:
             assert(defaultValue.type.tag() == IDLType.Tags.domstring)
-            default = "%sValues::%s" % (enum, getEnumValueName(defaultValue.value))
+            default = "%s::%s" % (enum, getEnumValueName(defaultValue.value))
         else:
             default = None
 
@@ -1419,11 +1419,11 @@ class CGNamespace(CGWrapper):
 
 def DOMClass(descriptor):
         protoList = ['PrototypeList::id::' + proto for proto in descriptor.prototypeChain]
-        # Pad out the list to the right length with IDCount so we
-        # guarantee that all the lists are the same length.  IDCount
+        # Pad out the list to the right length with id::Count so we
+        # guarantee that all the lists are the same length.  id::Count
         # is never the ID of any prototype, so it's safe to use as
         # padding.
-        protoList.extend(['PrototypeList::id::IDCount'] * (descriptor.config.maxProtoChainLength - len(protoList)))
+        protoList.extend(['PrototypeList::id::Count'] * (descriptor.config.maxProtoChainLength - len(protoList)))
         prototypeChainString = ', '.join(protoList)
         return """DOMClass {
   interface_chain: [ %s ],
@@ -1673,7 +1673,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::conversions::FromJSValConvertible',
         'dom::bindings::conversions::ToJSValConvertible',
-        'dom::bindings::conversions::Default',
+        'dom::bindings::conversions::StringificationBehavior::Default',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::JS',
         'dom::types::*',
@@ -1693,14 +1693,12 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         name = str(t)
         if not name in unionStructs:
             provider = descriptor or config.getDescriptorProvider()
-            unionStructs[name] = CGNamespace(name,
-                CGImports(CGList([
-                    CGUnionStruct(t, provider),
-                    CGUnionConversionStruct(t, provider)
-                ]), [], imports),
-                public=True)
+            unionStructs[name] = CGList([
+                CGUnionStruct(t, provider),
+                CGUnionConversionStruct(t, provider)
+            ])
 
-    return CGList(SortedDictValues(unionStructs), "\n\n")
+    return CGImports(CGList(SortedDictValues(unionStructs), "\n\n"), [], imports)
 
 
 class Argument():
@@ -1889,7 +1887,7 @@ class CGIDLInterface(CGThing):
         }
         return string.Template("""
 impl IDLInterface for ${type} {
-    fn get_prototype_id(_: Option<${type}>) -> PrototypeList::id::ID {
+    fn get_prototype_id(_: Option<${type}>) -> PrototypeList::id {
         PrototypeList::id::${type}
     }
     fn get_prototype_depth(_: Option<${type}>) -> uint {
@@ -2753,35 +2751,36 @@ def getEnumValueName(value):
 class CGEnum(CGThing):
     def __init__(self, enum):
         CGThing.__init__(self)
+
+        decl = """
+#[repr(uint)]
+#[deriving(PartialEq)]
+#[jstraceable]
+pub enum %s {
+  %s
+}
+""" % (enum.identifier.name, ",\n  ".join(map(getEnumValueName, enum.values())))
+
         inner = """
 use dom::bindings::conversions::ToJSValConvertible;
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
 
-#[repr(uint)]
-#[deriving(PartialEq)]
-#[jstraceable]
-pub enum valuelist {
-  %s
-}
-
 pub const strings: &'static [&'static str] = &[
   %s,
 ];
 
-impl ToJSValConvertible for valuelist {
+impl ToJSValConvertible for super::%s {
   fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
     strings[*self as uint].to_string().to_jsval(cx)
   }
 }
-""" % (",\n  ".join(map(getEnumValueName, enum.values())),
-       ",\n  ".join(['"%s"' % val for val in enum.values()]))
+""" % (",\n  ".join(['"%s"' % val for val in enum.values()]), enum.identifier.name)
 
         self.cgRoot = CGList([
+            CGGeneric(decl),
             CGNamespace.build([enum.identifier.name + "Values"],
                               CGIndenter(CGGeneric(inner)), public=True),
-            CGGeneric("pub type %s = self::%sValues::valuelist;\n" %
-                                      (enum.identifier.name, enum.identifier.name)),
         ])
 
     def define(self):
@@ -2876,7 +2875,7 @@ class CGUnionStruct(CGThing):
             "    e%s(%s)," % (v["name"], v["typeName"]) for v in templateVars
         ]
         enumConversions = [
-            "            e%s(ref inner) => inner.to_jsval(cx)," % v["name"] for v in templateVars
+            "            %s::e%s(ref inner) => inner.to_jsval(cx)," % (self.type, v["name"]) for v in templateVars
         ]
         # XXXManishearth The following should be #[must_root],
         # however we currently allow it till #2661 is fixed
@@ -2922,9 +2921,9 @@ class CGUnionConversionStruct(CGThing):
                 return (
                     "match %s::TryConvertTo%s(cx, value) {\n"
                     "    Err(_) => return Err(()),\n"
-                    "    Ok(Some(value)) => return Ok(e%s(value)),\n"
+                    "    Ok(Some(value)) => return Ok(%s::e%s(value)),\n"
                     "    Ok(None) => (),\n"
-                    "}\n") % (self.type, name, name)
+                    "}\n") % (self.type, name, self.type, name)
 
             typeNames = [get_name(memberType) for memberType in interfaceMemberTypes]
             interfaceObject = CGList(CGGeneric(get_match(typeName)) for typeName in typeNames)
@@ -2990,9 +2989,9 @@ class CGUnionConversionStruct(CGThing):
             match = (
                     "match %s::TryConvertTo%s(cx, value) {\n"
                     "    Err(_) => return Err(()),\n"
-                    "    Ok(Some(value)) => return Ok(e%s(value)),\n"
+                    "    Ok(Some(value)) => return Ok(%s::e%s(value)),\n"
                     "    Ok(None) => (),\n"
-                    "}\n") % (self.type, name, name)
+                    "}\n") % (self.type, name, self.type, name)
             conversions.append(CGGeneric(match))
             names.append(name)
 
@@ -4182,8 +4181,8 @@ class CGDescriptor(CGThing):
     def define(self):
         return self.cgRoot.define()
 
-class CGNamespacedEnum(CGThing):
-    def __init__(self, namespace, enumName, names, values, comment="", deriving=""):
+class CGNonNamespacedEnum(CGThing):
+    def __init__(self, enumName, names, values, comment="", deriving=""):
 
         if not values:
             values = []
@@ -4198,7 +4197,7 @@ class CGNamespacedEnum(CGThing):
             entries.append(entry)
 
         # Append a Count.
-        entries.append(enumName + 'Count = ' + str(len(entries)))
+        entries.append('Count = ' + str(len(entries)))
 
         # Indent.
         entries = ['  ' + e for e in entries]
@@ -4211,9 +4210,6 @@ class CGNamespacedEnum(CGThing):
 
         # Add some whitespace padding.
         curr = CGWrapper(curr, pre='\n',post='\n')
-
-        # Add the namespace.
-        curr = CGNamespace(namespace, curr, public=True)
 
         # Add the typedef
         #typedef = '\ntypedef %s::%s %s;\n\n' % (namespace, enumName, enumName)
@@ -4504,23 +4500,25 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
             'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
-            'dom::bindings::utils::{HasPropertyOnPrototype, IntVal, UintVal}',
+            'dom::bindings::utils::HasPropertyOnPrototype',
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::{squirrel_away_unique}',
             'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
             'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
+            'dom::bindings::utils::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::{WrapCallThisObject}',
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
             'dom::bindings::conversions::IDLInterface',
-            'dom::bindings::conversions::{Default, Empty}',
             'dom::bindings::conversions::jsid_to_str',
+            'dom::bindings::conversions::StringificationBehavior::{Default, Empty}',
             'dom::bindings::codegen::{PrototypeList, RegisterBindings, UnionTypes}',
             'dom::bindings::codegen::Bindings::*',
-            'dom::bindings::error::{FailureUnknown, Fallible, Error, ErrorResult}',
+            'dom::bindings::error::{Fallible, Error, ErrorResult}',
+            'dom::bindings::error::Error::FailureUnknown',
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
@@ -5137,8 +5135,8 @@ class GlobalGenRoots():
         return CGList([
             CGGeneric(AUTOGENERATED_WARNING_COMMENT),
             CGGeneric("pub const MAX_PROTO_CHAIN_LENGTH: uint = %d;\n\n" % config.maxProtoChainLength),
-            CGNamespacedEnum('id', 'ID', protos, [0], deriving="PartialEq"),
-            CGNamespacedEnum('proxies', 'Proxy', proxies, [0], deriving="PartialEq"),
+            CGNonNamespacedEnum('id', protos, [0], deriving="PartialEq"),
+            CGNonNamespacedEnum('proxies', proxies, [0], deriving="PartialEq"),
         ])
 
 

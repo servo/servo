@@ -47,7 +47,6 @@ git = "https://github.com/servo/rust-geom"
 
 [dependencies.html5ever]
 git = "https://github.com/servo/html5ever"
-branch = "servo"
 
 [dependencies.encoding]
 git = "https://github.com/lifthrasiir/rust-encoding"
@@ -70,3 +69,6 @@ git = "https://github.com/servo/string-cache"
 
 [dependencies.string_cache_macros]
 git = "https://github.com/servo/string-cache"
+
+[dependencies.time]
+git = "https://github.com/rust-lang/time"

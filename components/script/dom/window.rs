@@ -8,14 +8,15 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::error::{Fallible, InvalidCharacter};
+use dom::bindings::error::Fallible;
+use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, WindowTypeId, EventTargetHelpers};
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
@@ -23,10 +24,10 @@ use dom::screen::Screen;
 use dom::storage::Storage;
 use layout_interface::{NoQuery, ReflowForDisplay, ReflowGoal, ReflowQueryType};
 use page::Page;
-use script_task::{ExitWindowMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
-use script_task::FromWindow;
+use script_task::{TimerSource, ScriptChan};
+use script_task::ScriptMsg::{ExitWindowMsg, TriggerLoadMsg, TriggerFragmentMsg};
 use script_traits::ScriptControlChan;
-use timers::{Interval, NonInterval, TimerId, TimerManager};
+use timers::{IsInterval, TimerId, TimerManager};
 
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::LoadData;
@@ -218,8 +219,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            NonInterval,
-                                            FromWindow(self.page.id.clone()),
+                                            IsInterval::NonInterval,
+                                            TimerSource::FromWindow(self.page.id.clone()),
                                             self.script_chan.clone())
     }
 
@@ -231,8 +232,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            Interval,
-                                            FromWindow(self.page.id.clone()),
+                                            IsInterval::Interval,
+                                            TimerSource::FromWindow(self.page.id.clone()),
                                             self.script_chan.clone())
     }
 
@@ -370,7 +371,7 @@ impl Window {
                image_cache_task: ImageCacheTask)
                -> Temporary<Window> {
         let win = box Window {
-            eventtarget: EventTarget::new_inherited(WindowTypeId),
+            eventtarget: EventTarget::new_inherited(EventTargetTypeId::Window),
             script_chan: script_chan,
             control_chan: control_chan,
             console: Default::default(),

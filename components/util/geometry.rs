@@ -10,7 +10,7 @@ use geom::size::Size2D;
 use serialize::{Encodable, Encoder};
 use std::default::Default;
 use std::i32;
-use std::num::{NumCast, Zero};
+use std::num::{Float, NumCast, Zero};
 use std::fmt;
 
 // Units for use with geom::length and geom::scale_factor.

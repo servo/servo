@@ -7,20 +7,20 @@ use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::Dedicat
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
-use dom::bindings::error::{ErrorResult, DataClone};
+use dom::bindings::error::ErrorResult;
+use dom::bindings::error::Error::DataClone;
 use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::eventtarget::{EventTarget, EventTargetHelpers};
-use dom::eventtarget::WorkerGlobalScopeTypeId;
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use dom::worker::{Worker, TrustedWorkerAddress};
-use dom::workerglobalscope::DedicatedGlobalScope;
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
+use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use dom::xmlhttprequest::XMLHttpRequest;
-use script_task::{ScriptTask, ScriptChan};
-use script_task::{ScriptMsg, FromWorker,  DOMMessage, FireTimerMsg, XHRProgressMsg, XHRReleaseMsg, WorkerRelease};
-use script_task::WorkerPostMessage;
+use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
+use script_task::ScriptMsg::{DOMMessage, FireTimerMsg, XHRProgressMsg};
+use script_task::ScriptMsg::{XHRReleaseMsg, WorkerRelease, WorkerPostMessage};
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
@@ -57,8 +57,8 @@ impl DedicatedWorkerGlobalScope {
                          -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
-                DedicatedGlobalScope, worker_url, cx, resource_task,
-                own_sender),
+                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url, cx,
+                resource_task, own_sender),
             receiver: receiver,
             parent_sender: parent_sender,
             worker: worker,
@@ -145,7 +145,7 @@ impl DedicatedWorkerGlobalScope {
                     Ok(WorkerRelease(addr)) => {
                         Worker::handle_release(addr)
                     },
-                    Ok(FireTimerMsg(FromWorker, timer_id)) => {
+                    Ok(FireTimerMsg(TimerSource::FromWorker, timer_id)) => {
                         scope.handle_fire_timer(timer_id);
                     }
                     Ok(_) => panic!("Unexpected message"),
@@ -197,7 +197,7 @@ impl Reflectable for DedicatedWorkerGlobalScope {
 impl DedicatedWorkerGlobalScopeDerived for EventTarget {
     fn is_dedicatedworkerglobalscope(&self) -> bool {
         match *self.type_id() {
-            WorkerGlobalScopeTypeId(DedicatedGlobalScope) => true,
+            EventTargetTypeId::WorkerGlobalScope(WorkerGlobalScopeTypeId::DedicatedGlobalScope) => true,
             _ => false
         }
     }

@@ -11,10 +11,10 @@ use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSe
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, HTMLButtonElementTypeId};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
@@ -29,14 +29,14 @@ pub struct HTMLButtonElement {
 
 impl HTMLButtonElementDerived for EventTarget {
     fn is_htmlbuttonelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLButtonElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLButtonElement))
     }
 }
 
 impl HTMLButtonElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLButtonElement {
         HTMLButtonElement {
-            htmlelement: HTMLElement::new_inherited(HTMLButtonElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLButtonElement, localName, prefix, document)
         }
     }
 

@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Done, Payload, Metadata, LoadData, TargetedLoadResponse, start_sending, ResponseSenders};
+use resource_task::{Metadata, LoadData, TargetedLoadResponse, start_sending, ResponseSenders};
+use resource_task::ProgressMsg::{Payload, Done};
 
 use serialize::base64::FromBase64;
 
 use hyper::mime::Mime;
-use url::{percent_decode, NonRelativeSchemeData};
+use url::{percent_decode, SchemeData};
 
 
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
@@ -31,7 +32,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
     // Split out content type and data.
     let mut scheme_data = match url.scheme_data {
-        NonRelativeSchemeData(scheme_data) => scheme_data,
+        SchemeData::NonRelative(scheme_data) => scheme_data,
         _ => panic!("Expected a non-relative scheme URL.")
     };
     match url.query {

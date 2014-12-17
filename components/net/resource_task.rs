@@ -4,6 +4,9 @@
 
 //! A task that takes a URL and streams back the binary data.
 
+use self::ControlMsg::*;
+use self::ProgressMsg::*;
+
 use about_loader;
 use data_loader;
 use file_loader;
@@ -11,16 +14,17 @@ use http_loader;
 use sniffer_task;
 use sniffer_task::SnifferTask;
 
-use std::comm::{channel, Receiver, Sender};
-use hyper::mime::{Mime, Charset};
-use hyper::header::Headers;
+use servo_util::task::spawn_named;
+
 use hyper::header::common::UserAgent;
+use hyper::header::Headers;
+use hyper::http::RawStatus;
 use hyper::method::{Method, Get};
+use hyper::mime::{Mime, Charset};
 use url::Url;
 
-use hyper::http::RawStatus;
-
-use servo_util::task::spawn_named;
+use std::comm::{channel, Receiver, Sender};
+use std::str::Slice;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
@@ -85,7 +89,7 @@ impl Metadata {
             content_type: None,
             charset:      None,
             headers: None,
-            status: Some(RawStatus(200, "OK".into_string())) // http://fetch.spec.whatwg.org/#concept-response-status-message
+            status: Some(RawStatus(200, Slice("OK"))) // http://fetch.spec.whatwg.org/#concept-response-status-message
         }
     }
 

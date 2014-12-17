@@ -5,29 +5,32 @@
 //! Legacy presentational attributes defined in the HTML5 specification: `<td width>`,
 //! `<input size>`, and so forth.
 
+use self::UnsignedIntegerAttribute::*;
+use self::SimpleColorAttribute::*;
+
 use node::{TElement, TElementAttributes, TNode};
-use properties::{BackgroundColorDeclaration, BorderBottomWidthDeclaration, CSSFloat};
-use properties::{BorderLeftWidthDeclaration, BorderRightWidthDeclaration, HeightDeclaration};
-use properties::{BorderTopWidthDeclaration, SpecifiedValue, WidthDeclaration, specified};
+use properties::DeclaredValue::SpecifiedValue;
+use properties::PropertyDeclaration::*;
+use properties::{CSSFloat, specified};
 use selector_matching::{DeclarationBlock, Stylist};
 
-use cssparser::RGBAColor;
+use cssparser::Color;
 use servo_util::geometry::Au;
 use servo_util::smallvec::VecLike;
-use servo_util::str::{AutoLpa, LengthLpa, PercentageLpa};
+use servo_util::str::LengthOrPercentageOrAuto;
 
 /// Legacy presentational attributes that take a length as defined in HTML5 § 2.4.4.4.
 pub enum LengthAttribute {
     /// `<td width>`
-    WidthLengthAttribute,
+    Width,
 }
 
 /// Legacy presentational attributes that take an integer as defined in HTML5 § 2.4.4.2.
 pub enum IntegerAttribute {
     /// `<input size>`
-    SizeIntegerAttribute,
-    ColsIntegerAttribute,
-    RowsIntegerAttribute,
+    Size,
+    Cols,
+    Rows,
 }
 
 /// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
@@ -100,16 +103,16 @@ impl PresentationalHintSynthesis for Stylist {
         let element = node.as_element();
         match element.get_local_name() {
             name if *name == atom!("td") => {
-                match element.get_length_attribute(WidthLengthAttribute) {
-                    AutoLpa => {}
-                    PercentageLpa(percentage) => {
-                        let width_value = specified::LPA_Percentage(percentage);
+                match element.get_length_attribute(LengthAttribute::Width) {
+                    LengthOrPercentageOrAuto::Auto => {}
+                    LengthOrPercentageOrAuto::Percentage(percentage) => {
+                        let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 WidthDeclaration(SpecifiedValue(width_value))));
                         *shareable = false
                     }
-                    LengthLpa(length) => {
-                        let width_value = specified::LPA_Length(specified::Au_(length));
+                    LengthOrPercentageOrAuto::Length(length) => {
+                        let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Length::Au(length));
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 WidthDeclaration(SpecifiedValue(width_value))));
                         *shareable = false
@@ -142,7 +145,7 @@ impl PresentationalHintSynthesis for Stylist {
                     shareable);
             }
             name if *name == atom!("input") => {
-                match element.get_integer_attribute(SizeIntegerAttribute) {
+                match element.get_integer_attribute(IntegerAttribute::Size) {
                     Some(value) if value != 0 => {
                         // Per HTML 4.01 § 17.4, this value is in characters if `type` is `text` or
                         // `password` and in pixels otherwise.
@@ -150,12 +153,12 @@ impl PresentationalHintSynthesis for Stylist {
                         // FIXME(pcwalton): More use of atoms, please!
                         let value = match element.get_attr(&ns!(""), &atom!("type")) {
                             Some("text") | Some("password") => {
-                                specified::ServoCharacterWidth(value)
+                                specified::Length::ServoCharacterWidth(value)
                             }
-                            _ => specified::Au_(Au::from_px(value as int)),
+                            _ => specified::Length::Au(Au::from_px(value as int)),
                         };
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(specified::LPA_Length(
+                                WidthDeclaration(SpecifiedValue(specified::LengthOrPercentageOrAuto::Length(
                                             value)))));
                         *shareable = false
                     }
@@ -163,29 +166,29 @@ impl PresentationalHintSynthesis for Stylist {
                 }
             }
             name if *name == atom!("textarea") => {
-                match element.get_integer_attribute(ColsIntegerAttribute) {
+                match element.get_integer_attribute(IntegerAttribute::Cols) {
                     Some(value) if value != 0 => {
                         // TODO(mttr) ServoCharacterWidth uses the size math for <input type="text">, but
                         // the math for <textarea> is a little different since we need to take
                         // scrollbar size into consideration (but we don't have a scrollbar yet!)
                         //
                         // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-width
-                        let value = specified::ServoCharacterWidth(value);
+                        let value = specified::Length::ServoCharacterWidth(value);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(specified::LPA_Length(
+                                WidthDeclaration(SpecifiedValue(specified::LengthOrPercentageOrAuto::Length(
                                             value)))));
                         *shareable = false
                     }
                     Some(_) | None => {}
                 }
-                match element.get_integer_attribute(RowsIntegerAttribute) {
+                match element.get_integer_attribute(IntegerAttribute::Rows) {
                     Some(value) if value != 0 => {
                         // TODO(mttr) This should take scrollbar size into consideration.
                         //
                         // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-height
-                        let value = specified::Em(value as CSSFloat);
+                        let value = specified::Length::Em(value as CSSFloat);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                HeightDeclaration(SpecifiedValue(specified::LPA_Length(
+                                HeightDeclaration(SpecifiedValue(specified::LengthOrPercentageOrAuto::Length(
                                             value)))));
                         *shareable = false
                     }
@@ -211,7 +214,7 @@ impl PresentationalHintSynthesis for Stylist {
             None => {}
             Some(color) => {
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        BackgroundColorDeclaration(SpecifiedValue(RGBAColor(color)))));
+                        BackgroundColorDeclaration(SpecifiedValue(Color::RGBA(color)))));
                 *shareable = false
             }
         }
@@ -229,7 +232,7 @@ impl PresentationalHintSynthesis for Stylist {
         match element.get_unsigned_integer_attribute(BorderUnsignedIntegerAttribute) {
             None => {}
             Some(length) => {
-                let width_value = specified::Au_(Au::from_px(length as int));
+                let width_value = specified::Length::Au(Au::from_px(length as int));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                         BorderTopWidthDeclaration(SpecifiedValue(width_value))));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(

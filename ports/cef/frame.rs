@@ -7,7 +7,7 @@ use interfaces::{CefFrame, CefStringVisitor, cef_frame_t, cef_string_visitor_t};
 use types::{cef_string_t, cef_string_userfree_t};
 
 use core;
-use compositing::windowing::LoadUrlWindowEvent;
+use compositing::windowing::WindowEvent;
 use std::cell::RefCell;
 
 pub struct ServoCefFrame {
@@ -29,7 +29,7 @@ cef_class_impl! {
         fn load_url(&this, url: *const cef_string_t) -> () {
             let this = this.downcast();
             *this.url.borrow_mut() = String::from_utf16(url).unwrap();
-            core::send_window_event(LoadUrlWindowEvent(String::from_utf16(url).unwrap()));
+            core::send_window_event(WindowEvent::LoadUrl(String::from_utf16(url).unwrap()));
         }
         fn get_url(&this) -> cef_string_userfree_t {
             let this = this.downcast();

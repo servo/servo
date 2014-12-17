@@ -8,7 +8,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, JSRef};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::eventtarget::{EventTarget, WebSocketTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -20,7 +20,7 @@ pub struct WebSocket {
 impl WebSocket {
     pub fn new_inherited(url: DOMString) -> WebSocket {
         WebSocket {
-            eventtarget: EventTarget::new_inherited(WebSocketTypeId),
+            eventtarget: EventTarget::new_inherited(EventTargetTypeId::WebSocket),
             url: url
         }
     }

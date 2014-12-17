@@ -7,12 +7,13 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
-use dom::bindings::error::{Fallible, ErrorResult, IndexSize};
+use dom::bindings::error::{Fallible, ErrorResult};
+use dom::bindings::error::Error::IndexSize;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::node::{CommentNodeTypeId, Node, NodeTypeId, TextNodeTypeId, ProcessingInstructionNodeTypeId, NodeHelpers};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId};
 
 use servo_util::str::DOMString;
 
@@ -27,9 +28,9 @@ pub struct CharacterData {
 impl CharacterDataDerived for EventTarget {
     fn is_characterdata(&self) -> bool {
         match *self.type_id() {
-            NodeTargetTypeId(TextNodeTypeId) |
-            NodeTargetTypeId(CommentNodeTypeId) |
-            NodeTargetTypeId(ProcessingInstructionNodeTypeId) => true,
+            EventTargetTypeId::Node(NodeTypeId::Text) |
+            EventTargetTypeId::Node(NodeTypeId::Comment) |
+            EventTargetTypeId::Node(NodeTypeId::ProcessingInstruction) => true,
             _ => false
         }
     }

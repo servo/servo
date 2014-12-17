@@ -13,11 +13,8 @@
 use block::BlockFlow;
 use context::LayoutContext;
 use flow::{mod, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
-use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment};
-use fragment::{ImageFragmentInfo, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
-use fragment::{ScannedTextFragment, ScannedTextFragmentInfo, TableFragment};
-use fragment::{TableCellFragment, TableColumnFragment, TableRowFragment, TableWrapperFragment};
-use fragment::{UnscannedTextFragment};
+use fragment::{Fragment, SpecificFragmentInfo, IframeFragmentInfo, ImageFragmentInfo};
+use fragment::ScannedTextFragmentInfo;
 use list_item::ListItemFlow;
 use model;
 use util::{OpaqueNodeMethods, ToGfxColor};
@@ -41,20 +38,21 @@ use servo_util::geometry::{mod, Au, ZERO_POINT, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, WritingMode};
 use servo_util::opts;
 use std::default::Default;
-use style::computed::{AngleAoc, CornerAoc, LP_Length, LP_Percentage, LengthOrPercentage};
-use style::computed::{LinearGradient, LinearGradientImage, UrlImage};
+use std::num::FloatMath;
+use style::computed::{AngleOrCorner, LengthOrPercentage, HorizontalDirection, VerticalDirection};
+use style::computed::{Image, LinearGradient};
 use style::computed_values::{background_attachment, background_repeat, border_style, overflow};
 use style::computed_values::{visibility};
-use style::{ComputedValues, Bottom, Left, RGBA, Right, Top};
+use style::{ComputedValues, RGBA};
 use style::style_structs::Border;
 use sync::Arc;
 use url::Url;
 
 /// The results of display list building for a single flow.
 pub enum DisplayListBuildingResult {
-    NoDisplayListBuildingResult,
-    StackingContextResult(Arc<StackingContext>),
-    DisplayListResult(Box<DisplayList>),
+    None,
+    StackingContext(Arc<StackingContext>),
+    Normal(Box<DisplayList>),
 }
 
 impl DisplayListBuildingResult {
@@ -63,11 +61,11 @@ impl DisplayListBuildingResult {
     /// consist of an entire stacking context, it will be emptied.
     pub fn add_to(&mut self, display_list: &mut DisplayList) {
         match *self {
-            NoDisplayListBuildingResult => return,
-            StackingContextResult(ref mut stacking_context) => {
+            DisplayListBuildingResult::None => return,
+            DisplayListBuildingResult::StackingContext(ref mut stacking_context) => {
                 display_list.children.push_back((*stacking_context).clone())
             }
-            DisplayListResult(ref mut source_display_list) => {
+            DisplayListBuildingResult::Normal(ref mut source_display_list) => {
                 display_list.append_from(&mut **source_display_list)
             }
         }
@@ -210,7 +208,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let background = style.get_background();
         match background.background_image {
             None => {}
-            Some(LinearGradientImage(ref gradient)) => {
+            Some(Image::LinearGradient(ref gradient)) => {
                 self.build_display_list_for_background_linear_gradient(display_list,
                                                                        level,
                                                                        absolute_bounds,
@@ -218,7 +216,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                        gradient,
                                                                        style)
             }
-            Some(UrlImage(ref image_url)) => {
+            Some(Image::Url(ref image_url)) => {
                 self.build_display_list_for_background_image(style,
                                                              display_list,
                                                              layout_context,
@@ -330,20 +328,20 @@ impl FragmentDisplayListBuilding for Fragment {
         // This is the distance between the center and the ending point; i.e. half of the distance
         // between the starting point and the ending point.
         let delta = match gradient.angle_or_corner {
-            AngleAoc(angle) => {
+            AngleOrCorner::Angle(angle) => {
                 Point2D(Au((angle.radians().sin() *
                              absolute_bounds.size.width.to_f64().unwrap() / 2.0) as i32),
                         Au((-angle.radians().cos() *
                              absolute_bounds.size.height.to_f64().unwrap() / 2.0) as i32))
             }
-            CornerAoc(horizontal, vertical) => {
+            AngleOrCorner::Corner(horizontal, vertical) => {
                 let x_factor = match horizontal {
-                    Left => -1,
-                    Right => 1,
+                    HorizontalDirection::Left => -1,
+                    HorizontalDirection::Right => 1,
                 };
                 let y_factor = match vertical {
-                    Top => -1,
-                    Bottom => 1,
+                    VerticalDirection::Top => -1,
+                    VerticalDirection::Bottom => 1,
                 };
                 Point2D(Au(x_factor * absolute_bounds.size.width.to_i32().unwrap() / 2),
                         Au(y_factor * absolute_bounds.size.height.to_i32().unwrap() / 2))
@@ -647,7 +645,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 None => {}
             }
             match self.specific {
-                ScannedTextFragment(_) => {},
+                SpecificFragmentInfo::ScannedText(_) => {},
                 _ => {
                     self.build_display_list_for_box_shadow_if_applicable(
                         &*self.style,
@@ -675,7 +673,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 None => {}
             }
             match self.specific {
-                ScannedTextFragment(_) => {},
+                SpecificFragmentInfo::ScannedText(_) => {},
                 _ => {
                     self.build_display_list_for_background_if_applicable(
                         &*self.style,
@@ -707,7 +705,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 None => {}
             }
             match self.specific {
-                ScannedTextFragment(_) => {},
+                SpecificFragmentInfo::ScannedText(_) => {},
                 _ => {
                     self.build_display_list_for_borders_if_applicable(
                         &*self.style,
@@ -729,9 +727,9 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Create special per-fragment-type display items.
         match self.specific {
-            UnscannedTextFragment(_) => panic!("Shouldn't see unscanned fragments here."),
-            TableColumnFragment(_) => panic!("Shouldn't see table column fragments here."),
-            ScannedTextFragment(ref text_fragment) => {
+            SpecificFragmentInfo::UnscannedText(_) => panic!("Shouldn't see unscanned fragments here."),
+            SpecificFragmentInfo::TableColumn(_) => panic!("Shouldn't see table column fragments here."),
+            SpecificFragmentInfo::ScannedText(ref text_fragment) => {
                 // Create the text display item.
                 let orientation = if self.style.writing_mode.is_vertical() {
                     if self.style.writing_mode.is_sideways_left() {
@@ -806,16 +804,16 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                    clip_rect);
                 }
             }
-            GenericFragment | IframeFragment(..) | TableFragment | TableCellFragment |
-            TableRowFragment | TableWrapperFragment | InlineBlockFragment(_) |
-            InlineAbsoluteHypotheticalFragment(_) => {
+            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(..) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper | SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_fragment(display_list,
                                                              flow_origin,
                                                              clip_rect);
                 }
             }
-            ImageFragment(ref mut image_fragment) => {
+            SpecificFragmentInfo::Image(ref mut image_fragment) => {
                 let image_ref = &mut image_fragment.image;
                 match image_ref.get_image(self.node.to_untrusted_node_address()) {
                     Some(image) => {
@@ -857,7 +855,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // because layout for the iframe only needs to know size, and origin is only relevant if
         // the iframe is actually going to be displayed.
         match self.specific {
-            IframeFragment(ref iframe_fragment) => {
+            SpecificFragmentInfo::Iframe(ref iframe_fragment) => {
                 self.finalize_position_and_size_of_iframe(&**iframe_fragment,
                                                           absolute_fragment_bounds.origin,
                                                           layout_context)
@@ -891,7 +889,7 @@ impl FragmentDisplayListBuilding for Fragment {
                               -> Rect<Au> {
         // Don't clip if we're text.
         match self.specific {
-            ScannedTextFragment(_) => return current_clip_rect,
+            SpecificFragmentInfo::ScannedText(_) => return current_clip_rect,
             _ => {}
         }
 
@@ -962,9 +960,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                background_border_level);
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            StackingContextResult(self.create_stacking_context(display_list, None))
+            DisplayListBuildingResult::StackingContext(self.create_stacking_context(display_list, None))
         } else {
-            DisplayListResult(display_list)
+            DisplayListBuildingResult::Normal(display_list)
         }
     }
 
@@ -973,13 +971,13 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                           layout_context: &LayoutContext) {
         self.build_display_list_for_block_base(&mut *display_list,
                                                layout_context,
-                                               RootOfStackingContextLevel);
+                                               BackgroundAndBorderLevel::RootOfStackingContext);
 
         if !self.base.absolute_position_info.layers_needed_for_positioned_flows &&
                 !self.base.flags.contains(NEEDS_LAYER) {
             // We didn't need a layer.
             self.base.display_list_building_result =
-                StackingContextResult(self.create_stacking_context(display_list, None));
+                DisplayListBuildingResult::StackingContext(self.create_stacking_context(display_list, None));
             return
         }
 
@@ -996,7 +994,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                          Some(Arc::new(PaintLayer::new(self.layer_id(0),
                                                                        transparent,
                                                                        scroll_policy))));
-        self.base.display_list_building_result = StackingContextResult(stacking_context)
+        self.base.display_list_building_result = DisplayListBuildingResult::StackingContext(stacking_context)
     }
 
     fn build_display_list_for_floating_block(&mut self,
@@ -1004,13 +1002,13 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                              layout_context: &LayoutContext) {
         self.build_display_list_for_block_base(&mut *display_list,
                                                layout_context,
-                                               RootOfStackingContextLevel);
+                                               BackgroundAndBorderLevel::RootOfStackingContext);
         display_list.form_float_pseudo_stacking_context();
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            StackingContextResult(self.create_stacking_context(display_list, None))
+            DisplayListBuildingResult::StackingContext(self.create_stacking_context(display_list, None))
         } else {
-            DisplayListResult(display_list)
+            DisplayListBuildingResult::Normal(display_list)
         }
     }
 
@@ -1024,7 +1022,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             self.build_display_list_for_absolutely_positioned_block(display_list, layout_context)
         } else {
-            self.build_display_list_for_static_block(display_list, layout_context, BlockLevel)
+            self.build_display_list_for_static_block(display_list, layout_context, BackgroundAndBorderLevel::Block)
         }
     }
 
@@ -1059,7 +1057,7 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
                 marker.build_display_list(&mut *display_list,
                                           layout_context,
                                           stacking_relative_fragment_origin,
-                                          ContentLevel,
+                                          BackgroundAndBorderLevel::Content,
                                           &self.block_flow.base.clip_rect);
             }
         }
@@ -1087,8 +1085,8 @@ fn fmin(a: f32, b: f32) -> f32 {
 
 fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32 {
     match position {
-        LP_Length(Au(length)) => fmin(1.0, (length as f32) / (total_length as f32)),
-        LP_Percentage(percentage) => percentage as f32,
+        LengthOrPercentage::Length(Au(length)) => fmin(1.0, (length as f32) / (total_length as f32)),
+        LengthOrPercentage::Percentage(percentage) => percentage as f32,
     }
 }
 
@@ -1096,29 +1094,29 @@ fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32
 #[deriving(Clone, PartialEq, Show)]
 pub enum StackingLevel {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
-    BackgroundAndBordersStackingLevel,
+    BackgroundAndBorders,
     /// Borders and backgrounds for block-level descendants: step 4.
-    BlockBackgroundsAndBordersStackingLevel,
+    BlockBackgroundsAndBorders,
     /// All other content.
-    ContentStackingLevel,
+    Content,
 }
 
 impl StackingLevel {
     #[inline]
     pub fn from_background_and_border_level(level: BackgroundAndBorderLevel) -> StackingLevel {
         match level {
-            RootOfStackingContextLevel => BackgroundAndBordersStackingLevel,
-            BlockLevel => BlockBackgroundsAndBordersStackingLevel,
-            ContentLevel => ContentStackingLevel,
+            BackgroundAndBorderLevel::RootOfStackingContext => StackingLevel::BackgroundAndBorders,
+            BackgroundAndBorderLevel::Block => StackingLevel::BlockBackgroundsAndBorders,
+            BackgroundAndBorderLevel::Content => StackingLevel::Content,
         }
     }
 }
 
 /// Which level to place backgrounds and borders in.
 pub enum BackgroundAndBorderLevel {
-    RootOfStackingContextLevel,
-    BlockLevel,
-    ContentLevel,
+    RootOfStackingContext,
+    Block,
+    Content,
 }
 
 trait StackingContextConstruction {
@@ -1129,13 +1127,13 @@ trait StackingContextConstruction {
 impl StackingContextConstruction for DisplayList {
     fn push(&mut self, display_item: DisplayItem, level: StackingLevel) {
         match level {
-            BackgroundAndBordersStackingLevel => {
+            StackingLevel::BackgroundAndBorders => {
                 self.background_and_borders.push_back(display_item)
             }
-            BlockBackgroundsAndBordersStackingLevel => {
+            StackingLevel::BlockBackgroundsAndBorders => {
                 self.block_backgrounds_and_borders.push_back(display_item)
             }
-            ContentStackingLevel => self.content.push_back(display_item),
+            StackingLevel::Content => self.content.push_back(display_item),
         }
     }
 }

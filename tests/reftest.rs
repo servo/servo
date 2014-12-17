@@ -183,8 +183,8 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
         };
 
         let kind = match test_line.kind {
-            "==" => Same,
-            "!=" => Different,
+            "==" => ReftestKind::Same,
+            "!=" => ReftestKind::Different,
             part => panic!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
         };
 
@@ -326,11 +326,11 @@ fn check_reftest(reftest: Reftest) {
         assert!(res.is_ok());
 
         match (reftest.kind, reftest.is_flaky) {
-            (Same, true) => println!("flaky test - rendering difference: {}", output_str),
-            (Same, false) => panic!("rendering difference: {}", output_str),
-            (Different, _) => {}   // Result was different and that's what was expected
+            (ReftestKind::Same, true) => println!("flaky test - rendering difference: {}", output_str),
+            (ReftestKind::Same, false) => panic!("rendering difference: {}", output_str),
+            (ReftestKind::Different, _) => {}   // Result was different and that's what was expected
         }
     } else {
-        assert!(reftest.is_flaky || reftest.kind == Same);
+        assert!(reftest.is_flaky || reftest.kind == ReftestKind::Same);
     }
 }

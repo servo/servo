@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, MessageEventTypeId};
+use dom::event::{Event, EventTypeId};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 
 use servo_util::str::DOMString;
@@ -28,7 +28,7 @@ pub struct MessageEvent {
 
 impl MessageEventDerived for Event {
     fn is_messageevent(&self) -> bool {
-        *self.type_id() == MessageEventTypeId
+        *self.type_id() == EventTypeId::MessageEvent
     }
 }
 
@@ -36,7 +36,7 @@ impl MessageEvent {
     fn new_inherited(data: JSVal, origin: DOMString, lastEventId: DOMString)
                          -> MessageEvent {
         MessageEvent {
-            event: Event::new_inherited(MessageEventTypeId),
+            event: Event::new_inherited(EventTypeId::MessageEvent),
             data: data,
             origin: origin,
             lastEventId: lastEventId,

@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Metadata, Payload, Done, TargetedLoadResponse, LoadData, start_sending_opt, ResponseSenders};
+use resource_task::{Metadata, TargetedLoadResponse, LoadData, start_sending_opt, ResponseSenders};
+use resource_task::ProgressMsg::{Payload, Done};
 
 use log;
 use std::collections::HashSet;

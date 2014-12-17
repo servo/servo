@@ -9,7 +9,7 @@ use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable, Root};
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers};
 use dom::documenttype::DocumentType;
-use dom::element::{Element, AttributeHandlers, ElementHelpers, ParserCreated};
+use dom::element::{Element, AttributeHandlers, ElementHelpers, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlscriptelement::HTMLScriptElementHelpers;
 use dom::node::{Node, NodeHelpers, TrustedNodeAddress};
@@ -19,7 +19,7 @@ use dom::text::Text;
 use parse::Parser;
 
 use encoding::all::UTF_8;
-use encoding::types::{Encoding, DecodeReplace};
+use encoding::types::{Encoding, DecoderTrap};
 
 use servo_net::resource_task::{Payload, Done, LoadResponse};
 use servo_util::task_state;
@@ -77,7 +77,8 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
             -> TrustedNodeAddress {
         let doc = self.document.root();
-        let elem = Element::create(name, None, *doc, ParserCreated).root();
+        let elem = Element::create(name, None, *doc,
+                                   ElementCreator::ParserCreated).root();
 
         for attr in attrs.into_iter() {
             elem.set_attribute_from_parser(attr.name, attr.value, None);
@@ -170,10 +171,10 @@ pub fn parse_html(document: JSRef<Document>,
     task_state::enter(IN_HTML_PARSER);
 
     match input {
-        InputString(s) => {
+        HTMLInput::InputString(s) => {
             parser.parse_chunk(s);
         }
-        InputUrl(load_response) => {
+        HTMLInput::InputUrl(load_response) => {
             match load_response.metadata.content_type {
                 Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
                     let page = format!("<html><body><img src='{:s}' /></body></html>", url.serialize());
@@ -184,7 +185,7 @@ pub fn parse_html(document: JSRef<Document>,
                         match msg {
                             Payload(data) => {
                                 // FIXME: use Vec<u8> (html5ever #34)
-                                let data = UTF_8.decode(data.as_slice(), DecodeReplace).unwrap();
+                                let data = UTF_8.decode(data.as_slice(), DecoderTrap::Replace).unwrap();
                                 parser.parse_chunk(data);
                             }
                             Done(Err(err)) => {

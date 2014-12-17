@@ -7,10 +7,10 @@ use dom::bindings::codegen::InheritTypes::HTMLTableHeaderCellElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLTableHeaderCellElementTypeId;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmltablecellelement::HTMLTableCellElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -20,14 +20,14 @@ pub struct HTMLTableHeaderCellElement {
 
 impl HTMLTableHeaderCellElementDerived for EventTarget {
     fn is_htmltableheadercellelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableHeaderCellElement))
     }
 }
 
 impl HTMLTableHeaderCellElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableHeaderCellElement {
         HTMLTableHeaderCellElement {
-            htmltablecellelement: HTMLTableCellElement::new_inherited(HTMLTableHeaderCellElementTypeId, localName, prefix, document)
+            htmltablecellelement: HTMLTableCellElement::new_inherited(ElementTypeId::HTMLTableHeaderCellElement, localName, prefix, document)
         }
     }
 

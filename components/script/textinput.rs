@@ -11,6 +11,7 @@ use servo_util::str::DOMString;
 
 use std::cmp::{min, max};
 use std::default::Default;
+use std::num::SignedInt;
 
 #[jstraceable]
 struct TextPoint {
@@ -70,7 +71,7 @@ impl TextInput {
             lines: vec!(),
             edit_point: Default::default(),
             selection_begin: None,
-            multiline: lines == Multiple,
+            multiline: lines == Lines::Multiple,
         };
         i.set_content(initial);
         i
@@ -79,7 +80,11 @@ impl TextInput {
     /// Remove a character at the current editing point
     fn delete_char(&mut self, dir: DeleteDir) {
         if self.selection_begin.is_none() {
-            self.adjust_horizontal(if dir == Forward {1} else {-1}, true);
+            self.adjust_horizontal(if dir == DeleteDir::Forward {
+                1
+            } else {
+                -1
+            }, true);
         }
         self.replace_selection("".to_string());
     }
@@ -210,10 +215,10 @@ impl TextInput {
     /// Deal with a newline input.
     fn handle_return(&mut self) -> KeyReaction {
         if !self.multiline {
-            return TriggerDefaultAction;
+            return KeyReaction::TriggerDefaultAction;
         }
         self.insert_char('\n');
-        return DispatchInput;
+        return KeyReaction::DispatchInput;
     }
 
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
@@ -222,55 +227,55 @@ impl TextInput {
             // printable characters have single-character key values
             c if c.len() == 1 => {
                 self.insert_char(c.char_at(0));
-                return DispatchInput;
+                return KeyReaction::DispatchInput;
             }
             "Space" => {
                 self.insert_char(' ');
-                DispatchInput
+                KeyReaction::DispatchInput
             }
             "Delete" => {
-                self.delete_char(Forward);
-                DispatchInput
+                self.delete_char(DeleteDir::Forward);
+                KeyReaction::DispatchInput
             }
             "Backspace" => {
-                self.delete_char(Backward);
-                DispatchInput
+                self.delete_char(DeleteDir::Backward);
+                KeyReaction::DispatchInput
             }
             "ArrowLeft" => {
                 self.adjust_horizontal(-1, event.ShiftKey());
-                Nothing
+                KeyReaction::Nothing
             }
             "ArrowRight" => {
                 self.adjust_horizontal(1, event.ShiftKey());
-                Nothing
+                KeyReaction::Nothing
             }
             "ArrowUp" => {
                 self.adjust_vertical(-1, event.ShiftKey());
-                Nothing
+                KeyReaction::Nothing
             }
             "ArrowDown" => {
                 self.adjust_vertical(1, event.ShiftKey());
-                Nothing
+                KeyReaction::Nothing
             }
             "Enter" => self.handle_return(),
             "Home" => {
                 self.edit_point.index = 0;
-                Nothing
+                KeyReaction::Nothing
             }
             "End" => {
                 self.edit_point.index = self.current_line_length();
-                Nothing
+                KeyReaction::Nothing
             }
             "PageUp" => {
                 self.adjust_vertical(-28, event.ShiftKey());
-                Nothing
+                KeyReaction::Nothing
             }
             "PageDown" => {
                 self.adjust_vertical(28, event.ShiftKey());
-                Nothing
+                KeyReaction::Nothing
             }
-            "Tab" => TriggerDefaultAction,
-            _ => Nothing,
+            "Tab" => KeyReaction::TriggerDefaultAction,
+            _ => KeyReaction::Nothing,
         }
     }
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use browser_host::{ServoCefBrowserHost, ServoCefBrowserHostExtensions};
-use core::{mod, OffScreenGlobals, OnScreenGlobals, globals};
+use core::{mod, ServoCefGlobals, globals};
 use eutil::Downcast;
 use frame::ServoCefFrame;
 use interfaces::{CefBrowser, CefBrowserHost, CefClient, CefFrame, CefRequestContext};
@@ -13,7 +13,7 @@ use servo::Browser;
 use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t};
 use window;
 
-use compositing::windowing::{Back, Forward, NavigationWindowEvent};
+use compositing::windowing::{Back, Forward, WindowEvent};
 use glfw_app;
 use libc::c_int;
 use servo_util::opts;
@@ -26,11 +26,11 @@ cef_class_impl! {
         }
 
         fn go_back(&_this) -> () {
-            core::send_window_event(NavigationWindowEvent(Back));
+            core::send_window_event(WindowEvent::Navigation(Back));
         }
 
         fn go_forward(&_this) -> () {
-            core::send_window_event(NavigationWindowEvent(Forward));
+            core::send_window_event(WindowEvent::Navigation(Forward));
         }
 
         // Returns the main (top-level) frame for the browser window.
@@ -57,8 +57,8 @@ impl ServoCefBrowser {
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
         if window_info.windowless_rendering_enabled == 0 {
             let glfw_window = glfw_app::create_window();
-            globals.replace(Some(OnScreenGlobals(RefCell::new(glfw_window.clone()),
-                                                 RefCell::new(Browser::new(Some(glfw_window))))));
+            globals.replace(Some(ServoCefGlobals::OnScreenGlobals(RefCell::new(glfw_window.clone()),
+                                                                  RefCell::new(Browser::new(Some(glfw_window))))));
         }
 
         ServoCefBrowser {
@@ -80,8 +80,8 @@ impl ServoCefBrowserExtensions for CefBrowser {
             let window = window::Window::new();
             let servo_browser = Browser::new(Some(window.clone()));
             window.set_browser(self.clone());
-            globals.replace(Some(OffScreenGlobals(RefCell::new(window),
-                                                  RefCell::new(servo_browser))));
+            globals.replace(Some(ServoCefGlobals::OffScreenGlobals(RefCell::new(window),
+                                                                   RefCell::new(servo_browser))));
         }
 
         self.downcast().host.set_browser((*self).clone());

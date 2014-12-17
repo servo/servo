@@ -6,9 +6,9 @@
 
 #![deny(unsafe_blocks)]
 
-use block::{BlockFlow, MarginsMayNotCollapse, ISizeAndMarginsComputer};
+use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
-use flow::{TableCellFlowClass, FlowClass, Flow};
+use flow::{FlowClass, Flow};
 use fragment::{Fragment, FragmentBoundsIterator};
 use model::{MaybeAuto};
 use layout_debug;
@@ -17,7 +17,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use std::fmt;
-use style::{ColSpanUnsignedIntegerAttribute, ComputedValues};
+use style::{UnsignedIntegerAttribute, ComputedValues};
 use sync::Arc;
 
 /// A table formatting context.
@@ -34,7 +34,7 @@ impl TableCellFlow {
                                   -> TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
-            column_span: node.get_unsigned_integer_attribute(ColSpanUnsignedIntegerAttribute)
+            column_span: node.get_unsigned_integer_attribute(UnsignedIntegerAttribute::ColSpanUnsignedIntegerAttribute)
                              .unwrap_or(1),
         }
     }
@@ -53,13 +53,13 @@ impl TableCellFlow {
     /// methods.
     #[inline(always)]
     fn assign_block_size_table_cell_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        self.block_flow.assign_block_size_block_base(layout_context, MarginsMayNotCollapse)
+        self.block_flow.assign_block_size_block_base(layout_context, MarginsMayCollapseFlag::MarginsMayNotCollapse)
     }
 }
 
 impl Flow for TableCellFlow {
     fn class(&self) -> FlowClass {
-        TableCellFlowClass
+        FlowClass::TableCell
     }
 
     fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {

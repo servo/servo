@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventTypeId, CustomEventTypeId};
+use dom::event::{Event, EventTypeId};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use servo_util::str::DOMString;
@@ -25,7 +25,7 @@ pub struct CustomEvent {
 
 impl CustomEventDerived for Event {
     fn is_customevent(&self) -> bool {
-        *self.type_id() == CustomEventTypeId
+        *self.type_id() == EventTypeId::CustomEvent
     }
 }
 
@@ -38,7 +38,7 @@ impl CustomEvent {
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Temporary<CustomEvent> {
-        reflect_dom_object(box CustomEvent::new_inherited(CustomEventTypeId),
+        reflect_dom_object(box CustomEvent::new_inherited(EventTypeId::CustomEvent),
                            global,
                            CustomEventBinding::Wrap)
     }

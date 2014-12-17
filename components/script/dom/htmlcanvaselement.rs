@@ -13,10 +13,10 @@ use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use dom::document::Document;
-use dom::element::{Element, HTMLCanvasElementTypeId, AttributeHandlers};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::{Element, ElementTypeId, AttributeHandlers};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::{DOMString, parse_unsigned_integer};
@@ -39,14 +39,14 @@ pub struct HTMLCanvasElement {
 
 impl HTMLCanvasElementDerived for EventTarget {
     fn is_htmlcanvaselement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLCanvasElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLCanvasElement))
     }
 }
 
 impl HTMLCanvasElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLCanvasElement {
         HTMLCanvasElement {
-            htmlelement: HTMLElement::new_inherited(HTMLCanvasElementTypeId, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLCanvasElement, localName, prefix, document),
             context: Default::default(),
             width: Cell::new(DEFAULT_WIDTH),
             height: Cell::new(DEFAULT_HEIGHT),

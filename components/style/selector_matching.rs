@@ -20,26 +20,16 @@ use legacy::PresentationalHintSynthesis;
 use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use selectors::{After, AnyLink, AttrDashMatch, AttrEqual};
-use selectors::{AttrExists, AttrIncludes, AttrPrefixMatch};
-use selectors::{AttrSubstringMatch, AttrSuffixMatch, Before, CaseInsensitive, CaseSensitive};
-use selectors::{Checked, Child, ClassSelector, Indeterminate};
-use selectors::{CompoundSelector, Descendant, Disabled, Enabled, FirstChild, FirstOfType};
-use selectors::{Hover, IDSelector, LastChild, LastOfType};
-use selectors::{LaterSibling, LocalName, LocalNameSelector};
-use selectors::{NamespaceSelector, Link, Negation};
-use selectors::{NextSibling, NthChild};
-use selectors::{NthLastChild, NthLastOfType};
-use selectors::{NthOfType, OnlyChild, OnlyOfType, PseudoElement, Root};
-use selectors::{SelectorList, ServoNonzeroBorder, SimpleSelector, Visited};
+use selectors::{CaseSensitivity, Combinator, CompoundSelector, LocalName};
+use selectors::{PseudoElement, SelectorList, SimpleSelector};
 use selectors::{get_selector_list_selectors};
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
 
 #[deriving(Clone, PartialEq)]
 pub enum StylesheetOrigin {
-    UserAgentOrigin,
-    AuthorOrigin,
-    UserOrigin,
+    UserAgent,
+    Author,
+    User,
 }
 
 /// The definition of whitespace per CSS Selectors Level 3 § 4.
@@ -232,7 +222,7 @@ impl SelectorMap {
             match *ss {
                 // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
                 // mode.
-                IDSelector(ref id) => return Some(id.clone()),
+                SimpleSelector::IDSelector(ref id) => return Some(id.clone()),
                 _ => {}
             }
         }
@@ -246,7 +236,7 @@ impl SelectorMap {
             match *ss {
                 // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
                 // mode.
-                ClassSelector(ref class) => return Some(class.clone()),
+                SimpleSelector::ClassSelector(ref class) => return Some(class.clone()),
                 _ => {}
             }
         }
@@ -258,7 +248,7 @@ impl SelectorMap {
         let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
-                LocalNameSelector(ref name) => {
+                SimpleSelector::LocalNameSelector(ref name) => {
                     return Some(name.clone())
                 }
                 _ => {}
@@ -314,7 +304,7 @@ impl Stylist {
                 Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
                 None,
                 None,
-                UserAgentOrigin);
+                StylesheetOrigin::UserAgent);
             stylist.add_stylesheet(ua_stylesheet);
         }
         stylist
@@ -329,17 +319,17 @@ impl Stylist {
 
             for stylesheet in self.stylesheets.iter() {
                 let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
-                    UserAgentOrigin => (
+                    StylesheetOrigin::UserAgent => (
                         &mut self.element_map.user_agent,
                         &mut self.before_map.user_agent,
                         &mut self.after_map.user_agent,
                     ),
-                    AuthorOrigin => (
+                    StylesheetOrigin::Author => (
                         &mut self.element_map.author,
                         &mut self.before_map.author,
                         &mut self.after_map.author,
                     ),
-                    UserOrigin => (
+                    StylesheetOrigin::User => (
                         &mut self.element_map.user,
                         &mut self.before_map.user,
                         &mut self.after_map.user,
@@ -355,8 +345,8 @@ impl Stylist {
                             for selector in $style_rule.selectors.iter() {
                                 let map = match selector.pseudo_element {
                                     None => &mut element_map,
-                                    Some(Before) => &mut before_map,
-                                    Some(After) => &mut after_map,
+                                    Some(PseudoElement::Before) => &mut before_map,
+                                    Some(PseudoElement::After) => &mut after_map,
                                 };
                                 map.$priority.insert(Rule {
                                         selector: selector.compound_selectors.clone(),
@@ -406,7 +396,7 @@ impl Stylist {
             Url::parse("chrome:///quirks-mode.css").unwrap(),
             None,
             None,
-            UserAgentOrigin))
+            StylesheetOrigin::UserAgent))
     }
 
     pub fn add_stylesheet(&mut self, stylesheet: Stylesheet) {
@@ -438,8 +428,8 @@ impl Stylist {
 
         let map = match pseudo_element {
             None => &self.element_map,
-            Some(Before) => &self.before_map,
-            Some(After) => &self.after_map,
+            Some(PseudoElement::Before) => &self.before_map,
+            Some(PseudoElement::After) => &self.after_map,
         };
 
         let mut shareable = true;
@@ -588,7 +578,7 @@ fn matches_compound_selector<'a,E,N>(selector: &CompoundSelector,
                                      -> bool
                                      where E: TElement<'a>, N: TNode<'a,E> {
     match matches_compound_selector_internal(selector, element, parent_bf, shareable) {
-        Matched => true,
+        SelectorMatchingResult::Matched => true,
         _ => false
     }
 }
@@ -653,7 +643,7 @@ fn can_fast_reject<'a,E,N>(mut selector: &CompoundSelector,
                            where E: TElement<'a>, N: TNode<'a,E> {
     if !selector.simple_selectors.iter().all(|simple_selector| {
       matches_simple_selector(simple_selector, element, shareable) }) {
-        return Some(NotMatchedAndRestartFromClosestLaterSibling);
+        return Some(SelectorMatchingResult::NotMatchedAndRestartFromClosestLaterSibling);
     }
 
     let bf: &BloomFilter = match *parent_bf {
@@ -666,7 +656,7 @@ fn can_fast_reject<'a,E,N>(mut selector: &CompoundSelector,
     loop {
          match selector.next {
              None => break,
-             Some((ref cs, Descendant)) => selector = &**cs,
+             Some((ref cs, Combinator::Descendant)) => selector = &**cs,
              Some((ref cs, _)) => {
                  selector = &**cs;
                  continue;
@@ -675,25 +665,25 @@ fn can_fast_reject<'a,E,N>(mut selector: &CompoundSelector,
 
         for ss in selector.simple_selectors.iter() {
             match *ss {
-                LocalNameSelector(LocalName { ref name, ref lower_name })  => {
+                SimpleSelector::LocalNameSelector(LocalName { ref name, ref lower_name })  => {
                     if !bf.might_contain(name)
                     && !bf.might_contain(lower_name) {
-                        return Some(NotMatchedGlobally);
+                        return Some(SelectorMatchingResult::NotMatchedGlobally);
                     }
                 },
-                NamespaceSelector(ref namespace) => {
+                SimpleSelector::NamespaceSelector(ref namespace) => {
                     if !bf.might_contain(namespace) {
-                        return Some(NotMatchedGlobally);
+                        return Some(SelectorMatchingResult::NotMatchedGlobally);
                     }
                 },
-                IDSelector(ref id) => {
+                SimpleSelector::IDSelector(ref id) => {
                     if !bf.might_contain(id) {
-                        return Some(NotMatchedGlobally);
+                        return Some(SelectorMatchingResult::NotMatchedGlobally);
                     }
                 },
-                ClassSelector(ref class) => {
+                SimpleSelector::ClassSelector(ref class) => {
                     if !bf.might_contain(class) {
-                        return Some(NotMatchedGlobally);
+                        return Some(SelectorMatchingResult::NotMatchedGlobally);
                     }
                 },
                 _ => {},
@@ -718,13 +708,13 @@ fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
     };
 
     match selector.next {
-        None => Matched,
+        None => SelectorMatchingResult::Matched,
         Some((ref next_selector, combinator)) => {
             let (siblings, candidate_not_found) = match combinator {
-                Child => (false, NotMatchedGlobally),
-                Descendant => (false, NotMatchedGlobally),
-                NextSibling => (true, NotMatchedAndRestartFromClosestDescendant),
-                LaterSibling => (true, NotMatchedAndRestartFromClosestDescendant),
+                Combinator::Child => (false, SelectorMatchingResult::NotMatchedGlobally),
+                Combinator::Descendant => (false, SelectorMatchingResult::NotMatchedGlobally),
+                Combinator::NextSibling => (true, SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant),
+                Combinator::LaterSibling => (true, SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant),
             };
             let mut node = (*element).clone();
             loop {
@@ -744,25 +734,25 @@ fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
                                                                     shareable);
                     match (result, combinator) {
                         // Return the status immediately.
-                        (Matched, _) => return result,
-                        (NotMatchedGlobally, _) => return result,
+                        (SelectorMatchingResult::Matched, _) => return result,
+                        (SelectorMatchingResult::NotMatchedGlobally, _) => return result,
 
                         // Upgrade the failure status to
                         // NotMatchedAndRestartFromClosestDescendant.
-                        (_, Child) => return NotMatchedAndRestartFromClosestDescendant,
+                        (_, Combinator::Child) => return SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant,
 
                         // Return the status directly.
-                        (_, NextSibling) => return result,
+                        (_, Combinator::NextSibling) => return result,
 
                         // If the failure status is NotMatchedAndRestartFromClosestDescendant
-                        // and combinator is LaterSibling, give up this LaterSibling matching
+                        // and combinator is Combinator::LaterSibling, give up this Combinator::LaterSibling matching
                         // and restart from the closest descendant combinator.
-                        (NotMatchedAndRestartFromClosestDescendant, LaterSibling) => return result,
+                        (SelectorMatchingResult::NotMatchedAndRestartFromClosestDescendant, Combinator::LaterSibling) => return result,
 
-                        // The Descendant combinator and the status is
+                        // The Combinator::Descendant combinator and the status is
                         // NotMatchedAndRestartFromClosestLaterSibling or
                         // NotMatchedAndRestartFromClosestDescendant,
-                        // or the LaterSibling combinator and the status is
+                        // or the Combinator::LaterSibling combinator and the status is
                         // NotMatchedAndRestartFromClosestDescendant
                         // can continue to matching on the next candidate element.
                         _ => {},
@@ -789,8 +779,8 @@ pub struct CommonStyleAffectingAttributeInfo {
 }
 
 pub enum CommonStyleAffectingAttributeMode {
-    AttrIsPresentMode(CommonStyleAffectingAttributes),
-    AttrIsEqualMode(&'static str, CommonStyleAffectingAttributes),
+    IsPresent(CommonStyleAffectingAttributes),
+    IsEqual(&'static str, CommonStyleAffectingAttributes),
 }
 
 // NB: This must match the order in `layout::css::matching::CommonStyleAffectingAttributes`.
@@ -799,23 +789,23 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
     [
         CommonStyleAffectingAttributeInfo {
             atom: atom!("hidden"),
-            mode: AttrIsPresentMode(HIDDEN_ATTRIBUTE),
+            mode: CommonStyleAffectingAttributeMode::IsPresent(HIDDEN_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("nowrap"),
-            mode: AttrIsPresentMode(NO_WRAP_ATTRIBUTE),
+            mode: CommonStyleAffectingAttributeMode::IsPresent(NO_WRAP_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("align"),
-            mode: AttrIsEqualMode("left", ALIGN_LEFT_ATTRIBUTE),
+            mode: CommonStyleAffectingAttributeMode::IsEqual("left", ALIGN_LEFT_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("align"),
-            mode: AttrIsEqualMode("center", ALIGN_CENTER_ATTRIBUTE),
+            mode: CommonStyleAffectingAttributeMode::IsEqual("center", ALIGN_CENTER_ATTRIBUTE),
         },
         CommonStyleAffectingAttributeInfo {
             atom: atom!("align"),
-            mode: AttrIsEqualMode("right", ALIGN_RIGHT_ATTRIBUTE),
+            mode: CommonStyleAffectingAttributeMode::IsEqual("right", ALIGN_RIGHT_ATTRIBUTE),
         }
     ]
 }
@@ -840,48 +830,48 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
                                        -> bool
                                        where E: TElement<'a>, N: TNode<'a,E> {
     match *selector {
-        LocalNameSelector(LocalName { ref name, ref lower_name }) => {
+        SimpleSelector::LocalNameSelector(LocalName { ref name, ref lower_name }) => {
             let name = if element.is_html_element_in_html_document() { lower_name } else { name };
             let element = element.as_element();
             element.get_local_name() == name
         }
 
-        NamespaceSelector(ref namespace) => {
+        SimpleSelector::NamespaceSelector(ref namespace) => {
             let element = element.as_element();
             element.get_namespace() == namespace
         }
         // TODO: case-sensitivity depends on the document type and quirks mode
-        IDSelector(ref id) => {
+        SimpleSelector::IDSelector(ref id) => {
             *shareable = false;
             let element = element.as_element();
             element.get_id().map_or(false, |attr| {
                 attr == *id
             })
         }
-        ClassSelector(ref class) => {
+        SimpleSelector::ClassSelector(ref class) => {
             let element = element.as_element();
             element.has_class(class)
         }
 
-        AttrExists(ref attr) => {
+        SimpleSelector::AttrExists(ref attr) => {
             // NB(pcwalton): If you update this, remember to update the corresponding list in
             // `can_share_style_with()` as well.
             if common_style_affecting_attributes().iter().all(|common_attr_info| {
                 !(common_attr_info.atom == attr.name && match common_attr_info.mode {
-                    AttrIsPresentMode(_) => true,
-                    AttrIsEqualMode(..) => false,
+                    CommonStyleAffectingAttributeMode::IsPresent(_) => true,
+                    CommonStyleAffectingAttributeMode::IsEqual(..) => false,
                 })
             }) {
                 *shareable = false;
             }
             element.match_attr(attr, |_| true)
         }
-        AttrEqual(ref attr, ref value, case_sensitivity) => {
+        SimpleSelector::AttrEqual(ref attr, ref value, case_sensitivity) => {
             if value.as_slice() != "DIR" &&
                     common_style_affecting_attributes().iter().all(|common_attr_info| {
                         !(common_attr_info.atom == attr.name && match common_attr_info.mode {
-                            AttrIsEqualMode(target_value, _) => target_value == value.as_slice(),
-                            AttrIsPresentMode(_) => false,
+                            CommonStyleAffectingAttributeMode::IsEqual(target_value, _) => target_value == value.as_slice(),
+                            CommonStyleAffectingAttributeMode::IsPresent(_) => false,
                         })
                     }) {
                 // FIXME(pcwalton): Remove once we start actually supporting RTL text. This is in
@@ -890,56 +880,56 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             }
             element.match_attr(attr, |attr_value| {
                 match case_sensitivity {
-                    CaseSensitive => attr_value == value.as_slice(),
-                    CaseInsensitive => attr_value.eq_ignore_ascii_case(value.as_slice()),
+                    CaseSensitivity::CaseSensitive => attr_value == value.as_slice(),
+                    CaseSensitivity::CaseInsensitive => attr_value.eq_ignore_ascii_case(value.as_slice()),
                 }
             })
         }
-        AttrIncludes(ref attr, ref value) => {
+        SimpleSelector::AttrIncludes(ref attr, ref value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
                 attr_value.split(SELECTOR_WHITESPACE).any(|v| v == value.as_slice())
             })
         }
-        AttrDashMatch(ref attr, ref value, ref dashing_value) => {
+        SimpleSelector::AttrDashMatch(ref attr, ref value, ref dashing_value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
                 attr_value == value.as_slice() ||
                 attr_value.starts_with(dashing_value.as_slice())
             })
         }
-        AttrPrefixMatch(ref attr, ref value) => {
+        SimpleSelector::AttrPrefixMatch(ref attr, ref value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
                 attr_value.starts_with(value.as_slice())
             })
         }
-        AttrSubstringMatch(ref attr, ref value) => {
+        SimpleSelector::AttrSubstringMatch(ref attr, ref value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
                 attr_value.contains(value.as_slice())
             })
         }
-        AttrSuffixMatch(ref attr, ref value) => {
+        SimpleSelector::AttrSuffixMatch(ref attr, ref value) => {
             *shareable = false;
             element.match_attr(attr, |attr_value| {
                 attr_value.ends_with(value.as_slice())
             })
         }
 
-        AnyLink => {
+        SimpleSelector::AnyLink => {
             *shareable = false;
             let element = element.as_element();
             element.get_link().is_some()
         }
-        Link => {
+        SimpleSelector::Link => {
             let elem = element.as_element();
             match elem.get_link() {
                 Some(url) => !url_is_visited(url),
                 None => false,
             }
         }
-        Visited => {
+        SimpleSelector::Visited => {
             // NB(pcwalton): When we actually start supporting visited links, remember to update
             // `can_share_style_with`.
             let elem = element.as_element();
@@ -949,91 +939,91 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
             }
         }
 
-        Hover => {
+        SimpleSelector::Hover => {
             *shareable = false;
             let elem = element.as_element();
             elem.get_hover_state()
         },
         // http://www.whatwg.org/html/#selector-disabled
-        Disabled => {
+        SimpleSelector::Disabled => {
             *shareable = false;
             let elem = element.as_element();
             elem.get_disabled_state()
         },
         // http://www.whatwg.org/html/#selector-enabled
-        Enabled => {
+        SimpleSelector::Enabled => {
             *shareable = false;
             let elem = element.as_element();
             elem.get_enabled_state()
         },
         // https://html.spec.whatwg.org/multipage/scripting.html#selector-checked
-        Checked => {
+        SimpleSelector::Checked => {
             *shareable = false;
             let elem = element.as_element();
             elem.get_checked_state()
         }
         // https://html.spec.whatwg.org/multipage/scripting.html#selector-indeterminate
-        Indeterminate => {
+        SimpleSelector::Indeterminate => {
             *shareable = false;
             let elem = element.as_element();
             elem.get_indeterminate_state()
         }
-        FirstChild => {
+        SimpleSelector::FirstChild => {
             *shareable = false;
             matches_first_child(element)
         }
-        LastChild => {
+        SimpleSelector::LastChild => {
             *shareable = false;
             matches_last_child(element)
         }
-        OnlyChild => {
+        SimpleSelector::OnlyChild => {
             *shareable = false;
             matches_first_child(element) && matches_last_child(element)
         }
 
-        Root => {
+        SimpleSelector::Root => {
             *shareable = false;
             matches_root(element)
         }
 
-        NthChild(a, b) => {
+        SimpleSelector::NthChild(a, b) => {
             *shareable = false;
             matches_generic_nth_child(element, a, b, false, false)
         }
-        NthLastChild(a, b) => {
+        SimpleSelector::NthLastChild(a, b) => {
             *shareable = false;
             matches_generic_nth_child(element, a, b, false, true)
         }
-        NthOfType(a, b) => {
+        SimpleSelector::NthOfType(a, b) => {
             *shareable = false;
             matches_generic_nth_child(element, a, b, true, false)
         }
-        NthLastOfType(a, b) => {
+        SimpleSelector::NthLastOfType(a, b) => {
             *shareable = false;
             matches_generic_nth_child(element, a, b, true, true)
         }
 
-        FirstOfType => {
+        SimpleSelector::FirstOfType => {
             *shareable = false;
             matches_generic_nth_child(element, 0, 1, true, false)
         }
-        LastOfType => {
+        SimpleSelector::LastOfType => {
             *shareable = false;
             matches_generic_nth_child(element, 0, 1, true, true)
         }
-        OnlyOfType => {
+        SimpleSelector::OnlyOfType => {
             *shareable = false;
             matches_generic_nth_child(element, 0, 1, true, false) &&
                 matches_generic_nth_child(element, 0, 1, true, true)
         }
 
-        ServoNonzeroBorder => {
+        SimpleSelector::ServoNonzeroBorder => {
             *shareable = false;
             let elem = element.as_element();
             elem.has_nonzero_border()
         }
 
-        Negation(ref negated) => {
+        SimpleSelector::Negation(ref negated) => {
             *shareable = false;
             !negated.iter().all(|s| matches_simple_selector(s, element, shareable))
         },
@@ -1186,13 +1176,13 @@ mod tests {
     fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         use namespaces::NamespaceMap;
         use selectors::{ParserContext, parse_selector_list};
-        use selector_matching::AuthorOrigin;
+        use selector_matching::StylesheetOrigin;
         use cssparser::tokenize;
 
         let namespaces = NamespaceMap::new();
         css_selectors.iter().enumerate().map(|(i, selectors)| {
             let context = ParserContext {
-                origin: AuthorOrigin,
+                origin: StylesheetOrigin::Author,
             };
             parse_selector_list(&context, tokenize(*selectors).map(|(c, _)| c), &namespaces)
             .unwrap().into_iter().map(|s| {
