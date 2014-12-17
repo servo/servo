@@ -18,7 +18,7 @@ dependencies = [
 [[package]]
 name = "android_glue"
 version = "0.0.1"
-source = "git+https://github.com/tomaka/android-rs-glue#cac0adb90bc576758f1ebf3b5e567961b1605c1f"
+source = "git+https://github.com/servo/android-rs-glue?ref=servo#de9f604bfc71e07f4e968d5dd393de5442dbb2c8"
 dependencies = [
  "compile_msg 0.1.1 (git+https://github.com/huonw/compile_msg)",
 ]
@@ -64,7 +64,7 @@ source = "git+https://github.com/servo/rust-cocoa#19d6f6977dcedbf29000b65d83df66
 [[package]]
 name = "compile_msg"
 version = "0.1.1"
-source = "git+https://github.com/huonw/compile_msg#f526abe54b49642bc1e969e6c2af1411798b6776"
+source = "git+https://github.com/huonw/compile_msg#32a98df61c600ca5487487d2b5e8c55f4bc7a91a"
 
 [[package]]
 name = "compositing"
@@ -329,14 +329,14 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.2"
-source = "git+https://github.com/tomaka/glutin#749c47d8c20af078b06e8506b68a54e3799c1a8b"
+source = "git+https://github.com/servo/glutin?ref=servo#b86cbe5c61a943683309384fc9d7e7e97d58e290"
 dependencies = [
- "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue)",
+ "android_glue 0.0.1 (git+https://github.com/servo/android-rs-glue?ref=servo)",
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
- "compile_msg 0.1.1 (git+https://github.com/huonw/compile_msg)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "gl_common 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
  "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "winapi 0.0.1 (git+https://github.com/retep998/winapi-rs)",
 ]
 
 [[package]]
@@ -347,7 +347,7 @@ dependencies = [
  "compositing 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
- "glutin 0.0.2 (git+https://github.com/tomaka/glutin)",
+ "glutin 0.0.2 (git+https://github.com/servo/glutin?ref=servo)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
  "time 0.1.0 (git+https://github.com/rust-lang/time)",
@@ -716,6 +716,11 @@ dependencies = [
 name = "uuid"
 version = "0.0.2"
 source = "git+https://github.com/rust-lang/uuid#f5d94d0043a615756edefaf9c6041f11e52b8370"
+
+[[package]]
+name = "winapi"
+version = "0.0.1"
+source = "git+https://github.com/retep998/winapi-rs#80b6574a8bad8fc0a1f19c788b27a459bab26c83"
 
 [[package]]
 name = "xlib"
