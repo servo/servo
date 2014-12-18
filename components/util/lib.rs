@@ -39,6 +39,7 @@ use std::sync::Arc;
 
 pub mod bloom;
 pub mod cache;
+pub mod cursor;
 pub mod debug_utils;
 pub mod dlist;
 pub mod fnv;

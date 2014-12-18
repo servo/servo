@@ -32,6 +32,7 @@ use std::comm::Receiver;
 use std::num::Float;
 use std::rc::Rc;
 use time::{mod, Timespec};
+use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 
 /// The type of a window.
@@ -241,6 +242,12 @@ impl WindowMethods for Window {
         true
     }
 
+    fn set_cursor(&self, _: Cursor) {
+        // No-op. We could take over mouse handling ourselves and draw the cursor as an extra
+        // layer with our own custom bitmaps or something, but it doesn't seem worth the
+        // trouble.
+    }
+
     fn load_end(&self) {}
 
     fn set_page_title(&self, _: Option<String>) {}
@@ -269,14 +276,7 @@ impl Window {
                 self.event_queue.borrow_mut().push(Refresh);
             },
             glfw::MouseButtonEvent(button, action, _mods) => {
-                let (x, y) = window.get_cursor_pos();
-                //handle hidpi displays, since GLFW returns non-hi-def coordinates.
-                let (backing_size, _) = window.get_framebuffer_size();
-                let (window_size, _) = window.get_size();
-                let hidpi = (backing_size as f32) / (window_size as f32);
-                let x = x as f32 * hidpi;
-                let y = y as f32 * hidpi;
-
+                let cursor_position = self.cursor_position();
                 match button {
                     glfw::MouseButton::Button5 => { // Back button (might be different per platform)
                         self.event_queue.borrow_mut().push(Navigation(Back));
@@ -285,14 +285,18 @@ impl Window {
                         self.event_queue.borrow_mut().push(Navigation(Forward));
                     },
                     glfw::MouseButtonLeft | glfw::MouseButtonRight => {
-                        self.handle_mouse(button, action, x as i32, y as i32);
+                        self.handle_mouse(button,
+                                          action,
+                                          cursor_position.x.get() as i32,
+                                          cursor_position.y.get() as i32);
                     }
                     _ => {}
                 }
             },
-            glfw::CursorPosEvent(xpos, ypos) => {
-                self.event_queue.borrow_mut().push(
-                    MouseWindowMoveEventClass(TypedPoint2D(xpos as f32, ypos as f32)));
+            glfw::CursorPosEvent(..) => {
+                self.event_queue
+                    .borrow_mut()
+                    .push(MouseWindowMoveEventClass(self.cursor_position()));
             },
             glfw::ScrollEvent(xpos, ypos) => {
                 match (window.get_key(glfw::Key::LeftControl),
@@ -392,6 +396,14 @@ impl Window {
             _ => panic!("I cannot recognize the type of mouse action that occured. :-(")
         };
         self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
+    }
+
+    /// Returns the cursor position, properly accounting for HiDPI.
+    fn cursor_position(&self) -> TypedPoint2D<DevicePixel,f32> {
+        // Handle hidpi displays, since GLFW returns non-hi-def coordinates.
+        let (x, y) = self.glfw_window.get_cursor_pos();
+        let hidpi_factor = self.hidpi_factor();
+        Point2D::from_untyped(&Point2D(x as f32, y as f32)) * hidpi_factor
     }
 }
 

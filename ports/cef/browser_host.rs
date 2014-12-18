@@ -109,6 +109,13 @@ cef_class_impl! {
             }
         }
 
+        fn send_mouse_move_event(&_this, event: *const cef_mouse_event, _mouse_exited: c_int)
+                                 -> () {
+            let event: &cef_mouse_event = event;
+            let point = TypedPoint2D((*event).x as f32, (*event).y as f32);
+            core::send_window_event(WindowEvent::MouseWindowMoveEventClass(point))
+        }
+
         fn send_mouse_wheel_event(&_this,
                                   event: *const cef_mouse_event,
                                   delta_x: c_int,
