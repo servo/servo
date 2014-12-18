@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use self::BreakType::*;
-use self::GlyphInfo::*;
-
 use servo_util::vec::*;
 use servo_util::range;
 use servo_util::range::{Range, RangeIndex, EachIndex};
@@ -92,9 +89,9 @@ pub type GlyphId = u32;
 // TODO: unify with bit flags?
 #[deriving(PartialEq)]
 pub enum BreakType {
-    BreakTypeNone,
-    BreakTypeNormal,
-    BreakTypeHyphen,
+    None,
+    Normal,
+    Hyphen,
 }
 
 static BREAK_TYPE_NONE:   u8 = 0x0;
@@ -103,19 +100,19 @@ static BREAK_TYPE_HYPHEN: u8 = 0x2;
 
 fn break_flag_to_enum(flag: u8) -> BreakType {
     if (flag & BREAK_TYPE_NORMAL) != 0 {
-        BreakTypeNormal
+        BreakType::Normal
     } else if (flag & BREAK_TYPE_HYPHEN) != 0 {
-        BreakTypeHyphen
+        BreakType::Hyphen
     } else {
-        BreakTypeNone
+        BreakType::None
     }
 }
 
 fn break_enum_to_flag(e: BreakType) -> u8 {
     match e {
-        BreakTypeNone   => BREAK_TYPE_NONE,
-        BreakTypeNormal => BREAK_TYPE_NORMAL,
-        BreakTypeHyphen => BREAK_TYPE_HYPHEN,
+        BreakType::None   => BREAK_TYPE_NONE,
+        BreakType::Normal => BREAK_TYPE_NORMAL,
+        BreakType::Hyphen => BREAK_TYPE_HYPHEN,
     }
 }
 
@@ -447,15 +444,15 @@ impl GlyphData {
 // Rather than eagerly assembling and copying glyph data, it only retrieves
 // values as they are needed from the GlyphStore, using provided offsets.
 pub enum GlyphInfo<'a> {
-    SimpleGlyphInfo(&'a GlyphStore, CharIndex),
-    DetailGlyphInfo(&'a GlyphStore, CharIndex, u16),
+    Simple(&'a GlyphStore, CharIndex),
+    Detail(&'a GlyphStore, CharIndex, u16),
 }
 
 impl<'a> GlyphInfo<'a> {
     pub fn id(self) -> GlyphId {
         match self {
-            SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i.to_uint()].id(),
-            DetailGlyphInfo(store, entry_i, detail_j) => {
+            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_uint()].id(),
+            GlyphInfo::Detail(store, entry_i, detail_j) => {
                 store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).id
             }
         }
@@ -465,8 +462,8 @@ impl<'a> GlyphInfo<'a> {
     // FIXME: Resolution conflicts with IteratorUtil trait so adding trailing _
     pub fn advance(self) -> Au {
         match self {
-            SimpleGlyphInfo(store, entry_i) => store.entry_buffer[entry_i.to_uint()].advance(),
-            DetailGlyphInfo(store, entry_i, detail_j) => {
+            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.to_uint()].advance(),
+            GlyphInfo::Detail(store, entry_i, detail_j) => {
                 store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).advance
             }
         }
@@ -474,8 +471,8 @@ impl<'a> GlyphInfo<'a> {
 
     pub fn offset(self) -> Option<Point2D<Au>> {
         match self {
-            SimpleGlyphInfo(_, _) => None,
-            DetailGlyphInfo(store, entry_i, detail_j) => {
+            GlyphInfo::Simple(_, _) => None,
+            GlyphInfo::Detail(store, entry_i, detail_j) => {
                 Some(store.detail_store.get_detailed_glyph_with_index(entry_i, detail_j).offset)
             }
         }
@@ -705,7 +702,7 @@ impl<'a> GlyphIterator<'a> {
     fn next_glyph_range(&mut self) -> Option<(CharIndex, GlyphInfo<'a>)> {
         match self.glyph_range.as_mut().unwrap().next() {
             Some(j) => Some((self.char_index,
-                DetailGlyphInfo(self.store, self.char_index, j.get() as u16 /* ??? */))),
+                GlyphInfo::Detail(self.store, self.char_index, j.get() as u16 /* ??? */))),
             None => {
                 // No more glyphs for current character.  Try to get another.
                 self.glyph_range = None;
@@ -744,7 +741,7 @@ impl<'a> Iterator<(CharIndex, GlyphInfo<'a>)> for GlyphIterator<'a> {
                 assert!(i < self.store.char_len());
                 let entry = self.store.entry_buffer[i.to_uint()];
                 if entry.is_simple() {
-                    Some((self.char_index, SimpleGlyphInfo(self.store, i)))
+                    Some((self.char_index, GlyphInfo::Simple(self.store, i)))
                 } else {
                     // Fall back to the slow path.
                     self.next_complex_glyph(&entry, i)

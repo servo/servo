@@ -357,7 +357,7 @@ impl StackingContext {
                     continue
                 }
                 match *item {
-                    BorderDisplayItemClass(ref border) => {
+                    DisplayItem::BorderClass(ref border) => {
                         // If the point is inside the border, it didn't hit the border!
                         let interior_rect =
                             Rect(Point2D(border.base.bounds.origin.x + border.border_widths.left,
@@ -459,13 +459,13 @@ pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id
 /// One drawing command in the list.
 #[deriving(Clone)]
 pub enum DisplayItem {
-    SolidColorDisplayItemClass(Box<SolidColorDisplayItem>),
-    TextDisplayItemClass(Box<TextDisplayItem>),
-    ImageDisplayItemClass(Box<ImageDisplayItem>),
-    BorderDisplayItemClass(Box<BorderDisplayItem>),
-    GradientDisplayItemClass(Box<GradientDisplayItem>),
-    LineDisplayItemClass(Box<LineDisplayItem>),
-    BoxShadowDisplayItemClass(Box<BoxShadowDisplayItem>),
+    SolidColorClass(Box<SolidColorDisplayItem>),
+    TextClass(Box<TextDisplayItem>),
+    ImageClass(Box<ImageDisplayItem>),
+    BorderClass(Box<BorderDisplayItem>),
+    GradientClass(Box<GradientDisplayItem>),
+    LineClass(Box<LineDisplayItem>),
+    BoxShadowClass(Box<BoxShadowDisplayItem>),
 }
 
 /// Information common to all display items.
@@ -656,16 +656,16 @@ pub struct BoxShadowDisplayItem {
 }
 
 pub enum DisplayItemIterator<'a> {
-    EmptyDisplayItemIterator,
-    ParentDisplayItemIterator(dlist::Items<'a,DisplayItem>),
+    Empty,
+    Parent(dlist::Items<'a,DisplayItem>),
 }
 
 impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
     #[inline]
     fn next(&mut self) -> Option<&'a DisplayItem> {
         match *self {
-            EmptyDisplayItemIterator => None,
-            ParentDisplayItemIterator(ref mut subiterator) => subiterator.next(),
+            DisplayItemIterator::Empty => None,
+            DisplayItemIterator::Parent(ref mut subiterator) => subiterator.next(),
         }
     }
 }
@@ -683,16 +683,16 @@ impl DisplayItem {
         }
 
         match *self {
-            SolidColorDisplayItemClass(ref solid_color) => {
+            DisplayItem::SolidColorClass(ref solid_color) => {
                 paint_context.draw_solid_color(&solid_color.base.bounds, solid_color.color)
             }
 
-            TextDisplayItemClass(ref text) => {
+            DisplayItem::TextClass(ref text) => {
                 debug!("Drawing text at {}.", text.base.bounds);
                 paint_context.draw_text(&**text);
             }
 
-            ImageDisplayItemClass(ref image_item) => {
+            DisplayItem::ImageClass(ref image_item) => {
                 debug!("Drawing image at {}.", image_item.base.bounds);
 
                 let mut y_offset = Au(0);
@@ -713,7 +713,7 @@ impl DisplayItem {
                 }
             }
 
-            BorderDisplayItemClass(ref border) => {
+            DisplayItem::BorderClass(ref border) => {
                 paint_context.draw_border(&border.base.bounds,
                                            border.border_widths,
                                            &border.radius,
@@ -721,20 +721,20 @@ impl DisplayItem {
                                            border.style)
             }
 
-            GradientDisplayItemClass(ref gradient) => {
+            DisplayItem::GradientClass(ref gradient) => {
                 paint_context.draw_linear_gradient(&gradient.base.bounds,
                                                     &gradient.start_point,
                                                     &gradient.end_point,
                                                     gradient.stops.as_slice());
             }
 
-            LineDisplayItemClass(ref line) => {
+            DisplayItem::LineClass(ref line) => {
                 paint_context.draw_line(&line.base.bounds,
                                           line.color,
                                           line.style)
             }
 
-            BoxShadowDisplayItemClass(ref box_shadow) => {
+            DisplayItem::BoxShadowClass(ref box_shadow) => {
                 paint_context.draw_box_shadow(&box_shadow.box_bounds,
                                               &box_shadow.offset,
                                               box_shadow.color,
@@ -747,25 +747,25 @@ impl DisplayItem {
 
     pub fn base<'a>(&'a self) -> &'a BaseDisplayItem {
         match *self {
-            SolidColorDisplayItemClass(ref solid_color) => &solid_color.base,
-            TextDisplayItemClass(ref text) => &text.base,
-            ImageDisplayItemClass(ref image_item) => &image_item.base,
-            BorderDisplayItemClass(ref border) => &border.base,
-            GradientDisplayItemClass(ref gradient) => &gradient.base,
-            LineDisplayItemClass(ref line) => &line.base,
-            BoxShadowDisplayItemClass(ref box_shadow) => &box_shadow.base,
+            DisplayItem::SolidColorClass(ref solid_color) => &solid_color.base,
+            DisplayItem::TextClass(ref text) => &text.base,
+            DisplayItem::ImageClass(ref image_item) => &image_item.base,
+            DisplayItem::BorderClass(ref border) => &border.base,
+            DisplayItem::GradientClass(ref gradient) => &gradient.base,
+            DisplayItem::LineClass(ref line) => &line.base,
+            DisplayItem::BoxShadowClass(ref box_shadow) => &box_shadow.base,
         }
     }
 
     pub fn mut_base<'a>(&'a mut self) -> &'a mut BaseDisplayItem {
         match *self {
-            SolidColorDisplayItemClass(ref mut solid_color) => &mut solid_color.base,
-            TextDisplayItemClass(ref mut text) => &mut text.base,
-            ImageDisplayItemClass(ref mut image_item) => &mut image_item.base,
-            BorderDisplayItemClass(ref mut border) => &mut border.base,
-            GradientDisplayItemClass(ref mut gradient) => &mut gradient.base,
-            LineDisplayItemClass(ref mut line) => &mut line.base,
-            BoxShadowDisplayItemClass(ref mut box_shadow) => &mut box_shadow.base,
+            DisplayItem::SolidColorClass(ref mut solid_color) => &mut solid_color.base,
+            DisplayItem::TextClass(ref mut text) => &mut text.base,
+            DisplayItem::ImageClass(ref mut image_item) => &mut image_item.base,
+            DisplayItem::BorderClass(ref mut border) => &mut border.base,
+            DisplayItem::GradientClass(ref mut gradient) => &mut gradient.base,
+            DisplayItem::LineClass(ref mut line) => &mut line.base,
+            DisplayItem::BoxShadowClass(ref mut box_shadow) => &mut box_shadow.base,
         }
     }
 
@@ -786,13 +786,13 @@ impl fmt::Show for DisplayItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{} @ {} ({:x})",
             match *self {
-                SolidColorDisplayItemClass(_) => "SolidColor",
-                TextDisplayItemClass(_) => "Text",
-                ImageDisplayItemClass(_) => "Image",
-                BorderDisplayItemClass(_) => "Border",
-                GradientDisplayItemClass(_) => "Gradient",
-                LineDisplayItemClass(_) => "Line",
-                BoxShadowDisplayItemClass(_) => "BoxShadow",
+                DisplayItem::SolidColorClass(_) => "SolidColor",
+                DisplayItem::TextClass(_) => "Text",
+                DisplayItem::ImageClass(_) => "Image",
+                DisplayItem::BorderClass(_) => "Border",
+                DisplayItem::GradientClass(_) => "Gradient",
+                DisplayItem::LineClass(_) => "Line",
+                DisplayItem::BoxShadowClass(_) => "BoxShadow",
             },
             self.base().bounds,
             self.base().metadata.node.id()
