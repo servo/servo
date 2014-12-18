@@ -369,7 +369,7 @@ impl RawLayoutElementHelpers for Element {
                                                         attribute: UnsignedIntegerAttribute)
                                                         -> Option<u32> {
         match attribute {
-            UnsignedIntegerAttribute::BorderUnsignedIntegerAttribute => {
+            UnsignedIntegerAttribute::Border => {
                 if self.is_htmltableelement() {
                     let this: &HTMLTableElement = mem::transmute(self);
                     this.get_border()
@@ -379,7 +379,7 @@ impl RawLayoutElementHelpers for Element {
                     None
                 }
             }
-            UnsignedIntegerAttribute::ColSpanUnsignedIntegerAttribute => {
+            UnsignedIntegerAttribute::ColSpan => {
                 if self.is_htmltablecellelement() {
                     let this: &HTMLTableCellElement = mem::transmute(self);
                     this.get_colspan()
@@ -397,7 +397,7 @@ impl RawLayoutElementHelpers for Element {
     unsafe fn get_simple_color_attribute_for_layout(&self, attribute: SimpleColorAttribute)
                                                     -> Option<RGBA> {
         match attribute {
-            SimpleColorAttribute::BgColorSimpleColorAttribute => {
+            SimpleColorAttribute::BgColor => {
                 if self.is_htmlbodyelement() {
                     let this: &HTMLBodyElement = mem::transmute(self);
                     this.get_background_color()

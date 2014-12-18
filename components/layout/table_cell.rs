@@ -39,7 +39,7 @@ impl TableCellFlow {
                                                   -> TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
-            column_span: node.get_unsigned_integer_attribute(UnsignedIntegerAttribute::ColSpanUnsignedIntegerAttribute)
+            column_span: node.get_unsigned_integer_attribute(UnsignedIntegerAttribute::ColSpan)
                              .unwrap_or(1),
             visible: visible,
         }
