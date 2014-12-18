@@ -10,7 +10,7 @@ use azure::azure_hl;
 use geom::length::Length;
 use geom::matrix::identity;
 use geom::point::{Point2D, TypedPoint2D};
-use geom::size::{Size2D, TypedSize2D};
+use geom::size::TypedSize2D;
 use geom::rect::Rect;
 use gfx::paint_task::UnusedBufferMsg;
 use layers::color::Color;
@@ -69,7 +69,7 @@ impl CompositorData {
 }
 
 pub trait CompositorLayer {
-    fn update_layer_except_size(&self, layer_properties: LayerProperties);
+    fn update_layer_except_bounds(&self, layer_properties: LayerProperties);
 
     fn update_layer(&self, layer_properties: LayerProperties);
 
@@ -166,7 +166,7 @@ pub enum ScrollEventResult {
 }
 
 impl CompositorLayer for Layer<CompositorData> {
-    fn update_layer_except_size(&self, layer_properties: LayerProperties) {
+    fn update_layer_except_bounds(&self, layer_properties: LayerProperties) {
         self.extra_data.borrow_mut().epoch = layer_properties.epoch;
         self.extra_data.borrow_mut().scroll_policy = layer_properties.scroll_policy;
 
@@ -176,12 +176,12 @@ impl CompositorLayer for Layer<CompositorData> {
     }
 
     fn update_layer(&self, layer_properties: LayerProperties) {
-        self.resize(Size2D::from_untyped(&layer_properties.rect.size));
+        *self.bounds.borrow_mut() = Rect::from_untyped(&layer_properties.rect);
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
         // cursor position to make sure the scroll isn't propagated downwards.
         self.handle_scroll_event(TypedPoint2D(0f32, 0f32), TypedPoint2D(-1f32, -1f32));
-        self.update_layer_except_size(layer_properties);
+        self.update_layer_except_bounds(layer_properties);
     }
 
     // Add LayerBuffers to the specified layer. Returns the layer buffer set back if the layer that
