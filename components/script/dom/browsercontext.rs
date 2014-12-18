@@ -65,6 +65,8 @@ impl BrowserContext {
     }
 }
 
+// This isn't a DOM struct, just a convenience struct
+// without a reflector, so we don't mark this as #[dom_struct]
 #[must_root]
 #[privatize]
 #[jstraceable]

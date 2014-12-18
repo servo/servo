@@ -277,7 +277,7 @@ impl LintPass for InheritancePass {
                                         if match_lang_ty(cx, &*f.node.ty, "reflector") {
                                             if ctr > 0 {
                                                 cx.span_lint(INHERITANCE_INTEGRITY, f.span,
-                                                             "The Reflector should be the first field of the DOM struct");                                            
+                                                             "The Reflector should be the first field of the DOM struct");
                                             }
                                             return true;
                                         }
@@ -287,7 +287,7 @@ impl LintPass for InheritancePass {
             // Find all #[dom_struct] fields
             let dom_spans: Vec<_> = def.fields.iter().enumerate().filter_map(|(ctr, f)| {
                 if let ast::TyPath(_, _, ty_id) = f.node.ty.node {
-                    if let Some(def::DefTy(def_id, _)) = cx.tcx.def_map.borrow().find_copy(&ty_id) {
+                    if let Some(def::DefTy(def_id, _)) = cx.tcx.def_map.borrow().get(&ty_id).cloned() {
                         if ty::has_attr(cx.tcx, def_id, "_dom_struct_marker") {
                             // If the field is not the first, it's probably
                             // being misused (a)
@@ -327,7 +327,7 @@ impl LintPass for InheritancePass {
                 }
             } else if dom_spans.len() == 0 {
                 cx.span_lint(INHERITANCE_INTEGRITY, cx.tcx.map.expect_item(id).span,
-                             "This DOM struct has no reflector or parent DOM struct");                
+                             "This DOM struct has no reflector or parent DOM struct");
             }
         }
     }

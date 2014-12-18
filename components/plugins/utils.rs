@@ -39,7 +39,7 @@ pub fn match_ty_unwrap<'a>(ty: &'a Ty, segments: &[&str]) -> Option<&'a [P<Ty>]>
 pub fn match_lang_ty(cx: &Context, ty: &Ty, value: &str) -> bool {
     let mut found = false;
     if let TyPath(_, _, ty_id) = ty.node {
-        if let Some(def::DefTy(def_id, _)) = cx.tcx.def_map.borrow().find_copy(&ty_id) {
+        if let Some(def::DefTy(def_id, _)) = cx.tcx.def_map.borrow().get(&ty_id).cloned() {
             // Iterating through attributes is hard because of cross-crate defs
             ty::each_attr(cx.tcx, def_id, |attr| {
                 if let ast::MetaNameValue(ref name, ref val) = attr.node.value.node {
