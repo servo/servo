@@ -1330,6 +1330,8 @@ pub mod longhands {
 
     ${single_keyword("empty-cells", "show hide")}
 
+    ${single_keyword("caption-side", "top bottom")}
+
     // CSS 2.1, Section 18 - User interface
 
 
