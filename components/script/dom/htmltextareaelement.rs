@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrValue, UIntAttrValue};
+use dom::attr::{Attr, AttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -15,15 +15,15 @@ use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{AttributeHandlers, HTMLTextAreaElementTypeId, Element};
+use dom::element::{Element, AttributeHandlers, ElementTypeId};
 use dom::event::Event;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::FormControl;
 use dom::keyboardevent::KeyboardEvent;
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, OtherNodeDamage, ElementNodeTypeId};
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::node::{document_from_node};
-use textinput::{Multiple, TextInput, TriggerDefaultAction, DispatchInput, Nothing};
+use textinput::{TextInput, Lines, KeyReaction};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::DOMString;
@@ -44,7 +44,7 @@ pub struct HTMLTextAreaElement {
 
 impl HTMLTextAreaElementDerived for EventTarget {
     fn is_htmltextareaelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTextAreaElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement))
     }
 }
 
@@ -82,8 +82,8 @@ static DEFAULT_ROWS: u32 = 2;
 impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTextAreaElementTypeId, localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Multiple, "".to_string())),
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTextAreaElement, localName, prefix, document),
+            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_string())),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),
@@ -194,7 +194,7 @@ impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
     fn force_relayout(self) {
         let doc = document_from_node(self).root();
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        doc.content_changed(node, OtherNodeDamage)
+        doc.content_changed(node, NodeDamage::OtherNodeDamage)
     }
 }
 
@@ -218,14 +218,14 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             },
             &atom!("cols") => {
                 match *attr.value() {
-                    UIntAttrValue(_, value) => self.cols.set(value),
-                    _ => panic!("Expected a UIntAttrValue"),
+                    AttrValue::UInt(_, value) => self.cols.set(value),
+                    _ => panic!("Expected an AttrValue::UInt"),
                 }
             },
             &atom!("rows") => {
                 match *attr.value() {
-                    UIntAttrValue(_, value) => self.rows.set(value),
-                    _ => panic!("Expected a UIntAttrValue"),
+                    AttrValue::UInt(_, value) => self.rows.set(value),
+                    _ => panic!("Expected an AttrValue::UInt"),
                 }
             },
             _ => ()
@@ -318,12 +318,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
             keyevent.map(|event| {
                 match self.textinput.borrow_mut().handle_keydown(event) {
-                    TriggerDefaultAction => (),
-                    DispatchInput => {
+                    KeyReaction::TriggerDefaultAction => (),
+                    KeyReaction::DispatchInput => {
                         self.force_relayout();
                         self.value_changed.set(true);
                     }
-                    Nothing => (),
+                    KeyReaction::Nothing => (),
                 }
             });
         }

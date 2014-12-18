@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::callback::ReportExceptions;
+use dom::bindings::callback::ExceptionHandling::ReportExceptions;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
 
-use script_task::{FireTimerMsg, ScriptChan};
-use script_task::{TimerSource, FromWindow, FromWorker};
+use script_task::{ScriptChan, TimerSource};
+use script_task::ScriptMsg::FireTimerMsg;
 
 use servo_util::task::spawn_named;
 
@@ -112,10 +112,10 @@ impl TimerManager {
         let tm = Timer::new().unwrap();
         let (cancel_chan, cancel_port) = channel();
         let spawn_name = match source {
-            FromWindow(_) if is_interval == IsInterval::Interval => "Window:SetInterval",
-            FromWorker if is_interval == IsInterval::Interval => "Worker:SetInterval",
-            FromWindow(_) => "Window:SetTimeout",
-            FromWorker => "Worker:SetTimeout",
+            TimerSource::FromWindow(_) if is_interval == IsInterval::Interval => "Window:SetInterval",
+            TimerSource::FromWorker if is_interval == IsInterval::Interval => "Worker:SetInterval",
+            TimerSource::FromWindow(_) => "Window:SetTimeout",
+            TimerSource::FromWorker => "Worker:SetTimeout",
         };
         spawn_named(spawn_name, proc() {
             let mut tm = tm;

@@ -124,7 +124,7 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
 pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *mut JSObject,
-                                        proto_id: PrototypeList::id::ID,
+                                        proto_id: PrototypeList::id,
                                         proto_depth: uint) -> Result<JS<T>, ()> {
     unsafe {
         let dom_class = get_dom_class(obj).or_else(|_| {
@@ -212,11 +212,11 @@ impl ConstantSpec {
     /// Returns a `JSVal` that represents the value of this `ConstantSpec`.
     pub fn get_value(&self) -> JSVal {
         match self.value {
-            NullVal => NullValue(),
-            IntVal(i) => Int32Value(i),
-            UintVal(u) => UInt32Value(u),
-            DoubleVal(d) => DoubleValue(d),
-            BoolVal(b) => BooleanValue(b),
+            ConstantVal::NullVal => NullValue(),
+            ConstantVal::IntVal(i) => Int32Value(i),
+            ConstantVal::UintVal(u) => UInt32Value(u),
+            ConstantVal::DoubleVal(d) => DoubleValue(d),
+            ConstantVal::BoolVal(b) => BooleanValue(b),
         }
     }
 }
@@ -234,7 +234,7 @@ pub struct NativePropertyHooks {
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
-    pub interface_chain: [PrototypeList::id::ID, ..MAX_PROTO_CHAIN_LENGTH],
+    pub interface_chain: [PrototypeList::id, ..MAX_PROTO_CHAIN_LENGTH],
 
     /// The NativePropertyHooks for the interface associated with this class.
     pub native_hooks: &'static NativePropertyHooks,
@@ -421,7 +421,7 @@ pub unsafe extern fn ThrowingConstructor(cx: *mut JSContext, _argc: c_uint, _vp:
 /// Construct and cache the ProtoOrIfaceArray for the given global.
 /// Fails if the argument is not a DOM global.
 pub fn initialize_global(global: *mut JSObject) {
-    let protoArray = box () ([0 as *mut JSObject, ..PrototypeList::id::IDCount as uint]);
+    let protoArray = box () ([0 as *mut JSObject, ..PrototypeList::id::Count as uint]);
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
         let box_ = squirrel_away_unique(protoArray);
@@ -722,10 +722,10 @@ pub fn xml_name_type(name: &str) -> XMLName {
     let mut non_qname_colons = false;
     let mut seen_colon = false;
     match iter.next() {
-        None => return InvalidXMLName,
+        None => return XMLName::InvalidXMLName,
         Some(c) => {
             if !is_valid_start(c) {
-                return InvalidXMLName;
+                return XMLName::InvalidXMLName;
             }
             if c == ':' {
                 non_qname_colons = true;
@@ -735,7 +735,7 @@ pub fn xml_name_type(name: &str) -> XMLName {
 
     for c in name.chars() {
         if !is_valid_continuation(c) {
-            return InvalidXMLName;
+            return XMLName::InvalidXMLName;
         }
         if c == ':' {
             match seen_colon {
@@ -746,7 +746,7 @@ pub fn xml_name_type(name: &str) -> XMLName {
     }
 
     match non_qname_colons {
-        false => QName,
-        true => Name
+        false => XMLName::QName,
+        true => XMLName::Name
     }
 }

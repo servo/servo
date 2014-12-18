@@ -53,7 +53,7 @@ impl HTMLCollection {
 impl HTMLCollection {
     pub fn create(window: JSRef<Window>, root: JSRef<Node>,
                   filter: Box<CollectionFilter+'static>) -> Temporary<HTMLCollection> {
-        HTMLCollection::new(window, Live(JS::from_rooted(root), filter))
+        HTMLCollection::new(window, CollectionTypeId::Live(JS::from_rooted(root), filter))
     }
 
     fn all_elements(window: JSRef<Window>, root: JSRef<Node>,
@@ -178,8 +178,8 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
     // http://dom.spec.whatwg.org/#dom-htmlcollection-length
     fn Length(self) -> u32 {
         match self.collection {
-            Static(ref elems) => elems.len() as u32,
-            Live(ref root, ref filter) => {
+            CollectionTypeId::Static(ref elems) => elems.len() as u32,
+            CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(*root)
                     .filter(|element| filter.filter(*element, *root))
@@ -191,11 +191,11 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
     // http://dom.spec.whatwg.org/#dom-htmlcollection-item
     fn Item(self, index: u32) -> Option<Temporary<Element>> {
         match self.collection {
-            Static(ref elems) => elems
+            CollectionTypeId::Static(ref elems) => elems
                 .as_slice()
                 .get(index as uint)
                 .map(|elem| Temporary::new(elem.clone())),
-            Live(ref root, ref filter) => {
+            CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(*root)
                     .filter(|element| filter.filter(*element, *root))
@@ -215,13 +215,13 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
 
         // Step 2.
         match self.collection {
-            Static(ref elems) => elems.iter()
+            CollectionTypeId::Static(ref elems) => elems.iter()
                 .map(|elem| elem.root())
                 .find(|elem| {
                     elem.get_string_attribute(&atom!("name")) == key ||
                     elem.get_string_attribute(&atom!("id")) == key })
                 .map(|maybe_elem| Temporary::from_rooted(*maybe_elem)),
-            Live(ref root, ref filter) => {
+            CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(*root)
                     .filter(|element| filter.filter(*element, *root))

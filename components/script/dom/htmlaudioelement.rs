@@ -7,10 +7,10 @@ use dom::bindings::codegen::InheritTypes::HTMLAudioElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLAudioElementTypeId;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlmediaelement::HTMLMediaElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -20,14 +20,14 @@ pub struct HTMLAudioElement {
 
 impl HTMLAudioElementDerived for EventTarget {
     fn is_htmlaudioelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLAudioElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLAudioElement))
     }
 }
 
 impl HTMLAudioElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAudioElement {
         HTMLAudioElement {
-            htmlmediaelement: HTMLMediaElement::new_inherited(HTMLAudioElementTypeId, localName, prefix, document)
+            htmlmediaelement: HTMLMediaElement::new_inherited(ElementTypeId::HTMLAudioElement, localName, prefix, document)
         }
     }
 

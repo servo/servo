@@ -6,7 +6,7 @@
 //! painted.
 
 use css::node_style::StyledNode;
-use construct::FlowConstructionResult;
+use construct::ConstructionResult;
 use context::SharedLayoutContext;
 use flow::{mod, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
@@ -33,8 +33,8 @@ use layout_traits;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
 use script::dom::bindings::js::JS;
-use script::dom::node::{ElementNodeTypeId, LayoutDataRef, Node};
-use script::dom::element::{HTMLBodyElementTypeId, HTMLHtmlElementTypeId};
+use script::dom::node::{LayoutDataRef, Node, NodeTypeId};
+use script::dom::element::ElementTypeId;
 use script::layout_interface::{AddStylesheetMsg, ContentBoxResponse, ContentBoxesResponse};
 use script::layout_interface::{ContentBoxesQuery, ContentBoxQuery, ExitNowMsg, GetRPCMsg};
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, LoadStylesheetMsg};
@@ -54,15 +54,15 @@ use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
-use servo_util::time::{TimeProfilerChan, profile, TimeRootWindow, TimeIFrame, TimeIncremental, TimeFirstReflow};
+use servo_util::time::{TimeProfilerChan, profile, TimerMetadataFrameType, TimerMetadataReflowType};
 use servo_util::time;
 use servo_util::workqueue::WorkQueue;
 use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
-use style::{AuthorOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
-use style::{Device, Screen};
+use style::{StylesheetOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
+use style::{MediaType, Device};
 use sync::{Arc, Mutex, MutexGuard};
 use url::Url;
 
@@ -217,8 +217,8 @@ enum RWGuard<'a> {
 impl<'a> Deref<LayoutTaskData> for RWGuard<'a> {
     fn deref(&self) -> &LayoutTaskData {
         match *self {
-            Held(ref x) => x.deref(),
-            Used(ref x) => x.deref(),
+            RWGuard::Held(ref x) => x.deref(),
+            RWGuard::Used(ref x) => x.deref(),
         }
     }
 }
@@ -226,8 +226,8 @@ impl<'a> Deref<LayoutTaskData> for RWGuard<'a> {
 impl<'a> DerefMut<LayoutTaskData> for RWGuard<'a> {
     fn deref_mut(&mut self) -> &mut LayoutTaskData {
         match *self {
-            Held(ref mut x) => x.deref_mut(),
-            Used(ref mut x) => x.deref_mut(),
+            RWGuard::Held(ref mut x) => x.deref_mut(),
+            RWGuard::Used(ref mut x) => x.deref_mut(),
         }
     }
 }
@@ -249,7 +249,7 @@ impl LayoutTask {
         let local_image_cache =
             Arc::new(Mutex::new(LocalImageCache::new(image_cache_task.clone())));
         let screen_size = Size2D(Au(0), Au(0));
-        let device = Device::new(Screen, opts::get().initial_window_size.as_f32() * ScaleFactor(1.0));
+        let device = Device::new(MediaType::Screen, opts::get().initial_window_size.as_f32() * ScaleFactor(1.0));
         let parallel_traversal = if opts::get().layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", task_state::LAYOUT,
                                 opts::get().layout_threads, ptr::null()))
@@ -332,23 +332,23 @@ impl LayoutTask {
             }
             let ret = sel.wait();
             if ret == port1.id() {
-                Script
+                PortToRead::Script
             } else if ret == port2.id() {
-                Pipeline
+                PortToRead::Pipeline
             } else {
                 panic!("invalid select result");
             }
         };
 
         match port_to_read {
-            Pipeline => {
+            PortToRead::Pipeline => {
                 match self.pipeline_port.recv() {
                     layout_traits::ExitNowMsg => {
                         self.handle_script_request(ExitNowMsg, possibly_locked_rw_data)
                     }
                 }
             },
-            Script => {
+            PortToRead::Script => {
                 let msg = self.port.recv();
                 self.handle_script_request(msg, possibly_locked_rw_data)
             }
@@ -365,8 +365,8 @@ impl LayoutTask {
                         possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
                         -> RWGuard<'a> {
         match possibly_locked_rw_data.take() {
-            None    => Used(self.rw_data.lock()),
-            Some(x) => Held(x),
+            None    => RWGuard::Used(self.rw_data.lock()),
+            Some(x) => RWGuard::Held(x),
         }
     }
 
@@ -376,8 +376,8 @@ impl LayoutTask {
     fn return_rw_data<'a>(possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>,
                           rw_data: RWGuard<'a>) {
         match rw_data {
-            Used(x) => drop(x),
-            Held(x) => *possibly_locked_rw_data = Some(x),
+            RWGuard::Used(x) => drop(x),
+            RWGuard::Held(x) => *possibly_locked_rw_data = Some(x),
         }
     }
 
@@ -398,8 +398,8 @@ impl LayoutTask {
             ReflowMsg(data) => {
                 profile(time::LayoutPerformCategory,
                         Some((&data.url,
-                        if data.iframe { TimeIFrame } else { TimeRootWindow },
-                        if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental })),
+                        if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
+                        if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental })),
                         self.time_profiler_chan.clone(),
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
             },
@@ -483,7 +483,7 @@ impl LayoutTask {
                                                 final_url,
                                                 protocol_encoding_label,
                                                 Some(environment_encoding),
-                                                AuthorOrigin);
+                                                StylesheetOrigin::Author);
         self.handle_add_stylesheet(sheet, possibly_locked_rw_data);
     }
 
@@ -522,7 +522,7 @@ impl LayoutTask {
         let result = layout_data.data.flow_construction_result.swap_out();
 
         let mut flow = match result {
-            FlowConstructionResult(mut flow, abs_descendants) => {
+            ConstructionResult::Flow(mut flow, abs_descendants) => {
                 // Note: Assuming that the root has display 'static' (as per
                 // CSS Section 9.3.1). Otherwise, if it were absolutely
                 // positioned, it would return a reference to itself in
@@ -574,8 +574,8 @@ impl LayoutTask {
                 // operation out.
                 parallel::traverse_flow_tree_preorder(layout_root,
                                                       &data.url,
-                                                      if data.iframe { TimeIFrame } else { TimeRootWindow },
-                                                      if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental },
+                                                      if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
+                                                      if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental },
                                                       self.time_profiler_chan.clone(),
                                                       shared_layout_context,
                                                       traversal);
@@ -629,8 +629,8 @@ impl LayoutTask {
         let writing_mode = flow::base(&**layout_root).writing_mode;
         profile(time::LayoutDispListBuildCategory,
                 Some((&data.url,
-                if data.iframe { TimeIFrame } else { TimeRootWindow },
-                if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental })),
+                if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
+                if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental })),
                      self.time_profiler_chan.clone(),
                      || {
             shared_layout_ctx.dirty =
@@ -650,8 +650,8 @@ impl LayoutTask {
                 Some(ref mut traversal) => {
                     parallel::build_display_list_for_subtree(layout_root,
                                                              &data.url,
-                                                             if data.iframe { TimeIFrame } else { TimeRootWindow },
-                                                             if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental },
+                                                             if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
+                                                             if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental },
                                                              self.time_profiler_chan.clone(),
                                                              shared_layout_ctx,
                                                              traversal);
@@ -664,8 +664,8 @@ impl LayoutTask {
             // it with extreme prejudice.
             let mut color = color::rgba(1.0, 1.0, 1.0, 1.0);
             for child in node.traverse_preorder() {
-                if child.type_id() == Some(ElementNodeTypeId(HTMLHtmlElementTypeId)) ||
-                        child.type_id() == Some(ElementNodeTypeId(HTMLBodyElementTypeId)) {
+                if child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLHtmlElement)) ||
+                        child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLBodyElement)) {
                     let element_bg_color = {
                         let thread_safe_child = ThreadSafeLayoutNode::new(&child);
                         thread_safe_child.style()
@@ -754,7 +754,7 @@ impl LayoutTask {
         let screen_size_changed = current_screen_size != old_screen_size;
 
         if screen_size_changed {
-            let device = Device::new(Screen, data.window_size.initial_viewport);
+            let device = Device::new(MediaType::Screen, data.window_size.initial_viewport);
             rw_data.stylist.set_device(device);
         }
 
@@ -776,8 +776,8 @@ impl LayoutTask {
 
         let mut layout_root = profile(time::LayoutStyleRecalcCategory,
                                       Some((&data.url,
-                                      if data.iframe { TimeIFrame } else { TimeRootWindow },
-                                      if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental })),
+                                      if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
+                                      if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental })),
                                       self.time_profiler_chan.clone(),
                                       || {
             // Perform CSS selector matching and flow construction.
@@ -796,8 +796,8 @@ impl LayoutTask {
 
         profile(time::LayoutRestyleDamagePropagation,
                 Some((&data.url,
-                if data.iframe { TimeIFrame } else { TimeRootWindow },
-                if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental })),
+                if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
+                if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental })),
                 self.time_profiler_chan.clone(),
                 || {
             if opts::get().nonincremental_layout ||
@@ -819,8 +819,8 @@ impl LayoutTask {
         // the boxes.
         profile(time::LayoutMainCategory,
                 Some((&data.url,
-                if data.iframe { TimeIFrame } else { TimeRootWindow },
-                if self.first_reflow.get() { TimeFirstReflow } else { TimeIncremental })),
+                if data.iframe { TimerMetadataFrameType::IFrame } else { TimerMetadataFrameType::RootWindow },
+                if self.first_reflow.get() { TimerMetadataReflowType::FirstReflow } else { TimerMetadataReflowType::Incremental })),
                 self.time_profiler_chan.clone(),
                 || {
             let rw_data = rw_data.deref_mut();

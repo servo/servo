@@ -13,8 +13,8 @@ use azure::azure_hl::{StrokeOptions};
 use azure::scaled_font::ScaledFont;
 use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
-use display_list::{BOX_SHADOW_INFLATION_FACTOR, BorderRadii, SidewaysLeft, SidewaysRight};
-use display_list::{TextDisplayItem, Upright};
+use display_list::{BOX_SHADOW_INFLATION_FACTOR, TextDisplayItem, BorderRadii};
+use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -86,10 +86,10 @@ impl<'a> PaintContext<'a> {
 
         self.draw_target.make_current();
 
-        self.draw_border_segment(Top, bounds, border, &radius, color, style);
-        self.draw_border_segment(Right, bounds, border, &radius, color, style);
-        self.draw_border_segment(Bottom, bounds, border, &radius, color, style);
-        self.draw_border_segment(Left, bounds, border, &radius, color, style);
+        self.draw_border_segment(Direction::Top, bounds, border, &radius, color, style);
+        self.draw_border_segment(Direction::Right, bounds, border, &radius, color, style);
+        self.draw_border_segment(Direction::Bottom, bounds, border, &radius, color, style);
+        self.draw_border_segment(Direction::Left, bounds, border, &radius, color, style);
     }
 
     pub fn draw_line(&self,
@@ -171,10 +171,10 @@ impl<'a> PaintContext<'a> {
                            color: SideOffsets2D<Color>,
                            style: SideOffsets2D<border_style::T>) {
         let (style_select, color_select) = match direction {
-            Top => (style.top, color.top),
-            Left => (style.left, color.left),
-            Right => (style.right, color.right),
-            Bottom => (style.bottom, color.bottom)
+            Direction::Top => (style.top, color.top),
+            Direction::Left => (style.left, color.left),
+            Direction::Right => (style.right, color.right),
+            Direction::Bottom => (style.bottom, color.bottom)
         };
 
         match style_select{
@@ -184,10 +184,10 @@ impl<'a> PaintContext<'a> {
             }
             //FIXME(sammykim): This doesn't work with dash_pattern and cap_style well. I referred firefox code.
             border_style::dotted                       => {
-                self.draw_dashed_border_segment(direction, bounds, border, color_select, DottedBorder);
+                self.draw_dashed_border_segment(direction, bounds, border, color_select, DashSize::DottedBorder);
             }
             border_style::dashed                       => {
-                self.draw_dashed_border_segment(direction, bounds, border, color_select, DashedBorder);
+                self.draw_dashed_border_segment(direction, bounds, border, color_select, DashSize::DashedBorder);
             }
             border_style::solid                        => {
                 self.draw_solid_border_segment(direction,bounds,border,radius,color_select);
@@ -210,22 +210,22 @@ impl<'a> PaintContext<'a> {
         match style {
             border_style::none | border_style::hidden  => {}
             border_style::dotted                       => {
-                self.draw_dashed_border_segment(Right, bounds, border, color, DottedBorder);
+                self.draw_dashed_border_segment(Direction::Right, bounds, border, color, DashSize::DottedBorder);
             }
             border_style::dashed                       => {
-                self.draw_dashed_border_segment(Right, bounds, border, color, DashedBorder);
+                self.draw_dashed_border_segment(Direction::Right, bounds, border, color, DashSize::DashedBorder);
             }
             border_style::solid                        => {
-                self.draw_solid_border_segment(Right, bounds, border, radius, color);
+                self.draw_solid_border_segment(Direction::Right, bounds, border, radius, color);
             }
             border_style::double                       => {
-                self.draw_double_border_segment(Right, bounds, border, radius, color);
+                self.draw_double_border_segment(Direction::Right, bounds, border, radius, color);
             }
             border_style::groove | border_style::ridge => {
-                self.draw_groove_ridge_border_segment(Right, bounds, border, radius, color, style);
+                self.draw_groove_ridge_border_segment(Direction::Right, bounds, border, radius, color, style);
             }
             border_style::inset | border_style::outset => {
-                self.draw_inset_outset_border_segment(Right, bounds, border, radius, color, style);
+                self.draw_inset_outset_border_segment(Direction::Right, bounds, border, radius, color, style);
             }
         }
     }
@@ -354,7 +354,7 @@ impl<'a> PaintContext<'a> {
         }
 
         match direction {
-            Top    => {
+            Direction::Top    => {
                 let edge_TL = box_TL  + dx(radius.top_left.max(border.left));
                 let edge_TR = box_TR  + dx(-radius.top_right.max(border.right));
                 let edge_BR = edge_TR + dy(border.top);
@@ -387,7 +387,7 @@ impl<'a> PaintContext<'a> {
                     path_builder.arc(origin, radius.top_left,   rad_TL, rad_T, false);
                 }
             }
-            Left   => {
+            Direction::Left   => {
                 let edge_TL = box_TL  + dy(radius.top_left.max(border.top));
                 let edge_BL = box_BL  + dy(-radius.bottom_left.max(border.bottom));
                 let edge_TR = edge_TL + dx(border.left);
@@ -418,7 +418,7 @@ impl<'a> PaintContext<'a> {
                     path_builder.arc(origin, radius.bottom_left, rad_BL, rad_L, false);
                 }
             }
-            Right  => {
+            Direction::Right  => {
                 let edge_TR = box_TR  + dy(radius.top_right.max(border.top));
                 let edge_BR = box_BR  + dy(-radius.bottom_right.max(border.bottom));
                 let edge_TL = edge_TR + dx(-border.right);
@@ -449,7 +449,7 @@ impl<'a> PaintContext<'a> {
                     path_builder.arc(origin, distance_to_elbow,   rad_BR, rad_R, true);
                 }
             }
-            Bottom => {
+            Direction::Bottom => {
                 let edge_BL = box_BL  + dx(radius.bottom_left.max(border.left));
                 let edge_BR = box_BR  + dx(-radius.bottom_right.max(border.right));
                 let edge_TL = edge_BL + dy(-border.bottom);
@@ -500,10 +500,10 @@ impl<'a> PaintContext<'a> {
         stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
 
         let border_width = match direction {
-            Top => border.top,
-            Left => border.left,
-            Right => border.right,
-            Bottom => border.bottom
+            Direction::Top => border.top,
+            Direction::Left => border.left,
+            Direction::Right => border.right,
+            Direction::Bottom => border.bottom
         };
 
         stroke_opts.line_width = border_width;
@@ -513,25 +513,25 @@ impl<'a> PaintContext<'a> {
         stroke_opts.mDashLength = dash.len() as size_t;
 
         let (start, end)  = match direction {
-            Top => {
+            Direction::Top => {
                 let y = rect.origin.y + border.top * 0.5;
                 let start = Point2D(rect.origin.x, y);
                 let end = Point2D(rect.origin.x + rect.size.width, y);
                 (start, end)
             }
-            Left => {
+            Direction::Left => {
                 let x = rect.origin.x + border.left * 0.5;
                 let start = Point2D(x, rect.origin.y + rect.size.height);
                 let end = Point2D(x, rect.origin.y + border.top);
                 (start, end)
             }
-            Right => {
+            Direction::Right => {
                 let x = rect.origin.x + rect.size.width - border.right * 0.5;
                 let start = Point2D(x, rect.origin.y);
                 let end = Point2D(x, rect.origin.y + rect.size.height);
                 (start, end)
             }
-            Bottom => {
+            Direction::Bottom => {
                 let y = rect.origin.y + rect.size.height - border.bottom * 0.5;
                 let start = Point2D(rect.origin.x + rect.size.width, y);
                 let end = Point2D(rect.origin.x + border.left, y);
@@ -617,8 +617,10 @@ impl<'a> PaintContext<'a> {
         }
 
         let (outer_color, inner_color) = match (direction, is_groove) {
-            (Top, true)  | (Left, true)  | (Right, false) | (Bottom, false) => (darker_color, lighter_color),
-            (Top, false) | (Left, false) | (Right, true)  | (Bottom, true)  => (lighter_color, darker_color)
+            (Direction::Top, true)  | (Direction::Left, true)  |
+            (Direction::Right, false) | (Direction::Bottom, false) => (darker_color, lighter_color),
+            (Direction::Top, false) | (Direction::Left, false) |
+            (Direction::Right, true)  | (Direction::Bottom, true)  => (lighter_color, darker_color)
         };
         // outer portion of the border
         self.draw_border_path(&original_bounds, direction, scaled_border, radius, outer_color);
@@ -642,8 +644,8 @@ impl<'a> PaintContext<'a> {
         let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);
         // select and scale the color appropriately.
         let scaled_color    = match direction {
-            Top | Left      => self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     }),
-            Right | Bottom  => self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 })
+            Direction::Top | Direction::Left      => self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     }),
+            Direction::Right | Direction::Bottom  => self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 })
         };
         self.draw_border_path(&original_bounds, direction, border, radius, scaled_color);
     }

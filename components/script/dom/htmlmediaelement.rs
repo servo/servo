@@ -6,10 +6,10 @@ use dom::bindings::js::{JSRef};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::codegen::InheritTypes::HTMLMediaElementDerived;
 use dom::document::Document;
-use dom::element::{ElementTypeId, HTMLAudioElementTypeId, HTMLVideoElementTypeId};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::ElementNodeTypeId;
+use dom::node::NodeTypeId;
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -20,8 +20,8 @@ pub struct HTMLMediaElement {
 impl HTMLMediaElementDerived for EventTarget {
     fn is_htmlmediaelement(&self) -> bool {
         match *self.type_id() {
-            NodeTargetTypeId(ElementNodeTypeId(HTMLVideoElementTypeId)) |
-            NodeTargetTypeId(ElementNodeTypeId(HTMLAudioElementTypeId)) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLVideoElement)) |
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLAudioElement)) => true,
             _ => false
         }
     }

@@ -9,6 +9,7 @@ use std::comm::{Sender, channel, Receiver};
 use std::f64;
 use std::io::timer::sleep;
 use std::iter::AdditiveIterator;
+use std::num::FloatMath;
 use std::time::duration::Duration;
 use std_time::precise_time_ns;
 use task::{spawn_named};
@@ -60,11 +61,11 @@ impl Formatable for Option<TimerMetadata> {
 #[deriving(Clone)]
 pub enum TimeProfilerMsg {
     /// Normal message used for reporting time
-    TimeMsg((TimeProfilerCategory, Option<TimerMetadata>), f64),
+    Time((TimeProfilerCategory, Option<TimerMetadata>), f64),
     /// Message used to force print the profiling metrics
-    PrintMsg,
+    Print,
     /// Tells the profiler to shut down.
-    ExitMsg,
+    Exit,
 }
 
 #[repr(u32)]
@@ -92,38 +93,38 @@ impl Formatable for TimeProfilerCategory {
     // and should be printed to indicate this
     fn format(&self) -> String {
         let padding = match *self {
-            LayoutStyleRecalcCategory |
-            LayoutRestyleDamagePropagation |
-            LayoutNonIncrementalReset |
-            LayoutMainCategory |
-            LayoutDispListBuildCategory |
-            LayoutShapingCategory |
-            LayoutDamagePropagateCategory |
-            PaintingPerTileCategory |
-            PaintingPrepBuffCategory => "+ ",
-            LayoutParallelWarmupCategory |
-            LayoutSelectorMatchCategory |
-            LayoutTreeBuilderCategory => "| + ",
+            TimeProfilerCategory::LayoutStyleRecalcCategory |
+            TimeProfilerCategory::LayoutRestyleDamagePropagation |
+            TimeProfilerCategory::LayoutNonIncrementalReset |
+            TimeProfilerCategory::LayoutMainCategory |
+            TimeProfilerCategory::LayoutDispListBuildCategory |
+            TimeProfilerCategory::LayoutShapingCategory |
+            TimeProfilerCategory::LayoutDamagePropagateCategory |
+            TimeProfilerCategory::PaintingPerTileCategory |
+            TimeProfilerCategory::PaintingPrepBuffCategory => "+ ",
+            TimeProfilerCategory::LayoutParallelWarmupCategory |
+            TimeProfilerCategory::LayoutSelectorMatchCategory |
+            TimeProfilerCategory::LayoutTreeBuilderCategory => "| + ",
             _ => ""
         };
         let name = match *self {
-            CompositingCategory => "Compositing",
-            LayoutPerformCategory => "Layout",
-            LayoutStyleRecalcCategory => "Style Recalc",
-            LayoutRestyleDamagePropagation => "Restyle Damage Propagation",
-            LayoutNonIncrementalReset => "Non-incremental reset (temporary)",
-            LayoutSelectorMatchCategory => "Selector Matching",
-            LayoutTreeBuilderCategory => "Tree Building",
-            LayoutDamagePropagateCategory => "Damage Propagation",
-            LayoutMainCategory => "Primary Layout Pass",
-            LayoutParallelWarmupCategory => "Parallel Warmup",
-            LayoutShapingCategory => "Shaping",
-            LayoutDispListBuildCategory => "Display List Construction",
-            PaintingPerTileCategory => "Painting Per Tile",
-            PaintingPrepBuffCategory => "Buffer Prep",
-            PaintingCategory => "Painting",
+            TimeProfilerCategory::CompositingCategory => "Compositing",
+            TimeProfilerCategory::LayoutPerformCategory => "Layout",
+            TimeProfilerCategory::LayoutStyleRecalcCategory => "Style Recalc",
+            TimeProfilerCategory::LayoutRestyleDamagePropagation => "Restyle Damage Propagation",
+            TimeProfilerCategory::LayoutNonIncrementalReset => "Non-incremental reset (temporary)",
+            TimeProfilerCategory::LayoutSelectorMatchCategory => "Selector Matching",
+            TimeProfilerCategory::LayoutTreeBuilderCategory => "Tree Building",
+            TimeProfilerCategory::LayoutDamagePropagateCategory => "Damage Propagation",
+            TimeProfilerCategory::LayoutMainCategory => "Primary Layout Pass",
+            TimeProfilerCategory::LayoutParallelWarmupCategory => "Parallel Warmup",
+            TimeProfilerCategory::LayoutShapingCategory => "Shaping",
+            TimeProfilerCategory::LayoutDispListBuildCategory => "Display List Construction",
+            TimeProfilerCategory::PaintingPerTileCategory => "Painting Per Tile",
+            TimeProfilerCategory::PaintingPrepBuffCategory => "Buffer Prep",
+            TimeProfilerCategory::PaintingCategory => "Painting",
         };
-        format!("{:s}{}", padding, name)
+        format!("{}{}", padding, name)
     }
 }
 
@@ -146,7 +147,7 @@ impl TimeProfiler {
                 spawn_named("Time profiler timer", proc() {
                     loop {
                         sleep(period);
-                        if chan.send_opt(PrintMsg).is_err() {
+                        if chan.send_opt(TimeProfilerMsg::Print).is_err() {
                             break;
                         }
                     }
@@ -162,7 +163,7 @@ impl TimeProfiler {
                 spawn_named("Time profiler", proc() {
                     loop {
                         match port.recv_opt() {
-                            Err(_) | Ok(ExitMsg) => break,
+                            Err(_) | Ok(TimeProfilerMsg::Exit) => break,
                             _ => {}
                         }
                     }
@@ -206,20 +207,20 @@ impl TimeProfiler {
 
     fn handle_msg(&mut self, msg: TimeProfilerMsg) -> bool {
         match msg.clone() {
-            TimeMsg(k, t) => self.find_or_insert(k, t),
-            PrintMsg => match self.last_msg {
+            TimeProfilerMsg::Time(k, t) => self.find_or_insert(k, t),
+            TimeProfilerMsg::Print => match self.last_msg {
                 // only print if more data has arrived since the last printout
-                Some(TimeMsg(..)) => self.print_buckets(),
+                Some(TimeProfilerMsg::Time(..)) => self.print_buckets(),
                 _ => ()
             },
-            ExitMsg => return false,
+            TimeProfilerMsg::Exit => return false,
         };
         self.last_msg = Some(msg);
         true
     }
 
     fn print_buckets(&mut self) {
-        println!("{:35s} {:14} {:9} {:30} {:15s} {:15s} {:-15s} {:-15s} {:-15s}",
+        println!("{:35} {:14} {:9} {:30} {:15} {:15} {:-15} {:-15} {:-15}",
                  "_category_", "_incremental?_", "_iframe?_",
                  "            _url_", "    _mean (ms)_", "  _median (ms)_",
                  "     _min (ms)_", "     _max (ms)_", "      _events_");
@@ -238,7 +239,7 @@ impl TimeProfiler {
                      data.as_slice()[data_len / 2],
                      data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                      data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
-                println!("{:-35s}{} {:15.4f} {:15.4f} {:15.4f} {:15.4f} {:15u}",
+                println!("{:-35}{} {:15.4} {:15.4} {:15.4} {:15.4} {:15}",
                          category.format(), meta.format(), mean, median, min, max, data_len);
             }
         }
@@ -248,14 +249,14 @@ impl TimeProfiler {
 
 #[deriving(Eq, PartialEq)]
 pub enum TimerMetadataFrameType {
-    TimeRootWindow,
-    TimeIFrame,
+    RootWindow,
+    IFrame,
 }
 
 #[deriving(Eq, PartialEq)]
 pub enum TimerMetadataReflowType {
-    TimeIncremental,
-    TimeFirstReflow,
+    Incremental,
+    FirstReflow,
 }
 
 pub fn profile<T>(category: TimeProfilerCategory,
@@ -270,10 +271,10 @@ pub fn profile<T>(category: TimeProfilerCategory,
     let meta = meta.map(|(url, iframe, reflow_type)|
         TimerMetadata {
             url: url.serialize(),
-            iframe: iframe == TimeIFrame,
-            incremental: reflow_type == TimeIncremental,
+            iframe: iframe == TimerMetadataFrameType::IFrame,
+            incremental: reflow_type == TimerMetadataReflowType::Incremental,
         });
-    time_profiler_chan.send(TimeMsg((category, meta), ms));
+    time_profiler_chan.send(TimeProfilerMsg::Time((category, meta), ms));
     return val;
 }
 
@@ -283,7 +284,7 @@ pub fn time<T>(msg: &str, callback: || -> T) -> T{
     let end_time = precise_time_ns();
     let ms = (end_time - start_time) as f64 / 1000000f64;
     if ms >= 5f64 {
-        debug!("{:s} took {} ms", msg, ms);
+        debug!("{} took {} ms", msg, ms);
     }
     return val;
 }

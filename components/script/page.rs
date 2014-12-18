@@ -33,7 +33,7 @@ use servo_util::smallvec::SmallVec;
 use std::cell::{Cell, Ref, RefMut};
 use std::comm::{channel, Receiver, Empty, Disconnected};
 use std::mem::replace;
-use std::num::abs;
+use std::num::Float;
 use std::rc::Rc;
 use url::Url;
 
@@ -456,10 +456,10 @@ fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
     static VIEWPORT_SCROLL_MARGIN_SIZE: f32 = 0.5;
     let viewport_scroll_margin = new_viewport.size * VIEWPORT_SCROLL_MARGIN_SIZE;
 
-    abs(clip_rect.origin.x - new_viewport.origin.x) <= viewport_scroll_margin.width ||
-    abs(clip_rect.max_x() - new_viewport.max_x()) <= viewport_scroll_margin.width ||
-    abs(clip_rect.origin.y - new_viewport.origin.y) <= viewport_scroll_margin.height ||
-    abs(clip_rect.max_y() - new_viewport.max_y()) <= viewport_scroll_margin.height
+    (clip_rect.origin.x - new_viewport.origin.x).abs() <= viewport_scroll_margin.width ||
+    (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
+    (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
+    (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
 }
 
 /// Information for one frame in the browsing context.

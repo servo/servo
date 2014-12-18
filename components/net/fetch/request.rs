@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use self::ContextFrameType::*;
+use self::CredentialsMode::*;
+use self::Referer::*;
+use self::RequestMode::*;
+use self::ResponseTainting::*;
+
 use url::Url;
 use hyper::method::{Get, Method};
 use hyper::mime::{Mime, Text, Html, Charset, Utf8};

@@ -8,12 +8,12 @@ use NestedEventLoopListener;
 
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{Forward, Back};
-use compositing::windowing::{IdleWindowEvent, ResizeWindowEvent};
+use compositing::windowing::{Idle, Resize};
 use compositing::windowing::{KeyEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass};
-use compositing::windowing::{MouseWindowMouseUpEvent, RefreshWindowEvent};
-use compositing::windowing::{NavigationWindowEvent, ScrollWindowEvent, ZoomWindowEvent};
-use compositing::windowing::{PinchZoomWindowEvent, QuitWindowEvent};
+use compositing::windowing::{MouseWindowMouseUpEvent, Refresh};
+use compositing::windowing::{Navigation, Scroll, Zoom};
+use compositing::windowing::{PinchZoom, Quit};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
@@ -26,9 +26,10 @@ use libc::c_int;
 use msg::compositor_msg::{Blank, FinishedLoading, IdlePaintState, Loading, PaintState};
 use msg::compositor_msg::{PaintingPaintState, PerformingLayout, ReadyState};
 use msg::constellation_msg::{mod, LoadData};
-use msg::constellation_msg::{Key, KeyModifiers, KeyEscape, KeyEqual, KeyMinus, KeyBackspace, KeyPageUp, KeyPageDown, CONTROL, SHIFT};
+use msg::constellation_msg::{Key, KeyModifiers, CONTROL, SHIFT};
 use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
+use std::num::Float;
 use std::rc::Rc;
 use time::{mod, Timespec};
 use util::geometry::ScreenPx;
@@ -120,9 +121,9 @@ impl Window {
         }
 
         if self.glfw_window.should_close() {
-            QuitWindowEvent
+            Quit
         } else {
-            self.event_queue.borrow_mut().remove(0).unwrap_or(IdleWindowEvent)
+            self.event_queue.borrow_mut().remove(0).unwrap_or(Idle)
         }
     }
 
@@ -211,24 +212,24 @@ impl WindowMethods for Window {
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: Key, mods: KeyModifiers) {
         match key {
-            KeyEscape => self.glfw_window.set_should_close(true),
-            KeyEqual if mods.contains(CONTROL) => { // Ctrl-+
-                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.1));
+            Key::Escape => self.glfw_window.set_should_close(true),
+            Key::Equal if mods.contains(CONTROL) => { // Ctrl-+
+                self.event_queue.borrow_mut().push(Zoom(1.1));
             }
-            KeyMinus if mods.contains(CONTROL) => { // Ctrl--
-                self.event_queue.borrow_mut().push(ZoomWindowEvent(1.0/1.1));
+            Key::Minus if mods.contains(CONTROL) => { // Ctrl--
+                self.event_queue.borrow_mut().push(Zoom(1.0/1.1));
             }
-            KeyBackspace if mods.contains(SHIFT) => { // Shift-Backspace
-                self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
+            Key::Backspace if mods.contains(SHIFT) => { // Shift-Backspace
+                self.event_queue.borrow_mut().push(Navigation(Forward));
             }
-            KeyBackspace => { // Backspace
-                self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
+            Key::Backspace => { // Backspace
+                self.event_queue.borrow_mut().push(Navigation(Back));
             }
-            KeyPageDown => {
+            Key::PageDown => {
                 let (_, height) = self.glfw_window.get_size();
                 self.scroll_window(0.0, -height as f32);
             }
-            KeyPageUp => {
+            Key::PageUp => {
                 let (_, height) = self.glfw_window.get_size();
                 self.scroll_window(0.0, height as f32);
             }
@@ -262,10 +263,10 @@ impl Window {
             },
             glfw::FramebufferSizeEvent(width, height) => {
                 self.event_queue.borrow_mut().push(
-                    ResizeWindowEvent(TypedSize2D(width as uint, height as uint)));
+                    Resize(TypedSize2D(width as uint, height as uint)));
             },
             glfw::RefreshEvent => {
-                self.event_queue.borrow_mut().push(RefreshWindowEvent);
+                self.event_queue.borrow_mut().push(Refresh);
             },
             glfw::MouseButtonEvent(button, action, _mods) => {
                 let (x, y) = window.get_cursor_pos();
@@ -277,11 +278,11 @@ impl Window {
                 let y = y as f32 * hidpi;
 
                 match button {
-                    glfw::MouseButton5 => { // Back button (might be different per platform)
-                        self.event_queue.borrow_mut().push(NavigationWindowEvent(Back));
+                    glfw::MouseButton::Button5 => { // Back button (might be different per platform)
+                        self.event_queue.borrow_mut().push(Navigation(Back));
                     },
-                    glfw::MouseButton6 => { // Forward
-                        self.event_queue.borrow_mut().push(NavigationWindowEvent(Forward));
+                    glfw::MouseButton::Button6 => { // Forward
+                        self.event_queue.borrow_mut().push(Navigation(Forward));
                     },
                     glfw::MouseButtonLeft | glfw::MouseButtonRight => {
                         self.handle_mouse(button, action, x as i32, y as i32);
@@ -294,14 +295,14 @@ impl Window {
                     MouseWindowMoveEventClass(TypedPoint2D(xpos as f32, ypos as f32)));
             },
             glfw::ScrollEvent(xpos, ypos) => {
-                match (window.get_key(glfw::KeyLeftControl),
-                       window.get_key(glfw::KeyRightControl)) {
+                match (window.get_key(glfw::Key::LeftControl),
+                       window.get_key(glfw::Key::RightControl)) {
                     (glfw::Press, _) | (_, glfw::Press) => {
                         // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
                         if ypos < 0.0 {
-                            self.event_queue.borrow_mut().push(PinchZoomWindowEvent(1.0/1.1));
+                            self.event_queue.borrow_mut().push(PinchZoom(1.0/1.1));
                         } else if ypos > 0.0 {
-                            self.event_queue.borrow_mut().push(PinchZoomWindowEvent(1.1));
+                            self.event_queue.borrow_mut().push(PinchZoom(1.1));
                         }
                     },
                     _ => {
@@ -325,7 +326,7 @@ impl Window {
         let x = x as f32 * hidpi;
         let y = y as f32 * hidpi;
 
-        self.event_queue.borrow_mut().push(ScrollWindowEvent(TypedPoint2D(dx, dy),
+        self.event_queue.borrow_mut().push(Scroll(TypedPoint2D(dx, dy),
         TypedPoint2D(x as i32, y as i32)));
     }
 
@@ -416,7 +417,7 @@ extern "C" fn on_refresh(_glfw_window: *mut glfw::ffi::GLFWwindow) {
         match g_nested_event_loop_listener {
             None => {}
             Some(listener) => {
-                (*listener).handle_event_from_nested_event_loop(RefreshWindowEvent);
+                (*listener).handle_event_from_nested_event_loop(Refresh);
             }
         }
     }
@@ -430,7 +431,7 @@ extern "C" fn on_framebuffer_size(_glfw_window: *mut glfw::ffi::GLFWwindow,
             None => {}
             Some(listener) => {
                 let size = TypedSize2D(width as uint, height as uint);
-                (*listener).handle_event_from_nested_event_loop(ResizeWindowEvent(size));
+                (*listener).handle_event_from_nested_event_loop(Resize(size));
             }
         }
     }
@@ -456,132 +457,132 @@ fn glfw_mods_to_script_mods(mods: glfw::Modifiers) -> constellation_msg::KeyModi
 macro_rules! glfw_keys_to_script_keys(
     ($key:expr, $($name:ident),+) => (
         match $key {
-            $(glfw::$name => constellation_msg::$name,)+
+            $(glfw::Key::$name => constellation_msg::Key::$name,)+
         }
     );
 )
 
 fn glfw_key_to_script_key(key: glfw::Key) -> constellation_msg::Key {
     glfw_keys_to_script_keys!(key,
-                              KeySpace,
-                              KeyApostrophe,
-                              KeyComma,
-                              KeyMinus,
-                              KeyPeriod,
-                              KeySlash,
-                              Key0,
-                              Key1,
-                              Key2,
-                              Key3,
-                              Key4,
-                              Key5,
-                              Key6,
-                              Key7,
-                              Key8,
-                              Key9,
-                              KeySemicolon,
-                              KeyEqual,
-                              KeyA,
-                              KeyB,
-                              KeyC,
-                              KeyD,
-                              KeyE,
-                              KeyF,
-                              KeyG,
-                              KeyH,
-                              KeyI,
-                              KeyJ,
-                              KeyK,
-                              KeyL,
-                              KeyM,
-                              KeyN,
-                              KeyO,
-                              KeyP,
-                              KeyQ,
-                              KeyR,
-                              KeyS,
-                              KeyT,
-                              KeyU,
-                              KeyV,
-                              KeyW,
-                              KeyX,
-                              KeyY,
-                              KeyZ,
-                              KeyLeftBracket,
-                              KeyBackslash,
-                              KeyRightBracket,
-                              KeyGraveAccent,
-                              KeyWorld1,
-                              KeyWorld2,
+                              Space,
+                              Apostrophe,
+                              Comma,
+                              Minus,
+                              Period,
+                              Slash,
+                              Num0,
+                              Num1,
+                              Num2,
+                              Num3,
+                              Num4,
+                              Num5,
+                              Num6,
+                              Num7,
+                              Num8,
+                              Num9,
+                              Semicolon,
+                              Equal,
+                              A,
+                              B,
+                              C,
+                              D,
+                              E,
+                              F,
+                              G,
+                              H,
+                              I,
+                              J,
+                              K,
+                              L,
+                              M,
+                              N,
+                              O,
+                              P,
+                              Q,
+                              R,
+                              S,
+                              T,
+                              U,
+                              V,
+                              W,
+                              X,
+                              Y,
+                              Z,
+                              LeftBracket,
+                              Backslash,
+                              RightBracket,
+                              GraveAccent,
+                              World1,
+                              World2,
 
-                              KeyEscape,
-                              KeyEnter,
-                              KeyTab,
-                              KeyBackspace,
-                              KeyInsert,
-                              KeyDelete,
-                              KeyRight,
-                              KeyLeft,
-                              KeyDown,
-                              KeyUp,
-                              KeyPageUp,
-                              KeyPageDown,
-                              KeyHome,
-                              KeyEnd,
-                              KeyCapsLock,
-                              KeyScrollLock,
-                              KeyNumLock,
-                              KeyPrintScreen,
-                              KeyPause,
-                              KeyF1,
-                              KeyF2,
-                              KeyF3,
-                              KeyF4,
-                              KeyF5,
-                              KeyF6,
-                              KeyF7,
-                              KeyF8,
-                              KeyF9,
-                              KeyF10,
-                              KeyF11,
-                              KeyF12,
-                              KeyF13,
-                              KeyF14,
-                              KeyF15,
-                              KeyF16,
-                              KeyF17,
-                              KeyF18,
-                              KeyF19,
-                              KeyF20,
-                              KeyF21,
-                              KeyF22,
-                              KeyF23,
-                              KeyF24,
-                              KeyF25,
-                              KeyKp0,
-                              KeyKp1,
-                              KeyKp2,
-                              KeyKp3,
-                              KeyKp4,
-                              KeyKp5,
-                              KeyKp6,
-                              KeyKp7,
-                              KeyKp8,
-                              KeyKp9,
-                              KeyKpDecimal,
-                              KeyKpDivide,
-                              KeyKpMultiply,
-                              KeyKpSubtract,
-                              KeyKpAdd,
-                              KeyKpEnter,
-                              KeyKpEqual,
-                              KeyLeftShift,
-                              KeyLeftControl,
-                              KeyLeftAlt,
-                              KeyLeftSuper,
-                              KeyRightShift,
-                              KeyRightControl,
-                              KeyRightAlt,
-                              KeyRightSuper,
-                              KeyMenu)
+                              Escape,
+                              Enter,
+                              Tab,
+                              Backspace,
+                              Insert,
+                              Delete,
+                              Right,
+                              Left,
+                              Down,
+                              Up,
+                              PageUp,
+                              PageDown,
+                              Home,
+                              End,
+                              CapsLock,
+                              ScrollLock,
+                              NumLock,
+                              PrintScreen,
+                              Pause,
+                              F1,
+                              F2,
+                              F3,
+                              F4,
+                              F5,
+                              F6,
+                              F7,
+                              F8,
+                              F9,
+                              F10,
+                              F11,
+                              F12,
+                              F13,
+                              F14,
+                              F15,
+                              F16,
+                              F17,
+                              F18,
+                              F19,
+                              F20,
+                              F21,
+                              F22,
+                              F23,
+                              F24,
+                              F25,
+                              Kp0,
+                              Kp1,
+                              Kp2,
+                              Kp3,
+                              Kp4,
+                              Kp5,
+                              Kp6,
+                              Kp7,
+                              Kp8,
+                              Kp9,
+                              KpDecimal,
+                              KpDivide,
+                              KpMultiply,
+                              KpSubtract,
+                              KpAdd,
+                              KpEnter,
+                              KpEqual,
+                              LeftShift,
+                              LeftControl,
+                              LeftAlt,
+                              LeftSuper,
+                              RightShift,
+                              RightControl,
+                              RightAlt,
+                              RightSuper,
+                              Menu)
 }

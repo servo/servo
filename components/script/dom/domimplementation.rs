@@ -7,13 +7,15 @@ use dom::bindings::codegen::Bindings::DOMImplementationBinding;
 use dom::bindings::codegen::Bindings::DOMImplementationBinding::DOMImplementationMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
-use dom::bindings::error::{Fallible, InvalidCharacter, NamespaceError};
+use dom::bindings::error::Fallible;
+use dom::bindings::error::Error::{InvalidCharacter, NamespaceError};
 use dom::bindings::global::Window;
 use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
-use dom::bindings::utils::{QName, Name, InvalidXMLName, xml_name_type};
-use dom::document::{Document, DocumentHelpers, HTMLDocument, NonHTMLDocument};
-use dom::document::NotFromParser;
+use dom::bindings::utils::xml_name_type;
+use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
+use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
+use dom::document::DocumentSource;
 use dom::documenttype::DocumentType;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlheadelement::HTMLHeadElement;
@@ -75,7 +77,8 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         let win = doc.window().root();
 
         // Step 1.
-        let doc = Document::new(*win, None, NonHTMLDocument, None, NotFromParser).root();
+        let doc = Document::new(*win, None, IsHTMLDocument::NonHTMLDocument,
+                                None, DocumentSource::NotFromParser).root();
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
             None
@@ -120,7 +123,8 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         let win = document.window().root();
 
         // Step 1-2.
-        let doc = Document::new(*win, None, HTMLDocument, None, NotFromParser).root();
+        let doc = Document::new(*win, None, IsHTMLDocument::HTMLDocument, None,
+                                DocumentSource::NotFromParser).root();
         let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
 
         {

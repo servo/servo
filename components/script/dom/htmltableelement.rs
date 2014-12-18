@@ -11,15 +11,15 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLTableElementTypeId;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
-use servo_util::str::{mod, AutoLpa, DOMString, LengthOrPercentageOrAuto};
+use servo_util::str::{mod, DOMString, LengthOrPercentageOrAuto};
 use std::cell::Cell;
 
 #[dom_struct]
@@ -32,7 +32,7 @@ pub struct HTMLTableElement {
 
 impl HTMLTableElementDerived for EventTarget {
     fn is_htmltableelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTableElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableElement))
     }
 }
 
@@ -40,13 +40,13 @@ impl HTMLTableElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
                      -> HTMLTableElement {
         HTMLTableElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId,
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTableElement,
                                                     localName,
                                                     prefix,
                                                     document),
             background_color: Cell::new(None),
             border: Cell::new(None),
-            width: Cell::new(AutoLpa),
+            width: Cell::new(LengthOrPercentageOrAuto::Auto),
         }
     }
 
@@ -151,7 +151,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
         match attr.local_name() {
             &atom!("bgcolor") => self.background_color.set(None),
             &atom!("border") => self.border.set(None),
-            &atom!("width") => self.width.set(AutoLpa),
+            &atom!("width") => self.width.set(LengthOrPercentageOrAuto::Auto),
             _ => ()
         }
     }

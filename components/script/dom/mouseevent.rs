@@ -11,7 +11,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary, OptionalSettable};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, MouseEventTypeId};
+use dom::event::{Event, EventTypeId};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -36,14 +36,14 @@ pub struct MouseEvent {
 
 impl MouseEventDerived for Event {
     fn is_mouseevent(&self) -> bool {
-        *self.type_id() == MouseEventTypeId
+        *self.type_id() == EventTypeId::MouseEvent
     }
 }
 
 impl MouseEvent {
     fn new_inherited() -> MouseEvent {
         MouseEvent {
-            uievent: UIEvent::new_inherited(MouseEventTypeId),
+            uievent: UIEvent::new_inherited(EventTypeId::MouseEvent),
             screen_x: Cell::new(0),
             screen_y: Cell::new(0),
             client_x: Cell::new(0),

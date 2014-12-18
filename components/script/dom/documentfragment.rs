@@ -12,9 +12,9 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::Element;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
-use dom::node::{DocumentFragmentNodeTypeId, Node, NodeHelpers, window_from_node};
+use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::nodelist::NodeList;
 use servo_util::str::DOMString;
 
@@ -25,7 +25,7 @@ pub struct DocumentFragment {
 
 impl DocumentFragmentDerived for EventTarget {
     fn is_documentfragment(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(DocumentFragmentNodeTypeId)
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::DocumentFragment)
     }
 }
 
@@ -33,7 +33,7 @@ impl DocumentFragment {
     /// Creates a new DocumentFragment.
     fn new_inherited(document: JSRef<Document>) -> DocumentFragment {
         DocumentFragment {
-            node: Node::new_inherited(DocumentFragmentNodeTypeId, document),
+            node: Node::new_inherited(NodeTypeId::DocumentFragment, document),
         }
     }
 

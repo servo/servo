@@ -6,7 +6,8 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FormDataBinding;
 use dom::bindings::codegen::Bindings::FormDataBinding::FormDataMethods;
 use dom::bindings::codegen::InheritTypes::FileCast;
-use dom::bindings::codegen::UnionTypes::FileOrString::{FileOrString, eFile, eString};
+use dom::bindings::codegen::UnionTypes::FileOrString;
+use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
@@ -57,7 +58,7 @@ impl FormData {
 impl<'a> FormDataMethods for JSRef<'a, FormData> {
     #[allow(unrooted_must_root)]
     fn Append(self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
-        let file = FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
+        let file = FormDatum::FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
         let mut data = self.data.borrow_mut();
         match data.entry(name) {
             Occupied(entry) => entry.into_mut().push(file),
@@ -70,8 +71,8 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     fn Append_(self, name: DOMString, value: DOMString) {
         let mut data = self.data.borrow_mut();
         match data.entry(name) {
-            Occupied(entry) => entry.into_mut().push(StringData(value)),
-            Vacant  (entry) => { entry.set(vec!(StringData(value))); },
+            Occupied(entry) => entry.into_mut().push(FormDatum::StringData(value)),
+            Vacant  (entry) => { entry.set(vec!(FormDatum::StringData(value))); },
         }
     }
 
@@ -82,8 +83,8 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     fn Get(self, name: DOMString) -> Option<FileOrString> {
         if self.data.borrow().contains_key_equiv(&name) {
             match (*self.data.borrow())[name][0].clone() {
-                StringData(ref s) => Some(eString(s.clone())),
-                FileData(ref f) => {
+                FormDatum::StringData(ref s) => Some(eString(s.clone())),
+                FormDatum::FileData(ref f) => {
                     Some(eFile(f.clone()))
                 }
             }
@@ -97,12 +98,12 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
     #[allow(unrooted_must_root)]
     fn Set(self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
-        let file = FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
+        let file = FormDatum::FileData(JS::from_rooted(self.get_file_from_blob(value, filename)));
         self.data.borrow_mut().insert(name, vec!(file));
     }
 
     fn Set_(self, name: DOMString, value: DOMString) {
-        self.data.borrow_mut().insert(name, vec!(StringData(value)));
+        self.data.borrow_mut().insert(name, vec!(FormDatum::StringData(value)));
     }
 }
 

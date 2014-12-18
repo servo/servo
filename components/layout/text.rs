@@ -6,7 +6,7 @@
 
 #![deny(unsafe_blocks)]
 
-use fragment::{Fragment, ScannedTextFragmentInfo, UnscannedTextFragment};
+use fragment::{Fragment, SpecificFragmentInfo, ScannedTextFragmentInfo};
 use inline::InlineFragments;
 
 use gfx::font::{FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG, RunMetrics, ShapingFlags};
@@ -85,7 +85,7 @@ impl TextRunScanner {
 
         debug_assert!(!self.clump.is_empty());
         match self.clump.front().unwrap().specific {
-            UnscannedTextFragment(_) => {}
+            SpecificFragmentInfo::UnscannedText(_) => {}
             _ => {
                 debug_assert!(self.clump.len() == 1,
                               "WAT: can't coalesce non-text nodes in flush_clump_to_list()!");
@@ -126,7 +126,7 @@ impl TextRunScanner {
             let mut run_text = String::new();
             for in_fragment in self.clump.iter() {
                 let in_fragment = match in_fragment.specific {
-                    UnscannedTextFragment(ref text_fragment_info) => &text_fragment_info.text,
+                    SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => &text_fragment_info.text,
                     _ => panic!("Expected an unscanned text fragment!"),
                 };
 
@@ -181,7 +181,7 @@ impl TextRunScanner {
                 mem::replace(&mut self.clump, DList::new()).into_iter().enumerate() {
             let range = *new_ranges.get(logical_offset);
             if range.is_empty() {
-                debug!("Elided an `UnscannedTextFragment` because it was zero-length after \
+                debug!("Elided an `SpecificFragmentInfo::UnscannedText` because it was zero-length after \
                         compression; {}",
                        old_fragment);
                 continue

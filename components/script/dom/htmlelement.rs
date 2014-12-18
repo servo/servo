@@ -15,9 +15,9 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDe
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId, ElementTypeId_, HTMLElementTypeId, ActivationElementHelpers};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, NodeTargetTypeId};
-use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::DOMString;
@@ -32,8 +32,8 @@ pub struct HTMLElement {
 impl HTMLElementDerived for EventTarget {
     fn is_htmlelement(&self) -> bool {
         match *self.type_id() {
-            NodeTargetTypeId(ElementNodeTypeId(ElementTypeId_)) => false,
-            NodeTargetTypeId(ElementNodeTypeId(_)) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::Element)) => false,
+            EventTargetTypeId::Node(NodeTypeId::Element(_)) => true,
             _ => false
         }
     }
@@ -48,7 +48,7 @@ impl HTMLElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLElement> {
-        let element = HTMLElement::new_inherited(HTMLElementTypeId, localName, prefix, document);
+        let element = HTMLElement::new_inherited(ElementTypeId::HTMLElement, localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
 }

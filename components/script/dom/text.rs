@@ -11,8 +11,8 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::node::{Node, TextNodeTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
 /// An HTML text node.
@@ -23,14 +23,14 @@ pub struct Text {
 
 impl TextDerived for EventTarget {
     fn is_text(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(TextNodeTypeId)
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Text)
     }
 }
 
 impl Text {
     fn new_inherited(text: DOMString, document: JSRef<Document>) -> Text {
         Text {
-            characterdata: CharacterData::new_inherited(TextNodeTypeId, text, document)
+            characterdata: CharacterData::new_inherited(NodeTypeId::Text, text, document)
         }
     }
 

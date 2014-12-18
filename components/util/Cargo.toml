@@ -27,3 +27,6 @@ git = "https://github.com/servo/string-cache"
 
 [dependencies.url]
 git = "https://github.com/servo/rust-url"
+
+[dependencies.time]
+git = "https://github.com/rust-lang/time"

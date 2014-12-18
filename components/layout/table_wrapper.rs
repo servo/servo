@@ -13,12 +13,11 @@
 
 #![deny(unsafe_blocks)]
 
-use block::{BlockFlow, BlockNonReplaced, FloatNonReplaced, ISizeAndMarginsComputer};
-use block::{MarginsMayNotCollapse};
+use block::{BlockFlow, BlockNonReplaced, FloatNonReplaced, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use construct::FlowConstructor;
 use context::LayoutContext;
 use floats::FloatKind;
-use flow::{TableWrapperFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use fragment::{Fragment, FragmentBoundsIterator};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
@@ -33,8 +32,8 @@ use sync::Arc;
 
 #[deriving(Encodable, Show)]
 pub enum TableLayout {
-    FixedLayout,
-    AutoLayout
+    Fixed,
+    Auto
 }
 
 /// A table wrapper flow based on a block formatting context.
@@ -56,9 +55,9 @@ impl TableWrapperFlow {
         let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
                               table_layout::fixed {
-            FixedLayout
+            TableLayout::Fixed
         } else {
-            AutoLayout
+            TableLayout::Auto
         };
         TableWrapperFlow {
             block_flow: block_flow,
@@ -73,9 +72,9 @@ impl TableWrapperFlow {
         let mut block_flow = BlockFlow::from_node(constructor, node);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
                               table_layout::fixed {
-            FixedLayout
+            TableLayout::Fixed
         } else {
-            AutoLayout
+            TableLayout::Auto
         };
         TableWrapperFlow {
             block_flow: block_flow,
@@ -91,9 +90,9 @@ impl TableWrapperFlow {
         let mut block_flow = BlockFlow::float_from_node_and_fragment(node, fragment, float_kind);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
                               table_layout::fixed {
-            FixedLayout
+            TableLayout::Fixed
         } else {
-            AutoLayout
+            TableLayout::Auto
         };
         TableWrapperFlow {
             block_flow: block_flow,
@@ -158,7 +157,7 @@ impl TableWrapperFlow {
         // FIXME(pcwalton, spec): How do I deal with fractional excess?
         let excess_inline_size = available_inline_size - total_used_inline_size;
         if excess_inline_size > Au(0) &&
-                selection == UsePreferredGuessAndDistributeExcessInlineSize {
+                selection == SelectedAutoLayoutCandidateGuess::UsePreferredGuessAndDistributeExcessInlineSize {
             let mut info = ExcessInlineSizeDistributionInfo::new();
             for column_intrinsic_inline_size in self.column_intrinsic_inline_sizes.iter() {
                 info.update(column_intrinsic_inline_size)
@@ -214,7 +213,7 @@ impl TableWrapperFlow {
 
 impl Flow for TableWrapperFlow {
     fn class(&self) -> FlowClass {
-        TableWrapperFlowClass
+        FlowClass::TableWrapper
     }
 
     fn as_table_wrapper<'a>(&'a mut self) -> &'a mut TableWrapperFlow {
@@ -274,8 +273,8 @@ impl Flow for TableWrapperFlow {
         self.compute_used_inline_size(layout_context, containing_block_inline_size);
 
         match self.table_layout {
-            FixedLayout => {}
-            AutoLayout => {
+            TableLayout::Fixed => {}
+            TableLayout::Auto => {
                 self.calculate_table_column_sizes_for_automatic_layout(
                     intermediate_column_inline_sizes.as_mut_slice())
             }
@@ -286,8 +285,8 @@ impl Flow for TableWrapperFlow {
 
         // In case of fixed layout, column inline-sizes are calculated in table flow.
         let assigned_column_inline_sizes = match self.table_layout {
-            FixedLayout => None,
-            AutoLayout => {
+            TableLayout::Fixed => None,
+            TableLayout::Auto => {
                 Some(intermediate_column_inline_sizes.iter().map(|sizes| {
                     ColumnComputedInlineSize {
                         size: sizes.size,
@@ -317,7 +316,7 @@ impl Flow for TableWrapperFlow {
 
     fn assign_block_size<'a>(&mut self, ctx: &'a LayoutContext<'a>) {
         debug!("assign_block_size: assigning block_size for table_wrapper");
-        self.block_flow.assign_block_size_block_base(ctx, MarginsMayNotCollapse);
+        self.block_flow.assign_block_size_block_base(ctx, MarginsMayCollapseFlag::MarginsMayNotCollapse);
     }
 
     fn compute_absolute_position(&mut self) {
@@ -449,17 +448,17 @@ impl AutoLayoutCandidateGuess {
     /// This does *not* distribute excess inline-size. That must be done later if necessary.
     fn calculate(&self, selection: SelectedAutoLayoutCandidateGuess) -> Au {
         match selection {
-            UseMinimumGuess => self.minimum_guess,
-            InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(weight) => {
+            SelectedAutoLayoutCandidateGuess::UseMinimumGuess => self.minimum_guess,
+            SelectedAutoLayoutCandidateGuess::InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(weight) => {
                 interp(self.minimum_guess, self.minimum_percentage_guess, weight)
             }
-            InterpolateBetweenMinimumPercentageGuessAndMinimumSpecifiedGuess(weight) => {
+            SelectedAutoLayoutCandidateGuess::InterpolateBetweenMinimumPercentageGuessAndMinimumSpecifiedGuess(weight) => {
                 interp(self.minimum_percentage_guess, self.minimum_specified_guess, weight)
             }
-            InterpolateBetweenMinimumSpecifiedGuessAndPreferredGuess(weight) => {
+            SelectedAutoLayoutCandidateGuess::InterpolateBetweenMinimumSpecifiedGuessAndPreferredGuess(weight) => {
                 interp(self.minimum_specified_guess, self.preferred_guess, weight)
             }
-            UsePreferredGuessAndDistributeExcessInlineSize => {
+            SelectedAutoLayoutCandidateGuess::UsePreferredGuessAndDistributeExcessInlineSize => {
                 self.preferred_guess
             }
         }
@@ -498,24 +497,24 @@ impl SelectedAutoLayoutCandidateGuess {
     fn select(guess: &AutoLayoutCandidateGuess, assignable_inline_size: Au)
               -> SelectedAutoLayoutCandidateGuess {
         if assignable_inline_size < guess.minimum_guess {
-            UseMinimumGuess
+            SelectedAutoLayoutCandidateGuess::UseMinimumGuess
         } else if assignable_inline_size < guess.minimum_percentage_guess {
             let weight = weight(guess.minimum_guess,
                                 assignable_inline_size,
                                 guess.minimum_percentage_guess);
-            InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(weight)
+            SelectedAutoLayoutCandidateGuess::InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(weight)
         } else if assignable_inline_size < guess.minimum_specified_guess {
             let weight = weight(guess.minimum_percentage_guess,
                                 assignable_inline_size,
                                 guess.minimum_specified_guess);
-            InterpolateBetweenMinimumPercentageGuessAndMinimumSpecifiedGuess(weight)
+            SelectedAutoLayoutCandidateGuess::InterpolateBetweenMinimumPercentageGuessAndMinimumSpecifiedGuess(weight)
         } else if assignable_inline_size < guess.preferred_guess {
             let weight = weight(guess.minimum_specified_guess,
                                 assignable_inline_size,
                                 guess.preferred_guess);
-            InterpolateBetweenMinimumSpecifiedGuessAndPreferredGuess(weight)
+            SelectedAutoLayoutCandidateGuess::InterpolateBetweenMinimumSpecifiedGuessAndPreferredGuess(weight)
         } else {
-            UsePreferredGuessAndDistributeExcessInlineSize
+            SelectedAutoLayoutCandidateGuess::UsePreferredGuessAndDistributeExcessInlineSize
         }
     }
 }

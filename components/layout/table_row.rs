@@ -10,19 +10,19 @@ use block::BlockFlow;
 use block::ISizeAndMarginsComputer;
 use construct::FlowConstructor;
 use context::LayoutContext;
-use flow::{TableRowFlowClass, FlowClass, Flow, ImmutableFlowUtils};
+use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow;
 use fragment::{Fragment, FragmentBoundsIterator};
 use layout_debug;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
-use model::{MaybeAuto, Specified, Auto};
+use model::MaybeAuto;
 use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use std::cmp::max;
 use std::fmt;
 use style::ComputedValues;
-use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage};
+use style::computed_values::LengthOrPercentageOrAuto;
 use sync::Arc;
 
 /// A single row of a table.
@@ -120,8 +120,8 @@ impl TableRowFlow {
                                                      .style()
                                                      .content_block_size(),
                                                  Au(0)) {
-            Auto => block_size,
-            Specified(value) => max(value, block_size)
+            MaybeAuto::Auto => block_size,
+            MaybeAuto::Specified(value) => max(value, block_size)
         };
         // cur_y = cur_y + block-size;
 
@@ -149,7 +149,7 @@ impl TableRowFlow {
 
 impl Flow for TableRowFlow {
     fn class(&self) -> FlowClass {
-        TableRowFlowClass
+        FlowClass::TableRow
     }
 
     fn as_table_row<'a>(&'a mut self) -> &'a mut TableRowFlow {
@@ -205,19 +205,19 @@ impl Flow for TableRowFlow {
             let child_base = flow::mut_base(kid);
             let child_column_inline_size = ColumnIntrinsicInlineSize {
                 minimum_length: match child_specified_inline_size {
-                    LPA_Auto | LPA_Percentage(_) => {
+                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Percentage(_) => {
                         child_base.intrinsic_inline_sizes.minimum_inline_size
                     }
-                    LPA_Length(length) => length,
+                    LengthOrPercentageOrAuto::Length(length) => length,
                 },
                 percentage: match child_specified_inline_size {
-                    LPA_Auto | LPA_Length(_) => 0.0,
-                    LPA_Percentage(percentage) => percentage,
+                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Length(_) => 0.0,
+                    LengthOrPercentageOrAuto::Percentage(percentage) => percentage,
                 },
                 preferred: child_base.intrinsic_inline_sizes.preferred_inline_size,
                 constrained: match child_specified_inline_size {
-                    LPA_Length(_) => true,
-                    LPA_Auto | LPA_Percentage(_) => false,
+                    LengthOrPercentageOrAuto::Length(_) => true,
+                    LengthOrPercentageOrAuto::Auto | LengthOrPercentageOrAuto::Percentage(_) => false,
                 },
             };
             min_inline_size = min_inline_size + child_column_inline_size.minimum_length;

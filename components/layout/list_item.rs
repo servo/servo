@@ -11,7 +11,7 @@ use block::BlockFlow;
 use construct::FlowConstructor;
 use context::LayoutContext;
 use display_list_builder::ListItemFlowDisplayListBuilding;
-use flow::{Flow, FlowClass, ListItemFlowClass};
+use flow::{Flow, FlowClass};
 use fragment::{Fragment, FragmentBoundsIterator};
 use wrapper::ThreadSafeLayoutNode;
 
@@ -46,7 +46,7 @@ impl ListItemFlow {
 
 impl Flow for ListItemFlow {
     fn class(&self) -> FlowClass {
-        ListItemFlowClass
+        FlowClass::ListItem
     }
 
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {

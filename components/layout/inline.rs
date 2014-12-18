@@ -6,13 +6,13 @@
 
 use css::node_style::StyledNode;
 use context::LayoutContext;
-use display_list_builder::{ContentLevel, DisplayListResult, FragmentDisplayListBuilding};
-use floats::{FloatLeft, Floats, PlacementInfo};
-use flow::{BaseFlow, FlowClass, Flow, ForceNonfloated, InlineFlowClass, MutableFlowUtils};
+use display_list_builder::{BackgroundAndBorderLevel, DisplayListBuildingResult, FragmentDisplayListBuilding};
+use floats::{FloatKind, Floats, PlacementInfo};
+use flow::{BaseFlow, FlowClass, Flow, MutableFlowUtils, ForceNonfloatedFlag};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow;
-use fragment::{Fragment, InlineAbsoluteHypotheticalFragment, InlineBlockFragment};
-use fragment::{FragmentBoundsIterator, ScannedTextFragment, ScannedTextFragmentInfo};
+use fragment::{Fragment, SpecificFragmentInfo};
+use fragment::{FragmentBoundsIterator, ScannedTextFragmentInfo};
 use fragment::SplitInfo;
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
@@ -345,8 +345,8 @@ impl LineBreaker {
             };
 
             let need_to_merge = match (&mut result.specific, &candidate.specific) {
-                (&ScannedTextFragment(ref mut result_info),
-                 &ScannedTextFragment(ref candidate_info))
+                (&SpecificFragmentInfo::ScannedText(ref mut result_info),
+                 &SpecificFragmentInfo::ScannedText(ref candidate_info))
                     if arc_ptr_eq(&result_info.run, &candidate_info.run) &&
                         result_info.range.end() + CharIndex(1) == candidate_info.range.begin() => {
                     // We found a previously-broken fragment. Merge it up.
@@ -412,7 +412,7 @@ impl LineBreaker {
                                    first_fragment.border_box.size.block),
             ceiling: ceiling,
             max_inline_size: flow.base.position.size.inline,
-            kind: FloatLeft,
+            kind: FloatKind::Left,
         });
 
         // Simple case: if the fragment fits, then we can stop here.
@@ -744,7 +744,7 @@ pub struct InlineFlow {
 impl InlineFlow {
     pub fn from_fragments(fragments: InlineFragments, writing_mode: WritingMode) -> InlineFlow {
         InlineFlow {
-            base: BaseFlow::new(None, writing_mode, ForceNonfloated),
+            base: BaseFlow::new(None, writing_mode, ForceNonfloatedFlag::ForceNonfloated),
             fragments: fragments,
             lines: Vec::new(),
             minimum_block_size_above_baseline: Au(0),
@@ -946,7 +946,7 @@ impl InlineFlow {
 
 impl Flow for InlineFlow {
     fn class(&self) -> FlowClass {
-        InlineFlowClass
+        FlowClass::Inline
     }
 
     fn as_immutable_inline<'a>(&'a self) -> &'a InlineFlow {
@@ -1188,7 +1188,7 @@ impl Flow for InlineFlow {
     fn compute_absolute_position(&mut self) {
         for fragment in self.fragments.fragments.iter_mut() {
             let stacking_relative_position = match fragment.specific {
-                InlineBlockFragment(ref mut info) => {
+                SpecificFragmentInfo::InlineBlock(ref mut info) => {
                     let block_flow = info.flow_ref.as_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
 
@@ -1200,7 +1200,7 @@ impl Flow for InlineFlow {
                                                               container_size);
                     block_flow.base.stacking_relative_position
                 }
-                InlineAbsoluteHypotheticalFragment(ref mut info) => {
+                SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                     let block_flow = info.flow_ref.as_block();
                     block_flow.base.absolute_position_info = self.base.absolute_position_info;
 
@@ -1220,10 +1220,10 @@ impl Flow for InlineFlow {
                                                             stacking_relative_position);
 
             match fragment.specific {
-                InlineBlockFragment(ref mut info) => {
+                SpecificFragmentInfo::InlineBlock(ref mut info) => {
                     flow::mut_base(info.flow_ref.deref_mut()).clip_rect = clip_rect
                 }
-                InlineAbsoluteHypotheticalFragment(ref mut info) => {
+                SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
                     flow::mut_base(info.flow_ref.deref_mut()).clip_rect = clip_rect
                 }
                 _ => {}
@@ -1246,15 +1246,15 @@ impl Flow for InlineFlow {
             fragment.build_display_list(&mut *display_list,
                                         layout_context,
                                         fragment_origin,
-                                        ContentLevel,
+                                        BackgroundAndBorderLevel::Content,
                                         &self.base.clip_rect);
             match fragment.specific {
-                InlineBlockFragment(ref mut block_flow) => {
+                SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
                     let block_flow = block_flow.flow_ref.deref_mut();
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
                 }
-                InlineAbsoluteHypotheticalFragment(ref mut block_flow) => {
+                SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
                     let block_flow = block_flow.flow_ref.deref_mut();
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
@@ -1263,7 +1263,7 @@ impl Flow for InlineFlow {
             }
         }
 
-        self.base.display_list_building_result = DisplayListResult(display_list);
+        self.base.display_list_building_result = DisplayListBuildingResult::Normal(display_list);
 
         if opts::get().validate_display_list_geometry {
             self.base.validate_display_list_geometry();

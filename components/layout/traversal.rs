@@ -5,7 +5,7 @@
 //! Traversals over the DOM and flow trees, running the layout computations.
 
 use css::node_style::StyledNode;
-use css::matching::{ApplicableDeclarations, CannotShare, MatchMethods, StyleWasShared};
+use css::matching::{ApplicableDeclarations, MatchMethods, StyleSharingResult};
 use construct::FlowConstructor;
 use context::LayoutContext;
 use flow::{Flow, MutableFlowUtils};
@@ -152,7 +152,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
             };
             // Otherwise, match and cascade selectors.
             match sharing_result {
-                CannotShare(mut shareable) => {
+                StyleSharingResult::CannotShare(mut shareable) => {
                     let mut applicable_declarations = ApplicableDeclarations::new();
 
                     if node.is_element() {
@@ -178,7 +178,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
                         style_sharing_candidate_cache.insert_if_possible(&node);
                     }
                 }
-                StyleWasShared(index, damage) => {
+                StyleSharingResult::StyleWasShared(index, damage) => {
                     style_sharing_candidate_cache.touch(index);
                     ThreadSafeLayoutNode::new(&node).set_restyle_damage(damage);
                 }

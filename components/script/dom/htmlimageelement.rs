@@ -11,11 +11,11 @@ use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCas
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, HTMLImageElementTypeId};
+use dom::element::{Element, ElementTypeId};
 use dom::element::AttributeHandlers;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, NodeHelpers, OtherNodeDamage, window_from_node};
+use dom::node::{Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use servo_net::image_cache_task;
 use servo_util::geometry::to_px;
@@ -32,7 +32,7 @@ pub struct HTMLImageElement {
 
 impl HTMLImageElementDerived for EventTarget {
     fn is_htmlimageelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLImageElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLImageElement))
     }
 }
 
@@ -69,7 +69,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
 impl HTMLImageElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLImageElement {
         HTMLImageElement {
-            htmlelement: HTMLElement::new_inherited(HTMLImageElementTypeId, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLImageElement, localName, prefix, document),
             image: DOMRefCell::new(None),
         }
     }
@@ -118,7 +118,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         // recreate the flow (picking up image changes on the way). The image cache task needs a
         // rewrite to modern Rust.
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.dirty(OtherNodeDamage);
+        node.dirty(NodeDamage::OtherNodeDamage);
 
         let rect = node.get_bounding_content_box();
         to_px(rect.size.width) as u32
@@ -136,7 +136,7 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         // recreate the flow (picking up image changes on the way). The image cache task needs a
         // rewrite to modern Rust.
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        node.dirty(OtherNodeDamage);
+        node.dirty(NodeDamage::OtherNodeDamage);
 
         let rect = node.get_bounding_content_box();
         to_px(rect.size.height) as u32

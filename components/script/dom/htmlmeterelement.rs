@@ -7,10 +7,10 @@ use dom::bindings::codegen::InheritTypes::HTMLMeterElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLMeterElementTypeId;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -20,14 +20,14 @@ pub struct HTMLMeterElement {
 
 impl HTMLMeterElementDerived for EventTarget {
     fn is_htmlmeterelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLMeterElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLMeterElement))
     }
 }
 
 impl HTMLMeterElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMeterElement {
         HTMLMeterElement {
-            htmlelement: HTMLElement::new_inherited(HTMLMeterElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLMeterElement, localName, prefix, document)
         }
     }
 

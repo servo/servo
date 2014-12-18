@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use self::BreakType::*;
+use self::GlyphInfo::*;
+
 use servo_util::vec::*;
 use servo_util::range;
 use servo_util::range::{Range, RangeIndex, IntRangeIndex, EachIndex};

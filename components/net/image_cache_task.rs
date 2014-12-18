@@ -2,9 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use self::AfterPrefetch::*;
+use self::ImageResponseMsg::*;
+use self::ImageState::*;
+use self::Msg::*;
+
 use image::base::{Image, load_from_memory};
 use resource_task;
 use resource_task::{LoadData, ResourceTask};
+use resource_task::ProgressMsg::{Payload, Done};
 
 use servo_util::task::spawn_named;
 use servo_util::taskpool::TaskPool;
@@ -443,20 +449,20 @@ impl ImageCacheTask {
 
 fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()> {
     let (response_chan, response_port) = channel();
-    resource_task.send(resource_task::Load(LoadData::new(url, response_chan)));
+    resource_task.send(resource_task::ControlMsg::Load(LoadData::new(url, response_chan)));
 
     let mut image_data = vec!();
 
     let progress_port = response_port.recv().progress_port;
     loop {
         match progress_port.recv() {
-            resource_task::Payload(data) => {
+            Payload(data) => {
                 image_data.push_all(data.as_slice());
             }
-            resource_task::Done(result::Ok(..)) => {
+            Done(result::Ok(..)) => {
                 return Ok(image_data);
             }
-            resource_task::Done(result::Err(..)) => {
+            Done(result::Err(..)) => {
                 return Err(());
             }
         }
@@ -479,9 +485,12 @@ pub fn spawn_listener<A: Send>(f: proc(Receiver<A>):Send) -> Sender<A> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::ImageResponseMsg::*;
+    use super::Msg::*;
 
     use resource_task;
     use resource_task::{ResourceTask, Metadata, start_sending, ResponseSenders};
+    use resource_task::ProgressMsg::{Payload, Done};
     use sniffer_task;
     use image::base::test_image_bin;
     use servo_util::taskpool::TaskPool;
@@ -500,31 +509,31 @@ mod tests {
     impl Closure for JustSendOK {
         fn invoke(&self, response: Sender<resource_task::ProgressMsg>) {
             self.url_requested_chan.send(());
-            response.send(resource_task::Done(Ok(())));
+            response.send(Done(Ok(())));
         }
     }
 
     struct SendTestImage;
     impl Closure for SendTestImage {
         fn invoke(&self, response: Sender<resource_task::ProgressMsg>) {
-            response.send(resource_task::Payload(test_image_bin()));
-            response.send(resource_task::Done(Ok(())));
+            response.send(Payload(test_image_bin()));
+            response.send(Done(Ok(())));
         }
     }
 
     struct SendBogusImage;
     impl Closure for SendBogusImage {
         fn invoke(&self, response: Sender<resource_task::ProgressMsg>) {
-            response.send(resource_task::Payload(vec!()));
-            response.send(resource_task::Done(Ok(())));
+            response.send(Payload(vec!()));
+            response.send(Done(Ok(())));
         }
     }
 
     struct SendTestImageErr;
     impl Closure for SendTestImageErr {
         fn invoke(&self, response: Sender<resource_task::ProgressMsg>) {
-            response.send(resource_task::Payload(test_image_bin()));
-            response.send(resource_task::Done(Err("".to_string())));
+            response.send(Payload(test_image_bin()));
+            response.send(Done(Err("".to_string())));
         }
     }
 
@@ -536,8 +545,8 @@ mod tests {
             // Don't send the data until after the client requests
             // the image
             self.wait_port.recv();
-            response.send(resource_task::Payload(test_image_bin()));
-            response.send(resource_task::Done(Ok(())));
+            response.send(Payload(test_image_bin()));
+            response.send(Done(Ok(())));
         }
     }
 
@@ -549,8 +558,8 @@ mod tests {
             // Don't send the data until after the client requests
             // the image
             self.wait_port.recv();
-            response.send(resource_task::Payload(test_image_bin()));
-            response.send(resource_task::Done(Err("".to_string())));
+            response.send(Payload(test_image_bin()));
+            response.send(Done(Err("".to_string())));
         }
     }
 
@@ -558,7 +567,7 @@ mod tests {
         spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
-                    resource_task::Load(response) => {
+                    resource_task::ControlMsg::Load(response) => {
                         let sniffer_task = sniffer_task::new_sniffer_task();
                         let senders = ResponseSenders {
                             immediate_consumer: sniffer_task,
@@ -568,7 +577,7 @@ mod tests {
                             Url::parse("file:///fake").unwrap()));
                         on_load.invoke(chan);
                     }
-                    resource_task::Exit => break
+                    resource_task::ControlMsg::Exit => break
                 }
             }
         })
@@ -581,7 +590,7 @@ mod tests {
         let image_cache_task = ImageCacheTask::new(mock_resource_task.clone(), TaskPool::new(4));
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -609,7 +618,7 @@ mod tests {
         image_cache_task.send(Prefetch(url));
         url_requested.recv();
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -625,7 +634,7 @@ mod tests {
         image_cache_task.send(Prefetch(url));
         url_requested.recv();
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
         match url_requested.try_recv() {
             Err(_) => (),
             Ok(_) => panic!(),
@@ -648,7 +657,7 @@ mod tests {
         assert!(response_port.recv() == ImageNotReady);
         wait_chan.send(());
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -674,7 +683,7 @@ mod tests {
         }
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -702,7 +711,7 @@ mod tests {
         }
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -714,7 +723,7 @@ mod tests {
         let mock_resource_task = spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
-                    resource_task::Load(response) => {
+                    resource_task::ControlMsg::Load(response) => {
                         let sniffer_task = sniffer_task::new_sniffer_task();
                         let senders = ResponseSenders {
                             immediate_consumer: sniffer_task,
@@ -722,11 +731,11 @@ mod tests {
                         };
                         let chan = start_sending(senders, Metadata::default(
                             Url::parse("file:///fake").unwrap()));
-                        chan.send(resource_task::Payload(test_image_bin()));
-                        chan.send(resource_task::Done(Ok(())));
+                        chan.send(Payload(test_image_bin()));
+                        chan.send(Done(Ok(())));
                         image_bin_sent_chan.send(());
                     }
-                    resource_task::Exit => {
+                    resource_task::ControlMsg::Exit => {
                         resource_task_exited_chan.send(());
                         break
                     }
@@ -745,7 +754,7 @@ mod tests {
         image_cache_task.send(Prefetch(url.clone()));
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
 
         resource_task_exited.recv();
 
@@ -766,7 +775,7 @@ mod tests {
         let mock_resource_task = spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
             loop {
                 match port.recv() {
-                    resource_task::Load(response) => {
+                    resource_task::ControlMsg::Load(response) => {
                         let sniffer_task = sniffer_task::new_sniffer_task();
                         let senders = ResponseSenders {
                             immediate_consumer: sniffer_task,
@@ -774,11 +783,11 @@ mod tests {
                         };
                         let chan = start_sending(senders, Metadata::default(
                             Url::parse("file:///fake").unwrap()));
-                        chan.send(resource_task::Payload(test_image_bin()));
-                        chan.send(resource_task::Done(Err("".to_string())));
+                        chan.send(Payload(test_image_bin()));
+                        chan.send(Done(Err("".to_string())));
                         image_bin_sent_chan.send(());
                     }
-                    resource_task::Exit => {
+                    resource_task::ControlMsg::Exit => {
                         resource_task_exited_chan.send(());
                         break
                     }
@@ -799,7 +808,7 @@ mod tests {
         image_cache_task.send(Decode(url.clone()));
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
 
         resource_task_exited.recv();
 
@@ -834,7 +843,7 @@ mod tests {
         }
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -868,7 +877,7 @@ mod tests {
         }
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -896,7 +905,7 @@ mod tests {
         }
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -922,7 +931,7 @@ mod tests {
         }
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -948,7 +957,7 @@ mod tests {
         }
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -974,7 +983,7 @@ mod tests {
         }
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 
     #[test]
@@ -995,6 +1004,6 @@ mod tests {
         }
 
         image_cache_task.exit();
-        mock_resource_task.send(resource_task::Exit);
+        mock_resource_task.send(resource_task::ControlMsg::Exit);
     }
 }

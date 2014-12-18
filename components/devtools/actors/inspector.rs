@@ -16,6 +16,7 @@ use serialize::json;
 use serialize::json::ToJson;
 use std::cell::RefCell;
 use std::io::TcpStream;
+use std::num::Float;
 
 pub struct InspectorActor {
     pub name: String,

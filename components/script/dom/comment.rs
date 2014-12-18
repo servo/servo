@@ -11,8 +11,8 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::node::{CommentNodeTypeId, Node};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
 /// An HTML comment.
@@ -23,14 +23,14 @@ pub struct Comment {
 
 impl CommentDerived for EventTarget {
     fn is_comment(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(CommentNodeTypeId)
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Comment)
     }
 }
 
 impl Comment {
     fn new_inherited(text: DOMString, document: JSRef<Document>) -> Comment {
         Comment {
-            characterdata: CharacterData::new_inherited(CommentNodeTypeId, text, document)
+            characterdata: CharacterData::new_inherited(NodeTypeId::Comment, text, document)
         }
     }
 
