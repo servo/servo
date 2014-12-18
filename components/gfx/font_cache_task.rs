@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use self::Command::*;
-use self::Reply::*;
-
 use platform::font_list::get_available_families;
 use platform::font_list::get_system_default_family;
 use platform::font_list::get_variations_for_family;
@@ -114,16 +111,16 @@ impl FontCache {
             let msg = self.port.recv();
 
             match msg {
-                GetFontTemplate(family, descriptor, result) => {
+                Command::GetFontTemplate(family, descriptor, result) => {
                     let family = LowercaseString::new(family.as_slice());
                     let maybe_font_template = self.get_font_template(&family, &descriptor);
-                    result.send(GetFontTemplateReply(maybe_font_template));
+                    result.send(Reply::GetFontTemplateReply(maybe_font_template));
                 }
-                GetLastResortFontTemplate(descriptor, result) => {
+                Command::GetLastResortFontTemplate(descriptor, result) => {
                     let font_template = self.get_last_resort_font_template(&descriptor);
-                    result.send(GetFontTemplateReply(Some(font_template)));
+                    result.send(Reply::GetFontTemplateReply(Some(font_template)));
                 }
-                AddWebFont(family_name, src, result) => {
+                Command::AddWebFont(family_name, src, result) => {
                     let family_name = LowercaseString::new(family_name.as_slice());
                     if !self.web_families.contains_key(&family_name) {
                         let family = FontFamily::new();
@@ -153,7 +150,7 @@ impl FontCache {
                     }
                     result.send(());
                 }
-                Exit(result) => {
+                Command::Exit(result) => {
                     result.send(());
                     break;
                 }
@@ -286,12 +283,12 @@ impl FontCacheTask {
                                                 -> Option<Arc<FontTemplateData>> {
 
         let (response_chan, response_port) = channel();
-        self.chan.send(GetFontTemplate(family, desc, response_chan));
+        self.chan.send(Command::GetFontTemplate(family, desc, response_chan));
 
         let reply = response_port.recv();
 
         match reply {
-            GetFontTemplateReply(data) => {
+            Reply::GetFontTemplateReply(data) => {
                 data
             }
         }
@@ -301,12 +298,12 @@ impl FontCacheTask {
                                                 -> Arc<FontTemplateData> {
 
         let (response_chan, response_port) = channel();
-        self.chan.send(GetLastResortFontTemplate(desc, response_chan));
+        self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan));
 
         let reply = response_port.recv();
 
         match reply {
-            GetFontTemplateReply(data) => {
+            Reply::GetFontTemplateReply(data) => {
                 data.unwrap()
             }
         }
@@ -314,13 +311,13 @@ impl FontCacheTask {
 
     pub fn add_web_font(&self, family: String, src: Source) {
         let (response_chan, response_port) = channel();
-        self.chan.send(AddWebFont(family, src, response_chan));
+        self.chan.send(Command::AddWebFont(family, src, response_chan));
         response_port.recv();
     }
 
     pub fn exit(&self) {
         let (response_chan, response_port) = channel();
-        self.chan.send(Exit(response_chan));
+        self.chan.send(Command::Exit(response_chan));
         response_port.recv();
     }
 }

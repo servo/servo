@@ -4,10 +4,6 @@
 
 //! The task that handles all painting.
 
-use self::Msg::*;
-use self::MsgFromWorkerThread::*;
-use self::MsgToWorkerThread::*;
-
 use buffer_map::BufferMap;
 use display_list::{mod, StackingContext};
 use font_cache_task::FontCacheTask;
@@ -231,7 +227,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
 
         loop {
             match self.port.recv() {
-                PaintInitMsg(stacking_context) => {
+                Msg::PaintInitMsg(stacking_context) => {
                     self.epoch.next();
                     self.root_stacking_context = Some(stacking_context.clone());
 
@@ -247,7 +243,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                                       self.epoch,
                                       &*stacking_context);
                 }
-                PaintMsg(requests) => {
+                Msg::PaintMsg(requests) => {
                     if !self.paint_permission {
                         debug!("paint_task: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
@@ -272,12 +268,12 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     debug!("paint_task: returning surfaces");
                     self.compositor.paint(self.id, self.epoch, replies);
                 }
-                UnusedBufferMsg(unused_buffers) => {
+                Msg::UnusedBufferMsg(unused_buffers) => {
                     for buffer in unused_buffers.into_iter().rev() {
                         self.buffer_map.insert(native_graphics_context!(self), buffer);
                     }
                 }
-                PaintPermissionGranted => {
+                Msg::PaintPermissionGranted => {
                     self.paint_permission = true;
 
                     match self.root_stacking_context {
@@ -291,10 +287,10 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                         }
                     }
                 }
-                PaintPermissionRevoked => {
+                Msg::PaintPermissionRevoked => {
                     self.paint_permission = false;
                 }
-                ExitMsg(response_ch) => {
+                Msg::ExitMsg(response_ch) => {
                     debug!("paint_task: exitmsg response send");
                     response_ch.map(|ch| ch.send(()));
                     break;
@@ -431,17 +427,17 @@ impl WorkerThreadProxy {
                   layer_buffer: Option<Box<LayerBuffer>>,
                   stacking_context: Arc<StackingContext>,
                   scale: f32) {
-        self.sender.send(PaintTileMsgToWorkerThread(tile, layer_buffer, stacking_context, scale))
+        self.sender.send(MsgToWorkerThread::PaintTile(tile, layer_buffer, stacking_context, scale))
     }
 
     fn get_painted_tile_buffer(&mut self) -> Box<LayerBuffer> {
         match self.receiver.recv() {
-            PaintedTileMsgFromWorkerThread(layer_buffer) => layer_buffer,
+            MsgFromWorkerThread::PaintedTile(layer_buffer) => layer_buffer,
         }
     }
 
     fn exit(&mut self) {
-        self.sender.send(ExitMsgToWorkerThread)
+        self.sender.send(MsgToWorkerThread::Exit)
     }
 }
 
@@ -474,14 +470,14 @@ impl WorkerThread {
     fn main(&mut self) {
         loop {
             match self.receiver.recv() {
-                ExitMsgToWorkerThread => break,
-                PaintTileMsgToWorkerThread(tile, layer_buffer, stacking_context, scale) => {
+                MsgToWorkerThread::Exit => break,
+                MsgToWorkerThread::PaintTile(tile, layer_buffer, stacking_context, scale) => {
                     let draw_target = self.optimize_and_paint_tile(&tile, stacking_context, scale);
                     let buffer = self.create_layer_buffer_for_painted_tile(&tile,
                                                                            layer_buffer,
                                                                            draw_target,
                                                                            scale);
-                    self.sender.send(PaintedTileMsgFromWorkerThread(buffer))
+                    self.sender.send(MsgFromWorkerThread::PaintedTile(buffer))
                 }
             }
         }
@@ -586,10 +582,10 @@ impl WorkerThread {
 }
 
 enum MsgToWorkerThread {
-    ExitMsgToWorkerThread,
-    PaintTileMsgToWorkerThread(BufferRequest, Option<Box<LayerBuffer>>, Arc<StackingContext>, f32),
+    Exit,
+    PaintTile(BufferRequest, Option<Box<LayerBuffer>>, Arc<StackingContext>, f32),
 }
 
 enum MsgFromWorkerThread {
-    PaintedTileMsgFromWorkerThread(Box<LayerBuffer>),
+    PaintedTile(Box<LayerBuffer>),
 }

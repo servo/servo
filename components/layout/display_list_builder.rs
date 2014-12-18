@@ -23,13 +23,13 @@ use geom::approxeq::ApproxEq;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
 use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
-use gfx::display_list::{BorderDisplayItemClass, BorderRadii, BoxShadowDisplayItem};
-use gfx::display_list::{BoxShadowDisplayItemClass, DisplayItem, DisplayItemMetadata, DisplayList};
-use gfx::display_list::{GradientDisplayItem, GradientDisplayItemClass};
-use gfx::display_list::{GradientStop, ImageDisplayItem, ImageDisplayItemClass, LineDisplayItem};
-use gfx::display_list::{LineDisplayItemClass, SidewaysLeft};
-use gfx::display_list::{SidewaysRight, SolidColorDisplayItem, SolidColorDisplayItemClass};
-use gfx::display_list::{StackingContext, TextDisplayItem, TextDisplayItemClass, Upright};
+use gfx::display_list::{BorderRadii, BoxShadowDisplayItem};
+use gfx::display_list::{DisplayItem, DisplayList, DisplayItemMetadata};
+use gfx::display_list::{GradientDisplayItem};
+use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
+use gfx::display_list::{SidewaysLeft};
+use gfx::display_list::{SidewaysRight, SolidColorDisplayItem};
+use gfx::display_list::{StackingContext, TextDisplayItem, Upright};
 use gfx::paint_task::PaintLayer;
 use servo_msg::compositor_msg::{FixedPosition, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg};
@@ -198,7 +198,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // doesn't have a fragment".
         let background_color = style.resolve_color(style.get_background().background_color);
         if !background_color.alpha.approx_eq(&0.0) {
-            display_list.push(SolidColorDisplayItemClass(box SolidColorDisplayItem {
+            display_list.push(DisplayItem::SolidColorClass(box SolidColorDisplayItem {
                 base: BaseDisplayItem::new(*absolute_bounds,
                                            DisplayItemMetadata::new(self.node,
                                                                     style,
@@ -314,7 +314,7 @@ impl FragmentDisplayListBuilding for Fragment {
         };
 
         // Create the image display item.
-        display_list.push(ImageDisplayItemClass(box ImageDisplayItem {
+        display_list.push(DisplayItem::ImageClass(box ImageDisplayItem {
             base: BaseDisplayItem::new(bounds,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
                                        clip_rect),
@@ -424,7 +424,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let center = Point2D(absolute_bounds.origin.x + absolute_bounds.size.width / 2,
                              absolute_bounds.origin.y + absolute_bounds.size.height / 2);
 
-        let gradient_display_item = GradientDisplayItemClass(box GradientDisplayItem {
+        let gradient_display_item = DisplayItem::GradientClass(box GradientDisplayItem {
             base: BaseDisplayItem::new(*absolute_bounds,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
                                        clip_rect),
@@ -450,7 +450,7 @@ impl FragmentDisplayListBuilding for Fragment {
             let bounds =
                 absolute_bounds.translate(&Point2D(box_shadow.offset_x, box_shadow.offset_y))
                                .inflate(inflation, inflation);
-            list.push(BoxShadowDisplayItemClass(box BoxShadowDisplayItem {
+            list.push(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
                 base: BaseDisplayItem::new(bounds,
                                            DisplayItemMetadata::new(self.node,
                                                                     style,
@@ -483,7 +483,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let left_color = style.resolve_color(style.get_border().border_left_color);
 
         // Append the border to the display list.
-        display_list.push(BorderDisplayItemClass(box BorderDisplayItem {
+        display_list.push(DisplayItem::BorderClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(*abs_bounds,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
                                        *clip_rect),
@@ -525,7 +525,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Append the outline to the display list.
         let color = style.resolve_color(style.get_outline().outline_color).to_gfx_color();
-        display_list.outlines.push_back(BorderDisplayItemClass(box BorderDisplayItem {
+        display_list.outlines.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(bounds,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
                                        *clip_rect),
@@ -551,7 +551,7 @@ impl FragmentDisplayListBuilding for Fragment {
             fragment_bounds.size);
 
         // Compute the text fragment bounds and draw a border surrounding them.
-        display_list.content.push_back(BorderDisplayItemClass(box BorderDisplayItem {
+        display_list.content.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(absolute_fragment_bounds,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
                                        *clip_rect),
@@ -576,7 +576,7 @@ impl FragmentDisplayListBuilding for Fragment {
             color: color::rgb(0, 200, 0),
             style: border_style::dashed,
         };
-        display_list.content.push_back(LineDisplayItemClass(line_display_item));
+        display_list.content.push_back(DisplayItem::LineClass(line_display_item));
     }
 
     fn build_debug_borders_around_fragment(&self,
@@ -592,7 +592,7 @@ impl FragmentDisplayListBuilding for Fragment {
             fragment_bounds.size);
 
         // This prints a debug border around the border of this fragment.
-        display_list.content.push_back(BorderDisplayItemClass(box BorderDisplayItem {
+        display_list.content.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(absolute_fragment_bounds,
                                        DisplayItemMetadata::new(self.node,
                                                                 &*self.style,
@@ -776,7 +776,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         + flow_origin
                 };
 
-                display_list.content.push_back(TextDisplayItemClass(box TextDisplayItem {
+                display_list.content.push_back(DisplayItem::TextClass(box TextDisplayItem {
                     base: BaseDisplayItem::new(absolute_content_box,
                                                DisplayItemMetadata::new(self.node,
                                                                         self.style(),
@@ -798,7 +798,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             None => {}
                             Some(color) => {
                                 let bounds = rect_to_absolute(self.style.writing_mode, rect());
-                                display_list.content.push_back(SolidColorDisplayItemClass(
+                                display_list.content.push_back(DisplayItem::SolidColorClass(
                                     box SolidColorDisplayItem {
                                         base: BaseDisplayItem::new(
                                                   bounds,
@@ -859,7 +859,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         debug!("(building display list) building image fragment");
 
                         // Place the image into the display list.
-                        display_list.content.push_back(ImageDisplayItemClass(box ImageDisplayItem {
+                        display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem {
                             base: BaseDisplayItem::new(absolute_content_box,
                                                        DisplayItemMetadata::new(self.node,
                                                                                 &*self.style,
