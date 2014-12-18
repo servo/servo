@@ -94,7 +94,7 @@ fn assert_parse(url:          &'static str,
     use sniffer_task;
 
     let (start_chan, start_port) = comm::channel();
-    let sniffer_task = sniffer_task::new_sniffer_task();
+    let sniffer_task = sniffer_task::new_mock_sniffer_task();
     load(LoadData::new(Url::parse(url).unwrap(), start_chan), sniffer_task);
 
     let response = start_port.recv();
