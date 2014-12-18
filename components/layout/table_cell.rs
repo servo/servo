@@ -8,7 +8,7 @@
 
 use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
-use flow::{FlowClass, Flow};
+use flow::{Flow, FlowClass};
 use fragment::{Fragment, FragmentBoundsIterator};
 use model::{MaybeAuto};
 use layout_debug;
@@ -27,15 +27,21 @@ pub struct TableCellFlow {
     pub block_flow: BlockFlow,
     /// The column span of this cell.
     pub column_span: u32,
+    /// Whether this cell is visible. If false, the value of `empty-cells` means that we must not
+    /// display this cell.
+    pub visible: bool,
 }
 
 impl TableCellFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
-                                  -> TableCellFlow {
+    pub fn from_node_fragment_and_visibility_flag(node: &ThreadSafeLayoutNode,
+                                                  fragment: Fragment,
+                                                  visible: bool)
+                                                  -> TableCellFlow {
         TableCellFlow {
             block_flow: BlockFlow::from_node_and_fragment(node, fragment),
             column_span: node.get_unsigned_integer_attribute(UnsignedIntegerAttribute::ColSpanUnsignedIntegerAttribute)
                              .unwrap_or(1),
+            visible: visible,
         }
     }
 
@@ -53,7 +59,9 @@ impl TableCellFlow {
     /// methods.
     #[inline(always)]
     fn assign_block_size_table_cell_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        self.block_flow.assign_block_size_block_base(layout_context, MarginsMayCollapseFlag::MarginsMayNotCollapse)
+        self.block_flow.assign_block_size_block_base(
+            layout_context,
+            MarginsMayCollapseFlag::MarginsMayNotCollapse)
     }
 }
 
@@ -145,7 +153,9 @@ impl Flow for TableCellFlow {
     }
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.build_display_list(layout_context)
+        if self.visible {
+            self.block_flow.build_display_list(layout_context)
+        }
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {

@@ -52,7 +52,7 @@ use std::collections::DList;
 use std::mem;
 use std::sync::atomic::Relaxed;
 use style::ComputedValues;
-use style::computed_values::{display, position, float, list_style_position};
+use style::computed_values::{display, empty_cells, float, list_style_position, position};
 use sync::Arc;
 use url::Url;
 
@@ -157,8 +157,8 @@ struct InlineFragmentsAccumulator {
     /// The list of fragments.
     fragments: DList<Fragment>,
 
-    /// Whether we've created a range to enclose all the fragments. This will be Some() if the outer node
-    /// is an inline and None otherwise.
+    /// Whether we've created a range to enclose all the fragments. This will be Some() if the
+    /// outer node is an inline and None otherwise.
     enclosing_style: Option<Arc<ComputedValues>>,
 }
 
@@ -914,7 +914,18 @@ impl<'a> FlowConstructor<'a> {
     /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
     fn build_flow_for_table_cell(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
         let fragment = Fragment::new_from_specific_info(node, SpecificFragmentInfo::TableCell);
-        let flow = box TableCellFlow::from_node_and_fragment(node, fragment) as Box<Flow>;
+
+        // Determine if the table cell should be hidden. Per CSS 2.1 § 17.6.1.1, this will be true
+        // if the cell has any in-flow elements (even empty ones!) and has `empty-cells` set to
+        // `hide`.
+        let hide = node.style().get_inheritedtable().empty_cells == empty_cells::hide &&
+            node.children().all(|kid| {
+                let position = kid.style().get_box().position;
+                !kid.is_content() || position == position::absolute || position == position::fixed
+            });
+
+        let flow = box TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide)
+            as Box<Flow>;
         self.build_flow_for_block(FlowRef::new(flow), node)
     }
 
