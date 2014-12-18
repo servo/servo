@@ -8,10 +8,10 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElem
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLTableSectionElementTypeId;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId};
+use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
@@ -26,7 +26,7 @@ pub struct HTMLTableSectionElement {
 
 impl HTMLTableSectionElementDerived for EventTarget {
     fn is_htmltablesectionelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTableSectionElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableSectionElement))
     }
 }
 
@@ -34,7 +34,7 @@ impl HTMLTableSectionElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
                      -> HTMLTableSectionElement {
         HTMLTableSectionElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTableSectionElementTypeId,
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTableSectionElement,
                                                     localName,
                                                     prefix,
                                                     document),

@@ -6,11 +6,11 @@ use opts;
 use std::any::Any;
 #[cfg(not(test))]
 use std::io::File;
-use std::mem;
-use std::raw;
+//use std::mem;
+//use std::raw;
 use std::rt::Runtime;
 use std::rt::local::Local;
-use std::rt::rtio;
+//use std::rt::rtio;
 use std::rt::task::{Task, TaskOpts, BlockedTask};
 use std_time;
 use sync::Mutex;
@@ -28,7 +28,6 @@ pub enum Event {
 #[deriving(Encodable)]
 pub struct Message {
     timestamp: u64,
-    thread_id: uint,
     event: Event,
 }
 
@@ -110,7 +109,7 @@ fn install() {
         inner: Some(rt),
         messages: vec!(),
     };
-    new_rt.log(Spawn);
+    new_rt.log(Event::Spawn);
     task.put_runtime(new_rt);
 }
 
@@ -119,7 +118,7 @@ fn install() {
 fn uninstall() -> InstrumentedRuntime {
     let mut task = Local::borrow(None::<Task>);
     let mut rt = task.maybe_take_runtime::<InstrumentedRuntime>().unwrap();
-    rt.log(Death);
+    rt.log(Event::Death);
     task.put_runtime(rt.inner.take().unwrap());
     *rt
 }
@@ -142,22 +141,13 @@ impl InstrumentedRuntime {
 
     /// Logs a message into this runtime
     fn log(&mut self, event: Event) {
-        let id = self.thread_id();
         self.messages.push(Message {
             timestamp: std_time::precise_time_ns(),
             event: event,
-            thread_id: id,
         });
     }
 
     fn task_id(&self) -> uint { self as *const _ as uint }
-
-    fn thread_id(&mut self) -> uint {
-        self.inner.as_mut().unwrap().local_io().map(|mut i| {
-            let i: raw::TraitObject = unsafe { mem::transmute(i.get()) };
-            i.data as uint
-        }).unwrap_or(0)
-    }
 }
 
 impl Runtime for InstrumentedRuntime {
@@ -177,9 +167,9 @@ impl Runtime for InstrumentedRuntime {
 
     fn deschedule(mut self: Box<InstrumentedRuntime>, times: uint, cur_task: Box<Task>,
                   f: |BlockedTask| -> Result<(), BlockedTask>) {
-        self.log(Unschedule);
+        self.log(Event::Unschedule);
         self.inner.take().unwrap().deschedule(times, cur_task, f);
-        self.put(Some(Schedule));
+        self.put(Some(Event::Schedule));
     }
 
     fn reawaken(mut self: Box<InstrumentedRuntime>, to_wake: Box<Task>) {
@@ -201,9 +191,6 @@ impl Runtime for InstrumentedRuntime {
         self.put(None)
     }
 
-    fn local_io<'a>(&'a mut self) -> Option<rtio::LocalIo<'a>> {
-        self.inner.as_mut().unwrap().local_io()
-    }
     fn stack_bounds(&self) -> (uint, uint) { self.inner.as_ref().unwrap().stack_bounds() }
     fn can_block(&self) -> bool { self.inner.as_ref().unwrap().can_block() }
     fn wrap(self: Box<InstrumentedRuntime>) -> Box<Any+'static> { self as Box<Any> }

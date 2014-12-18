@@ -8,15 +8,15 @@ use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLSelectElementDerived, HTMLFieldSetElementDerived};
-use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::HTMLElementOrLong;
-use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement::HTMLOptionElementOrHTMLOptGroupElement;
+use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
+use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, HTMLSelectElementTypeId};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
@@ -30,14 +30,14 @@ pub struct HTMLSelectElement {
 
 impl HTMLSelectElementDerived for EventTarget {
     fn is_htmlselectelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLSelectElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLSelectElement))
     }
 }
 
 impl HTMLSelectElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLSelectElement {
         HTMLSelectElement {
-            htmlelement: HTMLElement::new_inherited(HTMLSelectElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLSelectElement, localName, prefix, document)
         }
     }
 

@@ -6,10 +6,10 @@
 
 #![deny(unsafe_blocks)]
 
-use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayNotCollapse};
+use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use construct::FlowConstructor;
 use context::LayoutContext;
-use flow::{Flow, FlowClass, TableRowGroupFlowClass};
+use flow::{FlowClass, Flow};
 use fragment::{Fragment, FragmentBoundsIterator};
 use layout_debug;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
@@ -62,13 +62,13 @@ impl TableRowGroupFlow {
     /// methods.
     #[inline(always)]
     fn assign_block_size_table_rowgroup_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        self.block_flow.assign_block_size_block_base(layout_context, MarginsMayNotCollapse)
+        self.block_flow.assign_block_size_block_base(layout_context, MarginsMayCollapseFlag::MarginsMayNotCollapse)
     }
 }
 
 impl Flow for TableRowGroupFlow {
     fn class(&self) -> FlowClass {
-        TableRowGroupFlowClass
+        FlowClass::TableRowGroup
     }
 
     fn as_table_rowgroup<'a>(&'a mut self) -> &'a mut TableRowGroupFlow {

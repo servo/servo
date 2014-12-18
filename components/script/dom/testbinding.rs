@@ -4,12 +4,14 @@
 
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestBindingMethods;
 use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnum;
-use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnumValues::_empty;
+use dom::bindings::codegen::Bindings::TestBindingBinding::TestEnum::_empty;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::UnionTypes::BlobOrString::BlobOrString;
-use dom::bindings::codegen::UnionTypes::EventOrString::{EventOrString, eString};
-use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::{HTMLElementOrLong, eLong};
+use dom::bindings::codegen::UnionTypes::BlobOrString;
+use dom::bindings::codegen::UnionTypes::EventOrString;
+use dom::bindings::codegen::UnionTypes::EventOrString::eString;
+use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
+use dom::bindings::codegen::UnionTypes::HTMLElementOrLong::eLong;
 use dom::bindings::global::GlobalField;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::str::ByteString;

@@ -2,32 +2,40 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use self::SyncOrAsync::*;
+use self::TerminateReason::*;
+use self::XHRProgress::*;
+use self::XMLHttpRequestState::*;
+
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues;
-use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseTypeValues::{_empty, Json, Text};
+use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType::{_empty, Json, Text};
 use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast, XMLHttpRequestDerived};
 use dom::bindings::conversions::ToJSValConvertible;
-use dom::bindings::error::{Error, ErrorResult, Fallible, InvalidState, InvalidAccess};
-use dom::bindings::error::{Network, Syntax, Security, Abort, Timeout};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::error::Error::{InvalidState, InvalidAccess};
+use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, WorkerRoot};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::Document;
-use dom::event::{Event, DoesNotBubble, Cancelable};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::progressevent::ProgressEvent;
 use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
+use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
+use script_task::ScriptChan;
+use script_task::ScriptMsg::{XHRProgressMsg, XHRReleaseMsg};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
-use encoding::types::{DecodeReplace, Encoding, EncodingRef, EncodeReplace};
+use encoding::types::{DecoderTrap, Encoding, EncodingRef, EncoderTrap};
 
 use hyper::header::Headers;
 use hyper::header::common::{Accept, ContentLength, ContentType};
@@ -43,8 +51,7 @@ use libc;
 use libc::c_void;
 
 use net::resource_task::{ResourceTask, ResourceCORSData, Load, LoadData, LoadResponse, Payload, Done};
-use cors::{allow_cross_origin_request, CORSRequest, CORSMode, ForcedPreflightMode};
-use script_task::{ScriptChan, XHRProgressMsg, XHRReleaseMsg};
+use cors::{allow_cross_origin_request, CORSRequest, RequestMode};
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 
@@ -53,22 +60,14 @@ use std::cell::Cell;
 use std::comm::{Sender, Receiver, channel};
 use std::default::Default;
 use std::io::Timer;
-use std::from_str::FromStr;
+use std::str::FromStr;
 use std::time::duration::Duration;
-use std::num::Zero;
 use time;
 use url::{Url, UrlParser};
 
-use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams, StringOrURLSearchParams};
+use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
+use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 pub type SendParam = StringOrURLSearchParams;
-
-
-#[deriving(PartialEq)]
-#[jstraceable]
-pub enum XMLHttpRequestId {
-    XMLHttpRequestTypeId,
-    XMLHttpRequestUploadTypeId
-}
 
 #[deriving(PartialEq)]
 #[jstraceable]
@@ -152,7 +151,7 @@ pub struct XMLHttpRequest {
 impl XMLHttpRequest {
     fn new_inherited(global: &GlobalRef) -> XMLHttpRequest {
         XMLHttpRequest {
-            eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestTypeId),
+            eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestEventTargetTypeId::XMLHttpRequest),
             ready_state: Cell::new(Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
@@ -570,7 +569,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
             if !request_headers.has::<Accept>() {
                 request_headers.set(
-                    Accept(vec![Mime(mime::TopStar, mime::SubStar, vec![])]));
+                    Accept(vec![Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![])]));
             }
         } // drops the borrow_mut
 
@@ -582,9 +581,9 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         // CORS stuff
         let referer_url = self.global.root().root_ref().get_url();
         let mode = if self.upload_events.get() {
-            ForcedPreflightMode
+            RequestMode::ForcedPreflight
         } else {
-            CORSMode
+            RequestMode::CORS
         };
         let cors_request = CORSRequest::maybe_new(referer_url.clone(), load_data.url.clone(), mode,
                                                   load_data.method.clone(), load_data.headers.clone());
@@ -681,7 +680,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     }
     fn SetResponseType(self, response_type: XMLHttpRequestResponseType) -> ErrorResult {
         match self.global.root() {
-            WorkerRoot(_) if response_type == XMLHttpRequestResponseTypeValues::Document
+            WorkerRoot(_) if response_type == XMLHttpRequestResponseType::Document
             => return Ok(()),
             _ => {}
         }
@@ -706,7 +705,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             },
             _ if self.ready_state.get() != XHRDone => NullValue(),
             Json => {
-                let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecodeReplace).unwrap().to_string();
+                let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_string();
                 let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
                 let mut vp = UndefinedValue();
                 unsafe {
@@ -748,7 +747,7 @@ impl Reflectable for XMLHttpRequest {
 impl XMLHttpRequestDerived for EventTarget {
     fn is_xmlhttprequest(&self) -> bool {
         match *self.type_id() {
-            XMLHttpRequestTargetTypeId(XMLHttpRequestTypeId) => true,
+            EventTargetTypeId::XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId::XMLHttpRequest) => true,
             _ => false
         }
     }
@@ -815,7 +814,8 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let global = self.global.root();
         let event = Event::new(global.root_ref(),
                                "readystatechange".to_string(),
-                               DoesNotBubble, Cancelable).root();
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         target.dispatch_event(*event);
     }
@@ -859,7 +859,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Substep 2
                 status.map(|RawStatus(code, reason)| {
                     self.status.set(code);
-                    *self.status_text.borrow_mut() = ByteString::new(reason.into_bytes());
+                    *self.status_text.borrow_mut() = ByteString::new(format!("{}", reason).into_bytes());
                 });
                 headers.as_ref().map(|h| *self.response_headers.borrow_mut() = h.clone());
 
@@ -995,7 +995,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn cancel_timeout(self) {
         // oneshot() closes the previous channel, canceling the timeout
-        self.timer.borrow_mut().oneshot(Zero::zero());
+        self.timer.borrow_mut().oneshot(Duration::zero());
     }
 
     fn text_response(self) -> DOMString {
@@ -1013,7 +1013,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(self.response.borrow().as_slice(), DecodeReplace).unwrap().to_string()
+        encoding.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_string()
     }
     fn filter_response_headers(self) -> Headers {
         // http://fetch.spec.whatwg.org/#concept-response-header-list
@@ -1055,7 +1055,7 @@ impl Extractable for SendParam {
         // http://fetch.spec.whatwg.org/#concept-fetchbodyinit-extract
         let encoding = UTF_8 as EncodingRef;
         match *self {
-            eString(ref s) => encoding.encode(s.as_slice(), EncodeReplace).unwrap(),
+            eString(ref s) => encoding.encode(s.as_slice(), EncoderTrap::Replace).unwrap(),
             eURLSearchParams(ref usp) => usp.root().serialize(None) // Default encoding is UTF8
         }
     }

@@ -8,8 +8,8 @@ use errors::{ErrorLoggerIterator, log_css_error};
 use std::ascii::AsciiExt;
 use parsing_utils::{BufferedIter, ParserIter, parse_slice_comma_separated};
 use properties::longhands::font_family::parse_one_family;
-use properties::computed_values::font_family::FamilyName;
-use stylesheets::{CSSRule, CSSFontFaceRule, CSSStyleRule, CSSMediaRule};
+use properties::computed_values::font_family::FontFamily::FamilyName;
+use stylesheets::CSSRule;
 use media_queries::Device;
 use url::{Url, UrlParser};
 
@@ -18,11 +18,11 @@ pub fn iter_font_face_rules_inner(rules: &[CSSRule], device: &Device,
                                     callback: |family: &str, source: &Source|) {
     for rule in rules.iter() {
         match *rule {
-            CSSStyleRule(_) => {},
-            CSSMediaRule(ref rule) => if rule.media_queries.evaluate(device) {
+            CSSRule::Style(_) => {},
+            CSSRule::Media(ref rule) => if rule.media_queries.evaluate(device) {
                 iter_font_face_rules_inner(rule.rules.as_slice(), device, |f, s| callback(f, s))
             },
-            CSSFontFaceRule(ref rule) => {
+            CSSRule::FontFace(ref rule) => {
                 for source in rule.sources.iter() {
                     callback(rule.family.as_slice(), source)
                 }
@@ -33,8 +33,8 @@ pub fn iter_font_face_rules_inner(rules: &[CSSRule], device: &Device,
 
 #[deriving(Clone)]
 pub enum Source {
-    UrlSource_(UrlSource),
-    LocalSource(String),
+    Url(UrlSource),
+    Local(String),
 }
 
 #[deriving(Clone)]
@@ -67,9 +67,9 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
 
     for item in ErrorLoggerIterator(parse_declaration_list(block.into_iter())) {
         match item {
-            DeclAtRule(rule) => log_css_error(
+            DeclarationListItem::AtRule(rule) => log_css_error(
                 rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
-            Declaration_(Declaration{ location, name, value, important }) => {
+            DeclarationListItem::Declaration(Declaration{ location, name, value, important }) => {
                 if important {
                     log_css_error(location, "!important is not allowed on @font-face descriptors");
                     continue
@@ -102,7 +102,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
     }
 
     match (maybe_family, maybe_sources) {
-        (Some(family), Some(sources)) => parent_rules.push(CSSFontFaceRule(FontFaceRule {
+        (Some(family), Some(sources)) => parent_rules.push(CSSRule::FontFace(FontFaceRule {
             family: family,
             sources: sources,
         })),
@@ -124,7 +124,7 @@ fn parse_one_src(iter: ParserIter, base_url: &Url) -> Result<Source, ()> {
             if name.as_slice().eq_ignore_ascii_case("local") {
                 let iter = &mut BufferedIter::new(arguments.as_slice().skip_whitespace());
                 match parse_one_family(iter) {
-                    Ok(FamilyName(name)) => return Ok(LocalSource(name)),
+                    Ok(FamilyName(name)) => return Ok(Source::Local(name)),
                     _ => return Err(())
                 }
             }
@@ -148,7 +148,7 @@ fn parse_one_src(iter: ParserIter, base_url: &Url) -> Result<Source, ()> {
         None => vec![],
     };
 
-    Ok(UrlSource_(UrlSource {
+    Ok(Source::Url(UrlSource {
         url: url,
         format_hints: format_hints,
     }))

@@ -31,9 +31,9 @@ use construct::FlowConstructor;
 use context::LayoutContext;
 use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, FragmentDisplayListBuilding};
-use floats::{ClearBoth, ClearLeft, ClearRight, FloatKind, FloatLeft, Floats, PlacementInfo};
-use flow::{AbsolutePositionInfo, BaseFlow, BlockFlowClass, FloatIfNecessary, FlowClass, Flow};
-use flow::{ForceNonfloated, ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
+use floats::{ClearType, FloatKind, Floats, PlacementInfo};
+use flow::{AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
+use flow::{ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
 use flow::{PostorderFlowTraversal, mut_base};
 use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
@@ -41,12 +41,11 @@ use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{CLEARS_LEFT, CLEARS_RIGHT};
 use flow;
-use fragment::{Fragment, ImageFragment, InlineBlockFragment, FragmentBoundsIterator};
-use fragment::ScannedTextFragment;
+use fragment::{Fragment, FragmentBoundsIterator, SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
-use model::{Auto, IntrinsicISizes, MarginCollapseInfo, MarginsCollapse, MarginsCollapseThrough};
-use model::{MaybeAuto, NoCollapsibleMargins, Specified, specified, specified_or_none};
+use model::{IntrinsicISizes, MarginCollapseInfo};
+use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
 use table::ColumnComputedInlineSize;
 use wrapper::ThreadSafeLayoutNode;
 
@@ -60,8 +59,8 @@ use servo_util::opts;
 use std::cmp::{max, min};
 use std::fmt;
 use style::ComputedValues;
-use style::computed_values::{LPA_Auto, LPA_Length, LPA_Percentage, LPN_Length, LPN_None};
-use style::computed_values::{LPN_Percentage, LP_Length, LP_Percentage, box_sizing, display, float};
+use style::computed_values::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::computed_values::{LengthOrPercentage, box_sizing, display, float};
 use style::computed_values::{overflow, position};
 use sync::Arc;
 
@@ -138,7 +137,7 @@ impl BSizeConstraintSolution {
         let static_position_block_start = static_b_offset;
 
         let (block_start, block_end, block_size, margin_block_start, margin_block_end) = match (block_start, block_end, block_size) {
-            (Auto, Auto, Auto) => {
+            (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) => {
                 let margin_block_start = block_start_margin.specified_or_zero();
                 let margin_block_end = block_end_margin.specified_or_zero();
                 let block_start = static_position_block_start;
@@ -149,23 +148,23 @@ impl BSizeConstraintSolution {
                 let sum = block_start + block_size + margin_block_start + margin_block_end;
                 (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
             }
-            (Specified(block_start), Specified(block_end), Specified(block_size)) => {
+            (MaybeAuto::Specified(block_start), MaybeAuto::Specified(block_end), MaybeAuto::Specified(block_size)) => {
                 match (block_start_margin, block_end_margin) {
-                    (Auto, Auto) => {
+                    (MaybeAuto::Auto, MaybeAuto::Auto) => {
                         let total_margin_val = available_block_size - block_start - block_end - block_size;
                         (block_start, block_end, block_size,
                          total_margin_val.scale_by(0.5),
                          total_margin_val.scale_by(0.5))
                     }
-                    (Specified(margin_block_start), Auto) => {
+                    (MaybeAuto::Specified(margin_block_start), MaybeAuto::Auto) => {
                         let sum = block_start + block_end + block_size + margin_block_start;
                         (block_start, block_end, block_size, margin_block_start, available_block_size - sum)
                     }
-                    (Auto, Specified(margin_block_end)) => {
+                    (MaybeAuto::Auto, MaybeAuto::Specified(margin_block_end)) => {
                         let sum = block_start + block_end + block_size + margin_block_end;
                         (block_start, block_end, block_size, available_block_size - sum, margin_block_end)
                     }
-                    (Specified(margin_block_start), Specified(margin_block_end)) => {
+                    (MaybeAuto::Specified(margin_block_start), MaybeAuto::Specified(margin_block_end)) => {
                         // Values are over-constrained. Ignore value for 'block-end'.
                         let sum = block_start + block_size + margin_block_start + margin_block_end;
                         (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
@@ -176,19 +175,19 @@ impl BSizeConstraintSolution {
             // For the rest of the cases, auto values for margin are set to 0
 
             // If only one is Auto, solve for it
-            (Auto, Specified(block_end), Specified(block_size)) => {
+            (MaybeAuto::Auto, MaybeAuto::Specified(block_end), MaybeAuto::Specified(block_size)) => {
                 let margin_block_start = block_start_margin.specified_or_zero();
                 let margin_block_end = block_end_margin.specified_or_zero();
                 let sum = block_end + block_size + margin_block_start + margin_block_end;
                 (available_block_size - sum, block_end, block_size, margin_block_start, margin_block_end)
             }
-            (Specified(block_start), Auto, Specified(block_size)) => {
+            (MaybeAuto::Specified(block_start), MaybeAuto::Auto, MaybeAuto::Specified(block_size)) => {
                 let margin_block_start = block_start_margin.specified_or_zero();
                 let margin_block_end = block_end_margin.specified_or_zero();
                 let sum = block_start + block_size + margin_block_start + margin_block_end;
                 (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
             }
-            (Specified(block_start), Specified(block_end), Auto) => {
+            (MaybeAuto::Specified(block_start), MaybeAuto::Specified(block_end), MaybeAuto::Auto) => {
                 let margin_block_start = block_start_margin.specified_or_zero();
                 let margin_block_end = block_end_margin.specified_or_zero();
                 let sum = block_start + block_end + margin_block_start + margin_block_end;
@@ -197,14 +196,14 @@ impl BSizeConstraintSolution {
 
             // If block-size is auto, then block-size is content block-size. Solve for the
             // non-auto value.
-            (Specified(block_start), Auto, Auto) => {
+            (MaybeAuto::Specified(block_start), MaybeAuto::Auto, MaybeAuto::Auto) => {
                 let margin_block_start = block_start_margin.specified_or_zero();
                 let margin_block_end = block_end_margin.specified_or_zero();
                 let block_size = content_block_size;
                 let sum = block_start + block_size + margin_block_start + margin_block_end;
                 (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
             }
-            (Auto, Specified(block_end), Auto) => {
+            (MaybeAuto::Auto, MaybeAuto::Specified(block_end), MaybeAuto::Auto) => {
                 let margin_block_start = block_start_margin.specified_or_zero();
                 let margin_block_end = block_end_margin.specified_or_zero();
                 let block_size = content_block_size;
@@ -212,7 +211,7 @@ impl BSizeConstraintSolution {
                 (available_block_size - sum, block_end, block_size, margin_block_start, margin_block_end)
             }
 
-            (Auto, Auto, Specified(block_size)) => {
+            (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(block_size)) => {
                 let margin_block_start = block_start_margin.specified_or_zero();
                 let margin_block_end = block_end_margin.specified_or_zero();
                 let block_start = static_position_block_start;
@@ -249,30 +248,30 @@ impl BSizeConstraintSolution {
         let static_position_block_start = static_b_offset;
 
         let (block_start, block_end, block_size, margin_block_start, margin_block_end) = match (block_start, block_end) {
-            (Auto, Auto) => {
+            (MaybeAuto::Auto, MaybeAuto::Auto) => {
                 let margin_block_start = block_start_margin.specified_or_zero();
                 let margin_block_end = block_end_margin.specified_or_zero();
                 let block_start = static_position_block_start;
                 let sum = block_start + block_size + margin_block_start + margin_block_end;
                 (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
             }
-            (Specified(block_start), Specified(block_end)) => {
+            (MaybeAuto::Specified(block_start), MaybeAuto::Specified(block_end)) => {
                 match (block_start_margin, block_end_margin) {
-                    (Auto, Auto) => {
+                    (MaybeAuto::Auto, MaybeAuto::Auto) => {
                         let total_margin_val = available_block_size - block_start - block_end - block_size;
                         (block_start, block_end, block_size,
                          total_margin_val.scale_by(0.5),
                          total_margin_val.scale_by(0.5))
                     }
-                    (Specified(margin_block_start), Auto) => {
+                    (MaybeAuto::Specified(margin_block_start), MaybeAuto::Auto) => {
                         let sum = block_start + block_end + block_size + margin_block_start;
                         (block_start, block_end, block_size, margin_block_start, available_block_size - sum)
                     }
-                    (Auto, Specified(margin_block_end)) => {
+                    (MaybeAuto::Auto, MaybeAuto::Specified(margin_block_end)) => {
                         let sum = block_start + block_end + block_size + margin_block_end;
                         (block_start, block_end, block_size, available_block_size - sum, margin_block_end)
                     }
-                    (Specified(margin_block_start), Specified(margin_block_end)) => {
+                    (MaybeAuto::Specified(margin_block_start), MaybeAuto::Specified(margin_block_end)) => {
                         // Values are over-constrained. Ignore value for 'block-end'.
                         let sum = block_start + block_size + margin_block_start + margin_block_end;
                         (block_start, available_block_size - sum, block_size, margin_block_start, margin_block_end)
@@ -281,13 +280,13 @@ impl BSizeConstraintSolution {
             }
 
             // If only one is Auto, solve for it
-            (Auto, Specified(block_end)) => {
+            (MaybeAuto::Auto, MaybeAuto::Specified(block_end)) => {
                 let margin_block_start = block_start_margin.specified_or_zero();
                 let margin_block_end = block_end_margin.specified_or_zero();
                 let sum = block_end + block_size + margin_block_start + margin_block_end;
                 (available_block_size - sum, block_end, block_size, margin_block_start, margin_block_end)
             }
-            (Specified(block_start), Auto) => {
+            (MaybeAuto::Specified(block_start), MaybeAuto::Auto) => {
                 let margin_block_start = block_start_margin.specified_or_zero();
                 let margin_block_end = block_end_margin.specified_or_zero();
                 let sum = block_start + block_size + margin_block_start + margin_block_end;
@@ -325,25 +324,26 @@ impl CandidateBSizeIterator {
         // `min-height` and `max-height`, percentage values are ignored.
 
         let block_size = match (fragment.style.content_block_size(), block_container_block_size) {
-            (LPA_Percentage(percent), Some(block_container_block_size)) => {
-                Specified(block_container_block_size.scale_by(percent))
+            (LengthOrPercentageOrAuto::Percentage(percent), Some(block_container_block_size)) => {
+                MaybeAuto::Specified(block_container_block_size.scale_by(percent))
             }
-            (LPA_Percentage(_), None) | (LPA_Auto, _) => Auto,
-            (LPA_Length(length), _) => Specified(length),
+            (LengthOrPercentageOrAuto::Percentage(_), None) | (LengthOrPercentageOrAuto::Auto, _) => MaybeAuto::Auto,
+            (LengthOrPercentageOrAuto::Length(length), _) => MaybeAuto::Specified(length),
         };
         let max_block_size = match (fragment.style.max_block_size(), block_container_block_size) {
-            (LPN_Percentage(percent), Some(block_container_block_size)) => {
+            (LengthOrPercentageOrNone::Percentage(percent), Some(block_container_block_size)) => {
                 Some(block_container_block_size.scale_by(percent))
             }
-            (LPN_Percentage(_), None) | (LPN_None, _) => None,
-            (LPN_Length(length), _) => Some(length),
+            (LengthOrPercentageOrNone::Percentage(_), None) |
+            (LengthOrPercentageOrNone::None, _) => None,
+            (LengthOrPercentageOrNone::Length(length), _) => Some(length),
         };
         let min_block_size = match (fragment.style.min_block_size(), block_container_block_size) {
-            (LP_Percentage(percent), Some(block_container_block_size)) => {
+            (LengthOrPercentage::Percentage(percent), Some(block_container_block_size)) => {
                 block_container_block_size.scale_by(percent)
             }
-            (LP_Percentage(_), None) => Au(0),
-            (LP_Length(length), _) => length,
+            (LengthOrPercentage::Percentage(_), None) => Au(0),
+            (LengthOrPercentage::Length(length), _) => length,
         };
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
@@ -357,7 +357,7 @@ impl CandidateBSizeIterator {
             max_block_size: max_block_size.map(|size| adjust(size, adjustment_for_box_sizing)),
             min_block_size: adjust(min_block_size, adjustment_for_box_sizing),
             candidate_value: Au(0),
-            status: InitialCandidateBSizeStatus,
+            status: CandidateBSizeIteratorStatus::Initial,
         };
 
         fn adjust(size: Au, delta: Au) -> Au {
@@ -369,48 +369,48 @@ impl CandidateBSizeIterator {
 impl Iterator<MaybeAuto> for CandidateBSizeIterator {
     fn next(&mut self) -> Option<MaybeAuto> {
         self.status = match self.status {
-            InitialCandidateBSizeStatus => TryingBSizeCandidateBSizeStatus,
-            TryingBSizeCandidateBSizeStatus => {
+            CandidateBSizeIteratorStatus::Initial => CandidateBSizeIteratorStatus::Trying,
+            CandidateBSizeIteratorStatus::Trying => {
                 match self.max_block_size {
                     Some(max_block_size) if self.candidate_value > max_block_size => {
-                        TryingMaxCandidateBSizeStatus
+                        CandidateBSizeIteratorStatus::TryingMax
                     }
-                    _ if self.candidate_value < self.min_block_size => TryingMinCandidateBSizeStatus,
-                    _ => FoundCandidateBSizeStatus,
+                    _ if self.candidate_value < self.min_block_size => CandidateBSizeIteratorStatus::TryingMin,
+                    _ => CandidateBSizeIteratorStatus::Found,
                 }
             }
-            TryingMaxCandidateBSizeStatus => {
+            CandidateBSizeIteratorStatus::TryingMax => {
                 if self.candidate_value < self.min_block_size {
-                    TryingMinCandidateBSizeStatus
+                    CandidateBSizeIteratorStatus::TryingMin
                 } else {
-                    FoundCandidateBSizeStatus
+                    CandidateBSizeIteratorStatus::Found
                 }
             }
-            TryingMinCandidateBSizeStatus | FoundCandidateBSizeStatus => {
-                FoundCandidateBSizeStatus
+            CandidateBSizeIteratorStatus::TryingMin | CandidateBSizeIteratorStatus::Found => {
+                CandidateBSizeIteratorStatus::Found
             }
         };
 
         match self.status {
-            TryingBSizeCandidateBSizeStatus => Some(self.block_size),
-            TryingMaxCandidateBSizeStatus => {
-                Some(Specified(self.max_block_size.unwrap()))
+            CandidateBSizeIteratorStatus::Trying => Some(self.block_size),
+            CandidateBSizeIteratorStatus::TryingMax => {
+                Some(MaybeAuto::Specified(self.max_block_size.unwrap()))
             }
-            TryingMinCandidateBSizeStatus => {
-                Some(Specified(self.min_block_size))
+            CandidateBSizeIteratorStatus::TryingMin => {
+                Some(MaybeAuto::Specified(self.min_block_size))
             }
-            FoundCandidateBSizeStatus => None,
-            InitialCandidateBSizeStatus => panic!(),
+            CandidateBSizeIteratorStatus::Found => None,
+            CandidateBSizeIteratorStatus::Initial => panic!(),
         }
     }
 }
 
 enum CandidateBSizeIteratorStatus {
-    InitialCandidateBSizeStatus,
-    TryingBSizeCandidateBSizeStatus,
-    TryingMaxCandidateBSizeStatus,
-    TryingMinCandidateBSizeStatus,
-    FoundCandidateBSizeStatus,
+    Initial,
+    Trying,
+    TryingMax,
+    TryingMin,
+    Found,
 }
 
 // A helper function used in block-size calculation.
@@ -479,12 +479,12 @@ impl<'a> PostorderFlowTraversal for AbsoluteStoreOverflowTraversal<'a> {
 }
 
 pub enum BlockType {
-    BlockReplacedType,
-    BlockNonReplacedType,
-    AbsoluteReplacedType,
-    AbsoluteNonReplacedType,
-    FloatReplacedType,
-    FloatNonReplacedType,
+    Replaced,
+    NonReplaced,
+    AbsoluteReplaced,
+    AbsoluteNonReplaced,
+    FloatReplaced,
+    FloatNonReplaced,
 }
 
 #[deriving(Clone, PartialEq)]
@@ -495,9 +495,9 @@ pub enum MarginsMayCollapseFlag {
 
 #[deriving(PartialEq)]
 enum FormattingContextType {
-    NonformattingContext,
-    BlockFormattingContext,
-    OtherFormattingContext,
+    None,
+    Block,
+    Other,
 }
 
 // Propagates the `layers_needed_for_descendants` flag appropriately from a child. This is called
@@ -571,7 +571,7 @@ impl BlockFlow {
     pub fn from_node(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode) -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloated),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::ForceNonfloated),
             fragment: Fragment::new(constructor, node),
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
@@ -585,7 +585,7 @@ impl BlockFlow {
     pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment) -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloated),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::ForceNonfloated),
             fragment: fragment,
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
@@ -602,7 +602,7 @@ impl BlockFlow {
                            -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, FloatIfNecessary),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::FloatIfNecessary),
             fragment: Fragment::new(constructor, node),
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
@@ -619,7 +619,7 @@ impl BlockFlow {
                                         -> BlockFlow {
         let writing_mode = node.style().writing_mode;
         BlockFlow {
-            base: BaseFlow::new(Some((*node).clone()), writing_mode, FloatIfNecessary),
+            base: BaseFlow::new(Some((*node).clone()), writing_mode, ForceNonfloatedFlag::FloatIfNecessary),
             fragment: fragment,
             static_b_offset: Au::new(0),
             inline_size_of_preceding_left_floats: Au(0),
@@ -637,21 +637,21 @@ impl BlockFlow {
     pub fn block_type(&self) -> BlockType {
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             if self.is_replaced_content() {
-                AbsoluteReplacedType
+                BlockType::AbsoluteReplaced
             } else {
-                AbsoluteNonReplacedType
+                BlockType::AbsoluteNonReplaced
             }
         } else if self.base.flags.is_float() {
             if self.is_replaced_content() {
-                FloatReplacedType
+                BlockType::FloatReplaced
             } else {
-                FloatNonReplacedType
+                BlockType::FloatNonReplaced
             }
         } else {
             if self.is_replaced_content() {
-                BlockReplacedType
+                BlockType::Replaced
             } else {
-                BlockNonReplacedType
+                BlockType::NonReplaced
             }
         }
     }
@@ -662,27 +662,27 @@ impl BlockFlow {
                                     containing_block_inline_size: Au) {
         let block_type = self.block_type();
         match block_type {
-            AbsoluteReplacedType => {
+            BlockType::AbsoluteReplaced => {
                 let inline_size_computer = AbsoluteReplaced;
                 inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
-            AbsoluteNonReplacedType => {
+            BlockType::AbsoluteNonReplaced => {
                 let inline_size_computer = AbsoluteNonReplaced;
                 inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
-            FloatReplacedType => {
+            BlockType::FloatReplaced => {
                 let inline_size_computer = FloatReplaced;
                 inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
-            FloatNonReplacedType => {
+            BlockType::FloatNonReplaced => {
                 let inline_size_computer = FloatNonReplaced;
                 inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
-            BlockReplacedType => {
+            BlockType::Replaced => {
                 let inline_size_computer = BlockReplaced;
                 inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
-            BlockNonReplacedType => {
+            BlockType::NonReplaced => {
                 let inline_size_computer = BlockNonReplaced;
                 inline_size_computer.compute_used_inline_size(self, ctx, containing_block_inline_size);
             }
@@ -767,7 +767,7 @@ impl BlockFlow {
     /// and image fragments.
     fn is_replaced_content(&self) -> bool {
         match self.fragment.specific {
-            ScannedTextFragment(_) | ImageFragment(_) | InlineBlockFragment(_) => true,
+            SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::InlineBlock(_) => true,
             _ => false,
         }
     }
@@ -793,11 +793,11 @@ impl BlockFlow {
         }
 
         let (block_start_margin_value, block_end_margin_value) = match self.base.collapsible_margins {
-            MarginsCollapseThrough(_) => panic!("Margins unexpectedly collapsed through root flow."),
-            MarginsCollapse(block_start_margin, block_end_margin) => {
+            CollapsibleMargins::CollapseThrough(_) => panic!("Margins unexpectedly collapsed through root flow."),
+            CollapsibleMargins::Collapse(block_start_margin, block_end_margin) => {
                 (block_start_margin.collapse(), block_end_margin.collapse())
             }
-            NoCollapsibleMargins(block_start, block_end) => (block_start, block_end),
+            CollapsibleMargins::None(block_start, block_end) => (block_start, block_end),
         };
 
         // Shift all kids down (or up, if margins are negative) if necessary.
@@ -840,7 +840,7 @@ impl BlockFlow {
             // Absolute positioning establishes a block formatting context. Don't propagate floats
             // in or out. (But do propagate them between kids.)
             if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) ||
-                    margins_may_collapse != MarginsMayCollapse {
+                    margins_may_collapse != MarginsMayCollapseFlag::MarginsMayCollapse {
                 self.base.floats = Floats::new(self.fragment.style.writing_mode);
             }
 
@@ -853,7 +853,7 @@ impl BlockFlow {
             translate_including_floats(&mut cur_b, block_start_offset, &mut self.base.floats);
 
             let can_collapse_block_start_margin_with_kids =
-                margins_may_collapse == MarginsMayCollapse &&
+                margins_may_collapse == MarginsMayCollapseFlag::MarginsMayCollapse &&
                 !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                 self.fragment.border_padding.block_start == Au(0);
             margin_collapse_info.initialize_block_start_margin(
@@ -924,9 +924,9 @@ impl BlockFlow {
                 let clearance = match (flow::base(kid).flags.contains(CLEARS_LEFT),
                                        flow::base(kid).flags.contains(CLEARS_RIGHT)) {
                     (false, false) => Au(0),
-                    (true, false) => floats.clearance(ClearLeft),
-                    (false, true) => floats.clearance(ClearRight),
-                    (true, true) => floats.clearance(ClearBoth),
+                    (true, false) => floats.clearance(ClearType::Left),
+                    (false, true) => floats.clearance(ClearType::Right),
+                    (true, true) => floats.clearance(ClearType::Both),
                 };
                 translate_including_floats(&mut cur_b, clearance, &mut floats);
 
@@ -961,7 +961,7 @@ impl BlockFlow {
 
             // Add in our block-end margin and compute our collapsible margins.
             let can_collapse_block_end_margin_with_kids =
-                margins_may_collapse == MarginsMayCollapse &&
+                margins_may_collapse == MarginsMayCollapseFlag::MarginsMayCollapse &&
                 !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
                 self.fragment.border_padding.block_end == Au(0);
             let (collapsible_margins, delta) =
@@ -983,11 +983,11 @@ impl BlockFlow {
                 block_size = Au::max(screen_size.block, block_size)
             }
 
-            if is_root || self.formatting_context_type() != NonformattingContext ||
+            if is_root || self.formatting_context_type() != FormattingContextType::None ||
                     self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 // The content block-size includes all the floats per CSS 2.1 § 10.6.7. The easiest
                 // way to handle this is to just treat it as clearance.
-                block_size = block_size + floats.clearance(ClearBoth);
+                block_size = block_size + floats.clearance(ClearType::Both);
             }
 
             if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
@@ -1014,8 +1014,8 @@ impl BlockFlow {
                     Some(candidate_block_size) => {
                         candidate_block_size_iterator.candidate_value =
                             match candidate_block_size {
-                                Auto => block_size,
-                                Specified(value) => value
+                                MaybeAuto::Auto => block_size,
+                                MaybeAuto::Specified(value) => value
                             }
                     }
                     None => break,
@@ -1069,7 +1069,7 @@ impl BlockFlow {
         // Also don't remove the dirty bits if we're a block formatting context since our inline
         // size has not yet been computed. (See `assign_inline_position_for_formatting_context()`.)
         if (self.base.flags.is_float() ||
-                self.formatting_context_type() == NonformattingContext) &&
+                self.formatting_context_type() == FormattingContextType::None) &&
                 !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             self.base.restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
@@ -1147,12 +1147,12 @@ impl BlockFlow {
             // calculated during assign-inline-size.
             let margin = self.fragment.style().logical_margin();
             let margin_block_start = match margin.block_start {
-                LPA_Auto => Auto,
-                _ => Specified(self.fragment.margin.block_start)
+                LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
+                _ => MaybeAuto::Specified(self.fragment.margin.block_start)
             };
             let margin_block_end = match margin.block_end {
-                LPA_Auto => Auto,
-                _ => Specified(self.fragment.margin.block_end)
+                LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
+                _ => MaybeAuto::Specified(self.fragment.margin.block_end)
             };
 
             let block_start;
@@ -1292,7 +1292,7 @@ impl BlockFlow {
         // direction.)
         let mut inline_size_of_preceding_left_floats = Au(0);
         let mut inline_size_of_preceding_right_floats = Au(0);
-        if self.formatting_context_type() == NonformattingContext {
+        if self.formatting_context_type() == FormattingContextType::None {
             inline_size_of_preceding_left_floats = self.inline_size_of_preceding_left_floats;
             inline_size_of_preceding_right_floats = self.inline_size_of_preceding_right_floats;
         }
@@ -1301,11 +1301,11 @@ impl BlockFlow {
         let content_block_size = self.fragment.style().content_block_size();
         let explicit_content_size = match (content_block_size,
                                            self.base.block_container_explicit_block_size) {
-            (LPA_Percentage(percent), Some(container_size)) => {
+            (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
                 Some(container_size.scale_by(percent))
             }
-            (LPA_Percentage(_), None) | (LPA_Auto, _) => None,
-            (LPA_Length(length), _) => Some(length),
+            (LengthOrPercentageOrAuto::Percentage(_), None) | (LengthOrPercentageOrAuto::Auto, _) => None,
+            (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
         };
 
         // Calculate containing block inline size.
@@ -1410,14 +1410,14 @@ impl BlockFlow {
     fn formatting_context_type(&self) -> FormattingContextType {
         let style = self.fragment.style();
         if style.get_box().float != float::none {
-            return OtherFormattingContext
+            return FormattingContextType::Other
         }
         match style.get_box().display {
             display::table_cell | display::table_caption | display::inline_block => {
-                OtherFormattingContext
+                FormattingContextType::Other
             }
-            _ if style.get_box().overflow != overflow::visible => BlockFormattingContext,
-            _ => NonformattingContext,
+            _ if style.get_box().overflow != overflow::visible => FormattingContextType::Block,
+            _ => FormattingContextType::None,
         }
     }
 
@@ -1435,7 +1435,7 @@ impl BlockFlow {
     ///
     /// FIXME(pcwalton): This code is not incremental-reflow-safe (i.e. not idempotent).
     fn assign_inline_position_for_formatting_context(&mut self) {
-        debug_assert!(self.formatting_context_type() != NonformattingContext);
+        debug_assert!(self.formatting_context_type() != FormattingContextType::None);
 
         if !self.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
             return
@@ -1449,7 +1449,7 @@ impl BlockFlow {
                                    self.fragment.border_box.size.block),
             ceiling: self.base.position.start.b,
             max_inline_size: MAX_AU,
-            kind: FloatLeft,
+            kind: FloatKind::Left,
         };
 
         // Offset our position by whatever displacement is needed to not impact the floats.
@@ -1482,7 +1482,7 @@ impl BlockFlow {
 
 impl Flow for BlockFlow {
     fn class(&self) -> FlowClass {
-        BlockFlowClass
+        FlowClass::Block
     }
 
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
@@ -1510,7 +1510,7 @@ impl Flow for BlockFlow {
         // and preferred width, rather than bubbling up children inline
         // width.
         let fixed_width = match self.fragment.style().get_box().width {
-            LPA_Length(_) => true,
+            LengthOrPercentageOrAuto::Length(_) => true,
             _ => false,
         };
 
@@ -1602,8 +1602,8 @@ impl Flow for BlockFlow {
 
         // Formatting contexts are never impacted by floats.
         match self.formatting_context_type() {
-            NonformattingContext => {}
-            BlockFormattingContext => {
+            FormattingContextType::None => {}
+            FormattingContextType::Block => {
                 self.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
                 self.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
 
@@ -1615,7 +1615,7 @@ impl Flow for BlockFlow {
                     self.inline_size_of_preceding_left_floats -
                     self.inline_size_of_preceding_right_floats;
             }
-            OtherFormattingContext => {
+            FormattingContextType::Other => {
                 self.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
                 self.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
             }
@@ -1646,7 +1646,7 @@ impl Flow for BlockFlow {
             return false
         }
 
-        let is_formatting_context = self.formatting_context_type() != NonformattingContext;
+        let is_formatting_context = self.formatting_context_type() != FormattingContextType::None;
         if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) && is_formatting_context {
             self.assign_inline_position_for_formatting_context();
         }
@@ -1687,10 +1687,10 @@ impl Flow for BlockFlow {
         } else if self.is_root() || self.base.flags.is_float() || self.is_inline_block() {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
             debug!("assign_block_size: assigning block_size for root flow");
-            self.assign_block_size_block_base(ctx, MarginsMayNotCollapse);
+            self.assign_block_size_block_base(ctx, MarginsMayCollapseFlag::MarginsMayNotCollapse);
         } else {
             debug!("assign_block_size: assigning block_size for block");
-            self.assign_block_size_block_base(ctx, MarginsMayCollapse);
+            self.assign_block_size_block_base(ctx, MarginsMayCollapseFlag::MarginsMayCollapse);
         }
     }
 
@@ -1839,16 +1839,16 @@ impl Flow for BlockFlow {
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
-                self.fragment.style().logical_position().inline_start == LPA_Auto &&
-                self.fragment.style().logical_position().inline_end == LPA_Auto {
+                self.fragment.style().logical_position().inline_start == LengthOrPercentageOrAuto::Auto &&
+                self.fragment.style().logical_position().inline_end == LengthOrPercentageOrAuto::Auto {
             self.base.position.start.i = inline_position
         }
     }
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
-                self.fragment.style().logical_position().block_start == LPA_Auto &&
-                self.fragment.style().logical_position().block_end == LPA_Auto {
+                self.fragment.style().logical_position().block_start == LengthOrPercentageOrAuto::Auto &&
+                self.fragment.style().logical_position().block_end == LengthOrPercentageOrAuto::Auto {
             self.base.position.start.b = block_position
         }
     }
@@ -1976,11 +1976,11 @@ pub trait ISizeAndMarginsComputer {
 
         let style = block.fragment.style();
         match (computed_inline_size, style.get_box().box_sizing) {
-            (Specified(size), box_sizing::border_box) => {
+            (MaybeAuto::Specified(size), box_sizing::border_box) => {
                 computed_inline_size =
-                    Specified(size - block.fragment.border_padding.inline_start_end())
+                    MaybeAuto::Specified(size - block.fragment.border_padding.inline_start_end())
             }
-            (Auto, box_sizing::border_box) | (_, box_sizing::content_box) => {}
+            (MaybeAuto::Auto, box_sizing::border_box) | (_, box_sizing::content_box) => {}
         }
 
         // The text alignment of a block flow is the text alignment of its box's style.
@@ -2090,7 +2090,7 @@ pub trait ISizeAndMarginsComputer {
         match specified_or_none(block.fragment().style().max_inline_size(),
                                 containing_block_inline_size) {
             Some(max_inline_size) if max_inline_size < solution.inline_size => {
-                input.computed_inline_size = Specified(max_inline_size);
+                input.computed_inline_size = MaybeAuto::Specified(max_inline_size);
                 solution = self.solve_inline_size_constraints(block, &input);
             }
             _ => {}
@@ -2102,7 +2102,7 @@ pub trait ISizeAndMarginsComputer {
         let computed_min_inline_size = specified(block.fragment().style().min_inline_size(),
                                                  containing_block_inline_size);
         if computed_min_inline_size > solution.inline_size {
-            input.computed_inline_size = Specified(computed_min_inline_size);
+            input.computed_inline_size = MaybeAuto::Specified(computed_min_inline_size);
             solution = self.solve_inline_size_constraints(block, &input);
         }
 
@@ -2131,13 +2131,13 @@ pub trait ISizeAndMarginsComputer {
         // If inline-size is not 'auto', and inline-size + margins > available_inline-size, all
         // 'auto' margins are treated as 0.
         let (inline_start_margin, inline_end_margin) = match computed_inline_size {
-            Auto => (inline_start_margin, inline_end_margin),
-            Specified(inline_size) => {
+            MaybeAuto::Auto => (inline_start_margin, inline_end_margin),
+            MaybeAuto::Specified(inline_size) => {
                 let inline_start = inline_start_margin.specified_or_zero();
                 let inline_end = inline_end_margin.specified_or_zero();
 
                 if (inline_start + inline_end + inline_size) > available_inline_size {
-                    (Specified(inline_start), Specified(inline_end))
+                    (MaybeAuto::Specified(inline_start), MaybeAuto::Specified(inline_end))
                 } else {
                     (inline_start_margin, inline_end_margin)
                 }
@@ -2150,31 +2150,31 @@ pub trait ISizeAndMarginsComputer {
             match (inline_start_margin, computed_inline_size, inline_end_margin) {
                 // If all have a computed value other than 'auto', the system is
                 // over-constrained so we discard the end margin.
-                (Specified(margin_start), Specified(inline_size), Specified(_margin_end)) =>
+                (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(inline_size), MaybeAuto::Specified(_margin_end)) =>
                     (margin_start, inline_size, available_inline_size -
                      (margin_start + inline_size)),
 
                 // If exactly one value is 'auto', solve for it
-                (Auto, Specified(inline_size), Specified(margin_end)) =>
+                (MaybeAuto::Auto, MaybeAuto::Specified(inline_size), MaybeAuto::Specified(margin_end)) =>
                     (available_inline_size - (inline_size + margin_end), inline_size, margin_end),
-                (Specified(margin_start), Auto, Specified(margin_end)) =>
+                (MaybeAuto::Specified(margin_start), MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) =>
                     (margin_start, available_inline_size - (margin_start + margin_end),
                      margin_end),
-                (Specified(margin_start), Specified(inline_size), Auto) =>
+                (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(inline_size), MaybeAuto::Auto) =>
                     (margin_start, inline_size, available_inline_size -
                      (margin_start + inline_size)),
 
                 // If inline-size is set to 'auto', any other 'auto' value becomes '0',
                 // and inline-size is solved for
-                (Auto, Auto, Specified(margin_end)) =>
+                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) =>
                     (Au::new(0), available_inline_size - margin_end, margin_end),
-                (Specified(margin_start), Auto, Auto) =>
+                (MaybeAuto::Specified(margin_start), MaybeAuto::Auto, MaybeAuto::Auto) =>
                     (margin_start, available_inline_size - margin_start, Au::new(0)),
-                (Auto, Auto, Auto) =>
+                (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) =>
                     (Au::new(0), available_inline_size, Au::new(0)),
 
                 // If inline-start and inline-end margins are auto, they become equal
-                (Auto, Specified(inline_size), Auto) => {
+                (MaybeAuto::Auto, MaybeAuto::Specified(inline_size), MaybeAuto::Auto) => {
                     let margin = (available_inline_size - inline_size).scale_by(0.5);
                     (margin, inline_size, margin)
                 }
@@ -2229,7 +2229,7 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
         let static_position_inline_start = static_i_offset;
 
         let (inline_start, inline_end, inline_size, margin_inline_start, margin_inline_end) = match (inline_start, inline_end, computed_inline_size) {
-            (Auto, Auto, Auto) => {
+            (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Auto) => {
                 let margin_start = inline_start_margin.specified_or_zero();
                 let margin_end = inline_end_margin.specified_or_zero();
                 let inline_start = static_position_inline_start;
@@ -2242,9 +2242,9 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
                 let sum = inline_start + inline_size + margin_start + margin_end;
                 (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
-            (Specified(inline_start), Specified(inline_end), Specified(inline_size)) => {
+            (MaybeAuto::Specified(inline_start), MaybeAuto::Specified(inline_end), MaybeAuto::Specified(inline_size)) => {
                 match (inline_start_margin, inline_end_margin) {
-                    (Auto, Auto) => {
+                    (MaybeAuto::Auto, MaybeAuto::Auto) => {
                         let total_margin_val = available_inline_size - inline_start - inline_end - inline_size;
                         if total_margin_val < Au(0) {
                             // margin-inline-start becomes 0 because direction is 'ltr'.
@@ -2257,15 +2257,15 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
                              total_margin_val.scale_by(0.5))
                         }
                     }
-                    (Specified(margin_start), Auto) => {
+                    (MaybeAuto::Specified(margin_start), MaybeAuto::Auto) => {
                         let sum = inline_start + inline_end + inline_size + margin_start;
                         (inline_start, inline_end, inline_size, margin_start, available_inline_size - sum)
                     }
-                    (Auto, Specified(margin_end)) => {
+                    (MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) => {
                         let sum = inline_start + inline_end + inline_size + margin_end;
                         (inline_start, inline_end, inline_size, available_inline_size - sum, margin_end)
                     }
-                    (Specified(margin_start), Specified(margin_end)) => {
+                    (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(margin_end)) => {
                         // Values are over-constrained.
                         // Ignore value for 'inline-end' cos direction is 'ltr'.
                         // TODO: Handle 'rtl' when it is implemented.
@@ -2277,19 +2277,19 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
             // For the rest of the cases, auto values for margin are set to 0
 
             // If only one is Auto, solve for it
-            (Auto, Specified(inline_end), Specified(inline_size)) => {
+            (MaybeAuto::Auto, MaybeAuto::Specified(inline_end), MaybeAuto::Specified(inline_size)) => {
                 let margin_start = inline_start_margin.specified_or_zero();
                 let margin_end = inline_end_margin.specified_or_zero();
                 let sum = inline_end + inline_size + margin_start + margin_end;
                 (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
             }
-            (Specified(inline_start), Auto, Specified(inline_size)) => {
+            (MaybeAuto::Specified(inline_start), MaybeAuto::Auto, MaybeAuto::Specified(inline_size)) => {
                 let margin_start = inline_start_margin.specified_or_zero();
                 let margin_end = inline_end_margin.specified_or_zero();
                 let sum = inline_start + inline_size + margin_start + margin_end;
                 (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
-            (Specified(inline_start), Specified(inline_end), Auto) => {
+            (MaybeAuto::Specified(inline_start), MaybeAuto::Specified(inline_end), MaybeAuto::Auto) => {
                 let margin_start = inline_start_margin.specified_or_zero();
                 let margin_end = inline_end_margin.specified_or_zero();
                 let sum = inline_start + inline_end + margin_start + margin_end;
@@ -2298,7 +2298,7 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
 
             // If inline-size is auto, then inline-size is shrink-to-fit. Solve for the
             // non-auto value.
-            (Specified(inline_start), Auto, Auto) => {
+            (MaybeAuto::Specified(inline_start), MaybeAuto::Auto, MaybeAuto::Auto) => {
                 let margin_start = inline_start_margin.specified_or_zero();
                 let margin_end = inline_end_margin.specified_or_zero();
                 // Set inline-end to zero to calculate inline-size
@@ -2307,7 +2307,7 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
                 let sum = inline_start + inline_size + margin_start + margin_end;
                 (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
-            (Auto, Specified(inline_end), Auto) => {
+            (MaybeAuto::Auto, MaybeAuto::Specified(inline_end), MaybeAuto::Auto) => {
                 let margin_start = inline_start_margin.specified_or_zero();
                 let margin_end = inline_end_margin.specified_or_zero();
                 // Set inline-start to zero to calculate inline-size
@@ -2317,7 +2317,7 @@ impl ISizeAndMarginsComputer for AbsoluteNonReplaced {
                 (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
             }
 
-            (Auto, Auto, Specified(inline_size)) => {
+            (MaybeAuto::Auto, MaybeAuto::Auto, MaybeAuto::Specified(inline_size)) => {
                 let margin_start = inline_start_margin.specified_or_zero();
                 let margin_end = inline_end_margin.specified_or_zero();
                 // Setting 'inline-start' to static position because direction is 'ltr'.
@@ -2374,7 +2374,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         // TODO: Handle all the cases for 'rtl' direction.
 
         let inline_size = match computed_inline_size {
-            Specified(w) => w,
+            MaybeAuto::Specified(w) => w,
             _ => panic!("{} {}",
                        "The used value for inline_size for absolute replaced flow",
                        "should have already been calculated by now.")
@@ -2386,7 +2386,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         let static_position_inline_start = static_i_offset;
 
         let (inline_start, inline_end, inline_size, margin_inline_start, margin_inline_end) = match (inline_start, inline_end) {
-            (Auto, Auto) => {
+            (MaybeAuto::Auto, MaybeAuto::Auto) => {
                 let inline_start = static_position_inline_start;
                 let margin_start = inline_start_margin.specified_or_zero();
                 let margin_end = inline_end_margin.specified_or_zero();
@@ -2394,21 +2394,21 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
                 (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
             // If only one is Auto, solve for it
-            (Auto, Specified(inline_end)) => {
+            (MaybeAuto::Auto, MaybeAuto::Specified(inline_end)) => {
                 let margin_start = inline_start_margin.specified_or_zero();
                 let margin_end = inline_end_margin.specified_or_zero();
                 let sum = inline_end + inline_size + margin_start + margin_end;
                 (available_inline_size - sum, inline_end, inline_size, margin_start, margin_end)
             }
-            (Specified(inline_start), Auto) => {
+            (MaybeAuto::Specified(inline_start), MaybeAuto::Auto) => {
                 let margin_start = inline_start_margin.specified_or_zero();
                 let margin_end = inline_end_margin.specified_or_zero();
                 let sum = inline_start + inline_size + margin_start + margin_end;
                 (inline_start, available_inline_size - sum, inline_size, margin_start, margin_end)
             }
-            (Specified(inline_start), Specified(inline_end)) => {
+            (MaybeAuto::Specified(inline_start), MaybeAuto::Specified(inline_end)) => {
                 match (inline_start_margin, inline_end_margin) {
-                    (Auto, Auto) => {
+                    (MaybeAuto::Auto, MaybeAuto::Auto) => {
                         let total_margin_val = available_inline_size - inline_start - inline_end - inline_size;
                         if total_margin_val < Au(0) {
                             // margin-inline-start becomes 0 because direction is 'ltr'.
@@ -2420,15 +2420,15 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
                              total_margin_val.scale_by(0.5))
                         }
                     }
-                    (Specified(margin_start), Auto) => {
+                    (MaybeAuto::Specified(margin_start), MaybeAuto::Auto) => {
                         let sum = inline_start + inline_end + inline_size + margin_start;
                         (inline_start, inline_end, inline_size, margin_start, available_inline_size - sum)
                     }
-                    (Auto, Specified(margin_end)) => {
+                    (MaybeAuto::Auto, MaybeAuto::Specified(margin_end)) => {
                         let sum = inline_start + inline_end + inline_size + margin_end;
                         (inline_start, inline_end, inline_size, available_inline_size - sum, margin_end)
                     }
-                    (Specified(margin_start), Specified(margin_end)) => {
+                    (MaybeAuto::Specified(margin_start), MaybeAuto::Specified(margin_end)) => {
                         // Values are over-constrained.
                         // Ignore value for 'inline-end' cos direction is 'ltr'.
                         let sum = inline_start + inline_size + margin_start + margin_end;
@@ -2452,7 +2452,7 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         fragment.assign_replaced_inline_size_if_necessary(containing_block_inline_size);
         // For replaced absolute flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_inline_size())
     }
 
     fn containing_block_inline_size(&self, block: &mut BlockFlow, _: Au, ctx: &LayoutContext) -> Au {
@@ -2485,8 +2485,8 @@ impl ISizeAndMarginsComputer for BlockReplaced {
                                      input: &ISizeConstraintInput)
                                      -> ISizeConstraintSolution {
         match input.computed_inline_size {
-            Specified(_) => {},
-            Auto => panic!("BlockReplaced: inline_size should have been computed by now")
+            MaybeAuto::Specified(_) => {},
+            MaybeAuto::Auto => panic!("BlockReplaced: inline_size should have been computed by now")
         };
         self.solve_block_inline_size_constraints(block, input)
     }
@@ -2501,7 +2501,7 @@ impl ISizeAndMarginsComputer for BlockReplaced {
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_inline_size())
     }
 
 }
@@ -2540,8 +2540,8 @@ impl ISizeAndMarginsComputer for FloatReplaced {
         let margin_inline_start = inline_start_margin.specified_or_zero();
         let margin_inline_end = inline_end_margin.specified_or_zero();
         let inline_size = match computed_inline_size {
-            Specified(w) => w,
-            Auto => panic!("FloatReplaced: inline_size should have been computed by now")
+            MaybeAuto::Specified(w) => w,
+            MaybeAuto::Auto => panic!("FloatReplaced: inline_size should have been computed by now")
         };
         debug!("assign_inline_sizes_float -- inline_size: {}", inline_size);
         ISizeConstraintSolution::new(inline_size, margin_inline_start, margin_inline_end)
@@ -2557,7 +2557,7 @@ impl ISizeAndMarginsComputer for FloatReplaced {
         fragment.assign_replaced_inline_size_if_necessary(parent_flow_inline_size);
         // For replaced block flow, the rest of the constraint solving will
         // take inline-size to be specified as the value computed here.
-        Specified(fragment.content_inline_size())
+        MaybeAuto::Specified(fragment.content_inline_size())
     }
 }
 

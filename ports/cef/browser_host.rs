@@ -5,12 +5,10 @@
 use core;
 use eutil::Downcast;
 use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_host_t, cef_client_t};
-use types::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN, cef_key_event};
-use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t};
+use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event};
+use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
 
-use compositing::windowing::{InitializeCompositingWindowEvent, KeyEvent, MouseWindowClickEvent};
-use compositing::windowing::{MouseWindowEventClass, MouseWindowMouseUpEvent, PinchZoomWindowEvent};
-use compositing::windowing::{ResizeWindowEvent, ScrollWindowEvent};
+use compositing::windowing::{WindowEvent, KeyEvent, MouseWindowEvent};
 use geom::point::TypedPoint2D;
 use geom::size::TypedSize2D;
 use libc::{c_double, c_int};
@@ -36,7 +34,7 @@ cef_class_impl! {
                 .get_render_handler()
                 .get_backing_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
             let size = TypedSize2D(rect.width as uint, rect.height as uint);
-            core::send_window_event(ResizeWindowEvent(size));
+            core::send_window_event(WindowEvent::Resize(size));
             core::repaint_synchronously();
         }
 
@@ -45,44 +43,44 @@ cef_class_impl! {
             // Google working.
             let event: &cef_key_event = event;
             let key = match (*event).character as u8 {
-                b'a' | b'A' => constellation_msg::KeyA,
-                b'b' | b'B' => constellation_msg::KeyB,
-                b'c' | b'C' => constellation_msg::KeyC,
-                b'd' | b'D' => constellation_msg::KeyD,
-                b'e' | b'E' => constellation_msg::KeyE,
-                b'f' | b'F' => constellation_msg::KeyF,
-                b'g' | b'G' => constellation_msg::KeyG,
-                b'h' | b'H' => constellation_msg::KeyH,
-                b'i' | b'I' => constellation_msg::KeyI,
-                b'j' | b'J' => constellation_msg::KeyJ,
-                b'k' | b'K' => constellation_msg::KeyK,
-                b'l' | b'L' => constellation_msg::KeyL,
-                b'm' | b'M' => constellation_msg::KeyM,
-                b'n' | b'N' => constellation_msg::KeyN,
-                b'o' | b'O' => constellation_msg::KeyO,
-                b'p' | b'P' => constellation_msg::KeyP,
-                b'q' | b'Q' => constellation_msg::KeyQ,
-                b'r' | b'R' => constellation_msg::KeyR,
-                b's' | b'S' => constellation_msg::KeyS,
-                b't' | b'T' => constellation_msg::KeyT,
-                b'u' | b'U' => constellation_msg::KeyU,
-                b'v' | b'V' => constellation_msg::KeyV,
-                b'w' | b'W' => constellation_msg::KeyW,
-                b'x' | b'X' => constellation_msg::KeyX,
-                b'y' | b'Y' => constellation_msg::KeyY,
-                b'z' | b'Z' => constellation_msg::KeyZ,
-                b'0' => constellation_msg::Key0,
-                b'1' => constellation_msg::Key1,
-                b'2' => constellation_msg::Key2,
-                b'3' => constellation_msg::Key3,
-                b'4' => constellation_msg::Key4,
-                b'5' => constellation_msg::Key5,
-                b'6' => constellation_msg::Key6,
-                b'7' => constellation_msg::Key7,
-                b'8' => constellation_msg::Key8,
-                b'9' => constellation_msg::Key9,
-                b'\n' | b'\r' => constellation_msg::KeyEnter,
-                _ => constellation_msg::KeySpace,
+                b'a' | b'A' => constellation_msg::Key::A,
+                b'b' | b'B' => constellation_msg::Key::B,
+                b'c' | b'C' => constellation_msg::Key::C,
+                b'd' | b'D' => constellation_msg::Key::D,
+                b'e' | b'E' => constellation_msg::Key::E,
+                b'f' | b'F' => constellation_msg::Key::F,
+                b'g' | b'G' => constellation_msg::Key::G,
+                b'h' | b'H' => constellation_msg::Key::H,
+                b'i' | b'I' => constellation_msg::Key::I,
+                b'j' | b'J' => constellation_msg::Key::J,
+                b'k' | b'K' => constellation_msg::Key::K,
+                b'l' | b'L' => constellation_msg::Key::L,
+                b'm' | b'M' => constellation_msg::Key::M,
+                b'n' | b'N' => constellation_msg::Key::N,
+                b'o' | b'O' => constellation_msg::Key::O,
+                b'p' | b'P' => constellation_msg::Key::P,
+                b'q' | b'Q' => constellation_msg::Key::Q,
+                b'r' | b'R' => constellation_msg::Key::R,
+                b's' | b'S' => constellation_msg::Key::S,
+                b't' | b'T' => constellation_msg::Key::T,
+                b'u' | b'U' => constellation_msg::Key::U,
+                b'v' | b'V' => constellation_msg::Key::V,
+                b'w' | b'W' => constellation_msg::Key::W,
+                b'x' | b'X' => constellation_msg::Key::X,
+                b'y' | b'Y' => constellation_msg::Key::Y,
+                b'z' | b'Z' => constellation_msg::Key::Z,
+                b'0' => constellation_msg::Key::Num0,
+                b'1' => constellation_msg::Key::Num1,
+                b'2' => constellation_msg::Key::Num2,
+                b'3' => constellation_msg::Key::Num3,
+                b'4' => constellation_msg::Key::Num4,
+                b'5' => constellation_msg::Key::Num5,
+                b'6' => constellation_msg::Key::Num6,
+                b'7' => constellation_msg::Key::Num7,
+                b'8' => constellation_msg::Key::Num8,
+                b'9' => constellation_msg::Key::Num9,
+                b'\n' | b'\r' => constellation_msg::Key::Enter,
+                _ => constellation_msg::Key::Space,
             };
             let key_state = match (*event).t {
                 KEYEVENT_RAWKEYDOWN => Pressed,
@@ -103,11 +101,11 @@ cef_class_impl! {
             let button_type = mouse_button_type as uint;
             let point = TypedPoint2D((*event).x as f32, (*event).y as f32);
             if mouse_up != 0 {
-                core::send_window_event(MouseWindowEventClass(MouseWindowClickEvent(button_type,
-                                                                                    point)))
+                core::send_window_event(WindowEvent::MouseWindowEventClass(
+                    MouseWindowEvent::MouseWindowClickEvent(button_type, point)))
             } else {
-                core::send_window_event(MouseWindowEventClass(MouseWindowMouseUpEvent(button_type,
-                                                                                      point)))
+                core::send_window_event(WindowEvent::MouseWindowEventClass(
+                    MouseWindowEvent::MouseWindowMouseUpEvent(button_type, point)))
             }
         }
 
@@ -119,7 +117,7 @@ cef_class_impl! {
             let event: &cef_mouse_event = event;
             let delta = TypedPoint2D(delta_x as f32, delta_y as f32);
             let origin = TypedPoint2D((*event).x as i32, (*event).y as i32);
-            core::send_window_event(ScrollWindowEvent(delta, origin))
+            core::send_window_event(WindowEvent::Scroll(delta, origin))
         }
 
         fn get_zoom_level(&_this) -> c_double {
@@ -128,11 +126,11 @@ cef_class_impl! {
 
         fn set_zoom_level(&this, new_zoom_level: c_double) -> () {
             let old_zoom_level = this.get_zoom_level();
-            core::send_window_event(PinchZoomWindowEvent((new_zoom_level / old_zoom_level) as f32))
+            core::send_window_event(WindowEvent::PinchZoom((new_zoom_level / old_zoom_level) as f32))
         }
 
         fn initialize_compositing(&_this) -> () {
-            core::send_window_event(InitializeCompositingWindowEvent);
+            core::send_window_event(WindowEvent::InitializeCompositing);
         }
     }
 }

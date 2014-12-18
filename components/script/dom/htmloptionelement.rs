@@ -15,10 +15,10 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, ElementHelpers, HTMLOptionElementTypeId};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::{AttributeHandlers, Element, ElementHelpers, ElementTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, ElementNodeTypeId};
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use servo_util::str::{DOMString, split_html_space_chars};
@@ -31,14 +31,14 @@ pub struct HTMLOptionElement {
 
 impl HTMLOptionElementDerived for EventTarget {
     fn is_htmloptionelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLOptionElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLOptionElement))
     }
 }
 
 impl HTMLOptionElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLOptionElement {
         HTMLOptionElement {
-            htmlelement: HTMLElement::new_inherited(HTMLOptionElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLOptionElement, localName, prefix, document)
         }
     }
 

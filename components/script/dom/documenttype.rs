@@ -8,8 +8,8 @@ use dom::bindings::codegen::InheritTypes::{DocumentTypeDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::node::{Node, DoctypeNodeTypeId, NodeHelpers};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId};
 use servo_util::str::DOMString;
 
 /// The `DOCTYPE` tag.
@@ -23,7 +23,7 @@ pub struct DocumentType {
 
 impl DocumentTypeDerived for EventTarget {
     fn is_documenttype(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(DoctypeNodeTypeId)
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::DocumentType)
     }
 }
 
@@ -34,7 +34,7 @@ impl DocumentType {
                          document: JSRef<Document>)
             -> DocumentType {
         DocumentType {
-            node: Node::new_inherited(DoctypeNodeTypeId, document),
+            node: Node::new_inherited(NodeTypeId::DocumentType, document),
             name: name,
             public_id: public_id.unwrap_or("".to_string()),
             system_id: system_id.unwrap_or("".to_string())

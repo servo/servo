@@ -9,7 +9,7 @@
 use block::BlockFlow;
 use construct::FlowConstructor;
 use context::LayoutContext;
-use flow::{TableCaptionFlowClass, FlowClass, Flow};
+use flow::{FlowClass, Flow};
 use fragment::FragmentBoundsIterator;
 use wrapper::ThreadSafeLayoutNode;
 
@@ -35,7 +35,7 @@ impl TableCaptionFlow {
 
 impl Flow for TableCaptionFlow {
     fn class(&self) -> FlowClass {
-        TableCaptionFlowClass
+        FlowClass::TableCaption
     }
 
     fn as_table_caption<'a>(&'a mut self) -> &'a mut TableCaptionFlow {

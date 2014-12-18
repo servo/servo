@@ -18,6 +18,7 @@ use core::cell::RefCell;
 use serialize::json;
 use serialize::json::ToJson;
 use std::io::TcpStream;
+use std::num::Float;
 
 #[deriving(Encodable)]
 struct StartedListenersTraits {

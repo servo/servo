@@ -11,10 +11,7 @@ use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementHelpers};
-use dom::node::{Node, NodeIterator};
-use dom::node::{DoctypeNodeTypeId, DocumentFragmentNodeTypeId, CommentNodeTypeId};
-use dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
-use dom::node::{TextNodeTypeId, NodeHelpers};
+use dom::node::{Node, NodeHelpers, NodeTypeId, NodeIterator};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 
@@ -30,29 +27,29 @@ pub fn serialize(iterator: &mut NodeIterator) -> String {
             html.push_str(">");
         }
         match node.type_id() {
-            ElementNodeTypeId(..) => {
+            NodeTypeId::Element(..) => {
                 let elem: JSRef<Element> = ElementCast::to_ref(node).unwrap();
                 serialize_elem(elem, &mut open_elements, &mut html)
             }
-            CommentNodeTypeId => {
+            NodeTypeId::Comment => {
                 let comment: JSRef<Comment> = CommentCast::to_ref(node).unwrap();
                 serialize_comment(comment, &mut html)
             }
-            TextNodeTypeId => {
+            NodeTypeId::Text => {
                 let text: JSRef<Text> = TextCast::to_ref(node).unwrap();
                 serialize_text(text, &mut html)
             }
-            DoctypeNodeTypeId => {
+            NodeTypeId::DocumentType => {
                 let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(node).unwrap();
                 serialize_doctype(doctype, &mut html)
             }
-            ProcessingInstructionNodeTypeId => {
+            NodeTypeId::ProcessingInstruction => {
                 let processing_instruction: JSRef<ProcessingInstruction> =
                     ProcessingInstructionCast::to_ref(node).unwrap();
                 serialize_processing_instruction(processing_instruction, &mut html)
             }
-            DocumentFragmentNodeTypeId => {}
-            DocumentNodeTypeId => {
+            NodeTypeId::DocumentFragment => {}
+            NodeTypeId::Document => {
                 panic!("It shouldn't be possible to serialize a document node")
             }
         }
