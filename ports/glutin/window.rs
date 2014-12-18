@@ -32,6 +32,7 @@ use gleam::gl;
 use glutin;
 use glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
 use NestedEventLoopListener;
+use util::cursor::Cursor;
 
 #[cfg(target_os="linux")]
 use std::ptr;
@@ -221,6 +222,12 @@ impl WindowMethods for Window {
 
     fn load_end(&self) {
         // TODO(gw)
+    }
+
+    fn set_cursor(&self, _: Cursor) {
+        // No-op. We could take over mouse handling ourselves and draw the cursor as an extra
+        // layer with our own custom bitmaps or something, but it doesn't seem worth the
+        // trouble.
     }
 
     fn prepare_for_composite(&self) -> bool {
