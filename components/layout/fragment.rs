@@ -886,7 +886,8 @@ impl Fragment {
             SpecificFragmentInfo::InlineBlock(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
-            SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell => {
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell => {
                 INTRINSIC_INLINE_SIZE_INCLUDES_PADDING |
                     INTRINSIC_INLINE_SIZE_INCLUDES_BORDER |
                     INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED

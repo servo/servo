@@ -26,6 +26,7 @@ pub struct HTMLTableElement {
     htmlelement: HTMLElement,
     background_color: Cell<Option<RGBA>>,
     border: Cell<Option<u32>>,
+    cellspacing: Cell<Option<u32>>,
     width: Cell<LengthOrPercentageOrAuto>,
 }
 
@@ -45,6 +46,7 @@ impl HTMLTableElement {
                                                     document),
             background_color: Cell::new(None),
             border: Cell::new(None),
+            cellspacing: Cell::new(None),
             width: Cell::new(LengthOrPercentageOrAuto::Auto),
         }
     }
@@ -94,6 +96,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
 pub trait HTMLTableElementHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
     fn get_border(&self) -> Option<u32>;
+    fn get_cellspacing(&self) -> Option<u32>;
     fn get_width(&self) -> LengthOrPercentageOrAuto;
 }
 
@@ -104,6 +107,10 @@ impl HTMLTableElementHelpers for HTMLTableElement {
 
     fn get_border(&self) -> Option<u32> {
         self.border.get()
+    }
+
+    fn get_cellspacing(&self) -> Option<u32> {
+        self.cellspacing.get()
     }
 
     fn get_width(&self) -> LengthOrPercentageOrAuto {
@@ -132,6 +139,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
                                                                      .as_slice()
                                                                      .chars()).unwrap_or(1)))
             }
+            &atom!("cellspacing") => {
+                self.cellspacing.set(str::parse_unsigned_integer(attr.value().as_slice().chars()))
+            }
             &atom!("width") => self.width.set(str::parse_length(attr.value().as_slice())),
             _ => ()
         }
@@ -145,6 +155,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
         match attr.local_name() {
             &atom!("bgcolor") => self.background_color.set(None),
             &atom!("border") => self.border.set(None),
+            &atom!("cellspacing") => self.cellspacing.set(None),
             &atom!("width") => self.width.set(LengthOrPercentageOrAuto::Auto),
             _ => ()
         }

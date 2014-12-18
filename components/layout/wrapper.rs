@@ -635,8 +635,8 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
     fn has_nonzero_border(self) -> bool {
         unsafe {
-            match self.element
-                      .get_unsigned_integer_attribute_for_layout(UnsignedIntegerAttribute::Border) {
+            match self.element.get_unsigned_integer_attribute_for_layout(
+                    UnsignedIntegerAttribute::Border) {
                 None | Some(0) => false,
                 _ => true,
             }

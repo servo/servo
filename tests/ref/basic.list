@@ -48,6 +48,9 @@ flaky_cpu == append_style_a.html append_style_b.html
 == border_code_tag.html border_code_tag_ref.html
 == border_radius_clip_a.html border_radius_clip_ref.html
 == border_radius_overlapping_a.html border_radius_overlapping_ref.html
+== border_spacing_a.html border_spacing_ref.html
+== border_spacing_auto_layout_a.html border_spacing_ref.html
+== border_spacing_fixed_layout_a.html border_spacing_ref.html
 == border_style_none_a.html border_style_none_b.html
 == borders_a.html borders_b.html
 != box_shadow_blur_a.html box_shadow_blur_ref.html
@@ -141,6 +144,7 @@ flaky_cpu == append_style_a.html append_style_b.html
 == issue-1324.html issue-1324-ref.html
 == last_child_pseudo_a.html last_child_pseudo_b.html
 == last_of_type_pseudo_a.html last_of_type_pseudo_b.html
+== legacy_cellspacing_attribute_a.html border_spacing_ref.html
 == legacy_input_size_attribute_override_a.html legacy_input_size_attribute_override_ref.html
 == legacy_table_border_attribute_a.html legacy_table_border_attribute_ref.html
 == legacy_td_bgcolor_attribute_a.html legacy_td_bgcolor_attribute_ref.html

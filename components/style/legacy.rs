@@ -14,7 +14,7 @@ use values::specified::CSSColor;
 use values::{CSSFloat, specified};
 use properties::DeclaredValue::SpecifiedValue;
 use properties::PropertyDeclaration;
-use properties::longhands;
+use properties::longhands::{self, border_spacing};
 use selector_matching::Stylist;
 
 use cssparser::Color;
@@ -43,6 +43,8 @@ pub enum IntegerAttribute {
 pub enum UnsignedIntegerAttribute {
     /// `<td border>`
     Border,
+    /// `<table cellspacing>`
+    CellSpacing,
     /// `<td colspan>`
     ColSpan,
 }
@@ -143,6 +145,21 @@ impl PresentationalHintSynthesis for Stylist {
                     element,
                     matching_rules_list,
                     shareable);
+                match element.get_unsigned_integer_attribute(
+                        UnsignedIntegerAttribute::CellSpacing) {
+                    None => {}
+                    Some(length) => {
+                        let width_value = specified::Length::Absolute(Au::from_px(length as int));
+                        matching_rules_list.vec_push(from_declaration(
+                                PropertyDeclaration::BorderSpacing(
+                                    SpecifiedValue(
+                                        border_spacing::SpecifiedValue {
+                                            horizontal: width_value,
+                                            vertical: width_value,
+                                        }))));
+                        *shareable = false
+                    }
+                }
             }
             name if *name == atom!("body") || *name == atom!("tr") || *name == atom!("thead") ||
                     *name == atom!("tbody") || *name == atom!("tfoot") => {

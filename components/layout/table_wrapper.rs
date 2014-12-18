@@ -20,7 +20,7 @@ use floats::FloatKind;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use fragment::{Fragment, FragmentBorderBoxIterator};
-use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
+use table::{ChildInlineSizeInfo, ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
@@ -28,11 +28,11 @@ use util::geometry::Au;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
-use style::properties::ComputedValues;
+use std::sync::Arc;
 use style::computed_values::table_layout;
+use style::properties::ComputedValues;
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
-use std::sync::Arc;
 
 #[derive(Copy, RustcEncodable, Debug)]
 pub enum TableLayout {
@@ -98,11 +98,19 @@ impl TableWrapperFlow {
         // when normally the child computes it itself. But it has to be this way because the
         // padding will affect where we place the child. This is an odd artifact of the way that
         // tables are separated into table flows and table wrapper flows.
-        let available_inline_size = self.block_flow.fragment.border_box.size.inline;
-        let mut table_border_padding = Au(0);
+        let mut available_inline_size = self.block_flow.fragment.border_box.size.inline;
+        let (mut table_border_padding, mut spacing) = (Au(0), Au(0));
         for kid in self.block_flow.base.child_iter() {
             if kid.is_table() {
                 let kid_block = kid.as_block();
+                let spacing_per_cell = kid_block.fragment
+                                                .style()
+                                                .get_inheritedtable()
+                                                .border_spacing
+                                                .horizontal;
+                spacing = spacing_per_cell * (self.column_intrinsic_inline_sizes.len() as i32 + 1);
+                available_inline_size = self.block_flow.fragment.border_box.size.inline;
+
                 kid_block.fragment.compute_border_and_padding(available_inline_size);
                 kid_block.fragment.compute_block_direction_margins(available_inline_size);
                 kid_block.fragment.compute_inline_direction_margins(available_inline_size);
@@ -114,18 +122,21 @@ impl TableWrapperFlow {
         // FIXME(pcwalton, spec): INTRINSIC § 8 does not properly define how to compute this, but
         // says "the basic idea is the same as the shrink-to-fit width that CSS2.1 defines". So we
         // just use the shrink-to-fit inline size.
-        let available_inline_size = match self.block_flow.fragment.style().content_inline_size() {
-            LengthOrPercentageOrAuto::Auto => self.block_flow
-                                                  .get_shrink_to_fit_inline_size(available_inline_size),
-            // FIXME(mttr) This fixes #4421 without breaking our current reftests, but I'm
-            // not completely sure this is "correct".
-            //
-            // That said, `available_inline_size` is, as far as I can tell, equal to the table's
-            // computed width property (W) and is used from this point forward in a way that seems
-            // to correspond with CSS 2.1 § 17.5.2.2 under "Column and caption widths
-            // influence the final table width as follows: ..."
-            _ => available_inline_size,
-        };
+        let mut available_inline_size =
+            match self.block_flow.fragment.style().content_inline_size() {
+                LengthOrPercentageOrAuto::Auto => {
+                    self.block_flow.get_shrink_to_fit_inline_size(available_inline_size)
+                }
+                // FIXME(mttr): This fixes #4421 without breaking our current reftests, but I'm
+                // not completely sure this is "correct".
+                //
+                // That said, `available_inline_size` is, as far as I can tell, equal to the
+                // table's computed width property (W) and is used from this point forward in a way
+                // that seems to correspond with CSS 2.1 § 17.5.2.2 under "Column and caption
+                // widths influence the final table width as follows: …"
+                _ => available_inline_size,
+            };
+        available_inline_size = available_inline_size - spacing;
 
         // Compute all the guesses for the column sizes, and sum them.
         let mut total_guess = AutoLayoutCandidateGuess::new();
@@ -153,8 +164,8 @@ impl TableWrapperFlow {
         //
         // FIXME(pcwalton, spec): How do I deal with fractional excess?
         let excess_inline_size = available_inline_size - total_used_inline_size;
-        if excess_inline_size > Au(0) &&
-                selection == SelectedAutoLayoutCandidateGuess::UsePreferredGuessAndDistributeExcessInlineSize {
+        if excess_inline_size > Au(0) && selection ==
+                SelectedAutoLayoutCandidateGuess::UsePreferredGuessAndDistributeExcessInlineSize {
             let mut info = ExcessInlineSizeDistributionInfo::new();
             for column_intrinsic_inline_size in self.column_intrinsic_inline_sizes.iter() {
                 info.update(column_intrinsic_inline_size)
@@ -173,10 +184,12 @@ impl TableWrapperFlow {
             total_used_inline_size = available_inline_size
         }
 
+
+
         self.block_flow.fragment.border_box.size.inline = total_used_inline_size +
-            table_border_padding;
+            table_border_padding + spacing;
         self.block_flow.base.position.size.inline = total_used_inline_size +
-            table_border_padding + self.block_flow.fragment.margin.inline_start_end();
+            table_border_padding + spacing + self.block_flow.fragment.margin.inline_start_end();
     }
 
     fn compute_used_inline_size(&mut self,
@@ -301,11 +314,15 @@ impl Flow for TableWrapperFlow {
                     None)
             }
             Some(ref assigned_column_inline_sizes) => {
-                self.block_flow.propagate_assigned_inline_size_to_children(
-                    layout_context,
-                    inline_start_content_edge,
-                    content_inline_size,
-                    Some(assigned_column_inline_sizes.as_slice()));
+                let info = ChildInlineSizeInfo {
+                    column_computed_inline_sizes: assigned_column_inline_sizes.as_slice(),
+                    spacing: self.block_flow.fragment.style().get_inheritedtable().border_spacing,
+                };
+                self.block_flow
+                    .propagate_assigned_inline_size_to_children(layout_context,
+                                                                inline_start_content_edge,
+                                                                content_inline_size,
+                                                                Some(info));
             }
         }
 
@@ -458,13 +475,16 @@ impl AutoLayoutCandidateGuess {
     fn calculate(&self, selection: SelectedAutoLayoutCandidateGuess) -> Au {
         match selection {
             SelectedAutoLayoutCandidateGuess::UseMinimumGuess => self.minimum_guess,
-            SelectedAutoLayoutCandidateGuess::InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(weight) => {
+            SelectedAutoLayoutCandidateGuess::
+                    InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(weight) => {
                 interp(self.minimum_guess, self.minimum_percentage_guess, weight)
             }
-            SelectedAutoLayoutCandidateGuess::InterpolateBetweenMinimumPercentageGuessAndMinimumSpecifiedGuess(weight) => {
+            SelectedAutoLayoutCandidateGuess::
+                    InterpolateBetweenMinimumPercentageGuessAndMinimumSpecifiedGuess(weight) => {
                 interp(self.minimum_percentage_guess, self.minimum_specified_guess, weight)
             }
-            SelectedAutoLayoutCandidateGuess::InterpolateBetweenMinimumSpecifiedGuessAndPreferredGuess(weight) => {
+            SelectedAutoLayoutCandidateGuess::
+                    InterpolateBetweenMinimumSpecifiedGuessAndPreferredGuess(weight) => {
                 interp(self.minimum_specified_guess, self.preferred_guess, weight)
             }
             SelectedAutoLayoutCandidateGuess::UsePreferredGuessAndDistributeExcessInlineSize => {
@@ -590,9 +610,17 @@ impl ExcessInlineSizeDistributionInfo {
             total_distributed_excess_size: &mut Au) {
         let proportion =
             if self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage > Au(0) {
-                column_intrinsic_inline_size.preferred.to_subpx() /
-                    self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage
-                        .to_subpx()
+                // FIXME(spec, pcwalton): Gecko and WebKit do *something* here when there are
+                // nonconstrained columns with no percentage *and* no preferred width. What do they
+                // do?
+                if !column_intrinsic_inline_size.constrained &&
+                        column_intrinsic_inline_size.percentage == 0.0 {
+                    column_intrinsic_inline_size.preferred.to_subpx() /
+                        self.preferred_inline_size_of_nonconstrained_columns_with_no_percentage
+                            .to_subpx()
+                } else {
+                    0.0
+                }
             } else if self.count_of_nonconstrained_columns_with_no_percentage > 0 {
                 1.0 / (self.count_of_nonconstrained_columns_with_no_percentage as CSSFloat)
             } else if self.preferred_inline_size_of_constrained_columns_with_no_percentage >
