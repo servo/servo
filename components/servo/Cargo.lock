@@ -247,7 +247,7 @@ source = "git+https://github.com/alexcrichton/gcc-rs#903e8f8a2e3766ad3d514404d45
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#5e52790076fc238a395d1777c4280fa46a1555fa"
+source = "git+https://github.com/servo/rust-geom#da6b4a36a5549cf78bf702f0b9387b5c8cf61498"
 
 [[package]]
 name = "gfx"

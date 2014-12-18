@@ -1215,8 +1215,8 @@ impl Flow for InlineFlow {
                 _ => continue,
             };
 
-            let clip_rect = fragment.clip_rect_for_children(self.base.clip_rect,
-                                                            stacking_relative_position);
+            let clip_rect = fragment.clip_rect_for_children(&self.base.clip_rect,
+                                                            &stacking_relative_position);
 
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {

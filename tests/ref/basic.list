@@ -218,3 +218,4 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == empty_cells_a.html empty_cells_ref.html
 == table_caption_top_a.html table_caption_top_ref.html
 == table_caption_bottom_a.html table_caption_bottom_ref.html
+== clip_a.html clip_ref.html
