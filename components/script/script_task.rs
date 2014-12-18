@@ -729,15 +729,24 @@ impl ScriptTask {
             message for a layout channel that is not associated with this script task. This
             is a bug.");
 
-        let last_url = match &mut *page.mut_url() {
-            &Some((ref mut loaded, ref mut needs_reflow)) if *loaded == url => {
-                if replace(needs_reflow, false) {
-                    self.force_reflow(&*page);
-                }
-                return;
-            },
-            url => replace(url, None).map(|(loaded, _)| loaded),
+        // Are we reloading?
+        let reloading = match *page.url() {
+            Some((ref loaded, _)) => *loaded == url,
+            _ => false,
         };
+        if reloading {
+            // Pull out the `needs_reflow` flag explicitly because `reflow` can ask for the page's
+            // URL, and we can't be holding a borrow on that URL (#4402).
+            let needed_reflow = match &mut *page.mut_url() {
+                &Some((_, ref mut needs_reflow)) => replace(needs_reflow, false),
+                _ => panic!("can't reload a page with no URL!")
+            };
+            if needed_reflow {
+                self.force_reflow(&*page);
+            }
+            return
+        }
+        let last_url = replace(&mut *page.mut_url(), None).map(|(last_url, _)| last_url);
 
         let is_javascript = url.scheme.as_slice() == "javascript";
 
