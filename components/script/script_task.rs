@@ -1150,7 +1150,6 @@ impl ScriptTask {
         let page = get_page(&*self.page.borrow(), pipeline_id);
         match page.get_nodes_under_mouse(&point) {
             Some(node_address) => {
-
                 let mut target_list = vec!();
                 let mut target_compare = false;
 
@@ -1166,23 +1165,19 @@ impl ScriptTask {
                 }
 
                 for node_address in node_address.iter() {
-
                     let temp_node =
-                        node::from_untrusted_node_address(
-                            self.js_runtime.ptr, *node_address);
+                        node::from_untrusted_node_address(self.js_runtime.ptr, *node_address);
 
                     let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
                     match maybe_node {
                         Some(node) => {
                             node.set_hover_state(true);
-
                             match *mouse_over_targets {
-                                Some(ref mouse_over_targets) => {
-                                    if !target_compare {
-                                        target_compare = !mouse_over_targets.contains(&JS::from_rooted(node));
-                                    }
+                                Some(ref mouse_over_targets) if !target_compare => {
+                                    target_compare =
+                                        !mouse_over_targets.contains(&JS::from_rooted(node));
                                 }
-                                None => {}
+                                _ => {}
                             }
                             target_list.push(JS::from_rooted(node));
                         }
@@ -1192,15 +1187,15 @@ impl ScriptTask {
                 match *mouse_over_targets {
                     Some(ref mouse_over_targets) => {
                         if mouse_over_targets.len() != target_list.len() {
-                            target_compare = true;
+                            target_compare = true
                         }
                     }
-                    None => { target_compare = true; }
+                    None => target_compare = true,
                 }
 
                 if target_compare {
                     if mouse_over_targets.is_some() {
-                        self.force_reflow(&*page);
+                        self.force_reflow(&*page)
                     }
                     *mouse_over_targets = Some(target_list);
                 }

@@ -259,8 +259,10 @@ pub enum TimerMetadataReflowType {
     FirstReflow,
 }
 
+pub type ProfilerMetadata<'a> = Option<(&'a Url, TimerMetadataFrameType, TimerMetadataReflowType)>;
+
 pub fn profile<T>(category: TimeProfilerCategory,
-                  meta: Option<(&Url, TimerMetadataFrameType, TimerMetadataReflowType)>,
+                  meta: ProfilerMetadata,
                   time_profiler_chan: TimeProfilerChan,
                   callback: || -> T)
                   -> T {

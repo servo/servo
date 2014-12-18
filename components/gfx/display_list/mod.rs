@@ -14,12 +14,13 @@
 //! They are therefore not exactly analogous to constructs like Skia pictures, which consist of
 //! low-level drawing primitives.
 
-use self::DisplayItem::*;
-use self::DisplayItemIterator::*;
+#![deny(unsafe_blocks)]
 
 use color::Color;
 use display_list::optimizer::DisplayListOptimizer;
 use paint_context::{PaintContext, ToAzureRect};
+use self::DisplayItem::*;
+use self::DisplayItemIterator::*;
 use text::glyph::CharIndex;
 use text::TextRun;
 
@@ -28,17 +29,18 @@ use collections::dlist::{mod, DList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use libc::uintptr_t;
 use paint_task::PaintLayer;
-use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
+use servo_util::cursor::Cursor;
 use servo_util::dlist as servo_dlist;
 use servo_util::geometry::{mod, Au, ZERO_POINT};
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
-use std::mem;
 use std::slice::Items;
+use style::ComputedValues;
 use style::computed_values::border_style;
+use style::computed_values::cursor::{AutoCursor, SpecifiedCursor};
 use sync::Arc;
 
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
@@ -338,20 +340,45 @@ impl StackingContext {
     /// upon entry to this function.
     pub fn hit_test(&self,
                     point: Point2D<Au>,
-                    result: &mut Vec<UntrustedNodeAddress>,
+                    result: &mut Vec<DisplayItemMetadata>,
                     topmost_only: bool) {
         fn hit_test_in_list<'a,I>(point: Point2D<Au>,
-                                  result: &mut Vec<UntrustedNodeAddress>,
+                                  result: &mut Vec<DisplayItemMetadata>,
                                   topmost_only: bool,
                                   mut iterator: I)
                                   where I: Iterator<&'a DisplayItem> {
             for item in iterator {
-                if geometry::rect_contains_point(item.base().clip_rect, point) &&
-                        geometry::rect_contains_point(item.bounds(), point) {
-                    result.push(item.base().node.to_untrusted_node_address());
-                    if topmost_only {
-                        return
+                if !geometry::rect_contains_point(item.base().clip_rect, point) {
+                    // Clipped out.
+                    continue
+                }
+                if !geometry::rect_contains_point(item.bounds(), point) {
+                    // Can't possibly hit.
+                    continue
+                }
+                match *item {
+                    BorderDisplayItemClass(ref border) => {
+                        // If the point is inside the border, it didn't hit the border!
+                        let interior_rect =
+                            Rect(Point2D(border.base.bounds.origin.x + border.border_widths.left,
+                                         border.base.bounds.origin.y + border.border_widths.top),
+                                 Size2D(border.base.bounds.size.width -
+                                            (border.border_widths.left +
+                                             border.border_widths.right),
+                                        border.base.bounds.size.height -
+                                            (border.border_widths.top +
+                                             border.border_widths.bottom)));
+                        if geometry::rect_contains_point(interior_rect, point) {
+                            continue
+                        }
                     }
+                    _ => {}
+                }
+
+                // We found a hit!
+                result.push(item.base().metadata);
+                if topmost_only {
+                    return
                 }
             }
         }
@@ -447,8 +474,8 @@ pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
     pub bounds: Rect<Au>,
 
-    /// The originating DOM node.
-    pub node: OpaqueNode,
+    /// Metadata attached to this display item.
+    pub metadata: DisplayItemMetadata,
 
     /// The rectangle to clip to.
     ///
@@ -459,11 +486,41 @@ pub struct BaseDisplayItem {
 
 impl BaseDisplayItem {
     #[inline(always)]
-    pub fn new(bounds: Rect<Au>, node: OpaqueNode, clip_rect: Rect<Au>) -> BaseDisplayItem {
+    pub fn new(bounds: Rect<Au>, metadata: DisplayItemMetadata, clip_rect: Rect<Au>)
+               -> BaseDisplayItem {
         BaseDisplayItem {
             bounds: bounds,
-            node: node,
+            metadata: metadata,
             clip_rect: clip_rect,
+        }
+    }
+}
+
+/// Metadata attached to each display item. This is useful for performing auxiliary tasks with
+/// the display list involving hit testing: finding the originating DOM node and determining the
+/// cursor to use when the element is hovered over.
+#[deriving(Clone)]
+pub struct DisplayItemMetadata {
+    /// The DOM node from which this display item originated.
+    pub node: OpaqueNode,
+    /// The value of the `cursor` property when the mouse hovers over this display item.
+    pub cursor: Cursor,
+}
+
+impl DisplayItemMetadata {
+    /// Creates a new set of display metadata for a display item constributed by a DOM node.
+    /// `default_cursor` specifies the cursor to use if `cursor` is `auto`. Typically, this will
+    /// be `PointerCursor`, but for text display items it may be `TextCursor` or
+    /// `VerticalTextCursor`.
+    #[inline]
+    pub fn new(node: OpaqueNode, style: &ComputedValues, default_cursor: Cursor)
+               -> DisplayItemMetadata {
+        DisplayItemMetadata {
+            node: node,
+            cursor: match style.get_pointing().cursor {
+                AutoCursor => default_cursor,
+                SpecifiedCursor(cursor) => cursor,
+            },
         }
     }
 }
@@ -738,24 +795,8 @@ impl fmt::Show for DisplayItem {
                 BoxShadowDisplayItemClass(_) => "BoxShadow",
             },
             self.base().bounds,
-            self.base().node.id()
+            self.base().metadata.node.id()
         )
     }
 }
 
-pub trait OpaqueNodeMethods {
-    /// Converts this node to an `UntrustedNodeAddress`. An `UntrustedNodeAddress` is just the type
-    /// of node that script expects to receive in a hit test.
-    fn to_untrusted_node_address(&self) -> UntrustedNodeAddress;
-}
-
-
-impl OpaqueNodeMethods for OpaqueNode {
-    fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
-        unsafe {
-            let OpaqueNode(addr) = *self;
-            let addr: UntrustedNodeAddress = mem::transmute(addr);
-            addr
-        }
-    }
-}

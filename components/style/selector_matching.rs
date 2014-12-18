@@ -222,7 +222,7 @@ impl SelectorMap {
             match *ss {
                 // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
                 // mode.
-                SimpleSelector::IDSelector(ref id) => return Some(id.clone()),
+                SimpleSelector::ID(ref id) => return Some(id.clone()),
                 _ => {}
             }
         }
@@ -236,7 +236,7 @@ impl SelectorMap {
             match *ss {
                 // TODO(pradeep): Implement case-sensitivity based on the document type and quirks
                 // mode.
-                SimpleSelector::ClassSelector(ref class) => return Some(class.clone()),
+                SimpleSelector::Class(ref class) => return Some(class.clone()),
                 _ => {}
             }
         }
@@ -248,7 +248,7 @@ impl SelectorMap {
         let simple_selector_sequence = &rule.selector.simple_selectors;
         for ss in simple_selector_sequence.iter() {
             match *ss {
-                SimpleSelector::LocalNameSelector(ref name) => {
+                SimpleSelector::LocalName(ref name) => {
                     return Some(name.clone())
                 }
                 _ => {}
@@ -665,23 +665,23 @@ fn can_fast_reject<'a,E,N>(mut selector: &CompoundSelector,
 
         for ss in selector.simple_selectors.iter() {
             match *ss {
-                SimpleSelector::LocalNameSelector(LocalName { ref name, ref lower_name })  => {
+                SimpleSelector::LocalName(LocalName { ref name, ref lower_name })  => {
                     if !bf.might_contain(name)
                     && !bf.might_contain(lower_name) {
                         return Some(SelectorMatchingResult::NotMatchedGlobally);
                     }
                 },
-                SimpleSelector::NamespaceSelector(ref namespace) => {
+                SimpleSelector::Namespace(ref namespace) => {
                     if !bf.might_contain(namespace) {
                         return Some(SelectorMatchingResult::NotMatchedGlobally);
                     }
                 },
-                SimpleSelector::IDSelector(ref id) => {
+                SimpleSelector::ID(ref id) => {
                     if !bf.might_contain(id) {
                         return Some(SelectorMatchingResult::NotMatchedGlobally);
                     }
                 },
-                SimpleSelector::ClassSelector(ref class) => {
+                SimpleSelector::Class(ref class) => {
                     if !bf.might_contain(class) {
                         return Some(SelectorMatchingResult::NotMatchedGlobally);
                     }
@@ -830,25 +830,25 @@ pub fn matches_simple_selector<'a,E,N>(selector: &SimpleSelector,
                                        -> bool
                                        where E: TElement<'a>, N: TNode<'a,E> {
     match *selector {
-        SimpleSelector::LocalNameSelector(LocalName { ref name, ref lower_name }) => {
+        SimpleSelector::LocalName(LocalName { ref name, ref lower_name }) => {
             let name = if element.is_html_element_in_html_document() { lower_name } else { name };
             let element = element.as_element();
             element.get_local_name() == name
         }
 
-        SimpleSelector::NamespaceSelector(ref namespace) => {
+        SimpleSelector::Namespace(ref namespace) => {
             let element = element.as_element();
             element.get_namespace() == namespace
         }
         // TODO: case-sensitivity depends on the document type and quirks mode
-        SimpleSelector::IDSelector(ref id) => {
+        SimpleSelector::ID(ref id) => {
             *shareable = false;
             let element = element.as_element();
             element.get_id().map_or(false, |attr| {
                 attr == *id
             })
         }
-        SimpleSelector::ClassSelector(ref class) => {
+        SimpleSelector::Class(ref class) => {
             let element = element.as_element();
             element.has_class(class)
         }

@@ -5,9 +5,9 @@
 //! Geometry in flow-relative space.
 
 use geom::{Size2D, Point2D, SideOffsets2D, Rect};
+use geom::num::Zero;
 use std::cmp::{min, max};
 use std::fmt::{Show, Formatter, FormatError};
-use std::num::Zero;
 
 bitflags!(
     #[deriving(Encodable)]
@@ -158,11 +158,6 @@ impl<T: Zero> LogicalSize<T> {
             debug_writing_mode: DebugWritingMode::new(mode),
         }
     }
-
-    #[inline]
-    pub fn is_zero(&self) -> bool {
-        self.inline.is_zero() && self.block.is_zero()
-    }
 }
 
 impl<T: Copy> LogicalSize<T> {
@@ -294,11 +289,6 @@ impl<T: Zero> LogicalPoint<T> {
             b: Zero::zero(),
             debug_writing_mode: DebugWritingMode::new(mode),
         }
-    }
-
-    #[inline]
-    pub fn is_zero(&self) -> bool {
-        self.i.is_zero() && self.b.is_zero()
     }
 }
 
@@ -475,14 +465,6 @@ impl<T: Zero> LogicalMargin<T> {
             inline_start: Zero::zero(),
             debug_writing_mode: DebugWritingMode::new(mode),
         }
-    }
-
-    #[inline]
-    pub fn is_zero(&self) -> bool {
-        self.block_start.is_zero() &&
-        self.inline_end.is_zero() &&
-        self.block_end.is_zero() &&
-        self.inline_start.is_zero()
     }
 }
 
@@ -666,6 +648,14 @@ impl<T: Copy> LogicalMargin<T> {
     }
 }
 
+impl<T: PartialEq + Zero> LogicalMargin<T> {
+    #[inline]
+    pub fn is_zero(&self) -> bool {
+        self.block_start == Zero::zero() && self.inline_end == Zero::zero() &&
+        self.block_end == Zero::zero() && self.inline_start == Zero::zero()
+    }
+}
+
 impl<T: Add<T, T>> LogicalMargin<T> {
     #[inline]
     pub fn inline_start_end(&self) -> T {
@@ -755,11 +745,6 @@ impl<T: Zero> LogicalRect<T> {
             size: LogicalSize::zero(mode),
             debug_writing_mode: DebugWritingMode::new(mode),
         }
-    }
-
-    #[inline]
-    pub fn is_zero(&self) -> bool {
-        self.start.is_zero() && self.size.is_zero()
     }
 }
 

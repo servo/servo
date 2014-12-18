@@ -14,9 +14,8 @@ use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
-use dom::servohtmlparser::ServoHTMLParser;
 use dom::window::Window;
-use parse::Parser;
+use parse::html::{HTMLInput, parse_html};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -50,23 +49,21 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Temporary<Document>> {
         let window = self.window.root().clone();
-        let url = Some(window.get_url());
+        let url = window.get_url();
         let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as uint].to_string();
         match ty {
             Text_html => {
-                let document = Document::new(window, url.clone(),
+                let document = Document::new(window, Some(url.clone()),
                                              IsHTMLDocument::HTMLDocument,
                                              Some(content_type),
                                              DocumentSource::FromParser).root().clone();
-                let parser = ServoHTMLParser::new(url.clone(), document).root().clone();
-                parser.parse_chunk(s);
-                parser.finish();
+                parse_html(document, HTMLInput::InputString(s), &url);
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(Temporary::from_rooted(document))
             }
             Text_xml => {
                 //FIXME: this should probably be FromParser when we actually parse the string (#3756).
-                Ok(Document::new(window, url.clone(),
+                Ok(Document::new(window, Some(url.clone()),
                                  IsHTMLDocument::NonHTMLDocument,
                                  Some(content_type),
                                  DocumentSource::NotFromParser))

@@ -38,14 +38,16 @@ class MachCommands(CommandBase):
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
+    @CommandArgument('params', nargs='...',
+                     help="Command-line arguments to be passed through to Cargo")
     def build(self, target=None, release=False, jobs=None, android=None,
-              verbose=False, debug_mozjs=False):
+              verbose=False, debug_mozjs=False, params=None):
         self.ensure_bootstrapped()
 
         if android is None:
             android = self.config["build"]["android"]
 
-        opts = []
+        opts = params or []
         features = []
 
         if release:

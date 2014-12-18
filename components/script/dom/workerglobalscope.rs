@@ -181,7 +181,7 @@ pub trait WorkerGlobalScopeHelpers {
 impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
 
     fn handle_fire_timer(self, timer_id: TimerId) {
-        self.timers.fire_timer(timer_id, self.clone());
+        self.timers.fire_timer(timer_id, self);
     }
 
 }

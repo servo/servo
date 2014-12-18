@@ -559,10 +559,10 @@ impl<'ln> MatchMethods for LayoutNode<'ln> {
 
 
     // In terms of `SimpleSelector`s, these two functions will insert and remove:
-    //   - `LocalNameSelector`
-    //   - `NamepaceSelector`
-    //   - `IDSelector`
-    //   - `ClassSelector`
+    //   - `SimpleSelector::LocalName`
+    //   - `SimpleSelector::Namepace`
+    //   - `SimpleSelector::ID`
+    //   - `SimpleSelector::Class`
 
     fn insert_into_bloom_filter(&self, bf: &mut BloomFilter) {
         // Only elements are interesting.

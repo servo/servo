@@ -18,20 +18,21 @@ use libc;
 use script_traits::{mod, GetTitleMsg, ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg, SendEventMsg};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use servo_msg::compositor_msg::LayerId;
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, FailureMsg, Failure, FrameRectMsg};
-use servo_msg::constellation_msg::{GetPipelineTitleMsg};
+use servo_msg::constellation_msg::{mod, ConstellationChan, ExitMsg, FailureMsg, Failure};
+use servo_msg::constellation_msg::{FrameRectMsg, GetPipelineTitleMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
 use servo_msg::constellation_msg::{KeyEvent, Key, KeyState, KeyModifiers, LoadCompleteMsg};
 use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, NavigateMsg, NavigationType};
 use servo_msg::constellation_msg::{PainterReadyMsg, PipelineId, ResizedWindowMsg};
-use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SubpageId, WindowSizeData};
+use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SetCursorMsg, SubpageId};
+use servo_msg::constellation_msg::{WindowSizeData};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
-use servo_msg::constellation_msg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
 use servo_net::storage_task::StorageTask;
 use servo_net::storage_task;
+use servo_util::cursor::Cursor;
 use servo_util::geometry::{PagePx, ViewportPx};
 use servo_util::opts;
 use servo_util::task::spawn_named;
@@ -472,6 +473,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                                                             subpage_id,
                                                             sandbox);
             }
+            SetCursorMsg(cursor) => self.handle_set_cursor_msg(cursor),
             // Load a new page, usually -- but not always -- from a mouse click or typed url
             // If there is already a pending page (self.pending_frames), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
@@ -752,6 +754,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 rect));
         }
         self.pipelines.insert(pipeline.id, pipeline);
+    }
+
+    fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
+        self.compositor_proxy.send(CompositorMsg::SetCursor(cursor))
     }
 
     fn handle_load_url_msg(&mut self, source_id: PipelineId, load_data: LoadData) {

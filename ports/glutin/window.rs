@@ -230,12 +230,12 @@ impl WindowMethods for Window {
     #[cfg(target_os="linux")]
     fn native_metadata(&self) -> NativeGraphicsMetadata {
         match self.glutin {
-            Windowed(ref window) => {
+            WindowHandle::Windowed(ref window) => {
                 NativeGraphicsMetadata {
                     display: unsafe { window.platform_display() }
                 }
             }
-            Headless(_) => {
+            WindowHandle::Headless(_) => {
                 NativeGraphicsMetadata {
                     display: ptr::null_mut()
                 }
@@ -264,8 +264,6 @@ impl WindowMethods for Window {
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
         match key {
-            // TODO(negge): handle window close event
-            Key::Escape => {},
             Key::Equal if mods.contains(CONTROL) => { // Ctrl-+
                 self.event_queue.borrow_mut().push(Zoom(1.1));
             }
@@ -368,6 +366,7 @@ impl Window {
                         (_, VirtualKeyCode::RShift) => self.toggle_modifier(RIGHT_SHIFT),
                         (_, VirtualKeyCode::LAlt) => self.toggle_modifier(LEFT_ALT),
                         (_, VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
+                        (ElementState::Pressed, VirtualKeyCode::Escape) => return true,
                         (ElementState::Pressed, key_code) => {
                             match glutin_key_to_script_key(key_code) {
                                 Ok(key) => {

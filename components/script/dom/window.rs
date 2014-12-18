@@ -357,7 +357,7 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     }
 
     fn handle_fire_timer(self, timer_id: TimerId) {
-        self.timers.fire_timer(timer_id, self.clone());
+        self.timers.fire_timer(timer_id, self);
         self.flush_layout(ReflowForDisplay, NoQuery);
     }
 }

@@ -29,7 +29,7 @@ use servo_util::geometry::{Au, MAX_RECT};
 use servo_util::opts;
 use servo_util::range::Range;
 use std::default::Default;
-use std::num::{Float, FloatMath, Zero};
+use std::num::{Float, FloatMath};
 use std::ptr;
 use style::computed_values::border_style;
 use sync::Arc;
@@ -666,7 +666,7 @@ impl<'a> PaintContext<'a> {
                 self.draw_target.set_transform(&current_transform.mul(&Matrix2D::new(0., -1.,
                                                                                      1., 0.,
                                                                                      x, y)));
-                Zero::zero()
+                Point2D::zero()
             }
             SidewaysRight => {
                 let x = text.baseline_origin.x.to_subpx() as AzFloat;
@@ -674,7 +674,7 @@ impl<'a> PaintContext<'a> {
                 self.draw_target.set_transform(&current_transform.mul(&Matrix2D::new(0., 1.,
                                                                                      -1., 0.,
                                                                                      x, y)));
-                Zero::zero()
+                Point2D::zero()
             }
         };
 
@@ -988,7 +988,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
         for slice in run.natural_word_slices_in_range(range) {
             for (_i, glyph) in slice.glyphs.iter_glyphs_for_char_range(&slice.range) {
                 let glyph_advance = glyph.advance();
-                let glyph_offset = glyph.offset().unwrap_or(Zero::zero());
+                let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let azglyph = struct__AzGlyph {
                     mIndex: glyph.id() as uint32_t,
                     mPosition: struct__AzPoint {

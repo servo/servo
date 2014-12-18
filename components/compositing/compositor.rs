@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
-use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver, CompositorTask};
-use compositor_task::{LayerProperties, Msg};
+use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver};
+use compositor_task::{CompositorTask, LayerProperties, Msg};
 use constellation::{FrameId, FrameTreeDiff, SendableFrameTree};
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
@@ -14,7 +14,6 @@ use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg}
 use azure::azure_hl;
 use std::cmp;
 use std::mem;
-use std::num::Zero;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
@@ -176,7 +175,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             context: None,
             root_pipeline: None,
             scene: Scene::new(Rect {
-                origin: Zero::zero(),
+                origin: Point2D::zero(),
                 size: window_size.as_f32(),
             }),
             window_size: window_size,
@@ -338,6 +337,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.handle_key(key, modified);
             }
 
+            (Msg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
+                self.window.set_cursor(cursor)
+            }
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
@@ -496,7 +499,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
         if need_new_root_layer {
             let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
-            root_layer.update_layer_except_size(layer_properties);
+            root_layer.update_layer_except_bounds(layer_properties);
 
             let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
             let first_child = CompositorData::new_layer(
@@ -1023,7 +1026,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             self.scene.viewport = Rect {
-                origin: Zero::zero(),
+                origin: Point2D::zero(),
                 size: self.window_size.as_f32(),
             };
             // paint the scene.
@@ -1117,7 +1120,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
 
         let clip_rect_for_children = if masks_to_bounds {
-            Rect(Zero::zero(), clipped_layer_bounds.size)
+            Rect(Point2D::zero(), clipped_layer_bounds.size)
         } else {
             clipped_layer_bounds.translate(&clip_rect.origin)
         };

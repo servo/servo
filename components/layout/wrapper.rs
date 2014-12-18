@@ -594,7 +594,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     fn has_nonzero_border(self) -> bool {
         unsafe {
             match self.element
-                      .get_unsigned_integer_attribute_for_layout(UnsignedIntegerAttribute::BorderUnsignedIntegerAttribute) {
+                      .get_unsigned_integer_attribute_for_layout(UnsignedIntegerAttribute::Border) {
                 None | Some(0) => false,
                 _ => true,
             }
@@ -998,6 +998,15 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         match &mut *layout_data_ref {
             &Some(ref mut layout_data) => layout_data.data.flags.remove(flags),
             _ => panic!("no layout data for this node"),
+        }
+    }
+
+    /// Returns true if this node contributes content. This is used in the implementation of
+    /// `empty_cells` per CSS 2.1 § 17.6.1.1.
+    pub fn is_content(&self) -> bool {
+        match self.type_id() {
+            Some(NodeTypeId::Element(..)) | Some(NodeTypeId::Text(..)) => true,
+            _ => false
         }
     }
 }

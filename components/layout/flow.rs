@@ -53,13 +53,12 @@ use servo_util::geometry::Au;
 use servo_util::logical_geometry::WritingMode;
 use servo_util::logical_geometry::{LogicalRect, LogicalSize};
 use std::mem;
-use std::num::Zero;
 use std::fmt;
 use std::iter::Zip;
 use std::raw;
 use std::sync::atomic::{AtomicUint, SeqCst};
 use std::slice::MutItems;
-use style::computed_values::{clear, float, position, text_align};
+use style::computed_values::{clear, empty_cells, float, position, text_align};
 use style::ComputedValues;
 use sync::Arc;
 
@@ -686,7 +685,7 @@ impl AbsolutePositionInfo {
         // of the root layer.
         AbsolutePositionInfo {
             relative_containing_block_size: LogicalSize::zero(writing_mode),
-            stacking_relative_position_of_absolute_containing_block: Zero::zero(),
+            stacking_relative_position_of_absolute_containing_block: Point2D::zero(),
             layers_needed_for_positioned_flows: false,
         }
     }
@@ -902,7 +901,7 @@ impl BaseFlow {
             parallel: FlowParallelInfo::new(),
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
-            stacking_relative_position: Zero::zero(),
+            stacking_relative_position: Point2D::zero(),
             abs_descendants: Descendants::new(),
             absolute_static_i_offset: Au(0),
             fixed_static_i_offset: Au(0),
@@ -911,7 +910,7 @@ impl BaseFlow {
             absolute_cb: ContainingBlockLink::new(),
             display_list_building_result: DisplayListBuildingResult::None,
             absolute_position_info: AbsolutePositionInfo::new(writing_mode),
-            clip_rect: Rect(Zero::zero(), Size2D(Au(0), Au(0))),
+            clip_rect: Rect(Point2D::zero(), Size2D::zero()),
             flags: flags,
             writing_mode: writing_mode,
         }
@@ -1067,12 +1066,18 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
     fn generate_missing_child_flow(self, node: &ThreadSafeLayoutNode) -> FlowRef {
         let flow = match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {
-                let fragment = Fragment::new_anonymous_table_fragment(node, SpecificFragmentInfo::TableRow);
+                let fragment =
+                    Fragment::new_anonymous_table_fragment(node,
+                                                           SpecificFragmentInfo::TableRow);
                 box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow>
             },
             FlowClass::TableRow => {
-                let fragment = Fragment::new_anonymous_table_fragment(node, SpecificFragmentInfo::TableCell);
-                box TableCellFlow::from_node_and_fragment(node, fragment) as Box<Flow>
+                let fragment =
+                    Fragment::new_anonymous_table_fragment(node,
+                                                           SpecificFragmentInfo::TableCell);
+                let hide = node.style().get_inheritedtable().empty_cells == empty_cells::hide;
+                box TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide) as
+                    Box<Flow>
             },
             _ => {
                 panic!("no need to generate a missing child")
