@@ -4,9 +4,6 @@
 
 //! A task that takes a URL and streams back the binary data.
 
-use self::ControlMsg::*;
-use self::ProgressMsg::*;
-
 use about_loader;
 use data_loader;
 use file_loader;
@@ -166,15 +163,15 @@ pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = channel();
-    resource_task.send(Load(LoadData::new(url, start_chan)));
+    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan)));
     let response = start_port.recv();
 
     let mut buf = vec!();
     loop {
         match response.progress_port.recv() {
-            Payload(data) => buf.push_all(data.as_slice()),
-            Done(Ok(()))  => return Ok((response.metadata, buf)),
-            Done(Err(e))  => return Err(e)
+            ProgressMsg::Payload(data) => buf.push_all(data.as_slice()),
+            ProgressMsg::Done(Ok(()))  => return Ok((response.metadata, buf)),
+            ProgressMsg::Done(Err(e))  => return Err(e)
         }
     }
 }
@@ -213,10 +210,10 @@ impl ResourceManager {
     fn start(&self) {
         loop {
             match self.from_client.recv() {
-              Load(load_data) => {
+              ControlMsg::Load(load_data) => {
                 self.load(load_data)
               }
-              Exit => {
+              ControlMsg::Exit => {
                 break
               }
             }
@@ -239,7 +236,7 @@ impl ResourceManager {
             _ => {
                 debug!("resource_task: no loader for scheme {:s}", load_data.url.scheme);
                 start_sending(senders, Metadata::default(load_data.url))
-                    .send(Done(Err("no loader for scheme".to_string())));
+                    .send(ProgressMsg::Done(Err("no loader for scheme".to_string())));
                 return
             }
         };
@@ -252,7 +249,7 @@ impl ResourceManager {
 /// Load a URL asynchronously and iterate over chunks of bytes from the response.
 pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, ProgressMsgPortIterator) {
     let (input_chan, input_port) = channel();
-    resource_task.send(Load(LoadData::new(url, input_chan)));
+    resource_task.send(ControlMsg::Load(LoadData::new(url, input_chan)));
 
     let response = input_port.recv();
     let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
@@ -267,9 +264,9 @@ pub struct ProgressMsgPortIterator {
 impl Iterator<Vec<u8>> for ProgressMsgPortIterator {
     fn next(&mut self) -> Option<Vec<u8>> {
         match self.progress_port.recv() {
-            Payload(data) => Some(data),
-            Done(Ok(()))  => None,
-            Done(Err(e))  => {
+            ProgressMsg::Payload(data) => Some(data),
+            ProgressMsg::Done(Ok(()))  => None,
+            ProgressMsg::Done(Err(e))  => {
                 error!("error receiving bytes: {}", e);
                 None
             }
@@ -280,7 +277,7 @@ impl Iterator<Vec<u8>> for ProgressMsgPortIterator {
 #[test]
 fn test_exit() {
     let resource_task = new_resource_task(None);
-    resource_task.send(Exit);
+    resource_task.send(ControlMsg::Exit);
 }
 
 #[test]
@@ -288,11 +285,11 @@ fn test_bad_scheme() {
     let resource_task = new_resource_task(None);
     let (start_chan, start) = channel();
     let url = Url::parse("bogus://whatever").unwrap();
-    resource_task.send(Load(LoadData::new(url, start_chan)));
+    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan)));
     let response = start.recv();
     match response.progress_port.recv() {
-      Done(result) => { assert!(result.is_err()) }
+      ProgressMsg::Done(result) => { assert!(result.is_err()) }
       _ => panic!("bleh")
     }
-    resource_task.send(Exit);
+    resource_task.send(ControlMsg::Exit);
 }

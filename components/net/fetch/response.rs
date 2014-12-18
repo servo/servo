@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use self::ResponseBody::*;
-use self::ResponseType::*;
-
 use url::Url;
 use hyper::status::StatusCode;
 use hyper::status::Ok as StatusOk;
@@ -70,31 +67,31 @@ pub struct Response {
 impl Response {
     pub fn new() -> Response {
         Response {
-            response_type: Default,
+            response_type: ResponseType::Default,
             termination_reason: None,
             url: None,
             status: Some(StatusOk),
             headers: Headers::new(),
-            body: Empty,
+            body: ResponseBody::Empty,
             internal_response: None
         }
     }
 
     pub fn network_error() -> Response {
         Response {
-            response_type: Error,
+            response_type: ResponseType::Error,
             termination_reason: None,
             url: None,
             status: None,
             headers: Headers::new(),
-            body: Empty,
+            body: ResponseBody::Empty,
             internal_response: None
         }
     }
 
     pub fn is_network_error(&self) -> bool {
         match self.response_type {
-            Error => true,
+            ResponseType::Error => true,
             _ => false
         }
     }
@@ -102,8 +99,8 @@ impl Response {
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
     pub fn to_filtered(self, filter_type: ResponseType) -> Response {
-        assert!(filter_type != Error);
-        assert!(filter_type != Default);
+        assert!(filter_type != ResponseType::Error);
+        assert!(filter_type != ResponseType::Default);
         if self.is_network_error() {
             return self;
         }
@@ -111,8 +108,8 @@ impl Response {
         let mut response = self.clone();
         response.internal_response = Some(box self);
         match filter_type {
-            Default | Error => unreachable!(),
-            Basic => {
+            ResponseType::Default | ResponseType::Error => unreachable!(),
+            ResponseType::Basic => {
                 let headers = old_headers.iter().filter(|header| {
                     match header.name().to_ascii_lower().as_slice() {
                         "set-cookie" | "set-cookie2" => false,
@@ -122,7 +119,7 @@ impl Response {
                 response.headers = headers;
                 response.response_type = filter_type;
             },
-            CORS => {
+            ResponseType::CORS => {
                 let headers = old_headers.iter().filter(|header| {
                     match header.name().to_ascii_lower().as_slice() {
                         "cache-control" | "content-language" |
@@ -134,10 +131,10 @@ impl Response {
                 response.headers = headers;
                 response.response_type = filter_type;
             },
-            Opaque => {
+            ResponseType::Opaque => {
                 response.headers = Headers::new();
                 response.status = None;
-                response.body = Empty;
+                response.body = ResponseBody::Empty;
             }
         }
         response
