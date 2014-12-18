@@ -53,7 +53,6 @@ use servo_util::geometry::Au;
 use servo_util::logical_geometry::WritingMode;
 use servo_util::logical_geometry::{LogicalRect, LogicalSize};
 use std::mem;
-use std::num::Zero;
 use std::fmt;
 use std::iter::Zip;
 use std::raw;
@@ -686,7 +685,7 @@ impl AbsolutePositionInfo {
         // of the root layer.
         AbsolutePositionInfo {
             relative_containing_block_size: LogicalSize::zero(writing_mode),
-            stacking_relative_position_of_absolute_containing_block: Zero::zero(),
+            stacking_relative_position_of_absolute_containing_block: Point2D::zero(),
             layers_needed_for_positioned_flows: false,
         }
     }
@@ -902,7 +901,7 @@ impl BaseFlow {
             parallel: FlowParallelInfo::new(),
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
-            stacking_relative_position: Zero::zero(),
+            stacking_relative_position: Point2D::zero(),
             abs_descendants: Descendants::new(),
             absolute_static_i_offset: Au(0),
             fixed_static_i_offset: Au(0),
@@ -911,7 +910,7 @@ impl BaseFlow {
             absolute_cb: ContainingBlockLink::new(),
             display_list_building_result: DisplayListBuildingResult::None,
             absolute_position_info: AbsolutePositionInfo::new(writing_mode),
-            clip_rect: Rect(Zero::zero(), Size2D(Au(0), Au(0))),
+            clip_rect: Rect(Point2D::zero(), Size2D::zero()),
             flags: flags,
             writing_mode: writing_mode,
         }
