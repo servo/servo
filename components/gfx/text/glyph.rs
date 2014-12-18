@@ -7,7 +7,7 @@ use self::GlyphInfo::*;
 
 use servo_util::vec::*;
 use servo_util::range;
-use servo_util::range::{Range, RangeIndex, IntRangeIndex, EachIndex};
+use servo_util::range::{Range, RangeIndex, EachIndex};
 use servo_util::geometry::Au;
 
 use std::cmp::PartialOrd;

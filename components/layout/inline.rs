@@ -28,7 +28,7 @@ use gfx::text::glyph::CharIndex;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use servo_util::opts;
-use servo_util::range::{IntRangeIndex, Range, RangeIndex};
+use servo_util::range::{Range, RangeIndex};
 use servo_util::arc_ptr_eq;
 use std::cmp::max;
 use std::fmt;
