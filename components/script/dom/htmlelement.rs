@@ -10,12 +10,11 @@ use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDerived};
-use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast, CSSStyleDeclarationCast};
+use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
 use dom::bindings::js::{JSRef, Temporary, MutNullableJS};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::cssstyledeclaration::CSSStyleDeclaration;
-use dom::css2properties::CSS2Properties;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
@@ -74,8 +73,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn Style(self) -> Temporary<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self).root();
-            let style_props = CSS2Properties::new(*global, self);
-            CSSStyleDeclarationCast::from_temporary(style_props)
+            CSSStyleDeclaration::new(*global, self)
         })
     }
 
