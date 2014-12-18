@@ -52,10 +52,10 @@ pub enum Combinator {
 
 #[deriving(Eq, PartialEq, Clone, Hash)]
 pub enum SimpleSelector {
-    IDSelector(Atom),
-    ClassSelector(Atom),
-    LocalNameSelector(LocalName),
-    NamespaceSelector(Namespace),
+    ID(Atom),
+    Class(Atom),
+    LocalName(LocalName),
+    Namespace(Namespace),
 
     // Attribute selectors
     AttrExists(AttrSelector),  // [foo]
@@ -162,11 +162,11 @@ fn compute_specificity(mut selector: &CompoundSelector,
                                     specificity: &mut Specificity) {
         for simple_selector in simple_selectors.iter() {
             match simple_selector {
-                &SimpleSelector::LocalNameSelector(..) =>
+                &SimpleSelector::LocalName(..) =>
                     specificity.element_selectors += 1,
-                &SimpleSelector::IDSelector(..) =>
+                &SimpleSelector::ID(..) =>
                     specificity.id_selectors += 1,
-                &SimpleSelector::ClassSelector(..) |
+                &SimpleSelector::Class(..) |
                 &SimpleSelector::AttrExists(..) |
                 &SimpleSelector::AttrEqual(..) |
                 &SimpleSelector::AttrIncludes(..) |
@@ -190,7 +190,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 &SimpleSelector::OnlyOfType |
                 &SimpleSelector::ServoNonzeroBorder =>
                     specificity.class_like_selectors += 1,
-                &SimpleSelector::NamespaceSelector(..) => (),
+                &SimpleSelector::Namespace(..) => (),
                 &SimpleSelector::Negation(ref negated) =>
                     simple_selectors_specificity(negated.as_slice(), specificity),
             }
@@ -218,13 +218,13 @@ fn parse_type_selector<I: Iterator<ComponentValue>>(
             let mut simple_selectors = vec!();
             match namespace {
                 NamespaceConstraint::Specific(ns) => {
-                    simple_selectors.push(SimpleSelector::NamespaceSelector(ns))
+                    simple_selectors.push(SimpleSelector::Namespace(ns))
                 },
                 NamespaceConstraint::Any => (),
             }
             match local_name {
                 Some(name) => {
-                    simple_selectors.push(SimpleSelector::LocalNameSelector(LocalName {
+                    simple_selectors.push(SimpleSelector::LocalName(LocalName {
                         name: Atom::from_slice(name.as_slice()),
                         lower_name: Atom::from_slice(name.into_ascii_lower().as_slice())
                     }))
@@ -539,14 +539,14 @@ fn parse_one_simple_selector<I>(context: &ParserContext,
     match iter.peek() {
         Some(&IDHash(_)) => match iter.next() {
             Some(IDHash(id)) => Ok(Some(SimpleSelectorParseResult::SimpleSelector(
-                SimpleSelector::IDSelector(Atom::from_slice(id.as_slice()))))),
+                SimpleSelector::ID(Atom::from_slice(id.as_slice()))))),
             _ => panic!("Implementation error, this should not happen."),
         },
         Some(&Delim('.')) => {
             iter.next();
             match iter.next() {
                 Some(Ident(class)) => Ok(Some(SimpleSelectorParseResult::SimpleSelector(
-                    SimpleSelector::ClassSelector(Atom::from_slice(class.as_slice()))))),
+                    SimpleSelector::Class(Atom::from_slice(class.as_slice()))))),
                 _ => Err(()),
             }
         }
@@ -672,8 +672,6 @@ mod tests {
     use selector_matching::StylesheetOrigin;
     use string_cache::Atom;
     use super::*;
-    use super::SimpleSelector::*;
-    use super::PseudoElement::*;
 
     fn parse(input: &str) -> Result<Vec<Selector>, ()> {
         parse_ns(input, &NamespaceMap::new())
@@ -695,7 +693,7 @@ mod tests {
         assert!(parse("") == Err(()))
         assert!(parse("EeÉ") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(SimpleSelector::LocalNameSelector(LocalName {
+                simple_selectors: vec!(SimpleSelector::LocalName(LocalName {
                     name: Atom::from_slice("EeÉ"),
                     lower_name: Atom::from_slice("eeÉ") })),
                 next: None,
@@ -705,7 +703,7 @@ mod tests {
         })))
         assert!(parse(".foo") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(SimpleSelector::ClassSelector(Atom::from_slice("foo"))),
+                simple_selectors: vec!(SimpleSelector::Class(Atom::from_slice("foo"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -713,7 +711,7 @@ mod tests {
         })))
         assert!(parse("#bar") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(SimpleSelector::IDSelector(Atom::from_slice("bar"))),
+                simple_selectors: vec!(SimpleSelector::ID(Atom::from_slice("bar"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -721,11 +719,11 @@ mod tests {
         })))
         assert!(parse("e.foo#bar") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(SimpleSelector::LocalNameSelector(LocalName {
+                simple_selectors: vec!(SimpleSelector::LocalName(LocalName {
                                             name: Atom::from_slice("e"),
                                             lower_name: Atom::from_slice("e") }),
-                                       SimpleSelector::ClassSelector(Atom::from_slice("foo")),
-                                       SimpleSelector::IDSelector(Atom::from_slice("bar"))),
+                                       SimpleSelector::Class(Atom::from_slice("foo")),
+                                       SimpleSelector::ID(Atom::from_slice("bar"))),
                 next: None,
             }),
             pseudo_element: None,
@@ -733,12 +731,12 @@ mod tests {
         })))
         assert!(parse("e.foo #bar") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(IDSelector(Atom::from_slice("bar"))),
+                simple_selectors: vec!(SimpleSelector::ID(Atom::from_slice("bar"))),
                 next: Some((box CompoundSelector {
-                    simple_selectors: vec!(SimpleSelector::LocalNameSelector(LocalName {
+                    simple_selectors: vec!(SimpleSelector::LocalName(LocalName {
                                                 name: Atom::from_slice("e"),
                                                 lower_name: Atom::from_slice("e") }),
-                                           SimpleSelector::ClassSelector(Atom::from_slice("foo"))),
+                                           SimpleSelector::Class(Atom::from_slice("foo"))),
                     next: None,
                 }, Combinator::Descendant)),
             }),
@@ -750,7 +748,7 @@ mod tests {
         let mut namespaces = NamespaceMap::new();
         assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(AttrExists(AttrSelector {
+                simple_selectors: vec!(SimpleSelector::AttrExists(AttrSelector {
                     name: Atom::from_slice("Foo"),
                     lower_name: Atom::from_slice("foo"),
                     namespace: NamespaceConstraint::Specific(ns!("")),
@@ -765,7 +763,7 @@ mod tests {
         namespaces.default = Some(ns!(MathML));
         assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
-                simple_selectors: vec!(AttrExists(AttrSelector {
+                simple_selectors: vec!(SimpleSelector::AttrExists(AttrSelector {
                     name: Atom::from_slice("Foo"),
                     lower_name: Atom::from_slice("foo"),
                     namespace: NamespaceConstraint::Specific(ns!("")),
@@ -779,8 +777,8 @@ mod tests {
         assert!(parse_ns("e", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(
-                    NamespaceSelector(ns!(MathML)),
-                    LocalNameSelector(LocalName {
+                    SimpleSelector::Namespace(ns!(MathML)),
+                    SimpleSelector::LocalName(LocalName {
                         name: Atom::from_slice("e"),
                         lower_name: Atom::from_slice("e") }),
                 ),
@@ -795,20 +793,20 @@ mod tests {
                 simple_selectors: vec!(),
                 next: None,
             }),
-            pseudo_element: Some(Before),
+            pseudo_element: Some(PseudoElement::Before),
             specificity: specificity(0, 0, 1),
         })))
         assert!(parse("div :after") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(),
                 next: Some((box CompoundSelector {
-                    simple_selectors: vec!(LocalNameSelector(LocalName {
+                    simple_selectors: vec!(SimpleSelector::LocalName(LocalName {
                         name: atom!("div"),
                         lower_name: atom!("div") })),
                     next: None,
                 }, Combinator::Descendant)),
             }),
-            pseudo_element: Some(After),
+            pseudo_element: Some(PseudoElement::After),
             specificity: specificity(0, 0, 2),
         })))
     }
