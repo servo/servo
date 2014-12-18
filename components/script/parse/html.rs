@@ -168,7 +168,10 @@ pub fn parse_html(document: JSRef<Document>,
     let parser = ServoHTMLParser::new(Some(url.clone()), document).root();
     let parser: JSRef<ServoHTMLParser> = *parser;
 
-    task_state::enter(IN_HTML_PARSER);
+    let nested_parse = task_state::get().contains(task_state::IN_HTML_PARSER);
+    if !nested_parse {
+        task_state::enter(IN_HTML_PARSER);
+    }
 
     match input {
         HTMLInput::InputString(s) => {
@@ -201,7 +204,9 @@ pub fn parse_html(document: JSRef<Document>,
 
     parser.finish();
 
-    task_state::exit(IN_HTML_PARSER);
+    if !nested_parse {
+        task_state::exit(IN_HTML_PARSER);
+    }
 
     debug!("finished parsing");
 }
