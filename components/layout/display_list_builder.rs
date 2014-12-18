@@ -43,9 +43,9 @@ use std::num::FloatMath;
 use style::computed::{AngleOrCorner, LengthOrPercentage, HorizontalDirection, VerticalDirection};
 use style::computed::{Image, LinearGradient};
 use style::computed_values::{background_attachment, background_repeat, border_style, overflow};
-use style::computed_values::{visibility};
-use style::{ComputedValues, RGBA};
+use style::computed_values::{position, visibility};
 use style::style_structs::Border;
+use style::{ComputedValues, RGBA};
 use sync::Arc;
 use url::Url;
 
@@ -167,8 +167,13 @@ pub trait FragmentDisplayListBuilding {
                                             offset: Point2D<Au>,
                                             layout_context: &LayoutContext);
 
-    fn clip_rect_for_children(&self, current_clip_rect: Rect<Au>, flow_origin: Point2D<Au>)
+    fn clip_rect_for_children(&self, current_clip_rect: &Rect<Au>, flow_origin: &Point2D<Au>)
                               -> Rect<Au>;
+
+    /// Calculates the clipping rectangle for a fragment, taking the `clip` property into account
+    /// per CSS 2.1 § 11.1.2.
+    fn calculate_style_specified_clip(&self, parent_clip_rect: &Rect<Au>, origin: &Point2D<Au>)
+                                      -> Rect<Au>;
 }
 
 fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &Border) -> BorderRadii<Au> {
@@ -605,6 +610,24 @@ impl FragmentDisplayListBuilding for Fragment {
         }));
     }
 
+    fn calculate_style_specified_clip(&self, parent_clip_rect: &Rect<Au>, origin: &Point2D<Au>)
+                                      -> Rect<Au> {
+        // Account for `clip` per CSS 2.1 § 11.1.2.
+        let style_clip_rect = match (self.style().get_box().position,
+                                     self.style().get_effects().clip) {
+            (position::absolute, Some(style_clip_rect)) => style_clip_rect,
+            _ => return *parent_clip_rect,
+        };
+
+        // FIXME(pcwalton, #2795): Get the real container size.
+        let border_box = self.border_box.to_physical(self.style.writing_mode, Size2D::zero());
+        let clip_origin = Point2D(border_box.origin.x + style_clip_rect.left,
+                                  border_box.origin.y + style_clip_rect.top);
+        Rect(clip_origin + *origin,
+             Size2D(style_clip_rect.right.unwrap_or(border_box.size.width) - clip_origin.x,
+                    style_clip_rect.bottom.unwrap_or(border_box.size.height) - clip_origin.y))
+    }
+
     fn build_display_list(&mut self,
                           display_list: &mut DisplayList,
                           layout_context: &LayoutContext,
@@ -646,7 +669,11 @@ impl FragmentDisplayListBuilding for Fragment {
             return
         }
 
-        if !absolute_fragment_bounds.intersects(clip_rect) {
+        // Calculate the clip rect. If there's nothing to render at all, don't even construct
+        // display list items.
+        let clip_rect = self.calculate_style_specified_clip(clip_rect,
+                                                            &absolute_fragment_bounds.origin);
+        if !absolute_fragment_bounds.intersects(&clip_rect) {
             return;
         }
 
@@ -666,7 +693,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             layout_context,
                             level,
                             &absolute_fragment_bounds,
-                            clip_rect);
+                            &clip_rect);
                     }
                 }
                 None => {}
@@ -680,7 +707,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         layout_context,
                         level,
                         &absolute_fragment_bounds,
-                        clip_rect);
+                        &clip_rect);
                 }
             }
 
@@ -694,7 +721,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             layout_context,
                             level,
                             &absolute_fragment_bounds,
-                            clip_rect);
+                            &clip_rect);
                     }
                 }
                 None => {}
@@ -708,7 +735,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         layout_context,
                         level,
                         &absolute_fragment_bounds,
-                        clip_rect);
+                        &clip_rect);
                 }
             }
 
@@ -721,12 +748,12 @@ impl FragmentDisplayListBuilding for Fragment {
                             display_list,
                             &absolute_fragment_bounds,
                             level,
-                            clip_rect);
+                            &clip_rect);
                         self.build_display_list_for_outline_if_applicable(
                             &**style,
                             display_list,
                             &absolute_fragment_bounds,
-                            clip_rect);
+                            &clip_rect);
                     }
                 }
                 None => {}
@@ -739,12 +766,12 @@ impl FragmentDisplayListBuilding for Fragment {
                         display_list,
                         &absolute_fragment_bounds,
                         level,
-                        clip_rect);
+                        &clip_rect);
                     self.build_display_list_for_outline_if_applicable(
                         &*self.style,
                         display_list,
                         &absolute_fragment_bounds,
-                        clip_rect);
+                        &clip_rect);
                 }
             }
         }
@@ -781,7 +808,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                DisplayItemMetadata::new(self.node,
                                                                         self.style(),
                                                                         cursor),
-                                               *clip_rect),
+                                               clip_rect),
                     text_run: text_fragment.run.clone(),
                     range: text_fragment.range,
                     text_color: self.style().get_color().color.to_gfx_color(),
@@ -805,7 +832,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                   DisplayItemMetadata::new(self.node,
                                                                            style,
                                                                            DefaultCursor),
-                                                  *clip_rect),
+                                                  clip_rect),
                                         color: color.to_gfx_color(),
                                     }))
                             }
@@ -840,7 +867,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                    display_list,
                                                                    flow_origin,
                                                                    &**text_fragment,
-                                                                   clip_rect);
+                                                                   &clip_rect);
                 }
             }
             SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(..) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
@@ -849,7 +876,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 if opts::get().show_debug_fragment_borders {
                     self.build_debug_borders_around_fragment(display_list,
                                                              flow_origin,
-                                                             clip_rect);
+                                                             &clip_rect);
                 }
             }
             SpecificFragmentInfo::Image(ref mut image_fragment) => {
@@ -864,7 +891,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        DisplayItemMetadata::new(self.node,
                                                                                 &*self.style,
                                                                                 DefaultCursor),
-                                                       *clip_rect),
+                                                       clip_rect),
                             image: image.clone(),
                             stretch_size: absolute_content_box.size,
                         }));
@@ -880,9 +907,7 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         if opts::get().show_debug_fragment_borders {
-           self.build_debug_borders_around_fragment(display_list,
-                                                    flow_origin,
-                                                    clip_rect)
+           self.build_debug_borders_around_fragment(display_list, flow_origin, &clip_rect)
         }
 
         // If this is an iframe, then send its position and size up to the constellation.
@@ -926,13 +951,16 @@ impl FragmentDisplayListBuilding for Fragment {
                                iframe_rect));
     }
 
-    fn clip_rect_for_children(&self, current_clip_rect: Rect<Au>, flow_origin: Point2D<Au>)
+    fn clip_rect_for_children(&self, current_clip_rect: &Rect<Au>, origin: &Point2D<Au>)
                               -> Rect<Au> {
         // Don't clip if we're text.
         match self.specific {
-            SpecificFragmentInfo::ScannedText(_) => return current_clip_rect,
+            SpecificFragmentInfo::ScannedText(_) => return *current_clip_rect,
             _ => {}
         }
+
+        // Account for style-specified `clip`.
+        let current_clip_rect = self.calculate_style_specified_clip(current_clip_rect, origin);
 
         // Only clip if `overflow` tells us to.
         match self.style.get_box().overflow {
@@ -944,7 +972,8 @@ impl FragmentDisplayListBuilding for Fragment {
         //
         // FIXME(#2795): Get the real container size.
         let physical_rect = self.border_box.to_physical(self.style.writing_mode, Size2D::zero());
-        current_clip_rect.intersection(&Rect(physical_rect.origin + flow_origin,
+        current_clip_rect.intersection(&Rect(Point2D(physical_rect.origin.x + origin.x,
+                                                     physical_rect.origin.y + origin.y),
                                              physical_rect.size)).unwrap_or(ZERO_RECT)
     }
 }

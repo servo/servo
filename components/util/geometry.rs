@@ -333,3 +333,4 @@ pub fn f32_rect_to_au_rect(rect: Rect<f32>) -> Rect<Au> {
     Rect(Point2D(Au::from_frac32_px(rect.origin.x), Au::from_frac32_px(rect.origin.y)),
          Size2D(Au::from_frac32_px(rect.size.width), Au::from_frac32_px(rect.size.height)))
 }
+

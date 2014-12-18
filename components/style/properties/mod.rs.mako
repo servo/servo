@@ -1861,6 +1861,84 @@ pub mod longhands {
             })
         }
     </%self:longhand>
+
+    <%self:single_component_value name="clip">
+        // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
+
+        pub mod computed_value {
+            use super::super::Au;
+
+            #[deriving(Clone, PartialEq, Show)]
+            pub struct ClipRect {
+                pub top: Au,
+                pub right: Option<Au>,
+                pub bottom: Option<Au>,
+                pub left: Au,
+            }
+
+            pub type T = Option<ClipRect>;
+        }
+
+        #[deriving(Clone, Show)]
+        pub struct SpecifiedClipRect {
+            pub top: specified::Length,
+            pub right: Option<specified::Length>,
+            pub bottom: Option<specified::Length>,
+            pub left: specified::Length,
+        }
+
+        pub type SpecifiedValue = Option<SpecifiedClipRect>;
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            None
+        }
+
+        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
+                                 -> computed_value::T {
+            value.map(|value| computed_value::ClipRect {
+                top: computed::compute_Au(value.top, context),
+                right: value.right.map(|right| computed::compute_Au(right, context)),
+                bottom: value.bottom.map(|bottom| computed::compute_Au(bottom, context)),
+                left: computed::compute_Au(value.left, context),
+            })
+        }
+
+        pub fn from_component_value(input: &ComponentValue, _: &Url) -> Result<SpecifiedValue,()> {
+            match *input {
+                Function(ref name, ref args) if name.as_slice().eq_ignore_ascii_case("rect") => {
+                    let sides = try!(parse_slice_comma_separated(args.as_slice(), |parser| {
+                        match parser.next() {
+                            Some(&Ident(ref ident)) if ident.eq_ignore_ascii_case("auto") => {
+                                Ok(None)
+                            }
+                            Some(arg) => {
+                                match specified::Length::parse(arg) {
+                                    Err(_) => {
+                                        parser.push_back(arg);
+                                        Err(())
+                                    }
+                                    Ok(value) => Ok(Some(value)),
+                                }
+                            }
+                            None => Err(()),
+                        }
+                    }));
+                    if sides.len() != 4 {
+                        return Err(())
+                    }
+                    Ok(Some(SpecifiedClipRect {
+                        top: sides[0].unwrap_or(specified::Length::Au(Au(0))),
+                        right: sides[1],
+                        bottom: sides[2],
+                        left: sides[3].unwrap_or(specified::Length::Au(Au(0))),
+                    }))
+                }
+                Ident(ref ident) if ident.as_slice().eq_ignore_ascii_case("auto") => Ok(None),
+                _ => Err(())
+            }
+        }
+    </%self:single_component_value>
 }
 
 
