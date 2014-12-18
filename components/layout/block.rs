@@ -1783,9 +1783,9 @@ impl Flow for BlockFlow {
             if !flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 let kid_base = flow::mut_base(kid);
                 kid_base.stacking_relative_position =
-                    origin_for_children +
-                    (kid_base.position.start + relative_offset).to_physical(writing_mode,
-                                                                            container_size);
+                    origin_for_children
+                    + kid_base.position.start.to_physical(kid_base.writing_mode, container_size)
+                    + relative_offset.to_physical(writing_mode);
             }
 
             flow::mut_base(kid).absolute_position_info = absolute_position_info_for_children;
