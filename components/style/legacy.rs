@@ -5,9 +5,6 @@
 //! Legacy presentational attributes defined in the HTML5 specification: `<td width>`,
 //! `<input size>`, and so forth.
 
-use self::UnsignedIntegerAttribute::*;
-use self::SimpleColorAttribute::*;
-
 use node::{TElement, TElementAttributes, TNode};
 use properties::DeclaredValue::SpecifiedValue;
 use properties::PropertyDeclaration::*;
@@ -36,15 +33,15 @@ pub enum IntegerAttribute {
 /// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
 pub enum UnsignedIntegerAttribute {
     /// `<td border>`
-    BorderUnsignedIntegerAttribute,
+    Border,
     /// `<td colspan>`
-    ColSpanUnsignedIntegerAttribute,
+    ColSpan,
 }
 
 /// Legacy presentational attributes that take a simple color as defined in HTML5 § 2.4.6.
 pub enum SimpleColorAttribute {
     /// `<body bgcolor>`
-    BgColorSimpleColorAttribute,
+    BgColor,
 }
 
 /// Extension methods for `Stylist` that cause rules to be synthesized for legacy attributes.
@@ -210,7 +207,7 @@ impl PresentationalHintSynthesis for Stylist {
                                                                                TElementAttributes,
                                                                             V: VecLike<
                                                                                 DeclarationBlock> {
-        match element.get_simple_color_attribute(BgColorSimpleColorAttribute) {
+        match element.get_simple_color_attribute(SimpleColorAttribute::BgColor) {
             None => {}
             Some(color) => {
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
@@ -229,7 +226,7 @@ impl PresentationalHintSynthesis for Stylist {
                                                                     E: TElement<'a> +
                                                                        TElementAttributes,
                                                                     V: VecLike<DeclarationBlock> {
-        match element.get_unsigned_integer_attribute(BorderUnsignedIntegerAttribute) {
+        match element.get_unsigned_integer_attribute(UnsignedIntegerAttribute::Border) {
             None => {}
             Some(length) => {
                 let width_value = specified::Length::Au(Au::from_px(length as int));
