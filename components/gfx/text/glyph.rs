@@ -7,11 +7,11 @@ use self::GlyphInfo::*;
 
 use servo_util::vec::*;
 use servo_util::range;
-use servo_util::range::{Range, RangeIndex, IntRangeIndex, EachIndex};
+use servo_util::range::{Range, RangeIndex, EachIndex};
 use servo_util::geometry::Au;
 
 use std::cmp::PartialOrd;
-use std::num::{NumCast, Zero};
+use std::num::NumCast;
 use std::mem;
 use std::u16;
 use std::vec::Vec;
@@ -434,7 +434,7 @@ impl GlyphData {
         GlyphData {
             id: id,
             advance: advance,
-            offset: offset.unwrap_or(Zero::zero()),
+            offset: offset.unwrap_or(Point2D::zero()),
             is_missing: is_missing,
             cluster_start: cluster_start,
             ligature_start: ligature_start,
@@ -549,7 +549,7 @@ impl<'a> GlyphStore {
         fn glyph_is_compressible(data: &GlyphData) -> bool {
             is_simple_glyph_id(data.id)
                 && is_simple_advance(data.advance)
-                && data.offset.is_zero()
+                && data.offset == Point2D::zero()
                 && data.cluster_start  // others are stored in detail buffer
         }
 

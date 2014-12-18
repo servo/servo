@@ -14,7 +14,6 @@ use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg}
 use azure::azure_hl;
 use std::cmp;
 use std::mem;
-use std::num::Zero;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
@@ -176,7 +175,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             context: None,
             root_pipeline: None,
             scene: Scene::new(Rect {
-                origin: Zero::zero(),
+                origin: Point2D::zero(),
                 size: window_size.as_f32(),
             }),
             window_size: window_size,
@@ -1027,7 +1026,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             self.scene.viewport = Rect {
-                origin: Zero::zero(),
+                origin: Point2D::zero(),
                 size: self.window_size.as_f32(),
             };
             // paint the scene.
@@ -1121,7 +1120,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         };
 
         let clip_rect_for_children = if masks_to_bounds {
-            Rect(Zero::zero(), clipped_layer_bounds.size)
+            Rect(Point2D::zero(), clipped_layer_bounds.size)
         } else {
             clipped_layer_bounds.translate(&clip_rect.origin)
         };

@@ -28,12 +28,11 @@ use gfx::text::glyph::CharIndex;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use servo_util::opts;
-use servo_util::range::{IntRangeIndex, Range, RangeIndex};
+use servo_util::range::{Range, RangeIndex};
 use servo_util::arc_ptr_eq;
 use std::cmp::max;
 use std::fmt;
 use std::mem;
-use std::num;
 use std::u16;
 use style::computed_values::{text_align, vertical_align, white_space};
 use style::ComputedValues;
@@ -211,7 +210,7 @@ impl LineBreaker {
 
     /// Reinitializes the pending line to blank data.
     fn reset_line(&mut self) {
-        self.pending_line.range.reset(num::zero(), num::zero());
+        self.pending_line.range.reset(FragmentIndex(0), FragmentIndex(0));
         self.pending_line.bounds = LogicalRect::new(self.floats.writing_mode,
                                                     Au(0),
                                                     self.cur_b,
@@ -632,7 +631,7 @@ impl LineBreaker {
         if self.pending_line_is_empty() {
             assert!(self.new_fragments.len() <= (u16::MAX as uint));
             self.pending_line.range.reset(FragmentIndex(self.new_fragments.len() as int),
-                                          num::zero());
+                                          FragmentIndex(0));
         }
 
         self.pending_line.range.extend_by(FragmentIndex(1));
@@ -655,7 +654,7 @@ impl LineBreaker {
 
     /// Returns true if the pending line is empty and false otherwise.
     fn pending_line_is_empty(&self) -> bool {
-        self.pending_line.range.length() == num::zero()
+        self.pending_line.range.length() == FragmentIndex(0)
     }
 }
 
