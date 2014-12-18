@@ -243,7 +243,7 @@ source = "git+https://github.com/alexcrichton/gcc-rs#903e8f8a2e3766ad3d514404d45
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#95e746133b4a35b53eb259304668b63ee8de42b8"
+source = "git+https://github.com/servo/rust-geom#5e52790076fc238a395d1777c4280fa46a1555fa"
 
 [[package]]
 name = "gfx"
@@ -393,7 +393,7 @@ source = "git+https://github.com/bjz/gl-rs.git#c76c23fc9a0dae824b45550d4b823cdb7
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#5fbdc521b82296e325d2df13fce8026c727c01d2"
+source = "git+https://github.com/servo/rust-layers#21798aac4de6bfd800836f419dd5b6a308edcaa4"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",

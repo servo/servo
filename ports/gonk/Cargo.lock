@@ -207,7 +207,7 @@ source = "git+https://github.com/alexcrichton/gcc-rs#d35c34c871dd75f97fadf04cb0e
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#e5e74911ac6d3201009879b72499d6c681302611"
+source = "git+https://github.com/servo/rust-geom#5e52790076fc238a395d1777c4280fa46a1555fa"
 
 [[package]]
 name = "gfx"
@@ -329,7 +329,7 @@ source = "git+https://github.com/bjz/gl-rs.git#79cd3b3f9f19aa0e39f6af572fc8673a6
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#b068d2a96d54bf173b548aece36f5ea4ef9353cf"
+source = "git+https://github.com/servo/rust-layers#21798aac4de6bfd800836f419dd5b6a308edcaa4"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
@@ -410,6 +410,7 @@ dependencies = [
  "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "style 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
  "util 0.0.1",
 ]

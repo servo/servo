@@ -6,6 +6,7 @@
 
 //! Conversions of Rust values to and from `JSVal`.
 
+use dom::bindings::codegen::PrototypeList;
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -29,15 +30,13 @@ use libc;
 use std::default;
 use std::slice;
 
-use dom::bindings::codegen::PrototypeList;
-
 /// A trait to retrieve the constants necessary to check if a `JSObject`
 /// implements a given interface.
 // FIXME (https://github.com/rust-lang/rfcs/pull/4)
 //       remove Option<Self> arguments.
 pub trait IDLInterface {
     /// Returns the prototype ID.
-    fn get_prototype_id(_: Option<Self>) -> PrototypeList::id;
+    fn get_prototype_id(_: Option<Self>) -> PrototypeList::ID;
     /// Returns the prototype depth, i.e., the number of interfaces this
     /// interface inherits from.
     fn get_prototype_depth(_: Option<Self>) -> uint;
