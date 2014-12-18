@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{mod, CSSStyleDeclarationMethods};
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::global;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, OptionalRootedRootable, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::DocumentHelpers;
@@ -62,7 +62,7 @@ impl CSSStyleDeclaration {
 
     pub fn new(global: JSRef<Window>, owner: JSRef<HTMLElement>) -> Temporary<CSSStyleDeclaration> {
         reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner),
-                           global::Window(global),
+                           GlobalRef::Window(global),
                            CSSStyleDeclarationBinding::Wrap)
     }
 }

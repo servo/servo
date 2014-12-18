@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, KeyboardEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::global;
 use dom::bindings::js::{JSRef, Temporary, RootedReference};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId};
@@ -61,7 +60,7 @@ impl KeyboardEvent {
 
     pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<KeyboardEvent> {
         reflect_dom_object(box KeyboardEvent::new_inherited(),
-                           global::Window(window),
+                           GlobalRef::Window(window),
                            KeyboardEventBinding::Wrap)
     }
 

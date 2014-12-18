@@ -23,7 +23,6 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter};
 use dom::bindings::error::Error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
 use dom::bindings::js::OptionalRootable;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -60,7 +59,7 @@ use servo_util::namespace;
 use servo_util::str::{DOMString, split_html_space_chars};
 
 use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
-use layout_interface::{LayoutChan, SetQuirksModeMsg};
+use layout_interface::{LayoutChan, Msg};
 use string_cache::{Atom, QualName};
 use url::Url;
 
@@ -222,7 +221,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             Quirks => {
                 let window = self.window.root();
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;
-                layout_chan.send(SetQuirksModeMsg);
+                layout_chan.send(Msg::SetQuirksMode);
             }
             NoQuirks | LimitedQuirks => {}
         }
@@ -339,7 +338,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.ready_state.set(state);
 
         let window = self.window.root();
-        let event = Event::new(global::Window(*window), "readystatechange".to_string(),
+        let event = Event::new(GlobalRef::Window(*window), "readystatechange".to_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
@@ -464,7 +463,7 @@ impl Document {
                source: DocumentSource) -> Temporary<Document> {
         let document = reflect_dom_object(box Document::new_inherited(window, url, doctype,
                                                                       content_type, source),
-                                          global::Window(window),
+                                          GlobalRef::Window(window),
                                           DocumentBinding::Wrap).root();
 
         let node: JSRef<Node> = NodeCast::from_ref(*document);
@@ -735,13 +734,13 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(
                 MouseEvent::new_uninitialized(*window))),
             "customevent" => Ok(EventCast::from_temporary(
-                CustomEvent::new_uninitialized(global::Window(*window)))),
+                CustomEvent::new_uninitialized(GlobalRef::Window(*window)))),
             "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(
-                global::Window(*window))),
+                GlobalRef::Window(*window))),
             "keyboardevent" | "keyevents" => Ok(EventCast::from_temporary(
                 KeyboardEvent::new_uninitialized(*window))),
             "messageevent" => Ok(EventCast::from_temporary(
-                MessageEvent::new_uninitialized(global::Window(*window)))),
+                MessageEvent::new_uninitialized(GlobalRef::Window(*window)))),
             _ => Err(NotSupported)
         }
     }

@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::ValidityStateBinding;
-use dom::bindings::global;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
@@ -24,7 +24,7 @@ impl ValidityState {
 
     pub fn new(window: JSRef<Window>) -> Temporary<ValidityState> {
         reflect_dom_object(box ValidityState::new_inherited(),
-                           global::Window(window),
+                           GlobalRef::Window(window),
                            ValidityStateBinding::Wrap)
     }
 }

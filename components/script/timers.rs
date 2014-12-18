@@ -8,8 +8,7 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
 
-use script_task::{ScriptChan, TimerSource};
-use script_task::ScriptMsg::FireTimerMsg;
+use script_task::{ScriptChan, ScriptMsg, TimerSource};
 
 use servo_util::task::spawn_named;
 
@@ -107,7 +106,7 @@ impl TimerManager {
         let handle = self.next_timer_handle.get();
         self.next_timer_handle.set(handle + 1);
 
-        // Spawn a new timer task; it will dispatch the FireTimerMsg
+        // Spawn a new timer task; it will dispatch the `ScriptMsg::FireTimer`
         // to the relevant script handler that will deal with it.
         let tm = Timer::new().unwrap();
         let (cancel_chan, cancel_port) = channel();
@@ -138,7 +137,7 @@ impl TimerManager {
                 if id == timeout_handle.id() {
                     timeout_port.recv();
                     let ScriptChan(ref chan) = script_chan;
-                    chan.send(FireTimerMsg(source, TimerId(handle)));
+                    chan.send(ScriptMsg::FireTimer(source, TimerId(handle)));
                     if is_interval == IsInterval::NonInterval {
                         break;
                     }

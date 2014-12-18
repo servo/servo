@@ -17,7 +17,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use layout_interface::{LayoutChan, LoadStylesheetMsg};
+use layout_interface::{LayoutChan, Msg};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 use std::ascii::AsciiExt;
@@ -131,7 +131,7 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
         match UrlParser::new().base_url(&window.page().get_url()).parse(href) {
             Ok(url) => {
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;
-                layout_chan.send(LoadStylesheetMsg(url));
+                layout_chan.send(Msg::LoadStylesheet(url));
             }
             Err(e) => debug!("Parsing url {:s} failed: {}", href, e)
         }

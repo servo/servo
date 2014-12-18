@@ -13,7 +13,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use layout_interface::{AddStylesheetMsg, LayoutChan};
+use layout_interface::{LayoutChan, Msg};
 use servo_util::str::DOMString;
 use style::{StylesheetOrigin, Stylesheet};
 
@@ -58,7 +58,7 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         let sheet = Stylesheet::from_str(data.as_slice(), url,
                                          StylesheetOrigin::Author);
         let LayoutChan(ref layout_chan) = win.page().layout_chan;
-        layout_chan.send(AddStylesheetMsg(sheet));
+        layout_chan.send(Msg::AddStylesheet(sheet));
     }
 }
 

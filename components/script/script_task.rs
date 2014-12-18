@@ -5,8 +5,6 @@
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
 
-use self::ScriptMsg::*;
-
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -15,7 +13,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
-use dom::bindings::global;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
@@ -30,7 +28,7 @@ use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
 use parse::html::{HTMLInput, parse_html};
-use layout_interface::{ScriptLayoutChan, LayoutChan, NoQuery, ReflowForDisplay};
+use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
@@ -93,24 +91,24 @@ pub enum TimerSource {
 pub enum ScriptMsg {
     /// Acts on a fragment URL load on the specified pipeline (only dispatched
     /// to ScriptTask).
-    TriggerFragmentMsg(PipelineId, Url),
+    TriggerFragment(PipelineId, Url),
     /// Begins a content-initiated load on the specified pipeline (only
     /// dispatched to ScriptTask).
-    TriggerLoadMsg(PipelineId, LoadData),
+    TriggerLoad(PipelineId, LoadData),
     /// Instructs the script task to send a navigate message to
     /// the constellation (only dispatched to ScriptTask).
-    NavigateMsg(NavigationDirection),
+    Navigate(NavigationDirection),
     /// Fires a JavaScript timeout
     /// TimerSource must be FromWindow when dispatched to ScriptTask and
     /// must be FromWorker when dispatched to a DedicatedGlobalWorkerScope
-    FireTimerMsg(TimerSource, TimerId),
+    FireTimer(TimerSource, TimerId),
     /// Notifies the script that a window associated with a particular pipeline
     /// should be closed (only dispatched to ScriptTask).
-    ExitWindowMsg(PipelineId),
+    ExitWindow(PipelineId),
     /// Notifies the script of progress on a fetch (dispatched to all tasks).
-    XHRProgressMsg(TrustedXHRAddress, XHRProgress),
+    XHRProgress(TrustedXHRAddress, XHRProgress),
     /// Releases one reference to the XHR object (dispatched to all tasks).
-    XHRReleaseMsg(TrustedXHRAddress),
+    XHRRelease(TrustedXHRAddress),
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
     DOMMessage(*mut u64, size_t),
@@ -561,27 +559,27 @@ impl ScriptTask {
 
     fn handle_msg_from_script(&self, msg: ScriptMsg) {
         match msg {
-            TriggerLoadMsg(id, load_data) =>
+            ScriptMsg::TriggerLoad(id, load_data) =>
                 self.trigger_load(id, load_data),
-            TriggerFragmentMsg(id, url) =>
+            ScriptMsg::TriggerFragment(id, url) =>
                 self.trigger_fragment(id, url),
-            FireTimerMsg(TimerSource::FromWindow(id), timer_id) =>
+            ScriptMsg::FireTimer(TimerSource::FromWindow(id), timer_id) =>
                 self.handle_fire_timer_msg(id, timer_id),
-            FireTimerMsg(TimerSource::FromWorker, _) =>
+            ScriptMsg::FireTimer(TimerSource::FromWorker, _) =>
                 panic!("Worker timeouts must not be sent to script task"),
-            NavigateMsg(direction) =>
+            ScriptMsg::Navigate(direction) =>
                 self.handle_navigate_msg(direction),
-            ExitWindowMsg(id) =>
+            ScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
-            XHRProgressMsg(addr, progress) =>
+            ScriptMsg::XHRProgress(addr, progress) =>
                 XMLHttpRequest::handle_progress(addr, progress),
-            XHRReleaseMsg(addr) =>
+            ScriptMsg::XHRRelease(addr) =>
                 XMLHttpRequest::handle_release(addr),
-            DOMMessage(..) =>
+            ScriptMsg::DOMMessage(..) =>
                 panic!("unexpected message"),
-            WorkerPostMessage(addr, data, nbytes) =>
+            ScriptMsg::WorkerPostMessage(addr, data, nbytes) =>
                 Worker::handle_message(addr, data, nbytes),
-            WorkerRelease(addr) =>
+            ScriptMsg::WorkerRelease(addr) =>
                 Worker::handle_release(addr),
         }
     }
@@ -835,7 +833,7 @@ impl ScriptTask {
             let document_as_node = NodeCast::from_ref(document_js_ref);
             document.content_changed(document_as_node, NodeDamage::OtherNodeDamage);
         }
-        window.flush_layout(ReflowForDisplay, NoQuery);
+        window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
 
         {
             // No more reflow required
@@ -844,7 +842,7 @@ impl ScriptTask {
         }
 
         // https://html.spec.whatwg.org/multipage/#the-end step 4
-        let event = Event::new(global::Window(*window), "DOMContentLoaded".to_string(),
+        let event = Event::new(GlobalRef::Window(*window), "DOMContentLoaded".to_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(*document);
@@ -857,7 +855,7 @@ impl ScriptTask {
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         document.set_ready_state(DocumentReadyState::Complete);
 
-        let event = Event::new(global::Window(*window), "load".to_string(),
+        let event = Event::new(GlobalRef::Window(*window), "load".to_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
@@ -897,10 +895,10 @@ impl ScriptTask {
     /// Reflows non-incrementally.
     fn force_reflow(&self, page: &Page) {
         page.dirty_all_nodes();
-        page.reflow(ReflowForDisplay,
+        page.reflow(ReflowGoal::ForDisplay,
                     self.control_chan.clone(),
                     &mut **self.compositor.borrow_mut(),
-                    NoQuery);
+                    ReflowQueryType::NoQuery);
     }
 
     /// This is the main entry point for receiving and dispatching DOM events.
@@ -1028,7 +1026,7 @@ impl ScriptTask {
             _ => ()
         }
 
-        window.flush_layout(ReflowForDisplay, NoQuery);
+        window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
 
     /// The entry point for content to notify that a new load has been requested
@@ -1130,7 +1128,7 @@ impl ScriptTask {
                                 doc.begin_focus_transaction();
 
                                 let event =
-                                    Event::new(global::Window(*window),
+                                    Event::new(GlobalRef::Window(*window),
                                                "click".to_string(),
                                                EventBubbles::Bubbles,
                                                EventCancelable::Cancelable).root();
@@ -1141,7 +1139,7 @@ impl ScriptTask {
                                 el.authentic_click_activation(*event);
 
                                 doc.commit_focus_transaction();
-                                window.flush_layout(ReflowForDisplay, NoQuery);
+                                window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
                             }
                             None => {}
                         }
@@ -1222,7 +1220,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime) {
         // processed this message.
         let (response_chan, response_port) = channel();
         let LayoutChan(ref chan) = page.layout_chan;
-        chan.send(layout_interface::PrepareToExitMsg(response_chan));
+        chan.send(layout_interface::Msg::PrepareToExit(response_chan));
         response_port.recv();
     }
 
@@ -1245,7 +1243,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime) {
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
     for page in page_tree.iter() {
         let LayoutChan(ref chan) = page.layout_chan;
-        chan.send(layout_interface::ExitNowMsg);
+        chan.send(layout_interface::Msg::ExitNow);
     }
 }
 

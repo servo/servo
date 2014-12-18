@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
-use dom::bindings::global::Window;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
@@ -87,7 +87,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
         if self.context.get().is_none() {
             let window = window_from_node(self).root();
             let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-            let context = CanvasRenderingContext2D::new(&Window(*window), self, Size2D(w, h));
+            let context = CanvasRenderingContext2D::new(&GlobalRef::Window(*window), self, Size2D(w, h));
             self.context.assign(Some(context));
         }
         self.context.get()
