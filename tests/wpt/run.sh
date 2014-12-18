@@ -16,7 +16,7 @@ source $wpt_root/_virtualenv/bin/activate
 if [[ $* == *--update-manifest* ]]; then
     (python -c "import html5lib" &>/dev/null) || pip install html5lib
 fi
-(python -c "import wptrunner"  &>/dev/null) || pip install 'wptrunner==1.7'
+(python -c "import wptrunner"  &>/dev/null) || pip install 'wptrunner==1.8'
 
 python $wpt_root/run.py \
   --config $wpt_root/config.ini \
