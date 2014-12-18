@@ -15,8 +15,7 @@ use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use script_task::ScriptChan;
-use script_task::ScriptMsg::DOMMessage;
+use script_task::{ScriptChan, ScriptMsg};
 
 use servo_util::str::DOMString;
 
@@ -147,7 +146,7 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
 
         self.addref();
         let ScriptChan(ref sender) = self.sender;
-        sender.send(DOMMessage(data, nbytes));
+        sender.send(ScriptMsg::DOMMessage(data, nbytes));
         Ok(())
     }
 

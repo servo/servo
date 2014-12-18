@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 // For now, it is defined in this file.
 // use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
 use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::global::Window;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
@@ -49,7 +49,7 @@ impl TreeWalker {
                            filter: Filter) -> Temporary<TreeWalker> {
         let window = document.window().root();
         reflect_dom_object(box TreeWalker::new_inherited(root_node, what_to_show, filter),
-                           Window(*window),
+                           GlobalRef::Window(*window),
                            TreeWalkerBinding::Wrap)
     }
 

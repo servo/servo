@@ -5,7 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
-use dom::bindings::global;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::element::{Element, ElementHelpers};
@@ -27,7 +27,7 @@ impl NamedNodeMap {
 
     pub fn new(window: JSRef<Window>, elem: JSRef<Element>) -> Temporary<NamedNodeMap> {
         reflect_dom_object(box NamedNodeMap::new_inherited(elem),
-                           global::Window(window), NamedNodeMapBinding::Wrap)
+                           GlobalRef::Window(window), NamedNodeMapBinding::Wrap)
     }
 }
 

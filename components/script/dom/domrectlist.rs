@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::DOMRectListBinding;
 use dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
-use dom::bindings::global;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::domrect::DOMRect;
@@ -31,7 +31,7 @@ impl DOMRectList {
     pub fn new(window: JSRef<Window>,
                rects: Vec<JSRef<DOMRect>>) -> Temporary<DOMRectList> {
         reflect_dom_object(box DOMRectList::new_inherited(window, rects),
-                           global::Window(window), DOMRectListBinding::Wrap)
+                           GlobalRef::Window(window), DOMRectListBinding::Wrap)
     }
 }
 

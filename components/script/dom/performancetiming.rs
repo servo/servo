@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::PerformanceTimingBinding;
 use dom::bindings::codegen::Bindings::PerformanceTimingBinding::PerformanceTimingMethods;
-use dom::bindings::global;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::window::Window;
@@ -33,7 +33,7 @@ impl PerformanceTiming {
                -> Temporary<PerformanceTiming> {
         let timing = PerformanceTiming::new_inherited(navigation_start,
                                                       navigation_start_precise);
-        reflect_dom_object(box timing, global::Window(window),
+        reflect_dom_object(box timing, GlobalRef::Window(window),
                            PerformanceTimingBinding::Wrap)
     }
 }

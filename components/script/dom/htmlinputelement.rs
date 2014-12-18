@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInputElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
-use dom::bindings::global::Window;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Comparable, JS, JSRef, Root, Temporary, OptionalRootable};
 use dom::bindings::js::{ResultRootable, RootedReference, MutNullableJS};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -742,7 +742,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):activation-behavior
                 if self.mutable() {
                     let win = window_from_node(*self).root();
-                    let event = Event::new(Window(*win),
+                    let event = Event::new(GlobalRef::Window(*win),
                                            "input".to_string(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable).root();
@@ -750,7 +750,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
                     target.DispatchEvent(*event).ok();
 
-                    let event = Event::new(Window(*win),
+                    let event = Event::new(GlobalRef::Window(*win),
                                            "change".to_string(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable).root();

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
-use dom::bindings::global::Window;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
@@ -35,7 +35,7 @@ impl DOMTokenList {
     pub fn new(element: JSRef<Element>, local_name: &Atom) -> Temporary<DOMTokenList> {
         let window = window_from_node(element).root();
         reflect_dom_object(box DOMTokenList::new_inherited(element, local_name.clone()),
-                           Window(*window),
+                           GlobalRef::Window(*window),
                            DOMTokenListBinding::Wrap)
     }
 }
