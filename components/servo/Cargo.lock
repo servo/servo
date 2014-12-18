@@ -501,6 +501,7 @@ dependencies = [
  "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "style 0.0.1",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
  "util 0.0.1",
 ]

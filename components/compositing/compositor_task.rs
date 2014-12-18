@@ -21,6 +21,7 @@ use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, LoadData, PipelineId};
 use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers, Pressed};
+use servo_util::cursor::Cursor;
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
@@ -213,6 +214,8 @@ pub enum Msg {
     ScrollTimeout(u64),
     /// Sends an unconsumed key event back to the compositor.
     KeyEvent(Key, KeyModifiers),
+    /// Changes the cursor.
+    SetCursor(Cursor),
 }
 
 impl Show for Msg {
@@ -231,11 +234,12 @@ impl Show for Msg {
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             Msg::ChangePageLoadData(..) => write!(f, "ChangePageLoadData"),
             Msg::PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
+            Msg::FrameTreeUpdate(..) => write!(f, "FrameTreeUpdate"),
             Msg::SetIds(..) => write!(f, "SetIds"),
-            Msg::FrameTreeUpdate(..) => write!(f, "FrameTreeUpdateMsg"),
             Msg::LoadComplete => write!(f, "LoadComplete"),
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
+            Msg::SetCursor(..) => write!(f, "SetCursor"),
         }
     }
 }

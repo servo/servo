@@ -8,6 +8,9 @@ authors = ["The Servo Project Developers"]
 name = "msg"
 path = "lib.rs"
 
+[dependencies.style]
+path = "../style"
+
 [dependencies.util]
 path = "../util"
 

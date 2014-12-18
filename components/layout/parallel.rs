@@ -13,15 +13,13 @@ use flow_ref::FlowRef;
 use traversal::{RecalcStyleForNode, ConstructFlows};
 use traversal::{BubbleISizes, AssignISizes, AssignBSizesAndStoreOverflow};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
-use url::Url;
 use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{layout_node_to_unsafe_layout_node, layout_node_from_unsafe_layout_node, LayoutNode};
 use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
 use servo_util::opts;
-use servo_util::time::{TimeProfilerChan, profile, TimerMetadataFrameType, TimerMetadataReflowType};
-use servo_util::time;
+use servo_util::time::{mod, ProfilerMetadata, TimeProfilerChan, profile};
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::mem;
 use std::ptr;
@@ -422,9 +420,7 @@ pub fn traverse_dom_preorder(root: LayoutNode,
 }
 
 pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
-                                   url: &Url,
-                                   iframe: TimerMetadataFrameType,
-                                   reflow_type: TimerMetadataReflowType,
+                                   profiler_metadata: ProfilerMetadata,
                                    time_profiler_chan: TimeProfilerChan,
                                    shared_layout_context: &SharedLayoutContext,
                                    queue: &mut WorkQueue<*const SharedLayoutContext,UnsafeFlow>) {
@@ -436,7 +432,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
     queue.data = shared_layout_context as *const _;
 
-    profile(time::LayoutParallelWarmupCategory, Some((url, iframe, reflow_type)), time_profiler_chan, || {
+    profile(time::LayoutParallelWarmupCategory, profiler_metadata, time_profiler_chan, || {
         queue.push(WorkUnit {
             fun: assign_inline_sizes,
             data: mut_owned_flow_to_unsafe_flow(root),
@@ -449,15 +445,13 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 }
 
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
-                                      url: &Url,
-                                      iframe: TimerMetadataFrameType,
-                                      reflow_type: TimerMetadataReflowType,
+                                      profiler_metadata: ProfilerMetadata,
                                       time_profiler_chan: TimeProfilerChan,
                                       shared_layout_context: &SharedLayoutContext,
                                       queue: &mut WorkQueue<*const SharedLayoutContext,UnsafeFlow>) {
     queue.data = shared_layout_context as *const _;
 
-    profile(time::LayoutParallelWarmupCategory, Some((url, iframe, reflow_type)), time_profiler_chan, || {
+    profile(time::LayoutParallelWarmupCategory, profiler_metadata, time_profiler_chan, || {
         queue.push(WorkUnit {
             fun: compute_absolute_positions,
             data: mut_owned_flow_to_unsafe_flow(root),
