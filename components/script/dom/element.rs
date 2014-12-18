@@ -60,6 +60,7 @@ use std::ascii::AsciiExt;
 use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
+use std::sync::Arc;
 use string_cache::{Atom, Namespace, QualName};
 use url::UrlParser;
 
@@ -465,6 +466,9 @@ pub trait ElementHelpers<'a> {
     fn style_attribute(self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>>;
     fn summarize(self) -> Vec<AttrInfo>;
     fn is_void(self) -> bool;
+    fn remove_inline_style_property(self, property: DOMString);
+    fn update_inline_style(self, property_decl: style::PropertyDeclaration, important: bool);
+    fn get_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration>;
 }
 
 impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
@@ -521,6 +525,75 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
             "meta" | "param" | "source" | "track" | "wbr" => true,
             _ => false
         }
+    }
+
+    fn remove_inline_style_property(self, property: DOMString) {
+        let mut inline_declarations = self.style_attribute.borrow_mut();
+        inline_declarations.as_mut().map(|declarations| {
+            let index = declarations.normal
+                                    .iter()
+                                    .position(|decl| decl.name() == property);
+            match index {
+                Some(index) => {
+                    declarations.normal.make_unique().remove(index);
+                    return;
+                }
+                None => ()
+            }
+
+            let index = declarations.important
+                                    .iter()
+                                    .position(|decl| decl.name() == property);
+            match index {
+                Some(index) => {
+                    declarations.important.make_unique().remove(index);
+                    return;
+                }
+                None => ()
+            }
+        });
+    }
+
+    fn update_inline_style(self, property_decl: style::PropertyDeclaration, important: bool) {
+        let mut inline_declarations = self.style_attribute().borrow_mut();
+        if let Some(ref mut declarations) = *inline_declarations.deref_mut() {
+            let existing_declarations = if important {
+                declarations.important.make_unique()
+            } else {
+                declarations.normal.make_unique()
+            };
+
+            for declaration in existing_declarations.iter_mut() {
+                if declaration.name() == property_decl.name() {
+                    *declaration = property_decl;
+                    return;
+                }
+            }
+            existing_declarations.push(property_decl);
+            return;
+        }
+
+        let (important, normal) = if important {
+            (vec!(property_decl), vec!())
+        } else {
+            (vec!(), vec!(property_decl))
+        };
+
+        *inline_declarations = Some(style::PropertyDeclarationBlock {
+            important: Arc::new(important),
+            normal: Arc::new(normal),
+        });
+    }
+
+    fn get_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration> {
+        let inline_declarations = self.style_attribute.borrow();
+        inline_declarations.as_ref().and_then(|declarations| {
+            declarations.normal
+                        .iter()
+                        .chain(declarations.important.iter())
+                        .find(|decl| decl.matches(property.as_slice()))
+                        .map(|decl| decl.clone())
+        })
     }
 }
 

@@ -5,7 +5,7 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![feature(globs, macro_rules)]
+#![feature(globs, macro_rules, if_let)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
@@ -42,7 +42,8 @@ pub use selector_matching::{CommonStyleAffectingAttributeInfo, CommonStyleAffect
 pub use selector_matching::{matches, matches_simple_selector, common_style_affecting_attributes};
 pub use selector_matching::{rare_style_affecting_attributes};
 pub use selector_matching::{RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE, SELECTOR_WHITESPACE};
-pub use properties::{cascade, cascade_anonymous, computed};
+pub use properties::{cascade, cascade_anonymous, computed, longhands_from_shorthand};
+pub use properties::is_supported_property;
 pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style_structs};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
