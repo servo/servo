@@ -3045,9 +3045,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                         DeclaredValue::SpecifiedValue(ref specified_value) => specified_value.parsed,
                         DeclaredValue::Initial => longhands::color::get_initial_value(),
                         DeclaredValue::Inherit => inherited_style.get_color().color.clone(),
-                        
                     };
-//get_specified!(get_color, color, value);
                 }
                 PropertyDeclaration::DisplayDeclaration(ref value) => {
                     context.display = get_specified!(get_box, display, value);
