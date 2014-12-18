@@ -77,8 +77,8 @@ pub struct Window {
 #[cfg(not(target_os="android"))]
 fn load_gl_functions(glutin: &WindowHandle) {
     match glutin {
-        &Windowed(ref window) => gl::load_with(|s| window.get_proc_address(s)),
-        &Headless(ref headless) => gl::load_with(|s| headless.context.get_proc_address(s)),
+        &WindowHandle::Windowed(ref window) => gl::load_with(|s| window.get_proc_address(s)),
+        &WindowHandle::Headless(ref headless) => gl::load_with(|s| headless.context.get_proc_address(s)),
     }
 }
 
