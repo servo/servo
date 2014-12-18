@@ -38,6 +38,7 @@ partial interface CSSStyleDeclaration {
 
   [TreatNullAs=EmptyString] attribute DOMString border;
   [TreatNullAs=EmptyString] attribute DOMString borderColor;
+  [TreatNullAs=EmptyString] attribute DOMString borderRadius;
   [TreatNullAs=EmptyString] attribute DOMString borderStyle;
   [TreatNullAs=EmptyString] attribute DOMString borderWidth;
   [TreatNullAs=EmptyString] attribute DOMString borderBottom;
@@ -63,7 +64,14 @@ partial interface CSSStyleDeclaration {
 
   [TreatNullAs=EmptyString] attribute DOMString display;
 
+  [TreatNullAs=EmptyString] attribute DOMString opacity;
+
   [TreatNullAs=EmptyString] attribute DOMString visibility;
+
+  [TreatNullAs=EmptyString] attribute DOMString cursor;
+
+  [TreatNullAs=EmptyString] attribute DOMString boxSizing;
+  [TreatNullAs=EmptyString] attribute DOMString boxShadow;
 
   //[TreatNullAs=EmptyString] attribute DOMString float; //XXXjdm need BinaryName annotation
 
@@ -75,17 +83,31 @@ partial interface CSSStyleDeclaration {
 
   [TreatNullAs=EmptyString] attribute DOMString verticalAlign;
 
+  [TreatNullAs=EmptyString] attribute DOMString listStyle;
+  [TreatNullAs=EmptyString] attribute DOMString listStylePosition;
+  [TreatNullAs=EmptyString] attribute DOMString listStyleType;
+  [TreatNullAs=EmptyString] attribute DOMString listStyleImage;
+
   [TreatNullAs=EmptyString] attribute DOMString overflow;
+  [TreatNullAs=EmptyString] attribute DOMString overflowWrap;
 
   [TreatNullAs=EmptyString] attribute DOMString tableLayout;
+  [TreatNullAs=EmptyString] attribute DOMString emptyCells;
+  [TreatNullAs=EmptyString] attribute DOMString captionSide;
 
   [TreatNullAs=EmptyString] attribute DOMString whiteSpace;
 
   [TreatNullAs=EmptyString] attribute DOMString writingMode;
 
+  [TreatNullAs=EmptyString] attribute DOMString letterSpacing;
+  [TreatNullAs=EmptyString] attribute DOMString wordSpacing;
+  [TreatNullAs=EmptyString] attribute DOMString wordWrap;
+
   [TreatNullAs=EmptyString] attribute DOMString textAlign;
   [TreatNullAs=EmptyString] attribute DOMString textDecoration;
+  [TreatNullAs=EmptyString] attribute DOMString textIndent;
   [TreatNullAs=EmptyString] attribute DOMString textOrientation;
+  [TreatNullAs=EmptyString] attribute DOMString textTransform;
 
   [TreatNullAs=EmptyString] attribute DOMString font;
   [TreatNullAs=EmptyString] attribute DOMString fontFamily;
@@ -105,6 +127,8 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString paddingLeft;
   [TreatNullAs=EmptyString] attribute DOMString paddingRight;
   [TreatNullAs=EmptyString] attribute DOMString paddingTop;
+
+  [TreatNullAs=EmptyString] attribute DOMString outline;
 
   [TreatNullAs=EmptyString] attribute DOMString position;
 
