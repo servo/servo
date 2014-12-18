@@ -50,10 +50,9 @@ pub use azure::azure_hl::GradientStop;
 
 pub mod optimizer;
 
-/// The factor that we multiply the blur radius by in order to inflate the boundaries of box shadow
-/// display items. This ensures that the box shadow display item boundaries include all the
-/// shadow's ink.
-pub static BOX_SHADOW_INFLATION_FACTOR: i32 = 3;
+/// The factor that we multiply the blur radius by in order to inflate the boundaries of display
+/// items that involve a blur. This ensures that the display item boundaries include all the ink.
+pub static BLUR_INFLATION_FACTOR: i32 = 3;
 
 /// An opaque handle to a node. The only safe operation that can be performed on this node is to
 /// compare it to another opaque handle or to another node.
@@ -248,8 +247,8 @@ impl StackingContext {
         {
             let mut paint_subcontext = PaintContext {
                 draw_target: temporary_draw_target.clone(),
-                font_ctx: &mut *paint_context.font_ctx,
-                page_rect: paint_context.page_rect,
+                font_context: &mut *paint_context.font_context,
+                page_rect: *tile_bounds,
                 screen_rect: paint_context.screen_rect,
                 clip_rect: clip_rect.map(|clip_rect| *clip_rect),
                 transient_clip: None,
@@ -714,7 +713,10 @@ impl DisplayItemMetadata {
 /// Paints a solid color.
 #[derive(Clone)]
 pub struct SolidColorDisplayItem {
+    /// Fields common to all display items.
     pub base: BaseDisplayItem,
+
+    /// The color.
     pub color: Color,
 }
 
@@ -733,8 +735,14 @@ pub struct TextDisplayItem {
     /// The color of the text.
     pub text_color: Color,
 
+    /// The position of the start of the baseline of this text.
     pub baseline_origin: Point2D<Au>,
+
+    /// The orientation of the text: upright or sideways left/right.
     pub orientation: TextOrientation,
+
+    /// The blur radius for this text. If zero, this text is not blurred.
+    pub blur_radius: Au,
 }
 
 #[derive(Clone, Eq, PartialEq)]
@@ -858,8 +866,21 @@ pub struct BoxShadowDisplayItem {
     /// The spread radius of this shadow.
     pub spread_radius: Au,
 
-    /// True if this shadow is inset; false if it's outset.
-    pub inset: bool,
+    /// How we should clip the result.
+    pub clip_mode: BoxShadowClipMode,
+}
+
+/// How a box shadow should be clipped.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum BoxShadowClipMode {
+    /// No special clipping should occur. This is used for (shadowed) text decorations.
+    None,
+    /// The area inside `box_bounds` should be clipped out. Corresponds to the normal CSS
+    /// `box-shadow`.
+    Outset,
+    /// The area outside `box_bounds` should be clipped out. Corresponds to the `inset` flag on CSS
+    /// `box-shadow`.
+    Inset,
 }
 
 pub enum DisplayItemIterator<'a> {
@@ -947,7 +968,7 @@ impl DisplayItem {
                                               box_shadow.color,
                                               box_shadow.blur_radius,
                                               box_shadow.spread_radius,
-                                              box_shadow.inset)
+                                              box_shadow.clip_mode)
             }
         }
     }

@@ -4,45 +4,47 @@
 
 //! Painting of display lists using Moz2D/Azure.
 
+use color;
+use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
+use display_list::{BLUR_INFLATION_FACTOR, BorderRadii, BoxShadowClipMode, ClippingRegion};
+use display_list::{TextDisplayItem};
+use filters;
+use font_context::FontContext;
+use text::TextRun;
+use text::glyph::CharIndex;
+
 use azure::azure::AzIntSize;
 use azure::azure_hl::{Color, ColorPattern};
 use azure::azure_hl::{DrawOptions, DrawSurfaceOptions, DrawTarget, ExtendMode, FilterType};
-use azure::azure_hl::{GaussianBlurInput, GradientStop, Filter, LinearGradientPattern};
-use azure::azure_hl::{PatternRef, Path, PathBuilder, CompositionOp};
 use azure::azure_hl::{GaussianBlurAttribute, StrokeOptions, SurfaceFormat};
+use azure::azure_hl::{GaussianBlurInput, GradientStop, Filter, FilterNode, LinearGradientPattern};
 use azure::azure_hl::{JoinStyle, CapStyle};
+use azure::azure_hl::{PatternRef, Path, PathBuilder, CompositionOp};
 use azure::scaled_font::ScaledFont;
 use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
-use color;
-use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
-use display_list::{BOX_SHADOW_INFLATION_FACTOR, BorderRadii, ClippingRegion, TextDisplayItem};
-use filters;
-use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::side_offsets::SideOffsets2D;
 use geom::size::Size2D;
 use libc::types::common::c99::{uint16_t, uint32_t};
-use png::PixelsByColorType;
 use net::image::base::Image;
-use util::geometry::{Au, MAX_RECT};
-use util::opts;
-use util::range::Range;
+use png::PixelsByColorType;
 use std::default::Default;
 use std::f32;
 use std::mem;
 use std::num::Float;
 use std::ptr;
-use style::computed_values::{border_style, filter, mix_blend_mode};
 use std::sync::Arc;
-use text::TextRun;
-use text::glyph::CharIndex;
+use style::computed_values::{border_style, filter, mix_blend_mode};
+use util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
+use util::opts;
+use util::range::Range;
 
 pub struct PaintContext<'a> {
     pub draw_target: DrawTarget,
-    pub font_ctx: &'a mut Box<FontContext>,
+    pub font_context: &'a mut Box<FontContext>,
     /// The rectangle that this context encompasses in page coordinates.
     pub page_rect: Rect<f32>,
     /// The rectangle that this context encompasses in screen coordinates (pixels).
@@ -803,8 +805,9 @@ impl<'a> PaintContext<'a> {
         self.draw_border_path(&original_bounds, direction, border, radius, scaled_color);
     }
 
+    /// Draws the given text display item into the current context.
     pub fn draw_text(&mut self, text: &TextDisplayItem) {
-        let current_transform = self.draw_target.get_transform();
+        let draw_target_transform = self.draw_target.get_transform();
 
         // Optimization: Don’t set a transform matrix for upright text, and pass a start point to
         // `draw_text_into_context`.
@@ -816,35 +819,41 @@ impl<'a> PaintContext<'a> {
             SidewaysLeft => {
                 let x = text.baseline_origin.x.to_subpx() as AzFloat;
                 let y = text.baseline_origin.y.to_subpx() as AzFloat;
-                self.draw_target.set_transform(&current_transform.mul(&Matrix2D::new(0., -1.,
-                                                                                     1., 0.,
-                                                                                     x, y)));
+                self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., -1.,
+                                                                                         1., 0.,
+                                                                                         x, y)));
                 Point2D::zero()
             }
             SidewaysRight => {
                 let x = text.baseline_origin.x.to_subpx() as AzFloat;
                 let y = text.baseline_origin.y.to_subpx() as AzFloat;
-                self.draw_target.set_transform(&current_transform.mul(&Matrix2D::new(0., 1.,
-                                                                                     -1., 0.,
-                                                                                     x, y)));
+                self.draw_target.set_transform(&draw_target_transform.mul(&Matrix2D::new(0., 1.,
+                                                                                         -1., 0.,
+                                                                                         x, y)));
                 Point2D::zero()
             }
         };
 
-        self.font_ctx
+        // Draw the text.
+        let temporary_draw_target =
+            self.create_draw_target_for_blur_if_necessary(&text.base.bounds, text.blur_radius);
+        self.font_context
             .get_paint_font_from_template(&text.text_run.font_template,
                                            text.text_run.actual_pt_size)
             .borrow()
-            .draw_text_into_context(self,
-                                    &*text.text_run,
-                                    &text.range,
-                                    baseline_origin,
-                                    text.text_color,
-                                    opts::get().enable_text_antialiasing);
+            .draw_text(&temporary_draw_target.draw_target,
+                       &*text.text_run,
+                       &text.range,
+                       baseline_origin,
+                       text.text_color,
+                       opts::get().enable_text_antialiasing);
+
+        // Blur, if necessary.
+        self.blur_if_necessary(temporary_draw_target, text.blur_radius);
 
         // Undo the transform, only when we did one.
         if text.orientation != Upright {
-            self.draw_target.set_transform(&current_transform)
+            self.draw_target.set_transform(&draw_target_transform)
         }
     }
 
@@ -930,78 +939,83 @@ impl<'a> PaintContext<'a> {
                            color: Color,
                            blur_radius: Au,
                            spread_radius: Au,
-                           inset: bool) {
+                           clip_mode: BoxShadowClipMode) {
         // Remove both the transient clip and the stacking context clip, because we may need to
         // draw outside the stacking context's clip.
         self.remove_transient_clip_if_applicable();
         self.pop_clip_if_applicable();
 
-        // If we have blur, create a new draw target that's the same size as this tile, but with
-        // enough space around the edges to hold the entire blur. (If we don't do the latter, then
-        // there will be seams between tiles.)
-        //
-        // FIXME(pcwalton): This draw target might be larger than necessary and waste memory.
-        let side_inflation = (blur_radius * BOX_SHADOW_INFLATION_FACTOR).to_subpx().ceil() as i32;
-        let draw_target_transform = self.draw_target.get_transform();
-        let temporary_draw_target;
-        if blur_radius > Au(0) {
-            let draw_target_size = self.draw_target.get_size();
-            let draw_target_size = Size2D(draw_target_size.width, draw_target_size.height);
-            let inflated_draw_target_size = Size2D(draw_target_size.width + side_inflation * 2,
-                                                   draw_target_size.height + side_inflation * 2);
-            temporary_draw_target =
-                self.draw_target.create_similar_draw_target(&inflated_draw_target_size,
-                                                            self.draw_target.get_format());
-            temporary_draw_target.set_transform(
-                &Matrix2D::identity().translate(side_inflation as AzFloat,
-                                                side_inflation as AzFloat)
-                                     .mul(&draw_target_transform));
-        } else {
-            temporary_draw_target = self.draw_target.clone();
-        }
-
+        // If we have blur, create a new draw target.
         let shadow_bounds = box_bounds.translate(offset).inflate(spread_radius, spread_radius);
+        let side_inflation = blur_radius * BLUR_INFLATION_FACTOR;
+        let inflated_shadow_bounds = shadow_bounds.inflate(side_inflation, side_inflation);
+        let temporary_draw_target =
+            self.create_draw_target_for_blur_if_necessary(&inflated_shadow_bounds, blur_radius);
+
         let path;
-        if inset {
-            path = temporary_draw_target.create_rectangular_border_path(&MAX_RECT, &shadow_bounds);
-            self.draw_target.push_clip(&self.draw_target.create_rectangular_path(box_bounds))
-        } else {
-            path = temporary_draw_target.create_rectangular_path(&shadow_bounds);
-            self.draw_target.push_clip(&self.draw_target
-                                            .create_rectangular_border_path(&MAX_RECT, box_bounds))
+        match clip_mode {
+            BoxShadowClipMode::Inset => {
+                path = temporary_draw_target.draw_target
+                                            .create_rectangular_border_path(&MAX_RECT,
+                                                                            &shadow_bounds);
+                self.draw_target.push_clip(&self.draw_target.create_rectangular_path(box_bounds))
+            }
+            BoxShadowClipMode::Outset => {
+                path = temporary_draw_target.draw_target.create_rectangular_path(&shadow_bounds);
+                self.draw_target.push_clip(&self.draw_target
+                                                .create_rectangular_border_path(&MAX_RECT,
+                                                                                box_bounds))
+            }
+            BoxShadowClipMode::None => {
+                path = temporary_draw_target.draw_target.create_rectangular_path(&shadow_bounds)
+            }
         }
 
-        temporary_draw_target.fill(&path, &ColorPattern::new(color), &DrawOptions::new(1.0, 0));
+        // Draw the shadow, and blur if we need to.
+        temporary_draw_target.draw_target.fill(&path,
+                                               &ColorPattern::new(color),
+                                               &DrawOptions::new(1.0, 0));
+        self.blur_if_necessary(temporary_draw_target, blur_radius);
 
-        // Blur, if we need to.
-        if blur_radius > Au(0) {
-            // Go ahead and create the blur now. Despite the name, Azure's notion of `StdDeviation`
-            // describes the blur radius, not the sigma for the Gaussian blur.
-            let blur_filter = self.draw_target.create_filter(FilterType::GaussianBlur);
-            blur_filter.set_attribute(GaussianBlurAttribute::StdDeviation(blur_radius.to_subpx() as
-                                                                          AzFloat));
-            blur_filter.set_input(GaussianBlurInput, &temporary_draw_target.snapshot());
-
-            // Blit the blur onto the tile. We undo the transforms here because we want to directly
-            // stack the temporary draw target onto the tile.
-            temporary_draw_target.set_transform(&Matrix2D::identity());
-            self.draw_target.set_transform(&Matrix2D::identity());
-            let temporary_draw_target_size = temporary_draw_target.get_size();
-            self.draw_target
-                .draw_filter(&blur_filter,
-                             &Rect(Point2D(0.0, 0.0),
-                                   Size2D(temporary_draw_target_size.width as AzFloat,
-                                          temporary_draw_target_size.height as AzFloat)),
-                             &Point2D(-side_inflation as AzFloat, -side_inflation as AzFloat),
-                             DrawOptions::new(1.0, 0));
-            self.draw_target.set_transform(&draw_target_transform);
+        // Undo the draw target's clip if we need to, and push back the stacking context clip.
+        if clip_mode != BoxShadowClipMode::None {
+            self.draw_target.pop_clip()
         }
 
-        // Undo the draw target's clip.
-        self.draw_target.pop_clip();
-
-        // Push back the stacking context clip.
         self.push_clip_if_applicable();
+    }
+
+    /// If we have blur, create a new draw target that's the same size as this tile, but with
+    /// enough space around the edges to hold the entire blur. (If we don't do the latter, then
+    /// there will be seams between tiles.)
+    fn create_draw_target_for_blur_if_necessary(&self, box_bounds: &Rect<Au>, blur_radius: Au)
+                                                -> TemporaryDrawTarget {
+        if blur_radius == Au(0) {
+            return TemporaryDrawTarget::from_main_draw_target(&self.draw_target)
+        }
+
+        // Intersect display item bounds with the tile bounds inflated by blur radius to get the
+        // smallest possible rectangle that encompasses all the paint.
+        let side_inflation = blur_radius * BLUR_INFLATION_FACTOR;
+        let tile_box_bounds =
+            geometry::f32_rect_to_au_rect(self.page_rect).intersection(box_bounds)
+                                                         .unwrap_or(ZERO_RECT)
+                                                         .inflate(side_inflation, side_inflation);
+        TemporaryDrawTarget::from_bounds(&self.draw_target, &tile_box_bounds)
+    }
+
+    /// Performs a blur using the draw target created in
+    /// `create_draw_target_for_blur_if_necessary`.
+    fn blur_if_necessary(&self, temporary_draw_target: TemporaryDrawTarget, blur_radius: Au) {
+        if blur_radius == Au(0) {
+            return
+        }
+
+        let blur_filter = self.draw_target.create_filter(FilterType::GaussianBlur);
+        blur_filter.set_attribute(GaussianBlurAttribute::StdDeviation(blur_radius.to_subpx() as
+                                                                      AzFloat));
+        blur_filter.set_input(GaussianBlurInput, &temporary_draw_target.draw_target.snapshot());
+        temporary_draw_target.draw_filter(&self.draw_target, blur_filter);
     }
 
     pub fn push_clip_if_applicable(&self) {
@@ -1042,23 +1056,31 @@ impl<'a> PaintContext<'a> {
 
 pub trait ToAzurePoint {
     fn to_azure_point(&self) -> Point2D<AzFloat>;
+    fn to_subpx_azure_point(&self) -> Point2D<AzFloat>;
 }
 
 impl ToAzurePoint for Point2D<Au> {
     fn to_azure_point(&self) -> Point2D<AzFloat> {
         Point2D(self.x.to_nearest_px() as AzFloat, self.y.to_nearest_px() as AzFloat)
     }
+    fn to_subpx_azure_point(&self) -> Point2D<AzFloat> {
+        Point2D(self.x.to_subpx() as AzFloat, self.y.to_subpx() as AzFloat)
+    }
 }
 
 pub trait ToAzureRect {
     fn to_azure_rect(&self) -> Rect<AzFloat>;
+    fn to_subpx_azure_rect(&self) -> Rect<AzFloat>;
 }
 
 impl ToAzureRect for Rect<Au> {
     fn to_azure_rect(&self) -> Rect<AzFloat> {
-        Rect(self.origin.to_azure_point(),
-             Size2D(self.size.width.to_nearest_px() as AzFloat,
-                    self.size.height.to_nearest_px() as AzFloat))
+        Rect(self.origin.to_azure_point(), Size2D(self.size.width.to_nearest_px() as AzFloat,
+                                                  self.size.height.to_nearest_px() as AzFloat))
+    }
+    fn to_subpx_azure_rect(&self) -> Rect<AzFloat> {
+        Rect(self.origin.to_subpx_azure_point(), Size2D(self.size.width.to_subpx() as AzFloat,
+                                                        self.size.height.to_subpx() as AzFloat))
     }
 }
 
@@ -1127,24 +1149,23 @@ impl ToRadiiPx for BorderRadii<Au> {
 }
 
 trait ScaledFontExtensionMethods {
-    fn draw_text_into_context(&self,
-                              rctx: &PaintContext,
-                              run: &Box<TextRun>,
-                              range: &Range<CharIndex>,
-                              baseline_origin: Point2D<Au>,
-                              color: Color,
-                              antialias: bool);
+    fn draw_text(&self,
+                 draw_target: &DrawTarget,
+                 run: &Box<TextRun>,
+                 range: &Range<CharIndex>,
+                 baseline_origin: Point2D<Au>,
+                 color: Color,
+                 antialias: bool);
 }
 
 impl ScaledFontExtensionMethods for ScaledFont {
-    fn draw_text_into_context(&self,
-                              rctx: &PaintContext,
-                              run: &Box<TextRun>,
-                              range: &Range<CharIndex>,
-                              baseline_origin: Point2D<Au>,
-                              color: Color,
-                              antialias: bool) {
-        let target = rctx.get_draw_target();
+    fn draw_text(&self,
+                 draw_target: &DrawTarget,
+                 run: &Box<TextRun>,
+                 range: &Range<CharIndex>,
+                 baseline_origin: Point2D<Au>,
+                 color: Color,
+                 antialias: bool) {
         let pattern = ColorPattern::new(color);
         let azure_pattern = pattern.azure_color_pattern;
         assert!(!azure_pattern.is_null());
@@ -1190,7 +1211,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
 
         unsafe {
             // TODO(Issue #64): this call needs to move into azure_hl.rs
-            AzDrawTargetFillGlyphs(target.azure_draw_target,
+            AzDrawTargetFillGlyphs(draw_target.azure_draw_target,
                                    self.get_ref(),
                                    &mut glyphbuf,
                                    azure_pattern,
@@ -1287,6 +1308,68 @@ impl ToAzureCompositionOp for mix_blend_mode::T {
             mix_blend_mode::T::color => CompositionOp::Color,
             mix_blend_mode::T::luminosity => CompositionOp::Luminosity,
         }
+    }
+}
+
+/// Represents a temporary drawing surface. Some operations that perform complex compositing
+/// operations need this.
+struct TemporaryDrawTarget {
+    /// The draw target.
+    draw_target: DrawTarget,
+    /// The distance from the top left of the main draw target to the top left of this temporary
+    /// draw target.
+    offset: Point2D<AzFloat>,
+}
+
+impl TemporaryDrawTarget {
+    /// Creates a temporary draw target that simply draws to the main draw target.
+    fn from_main_draw_target(main_draw_target: &DrawTarget) -> TemporaryDrawTarget {
+        TemporaryDrawTarget {
+            draw_target: main_draw_target.clone(),
+            offset: Point2D(0.0, 0.0),
+        }
+    }
+
+    /// Creates a temporary draw target large enough to encompass the given bounding rect in page
+    /// coordinates. The temporary draw target will have the same transform as the tile we're
+    /// drawing to.
+    fn from_bounds(main_draw_target: &DrawTarget, bounds: &Rect<Au>) -> TemporaryDrawTarget {
+        let draw_target_transform = main_draw_target.get_transform();
+        let temporary_draw_target_bounds =
+            draw_target_transform.transform_rect(&bounds.to_subpx_azure_rect());
+        let temporary_draw_target_size =
+            Size2D(temporary_draw_target_bounds.size.width.ceil() as i32,
+                   temporary_draw_target_bounds.size.height.ceil() as i32);
+        let temporary_draw_target =
+            main_draw_target.create_similar_draw_target(&temporary_draw_target_size,
+                                                        main_draw_target.get_format());
+        let matrix =
+            Matrix2D::identity().translate(-temporary_draw_target_bounds.origin.x as AzFloat,
+                                           -temporary_draw_target_bounds.origin.y as AzFloat)
+                                .mul(&draw_target_transform);
+        temporary_draw_target.set_transform(&matrix);
+        TemporaryDrawTarget {
+            draw_target: temporary_draw_target,
+            offset: temporary_draw_target_bounds.origin,
+        }
+    }
+
+    /// Composites this temporary draw target onto the main surface, with the given Azure filter.
+    fn draw_filter(self, main_draw_target: &DrawTarget, filter: FilterNode) {
+        let main_draw_target_transform = main_draw_target.get_transform();
+        let temporary_draw_target_size = self.draw_target.get_size();
+        let temporary_draw_target_size = Size2D(temporary_draw_target_size.width as AzFloat,
+                                                temporary_draw_target_size.height as AzFloat);
+
+        // Blit the blur onto the tile. We undo the transforms here because we want to directly
+        // stack the temporary draw target onto the tile.
+        main_draw_target.set_transform(&Matrix2D::identity());
+        main_draw_target.draw_filter(&filter,
+                                     &Rect(Point2D(0.0, 0.0), temporary_draw_target_size),
+                                     &self.offset,
+                                     DrawOptions::new(1.0, 0));
+        main_draw_target.set_transform(&main_draw_target_transform);
+
     }
 }
 

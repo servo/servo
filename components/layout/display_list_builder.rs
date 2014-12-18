@@ -24,8 +24,8 @@ use util::{OpaqueNodeMethods, ToGfxColor};
 use geom::approxeq::ApproxEq;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
-use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
-use gfx::display_list::{BorderRadii, BoxShadowDisplayItem, ClippingRegion};
+use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
+use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayItemMetadata};
 use gfx::display_list::{GradientDisplayItem};
 use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
@@ -39,7 +39,7 @@ use msg::constellation_msg::Msg as ConstellationMsg;
 use msg::constellation_msg::ConstellationChan;
 use net::image::holder::ImageHolder;
 use servo_util::cursor::Cursor;
-use servo_util::geometry::{self, Au, to_px, to_frac_px};
+use servo_util::geometry::{self, Au, ZERO_POINT, to_px, to_frac_px};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::default::Default;
@@ -196,12 +196,17 @@ pub trait FragmentDisplayListBuilding {
                                       stacking_relative_border_box: &Rect<Au>)
                                       -> ClippingRegion;
 
-    /// Creates the text display item for one text fragment.
+    /// Creates the text display item for one text fragment. This can be called multiple times for
+    /// one fragment if there are text shadows.
+    ///
+    /// `shadow_blur_radius` will be `Some` if this is a shadow, even if the blur radius is zero.
     fn build_display_list_for_text_fragment(&self,
                                             display_list: &mut DisplayList,
                                             text_fragment: &ScannedTextFragmentInfo,
                                             text_color: RGBA,
                                             stacking_relative_content_box: &Rect<Au>,
+                                            shadow_blur_radius: Option<Au>,
+                                            offset: &Point2D<Au>,
                                             clip: &ClippingRegion);
 
     /// Creates the display item for a text decoration: underline, overline, or line-through.
@@ -209,7 +214,8 @@ pub trait FragmentDisplayListBuilding {
                                               display_list: &mut DisplayList,
                                               color: &RGBA,
                                               stacking_relative_box: &LogicalRect<Au>,
-                                              clip: &ClippingRegion);
+                                              clip: &ClippingRegion,
+                                              blur_radius: Au);
 
     /// A helper method that `build_display_list` calls to create per-fragment-type display items.
     fn build_fragment_type_specific_display_items(&mut self,
@@ -535,11 +541,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        clip: &ClippingRegion) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.iter().rev() {
-            let inflation = box_shadow.spread_radius + box_shadow.blur_radius *
-                BOX_SHADOW_INFLATION_FACTOR;
-            let bounds =
-                absolute_bounds.translate(&Point2D(box_shadow.offset_x, box_shadow.offset_y))
-                               .inflate(inflation, inflation);
+            let bounds = shadow_bounds(&absolute_bounds.translate(&Point2D(box_shadow.offset_x,
+                                                                           box_shadow.offset_y)),
+                                       box_shadow.blur_radius,
+                                       box_shadow.spread_radius);
             list.push(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
                 base: BaseDisplayItem::new(bounds,
                                            DisplayItemMetadata::new(self.node,
@@ -551,7 +556,11 @@ impl FragmentDisplayListBuilding for Fragment {
                 offset: Point2D(box_shadow.offset_x, box_shadow.offset_y),
                 blur_radius: box_shadow.blur_radius,
                 spread_radius: box_shadow.spread_radius,
-                inset: box_shadow.inset,
+                clip_mode: if box_shadow.inset {
+                    BoxShadowClipMode::Inset
+                } else {
+                    BoxShadowClipMode::Outset
+                },
             }), level);
         }
     }
@@ -841,19 +850,31 @@ impl FragmentDisplayListBuilding for Fragment {
             self.stacking_relative_content_box(stacking_relative_border_box);
 
         match self.specific {
-            SpecificFragmentInfo::UnscannedText(_) => {
-                panic!("Shouldn't see unscanned fragments here.")
-            }
-            SpecificFragmentInfo::TableColumn(_) => {
-                panic!("Shouldn't see table column fragments here.")
-            }
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {
-                // Create the main text display item.
+                // Create items for shadows.
+                //
+                // NB: According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front
+                // to back).
                 let text_color = self.style().get_color().color;
+                for text_shadow in self.style.get_effects().text_shadow.0.iter().rev() {
+                    let offset = &Point2D(text_shadow.offset_x, text_shadow.offset_y);
+                    let color = self.style().resolve_color(text_shadow.color);
+                    self.build_display_list_for_text_fragment(display_list,
+                                                              &**text_fragment,
+                                                              color,
+                                                              &stacking_relative_content_box,
+                                                              Some(text_shadow.blur_radius),
+                                                              offset,
+                                                              clip);
+                }
+
+                // Create the main text display item.
                 self.build_display_list_for_text_fragment(display_list,
                                                           &**text_fragment,
                                                           text_color,
                                                           &stacking_relative_content_box,
+                                                          None,
+                                                          &Point2D(Au(0), Au(0)),
                                                           clip);
 
                 if opts::get().show_debug_fragment_borders {
@@ -932,6 +953,12 @@ impl FragmentDisplayListBuilding for Fragment {
 
                 display_list.content.push_back(DisplayItem::ImageClass(canvas_display_item));
             }
+            SpecificFragmentInfo::UnscannedText(_) => {
+                panic!("Shouldn't see unscanned fragments here.")
+            }
+            SpecificFragmentInfo::TableColumn(_) => {
+                panic!("Shouldn't see table column fragments here.")
+            }
         }
     }
 
@@ -984,6 +1011,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                             text_fragment: &ScannedTextFragmentInfo,
                                             text_color: RGBA,
                                             stacking_relative_content_box: &Rect<Au>,
+                                            shadow_blur_radius: Option<Au>,
+                                            offset: &Point2D<Au>,
                                             clip: &ClippingRegion) {
         // Determine the orientation and cursor to use.
         let (orientation, cursor) = if self.style.writing_mode.is_vertical() {
@@ -1001,6 +1030,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // FIXME(pcwalton): Get the real container size.
         let container_size = Size2D::zero();
         let metrics = &text_fragment.run.font_metrics;
+        let stacking_relative_content_box = stacking_relative_content_box.translate(offset);
         let baseline_origin = stacking_relative_content_box.origin +
             LogicalPoint::new(self.style.writing_mode,
                               Au(0),
@@ -1009,7 +1039,7 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Create the text display item.
         display_list.content.push_back(DisplayItem::TextClass(box TextDisplayItem {
-            base: BaseDisplayItem::new(*stacking_relative_content_box,
+            base: BaseDisplayItem::new(stacking_relative_content_box,
                                        DisplayItemMetadata::new(self.node, self.style(), cursor),
                                        (*clip).clone()),
             text_run: text_fragment.run.clone(),
@@ -1017,13 +1047,23 @@ impl FragmentDisplayListBuilding for Fragment {
             text_color: text_color.to_gfx_color(),
             orientation: orientation,
             baseline_origin: baseline_origin,
+            blur_radius: shadow_blur_radius.unwrap_or(Au(0)),
         }));
 
         // Create display items for text decorations.
-        let text_decorations = self.style().get_inheritedtext()._servo_text_decorations_in_effect;
+        let mut text_decorations = self.style()
+                                       .get_inheritedtext()
+                                       ._servo_text_decorations_in_effect;
+        if shadow_blur_radius.is_some() {
+            // If we're painting a shadow, paint the decorations the same color as the shadow.
+            text_decorations.underline = text_decorations.underline.map(|_| text_color);
+            text_decorations.overline = text_decorations.overline.map(|_| text_color);
+            text_decorations.line_through = text_decorations.line_through.map(|_| text_color);
+        }
+
         let stacking_relative_content_box =
             LogicalRect::from_physical(self.style.writing_mode,
-                                       *stacking_relative_content_box,
+                                       stacking_relative_content_box,
                                        container_size);
         if let Some(ref underline_color) = text_decorations.underline {
             let mut stacking_relative_box = stacking_relative_content_box;
@@ -1033,7 +1073,8 @@ impl FragmentDisplayListBuilding for Fragment {
             self.build_display_list_for_text_decoration(display_list,
                                                         underline_color,
                                                         &stacking_relative_box,
-                                                        clip)
+                                                        clip,
+                                                        shadow_blur_radius.unwrap_or(Au(0)))
         }
 
         if let Some(ref overline_color) = text_decorations.overline {
@@ -1042,7 +1083,8 @@ impl FragmentDisplayListBuilding for Fragment {
             self.build_display_list_for_text_decoration(display_list,
                                                         overline_color,
                                                         &stacking_relative_box,
-                                                        clip)
+                                                        clip,
+                                                        shadow_blur_radius.unwrap_or(Au(0)))
         }
 
         if let Some(ref line_through_color) = text_decorations.line_through {
@@ -1053,7 +1095,8 @@ impl FragmentDisplayListBuilding for Fragment {
             self.build_display_list_for_text_decoration(display_list,
                                                         line_through_color,
                                                         &stacking_relative_box,
-                                                        clip)
+                                                        clip,
+                                                        shadow_blur_radius.unwrap_or(Au(0)))
         }
     }
 
@@ -1061,16 +1104,27 @@ impl FragmentDisplayListBuilding for Fragment {
                                               display_list: &mut DisplayList,
                                               color: &RGBA,
                                               stacking_relative_box: &LogicalRect<Au>,
-                                              clip: &ClippingRegion) {
+                                              clip: &ClippingRegion,
+                                              blur_radius: Au) {
+        // Perhaps surprisingly, text decorations are box shadows. This is because they may need
+        // to have blur in the case of `text-shadow`, and this doesn't hurt performance because box
+        // shadows are optimized into essentially solid colors if there is no need for the blur.
+        //
         // FIXME(pcwalton, #2795): Get the real container size.
         let container_size = Size2D::zero();
         let stacking_relative_box = stacking_relative_box.to_physical(self.style.writing_mode,
                                                                       container_size);
-
         let metadata = DisplayItemMetadata::new(self.node, &*self.style, Cursor::DefaultCursor);
-        display_list.content.push_back(DisplayItem::SolidColorClass(box SolidColorDisplayItem {
-            base: BaseDisplayItem::new(stacking_relative_box, metadata, (*clip).clone()),
+        display_list.content.push_back(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
+            base: BaseDisplayItem::new(shadow_bounds(&stacking_relative_box, blur_radius, Au(0)),
+                                       metadata,
+                                       (*clip).clone()),
+            box_bounds: stacking_relative_box,
             color: color.to_gfx_color(),
+            offset: ZERO_POINT,
+            blur_radius: blur_radius,
+            spread_radius: Au(0),
+            clip_mode: BoxShadowClipMode::None,
         }))
     }
 }
@@ -1421,5 +1475,12 @@ impl StackingContextConstruction for DisplayList {
             StackingLevel::Content => self.content.push_back(display_item),
         }
     }
+}
+
+/// Adjusts `content_rect` as necessary for the given spread, and blur so that the resulting
+/// bounding rect contains all of a shadow's ink.
+fn shadow_bounds(content_rect: &Rect<Au>, blur_radius: Au, spread_radius: Au) -> Rect<Au> {
+    let inflation = spread_radius + blur_radius * BLUR_INFLATION_FACTOR;
+    content_rect.inflate(inflation, inflation)
 }
 

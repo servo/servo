@@ -2030,6 +2030,171 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    <%self:longhand name="text-shadow">
+        use cssparser::{self, ToCss};
+        use std::fmt;
+        use text_writer::{self, TextWriter};
+
+        use values::computed::{Context, ToComputedValue};
+
+        #[derive(Clone, PartialEq)]
+        pub struct SpecifiedValue(Vec<SpecifiedTextShadow>);
+
+        #[derive(Clone, PartialEq)]
+        pub struct SpecifiedTextShadow {
+            pub offset_x: specified::Length,
+            pub offset_y: specified::Length,
+            pub blur_radius: specified::Length,
+            pub color: Option<specified::CSSColor>,
+        }
+
+        impl fmt::Debug for SpecifiedTextShadow {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                let _ = write!(f,
+                               "{:?} {:?} {:?}",
+                               self.offset_x,
+                               self.offset_y,
+                               self.blur_radius);
+                if let Some(ref color) = self.color {
+                    let _ = write!(f, "{:?}", color);
+                }
+                Ok(())
+            }
+        }
+
+        pub mod computed_value {
+            use cssparser::Color;
+            use util::geometry::Au;
+
+            #[derive(Clone, PartialEq, Debug)]
+            pub struct T(pub Vec<TextShadow>);
+
+            #[derive(Clone, PartialEq, Debug)]
+            pub struct TextShadow {
+                pub offset_x: Au,
+                pub offset_y: Au,
+                pub blur_radius: Au,
+                pub color: Color,
+            }
+        }
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                let mut iter = self.0.iter();
+                if let Some(shadow) = iter.next() {
+                    try!(shadow.to_css(dest));
+                } else {
+                    try!(dest.write_str("none"));
+                    return Ok(())
+                }
+                for shadow in iter {
+                    try!(dest.write_str(", "));
+                    try!(shadow.to_css(dest));
+                }
+                Ok(())
+            }
+        }
+
+        impl ToCss for SpecifiedTextShadow {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                try!(self.offset_x.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.offset_y.to_css(dest));
+                try!(dest.write_str(" "));
+                try!(self.blur_radius.to_css(dest));
+
+                if let Some(ref color) = self.color {
+                    try!(dest.write_str(" "));
+                    try!(color.to_css(dest));
+                }
+                Ok(())
+            }
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T(Vec::new())
+        }
+
+        pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
+            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+                Ok(SpecifiedValue(Vec::new()))
+            } else {
+                input.parse_comma_separated(parse_one_text_shadow).map(|shadows| {
+                    SpecifiedValue(shadows)
+                })
+            }
+        }
+
+        fn parse_one_text_shadow(input: &mut Parser) -> Result<SpecifiedTextShadow,()> {
+            use util::geometry::Au;
+            let mut lengths = [specified::Length::Au(Au(0)); 3];
+            let mut lengths_parsed = false;
+            let mut color = None;
+
+            loop {
+                if !lengths_parsed {
+                    if let Ok(value) = input.try(specified::Length::parse) {
+                        lengths[0] = value;
+                        let mut length_parsed_count = 1;
+                        while length_parsed_count < 3 {
+                            if let Ok(value) = input.try(specified::Length::parse) {
+                                lengths[length_parsed_count] = value
+                            } else {
+                                break
+                            }
+                            length_parsed_count += 1;
+                        }
+
+                        // The first two lengths must be specified.
+                        if length_parsed_count < 2 {
+                            return Err(())
+                        }
+
+                        lengths_parsed = true;
+                        continue
+                    }
+                }
+                if color.is_none() {
+                    if let Ok(value) = input.try(specified::CSSColor::parse) {
+                        color = Some(value);
+                        continue
+                    }
+                }
+                break
+            }
+
+            // Lengths must be specified.
+            if !lengths_parsed {
+                return Err(())
+            }
+
+            Ok(SpecifiedTextShadow {
+                offset_x: lengths[0],
+                offset_y: lengths[1],
+                blur_radius: lengths[2],
+                color: color,
+            })
+        }
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            fn to_computed_value(&self, context: &computed::Context) -> computed_value::T {
+                computed_value::T(self.0.iter().map(|value| {
+                    computed_value::TextShadow {
+                        offset_x: value.offset_x.to_computed_value(context),
+                        offset_y: value.offset_y.to_computed_value(context),
+                        blur_radius: value.blur_radius.to_computed_value(context),
+                        color: value.color
+                                    .as_ref()
+                                    .map(|color| color.parsed)
+                                    .unwrap_or(cssparser::Color::CurrentColor),
+                    }
+                }).collect())
+            }
+        }
+    </%self:longhand>
     <%self:longhand name="filter">
         use values::specified::Angle;
         pub use self::computed_value::T as SpecifiedValue;

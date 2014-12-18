@@ -25,7 +25,7 @@ use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
 use geom::num::Zero;
 use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, OpaqueNode};
+use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use script_traits::UntrustedNodeAddress;
@@ -2043,8 +2043,8 @@ impl Fragment {
         // Box shadows cause us to draw outside our border box.
         for box_shadow in self.style().get_effects().box_shadow.iter() {
             let offset = Point2D(box_shadow.offset_x, box_shadow.offset_y);
-            let inflation = box_shadow.spread_radius +
-                box_shadow.blur_radius * BOX_SHADOW_INFLATION_FACTOR;
+            let inflation = box_shadow.spread_radius + box_shadow.blur_radius *
+                BLUR_INFLATION_FACTOR;
             overflow = overflow.union(&border_box.translate(&offset).inflate(inflation, inflation))
         }
 
