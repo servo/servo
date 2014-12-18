@@ -13,7 +13,7 @@ pub fn get_available_families(callback: |String|) {
     for strref in family_names.iter() {
         let family_name_ref: CFStringRef = unsafe { mem::transmute(strref) };
         let family_name_cf: CFString = unsafe { TCFType::wrap_under_get_rule(family_name_ref) };
-        let family_name = family_name_cf.to_string();
+        let family_name = family_name_cf.into_string();
         callback(family_name);
     }
 }
@@ -42,5 +42,5 @@ pub fn get_system_default_family(_generic_name: &str) -> Option<String> {
 }
 
 pub fn get_last_resort_font_families() -> Vec<String> {
-    vec!("Arial Unicode MS".to_string(), "Arial".to_string())
+    vec!("Arial Unicode MS".into_string(), "Arial".into_string())
 }

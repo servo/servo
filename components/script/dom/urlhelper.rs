@@ -14,16 +14,16 @@ impl UrlHelper {
 
     pub fn Search(url: &Url) -> DOMString {
         match url.query {
-            None => "".to_string(),
-            Some(ref query) if query.as_slice() == "" => "".to_string(),
+            None => "".into_string(),
+            Some(ref query) if query.as_slice() == "" => "".into_string(),
             Some(ref query) => format!("?{}", query)
         }
     }
 
     pub fn Hash(url: &Url) -> DOMString {
         match url.fragment {
-            None => "".to_string(),
-            Some(ref hash) if hash.as_slice() == "" => "".to_string(),
+            None => "".into_string(),
+            Some(ref hash) if hash.as_slice() == "" => "".into_string(),
             Some(ref hash) => format!("#{}", hash)
         }
     }
