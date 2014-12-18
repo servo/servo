@@ -8,9 +8,7 @@ extra message traffic, it also avoids waiting on the same image
 multiple times and thus triggering reflows multiple times.
 */
 
-use image_cache_task::{ImageCacheTask, ImageResponseMsg};
-use image_cache_task::ImageResponseMsg::*;
-use image_cache_task::Msg::*;
+use image_cache_task::{ImageCacheTask, ImageResponseMsg, Msg};
 
 use std::comm::{Receiver, channel};
 use std::collections::HashMap;
@@ -66,7 +64,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
             state.prefetched = true;
         }
 
-        self.image_cache_task.send(Prefetch((*url).clone()));
+        self.image_cache_task.send(Msg::Prefetch((*url).clone()));
     }
 
     pub fn decode(&mut self, url: &Url) {
@@ -78,7 +76,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
             state.decoded = true;
         }
 
-        self.image_cache_task.send(Decode((*url).clone()));
+        self.image_cache_task.send(Msg::Decode((*url).clone()));
     }
 
     // FIXME: Should return a Future
@@ -93,35 +91,35 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
             state.last_request_round = round_number;
 
             match state.last_response {
-                ImageReady(ref image) => {
+                ImageResponseMsg::ImageReady(ref image) => {
                     let (chan, port) = channel();
-                    chan.send(ImageReady(image.clone()));
+                    chan.send(ImageResponseMsg::ImageReady(image.clone()));
                     return port;
                 }
-                ImageNotReady => {
+                ImageResponseMsg::ImageNotReady => {
                     if last_round == round_number {
                         let (chan, port) = channel();
-                        chan.send(ImageNotReady);
+                        chan.send(ImageResponseMsg::ImageNotReady);
                         return port;
                     } else {
                         // We haven't requested the image from the
                         // remote cache this round
                     }
                 }
-                ImageFailed => {
+                ImageResponseMsg::ImageFailed => {
                     let (chan, port) = channel();
-                    chan.send(ImageFailed);
+                    chan.send(ImageResponseMsg::ImageFailed);
                     return port;
                 }
             }
         }
 
         let (response_chan, response_port) = channel();
-        self.image_cache_task.send(GetImage((*url).clone(), response_chan));
+        self.image_cache_task.send(Msg::GetImage((*url).clone(), response_chan));
 
         let response = response_port.recv();
         match response {
-            ImageNotReady => {
+            ImageResponseMsg::ImageNotReady => {
                 // Need to reflow when the image is available
                 // FIXME: Instead we should be just passing a Future
                 // to the caller, then to the display list. Finally,
@@ -134,7 +132,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
                 let url = (*url).clone();
                 spawn_named("LocalImageCache", proc() {
                     let (response_chan, response_port) = channel();
-                    image_cache_task.send(WaitForImage(url, response_chan));
+                    image_cache_task.send(Msg::WaitForImage(url, response_chan));
                     on_image_available(response_port.recv(), node_address);
                 });
             }
@@ -143,9 +141,9 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
 
         // Put a copy of the response in the cache
         let response_copy = match response {
-            ImageReady(ref image) => ImageReady(image.clone()),
-            ImageNotReady => ImageNotReady,
-            ImageFailed => ImageFailed
+            ImageResponseMsg::ImageReady(ref image) => ImageResponseMsg::ImageReady(image.clone()),
+            ImageResponseMsg::ImageNotReady => ImageResponseMsg::ImageNotReady,
+            ImageResponseMsg::ImageFailed => ImageResponseMsg::ImageFailed
         };
         self.get_state(url).last_response = response_copy;
 
@@ -162,7 +160,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
                     prefetched: false,
                     decoded: false,
                     last_request_round: 0,
-                    last_response: ImageNotReady,
+                    last_response: ImageResponseMsg::ImageNotReady,
                 })
         }
     }

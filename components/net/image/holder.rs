@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use image::base::Image;
-use image_cache_task::ImageResponseMsg::*;
+use image_cache_task::ImageResponseMsg;
 use local_image_cache::LocalImageCache;
 
 use geom::size::Size2D;
@@ -86,9 +86,9 @@ impl<NodeAddress: Send> ImageHolder<NodeAddress> {
                 local_image_cache.get_image(node_address, &self.url)
             };
             match port.recv() {
-                ImageReady(image) => self.image = Some(image),
-                ImageNotReady => debug!("image not ready for {:s}", self.url.serialize()),
-                ImageFailed => debug!("image decoding failed for {:s}", self.url.serialize()),
+                ImageResponseMsg::ImageReady(image) => self.image = Some(image),
+                ImageResponseMsg::ImageNotReady => debug!("image not ready for {:s}", self.url.serialize()),
+                ImageResponseMsg::ImageFailed => debug!("image decoding failed for {:s}", self.url.serialize()),
             }
         }
 

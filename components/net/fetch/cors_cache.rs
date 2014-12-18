@@ -9,9 +9,6 @@
 //! This library will eventually become the core of the Fetch crate
 //! with CORSRequest being expanded into FetchRequest (etc)
 
-use self::CORSCacheTaskMsg::*;
-use self::HeaderOrMethod::*;
-
 use hyper::method::Method;
 use std::ascii::AsciiExt;
 use std::comm::{Sender, Receiver, channel};
@@ -31,14 +28,14 @@ pub enum HeaderOrMethod {
 impl HeaderOrMethod {
     fn match_header(&self, header_name: &str) -> bool {
         match *self {
-            HeaderData(ref s) => s.as_slice().eq_ignore_ascii_case(header_name),
+            HeaderOrMethod::HeaderData(ref s) => s.as_slice().eq_ignore_ascii_case(header_name),
             _ => false
         }
     }
 
     fn match_method(&self, method: &Method) -> bool {
         match *self {
-            MethodData(ref m) => m == method,
+            HeaderOrMethod::MethodData(ref m) => m == method,
             _ => false
         }
     }
@@ -160,7 +157,7 @@ impl CORSCache for BasicCORSCache {
             Some(_) => true,
             None => {
                 self.insert(CORSCacheEntry::new(request.origin, request.destination, new_max_age,
-                                                request.credentials, HeaderData(header_name.to_string())));
+                                                request.credentials, HeaderOrMethod::HeaderData(header_name.to_string())));
                 false
             }
         }
@@ -175,7 +172,7 @@ impl CORSCache for BasicCORSCache {
             Some(_) => true,
             None => {
                 self.insert(CORSCacheEntry::new(request.origin, request.destination, new_max_age,
-                                                request.credentials, MethodData(method)));
+                                                request.credentials, HeaderOrMethod::MethodData(method)));
                 false
             }
         }
@@ -209,43 +206,43 @@ pub type CORSCacheSender = Sender<CORSCacheTaskMsg>;
 impl CORSCache for CORSCacheSender {
     fn clear (&mut self, request: CacheRequestDetails) {
         let (tx, rx) = channel();
-        self.send(Clear(request, tx));
+        self.send(CORSCacheTaskMsg::Clear(request, tx));
         let _ = rx.recv_opt();
     }
 
     fn cleanup(&mut self) {
         let (tx, rx) = channel();
-        self.send(Cleanup(tx));
+        self.send(CORSCacheTaskMsg::Cleanup(tx));
         let _ = rx.recv_opt();
     }
 
     fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool {
         let (tx, rx) = channel();
-        self.send(MatchHeader(request, header_name.to_string(), tx));
+        self.send(CORSCacheTaskMsg::MatchHeader(request, header_name.to_string(), tx));
         rx.recv_opt().unwrap_or(false)
     }
 
     fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: uint) -> bool {
         let (tx, rx) = channel();
-        self.send(MatchHeaderUpdate(request, header_name.to_string(), new_max_age, tx));
+        self.send(CORSCacheTaskMsg::MatchHeaderUpdate(request, header_name.to_string(), new_max_age, tx));
         rx.recv_opt().unwrap_or(false)
     }
 
     fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool {
         let (tx, rx) = channel();
-        self.send(MatchMethod(request, method, tx));
+        self.send(CORSCacheTaskMsg::MatchMethod(request, method, tx));
         rx.recv_opt().unwrap_or(false)
     }
 
     fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: uint) -> bool {
         let (tx, rx) = channel();
-        self.send(MatchMethodUpdate(request, method, new_max_age, tx));
+        self.send(CORSCacheTaskMsg::MatchMethodUpdate(request, method, new_max_age, tx));
         rx.recv_opt().unwrap_or(false)
     }
 
     fn insert(&mut self, entry: CORSCacheEntry) {
         let (tx, rx) = channel();
-        self.send(Insert(entry, tx));
+        self.send(CORSCacheTaskMsg::Insert(entry, tx));
         let _ = rx.recv_opt();
     }
 }
@@ -288,31 +285,31 @@ impl CORSCacheTask {
     pub fn run(&mut self) {
         loop {
             match self.receiver.recv() {
-                Clear(request, tx) => {
+                CORSCacheTaskMsg::Clear(request, tx) => {
                     self.cache.clear(request);
                     tx.send(());
                 },
-                Cleanup(tx) => {
+                CORSCacheTaskMsg::Cleanup(tx) => {
                     self.cache.cleanup();
                     tx.send(());
                 },
-                MatchHeader(request, header, tx) => {
+                CORSCacheTaskMsg::MatchHeader(request, header, tx) => {
                     tx.send(self.cache.match_header(request, header.as_slice()));
                 },
-                MatchHeaderUpdate(request, header, new_max_age, tx) => {
+                CORSCacheTaskMsg::MatchHeaderUpdate(request, header, new_max_age, tx) => {
                     tx.send(self.cache.match_header_and_update(request, header.as_slice(), new_max_age));
                 },
-                MatchMethod(request, method, tx) => {
+                CORSCacheTaskMsg::MatchMethod(request, method, tx) => {
                     tx.send(self.cache.match_method(request, method));
                 },
-                MatchMethodUpdate(request, method, new_max_age, tx) => {
+                CORSCacheTaskMsg::MatchMethodUpdate(request, method, new_max_age, tx) => {
                     tx.send(self.cache.match_method_and_update(request, method, new_max_age));
                 },
-                Insert(entry, tx) => {
+                CORSCacheTaskMsg::Insert(entry, tx) => {
                     self.cache.insert(entry);
                     tx.send(());
                 },
-                ExitMsg => break
+                CORSCacheTaskMsg::ExitMsg => break
             }
         }
     }
