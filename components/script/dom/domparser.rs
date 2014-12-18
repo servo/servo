@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{Text_htm
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::FailureUnknown;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
@@ -33,7 +32,7 @@ impl DOMParser {
     }
 
     pub fn new(window: JSRef<Window>) -> Temporary<DOMParser> {
-        reflect_dom_object(box DOMParser::new_inherited(window), global::Window(window),
+        reflect_dom_object(box DOMParser::new_inherited(window), GlobalRef::Window(window),
                            DOMParserBinding::Wrap)
     }
 

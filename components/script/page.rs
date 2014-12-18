@@ -12,9 +12,9 @@ use dom::element::Element;
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 use layout_interface::{
-    ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, ContentBoxesResponse,
-    GetRPCMsg, HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse, Reflow,
-    ReflowForScriptQuery, ReflowGoal, ReflowMsg, ReflowQueryType,
+    ContentBoxResponse, ContentBoxesResponse,
+    HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse, Msg, Reflow,
+    ReflowGoal, ReflowQueryType,
     TrustedNodeAddress
 };
 use script_traits::{UntrustedNodeAddress, ScriptControlChan};
@@ -138,7 +138,7 @@ impl Page {
         let layout_rpc: Box<LayoutRPC> = {
             let (rpc_send, rpc_recv) = channel();
             let LayoutChan(ref lchan) = layout_chan;
-            lchan.send(GetRPCMsg(rpc_send));
+            lchan.send(Msg::GetRPC(rpc_send));
             rpc_recv.recv()
         };
         Page {
@@ -174,14 +174,14 @@ impl Page {
     }
 
     pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Rect<Au> {
-        self.flush_layout(ReflowForScriptQuery, ContentBoxQuery(content_box_request));
+        self.flush_layout(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxQuery(content_box_request));
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
 
     pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        self.flush_layout(ReflowForScriptQuery, ContentBoxesQuery(content_boxes_request));
+        self.flush_layout(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxesQuery(content_boxes_request));
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
@@ -391,7 +391,7 @@ impl Page {
         };
 
         let LayoutChan(ref chan) = self.layout_chan;
-        chan.send(ReflowMsg(reflow));
+        chan.send(Msg::Reflow(reflow));
 
         debug!("script: layout forked");
 

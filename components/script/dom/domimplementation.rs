@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{InvalidCharacter, NamespaceError};
-use dom::bindings::global::Window;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
 use dom::bindings::utils::xml_name_type;
@@ -42,7 +42,7 @@ impl DOMImplementation {
     pub fn new(document: JSRef<Document>) -> Temporary<DOMImplementation> {
         let window = document.window().root();
         reflect_dom_object(box DOMImplementation::new_inherited(document),
-                           Window(*window),
+                           GlobalRef::Window(*window),
                            DOMImplementationBinding::Wrap)
     }
 }

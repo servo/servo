@@ -34,13 +34,11 @@ use log;
 use script::dom::bindings::js::JS;
 use script::dom::node::{LayoutDataRef, Node, NodeTypeId};
 use script::dom::element::ElementTypeId;
-use script::layout_interface::{AddStylesheetMsg, ContentBoxResponse, ContentBoxesResponse};
-use script::layout_interface::{ContentBoxesQuery, ContentBoxQuery, ExitNowMsg, GetRPCMsg};
-use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC, LoadStylesheetMsg};
-use script::layout_interface::{MouseOverResponse, Msg, NoQuery, PrepareToExitMsg};
-use script::layout_interface::{ReapLayoutDataMsg, Reflow, ReflowForDisplay, ReflowMsg};
-use script::layout_interface::{ReflowForScriptQuery, ScriptLayoutChan, SetQuirksModeMsg};
-use script::layout_interface::{TrustedNodeAddress};
+use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse};
+use script::layout_interface::{ContentBoxesQuery, ContentBoxQuery};
+use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
+use script::layout_interface::{MouseOverResponse, Msg, NoQuery};
+use script::layout_interface::{Reflow, ReflowGoal, ScriptLayoutChan, TrustedNodeAddress};
 use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
@@ -346,7 +344,7 @@ impl LayoutTask {
             PortToRead::Pipeline => {
                 match self.pipeline_port.recv() {
                     layout_traits::ExitNowMsg => {
-                        self.handle_script_request(ExitNowMsg, possibly_locked_rw_data)
+                        self.handle_script_request(Msg::ExitNow, possibly_locked_rw_data)
                     }
                 }
             },
@@ -390,30 +388,30 @@ impl LayoutTask {
                                                                                  LayoutTaskData>>)
                                  -> bool {
         match request {
-            AddStylesheetMsg(sheet) => self.handle_add_stylesheet(sheet, possibly_locked_rw_data),
-            LoadStylesheetMsg(url) => self.handle_load_stylesheet(url, possibly_locked_rw_data),
-            SetQuirksModeMsg => self.handle_set_quirks_mode(possibly_locked_rw_data),
-            GetRPCMsg(response_chan) => {
+            Msg::AddStylesheet(sheet) => self.handle_add_stylesheet(sheet, possibly_locked_rw_data),
+            Msg::LoadStylesheet(url) => self.handle_load_stylesheet(url, possibly_locked_rw_data),
+            Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
+            Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
                                    Box<LayoutRPC + Send>);
             },
-            ReflowMsg(data) => {
+            Msg::Reflow(data) => {
                 profile(time::LayoutPerformCategory,
                         self.profiler_metadata(&*data),
                         self.time_profiler_chan.clone(),
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
             },
-            ReapLayoutDataMsg(dead_layout_data) => {
+            Msg::ReapLayoutData(dead_layout_data) => {
                 unsafe {
                     LayoutTask::handle_reap_layout_data(dead_layout_data)
                 }
             },
-            PrepareToExitMsg(response_chan) => {
+            Msg::PrepareToExit(response_chan) => {
                 debug!("layout: PrepareToExitMsg received");
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
             },
-            ExitNowMsg => {
+            Msg::ExitNow => {
                 debug!("layout: ExitNowMsg received");
                 self.exit_now(possibly_locked_rw_data);
                 return false
@@ -423,7 +421,7 @@ impl LayoutTask {
         true
     }
 
-    /// Enters a quiescent state in which no new messages except for `ReapLayoutDataMsg` will be
+    /// Enters a quiescent state in which no new messages except for `layout_interface::Msg::ReapLayoutData` will be
     /// processed until an `ExitNowMsg` is received. A pong is immediately sent on the given
     /// response channel.
     fn prepare_to_exit<'a>(&'a self,
@@ -432,12 +430,12 @@ impl LayoutTask {
         response_chan.send(());
         loop {
             match self.port.recv() {
-                ReapLayoutDataMsg(dead_layout_data) => {
+                Msg::ReapLayoutData(dead_layout_data) => {
                     unsafe {
                         LayoutTask::handle_reap_layout_data(dead_layout_data)
                     }
                 }
-                ExitNowMsg => {
+                Msg::ExitNow => {
                     debug!("layout task is exiting...");
                     self.exit_now(possibly_locked_rw_data);
                     break
@@ -830,14 +828,14 @@ impl LayoutTask {
 
         // Build the display list if necessary, and send it to the painter.
         match data.goal {
-            ReflowForDisplay => {
+            ReflowGoal::ForDisplay => {
                 self.build_display_list_for_reflow(data,
                                                    node,
                                                    &mut layout_root,
                                                    &mut shared_layout_context,
                                                    &mut rw_data);
             }
-            ReflowForScriptQuery => {}
+            ReflowGoal::ForScriptQuery => {}
         }
 
         match data.query_type {

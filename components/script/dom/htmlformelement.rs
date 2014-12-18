@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMet
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast, HTMLFormElementCast};
-use dom::bindings::global::Window;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
@@ -24,8 +24,7 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_n
 use hyper::method::Post;
 use servo_msg::constellation_msg::LoadData;
 use servo_util::str::DOMString;
-use script_task::ScriptChan;
-use script_task::ScriptMsg::TriggerLoadMsg;
+use script_task::{ScriptChan, ScriptMsg};
 use std::ascii::OwnedAsciiExt;
 use url::UrlParser;
 use url::form_urlencoded::serialize;
@@ -157,7 +156,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         let base = doc.url();
         // TODO: Handle browsing contexts
         // TODO: Handle validation
-        let event = Event::new(Window(*win),
+        let event = Event::new(GlobalRef::Window(*win),
                                "submit".to_string(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
@@ -207,7 +206,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
 
         // This is wrong. https://html.spec.whatwg.org/multipage/forms.html#planned-navigation
         let ScriptChan(ref script_chan) = *win.script_chan();
-        script_chan.send(TriggerLoadMsg(win.page().id, load_data));
+        script_chan.send(ScriptMsg::TriggerLoad(win.page().id, load_data));
     }
 
     fn get_form_dataset<'b>(self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {
@@ -345,7 +344,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         }
 
         let win = window_from_node(self).root();
-        let event = Event::new(Window(*win),
+        let event = Event::new(GlobalRef::Window(*win),
                                "reset".to_string(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();

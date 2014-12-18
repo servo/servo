@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary, OptionalSettable};
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -43,7 +42,7 @@ impl UIEvent {
 
     pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<UIEvent> {
         reflect_dom_object(box UIEvent::new_inherited(EventTypeId::UIEvent),
-                           global::Window(window),
+                           GlobalRef::Window(window),
                            UIEventBinding::Wrap)
     }
 

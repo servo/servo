@@ -7,7 +7,7 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
-use dom::bindings::global;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
@@ -72,7 +72,7 @@ impl ServoHTMLParser {
             tokenizer: DOMRefCell::new(tok),
         };
 
-        reflect_dom_object(box parser, global::Window(*window), ServoHTMLParserBinding::Wrap)
+        reflect_dom_object(box parser, GlobalRef::Window(*window), ServoHTMLParserBinding::Wrap)
     }
 
     #[inline]

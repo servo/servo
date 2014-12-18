@@ -22,7 +22,6 @@ use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
@@ -43,7 +42,7 @@ use dom::text::Text;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use dom::window::Window;
 use geom::rect::Rect;
-use layout_interface::{LayoutChan, ReapLayoutDataMsg};
+use layout_interface::{LayoutChan, Msg};
 use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
 use servo_util::geometry::Au;
@@ -1161,7 +1160,7 @@ impl Node {
              wrap_fn:   extern "Rust" fn(*mut JSContext, &GlobalRef, Box<N>) -> Temporary<N>)
              -> Temporary<N> {
         let window = document.window().root();
-        reflect_dom_object(node, global::Window(*window), wrap_fn)
+        reflect_dom_object(node, GlobalRef::Window(*window), wrap_fn)
     }
 
     pub fn new_inherited(type_id: NodeTypeId, doc: JSRef<Document>) -> Node {
@@ -1625,7 +1624,7 @@ impl Node {
                 None => {}
                 Some(chan) => {
                     let LayoutChan(chan) = chan;
-                    chan.send(ReapLayoutDataMsg(layout_data))
+                    chan.send(Msg::ReapLayoutData(layout_data))
                 },
             }
         }

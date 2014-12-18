@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::RangeBinding;
 use dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
-use dom::bindings::global::{GlobalRef, Window};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
@@ -26,7 +26,7 @@ impl Range {
     pub fn new(document: JSRef<Document>) -> Temporary<Range> {
         let window = document.window().root();
         reflect_dom_object(box Range::new_inherited(),
-                           Window(*window),
+                           GlobalRef::Window(*window),
                            RangeBinding::Wrap)
     }
 

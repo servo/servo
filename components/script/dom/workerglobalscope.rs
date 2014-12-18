@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScop
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{Syntax, Network, FailureUnknown};
-use dom::bindings::global;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::console::Console;
@@ -136,7 +136,7 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn Console(self) -> Temporary<Console> {
-        self.console.or_init(|| Console::new(global::Worker(self)))
+        self.console.or_init(|| Console::new(GlobalRef::Worker(self)))
     }
 
     fn Btoa(self, btoa: DOMString) -> Fallible<DOMString> {

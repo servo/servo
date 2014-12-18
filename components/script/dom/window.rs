@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::InvalidCharacter;
-use dom::bindings::global;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
@@ -22,10 +22,10 @@ use dom::navigator::Navigator;
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
-use layout_interface::{NoQuery, ReflowForDisplay, ReflowGoal, ReflowQueryType};
+use layout_interface::{ReflowGoal, ReflowQueryType};
 use page::Page;
 use script_task::{TimerSource, ScriptChan};
-use script_task::ScriptMsg::{ExitWindowMsg, TriggerLoadMsg, TriggerFragmentMsg};
+use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager};
 
@@ -191,7 +191,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn Close(self) {
         let ScriptChan(ref chan) = self.script_chan;
-        chan.send(ExitWindowMsg(self.page.id.clone()));
+        chan.send(ScriptMsg::ExitWindow(self.page.id.clone()));
     }
 
     fn Document(self) -> Temporary<Document> {
@@ -204,11 +204,11 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn SessionStorage(self) -> Temporary<Storage> {
-        self.session_storage.or_init(|| Storage::new(&global::Window(self)))
+        self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self)))
     }
 
     fn Console(self) -> Temporary<Console> {
-        self.console.or_init(|| Console::new(global::Window(self)))
+        self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
     fn Navigator(self) -> Temporary<Navigator> {
@@ -350,15 +350,15 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         let url = url.unwrap();
         let ScriptChan(ref script_chan) = self.script_chan;
         if href.as_slice().starts_with("#") {
-            script_chan.send(TriggerFragmentMsg(self.page.id, url));
+            script_chan.send(ScriptMsg::TriggerFragment(self.page.id, url));
         } else {
-            script_chan.send(TriggerLoadMsg(self.page.id, LoadData::new(url)));
+            script_chan.send(ScriptMsg::TriggerLoad(self.page.id, LoadData::new(url)));
         }
     }
 
     fn handle_fire_timer(self, timer_id: TimerId) {
         self.timers.fire_timer(timer_id, self);
-        self.flush_layout(ReflowForDisplay, NoQuery);
+        self.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
 }
 
