@@ -46,3 +46,4 @@ interface HTMLElement : Element {
   //readonly attribute boolean? commandChecked;
 };
 HTMLElement implements GlobalEventHandlers;
+HTMLElement implements ElementCSSInlineStyle;
