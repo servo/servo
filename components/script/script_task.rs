@@ -859,7 +859,7 @@ impl ScriptTask {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
-        let _ = wintarget.dispatch_event_with_target(Some(doctarget), *event);
+        let _ = wintarget.dispatch_event_with_target(doctarget, *event);
 
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 
