@@ -94,7 +94,8 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
             let win = window_from_node(self).root();
             win.GetOnload()
         } else {
-            None
+            let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+            target.get_event_handler_common("load")
         }
     }
 
@@ -102,6 +103,9 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();
             win.SetOnload(listener)
+        } else {
+            let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+            target.set_event_handler_common("load", listener)
         }
     }
 

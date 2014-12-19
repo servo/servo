@@ -12,11 +12,14 @@ use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElemen
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{ElementTypeId, Element, AttributeHandlers, ElementCreator};
-use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
+use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
@@ -206,6 +209,14 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         };
 
         window.evaluate_script_with_result(source.as_slice(), url.serialize().as_slice());
+
+        let event = Event::new(GlobalRef::Window(*window),
+                               "load".to_string(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        event.set_trusted(true);
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        target.dispatch_event(*event);
     }
 
     fn is_javascript(self) -> bool {
