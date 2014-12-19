@@ -8,19 +8,17 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary, MutHeap};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventTypeId};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use servo_util::str::DOMString;
 
-use std::cell::Cell;
-
 #[dom_struct]
 pub struct CustomEvent {
     event: Event,
-    detail: Cell<JSVal>,
+    detail: MutHeap<JSVal>,
 }
 
 impl CustomEventDerived for Event {
@@ -33,7 +31,7 @@ impl CustomEvent {
     fn new_inherited(type_id: EventTypeId) -> CustomEvent {
         CustomEvent {
             event: Event::new_inherited(type_id),
-            detail: Cell::new(NullValue()),
+            detail: MutHeap::new(NullValue()),
         }
     }
 

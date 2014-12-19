@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary, MutHeap};
 use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
@@ -27,7 +27,7 @@ pub struct ErrorEvent {
     filename: DOMRefCell<DOMString>,
     lineno: Cell<u32>,
     colno: Cell<u32>,
-    error: Cell<JSVal>
+    error: MutHeap<JSVal>,
 }
 
 impl ErrorEventDerived for Event {
@@ -44,7 +44,7 @@ impl ErrorEvent {
             filename: DOMRefCell::new("".to_string()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
-            error: Cell::new(NullValue())
+            error: MutHeap::new(NullValue())
         }
     }
 
