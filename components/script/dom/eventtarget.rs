@@ -108,7 +108,7 @@ impl EventTarget {
 
 pub trait EventTargetHelpers {
     fn dispatch_event_with_target(self,
-                                  target: Option<JSRef<EventTarget>>,
+                                  target: JSRef<EventTarget>,
                                   event: JSRef<Event>) -> bool;
     fn dispatch_event(self, event: JSRef<Event>) -> bool;
     fn set_inline_event_listener(self,
@@ -130,13 +130,13 @@ pub trait EventTargetHelpers {
 
 impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     fn dispatch_event_with_target(self,
-                                  target: Option<JSRef<EventTarget>>,
+                                  target: JSRef<EventTarget>,
                                   event: JSRef<Event>) -> bool {
-        dispatch_event(self, target, event)
+        dispatch_event(self, Some(target), event)
     }
 
     fn dispatch_event(self, event: JSRef<Event>) -> bool {
-        self.dispatch_event_with_target(None, event)
+        dispatch_event(self, None, event)
     }
 
     fn set_inline_event_listener(self,
