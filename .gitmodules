@@ -4,3 +4,6 @@
 [submodule "support/android-rs-glue"]
 	path = support/android-rs-glue
 	url = https://github.com/servo/android-rs-glue
+[submodule "support/time"]
+	path = support/time
+	url = https://github.com/servo/time
