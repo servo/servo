@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::global::Window;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
@@ -210,7 +210,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
 
         window.evaluate_script_with_result(source.as_slice(), url.serialize().as_slice());
 
-        let event = Event::new(Window(*window),
+        let event = Event::new(GlobalRef::Window(*window),
                                "load".to_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
