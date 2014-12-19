@@ -828,11 +828,8 @@ impl ScriptTask {
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {}", final_url);
-        {
-            let document_js_ref = (&*document).clone();
-            let document_as_node = NodeCast::from_ref(document_js_ref);
-            document.content_changed(document_as_node, NodeDamage::OtherNodeDamage);
-        }
+        document.content_changed(NodeCast::from_ref(*document),
+                                 NodeDamage::OtherNodeDamage);
         window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
 
         {
