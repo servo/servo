@@ -9,11 +9,12 @@
 use context::LayoutContext;
 use css::node_style::StyledNode;
 use flow::{BaseFlow, FlowClass, Flow, ForceNonfloatedFlag};
-use fragment::{Fragment, FragmentBoundsIterator, SpecificFragmentInfo};
+use fragment::{Fragment, FragmentOverflowIterator, SpecificFragmentInfo};
 use layout_debug;
 use wrapper::ThreadSafeLayoutNode;
 
-use servo_util::geometry::Au;
+use geom::Rect;
+use servo_util::geometry::{Au, ZERO_RECT};
 use std::cmp::max;
 use std::fmt;
 use style::computed_values::LengthOrPercentageOrAuto;
@@ -96,7 +97,11 @@ impl Flow for TableColGroupFlow {
 
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 
-    fn iterate_through_fragment_bounds(&self, _: &mut FragmentBoundsIterator) {
+    fn compute_overflow(&self) -> Rect<Au> {
+        ZERO_RECT
+    }
+
+    fn iterate_through_fragment_overflow(&self, _: &mut FragmentOverflowIterator) {
     }
 }
 

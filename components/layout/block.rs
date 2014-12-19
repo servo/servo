@@ -41,7 +41,7 @@ use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{CLEARS_LEFT, CLEARS_RIGHT};
 use flow;
-use fragment::{Fragment, FragmentBoundsIterator, SpecificFragmentInfo};
+use fragment::{Fragment, FragmentOverflowIterator, SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, MarginCollapseInfo};
@@ -49,7 +49,7 @@ use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
 use table::ColumnComputedInlineSize;
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::Size2D;
+use geom::{Rect, Size2D};
 use gfx::display_list::{ClippingRegion, DisplayList};
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
@@ -1797,13 +1797,6 @@ impl Flow for BlockFlow {
         self.flags.insert(IS_ROOT)
     }
 
-    /// Return true if store overflow is delayed for this flow.
-    ///
-    /// Currently happens only for absolutely positioned flows.
-    fn is_store_overflow_delayed(&mut self) -> bool {
-        self.base.flags.contains(IS_ABSOLUTELY_POSITIONED)
-    }
-
     fn is_root(&self) -> bool {
         self.flags.contains(IS_ROOT)
     }
@@ -1864,12 +1857,13 @@ impl Flow for BlockFlow {
         self.fragment.repair_style(new_style)
     }
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.fragment.compute_overflow()
+    }
+
+    fn iterate_through_fragment_overflow(&self, iterator: &mut FragmentOverflowIterator) {
         if iterator.should_process(&self.fragment) {
-            let fragment_origin =
-                self.base.stacking_relative_position_of_child_fragment(&self.fragment);
-            iterator.process(&self.fragment,
-                             self.fragment.stacking_relative_bounds(&fragment_origin));
+            iterator.process(&self.fragment, self.fragment.compute_overflow());
         }
     }
 }
@@ -2455,11 +2449,14 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         MaybeAuto::Specified(fragment.content_inline_size())
     }
 
-    fn containing_block_inline_size(&self, block: &mut BlockFlow, _: Au, ctx: &LayoutContext) -> Au {
+    fn containing_block_inline_size(&self, block: &mut BlockFlow, _: Au, ctx: &LayoutContext)
+                                    -> Au {
         block.containing_block_size(ctx.shared.screen_size).inline
     }
 
-    fn set_flow_x_coord_if_necessary(&self, block: &mut BlockFlow, solution: ISizeConstraintSolution) {
+    fn set_flow_x_coord_if_necessary(&self,
+                                     block: &mut BlockFlow,
+                                     solution: ISizeConstraintSolution) {
         // Set the x-coordinate of the absolute flow wrt to its containing block.
         block.base.position.start.i = solution.inline_start;
     }

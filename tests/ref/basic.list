@@ -222,3 +222,5 @@ fragment=top != ../html/acid2.html acid2_ref.html
 != inset_blackborder.html blackborder_ref.html
 != outset_blackborder.html blackborder_ref.html
 == border_radius_clip_a.html border_radius_clip_ref.html
+== stacking_context_overflow_a.html stacking_context_overflow_ref.html
+== stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html

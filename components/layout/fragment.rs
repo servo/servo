@@ -23,7 +23,7 @@ use util::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
 use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::OpaqueNode;
+use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use script_traits::UntrustedNodeAddress;
@@ -531,8 +531,9 @@ impl Fragment {
         //         Foo
         //     </div>
         //
-        // Anonymous table fragments, SpecificFragmentInfo::TableRow and SpecificFragmentInfo::TableCell, are generated around
-        // `Foo`, but they shouldn't inherit the border.
+        // Anonymous table fragments, SpecificFragmentInfo::TableRow and
+        // SpecificFragmentInfo::TableCell, are generated around `Foo`, but they shouldn't inherit
+        // the border.
 
         let node_style = cascade_anonymous(&**node.style());
         let writing_mode = node_style.writing_mode;
@@ -647,7 +648,10 @@ impl Fragment {
     fn quantities_included_in_intrinsic_inline_size(&self)
                                                     -> QuantitiesIncludedInIntrinsicInlineSizes {
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::InlineBlock(_) => {
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::InlineBlock(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
             SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell => {
@@ -836,9 +840,7 @@ impl Fragment {
     }
 
     // Return offset from original position because of `position: relative`.
-    pub fn relative_position(&self,
-                             containing_block_size: &LogicalSize<Au>)
-                             -> LogicalSize<Au> {
+    pub fn relative_position(&self, containing_block_size: &LogicalSize<Au>) -> LogicalSize<Au> {
         fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>)
                       -> LogicalSize<Au> {
             let offsets = style.logical_position();
@@ -1567,6 +1569,41 @@ impl Fragment {
             }
         }
     }
+
+    /// Computes the overflow rect of this fragment relative to the start of the flow.
+    pub fn compute_overflow(&self) -> Rect<Au> {
+        // FIXME(pcwalton, #2795): Get the real container size.
+        let container_size = Size2D::zero();
+        let mut border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
+
+        // Relative position can cause us to draw outside our border box.
+        //
+        // FIXME(pcwalton): I'm not a fan of the way this makes us crawl though so many styles all
+        // the time. Can't we handle relative positioning by just adjusting `border_box`?
+        let relative_position =
+            self.relative_position(&LogicalSize::zero(self.style.writing_mode));
+        border_box =
+            border_box.translate_by_size(&relative_position.to_physical(self.style.writing_mode));
+        let mut overflow = border_box;
+
+        // Box shadows cause us to draw outside our border box.
+        for box_shadow in self.style().get_effects().box_shadow.iter() {
+            let offset = Point2D(box_shadow.offset_x, box_shadow.offset_y);
+            let inflation = box_shadow.spread_radius +
+                box_shadow.blur_radius * BOX_SHADOW_INFLATION_FACTOR;
+            overflow = overflow.union(&border_box.translate(&offset).inflate(inflation, inflation))
+        }
+
+        // Outlines cause us to draw outside our border box.
+        let outline_width = self.style.get_outline().outline_width;
+        if outline_width != Au(0) {
+            overflow = overflow.union(&border_box.inflate(outline_width, outline_width))
+        }
+
+        // FIXME(pcwalton): Sometimes excessively fancy glyphs can make us draw outside our border
+        // box too.
+        overflow
+    }
 }
 
 impl fmt::Show for Fragment {
@@ -1600,10 +1637,10 @@ bitflags! {
     }
 }
 
-/// A top-down fragment bounds iteration handler.
-pub trait FragmentBoundsIterator {
+/// A top-down fragment overflow region iteration handler.
+pub trait FragmentOverflowIterator {
     /// The operation to perform.
-    fn process(&mut self, fragment: &Fragment, bounds: Rect<Au>);
+    fn process(&mut self, fragment: &Fragment, overflow: Rect<Au>);
 
     /// Returns true if this fragment must be processed in-order. If this returns false,
     /// we skip the operation for this fragment, but continue processing siblings.

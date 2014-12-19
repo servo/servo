@@ -332,12 +332,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {
         }
 
         flow.assign_block_size(self.layout_context);
-
-        // Skip store-overflow for absolutely positioned flows. That will be
-        // done in a separate traversal.
-        if !flow.is_store_overflow_delayed() {
-            flow.store_overflow(self.layout_context);
-        }
+        flow.store_overflow(self.layout_context);
     }
 
     #[inline]

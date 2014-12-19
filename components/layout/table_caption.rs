@@ -10,9 +10,10 @@ use block::BlockFlow;
 use construct::FlowConstructor;
 use context::LayoutContext;
 use flow::{FlowClass, Flow};
-use fragment::FragmentBoundsIterator;
+use fragment::FragmentOverflowIterator;
 use wrapper::ThreadSafeLayoutNode;
 
+use geom::Rect;
 use servo_util::geometry::Au;
 use std::fmt;
 use style::ComputedValues;
@@ -81,8 +82,12 @@ impl Flow for TableCaptionFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
-        self.block_flow.iterate_through_fragment_bounds(iterator);
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.block_flow.compute_overflow()
+    }
+
+    fn iterate_through_fragment_overflow(&self, iterator: &mut FragmentOverflowIterator) {
+        self.block_flow.iterate_through_fragment_overflow(iterator);
     }
 }
 

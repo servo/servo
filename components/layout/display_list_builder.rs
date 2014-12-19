@@ -1103,7 +1103,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                                background_border_level);
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(self.create_stacking_context(display_list, None))
+            DisplayListBuildingResult::StackingContext(self.create_stacking_context(display_list,
+                                                                                    None))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1120,7 +1121,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                 !self.base.flags.contains(NEEDS_LAYER) {
             // We didn't need a layer.
             self.base.display_list_building_result =
-                DisplayListBuildingResult::StackingContext(self.create_stacking_context(display_list, None));
+                DisplayListBuildingResult::StackingContext(self.create_stacking_context(
+                        display_list,
+                        None));
             return
         }
 
@@ -1137,7 +1140,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                          Some(Arc::new(PaintLayer::new(self.layer_id(0),
                                                                        transparent,
                                                                        scroll_policy))));
-        self.base.display_list_building_result = DisplayListBuildingResult::StackingContext(stacking_context)
+        self.base.display_list_building_result =
+            DisplayListBuildingResult::StackingContext(stacking_context)
     }
 
     fn build_display_list_for_floating_block(&mut self,
@@ -1149,7 +1153,8 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         display_list.form_float_pseudo_stacking_context();
 
         self.base.display_list_building_result = if self.fragment.establishes_stacking_context() {
-            DisplayListBuildingResult::StackingContext(self.create_stacking_context(display_list, None))
+            DisplayListBuildingResult::StackingContext(self.create_stacking_context(display_list,
+                                                                                    None))
         } else {
             DisplayListBuildingResult::Normal(display_list)
         }
@@ -1165,7 +1170,9 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         } else if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
             self.build_display_list_for_absolutely_positioned_block(display_list, layout_context)
         } else {
-            self.build_display_list_for_static_block(display_list, layout_context, BackgroundAndBorderLevel::Block)
+            self.build_display_list_for_static_block(display_list,
+                                                     layout_context,
+                                                     BackgroundAndBorderLevel::Block)
         }
     }
 
@@ -1173,11 +1180,16 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                display_list: Box<DisplayList>,
                                layer: Option<Arc<PaintLayer>>)
                                -> Arc<StackingContext> {
-        let bounds = Rect(self.base.stacking_relative_position,
-                          self.base.overflow.size.to_physical(self.base.writing_mode));
+        let size = self.base.position.size.to_physical(self.base.writing_mode);
+        let bounds = Rect(self.base.stacking_relative_position, size);
         let z_index = self.fragment.style().get_box().z_index.number_or_zero();
         let opacity = self.fragment.style().get_effects().opacity as f32;
-        Arc::new(StackingContext::new(display_list, bounds, z_index, opacity, layer))
+        Arc::new(StackingContext::new(display_list,
+                                      &bounds,
+                                      &self.base.overflow,
+                                      z_index,
+                                      opacity,
+                                      layer))
     }
 }
 

@@ -10,7 +10,7 @@ use construct::ConstructionResult;
 use context::SharedLayoutContext;
 use flow::{mod, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
-use fragment::{Fragment, FragmentBoundsIterator};
+use fragment::{Fragment, FragmentOverflowIterator};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use layout_debug;
 use parallel::{mod, UnsafeFlow};
@@ -604,7 +604,7 @@ impl LayoutTask {
         // FIXME(pcwalton): This has not been updated to handle the stacking context relative
         // stuff. So the position is wrong in most cases.
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
-        let mut iterator = UnioningFragmentBoundsIterator::new(requested_node);
+        let mut iterator = UnioningFragmentOverflowIterator::new(requested_node);
         sequential::iterate_through_flow_tree_fragment_bounds(layout_root, &mut iterator);
         rw_data.content_box_response = iterator.rect;
     }
@@ -616,7 +616,7 @@ impl LayoutTask {
         // FIXME(pcwalton): This has not been updated to handle the stacking context relative
         // stuff. So the position is wrong in most cases.
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
-        let mut iterator = CollectingFragmentBoundsIterator::new(requested_node);
+        let mut iterator = CollectingFragmentOverflowIterator::new(requested_node);
         sequential::iterate_through_flow_tree_fragment_bounds(layout_root, &mut iterator);
         rw_data.content_boxes_response = iterator.rects;
     }
@@ -689,11 +689,12 @@ impl LayoutTask {
             flow::mut_base(layout_root.deref_mut()).display_list_building_result
                                                    .add_to(&mut *display_list);
             let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
-                                                         color,
-                                                         Scrollable));
+                                                       color,
+                                                       Scrollable));
             let origin = Rect(Point2D(Au(0), Au(0)), root_size);
             let stacking_context = Arc::new(StackingContext::new(display_list,
-                                                                 origin,
+                                                                 &origin,
+                                                                 &origin,
                                                                  0,
                                                                  1.0,
                                                                  Some(paint_layer)));
@@ -1016,21 +1017,21 @@ impl LayoutRPC for LayoutRPCImpl {
     }
 }
 
-struct UnioningFragmentBoundsIterator {
+struct UnioningFragmentOverflowIterator {
     node_address: OpaqueNode,
     rect: Rect<Au>,
 }
 
-impl UnioningFragmentBoundsIterator {
-    fn new(node_address: OpaqueNode) -> UnioningFragmentBoundsIterator {
-        UnioningFragmentBoundsIterator {
+impl UnioningFragmentOverflowIterator {
+    fn new(node_address: OpaqueNode) -> UnioningFragmentOverflowIterator {
+        UnioningFragmentOverflowIterator {
             node_address: node_address,
             rect: Rect::zero(),
         }
     }
 }
 
-impl FragmentBoundsIterator for UnioningFragmentBoundsIterator {
+impl FragmentOverflowIterator for UnioningFragmentOverflowIterator {
     fn process(&mut self, _: &Fragment, bounds: Rect<Au>) {
         if self.rect.is_empty() {
             self.rect = bounds;
@@ -1044,21 +1045,21 @@ impl FragmentBoundsIterator for UnioningFragmentBoundsIterator {
     }
 }
 
-struct CollectingFragmentBoundsIterator {
+struct CollectingFragmentOverflowIterator {
     node_address: OpaqueNode,
     rects: Vec<Rect<Au>>,
 }
 
-impl CollectingFragmentBoundsIterator {
-    fn new(node_address: OpaqueNode) -> CollectingFragmentBoundsIterator {
-        CollectingFragmentBoundsIterator {
+impl CollectingFragmentOverflowIterator {
+    fn new(node_address: OpaqueNode) -> CollectingFragmentOverflowIterator {
+        CollectingFragmentOverflowIterator {
             node_address: node_address,
             rects: Vec::new(),
         }
     }
 }
 
-impl FragmentBoundsIterator for CollectingFragmentBoundsIterator {
+impl FragmentOverflowIterator for CollectingFragmentOverflowIterator {
     fn process(&mut self, _: &Fragment, bounds: Rect<Au>) {
         self.rects.push(bounds);
     }

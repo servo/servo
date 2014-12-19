@@ -12,7 +12,7 @@ use flow::{BaseFlow, FlowClass, Flow, MutableFlowUtils, ForceNonfloatedFlag};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow;
 use fragment::{Fragment, SpecificFragmentInfo};
-use fragment::{FragmentBoundsIterator, ScannedTextFragmentInfo};
+use fragment::{FragmentOverflowIterator, ScannedTextFragmentInfo};
 use fragment::SplitInfo;
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
@@ -20,12 +20,12 @@ use model::IntrinsicISizesContribution;
 use text;
 
 use collections::{RingBuf};
-use geom::Size2D;
+use geom::{Rect, Size2D};
 use gfx::display_list::DisplayList;
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
-use servo_util::geometry::Au;
+use servo_util::geometry::{Au, ZERO_RECT};
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use servo_util::opts;
 use servo_util::range::{Range, RangeIndex};
@@ -1271,7 +1271,15 @@ impl Flow for InlineFlow {
 
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
+    fn compute_overflow(&self) -> Rect<Au> {
+        let mut overflow = ZERO_RECT;
+        for fragment in self.fragments.fragments.iter() {
+            overflow = overflow.union(&fragment.compute_overflow())
+        }
+        overflow
+    }
+
+    fn iterate_through_fragment_overflow(&self, iterator: &mut FragmentOverflowIterator) {
         for fragment in self.fragments.fragments.iter() {
             if iterator.should_process(fragment) {
                 let fragment_origin =

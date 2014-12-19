@@ -12,12 +12,13 @@ use construct::FlowConstructor;
 use context::LayoutContext;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow;
-use fragment::{Fragment, FragmentBoundsIterator};
+use fragment::{Fragment, FragmentOverflowIterator};
 use layout_debug;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
 use model::MaybeAuto;
 use wrapper::ThreadSafeLayoutNode;
 
+use geom::Rect;
 use servo_util::geometry::Au;
 use std::cmp::max;
 use std::fmt;
@@ -315,8 +316,12 @@ impl Flow for TableRowFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
-        self.block_flow.iterate_through_fragment_bounds(iterator);
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.block_flow.compute_overflow()
+    }
+
+    fn iterate_through_fragment_overflow(&self, iterator: &mut FragmentOverflowIterator) {
+        self.block_flow.iterate_through_fragment_overflow(iterator);
     }
 }
 

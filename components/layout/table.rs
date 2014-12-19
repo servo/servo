@@ -13,13 +13,14 @@ use context::LayoutContext;
 use floats::FloatKind;
 use flow::{mod, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use flow::ImmutableFlowUtils;
-use fragment::{Fragment, FragmentBoundsIterator};
+use fragment::{Fragment, FragmentOverflowIterator};
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution};
 use table_row::CellIntrinsicInlineSize;
 use table_wrapper::TableLayout;
 use wrapper::ThreadSafeLayoutNode;
 
+use geom::Rect;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalRect;
 use std::cmp::max;
@@ -384,8 +385,12 @@ impl Flow for TableFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
-        self.block_flow.iterate_through_fragment_bounds(iterator);
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.block_flow.compute_overflow()
+    }
+
+    fn iterate_through_fragment_overflow(&self, iterator: &mut FragmentOverflowIterator) {
+        self.block_flow.iterate_through_fragment_overflow(iterator);
     }
 }
 
