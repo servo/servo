@@ -102,17 +102,13 @@ class CastableObjectUnwrapper():
     """
     def __init__(self, descriptor, source, codeOnFailure):
         self.substitution = {
-            "type": descriptor.nativeType,
-            "depth": descriptor.interface.inheritanceDepth(),
-            "prototype": "PrototypeList::ID::" + descriptor.name,
-            "protoID": "PrototypeList::ID::" + descriptor.name + " as uint",
             "source": source,
             "codeOnFailure": CGIndenter(CGGeneric(codeOnFailure), 4).define(),
         }
 
     def __str__(self):
         return string.Template(
-"""match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
+"""match unwrap_jsmanaged(${source}) {
   Ok(val) => val,
   Err(()) => {
 ${codeOnFailure}

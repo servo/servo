@@ -123,9 +123,9 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
 /// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
 /// not a reflector for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
-pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *mut JSObject,
-                                        proto_id: PrototypeList::ID,
-                                        proto_depth: uint) -> Result<JS<T>, ()> {
+pub fn unwrap_jsmanaged<T>(mut obj: *mut JSObject) -> Result<JS<T>, ()>
+    where T: Reflectable + IDLInterface
+{
     unsafe {
         let dom_class = try!(get_dom_class(obj).or_else(|_| {
             if IsWrapper(obj) == 1 {
@@ -145,6 +145,8 @@ pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *mut JSObject,
             }
         }));
 
+        let proto_id = IDLInterface::get_prototype_id(None::<T>);
+        let proto_depth = IDLInterface::get_prototype_depth(None::<T>);
         if dom_class.interface_chain[proto_depth] == proto_id {
             debug!("good prototype");
             Ok(JS::from_raw(unwrap(obj)))
@@ -648,12 +650,7 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
     unsafe {
         debug!("outerizing");
         let obj = *obj.unnamed_field1;
-        let win: Root<window::Window> =
-            unwrap_jsmanaged(obj,
-                             IDLInterface::get_prototype_id(None::<window::Window>),
-                             IDLInterface::get_prototype_depth(None::<window::Window>))
-            .unwrap()
-            .root();
+        let win: Root<window::Window> = unwrap_jsmanaged(obj).unwrap().root();
         win.browser_context().as_ref().unwrap().window_proxy()
     }
 }

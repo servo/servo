@@ -350,9 +350,7 @@ impl<T: Reflectable+IDLInterface> FromJSValConvertible<()> for JS<T> {
         if !value.is_object() {
             return Err(());
         }
-        unwrap_jsmanaged(value.to_object(),
-                         IDLInterface::get_prototype_id(None::<T>),
-                         IDLInterface::get_prototype_depth(None::<T>))
+        unwrap_jsmanaged(value.to_object())
     }
 }
 
