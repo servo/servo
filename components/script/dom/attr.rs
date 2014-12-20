@@ -47,6 +47,14 @@ impl AttrValue {
         AttrValue::TokenList(tokens, atoms)
     }
 
+    pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
+        let tokens = {
+            let slices: Vec<&str> = atoms.iter().map(|atom| atom.as_slice()).collect();
+            slices.connect("\x20")
+        };
+        AttrValue::TokenList(tokens, atoms)
+    }
+
     pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
         let result: u32 = from_str(string.as_slice()).unwrap_or(default);
         AttrValue::UInt(string, result)

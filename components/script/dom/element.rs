@@ -656,6 +656,7 @@ pub trait AttributeHandlers {
     fn get_string_attribute(self, name: &Atom) -> DOMString;
     fn set_string_attribute(self, name: &Atom, value: DOMString);
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString);
+    fn set_atomic_tokenlist_attribute(self, name: &Atom, tokens: Vec<Atom>);
     fn get_uint_attribute(self, name: &Atom) -> u32;
     fn set_uint_attribute(self, name: &Atom, value: u32);
 }
@@ -849,6 +850,11 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString) {
         assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
         self.set_attribute(name, AttrValue::from_serialized_tokenlist(value));
+    }
+
+    fn set_atomic_tokenlist_attribute(self, name: &Atom, tokens: Vec<Atom>) {
+        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        self.set_attribute(name, AttrValue::from_atomic_tokens(tokens));
     }
 
     fn get_uint_attribute(self, name: &Atom) -> u32 {
