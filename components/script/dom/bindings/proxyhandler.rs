@@ -81,16 +81,16 @@ pub unsafe extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
 }
 
 pub fn _obj_toString(cx: *mut JSContext, name: &str) -> *mut JSString {
-  unsafe {
-    let result = format!("[object {}]", name);
+    unsafe {
+        let result = format!("[object {}]", name);
 
-    let chars = result.as_ptr() as *const libc::c_char;
-    let length = result.len() as libc::size_t;
+        let chars = result.as_ptr() as *const libc::c_char;
+        let length = result.len() as libc::size_t;
 
-    let string = JS_NewStringCopyN(cx, chars, length);
-    assert!(string.is_not_null());
-    return string;
-  }
+        let string = JS_NewStringCopyN(cx, chars, length);
+        assert!(string.is_not_null());
+        return string;
+    }
 }
 
 pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
