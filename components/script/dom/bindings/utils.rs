@@ -127,7 +127,7 @@ pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *mut JSObject,
                                         proto_id: PrototypeList::ID,
                                         proto_depth: uint) -> Result<JS<T>, ()> {
     unsafe {
-        let dom_class = get_dom_class(obj).or_else(|_| {
+        let dom_class = try!(get_dom_class(obj).or_else(|_| {
             if IsWrapper(obj) == 1 {
                 debug!("found wrapper");
                 obj = UnwrapObject(obj, /* stopAtOuter = */ 0, ptr::null_mut());
@@ -143,17 +143,15 @@ pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *mut JSObject,
                 debug!("not a dom wrapper");
                 Err(())
             }
-        });
+        }));
 
-        dom_class.and_then(|dom_class| {
-            if dom_class.interface_chain[proto_depth] == proto_id {
-                debug!("good prototype");
-                Ok(JS::from_raw(unwrap(obj)))
-            } else {
-                debug!("bad prototype");
-                Err(())
-            }
-        })
+        if dom_class.interface_chain[proto_depth] == proto_id {
+            debug!("good prototype");
+            Ok(JS::from_raw(unwrap(obj)))
+        } else {
+            debug!("bad prototype");
+            Err(())
+        }
     }
 }
 
