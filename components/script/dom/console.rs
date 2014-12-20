@@ -17,14 +17,14 @@ pub struct Console {
 }
 
 impl Console {
-    fn new_inherited(global: &GlobalRef) -> Console {
+    fn new_inherited(global: GlobalRef) -> Console {
         Console {
             reflector_: Reflector::new(),
-            global: GlobalField::from_rooted(global),
+            global: GlobalField::from_rooted(&global),
         }
     }
 
-    pub fn new(global: &GlobalRef) -> Temporary<Console> {
+    pub fn new(global: GlobalRef) -> Temporary<Console> {
         reflect_dom_object(box Console::new_inherited(global), global, ConsoleBinding::Wrap)
     }
 }
@@ -32,7 +32,7 @@ impl Console {
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Log(self, message: DOMString) {
         println!("{:s}", message);
-        propagate_console_msg(&self, message, LogMsg);
+        propagate_console_msg(&self, message, ConsoleMsgType::LogMsg);
     }
 
     fn Debug(self, message: DOMString) {
@@ -45,7 +45,7 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
 
     fn Warn(self, message: DOMString) {
         println!("{:s}", message);
-        propagate_console_msg(&self, message, WarnMsg);
+        propagate_console_msg(&self, message, ConsoleMsgType::WarnMsg);
     }
 
     fn Error(self, message: DOMString) {
@@ -72,21 +72,21 @@ impl Reflectable for Console {
 
 //TODO: Must be extended to contain all types of console message flavors:
 // Error, Assert, Debug, Info
-enum ConsoleMessageType {
+enum ConsoleMsgType {
     LogMsg,
     WarnMsg,
 }
 
-fn propagate_console_msg(console: &JSRef<Console>, message: DOMString, msg_type: ConsoleMessageType) {
+fn propagate_console_msg(console: &JSRef<Console>, message: DOMString, msg_type: ConsoleMsgType) {
     match msg_type {
-        LogMsg => {
+        ConsoleMsgType::LogMsg => {
             let pipelineId = console.global.root().root_ref().as_window().page().id;
             console.global.root().root_ref().as_window().page().devtools_chan.as_ref().map(|chan| {
                 chan.send(SendConsoleMessage(pipelineId, LogMessage(message.clone())));
             });
         }
 
-        WarnMsg => {
+        ConsoleMsgType::WarnMsg => {
             //TODO: to be implemented for warning messages
         }
     }

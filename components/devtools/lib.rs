@@ -35,12 +35,8 @@ use actors::root::RootActor;
 use actors::tab::TabActor;
 use protocol::JsonPacketStream;
 
-<<<<<<< HEAD
 use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg, DevtoolsPageInfo};
-=======
-use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg};
 use devtools_traits::{SendConsoleMessage, LogMessage};
->>>>>>> Implemented ConsoleAPICall and handled Console::Log
 use servo_msg::constellation_msg::PipelineId;
 use servo_util::task::spawn_named;
 
@@ -218,12 +214,8 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Err(ref e) if e.kind == TimedOut => {
                 match receiver.try_recv() {
                     Ok(ServerExitMsg) | Err(Disconnected) => break,
-<<<<<<< HEAD
                     Ok(NewGlobal(id, sender, pageinfo)) => handle_new_global(actors.clone(), id, sender, &mut actor_pipelines, pageinfo),
-=======
-                    Ok(NewGlobal(id, sender)) => handle_new_global(actors.clone(), id, sender, &mut actor_pipelines),
                     Ok(SendConsoleMessage(id, LogMessage(message))) => handle_console_log(actors.clone(), id, message, &mut actor_pipelines),
->>>>>>> Implemented ConsoleAPICall and handled Console::Log
                     Err(Empty) => acceptor.set_timeout(Some(POLL_TIMEOUT)),
                 }
             }
