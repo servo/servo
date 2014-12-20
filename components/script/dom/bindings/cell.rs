@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![deny(missing_docs)]
+
+//! A shareable mutable container for the DOM.
+
 use dom::bindings::trace::JSTraceable;
 use js::jsapi::{JSTracer};
 
@@ -46,11 +50,31 @@ impl<T> DOMRefCell<T> {
         self.value.try_borrow().is_some()
     }
 
+    /// Attempts to immutably borrow the wrapped value.
+    ///
+    /// The borrow lasts until the returned `Ref` exits scope. Multiple
+    /// immutable borrows can be taken out at the same time.
+    ///
+    /// Returns `None` if the value is currently mutably borrowed.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this is called off the script thread.
     pub fn try_borrow<'a>(&'a self) -> Option<Ref<'a, T>> {
         debug_assert!(task_state::get().is_script());
         self.value.try_borrow()
     }
 
+    /// Mutably borrows the wrapped value.
+    ///
+    /// The borrow lasts until the returned `RefMut` exits scope. The value
+    /// cannot be borrowed while this borrow is active.
+    ///
+    /// Returns `None` if the value is currently borrowed.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this is called off the script thread.
     pub fn try_borrow_mut<'a>(&'a self) -> Option<RefMut<'a, T>> {
         debug_assert!(task_state::get().is_script());
         self.value.try_borrow_mut()
@@ -66,16 +90,24 @@ impl<T: JSTraceable> JSTraceable for DOMRefCell<T> {
 // Functionality duplicated with `core::cell::RefCell`
 // ===================================================
 impl<T> DOMRefCell<T> {
+    /// Create a new `DOMRefCell` containing `value`.
     pub fn new(value: T) -> DOMRefCell<T> {
         DOMRefCell {
             value: RefCell::new(value),
         }
     }
 
-    pub fn unwrap(self) -> T {
-        self.value.unwrap()
-    }
 
+    /// Immutably borrows the wrapped value.
+    ///
+    /// The borrow lasts until the returned `Ref` exits scope. Multiple
+    /// immutable borrows can be taken out at the same time.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this is called off the script thread.
+    ///
+    /// Panics if the value is currently mutably borrowed.
     pub fn borrow<'a>(&'a self) -> Ref<'a, T> {
         match self.try_borrow() {
             Some(ptr) => ptr,
@@ -83,6 +115,16 @@ impl<T> DOMRefCell<T> {
         }
     }
 
+    /// Mutably borrows the wrapped value.
+    ///
+    /// The borrow lasts until the returned `RefMut` exits scope. The value
+    /// cannot be borrowed while this borrow is active.
+    ///
+    /// # Panics
+    ///
+    /// Panics if this is called off the script thread.
+    ///
+    /// Panics if the value is currently borrowed.
     pub fn borrow_mut<'a>(&'a self) -> RefMut<'a, T> {
         match self.try_borrow_mut() {
             Some(ptr) => ptr,
