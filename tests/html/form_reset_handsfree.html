@@ -1,0 +1,25 @@
+<html>
+<head></head>
+<body>
+<form id="foo">
+<input name=bar type=checkbox checked>
+<input name=baz value="baz1" type=radio checked>
+<input name=baz value="baz2" type=radio>
+<input type=text id=hi name=bye value="hi!">
+<input type=text id=aloha name=empty value="">
+<input type=text id=welcome name=reallyempty>
+<textarea id=textarea>Hello
+ TextArea!</textarea>
+<script>
+// setTimeout because https://github.com/servo/servo/issues/3628
+setTimeout(function(){
+  document.getElementById("hi").value=("bloop");
+  document.getElementById("aloha").value=("bloop");
+  document.getElementById("welcome").value=("bloop");
+  document.getElementById("textarea").value=("bloop");
+  setTimeout(function(){document.getElementById("foo").reset()},2000);
+},2000)
+</script>
+</form>
+</body>
+</html>

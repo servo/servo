@@ -29,7 +29,7 @@ use dom::htmlformelement::HTMLFormElement;
 use dom::htmlframeelement::HTMLFrameElement;
 use dom::htmlframesetelement::HTMLFrameSetElement;
 use dom::htmlheadelement::HTMLHeadElement;
-use dom::htmlheadingelement::{Heading1, Heading2, Heading3, Heading4, Heading5, Heading6};
+use dom::htmlheadingelement::HeadingLevel;
 use dom::htmlheadingelement::HTMLHeadingElement;
 use dom::htmlhrelement::HTMLHRElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
@@ -142,12 +142,12 @@ pub fn create_element(name: QualName, prefix: Option<DOMString>,
         atom!("form")       => make!(HTMLFormElement),
         atom!("frame")      => make!(HTMLFrameElement),
         atom!("frameset")   => make!(HTMLFrameSetElement),
-        atom!("h1")         => make!(HTMLHeadingElement, Heading1),
-        atom!("h2")         => make!(HTMLHeadingElement, Heading2),
-        atom!("h3")         => make!(HTMLHeadingElement, Heading3),
-        atom!("h4")         => make!(HTMLHeadingElement, Heading4),
-        atom!("h5")         => make!(HTMLHeadingElement, Heading5),
-        atom!("h6")         => make!(HTMLHeadingElement, Heading6),
+        atom!("h1")         => make!(HTMLHeadingElement, HeadingLevel::Heading1),
+        atom!("h2")         => make!(HTMLHeadingElement, HeadingLevel::Heading2),
+        atom!("h3")         => make!(HTMLHeadingElement, HeadingLevel::Heading3),
+        atom!("h4")         => make!(HTMLHeadingElement, HeadingLevel::Heading4),
+        atom!("h5")         => make!(HTMLHeadingElement, HeadingLevel::Heading5),
+        atom!("h6")         => make!(HTMLHeadingElement, HeadingLevel::Heading6),
         atom!("head")       => make!(HTMLHeadElement),
         atom!("header")     => make!(HTMLElement),
         atom!("hgroup")     => make!(HTMLElement),

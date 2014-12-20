@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use azure::azure_hl::Color;
+use constellation_msg::{Key, KeyState, KeyModifiers};
 use geom::point::Point2D;
 use geom::rect::Rect;
 use layers::platform::surface::NativeGraphicsMetadata;
@@ -12,14 +13,14 @@ use std::fmt;
 
 use constellation_msg::PipelineId;
 
-/// The status of the renderer.
+/// The status of the painter.
 #[deriving(PartialEq, Clone)]
-pub enum RenderState {
-    IdleRenderState,
-    RenderingRenderState,
+pub enum PaintState {
+    IdlePaintState,
+    PaintingPaintState,
 }
 
-#[deriving(Eq, Ord, PartialEq, PartialOrd, Clone)]
+#[deriving(Eq, Ord, PartialEq, PartialOrd, Clone, Show)]
 pub enum ReadyState {
     /// Informs the compositor that nothing has been done yet. Used for setting status
     Blank,
@@ -81,13 +82,13 @@ pub struct LayerMetadata {
     pub scroll_policy: ScrollPolicy,
 }
 
-/// The interface used by the renderer to acquire draw targets for each render frame and
+/// The interface used by the painter to acquire draw targets for each paint frame and
 /// submit them to be drawn to the display.
-pub trait RenderListener for Sized? {
+pub trait PaintListener for Sized? {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata>;
 
     /// Informs the compositor of the layers for the given pipeline. The compositor responds by
-    /// creating and/or destroying render layers as necessary.
+    /// creating and/or destroying paint layers as necessary.
     fn initialize_layers_for_pipeline(&mut self,
                                       pipeline_id: PipelineId,
                                       metadata: Vec<LayerMetadata>,
@@ -99,8 +100,8 @@ pub trait RenderListener for Sized? {
              epoch: Epoch,
              replies: Vec<(LayerId, Box<LayerBufferSet>)>);
 
-    fn render_msg_discarded(&mut self);
-    fn set_render_state(&mut self, PipelineId, RenderState);
+    fn paint_msg_discarded(&mut self);
+    fn set_paint_state(&mut self, PipelineId, PaintState);
 }
 
 /// The interface used by the script task to tell the compositor to update its ready state,
@@ -111,6 +112,9 @@ pub trait ScriptListener {
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
                              point: Point2D<f32>);
+    /// Informs the compositor that the title of the page with the given pipeline ID has changed.
+    fn set_title(&mut self, pipeline_id: PipelineId, new_title: Option<String>);
     fn close(&mut self);
     fn dup(&mut self) -> Box<ScriptListener+'static>;
+    fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers);
 }

@@ -5,7 +5,7 @@
 //! Communication with the compositor task.
 
 pub use windowing;
-pub use constellation::{SendableFrameTree, FrameTreeDiff};
+pub use constellation::{FrameId, SendableFrameTree, FrameTreeDiff};
 
 use compositor;
 use headless;
@@ -18,8 +18,10 @@ use geom::size::Size2D;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
 use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
-use servo_msg::compositor_msg::{RenderListener, RenderState, ScriptListener, ScrollPolicy};
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
+use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
+use servo_msg::constellation_msg::{ConstellationChan, LoadData, PipelineId};
+use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers, Pressed};
+use servo_util::cursor::Cursor;
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
@@ -61,7 +63,7 @@ impl CompositorReceiver for Receiver<Msg> {
 /// Implementation of the abstract `ScriptListener` interface.
 impl ScriptListener for Box<CompositorProxy+'static+Send> {
     fn set_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
-        let msg = ChangeReadyState(pipeline_id, ready_state);
+        let msg = Msg::ChangeReadyState(pipeline_id, ready_state);
         self.send(msg);
     }
 
@@ -69,20 +71,31 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
                              pipeline_id: PipelineId,
                              layer_id: LayerId,
                              point: Point2D<f32>) {
-        self.send(ScrollFragmentPoint(pipeline_id, layer_id, point));
+        self.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point));
     }
 
     fn close(&mut self) {
         let (chan, port) = channel();
-        self.send(Exit(chan));
+        self.send(Msg::Exit(chan));
         port.recv();
     }
 
     fn dup(&mut self) -> Box<ScriptListener+'static> {
         box self.clone_compositor_proxy() as Box<ScriptListener+'static>
     }
+
+    fn set_title(&mut self, pipeline_id: PipelineId, title: Option<String>) {
+        self.send(Msg::ChangePageTitle(pipeline_id, title))
+    }
+
+    fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
+        if state == Pressed {
+            self.send(Msg::KeyEvent(key, modifiers));
+        }
+    }
 }
 
+/// Information about each layer that the compositor keeps.
 pub struct LayerProperties {
     pub pipeline_id: PipelineId,
     pub epoch: Epoch,
@@ -108,11 +121,11 @@ impl LayerProperties {
     }
 }
 
-/// Implementation of the abstract `RenderListener` interface.
-impl RenderListener for Box<CompositorProxy+'static+Send> {
+/// Implementation of the abstract `PaintListener` interface.
+impl PaintListener for Box<CompositorProxy+'static+Send> {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
         let (chan, port) = channel();
-        self.send(GetGraphicsMetadata(chan));
+        self.send(Msg::GetGraphicsMetadata(chan));
         port.recv()
     }
 
@@ -120,7 +133,7 @@ impl RenderListener for Box<CompositorProxy+'static+Send> {
              pipeline_id: PipelineId,
              epoch: Epoch,
              replies: Vec<(LayerId, Box<LayerBufferSet>)>) {
-        self.send(Paint(pipeline_id, epoch, replies));
+        self.send(Msg::Paint(pipeline_id, epoch, replies));
     }
 
     fn initialize_layers_for_pipeline(&mut self,
@@ -134,20 +147,20 @@ impl RenderListener for Box<CompositorProxy+'static+Send> {
         for metadata in metadata.iter() {
             let layer_properties = LayerProperties::new(pipeline_id, epoch, metadata);
             if first {
-                self.send(CreateOrUpdateRootLayer(layer_properties));
+                self.send(Msg::CreateOrUpdateRootLayer(layer_properties));
                 first = false
             } else {
-                self.send(CreateOrUpdateDescendantLayer(layer_properties));
+                self.send(Msg::CreateOrUpdateDescendantLayer(layer_properties));
             }
         }
     }
 
-    fn render_msg_discarded(&mut self) {
-        self.send(RenderMsgDiscarded);
+    fn paint_msg_discarded(&mut self) {
+        self.send(Msg::PaintMsgDiscarded);
     }
 
-    fn set_render_state(&mut self, pipeline_id: PipelineId, render_state: RenderState) {
-        self.send(ChangeRenderState(pipeline_id, render_state))
+    fn set_paint_state(&mut self, pipeline_id: PipelineId, paint_state: PaintState) {
+        self.send(Msg::ChangePaintState(pipeline_id, paint_state))
     }
 }
 
@@ -161,7 +174,7 @@ pub enum Msg {
     /// at the time that we send it an ExitMsg.
     ShutdownComplete,
 
-    /// Requests the compositor's graphics metadata. Graphics metadata is what the renderer needs
+    /// Requests the compositor's graphics metadata. Graphics metadata is what the painter needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.
     ///
@@ -182,39 +195,51 @@ pub enum Msg {
     Paint(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(PipelineId, ReadyState),
-    /// Alerts the compositor to the current status of rendering.
-    ChangeRenderState(PipelineId, RenderState),
-    /// Alerts the compositor that the RenderMsg has been discarded.
-    RenderMsgDiscarded,
-    /// Sets the channel to the current layout and render tasks, along with their id
+    /// Alerts the compositor to the current status of painting.
+    ChangePaintState(PipelineId, PaintState),
+    /// Alerts the compositor that the current page has changed its title.
+    ChangePageTitle(PipelineId, Option<String>),
+    /// Alerts the compositor that the current page has changed its load data (including URL).
+    ChangePageLoadData(FrameId, LoadData),
+    /// Alerts the compositor that a `PaintMsg` has been discarded.
+    PaintMsgDiscarded,
+    /// Sets the channel to the current layout and paint tasks, along with their ID.
     SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
     /// Sends an updated version of the frame tree.
-    FrameTreeUpdateMsg(FrameTreeDiff, Sender<()>),
+    FrameTreeUpdate(FrameTreeDiff, Sender<()>),
     /// The load of a page has completed.
     LoadComplete,
     /// Indicates that the scrolling timeout with the given starting timestamp has happened and a
     /// composite should happen. (See the `scrolling` module.)
     ScrollTimeout(u64),
+    /// Sends an unconsumed key event back to the compositor.
+    KeyEvent(Key, KeyModifiers),
+    /// Changes the cursor.
+    SetCursor(Cursor),
 }
 
 impl Show for Msg {
     fn fmt(&self, f: &mut Formatter) -> Result<(),FormatError> {
         match *self {
-            Exit(..) => write!(f, "Exit"),
-            ShutdownComplete(..) => write!(f, "ShutdownComplete"),
-            GetGraphicsMetadata(..) => write!(f, "GetGraphicsMetadata"),
-            CreateOrUpdateRootLayer(..) => write!(f, "CreateOrUpdateRootLayer"),
-            CreateOrUpdateDescendantLayer(..) => write!(f, "CreateOrUpdateDescendantLayer"),
-            SetLayerOrigin(..) => write!(f, "SetLayerOrigin"),
-            ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
-            Paint(..) => write!(f, "Paint"),
-            ChangeReadyState(..) => write!(f, "ChangeReadyState"),
-            ChangeRenderState(..) => write!(f, "ChangeRenderState"),
-            RenderMsgDiscarded(..) => write!(f, "RenderMsgDiscarded"),
-            SetIds(..) => write!(f, "SetIds"),
-            FrameTreeUpdateMsg(..) => write!(f, "FrameTreeUpdateMsg"),
-            LoadComplete => write!(f, "LoadComplete"),
-            ScrollTimeout(..) => write!(f, "ScrollTimeout"),
+            Msg::Exit(..) => write!(f, "Exit"),
+            Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),
+            Msg::GetGraphicsMetadata(..) => write!(f, "GetGraphicsMetadata"),
+            Msg::CreateOrUpdateRootLayer(..) => write!(f, "CreateOrUpdateRootLayer"),
+            Msg::CreateOrUpdateDescendantLayer(..) => write!(f, "CreateOrUpdateDescendantLayer"),
+            Msg::SetLayerOrigin(..) => write!(f, "SetLayerOrigin"),
+            Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
+            Msg::Paint(..) => write!(f, "Paint"),
+            Msg::ChangeReadyState(..) => write!(f, "ChangeReadyState"),
+            Msg::ChangePaintState(..) => write!(f, "ChangePaintState"),
+            Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
+            Msg::ChangePageLoadData(..) => write!(f, "ChangePageLoadData"),
+            Msg::PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
+            Msg::FrameTreeUpdate(..) => write!(f, "FrameTreeUpdate"),
+            Msg::SetIds(..) => write!(f, "SetIds"),
+            Msg::LoadComplete => write!(f, "LoadComplete"),
+            Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
+            Msg::KeyEvent(..) => write!(f, "KeyEvent"),
+            Msg::SetCursor(..) => write!(f, "SetCursor"),
         }
     }
 }
@@ -269,5 +294,8 @@ pub trait CompositorEventListener {
     fn handle_event(&mut self, event: WindowEvent) -> bool;
     fn repaint_synchronously(&mut self);
     fn shutdown(&mut self);
+    fn pinch_zoom_level(&self) -> f32;
+    /// Requests that the compositor send the title for the main frame as soon as possible.
+    fn get_title_for_main_frame(&self);
 }
 

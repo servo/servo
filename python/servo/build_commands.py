@@ -38,14 +38,18 @@ class MachCommands(CommandBase):
     @CommandArgument('--verbose', '-v',
                      action='store_true',
                      help='Print verbose output')
+    @CommandArgument('params', nargs='...',
+                     help="Command-line arguments to be passed through to Cargo")
     def build(self, target=None, release=False, jobs=None, android=None,
-              verbose=False, debug_mozjs=False):
+              verbose=False, debug_mozjs=False, params=None):
         self.ensure_bootstrapped()
 
         if android is None:
             android = self.config["build"]["android"]
 
-        opts = []
+        opts = params or []
+        features = []
+
         if release:
             opts += ["--release"]
         if target:
@@ -54,8 +58,17 @@ class MachCommands(CommandBase):
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
+        if android:
+            # Ensure the APK builder submodule has been built first
+            apk_builder_dir = "support/android-rs-glue"
+            with cd(path.join(apk_builder_dir, "apk-builder")):
+                subprocess.call(["cargo", "build"], env=self.build_env())
 
-        features = []
+            # FIXME: This can be simplified when glutin becomes the default
+            #        and glfw has been removed.
+            opts += ["--target", "arm-linux-androideabi", "--no-default-features"]
+            features += ["glutin"]
+
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
 
@@ -63,17 +76,18 @@ class MachCommands(CommandBase):
             opts += ["--features", "%s" % ' '.join(features)]
 
         build_start = time()
+        env = self.build_env()
         if android:
-            make_opts = []
-            if opts:
-                make_opts += ["CARGO_OPTS=" + " ".join(opts)]
-            status = subprocess.call(
-                ["make", "-C", "ports/android"] + make_opts,
-                env=self.build_env())
-        else:
-            status = subprocess.call(
-                ["cargo", "build"] + opts,
-                env=self.build_env(), cwd=self.servo_crate())
+            # Build OpenSSL for android
+            with cd(self.android_support_dir()):
+                status = subprocess.call(
+                    ["make", "-j4", "-f", "openssl.makefile"],
+                    env=self.build_env())
+            env['OPENSSL_PATH'] = path.join(self.android_support_dir(), "openssl-1.0.1j")
+
+        status = subprocess.call(
+            ["cargo", "build"] + opts,
+            env=env, cwd=self.servo_crate())
         elapsed = time() - build_start
 
         print("Build completed in %0.2fs" % elapsed)
@@ -105,8 +119,8 @@ class MachCommands(CommandBase):
 
         build_start = time()
         with cd(path.join("ports", "cef")):
-            ret = subprocess.call(["cargo", "build"],
-                                  env=self.build_env(), cwd=self.servo_crate())
+            ret = subprocess.call(["cargo", "build"] + opts,
+                                  env=self.build_env())
         elapsed = time() - build_start
 
         print("CEF build completed in %0.2fs" % elapsed)

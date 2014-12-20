@@ -7,14 +7,15 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
-use dom::bindings::error::{Fallible, InvalidState, report_pending_exception};
+use dom::bindings::error::{Fallible, report_pending_exception};
+use dom::bindings::error::Error::InvalidState;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::event::Event;
 use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;
-use dom::workerglobalscope::WorkerGlobalScopeId;
-use dom::xmlhttprequest::XMLHttpRequestId;
+use dom::workerglobalscope::WorkerGlobalScopeTypeId;
+use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::virtualmethods::VirtualMethods;
 use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
 use js::jsapi::{JSContext, JSObject};
@@ -37,12 +38,12 @@ pub enum ListenerPhase {
 #[deriving(PartialEq)]
 #[jstraceable]
 pub enum EventTargetTypeId {
-    NodeTargetTypeId(NodeTypeId),
-    WebSocketTypeId,
-    WindowTypeId,
-    WorkerTypeId,
-    WorkerGlobalScopeTypeId(WorkerGlobalScopeId),
-    XMLHttpRequestTargetTypeId(XMLHttpRequestId)
+    Node(NodeTypeId),
+    WebSocket,
+    Window,
+    Worker,
+    WorkerGlobalScope(WorkerGlobalScopeTypeId),
+    XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId)
 }
 
 #[deriving(PartialEq)]
@@ -55,7 +56,8 @@ pub enum EventListenerType {
 impl EventListenerType {
     fn get_listener(&self) -> EventListener {
         match *self {
-            Additive(listener) | Inline(listener) => listener
+            EventListenerType::Additive(listener) |
+            EventListenerType::Inline(listener) => listener
         }
     }
 }
@@ -106,8 +108,9 @@ impl EventTarget {
 
 pub trait EventTargetHelpers {
     fn dispatch_event_with_target(self,
-                                  target: Option<JSRef<EventTarget>>,
-                                  event: JSRef<Event>) -> Fallible<bool>;
+                                  target: JSRef<EventTarget>,
+                                  event: JSRef<Event>) -> bool;
+    fn dispatch_event(self, event: JSRef<Event>) -> bool;
     fn set_inline_event_listener(self,
                                  ty: DOMString,
                                  listener: Option<EventListener>);
@@ -127,12 +130,13 @@ pub trait EventTargetHelpers {
 
 impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     fn dispatch_event_with_target(self,
-                                  target: Option<JSRef<EventTarget>>,
-                                  event: JSRef<Event>) -> Fallible<bool> {
-        if event.dispatching() || !event.initialized() {
-            return Err(InvalidState);
-        }
-        Ok(dispatch_event(self, target, event))
+                                  target: JSRef<EventTarget>,
+                                  event: JSRef<Event>) -> bool {
+        dispatch_event(self, Some(target), event)
+    }
+
+    fn dispatch_event(self, event: JSRef<Event>) -> bool {
+        dispatch_event(self, None, event)
     }
 
     fn set_inline_event_listener(self,
@@ -146,7 +150,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
 
         let idx = entries.iter().position(|&entry| {
             match entry.listener {
-                Inline(_) => true,
+                EventListenerType::Inline(_) => true,
                 _ => false,
             }
         });
@@ -154,7 +158,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         match idx {
             Some(idx) => {
                 match listener {
-                    Some(listener) => entries[idx].listener = Inline(listener),
+                    Some(listener) => entries[idx].listener = EventListenerType::Inline(listener),
                     None => {
                         entries.remove(idx);
                     }
@@ -163,8 +167,8 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
             None => {
                 if listener.is_some() {
                     entries.push(EventListenerEntry {
-                        phase: Bubbling,
-                        listener: Inline(listener.unwrap()),
+                        phase: ListenerPhase::Bubbling,
+                        listener: EventListenerType::Inline(listener.unwrap()),
                     });
                 }
             }
@@ -176,7 +180,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         let entries = handlers.get(&ty);
         entries.and_then(|entries| entries.iter().find(|entry| {
             match entry.listener {
-                Inline(_) => true,
+                EventListenerType::Inline(_) => true,
                 _ => false,
             }
         }).map(|entry| entry.listener.get_listener()))
@@ -252,10 +256,10 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                     Vacant(entry) => entry.set(vec!()),
                 };
 
-                let phase = if capture { Capturing } else { Bubbling };
+                let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
                 let new_entry = EventListenerEntry {
                     phase: phase,
-                    listener: Additive(listener)
+                    listener: EventListenerType::Additive(listener)
                 };
                 if entry.as_slice().position_elem(&new_entry).is_none() {
                     entry.push(new_entry);
@@ -274,10 +278,10 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                 let mut handlers = self.handlers.borrow_mut();
                 let mut entry = handlers.get_mut(&ty);
                 for entry in entry.iter_mut() {
-                    let phase = if capture { Capturing } else { Bubbling };
+                    let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
                     let old_entry = EventListenerEntry {
                         phase: phase,
-                        listener: Additive(listener)
+                        listener: EventListenerType::Additive(listener)
                     };
                     let position = entry.as_slice().position_elem(&old_entry);
                     for &position in position.iter() {
@@ -290,7 +294,10 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
     }
 
     fn DispatchEvent(self, event: JSRef<Event>) -> Fallible<bool> {
-        self.dispatch_event_with_target(None, event)
+        if event.dispatching() || !event.initialized() {
+            return Err(InvalidState);
+        }
+        Ok(self.dispatch_event(event))
     }
 }
 

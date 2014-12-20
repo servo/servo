@@ -24,6 +24,7 @@ ignored_files = [
     # Generated and upstream code combined with our own. Could use cleanup
     "components/script/dom/bindings/codegen/*",
     "components/style/properties/mod.rs",
+    "components/servo/target/*",
 ]
 
 

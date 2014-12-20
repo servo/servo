@@ -13,9 +13,10 @@ use style::computed_values::{font_variant, font_weight};
 use style::style_structs::Font as FontStyle;
 use sync::Arc;
 
-use servo_util::geometry::Au;
+use collections::hash::Hash;
 use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
+use servo_util::geometry::Au;
 use text::glyph::{GlyphStore, GlyphId};
 use text::shaping::ShaperMethods;
 use text::{Shaper, TextRun};
@@ -95,37 +96,87 @@ pub struct Font {
     pub requested_pt_size: Au,
     pub actual_pt_size: Au,
     pub shaper: Option<Shaper>,
-    pub shape_cache: HashCache<String, Arc<GlyphStore>>,
-    pub glyph_advance_cache: HashCache<u32, FractionalPixel>,
+    pub shape_cache: HashCache<ShapeCacheEntry,Arc<GlyphStore>>,
+    pub glyph_advance_cache: HashCache<u32,FractionalPixel>,
+}
+
+bitflags! {
+    flags ShapingFlags: u8 {
+        #[doc="Set if the text is entirely whitespace."]
+        const IS_WHITESPACE_SHAPING_FLAG = 0x01,
+        #[doc="Set if we are to ignore ligatures."]
+        const IGNORE_LIGATURES_SHAPING_FLAG = 0x02
+    }
+}
+
+/// Various options that control text shaping.
+#[deriving(Clone, Eq, PartialEq, Hash)]
+pub struct ShapingOptions {
+    /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
+    /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
+    pub letter_spacing: Option<Au>,
+    /// Spacing to add between each word. Corresponds to the CSS 2.1 `word-spacing` property.
+    pub word_spacing: Au,
+    /// Various flags.
+    pub flags: ShapingFlags,
+}
+
+/// An entry in the shape cache.
+#[deriving(Clone, Eq, PartialEq, Hash)]
+pub struct ShapeCacheEntry {
+    text: String,
+    options: ShapingOptions,
+}
+
+#[deriving(Clone, Eq, PartialEq, Hash)]
+struct ShapeCacheEntryRef<'a> {
+    text: &'a str,
+    options: &'a ShapingOptions,
+}
+
+impl<'a> Equiv<ShapeCacheEntry> for ShapeCacheEntryRef<'a> {
+    fn equiv(&self, other: &ShapeCacheEntry) -> bool {
+        self.text == other.text.as_slice() && *self.options == other.options
+    }
 }
 
 impl Font {
-    pub fn shape_text(&mut self, text: &str, is_whitespace: bool) -> Arc<GlyphStore> {
-        self.make_shaper();
+    pub fn shape_text(&mut self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
+        self.make_shaper(options);
+
         let shaper = &self.shaper;
-        match self.shape_cache.find_equiv(text) {
+        let lookup_key = ShapeCacheEntryRef {
+            text: text,
+            options: options,
+        };
+        match self.shape_cache.find_equiv(&lookup_key) {
             None => {}
             Some(glyphs) => return (*glyphs).clone(),
         }
 
-        let mut glyphs = GlyphStore::new(text.char_len() as int, is_whitespace);
-        shaper.as_ref().unwrap().shape_text(text, &mut glyphs);
+        let mut glyphs = GlyphStore::new(text.char_len() as int,
+                                         options.flags.contains(IS_WHITESPACE_SHAPING_FLAG));
+        shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
+
         let glyphs = Arc::new(glyphs);
-        self.shape_cache.insert(text.to_string(), glyphs.clone());
+        self.shape_cache.insert(ShapeCacheEntry {
+            text: text.to_string(),
+            options: *options,
+        }, glyphs.clone());
         glyphs
     }
 
-    fn make_shaper<'a>(&'a mut self) -> &'a Shaper {
+    fn make_shaper<'a>(&'a mut self, options: &ShapingOptions) -> &'a Shaper {
         // fast path: already created a shaper
         match self.shaper {
-            Some(ref shaper) => {
-                let s: &'a Shaper = shaper;
-                return s;
+            Some(ref mut shaper) => {
+                shaper.set_options(options);
+                return shaper
             },
             None => {}
         }
 
-        let shaper = Shaper::new(self);
+        let shaper = Shaper::new(self, options);
         self.shaper = Some(shaper);
         self.shaper.as_ref().unwrap()
     }
@@ -149,7 +200,8 @@ impl Font {
         self.handle.glyph_index(codepoint)
     }
 
-    pub fn glyph_h_kerning(&mut self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
+    pub fn glyph_h_kerning(&mut self, first_glyph: GlyphId, second_glyph: GlyphId)
+                           -> FractionalPixel {
         self.handle.glyph_h_kerning(first_glyph, second_glyph)
     }
 
@@ -175,11 +227,11 @@ impl FontGroup {
         }
     }
 
-    pub fn create_textrun(&self, text: String) -> TextRun {
+    pub fn create_textrun(&self, text: String, options: &ShapingOptions) -> TextRun {
         assert!(self.fonts.len() > 0);
 
         // TODO(Issue #177): Actually fall back through the FontGroup when a font is unsuitable.
-        TextRun::new(&mut *self.fonts.get(0).borrow_mut(), text.clone())
+        TextRun::new(&mut *self.fonts.get(0).borrow_mut(), text.clone(), options)
     }
 }
 

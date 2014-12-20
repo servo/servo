@@ -8,8 +8,14 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetDerived;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::eventtarget::{EventTarget, EventTargetHelpers, XMLHttpRequestTargetTypeId};
-use dom::xmlhttprequest::XMLHttpRequestId;
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+
+#[deriving(PartialEq)]
+#[jstraceable]
+pub enum XMLHttpRequestEventTargetTypeId {
+    XMLHttpRequest,
+    XMLHttpRequestUpload,
+}
 
 #[dom_struct]
 pub struct XMLHttpRequestEventTarget {
@@ -17,9 +23,9 @@ pub struct XMLHttpRequestEventTarget {
 }
 
 impl XMLHttpRequestEventTarget {
-    pub fn new_inherited(type_id: XMLHttpRequestId) -> XMLHttpRequestEventTarget {
+    pub fn new_inherited(type_id: XMLHttpRequestEventTargetTypeId) -> XMLHttpRequestEventTarget {
         XMLHttpRequestEventTarget {
-            eventtarget: EventTarget::new_inherited(XMLHttpRequestTargetTypeId(type_id))
+            eventtarget: EventTarget::new_inherited(EventTargetTypeId::XMLHttpRequestEventTarget(type_id))
         }
     }
 
@@ -31,7 +37,7 @@ impl XMLHttpRequestEventTarget {
 impl XMLHttpRequestEventTargetDerived for EventTarget {
     fn is_xmlhttprequesteventtarget(&self) -> bool {
         match *self.type_id() {
-            XMLHttpRequestTargetTypeId(_) => true,
+            EventTargetTypeId::XMLHttpRequestEventTarget(_) => true,
             _ => false
         }
     }

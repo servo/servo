@@ -6,29 +6,15 @@ use std::cmp::{max, min};
 use std::iter;
 use std::fmt;
 use std::num;
-use std::num::{Bounded, Zero};
+use std::num::Int;
 
 /// An index type to be used by a `Range`
-pub trait RangeIndex: Copy
-                    + Clone
-                    + fmt::Show
-                    + PartialEq
-                    + PartialOrd
-                    + Eq
-                    + Ord
-                    + Add<Self, Self>
-                    + Sub<Self, Self>
-                    + Neg<Self>
-                    + Zero {}
-
-pub trait IntRangeIndex<T>: RangeIndex + Copy {
+pub trait RangeIndex<T>: Int + fmt::Show {
     fn new(x: T) -> Self;
     fn get(self) -> T;
 }
 
-impl RangeIndex for int {}
-
-impl IntRangeIndex<int> for int {
+impl RangeIndex<int> for int {
     #[inline]
     fn new(x: int) -> int { x }
 
@@ -40,7 +26,7 @@ impl IntRangeIndex<int> for int {
 #[macro_export]
 macro_rules! int_range_index {
     ($(#[$attr:meta])* struct $Self:ident($T:ty)) => (
-        #[deriving(Clone, PartialEq, PartialOrd, Eq, Ord, Show, Zero)]
+        #[deriving(Clone, PartialEq, PartialOrd, Eq, Ord, Show)]
         $(#[$attr])*
         pub struct $Self(pub $T);
 
@@ -51,9 +37,7 @@ macro_rules! int_range_index {
             }
         }
 
-        impl RangeIndex for $Self {}
-
-        impl IntRangeIndex<$T> for $Self  {
+        impl RangeIndex<$T> for $Self {
             #[inline]
             fn new(x: $T) -> $Self {
                 $Self(x)
@@ -62,6 +46,31 @@ macro_rules! int_range_index {
             #[inline]
             fn get(self) -> $T {
                 match self { $Self(x) => x }
+            }
+        }
+
+        impl ::std::num::Int for $Self {
+            fn zero() -> $Self { $Self(0) }
+            fn one() -> $Self { $Self(1) }
+            fn min_value() -> $Self { $Self(::std::num::Int::min_value()) }
+            fn max_value() -> $Self { $Self(::std::num::Int::max_value()) }
+            fn count_ones(self) -> uint { self.get().count_ones() }
+            fn leading_zeros(self) -> uint { self.get().leading_zeros() }
+            fn trailing_zeros(self) -> uint { self.get().trailing_zeros() }
+            fn rotate_left(self, n: uint) -> $Self { $Self(self.get().rotate_left(n)) }
+            fn rotate_right(self, n: uint) -> $Self { $Self(self.get().rotate_right(n)) }
+            fn swap_bytes(self) -> $Self { $Self(self.get().swap_bytes()) }
+            fn checked_add(self, other: $Self) -> Option<$Self> {
+                self.get().checked_add(other.get()).map($Self)
+            }
+            fn checked_sub(self, other: $Self) -> Option<$Self> {
+                self.get().checked_sub(other.get()).map($Self)
+            }
+            fn checked_mul(self, other: $Self) -> Option<$Self> {
+                self.get().checked_mul(other.get()).map($Self)
+            }
+            fn checked_div(self, other: $Self) -> Option<$Self> {
+                self.get().checked_div(other.get()).map($Self)
             }
         }
 
@@ -108,6 +117,60 @@ macro_rules! int_range_index {
                 Some(self.get() as u64)
             }
         }
+
+        impl ::std::num::NumCast for $Self {
+            fn from<T: ToPrimitive>(n: T) -> Option<$Self> {
+                n.to_int().map($Self)
+            }
+        }
+
+        impl Div<$Self, $Self> for $Self {
+            fn div(&self, other: &$Self) -> $Self {
+                $Self(self.get() / other.get())
+            }
+        }
+
+        impl Rem<$Self, $Self> for $Self {
+            fn rem(&self, other: &$Self) -> $Self {
+                $Self(self.get() % other.get())
+            }
+        }
+
+        impl Not<$Self> for $Self {
+            fn not(&self) -> $Self {
+                $Self(!self.get())
+            }
+        }
+
+        impl BitAnd<$Self, $Self> for $Self {
+            fn bitand(&self, other: &$Self) -> $Self {
+                $Self(self.get() & other.get())
+            }
+        }
+
+        impl BitOr<$Self, $Self> for $Self {
+            fn bitor(&self, other: &$Self) -> $Self {
+                $Self(self.get() | other.get())
+            }
+        }
+
+        impl BitXor<$Self, $Self> for $Self {
+            fn bitxor(&self, other: &$Self) -> $Self {
+                $Self(self.get() ^ other.get())
+            }
+        }
+
+        impl Shl<uint, $Self> for $Self {
+            fn shl(&self, n: &uint) -> $Self {
+                $Self(self.get() << *n)
+            }
+        }
+
+        impl Shr<uint, $Self> for $Self {
+            fn shr(&self, n: &uint) -> $Self {
+                $Self(self.get() >> *n)
+            }
+        }
     )
 }
 
@@ -118,7 +181,7 @@ pub struct Range<I> {
     length: I,
 }
 
-impl<I: RangeIndex> fmt::Show for Range<I> {
+impl<I: RangeIndex<T>, T> fmt::Show for Range<I> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{} .. {})", self.begin(), self.end())
     }
@@ -129,14 +192,14 @@ pub struct EachIndex<T, I> {
     it: iter::Range<T>,
 }
 
-pub fn each_index<T: Int, I: IntRangeIndex<T>>(start: I, stop: I) -> EachIndex<T, I> {
+pub fn each_index<T: Int, I: RangeIndex<T>>(start: I, stop: I) -> EachIndex<T, I> {
     EachIndex { it: iter::range(start.get(), stop.get()) }
 }
 
-impl<T: Int, I: IntRangeIndex<T>> Iterator<I> for EachIndex<T, I> {
+impl<T: Int, I: RangeIndex<T>> Iterator<I> for EachIndex<T, I> {
     #[inline]
     fn next(&mut self) -> Option<I> {
-        self.it.next().map(|i| IntRangeIndex::new(i))
+        self.it.next().map(|i| RangeIndex::new(i))
     }
 
     #[inline]
@@ -145,7 +208,7 @@ impl<T: Int, I: IntRangeIndex<T>> Iterator<I> for EachIndex<T, I> {
     }
 }
 
-impl<I: RangeIndex> Range<I> {
+impl<I: RangeIndex<T>, T> Range<I> {
     /// Create a new range from beginning and length offsets. This could be
     /// denoted as `[begin, begin + length)`.
     ///
@@ -161,7 +224,7 @@ impl<I: RangeIndex> Range<I> {
 
     #[inline]
     pub fn empty() -> Range<I> {
-        Range::new(num::zero(), num::zero())
+        Range::new(Int::zero(), Int::zero())
     }
 
     /// The index offset to the beginning of the range.
@@ -209,7 +272,7 @@ impl<I: RangeIndex> Range<I> {
     /// `true` if the offset from the beginning to the end of the range is zero.
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.length().is_zero()
+        self.length() == Int::zero()
     }
 
     /// Shift the entire range by the supplied index delta.
@@ -282,7 +345,7 @@ impl<I: RangeIndex> Range<I> {
 }
 
 /// Methods for `Range`s with indices based on integer values
-impl<T: Int, I: IntRangeIndex<T>> Range<I> {
+impl<T: Int, I: RangeIndex<T>> Range<I> {
     /// Returns an iterater that increments over `[begin, end)`.
     #[inline]
     pub fn each_index(&self) -> EachIndex<T, I> {
@@ -294,7 +357,7 @@ impl<T: Int, I: IntRangeIndex<T>> Range<I> {
         let s_len = s.len();
         match num::cast::<uint, T>(s_len) {
             Some(len) => {
-                let len = IntRangeIndex::new(len);
+                let len = RangeIndex::new(len);
                 self.begin() < len
                 && self.end() <= len
                 && self.length() <= len
@@ -303,8 +366,8 @@ impl<T: Int, I: IntRangeIndex<T>> Range<I> {
                 debug!("Range<T>::is_valid_for_string: string length (len={}) is longer than the \
                         max value for the range index (max={})", s_len,
                         {
-                            let max: T = Bounded::max_value();
-                            let val: I = IntRangeIndex::new(max);
+                            let max: T = Int::max_value();
+                            let val: I = RangeIndex::new(max);
                             val
                         });
                 false

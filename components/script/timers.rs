@@ -3,13 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::callback::ReportExceptions;
+use dom::bindings::callback::ExceptionHandling::ReportExceptions;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
 
-use script_task::{FireTimerMsg, ScriptChan};
-use script_task::{TimerSource, FromWindow, FromWorker};
+use script_task::{ScriptChan, ScriptMsg, TimerSource};
 
 use servo_util::task::spawn_named;
 
@@ -107,15 +106,15 @@ impl TimerManager {
         let handle = self.next_timer_handle.get();
         self.next_timer_handle.set(handle + 1);
 
-        // Spawn a new timer task; it will dispatch the FireTimerMsg
+        // Spawn a new timer task; it will dispatch the `ScriptMsg::FireTimer`
         // to the relevant script handler that will deal with it.
         let tm = Timer::new().unwrap();
         let (cancel_chan, cancel_port) = channel();
         let spawn_name = match source {
-            FromWindow(_) if is_interval == IsInterval::Interval => "Window:SetInterval",
-            FromWorker if is_interval == IsInterval::Interval => "Worker:SetInterval",
-            FromWindow(_) => "Window:SetTimeout",
-            FromWorker => "Worker:SetTimeout",
+            TimerSource::FromWindow(_) if is_interval == IsInterval::Interval => "Window:SetInterval",
+            TimerSource::FromWorker if is_interval == IsInterval::Interval => "Worker:SetInterval",
+            TimerSource::FromWindow(_) => "Window:SetTimeout",
+            TimerSource::FromWorker => "Worker:SetTimeout",
         };
         spawn_named(spawn_name, proc() {
             let mut tm = tm;
@@ -138,7 +137,7 @@ impl TimerManager {
                 if id == timeout_handle.id() {
                     timeout_port.recv();
                     let ScriptChan(ref chan) = script_chan;
-                    chan.send(FireTimerMsg(source, TimerId(handle)));
+                    chan.send(ScriptMsg::FireTimer(source, TimerId(handle)));
                     if is_interval == IsInterval::NonInterval {
                         break;
                     }

@@ -32,11 +32,11 @@ use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use dom::node::{Node, TrustedNodeAddress};
 
 use collections::hash::{Hash, Hasher};
+use cssparser::RGBA;
 use geom::rect::Rect;
 use html5ever::tree_builder::QuirksMode;
-use http::headers::request::HeaderCollection as RequestHeaderCollection;
-use http::headers::response::HeaderCollection as ResponseHeaderCollection;
-use http::method::Method;
+use hyper::header::Headers;
+use hyper::method::Method;
 use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
 use js::jsval::JSVal;
 use js::rust::Cx;
@@ -49,7 +49,7 @@ use script_traits::UntrustedNodeAddress;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_util::smallvec::{SmallVec1, SmallVec};
-use servo_util::str::LengthOrPercentageOrAuto;
+use servo_util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::comm::{Receiver, Sender};
@@ -209,12 +209,13 @@ no_jsmanaged_fields!(PropertyDeclarationBlock)
 no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId)
 no_jsmanaged_fields!(QuirksMode)
 no_jsmanaged_fields!(Cx)
-no_jsmanaged_fields!(ResponseHeaderCollection, RequestHeaderCollection, Method)
+no_jsmanaged_fields!(Headers, Method)
 no_jsmanaged_fields!(ConstellationChan)
 no_jsmanaged_fields!(LayoutChan)
 no_jsmanaged_fields!(WindowProxyHandler)
 no_jsmanaged_fields!(UntrustedNodeAddress)
 no_jsmanaged_fields!(LengthOrPercentageOrAuto)
+no_jsmanaged_fields!(RGBA)
 
 impl<'a> JSTraceable for &'a str {
     #[inline]

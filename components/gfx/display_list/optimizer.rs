@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! Transforms a display list to produce a visually-equivalent, but cheaper-to-render, one.
+//! Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
 
 use display_list::{DisplayItem, DisplayList, StackingContext};
 
@@ -11,7 +11,7 @@ use geom::rect::Rect;
 use servo_util::geometry::{mod, Au};
 use sync::Arc;
 
-/// Transforms a display list to produce a visually-equivalent, but cheaper-to-render, one.
+/// Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
 pub struct DisplayListOptimizer {
     /// The visible rect in page coordinates.
     visible_rect: Rect<Au>,
@@ -35,6 +35,7 @@ impl DisplayListOptimizer {
                                          display_list.block_backgrounds_and_borders.iter());
         self.add_in_bounds_display_items(&mut result.floats, display_list.floats.iter());
         self.add_in_bounds_display_items(&mut result.content, display_list.content.iter());
+        self.add_in_bounds_display_items(&mut result.outlines, display_list.outlines.iter());
         self.add_in_bounds_stacking_contexts(&mut result.children, display_list.children.iter());
         result
     }
@@ -58,8 +59,7 @@ impl DisplayListOptimizer {
                                              mut stacking_contexts: I)
                                              where I: Iterator<&'a Arc<StackingContext>> {
         for stacking_context in stacking_contexts {
-            if self.visible_rect.intersects(&stacking_context.bounds) &&
-                    self.visible_rect.intersects(&stacking_context.clip_rect) {
+            if self.visible_rect.intersects(&stacking_context.bounds) {
                 result_list.push_back((*stacking_context).clone())
             }
         }

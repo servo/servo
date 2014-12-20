@@ -45,11 +45,13 @@
 //! - `OptionalSettable`: allows assigning `Option` values of `JSRef`/`Temporary` to fields of `Option<JS<T>>`
 //! - `RootedReference`: makes obtaining an `Option<JSRef<T>>` from an `Option<Root<T>>` easy
 
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;
 use dom::xmlhttprequest::{XMLHttpRequest, TrustedXHRAddress};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use js::jsapi::JSObject;
+use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::StackRoots;
 
@@ -194,6 +196,40 @@ impl<T: Reflectable> Reflectable for JS<T> {
     }
 }
 
+pub trait HeapGCValue: JSTraceable {
+}
+
+impl HeapGCValue for JSVal {
+}
+
+impl<T: Reflectable> HeapGCValue for JS<T> {
+}
+
+/// A mutable holder for a GC-owned SpiderMonkey value stored on the heap.
+/// Must be used in place of traditional interior mutability to ensure proper
+/// GC barriers are enforced.
+#[must_root]
+#[jstraceable]
+pub struct MutHeap<T: HeapGCValue+Copy> {
+    val: Cell<T>,
+}
+
+impl<T: HeapGCValue+Copy> MutHeap<T> {
+    pub fn new(initial: T) -> MutHeap<T> {
+        MutHeap {
+            val: Cell::new(initial),
+        }
+    }
+
+    pub fn set(&self, val: T) {
+        self.val.set(val)
+    }
+
+    pub fn get(&self) -> T {
+        self.val.get()
+    }
+}
+
 /// A mutable `JS<T>` value, with nullability represented by an enclosing
 /// Option wrapper. Must be used in place of traditional internal mutability
 /// to ensure that the proper GC barriers are enforced.
@@ -247,6 +283,17 @@ impl<T: Reflectable> MutNullableJS<T> {
     /// can't use safe types like Temporary.
     pub unsafe fn get_inner(&self) -> Option<JS<T>> {
         self.ptr.get()
+    }
+
+    pub fn or_init(&self, cb: || -> Temporary<T>) -> Temporary<T> {
+        match self.get() {
+            Some(inner) => inner,
+            None => {
+                let inner = cb();
+                self.assign(Some(inner));
+                inner
+            },
+        }
     }
 }
 
@@ -562,5 +609,26 @@ impl<'a, T: Reflectable> JSRef<'a, T> {
 impl<'a, T: Reflectable> Reflectable for JSRef<'a, T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         self.deref().reflector()
+    }
+}
+
+/// A trait for comparing smart pointers ignoring the lifetimes
+pub trait Comparable<T> {
+    fn equals(&self, other: T) -> bool;
+}
+
+impl<'a, 'b, T> Comparable<JSRef<'a, T>> for JSRef<'b, T> {
+    fn equals(&self, other: JSRef<'a, T>) -> bool {
+        self.ptr == other.ptr
+    }
+}
+
+impl<'a, 'b, T> Comparable<Option<JSRef<'a, T>>> for Option<JSRef<'b, T>> {
+    fn equals(&self, other: Option<JSRef<'a, T>>) -> bool {
+        match (*self, other) {
+            (Some(x), Some(y)) => x.ptr == y.ptr,
+            (None, None) => true,
+            _ => false
+        }
     }
 }

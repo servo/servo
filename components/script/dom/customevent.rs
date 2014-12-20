@@ -8,24 +8,22 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary, MutHeap};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventTypeId, CustomEventTypeId};
+use dom::event::{Event, EventTypeId};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
 use servo_util::str::DOMString;
 
-use std::cell::Cell;
-
 #[dom_struct]
 pub struct CustomEvent {
     event: Event,
-    detail: Cell<JSVal>,
+    detail: MutHeap<JSVal>,
 }
 
 impl CustomEventDerived for Event {
     fn is_customevent(&self) -> bool {
-        *self.type_id() == CustomEventTypeId
+        *self.type_id() == EventTypeId::CustomEvent
     }
 }
 
@@ -33,12 +31,12 @@ impl CustomEvent {
     fn new_inherited(type_id: EventTypeId) -> CustomEvent {
         CustomEvent {
             event: Event::new_inherited(type_id),
-            detail: Cell::new(NullValue()),
+            detail: MutHeap::new(NullValue()),
         }
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Temporary<CustomEvent> {
-        reflect_dom_object(box CustomEvent::new_inherited(CustomEventTypeId),
+        reflect_dom_object(box CustomEvent::new_inherited(EventTypeId::CustomEvent),
                            global,
                            CustomEventBinding::Wrap)
     }

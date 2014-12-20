@@ -11,11 +11,10 @@ use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::Element;
-use dom::element::HTMLAreaElementTypeId;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use std::default::Default;
@@ -32,14 +31,14 @@ pub struct HTMLAreaElement {
 
 impl HTMLAreaElementDerived for EventTarget {
     fn is_htmlareaelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLAreaElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLAreaElement))
     }
 }
 
 impl HTMLAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAreaElement {
         HTMLAreaElement {
-            htmlelement: HTMLElement::new_inherited(HTMLAreaElementTypeId, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLAreaElement, localName, prefix, document),
             rel_list: Default::default(),
         }
     }
@@ -73,11 +72,8 @@ impl Reflectable for HTMLAreaElement {
 
 impl<'a> HTMLAreaElementMethods for JSRef<'a, HTMLAreaElement> {
     fn RelList(self) -> Temporary<DOMTokenList> {
-        if self.rel_list.get().is_none() {
-            let element: JSRef<Element> = ElementCast::from_ref(self);
-            let rel_list = DOMTokenList::new(element, &atom!("rel"));
-            self.rel_list.assign(Some(rel_list));
-        }
-        self.rel_list.get().unwrap()
+        self.rel_list.or_init(|| {
+            DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
+        })
     }
 }

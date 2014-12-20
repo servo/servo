@@ -11,17 +11,17 @@ use http_loader;
 use sniffer_task;
 use sniffer_task::SnifferTask;
 
-use std::comm::{channel, Receiver, Sender};
-use http::headers::content_type::MediaType;
-use http::headers::response::HeaderCollection as ResponseHeaderCollection;
-use http::headers::request::HeaderCollection as RequestHeaderCollection;
-use http::method::{Method, Get};
+use servo_util::task::spawn_named;
+
+use hyper::header::common::UserAgent;
+use hyper::header::Headers;
+use hyper::http::RawStatus;
+use hyper::method::{Method, Get};
+use hyper::mime::{Mime, Charset};
 use url::Url;
 
-use http::status::Ok as StatusOk;
-use http::status::Status;
-
-use servo_util::task::spawn_named;
+use std::comm::{channel, Receiver, Sender};
+use std::str::Slice;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
@@ -33,7 +33,7 @@ pub enum ControlMsg {
 pub struct LoadData {
     pub url: Url,
     pub method: Method,
-    pub headers: RequestHeaderCollection,
+    pub headers: Headers,
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
     pub consumer: Sender<LoadResponse>,
@@ -44,7 +44,7 @@ impl LoadData {
         LoadData {
             url: url,
             method: Get,
-            headers: RequestHeaderCollection::new(),
+            headers: Headers::new(),
             data: None,
             cors: None,
             consumer: consumer,
@@ -72,10 +72,10 @@ pub struct Metadata {
     pub charset: Option<String>,
 
     /// Headers
-    pub headers: Option<ResponseHeaderCollection>,
+    pub headers: Option<Headers>,
 
     /// HTTP Status
-    pub status: Option<Status>
+    pub status: Option<RawStatus>
 }
 
 impl Metadata {
@@ -86,21 +86,19 @@ impl Metadata {
             content_type: None,
             charset:      None,
             headers: None,
-            status: Some(StatusOk) // http://fetch.spec.whatwg.org/#concept-response-status-message
+            status: Some(RawStatus(200, Slice("OK"))) // http://fetch.spec.whatwg.org/#concept-response-status-message
         }
     }
 
-    /// Extract the parts of a MediaType that we care about.
-    pub fn set_content_type(&mut self, content_type: &Option<MediaType>) {
-        match *content_type {
+    /// Extract the parts of a Mime that we care about.
+    pub fn set_content_type(&mut self, content_type: Option<&Mime>) {
+        match content_type {
             None => (),
-            Some(MediaType { ref type_,
-                             ref subtype,
-                             ref parameters }) => {
-                self.content_type = Some((type_.clone(), subtype.clone()));
+            Some(&Mime(ref type_, ref subtype, ref parameters)) => {
+                self.content_type = Some((type_.to_string(), subtype.to_string()));
                 for &(ref k, ref v) in parameters.iter() {
-                    if "charset" == k.as_slice() {
-                        self.charset = Some(v.clone());
+                    if &Charset == k {
+                        self.charset = Some(v.to_string());
                     }
                 }
             }
@@ -165,15 +163,15 @@ pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = channel();
-    resource_task.send(Load(LoadData::new(url, start_chan)));
+    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan)));
     let response = start_port.recv();
 
     let mut buf = vec!();
     loop {
         match response.progress_port.recv() {
-            Payload(data) => buf.push_all(data.as_slice()),
-            Done(Ok(()))  => return Ok((response.metadata, buf)),
-            Done(Err(e))  => return Err(e)
+            ProgressMsg::Payload(data) => buf.push_all(data.as_slice()),
+            ProgressMsg::Done(Ok(()))  => return Ok((response.metadata, buf)),
+            ProgressMsg::Done(Err(e))  => return Err(e)
         }
     }
 }
@@ -212,10 +210,10 @@ impl ResourceManager {
     fn start(&self) {
         loop {
             match self.from_client.recv() {
-              Load(load_data) => {
+              ControlMsg::Load(load_data) => {
                 self.load(load_data)
               }
-              Exit => {
+              ControlMsg::Exit => {
                 break
               }
             }
@@ -224,7 +222,7 @@ impl ResourceManager {
 
     fn load(&self, load_data: LoadData) {
         let mut load_data = load_data;
-        load_data.headers.user_agent = self.user_agent.clone();
+        self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
         let senders = ResponseSenders {
             immediate_consumer: self.sniffer_task.clone(),
             eventual_consumer: load_data.consumer.clone(),
@@ -238,7 +236,7 @@ impl ResourceManager {
             _ => {
                 debug!("resource_task: no loader for scheme {:s}", load_data.url.scheme);
                 start_sending(senders, Metadata::default(load_data.url))
-                    .send(Done(Err("no loader for scheme".to_string())));
+                    .send(ProgressMsg::Done(Err("no loader for scheme".to_string())));
                 return
             }
         };
@@ -251,7 +249,7 @@ impl ResourceManager {
 /// Load a URL asynchronously and iterate over chunks of bytes from the response.
 pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, ProgressMsgPortIterator) {
     let (input_chan, input_port) = channel();
-    resource_task.send(Load(LoadData::new(url, input_chan)));
+    resource_task.send(ControlMsg::Load(LoadData::new(url, input_chan)));
 
     let response = input_port.recv();
     let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
@@ -266,9 +264,9 @@ pub struct ProgressMsgPortIterator {
 impl Iterator<Vec<u8>> for ProgressMsgPortIterator {
     fn next(&mut self) -> Option<Vec<u8>> {
         match self.progress_port.recv() {
-            Payload(data) => Some(data),
-            Done(Ok(()))  => None,
-            Done(Err(e))  => {
+            ProgressMsg::Payload(data) => Some(data),
+            ProgressMsg::Done(Ok(()))  => None,
+            ProgressMsg::Done(Err(e))  => {
                 error!("error receiving bytes: {}", e);
                 None
             }
@@ -279,7 +277,7 @@ impl Iterator<Vec<u8>> for ProgressMsgPortIterator {
 #[test]
 fn test_exit() {
     let resource_task = new_resource_task(None);
-    resource_task.send(Exit);
+    resource_task.send(ControlMsg::Exit);
 }
 
 #[test]
@@ -287,11 +285,11 @@ fn test_bad_scheme() {
     let resource_task = new_resource_task(None);
     let (start_chan, start) = channel();
     let url = Url::parse("bogus://whatever").unwrap();
-    resource_task.send(Load(LoadData::new(url, start_chan)));
+    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan)));
     let response = start.recv();
     match response.progress_port.recv() {
-      Done(result) => { assert!(result.is_err()) }
+      ProgressMsg::Done(result) => { assert!(result.is_err()) }
       _ => panic!("bleh")
     }
-    resource_task.send(Exit);
+    resource_task.send(ControlMsg::Exit);
 }

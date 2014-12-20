@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use construct::{ConstructionResult, NoConstructionResult};
+use construct::ConstructionResult;
 use incremental::RestyleDamage;
 use parallel::DomParallelInfo;
 use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
@@ -54,9 +54,9 @@ impl PrivateLayoutData {
             before_style: None,
             after_style: None,
             restyle_damage: RestyleDamage::empty(),
-            flow_construction_result: NoConstructionResult,
-            before_flow_construction_result: NoConstructionResult,
-            after_flow_construction_result: NoConstructionResult,
+            flow_construction_result: ConstructionResult::None,
+            before_flow_construction_result: ConstructionResult::None,
+            after_flow_construction_result: ConstructionResult::None,
             parallel: DomParallelInfo::new(),
             flags: LayoutDataFlags::empty(),
         }

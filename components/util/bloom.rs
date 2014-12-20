@@ -169,6 +169,7 @@ pub trait BloomHash {
 }
 
 impl BloomHash for int {
+    #[allow(exceeding_bitshifts)]
     #[inline]
     fn bloom_hash(&self) -> u32 {
         ((*self >> 32) ^ *self) as u32
@@ -176,6 +177,7 @@ impl BloomHash for int {
 }
 
 impl BloomHash for uint {
+    #[allow(exceeding_bitshifts)]
     #[inline]
     fn bloom_hash(&self) -> u32 {
         ((*self >> 32) ^ *self) as u32

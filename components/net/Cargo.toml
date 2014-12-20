@@ -13,8 +13,8 @@ path = "../util"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
-[dependencies.http]
-git = "https://github.com/servo/rust-http"
+[dependencies.hyper]
+git = "https://github.com/servo/hyper"
 branch = "servo"
 
 [dependencies.png]
@@ -25,3 +25,6 @@ git = "https://github.com/servo/rust-stb-image"
 
 [dependencies.url]
 git = "https://github.com/servo/rust-url"
+
+[dependencies.time]
+git = "https://github.com/rust-lang/time"

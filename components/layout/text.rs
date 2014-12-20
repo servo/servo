@@ -6,10 +6,11 @@
 
 #![deny(unsafe_blocks)]
 
-use fragment::{Fragment, ScannedTextFragmentInfo, UnscannedTextFragment};
+use fragment::{Fragment, SpecificFragmentInfo, ScannedTextFragmentInfo};
 use inline::InlineFragments;
 
-use gfx::font::{FontMetrics,RunMetrics};
+use gfx::font::{FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG, RunMetrics, ShapingFlags};
+use gfx::font::{ShapingOptions};
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
@@ -22,7 +23,7 @@ use servo_util::smallvec::{SmallVec, SmallVec1};
 use std::collections::DList;
 use std::mem;
 use style::ComputedValues;
-use style::computed_values::{line_height, text_orientation, white_space};
+use style::computed_values::{line_height, text_orientation, text_transform, white_space};
 use style::style_structs::Font as FontStyle;
 use sync::Arc;
 
@@ -84,7 +85,7 @@ impl TextRunScanner {
 
         debug_assert!(!self.clump.is_empty());
         match self.clump.front().unwrap().specific {
-            UnscannedTextFragment(_) => {}
+            SpecificFragmentInfo::UnscannedText(_) => {}
             _ => {
                 debug_assert!(self.clump.len() == 1,
                               "WAT: can't coalesce non-text nodes in flush_clump_to_list()!");
@@ -104,21 +105,28 @@ impl TextRunScanner {
         let run = {
             let fontgroup;
             let compression;
+            let text_transform;
+            let letter_spacing;
+            let word_spacing;
             {
                 let in_fragment = self.clump.front().unwrap();
                 let font_style = in_fragment.style().get_font_arc();
+                let inherited_text_style = in_fragment.style().get_inheritedtext();
                 fontgroup = font_context.get_layout_font_group_for_style(font_style);
                 compression = match in_fragment.white_space() {
                     white_space::normal | white_space::nowrap => CompressWhitespaceNewline,
                     white_space::pre => CompressNone,
-                }
+                };
+                text_transform = inherited_text_style.text_transform;
+                letter_spacing = inherited_text_style.letter_spacing;
+                word_spacing = inherited_text_style.word_spacing.unwrap_or(Au(0));
             }
 
             // First, transform/compress text of all the nodes.
             let mut run_text = String::new();
             for in_fragment in self.clump.iter() {
                 let in_fragment = match in_fragment.specific {
-                    UnscannedTextFragment(ref text_fragment_info) => &text_fragment_info.text,
+                    SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => &text_fragment_info.text,
                     _ => panic!("Expected an unscanned text fragment!"),
                 };
 
@@ -136,6 +144,10 @@ impl TextRunScanner {
                 char_total = char_total + added_chars;
             }
 
+            // Account for `text-transform`. (Confusingly, this is not handled in "text
+            // transformation" above, but we follow Gecko in the naming.)
+            self.apply_style_transform_if_necessary(&mut run_text, text_transform);
+
             // Now create the run.
             //
             // TextRuns contain a cycle which is usually resolved by the teardown sequence.
@@ -144,7 +156,23 @@ impl TextRunScanner {
                 self.clump = DList::new();
                 return last_whitespace
             }
-            Arc::new(box TextRun::new(&mut *fontgroup.fonts.get(0).borrow_mut(), run_text))
+
+            // Per CSS 2.1 § 16.4, "when the resultant space between two characters is not the same
+            // as the default space, user agents should not use ligatures." This ensures that, for
+            // example, `finally` with a wide `letter-spacing` renders as `f i n a l l y` and not
+            // `ﬁ n a l l y`.
+            let options = ShapingOptions {
+                letter_spacing: letter_spacing,
+                word_spacing: word_spacing,
+                flags: match letter_spacing {
+                    Some(Au(0)) | None => ShapingFlags::empty(),
+                    Some(_) => IGNORE_LIGATURES_SHAPING_FLAG,
+                },
+            };
+
+            Arc::new(box TextRun::new(&mut *fontgroup.fonts.get(0).borrow_mut(),
+                                      run_text,
+                                      &options))
         };
 
         // Make new fragments with the run and adjusted text indices.
@@ -153,7 +181,7 @@ impl TextRunScanner {
                 mem::replace(&mut self.clump, DList::new()).into_iter().enumerate() {
             let range = *new_ranges.get(logical_offset);
             if range.is_empty() {
-                debug!("Elided an `UnscannedTextFragment` because it was zero-length after \
+                debug!("Elided an `SpecificFragmentInfo::UnscannedText` because it was zero-length after \
                         compression; {}",
                        old_fragment);
                 continue
@@ -176,6 +204,55 @@ impl TextRunScanner {
 
         last_whitespace
     }
+
+    /// Accounts for `text-transform`.
+    ///
+    /// FIXME(#4311, pcwalton): Case mapping can change length of the string; case mapping should
+    /// be language-specific; `full-width`; use graphemes instead of characters.
+    fn apply_style_transform_if_necessary(&mut self,
+                                          string: &mut String,
+                                          text_transform: text_transform::T) {
+        match text_transform {
+            text_transform::none => {}
+            text_transform::uppercase => {
+                let length = string.len();
+                let original = mem::replace(string, String::with_capacity(length));
+                for character in original.chars() {
+                    string.push(character.to_uppercase())
+                }
+            }
+            text_transform::lowercase => {
+                let length = string.len();
+                let original = mem::replace(string, String::with_capacity(length));
+                for character in original.chars() {
+                    string.push(character.to_lowercase())
+                }
+            }
+            text_transform::capitalize => {
+                let length = string.len();
+                let original = mem::replace(string, String::with_capacity(length));
+                let mut capitalize_next_letter = true;
+                for character in original.chars() {
+                    // FIXME(#4311, pcwalton): Should be the CSS/Unicode notion of a *typographic
+                    // letter unit*, not an *alphabetic* character:
+                    //
+                    //    http://dev.w3.org/csswg/css-text/#typographic-letter-unit
+                    if capitalize_next_letter && character.is_alphabetic() {
+                        string.push(character.to_uppercase());
+                        capitalize_next_letter = false;
+                        continue
+                    }
+
+                    string.push(character);
+
+                    // FIXME(#4311, pcwalton): Try UAX29 instead of just whitespace.
+                    if character.is_whitespace() {
+                        capitalize_next_letter = true
+                    }
+                }
+            }
+        }
+    }
 }
 
 struct NewLinePositions(Vec<CharIndex>);
@@ -195,7 +272,7 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
         None => {}
     }
 
-    // In vertical sideways or horizontal upgright text,
+    // In vertical sideways or horizontal upright text,
     // the "width" of text metrics is always inline
     // This will need to be updated when other text orientations are supported.
     LogicalSize::new(

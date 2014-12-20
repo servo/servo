@@ -11,8 +11,9 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
-use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers};
-use servo_msg::compositor_msg::{ReadyState, RenderState};
+use servo_msg::compositor_msg::{PaintState, ReadyState};
+use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
+use servo_util::cursor::Cursor;
 use servo_util::geometry::ScreenPx;
 use std::fmt::{FormatError, Formatter, Show};
 use std::rc::Rc;
@@ -36,27 +37,32 @@ pub enum WindowEvent {
     /// FIXME(pcwalton): This is kind of ugly and may not work well with multiprocess Servo.
     /// It's possible that this should be something like
     /// `CompositorMessageWindowEvent(compositor_task::Msg)` instead.
-    IdleWindowEvent,
-    /// Sent when part of the window is marked dirty and needs to be redrawn.
-    RefreshWindowEvent,
+    Idle,
+    /// Sent when part of the window is marked dirty and needs to be redrawn. Before sending this
+    /// message, the window must make the same GL context as in `PrepareRenderingEvent` current.
+    Refresh,
+    /// Sent to initialize the GL context. The windowing system must have a valid, current GL
+    /// context when this message is sent.
+    InitializeCompositing,
     /// Sent when the window is resized.
-    ResizeWindowEvent(TypedSize2D<DevicePixel, uint>),
+    Resize(TypedSize2D<DevicePixel, uint>),
     /// Sent when a new URL is to be loaded.
-    LoadUrlWindowEvent(String),
+    LoadUrl(String),
     /// Sent when a mouse hit test is to be performed.
     MouseWindowEventClass(MouseWindowEvent),
     /// Sent when a mouse move.
     MouseWindowMoveEventClass(TypedPoint2D<DevicePixel, f32>),
-    /// Sent when the user scrolls. Includes the current cursor position.
-    ScrollWindowEvent(TypedPoint2D<DevicePixel, f32>, TypedPoint2D<DevicePixel, i32>),
+    /// Sent when the user scrolls. The first point is the delta and the second point is the
+    /// origin.
+    Scroll(TypedPoint2D<DevicePixel, f32>, TypedPoint2D<DevicePixel, i32>),
     /// Sent when the user zooms.
-    ZoomWindowEvent(f32),
+    Zoom(f32),
     /// Simulated "pinch zoom" gesture for non-touch platforms (e.g. ctrl-scrollwheel).
-    PinchZoomWindowEvent(f32),
+    PinchZoom(f32),
     /// Sent when the user uses chrome navigation (i.e. backspace or shift-backspace).
-    NavigationWindowEvent(WindowNavigateMsg),
+    Navigation(WindowNavigateMsg),
     /// Sent when the user quits the application
-    QuitWindowEvent,
+    Quit,
     /// Sent when a key input state changes
     KeyEvent(Key, KeyState, KeyModifiers),
 }
@@ -64,18 +70,19 @@ pub enum WindowEvent {
 impl Show for WindowEvent {
     fn fmt(&self, f: &mut Formatter) -> Result<(),FormatError> {
         match *self {
-            IdleWindowEvent => write!(f, "Idle"),
-            RefreshWindowEvent => write!(f, "Refresh"),
-            ResizeWindowEvent(..) => write!(f, "Resize"),
-            KeyEvent(..) => write!(f, "Key"),
-            LoadUrlWindowEvent(..) => write!(f, "LoadUrl"),
-            MouseWindowEventClass(..) => write!(f, "Mouse"),
-            MouseWindowMoveEventClass(..) => write!(f, "MouseMove"),
-            ScrollWindowEvent(..) => write!(f, "Scroll"),
-            ZoomWindowEvent(..) => write!(f, "Zoom"),
-            PinchZoomWindowEvent(..) => write!(f, "PinchZoom"),
-            NavigationWindowEvent(..) => write!(f, "Navigation"),
-            QuitWindowEvent => write!(f, "Quit"),
+            WindowEvent::Idle => write!(f, "Idle"),
+            WindowEvent::Refresh => write!(f, "Refresh"),
+            WindowEvent::InitializeCompositing => write!(f, "InitializeCompositing"),
+            WindowEvent::Resize(..) => write!(f, "Resize"),
+            WindowEvent::KeyEvent(..) => write!(f, "Key"),
+            WindowEvent::LoadUrl(..) => write!(f, "LoadUrl"),
+            WindowEvent::MouseWindowEventClass(..) => write!(f, "Mouse"),
+            WindowEvent::MouseWindowMoveEventClass(..) => write!(f, "MouseMove"),
+            WindowEvent::Scroll(..) => write!(f, "Scroll"),
+            WindowEvent::Zoom(..) => write!(f, "Zoom"),
+            WindowEvent::PinchZoom(..) => write!(f, "PinchZoom"),
+            WindowEvent::Navigation(..) => write!(f, "Navigation"),
+            WindowEvent::Quit => write!(f, "Quit"),
         }
     }
 }
@@ -90,8 +97,14 @@ pub trait WindowMethods {
 
     /// Sets the ready state of the current page.
     fn set_ready_state(&self, ready_state: ReadyState);
-    /// Sets the render state of the current page.
-    fn set_render_state(&self, render_state: RenderState);
+    /// Sets the paint state of the current page.
+    fn set_paint_state(&self, paint_state: PaintState);
+    /// Sets the page title for the current page.
+    fn set_page_title(&self, title: Option<String>);
+    /// Sets the load data for the current page.
+    fn set_page_load_data(&self, load_data: LoadData);
+    /// Called when the browser is done loading a frame.
+    fn load_end(&self);
 
     /// Returns the hidpi factor of the monitor.
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;
@@ -106,5 +119,15 @@ pub trait WindowMethods {
     /// magic to wake the up window's event loop.
     fn create_compositor_channel(_: &Option<Rc<Self>>)
                                  -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>);
-}
 
+    /// Requests that the window system prepare a composite. Typically this will involve making
+    /// some type of platform-specific graphics context current. Returns true if the composite may
+    /// proceed and false if it should not.
+    fn prepare_for_composite(&self) -> bool;
+
+    /// Sets the cursor to be used in the window.
+    fn set_cursor(&self, cursor: Cursor);
+
+    /// Process a key event.
+    fn handle_key(&self, key: Key, mods: KeyModifiers);
+}

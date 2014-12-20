@@ -12,11 +12,11 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLIFrameElementDer
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{HTMLIFrameElementTypeId, Element};
+use dom::element::{ElementTypeId, Element};
 use dom::element::AttributeHandlers;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
@@ -50,7 +50,7 @@ pub struct HTMLIFrameElement {
 
 impl HTMLIFrameElementDerived for EventTarget {
     fn is_htmliframeelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLIFrameElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLIFrameElement))
     }
 }
 
@@ -129,7 +129,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 impl HTMLIFrameElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement: HTMLElement::new_inherited(HTMLIFrameElementTypeId, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLIFrameElement, localName, prefix, document),
             size: Cell::new(None),
             sandbox: Cell::new(None),
         }
@@ -214,16 +214,16 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
 
         match attr.local_name() {
             &atom!("sandbox") => {
-                let mut modes = AllowNothing as u8;
+                let mut modes = SandboxAllowance::AllowNothing as u8;
                 for word in attr.value().as_slice().split(' ') {
                     modes |= match word.to_ascii_lower().as_slice() {
-                        "allow-same-origin" => AllowSameOrigin,
-                        "allow-forms" => AllowForms,
-                        "allow-pointer-lock" => AllowPointerLock,
-                        "allow-popups" => AllowPopups,
-                        "allow-scripts" => AllowScripts,
-                        "allow-top-navigation" => AllowTopNavigation,
-                        _ => AllowNothing
+                        "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
+                        "allow-forms" => SandboxAllowance::AllowForms,
+                        "allow-pointer-lock" => SandboxAllowance::AllowPointerLock,
+                        "allow-popups" => SandboxAllowance::AllowPopups,
+                        "allow-scripts" => SandboxAllowance::AllowScripts,
+                        "allow-top-navigation" => SandboxAllowance::AllowTopNavigation,
+                        _ => SandboxAllowance::AllowNothing
                     } as u8;
                 }
                 self.sandbox.set(Some(modes));

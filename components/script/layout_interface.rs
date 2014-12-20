@@ -24,30 +24,33 @@ pub use dom::node::TrustedNodeAddress;
 /// Asynchronous messages that script can send to layout.
 pub enum Msg {
     /// Adds the given stylesheet to the document.
-    AddStylesheetMsg(Stylesheet),
+    AddStylesheet(Stylesheet),
 
     /// Adds the given stylesheet to the document.
-    LoadStylesheetMsg(Url),
+    LoadStylesheet(Url),
+
+    /// Puts a document into quirks mode, causing the quirks mode stylesheet to be loaded.
+    SetQuirksMode,
 
     /// Requests a reflow.
-    ReflowMsg(Box<Reflow>),
+    Reflow(Box<Reflow>),
 
     /// Get an RPC interface.
-    GetRPCMsg(Sender<Box<LayoutRPC + Send>>),
+    GetRPC(Sender<Box<LayoutRPC + Send>>),
 
     /// Destroys layout data associated with a DOM node.
     ///
     /// TODO(pcwalton): Maybe think about batching to avoid message traffic.
-    ReapLayoutDataMsg(LayoutDataRef),
+    ReapLayoutData(LayoutDataRef),
 
     /// Requests that the layout task enter a quiescent state in which no more messages are
     /// accepted except `ExitMsg`. A response message will be sent on the supplied channel when
     /// this happens.
-    PrepareToExitMsg(Sender<()>),
+    PrepareToExit(Sender<()>),
 
     /// Requests that the layout task immediately shut down. There must be no more nodes left after
     /// this, or layout will crash.
-    ExitNowMsg,
+    ExitNow,
 }
 
 /// Synchronous messages that script can send to layout.
@@ -77,9 +80,9 @@ pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
 #[deriving(PartialEq, Show)]
 pub enum ReflowGoal {
     /// We're reflowing in order to send a display list to the screen.
-    ReflowForDisplay,
+    ForDisplay,
     /// We're reflowing in order to satisfy a script query. No display list will be created.
-    ReflowForScriptQuery,
+    ForScriptQuery,
 }
 
 /// Any query to perform with this reflow.

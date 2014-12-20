@@ -5,7 +5,7 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![feature(default_type_params, globs, macro_rules, struct_variant, phase, unsafe_destructor)]
+#![feature(default_type_params, globs, macro_rules, phase, unsafe_destructor, if_let)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
@@ -22,7 +22,7 @@ extern crate collections;
 extern crate geom;
 extern crate html5ever;
 extern crate encoding;
-extern crate http;
+extern crate hyper;
 extern crate js;
 extern crate libc;
 extern crate msg;
@@ -82,11 +82,13 @@ pub mod dom {
     #[path="bindings/codegen/InterfaceTypes.rs"]
     pub mod types;
 
+    pub mod activation;
     pub mod attr;
     pub mod blob;
     pub mod browsercontext;
     pub mod canvasrenderingcontext2d;
     pub mod characterdata;
+    pub mod cssstyledeclaration;
     pub mod domrect;
     pub mod domrectlist;
     pub mod domstringmap;
@@ -103,6 +105,7 @@ pub mod dom {
     pub mod domparser;
     pub mod domtokenlist;
     pub mod element;
+    pub mod errorevent;
     pub mod event;
     pub mod eventdispatcher;
     pub mod eventtarget;
@@ -224,3 +227,6 @@ pub mod script_task;
 mod timers;
 pub mod textinput;
 mod devtools;
+
+#[cfg(all(test, target_word_size = "64"))]
+mod tests;

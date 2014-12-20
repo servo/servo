@@ -1,0 +1,15 @@
+<html>
+  <head>
+    <script src="harness.js"></script>
+    <script>
+      var testData = ['<a id="a"><b id="b">hey!</b></a>'];
+      var b = new Blob(testData); // the blob
+      is(b.size, 32);
+      is(b.type, "");
+
+      var bs = b.slice(0, 5);
+      is(bs.size, 5);
+      is(b.type, "");
+    </script>
+  </head>
+</html>

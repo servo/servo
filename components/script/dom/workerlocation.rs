@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::WorkerLocationBinding;
 use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::global::Worker;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -30,7 +30,7 @@ impl WorkerLocation {
 
     pub fn new(global: JSRef<WorkerGlobalScope>, url: Url) -> Temporary<WorkerLocation> {
         reflect_dom_object(box WorkerLocation::new_inherited(url),
-                           Worker(global),
+                           GlobalRef::Worker(global),
                            WorkerLocationBinding::Wrap)
     }
 }

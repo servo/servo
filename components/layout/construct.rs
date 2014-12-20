@@ -22,14 +22,15 @@ use flow::{Descendants, AbsDescendants};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow;
 use flow_ref::FlowRef;
-use fragment::{Fragment, GenericFragment, IframeFragment, IframeFragmentInfo, ImageFragment};
-use fragment::{ImageFragmentInfo, InlineAbsoluteHypotheticalFragment};
-use fragment::{InlineAbsoluteHypotheticalFragmentInfo, InlineBlockFragment};
-use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo, TableCellFragment};
-use fragment::{TableColumnFragment, TableColumnFragmentInfo, TableFragment, TableRowFragment};
-use fragment::{TableWrapperFragment, UnscannedTextFragment, UnscannedTextFragmentInfo};
+use fragment::{Fragment, IframeFragmentInfo};
+use fragment::ImageFragmentInfo;
+use fragment::InlineAbsoluteHypotheticalFragmentInfo;
+use fragment::{InlineBlockFragmentInfo, SpecificFragmentInfo};
+use fragment::TableColumnFragmentInfo;
+use fragment::UnscannedTextFragmentInfo;
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::InlineFlow;
+use list_item::{mod, ListItemFlow};
 use parallel;
 use table_wrapper::TableWrapperFlow;
 use table::TableFlow;
@@ -40,25 +41,19 @@ use table_row::TableRowFlow;
 use table_cell::TableCellFlow;
 use text::TextRunScanner;
 use util::{HAS_NEWLY_CONSTRUCTED_FLOW, LayoutDataAccess, OpaqueNodeMethods, LayoutDataWrapper};
-use wrapper::{PostorderNodeMutTraversal, TLayoutNode, ThreadSafeLayoutNode};
-use wrapper::{Before, After, Normal};
+use wrapper::{PostorderNodeMutTraversal, PseudoElementType, TLayoutNode, ThreadSafeLayoutNode};
 
 use gfx::display_list::OpaqueNode;
-use script::dom::element::{HTMLIFrameElementTypeId, HTMLImageElementTypeId};
-use script::dom::element::{HTMLObjectElementTypeId, HTMLInputElementTypeId};
-use script::dom::element::{HTMLTableColElementTypeId, HTMLTableDataCellElementTypeId};
-use script::dom::element::{HTMLTableElementTypeId, HTMLTableHeaderCellElementTypeId};
-use script::dom::element::{HTMLTableRowElementTypeId, HTMLTableSectionElementTypeId};
-use script::dom::node::{CommentNodeTypeId, DoctypeNodeTypeId, DocumentFragmentNodeTypeId};
-use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, ProcessingInstructionNodeTypeId};
-use script::dom::node::{TextNodeTypeId};
+use script::dom::element::ElementTypeId;
+use script::dom::node::NodeTypeId;
 use script::dom::htmlobjectelement::is_image_data;
 use servo_util::opts;
 use std::collections::DList;
 use std::mem;
 use std::sync::atomic::Relaxed;
 use style::ComputedValues;
-use style::computed_values::{display, position, float};
+use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
+use style::computed_values::{position};
 use sync::Arc;
 use url::Url;
 
@@ -67,22 +62,22 @@ use url::Url;
 pub enum ConstructionResult {
     /// This node contributes nothing at all (`display: none`). Alternately, this is what newly
     /// created nodes have their `ConstructionResult` set to.
-    NoConstructionResult,
+    None,
 
     /// This node contributed a flow at the proper position in the tree.
     /// Nothing more needs to be done for this node. It has bubbled up fixed
     /// and absolute descendant flows that have a containing block above it.
-    FlowConstructionResult(FlowRef, AbsDescendants),
+    Flow(FlowRef, AbsDescendants),
 
     /// This node contributed some object or objects that will be needed to construct a proper flow
     /// later up the tree, but these objects have not yet found their home.
-    ConstructionItemConstructionResult(ConstructionItem),
+    ConstructionItem(ConstructionItem),
 }
 
 impl ConstructionResult {
     pub fn swap_out(&mut self) -> ConstructionResult {
         if opts::get().nonincremental_layout {
-            return mem::replace(self, NoConstructionResult)
+            return mem::replace(self, ConstructionResult::None)
         }
 
         (*self).clone()
@@ -90,9 +85,9 @@ impl ConstructionResult {
 
     pub fn debug_id(&self) -> uint {
         match self {
-            &NoConstructionResult => 0u,
-            &ConstructionItemConstructionResult(_) => 0u,
-            &FlowConstructionResult(ref flow_ref, _) => flow::base(flow_ref.deref()).debug_id(),
+            &ConstructionResult::None => 0u,
+            &ConstructionResult::ConstructionItem(_) => 0u,
+            &ConstructionResult::Flow(ref flow_ref, _) => flow::base(flow_ref.deref()).debug_id(),
         }
     }
 }
@@ -103,11 +98,11 @@ impl ConstructionResult {
 #[deriving(Clone)]
 pub enum ConstructionItem {
     /// Inline fragments and associated {ib} splits that have not yet found flows.
-    InlineFragmentsConstructionItem(InlineFragmentsConstructionResult),
+    InlineFragments(InlineFragmentsConstructionResult),
     /// Potentially ignorable whitespace.
-    WhitespaceConstructionItem(OpaqueNode, Arc<ComputedValues>, RestyleDamage),
+    Whitespace(OpaqueNode, Arc<ComputedValues>, RestyleDamage),
     /// TableColumn Fragment
-    TableColumnFragmentConstructionItem(Fragment),
+    TableColumnFragment(Fragment),
 }
 
 /// Represents inline fragments and {ib} splits that are bubbling up from an inline.
@@ -137,7 +132,7 @@ pub struct InlineFragmentsConstructionResult {
 /// The resulting `ConstructionItem` for the outer `span` will be:
 ///
 /// ```ignore
-///     InlineFragmentsConstructionItem(Some(~[
+///     ConstructionItem::InlineFragments(Some(~[
 ///         InlineBlockSplit {
 ///             predecessor_fragments: ~[
 ///                 A
@@ -163,8 +158,8 @@ struct InlineFragmentsAccumulator {
     /// The list of fragments.
     fragments: DList<Fragment>,
 
-    /// Whether we've created a range to enclose all the fragments. This will be Some() if the outer node
-    /// is an inline and None otherwise.
+    /// Whether we've created a range to enclose all the fragments. This will be Some() if the
+    /// outer node is an inline and None otherwise.
     enclosing_style: Option<Arc<ComputedValues>>,
 }
 
@@ -211,9 +206,9 @@ impl InlineFragmentsAccumulator {
 }
 
 enum WhitespaceStrippingMode {
-    NoWhitespaceStripping,
-    StripWhitespaceFromStart,
-    StripWhitespaceFromEnd,
+    None,
+    FromStart,
+    FromEnd,
 }
 
 /// An object that knows how to create flows.
@@ -235,11 +230,11 @@ impl<'a> FlowConstructor<'a> {
     fn build_fragment_info_for_image(&mut self, node: &ThreadSafeLayoutNode, url: Option<Url>)
                                 -> SpecificFragmentInfo {
         match url {
-            None => GenericFragment,
+            None => SpecificFragmentInfo::Generic,
             Some(url) => {
                 // FIXME(pcwalton): The fact that image fragments store the cache within them makes
                 // little sense to me.
-                ImageFragment(box ImageFragmentInfo::new(node,
+                SpecificFragmentInfo::Image(box ImageFragmentInfo::new(node,
                                                          url,
                                                          self.layout_context
                                                              .shared
@@ -258,28 +253,28 @@ impl<'a> FlowConstructor<'a> {
     pub fn build_specific_fragment_info_for_node(&mut self, node: &ThreadSafeLayoutNode)
                                                  -> SpecificFragmentInfo {
         match node.type_id() {
-            Some(ElementNodeTypeId(HTMLIFrameElementTypeId)) => {
-                IframeFragment(box IframeFragmentInfo::new(node))
+            Some(NodeTypeId::Element(ElementTypeId::HTMLIFrameElement)) => {
+                SpecificFragmentInfo::Iframe(box IframeFragmentInfo::new(node))
             }
-            Some(ElementNodeTypeId(HTMLImageElementTypeId)) => {
+            Some(NodeTypeId::Element(ElementTypeId::HTMLImageElement)) => {
                 self.build_fragment_info_for_image(node, node.image_url())
             }
-            Some(ElementNodeTypeId(HTMLObjectElementTypeId)) => {
+            Some(NodeTypeId::Element(ElementTypeId::HTMLObjectElement)) => {
                 let data = node.get_object_data();
                 self.build_fragment_info_for_image(node, data)
             }
-            Some(ElementNodeTypeId(HTMLTableElementTypeId)) => TableWrapperFragment,
-            Some(ElementNodeTypeId(HTMLTableColElementTypeId)) => {
-                TableColumnFragment(TableColumnFragmentInfo::new(node))
+            Some(NodeTypeId::Element(ElementTypeId::HTMLTableElement)) => SpecificFragmentInfo::TableWrapper,
+            Some(NodeTypeId::Element(ElementTypeId::HTMLTableColElement)) => {
+                SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node))
             }
-            Some(ElementNodeTypeId(HTMLTableDataCellElementTypeId)) |
-            Some(ElementNodeTypeId(HTMLTableHeaderCellElementTypeId)) => TableCellFragment,
-            Some(ElementNodeTypeId(HTMLTableRowElementTypeId)) |
-            Some(ElementNodeTypeId(HTMLTableSectionElementTypeId)) => TableRowFragment,
-            Some(TextNodeTypeId) => UnscannedTextFragment(UnscannedTextFragmentInfo::new(node)),
+            Some(NodeTypeId::Element(ElementTypeId::HTMLTableDataCellElement)) |
+            Some(NodeTypeId::Element(ElementTypeId::HTMLTableHeaderCellElement)) => SpecificFragmentInfo::TableCell,
+            Some(NodeTypeId::Element(ElementTypeId::HTMLTableRowElement)) |
+            Some(NodeTypeId::Element(ElementTypeId::HTMLTableSectionElement)) => SpecificFragmentInfo::TableRow,
+            Some(NodeTypeId::Text) => SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new(node)),
             _ => {
                 // This includes pseudo-elements.
-                GenericFragment
+                SpecificFragmentInfo::Generic
             }
         }
     }
@@ -302,14 +297,14 @@ impl<'a> FlowConstructor<'a> {
         };
 
         match whitespace_stripping {
-            NoWhitespaceStripping => {}
-            StripWhitespaceFromStart => {
+            WhitespaceStrippingMode::None => {}
+            WhitespaceStrippingMode::FromStart => {
                 strip_ignorable_whitespace_from_start(&mut fragments);
                 if fragments.is_empty() {
                     return
                 };
             }
-            StripWhitespaceFromEnd => {
+            WhitespaceStrippingMode::FromEnd => {
                 strip_ignorable_whitespace_from_end(&mut fragments);
                 if fragments.is_empty() {
                     return
@@ -321,8 +316,8 @@ impl<'a> FlowConstructor<'a> {
         let mut inline_block_flows = vec!();
         for f in fragments.iter() {
             match f.specific {
-                InlineBlockFragment(ref info) => inline_block_flows.push(info.flow_ref.clone()),
-                InlineAbsoluteHypotheticalFragment(ref info) => {
+                SpecificFragmentInfo::InlineBlock(ref info) => inline_block_flows.push(info.flow_ref.clone()),
+                SpecificFragmentInfo::InlineAbsoluteHypothetical(ref info) => {
                     inline_block_flows.push(info.flow_ref.clone())
                 }
                 _ => {}
@@ -372,12 +367,12 @@ impl<'a> FlowConstructor<'a> {
                                                            abs_descendants: &mut Descendants,
                                                            first_fragment: &mut bool) {
         match kid.swap_out_construction_result() {
-            NoConstructionResult => {}
-            FlowConstructionResult(kid_flow, kid_abs_descendants) => {
+            ConstructionResult::None => {}
+            ConstructionResult::Flow(kid_flow, kid_abs_descendants) => {
                 // If kid_flow is TableCaptionFlow, kid_flow should be added under
                 // TableWrapperFlow.
                 if flow.is_table() && kid_flow.deref().is_table_caption() {
-                    kid.set_flow_construction_result(FlowConstructionResult(kid_flow,
+                    kid.set_flow_construction_result(ConstructionResult::Flow(kid_flow,
                                                                             Descendants::new()))
                 } else if flow.need_anonymous_flow(&*kid_flow) {
                     consecutive_siblings.push(kid_flow)
@@ -391,7 +386,7 @@ impl<'a> FlowConstructor<'a> {
                                      InlineFragmentsAccumulator::new()),
                         flow,
                         consecutive_siblings,
-                        StripWhitespaceFromStart,
+                        WhitespaceStrippingMode::FromStart,
                         node);
                     if !consecutive_siblings.is_empty() {
                         let consecutive_siblings = mem::replace(consecutive_siblings, vec!());
@@ -401,7 +396,7 @@ impl<'a> FlowConstructor<'a> {
                 }
                 abs_descendants.push_descendants(kid_abs_descendants);
             }
-            ConstructionItemConstructionResult(InlineFragmentsConstructionItem(
+            ConstructionResult::ConstructionItem(ConstructionItem::InlineFragments(
                     InlineFragmentsConstructionResult {
                         splits,
                         fragments: successor_fragments,
@@ -421,9 +416,9 @@ impl<'a> FlowConstructor<'a> {
                     // whitespace per CSS 2.1 § 9.2.1.1.
                     let whitespace_stripping = if *first_fragment {
                         *first_fragment = false;
-                        StripWhitespaceFromStart
+                        WhitespaceStrippingMode::FromStart
                     } else {
-                        NoWhitespaceStripping
+                        WhitespaceStrippingMode::None
                     };
 
                     // Flush any inline fragments that we were gathering up.
@@ -450,54 +445,50 @@ impl<'a> FlowConstructor<'a> {
                 inline_fragment_accumulator.push_all(successor_fragments);
                 abs_descendants.push_descendants(kid_abs_descendants);
             }
-            ConstructionItemConstructionResult(WhitespaceConstructionItem(whitespace_node,
+            ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(whitespace_node,
                                                                           whitespace_style,
                                                                           whitespace_damage)) => {
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info =
-                    UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(" ".to_string()));
+                    SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(" ".to_string()));
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_style,
                                                                     whitespace_damage,
                                                                     fragment_info);
                 inline_fragment_accumulator.fragments.push_back(fragment);
             }
-            ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
+            ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(_)) => {
                 // TODO: Implement anonymous table objects for missing parents
                 // CSS 2.1 § 17.2.1, step 3-2
             }
         }
     }
 
-    /// Build block flow for current node using information from children nodes.
-    ///
-    /// Consume results from children and combine them, handling {ib} splits.
-    /// Block flows and inline flows thus created will become the children of
-    /// this block flow.
-    /// Also, deal with the absolute and fixed descendants bubbled up by
-    /// children nodes.
-    fn build_flow_for_block(&mut self, mut flow: FlowRef, node: &ThreadSafeLayoutNode)
-                            -> ConstructionResult {
+    /// Constructs a block flow, beginning with the given `initial_fragment` if present and then
+    /// appending the construction results of children to the child list of the block flow. {ib}
+    /// splits and absolutely-positioned descendants are handled correctly.
+    fn build_flow_for_block_starting_with_fragment(&mut self,
+                                                   mut flow: FlowRef,
+                                                   node: &ThreadSafeLayoutNode,
+                                                   initial_fragment: Option<Fragment>)
+                                                   -> ConstructionResult {
         // Gather up fragments for the inline flows we might need to create.
         let mut inline_fragment_accumulator = InlineFragmentsAccumulator::new();
         let mut consecutive_siblings = vec!();
-        let mut first_fragment = true;
 
-        // Special case: If this is generated content, then we need to initialize the accumulator
-        // with the fragment corresponding to that content.
-        if node.get_pseudo_element_type() != Normal ||
-           node.type_id() == Some(ElementNodeTypeId(HTMLInputElementTypeId)) {
-            let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::new(node));
-            let fragment = Fragment::new_from_specific_info(node, fragment_info);
-            inline_fragment_accumulator.fragments.push_back(fragment);
-            first_fragment = false;
-        }
+        let mut first_fragment = match initial_fragment {
+            None => true,
+            Some(initial_fragment) => {
+                inline_fragment_accumulator.fragments.push_back(initial_fragment);
+                false
+            }
+        };
 
         // List of absolute descendants, in tree order.
         let mut abs_descendants = Descendants::new();
         for kid in node.children() {
-            if kid.get_pseudo_element_type() != Normal {
+            if kid.get_pseudo_element_type() != PseudoElementType::Normal {
                 self.process(&kid);
             }
 
@@ -516,7 +507,7 @@ impl<'a> FlowConstructor<'a> {
         self.flush_inline_fragments_to_flow_or_list(inline_fragment_accumulator,
                                                     &mut flow,
                                                     &mut consecutive_siblings,
-                                                    StripWhitespaceFromEnd,
+                                                    WhitespaceStrippingMode::FromEnd,
                                                     node);
         if !consecutive_siblings.is_empty() {
             self.generate_anonymous_missing_child(consecutive_siblings, &mut flow, node);
@@ -539,7 +530,40 @@ impl<'a> FlowConstructor<'a> {
                 abs_descendants.push(flow.clone());
             }
         }
-        FlowConstructionResult(flow, abs_descendants)
+        ConstructionResult::Flow(flow, abs_descendants)
+    }
+
+    /// Constructs a flow for the given block node and its children. This method creates an
+    /// initial fragment as appropriate and then dispatches to
+    /// `build_flow_for_block_starting_with_fragment`. Currently the following kinds of flows get
+    /// initial content:
+    ///
+    /// * Generated content gets the initial content specified by the `content` attribute of the
+    ///   CSS.
+    /// * `<input>` and `<textarea>` elements get their content.
+    ///
+    /// FIXME(pcwalton): It is not clear to me that there isn't a cleaner way to handle
+    /// `<textarea>`.
+    fn build_flow_for_block(&mut self, flow: FlowRef, node: &ThreadSafeLayoutNode)
+                            -> ConstructionResult {
+        let initial_fragment = if node.get_pseudo_element_type() != PseudoElementType::Normal ||
+           node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLInputElement)) ||
+           node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement)) {
+            // A TextArea's text contents are displayed through the input text
+            // box, so don't construct them.
+            if node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement)) {
+                for kid in node.children() {
+                    kid.set_flow_construction_result(ConstructionResult::None)
+                }
+            }
+            Some(Fragment::new_from_specific_info(
+                    node,
+                    SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new(node))))
+        } else {
+            None
+        };
+
+        self.build_flow_for_block_starting_with_fragment(flow, node, initial_fragment)
     }
 
     /// Builds a flow for a node with `display: block`. This yields a `BlockFlow` with possibly
@@ -571,12 +595,12 @@ impl<'a> FlowConstructor<'a> {
 
         // Concatenate all the fragments of our kids, creating {ib} splits as necessary.
         for kid in node.children() {
-            if kid.get_pseudo_element_type() != Normal {
+            if kid.get_pseudo_element_type() != PseudoElementType::Normal {
                 self.process(&kid);
             }
             match kid.swap_out_construction_result() {
-                NoConstructionResult => {}
-                FlowConstructionResult(flow, kid_abs_descendants) => {
+                ConstructionResult::None => {}
+                ConstructionResult::Flow(flow, kid_abs_descendants) => {
                     // {ib} split. Flush the accumulator to our new split and make a new
                     // accumulator to hold any subsequent fragments we come across.
                     let split = InlineBlockSplit {
@@ -589,7 +613,7 @@ impl<'a> FlowConstructor<'a> {
                     opt_inline_block_splits.push_back(split);
                     abs_descendants.push_descendants(kid_abs_descendants);
                 }
-                ConstructionItemConstructionResult(InlineFragmentsConstructionItem(
+                ConstructionResult::ConstructionItem(ConstructionItem::InlineFragments(
                         InlineFragmentsConstructionResult {
                             splits,
                             fragments: successors,
@@ -618,12 +642,12 @@ impl<'a> FlowConstructor<'a> {
                     fragment_accumulator.push_all(successors);
                     abs_descendants.push_descendants(kid_abs_descendants);
                 }
-                ConstructionItemConstructionResult(WhitespaceConstructionItem(
+                ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                         whitespace_node,
                         whitespace_style,
                         whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
-                    let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::from_text(
+                    let fragment_info = SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(
                             " ".to_string()));
                     let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_style,
@@ -631,7 +655,7 @@ impl<'a> FlowConstructor<'a> {
                                                                         fragment_info);
                     fragment_accumulator.fragments.push_back(fragment)
                 }
-                ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(_)) => {
+                ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(_)) => {
                     // TODO: Implement anonymous table objects for missing parents
                     // CSS 2.1 § 17.2.1, step 3-2
                 }
@@ -641,15 +665,15 @@ impl<'a> FlowConstructor<'a> {
         // Finally, make a new construction result.
         if opt_inline_block_splits.len() > 0 || fragment_accumulator.fragments.len() > 0
                 || abs_descendants.len() > 0 {
-            let construction_item = InlineFragmentsConstructionItem(
+            let construction_item = ConstructionItem::InlineFragments(
                     InlineFragmentsConstructionResult {
                 splits: opt_inline_block_splits,
                 fragments: fragment_accumulator.to_dlist(),
                 abs_descendants: abs_descendants,
             });
-            ConstructionItemConstructionResult(construction_item)
+            ConstructionResult::ConstructionItem(construction_item)
         } else {
-            NoConstructionResult
+            ConstructionResult::None
         }
     }
 
@@ -659,7 +683,7 @@ impl<'a> FlowConstructor<'a> {
     fn build_fragments_for_replaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
                                                -> ConstructionResult {
         for kid in node.children() {
-            kid.set_flow_construction_result(NoConstructionResult)
+            kid.set_flow_construction_result(ConstructionResult::None)
         }
 
         // If this node is ignorable whitespace, bail out now.
@@ -667,7 +691,7 @@ impl<'a> FlowConstructor<'a> {
         // FIXME(#2001, pcwalton): Don't do this if there's padding or borders.
         if node.is_ignorable_whitespace() {
             let opaque_node = OpaqueNodeMethods::from_thread_safe_layout_node(node);
-            return ConstructionItemConstructionResult(WhitespaceConstructionItem(
+            return ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                 opaque_node,
                 node.style().clone(),
                 node.restyle_damage()))
@@ -676,8 +700,8 @@ impl<'a> FlowConstructor<'a> {
         // If this is generated content, then we need to initialize the accumulator with the
         // fragment corresponding to that content. Otherwise, just initialize with the ordinary
         // fragment that needs to be generated for this inline node.
-        let fragment = if node.get_pseudo_element_type() != Normal {
-            let fragment_info = UnscannedTextFragment(UnscannedTextFragmentInfo::new(node));
+        let fragment = if node.get_pseudo_element_type() != PseudoElementType::Normal {
+            let fragment_info = SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new(node));
             Fragment::new_from_specific_info(node, fragment_info)
         } else {
             Fragment::new(self, node)
@@ -686,34 +710,34 @@ impl<'a> FlowConstructor<'a> {
         let mut fragments = DList::new();
         fragments.push_back(fragment);
 
-        let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
+        let construction_item = ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
             splits: DList::new(),
             fragments: fragments,
             abs_descendants: Descendants::new(),
         });
-        ConstructionItemConstructionResult(construction_item)
+        ConstructionResult::ConstructionItem(construction_item)
     }
 
     fn build_fragment_for_inline_block(&mut self, node: &ThreadSafeLayoutNode)
                                        -> ConstructionResult {
         let block_flow_result = self.build_flow_for_nonfloated_block(node);
         let (block_flow, abs_descendants) = match block_flow_result {
-            FlowConstructionResult(block_flow, abs_descendants) => (block_flow, abs_descendants),
+            ConstructionResult::Flow(block_flow, abs_descendants) => (block_flow, abs_descendants),
             _ => unreachable!()
         };
 
-        let fragment_info = InlineBlockFragment(InlineBlockFragmentInfo::new(block_flow));
+        let fragment_info = SpecificFragmentInfo::InlineBlock(InlineBlockFragmentInfo::new(block_flow));
         let fragment = Fragment::new_from_specific_info(node, fragment_info);
 
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         fragment_accumulator.fragments.push_back(fragment);
 
-        let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
+        let construction_item = ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
             splits: DList::new(),
             fragments: fragment_accumulator.to_dlist(),
             abs_descendants: abs_descendants,
         });
-        ConstructionItemConstructionResult(construction_item)
+        ConstructionResult::ConstructionItem(construction_item)
     }
 
     /// This is an annoying case, because the computed `display` value is `block`, but the
@@ -722,23 +746,23 @@ impl<'a> FlowConstructor<'a> {
                                                        -> ConstructionResult {
         let block_flow_result = self.build_flow_for_nonfloated_block(node);
         let (block_flow, abs_descendants) = match block_flow_result {
-            FlowConstructionResult(block_flow, abs_descendants) => (block_flow, abs_descendants),
+            ConstructionResult::Flow(block_flow, abs_descendants) => (block_flow, abs_descendants),
             _ => unreachable!()
         };
 
-        let fragment_info = InlineAbsoluteHypotheticalFragment(
+        let fragment_info = SpecificFragmentInfo::InlineAbsoluteHypothetical(
             InlineAbsoluteHypotheticalFragmentInfo::new(block_flow));
         let fragment = Fragment::new_from_specific_info(node, fragment_info);
 
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         fragment_accumulator.fragments.push_back(fragment);
 
-        let construction_item = InlineFragmentsConstructionItem(InlineFragmentsConstructionResult {
+        let construction_item = ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
             splits: DList::new(),
             fragments: fragment_accumulator.to_dlist(),
             abs_descendants: abs_descendants,
         });
-        ConstructionItemConstructionResult(construction_item)
+        ConstructionResult::ConstructionItem(construction_item)
     }
 
     /// Builds one or more fragments for a node with `display: inline`. This yields an
@@ -755,19 +779,26 @@ impl<'a> FlowConstructor<'a> {
         }
     }
 
-    /// TableCaptionFlow is populated underneath TableWrapperFlow
-    fn place_table_caption_under_table_wrapper(&mut self,
-                                               table_wrapper_flow: &mut FlowRef,
-                                               node: &ThreadSafeLayoutNode) {
+    /// Places any table captions found under the given table wrapper, if the value of their
+    /// `caption-side` property is equal to the given `side`.
+    fn place_table_caption_under_table_wrapper_on_side(&mut self,
+                                                       table_wrapper_flow: &mut FlowRef,
+                                                       node: &ThreadSafeLayoutNode,
+                                                       side: caption_side::T) {
+        // Only flows that are table captions are matched here.
         for kid in node.children() {
             match kid.swap_out_construction_result() {
-                NoConstructionResult | ConstructionItemConstructionResult(_) => {}
-                FlowConstructionResult(kid_flow, _) => {
-                    // Only kid flows with table-caption are matched here.
-                    if kid_flow.deref().is_table_caption() {
+                ConstructionResult::Flow(mut kid_flow, _) => {
+                    if kid_flow.deref().is_table_caption() &&
+                        kid_flow.as_block()
+                                .fragment
+                                .style()
+                                .get_inheritedtable()
+                                .caption_side == side {
                         table_wrapper_flow.add_new_child(kid_flow);
                     }
                 }
+                ConstructionResult::None | ConstructionResult::ConstructionItem(_) => {}
             }
         }
     }
@@ -805,7 +836,7 @@ impl<'a> FlowConstructor<'a> {
     /// possibly other `TableCaptionFlow`s or `TableFlow`s underneath it.
     fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode,
                                     float_value: float::T) -> ConstructionResult {
-        let fragment = Fragment::new_from_specific_info(node, TableWrapperFragment);
+        let fragment = Fragment::new_from_specific_info(node, SpecificFragmentInfo::TableWrapper);
         let wrapper_flow = match float_value {
             float::none => box TableWrapperFlow::from_node_and_fragment(node, fragment),
             _ => {
@@ -815,28 +846,35 @@ impl<'a> FlowConstructor<'a> {
         };
         let mut wrapper_flow = FlowRef::new(wrapper_flow as Box<Flow>);
 
-        let table_fragment = Fragment::new_from_specific_info(node, TableFragment);
+        let table_fragment = Fragment::new_from_specific_info(node, SpecificFragmentInfo::Table);
         let table_flow = box TableFlow::from_node_and_fragment(node, table_fragment);
         let table_flow = FlowRef::new(table_flow as Box<Flow>);
 
-        // We first populate the TableFlow with other flows than TableCaptionFlow.
-        // We then populate the TableWrapperFlow with TableCaptionFlow, and attach
-        // the TableFlow to the TableWrapperFlow
+        // First populate the table flow with its children.
         let construction_result = self.build_flow_for_block(table_flow, node);
-        self.place_table_caption_under_table_wrapper(&mut wrapper_flow, node);
 
         let mut abs_descendants = Descendants::new();
         let mut fixed_descendants = Descendants::new();
 
-        // NOTE: The order of captions and table are not the same order as in the DOM tree.
-        // All caption blocks are placed before the table flow
+        // The order of the caption and the table are not necessarily the same order as in the DOM
+        // tree. All caption blocks are placed before or after the table flow, depending on the
+        // value of `caption-side`.
+        self.place_table_caption_under_table_wrapper_on_side(&mut wrapper_flow,
+                                                             node,
+                                                             caption_side::top);
+
         match construction_result {
-            FlowConstructionResult(table_flow, table_abs_descendants) => {
+            ConstructionResult::Flow(table_flow, table_abs_descendants) => {
                 wrapper_flow.add_new_child(table_flow);
                 abs_descendants.push_descendants(table_abs_descendants);
             }
             _ => {}
         }
+
+        // If the value of `caption-side` is `bottom`, place it now.
+        self.place_table_caption_under_table_wrapper_on_side(&mut wrapper_flow,
+                                                             node,
+                                                             caption_side::bottom);
 
         // The flow is done.
         wrapper_flow.finish();
@@ -859,7 +897,7 @@ impl<'a> FlowConstructor<'a> {
             }
         }
 
-        FlowConstructionResult(wrapper_flow, abs_descendants)
+        ConstructionResult::Flow(wrapper_flow, abs_descendants)
     }
 
     /// Builds a flow for a node with `display: table-caption`. This yields a `TableCaptionFlow`
@@ -873,7 +911,7 @@ impl<'a> FlowConstructor<'a> {
     /// with possibly other `TableRowFlow`s underneath it.
     fn build_flow_for_table_rowgroup(&mut self, node: &ThreadSafeLayoutNode)
                                      -> ConstructionResult {
-        let fragment = Fragment::new_from_specific_info(node, TableRowFragment);
+        let fragment = Fragment::new_from_specific_info(node, SpecificFragmentInfo::TableRow);
         let flow = box TableRowGroupFlow::from_node_and_fragment(node, fragment);
         let flow = flow as Box<Flow>;
         self.build_flow_for_block(FlowRef::new(flow), node)
@@ -882,7 +920,7 @@ impl<'a> FlowConstructor<'a> {
     /// Builds a flow for a node with `display: table-row`. This yields a `TableRowFlow` with
     /// possibly other `TableCellFlow`s underneath it.
     fn build_flow_for_table_row(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
-        let fragment = Fragment::new_from_specific_info(node, TableRowFragment);
+        let fragment = Fragment::new_from_specific_info(node, SpecificFragmentInfo::TableRow);
         let flow = box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow>;
         self.build_flow_for_block(FlowRef::new(flow), node)
     }
@@ -890,9 +928,73 @@ impl<'a> FlowConstructor<'a> {
     /// Builds a flow for a node with `display: table-cell`. This yields a `TableCellFlow` with
     /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
     fn build_flow_for_table_cell(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
-        let fragment = Fragment::new_from_specific_info(node, TableCellFragment);
-        let flow = box TableCellFlow::from_node_and_fragment(node, fragment) as Box<Flow>;
+        let fragment = Fragment::new_from_specific_info(node, SpecificFragmentInfo::TableCell);
+
+        // Determine if the table cell should be hidden. Per CSS 2.1 § 17.6.1.1, this will be true
+        // if the cell has any in-flow elements (even empty ones!) and has `empty-cells` set to
+        // `hide`.
+        let hide = node.style().get_inheritedtable().empty_cells == empty_cells::hide &&
+            node.children().all(|kid| {
+                let position = kid.style().get_box().position;
+                !kid.is_content() || position == position::absolute || position == position::fixed
+            });
+
+        let flow = box TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide)
+            as Box<Flow>;
         self.build_flow_for_block(FlowRef::new(flow), node)
+    }
+
+    /// Builds a flow for a node with `display: list-item`. This yields a `ListItemFlow` with
+    /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
+    fn build_flow_for_list_item(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
+        let marker_fragment = match node.style().get_list().list_style_image {
+            Some(ref url) => {
+                Some(Fragment::new_from_specific_info(
+                    node,
+                    self.build_fragment_info_for_image(node, Some((*url).clone()))))
+            }
+            None => {
+                match list_item::static_text_for_list_style_type(node.style()
+                                                                     .get_list()
+                                                                     .list_style_type) {
+                    None => None,
+                    Some(text) => {
+                        let text = text.to_string();
+                        let mut unscanned_marker_fragments = DList::new();
+                        unscanned_marker_fragments.push_back(Fragment::new_from_specific_info(
+                            node,
+                            SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(text))));
+                        let marker_fragments = TextRunScanner::new().scan_for_runs(
+                            self.layout_context.font_context(),
+                            unscanned_marker_fragments);
+                        debug_assert!(marker_fragments.len() == 1);
+                        marker_fragments.fragments.into_iter().next()
+                    }
+                }
+            }
+        };
+
+        // If the list marker is outside, it becomes the special "outside fragment" that list item
+        // flows have. If it's inside, it's just a plain old fragment. Note that this means that
+        // we adopt Gecko's behavior rather than WebKit's when the marker causes an {ib} split,
+        // which has caused some malaise (Bugzilla #36854) but CSS 2.1 § 12.5.1 lets me do it, so
+        // there.
+        let flow;
+        let initial_fragment;
+        match node.style().get_list().list_style_position {
+            list_style_position::outside => {
+                flow = box ListItemFlow::from_node_and_marker(self, node, marker_fragment);
+                initial_fragment = None;
+            }
+            list_style_position::inside => {
+                flow = box ListItemFlow::from_node_and_marker(self, node, None);
+                initial_fragment = marker_fragment;
+            }
+        }
+
+        self.build_flow_for_block_starting_with_fragment(FlowRef::new(flow as Box<Flow>),
+                                                         node,
+                                                         initial_fragment)
     }
 
     /// Creates a fragment for a node with `display: table-column`.
@@ -900,14 +1002,14 @@ impl<'a> FlowConstructor<'a> {
                                         -> ConstructionResult {
         // CSS 2.1 § 17.2.1. Treat all child fragments of a `table-column` as `display: none`.
         for kid in node.children() {
-            kid.set_flow_construction_result(NoConstructionResult)
+            kid.set_flow_construction_result(ConstructionResult::None)
         }
 
-        let specific = TableColumnFragment(TableColumnFragmentInfo::new(node));
-        let construction_item = TableColumnFragmentConstructionItem(
+        let specific = SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node));
+        let construction_item = ConstructionItem::TableColumnFragment(
             Fragment::new_from_specific_info(node, specific)
         );
-        ConstructionItemConstructionResult(construction_item)
+        ConstructionResult::ConstructionItem(construction_item)
     }
 
     /// Builds a flow for a node with `display: table-column-group`.
@@ -916,13 +1018,13 @@ impl<'a> FlowConstructor<'a> {
                                      -> ConstructionResult {
         let fragment = Fragment::new_from_specific_info(
             node,
-            TableColumnFragment(TableColumnFragmentInfo::new(node)));
+            SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node)));
         let mut col_fragments = vec!();
         for kid in node.children() {
             // CSS 2.1 § 17.2.1. Treat all non-column child fragments of `table-column-group`
             // as `display: none`.
             match kid.swap_out_construction_result() {
-                ConstructionItemConstructionResult(TableColumnFragmentConstructionItem(
+                ConstructionResult::ConstructionItem(ConstructionItem::TableColumnFragment(
                         fragment)) => {
                     col_fragments.push(fragment);
                 }
@@ -930,15 +1032,15 @@ impl<'a> FlowConstructor<'a> {
             }
         }
         if col_fragments.is_empty() {
-            debug!("add TableColumnFragment for empty colgroup");
-            let specific = TableColumnFragment(TableColumnFragmentInfo::new(node));
+            debug!("add SpecificFragmentInfo::TableColumn for empty colgroup");
+            let specific = SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node));
             col_fragments.push(Fragment::new_from_specific_info(node, specific));
         }
         let flow = box TableColGroupFlow::from_node_and_fragments(node, fragment, col_fragments);
         let mut flow = FlowRef::new(flow as Box<Flow>);
         flow.finish();
 
-        FlowConstructionResult(flow, Descendants::new())
+        ConstructionResult::Flow(flow, Descendants::new())
     }
 
     /// Attempts to perform incremental repair to account for recent changes to this node. This
@@ -965,15 +1067,15 @@ impl<'a> FlowConstructor<'a> {
         }
 
         match node.swap_out_construction_result() {
-            NoConstructionResult => true,
-            FlowConstructionResult(mut flow, _) => {
+            ConstructionResult::None => true,
+            ConstructionResult::Flow(mut flow, _) => {
                 // The node's flow is of the same type and has the same set of children and can
                 // therefore be repaired by simply propagating damage and style to the flow.
                 flow::mut_base(&mut *flow).restyle_damage.insert(node.restyle_damage());
                 flow.repair_style(node.style());
                 true
             }
-            ConstructionItemConstructionResult(_) => {
+            ConstructionResult::ConstructionItem(_) => {
                 false
             }
         }
@@ -994,13 +1096,13 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                 // Pseudo-element.
                 let style = node.style();
                 let display = match node.get_pseudo_element_type() {
-                    Normal => display::inline,
-                    Before(display) => display,
-                    After(display) => display,
+                    PseudoElementType::Normal => display::inline,
+                    PseudoElementType::Before(display) => display,
+                    PseudoElementType::After(display) => display,
                 };
                 (display, style.get_box().float, style.get_box().position)
             }
-            Some(ElementNodeTypeId(_)) => {
+            Some(NodeTypeId::Element(_)) => {
                 let style = node.style();
                 let munged_display = if style.get_box()._servo_display_for_hypothetical_box ==
                         display::inline {
@@ -1010,12 +1112,12 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                 };
                 (munged_display, style.get_box().float, style.get_box().position)
             }
-            Some(TextNodeTypeId) => (display::inline, float::none, position::static_),
-            Some(CommentNodeTypeId) |
-            Some(DoctypeNodeTypeId) |
-            Some(DocumentFragmentNodeTypeId) |
-            Some(DocumentNodeTypeId) |
-            Some(ProcessingInstructionNodeTypeId) => {
+            Some(NodeTypeId::Text) => (display::inline, float::none, position::static_),
+            Some(NodeTypeId::Comment) |
+            Some(NodeTypeId::DocumentType) |
+            Some(NodeTypeId::DocumentFragment) |
+            Some(NodeTypeId::Document) |
+            Some(NodeTypeId::ProcessingInstruction) => {
                 (display::none, float::none, position::static_)
             }
         };
@@ -1046,6 +1148,11 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // below.
             (display::block, _, position::absolute) | (_, _, position::fixed) => {
                 node.set_flow_construction_result(self.build_flow_for_nonfloated_block(node))
+            }
+
+            // List items contribute their own special flows.
+            (display::list_item, _, _) => {
+                node.set_flow_construction_result(self.build_flow_for_list_item(node))
             }
 
             // Inline items that are absolutely-positioned contribute inline fragment construction
@@ -1139,7 +1246,7 @@ trait NodeUtils {
     /// Sets the construction result of a flow.
     fn set_flow_construction_result(self, result: ConstructionResult);
 
-    /// Replaces the flow construction result in a node with `NoConstructionResult` and returns the
+    /// Replaces the flow construction result in a node with `ConstructionResult::None` and returns the
     /// old value.
     fn swap_out_construction_result(self) -> ConstructionResult;
 }
@@ -1147,24 +1254,24 @@ trait NodeUtils {
 impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
     fn is_replaced_content(&self) -> bool {
         match self.type_id() {
-            Some(TextNodeTypeId) |
-            Some(ProcessingInstructionNodeTypeId) |
-            Some(CommentNodeTypeId) |
-            Some(DoctypeNodeTypeId) |
-            Some(DocumentFragmentNodeTypeId) |
-            Some(DocumentNodeTypeId) |
+            Some(NodeTypeId::Text) |
+            Some(NodeTypeId::ProcessingInstruction) |
+            Some(NodeTypeId::Comment) |
+            Some(NodeTypeId::DocumentType) |
+            Some(NodeTypeId::DocumentFragment) |
+            Some(NodeTypeId::Document) |
             None |
-            Some(ElementNodeTypeId(HTMLImageElementTypeId)) => true,
-            Some(ElementNodeTypeId(HTMLObjectElementTypeId)) => self.has_object_data(),
-            Some(ElementNodeTypeId(_)) => false,
+            Some(NodeTypeId::Element(ElementTypeId::HTMLImageElement)) => true,
+            Some(NodeTypeId::Element(ElementTypeId::HTMLObjectElement)) => self.has_object_data(),
+            Some(NodeTypeId::Element(_)) => false,
         }
     }
 
     fn get_construction_result<'a>(self, layout_data: &'a mut LayoutDataWrapper) -> &'a mut ConstructionResult {
         match self.get_pseudo_element_type() {
-            Before(_) => &mut layout_data.data.before_flow_construction_result,
-            After (_) => &mut layout_data.data.after_flow_construction_result,
-            Normal    => &mut layout_data.data.flow_construction_result,
+            PseudoElementType::Before(_) => &mut layout_data.data.before_flow_construction_result,
+            PseudoElementType::After (_) => &mut layout_data.data.after_flow_construction_result,
+            PseudoElementType::Normal    => &mut layout_data.data.flow_construction_result,
         }
     }
 

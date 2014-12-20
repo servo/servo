@@ -16,6 +16,7 @@ use serialize::json;
 use serialize::json::ToJson;
 use std::cell::RefCell;
 use std::io::TcpStream;
+use std::num::Float;
 
 pub struct InspectorActor {
     pub name: String,
@@ -66,8 +67,8 @@ impl Actor for HighlighterActor {
                       _registry: &ActorRegistry,
                       msg_type: &String,
                       _msg: &json::JsonObject,
-                      stream: &mut TcpStream) -> bool {
-        match msg_type.as_slice() {
+                      stream: &mut TcpStream) -> Result<bool, ()> {
+        Ok(match msg_type.as_slice() {
             "showBoxModel" => {
                 let msg = ShowBoxModelReply {
                     from: self.name(),
@@ -85,7 +86,7 @@ impl Actor for HighlighterActor {
             }
 
             _ => false,
-        }
+        })
     }
 }
 
@@ -103,8 +104,8 @@ impl Actor for NodeActor {
                       registry: &ActorRegistry,
                       msg_type: &String,
                       msg: &json::JsonObject,
-                      stream: &mut TcpStream) -> bool {
-        match msg_type.as_slice() {
+                      stream: &mut TcpStream) -> Result<bool, ()> {
+        Ok(match msg_type.as_slice() {
             "modifyAttributes" => {
                 let target = msg.get(&"to".to_string()).unwrap().as_string().unwrap();
                 let mods = msg.get(&"modifications".to_string()).unwrap().as_list().unwrap();
@@ -123,7 +124,7 @@ impl Actor for NodeActor {
             }
 
             _ => false,
-        }
+        })
     }
 }
 
@@ -276,8 +277,8 @@ impl Actor for WalkerActor {
                       registry: &ActorRegistry,
                       msg_type: &String,
                       msg: &json::JsonObject,
-                      stream: &mut TcpStream) -> bool {
-        match msg_type.as_slice() {
+                      stream: &mut TcpStream) -> Result<bool, ()> {
+        Ok(match msg_type.as_slice() {
             "querySelector" => {
                 let msg = QuerySelectorReply {
                     from: self.name(),
@@ -329,7 +330,7 @@ impl Actor for WalkerActor {
             }
 
             _ => false,
-        }
+        })
     }
 }
 
@@ -421,8 +422,8 @@ impl Actor for PageStyleActor {
                       registry: &ActorRegistry,
                       msg_type: &String,
                       msg: &json::JsonObject,
-                      stream: &mut TcpStream) -> bool {
-        match msg_type.as_slice() {
+                      stream: &mut TcpStream) -> Result<bool, ()> {
+        Ok(match msg_type.as_slice() {
             "getApplied" => {
                 //TODO: query script for relevant applied styles to node (msg.node)
                 let msg = GetAppliedReply {
@@ -479,7 +480,7 @@ impl Actor for PageStyleActor {
             }
 
             _ => false,
-        }
+        })
     }
 }
 
@@ -492,8 +493,8 @@ impl Actor for InspectorActor {
                       registry: &ActorRegistry,
                       msg_type: &String,
                       _msg: &json::JsonObject,
-                      stream: &mut TcpStream) -> bool {
-        match msg_type.as_slice() {
+                      stream: &mut TcpStream) -> Result<bool, ()> {
+        Ok(match msg_type.as_slice() {
             "getWalker" => {
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {
@@ -569,6 +570,6 @@ impl Actor for InspectorActor {
             }
 
             _ => false,
-        }
+        })
     }
 }

@@ -5,7 +5,7 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![feature(globs, macro_rules, phase, thread_local, unsafe_destructor)]
+#![feature(globs, macro_rules, phase, thread_local, unsafe_destructor, if_let)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
@@ -14,6 +14,7 @@
 #[phase(plugin, link)]
 extern crate log;
 
+extern crate cssparser;
 extern crate geom;
 extern crate gfx;
 extern crate layout_traits;
@@ -52,6 +53,7 @@ pub mod flow_ref;
 pub mod fragment;
 pub mod layout_task;
 pub mod inline;
+pub mod list_item;
 pub mod model;
 pub mod parallel;
 pub mod sequential;
@@ -69,8 +71,6 @@ pub mod incremental;
 pub mod wrapper;
 
 pub mod css {
-    mod node_util;
-
     pub mod matching;
     pub mod node_style;
 }

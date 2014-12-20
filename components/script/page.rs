@@ -12,16 +12,15 @@ use dom::element::Element;
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 use layout_interface::{
-    ContentBoxQuery, ContentBoxResponse, ContentBoxesQuery, ContentBoxesResponse,
-    GetRPCMsg, HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse, NoQuery,
-    Reflow, ReflowForDisplay, ReflowForScriptQuery, ReflowGoal, ReflowMsg,
-    ReflowQueryType, TrustedNodeAddress
+    ContentBoxResponse, ContentBoxesResponse,
+    HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse, Msg, Reflow,
+    ReflowGoal, ReflowQueryType,
+    TrustedNodeAddress
 };
 use script_traits::{UntrustedNodeAddress, ScriptControlChan};
 
 use geom::{Point2D, Rect, Size2D};
 use js::rust::Cx;
-use servo_msg::compositor_msg::PerformingLayout;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
@@ -30,11 +29,11 @@ use servo_net::storage_task::StorageTask;
 use servo_util::geometry::{Au, MAX_RECT};
 use servo_util::geometry;
 use servo_util::str::DOMString;
-use servo_util::smallvec::{SmallVec1, SmallVec};
+use servo_util::smallvec::SmallVec;
 use std::cell::{Cell, Ref, RefMut};
 use std::comm::{channel, Receiver, Empty, Disconnected};
 use std::mem::replace;
-use std::num::abs;
+use std::num::Float;
 use std::rc::Rc;
 use url::Url;
 
@@ -78,9 +77,6 @@ pub struct Page {
     /// Pending resize event, if any.
     pub resize_event: Cell<Option<WindowSizeData>>,
 
-    /// Any nodes that need to be dirtied before the next reflow.
-    pub pending_dirty_nodes: DOMRefCell<SmallVec1<UntrustedNodeAddress>>,
-
     /// Pending scroll to fragment event, if any
     pub fragment_name: DOMRefCell<Option<String>>,
 
@@ -95,15 +91,6 @@ pub struct Page {
 
     // Child Pages.
     pub children: DOMRefCell<Vec<Rc<Page>>>,
-
-    /// Whether layout needs to be run at all.
-    pub damaged: Cell<bool>,
-
-    /// Number of pending reflows that were sent while layout was active.
-    pub pending_reflows: Cell<int>,
-
-    /// Number of unnecessary potential reflows that were skipped since the last reflow
-    pub avoided_reflows: Cell<int>,
 
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
@@ -151,7 +138,7 @@ impl Page {
         let layout_rpc: Box<LayoutRPC> = {
             let (rpc_send, rpc_recv) = channel();
             let LayoutChan(ref lchan) = layout_chan;
-            lchan.send(GetRPCMsg(rpc_send));
+            lchan.send(Msg::GetRPC(rpc_send));
             rpc_recv.recv()
         };
         Page {
@@ -166,57 +153,35 @@ impl Page {
             url: DOMRefCell::new(None),
             next_subpage_id: Cell::new(SubpageId(0)),
             resize_event: Cell::new(None),
-            pending_dirty_nodes: DOMRefCell::new(SmallVec1::new()),
             fragment_name: DOMRefCell::new(None),
             last_reflow_id: Cell::new(0),
             resource_task: resource_task,
             storage_task: storage_task,
             constellation_chan: constellation_chan,
             children: DOMRefCell::new(vec!()),
-            damaged: Cell::new(false),
-            pending_reflows: Cell::new(0),
-            avoided_reflows: Cell::new(0),
             page_clip_rect: Cell::new(MAX_RECT),
         }
     }
 
-    pub fn flush_layout(&self, query: ReflowQueryType) {
-        // If we are damaged, we need to force a full reflow, so that queries interact with
-        // an accurate flow tree.
-        let (reflow_goal, force_reflow) = if self.damaged.get() {
-            (ReflowForDisplay, true)
-        } else {
-            match query {
-                ContentBoxQuery(_) | ContentBoxesQuery(_) => (ReflowForScriptQuery, true),
-                NoQuery => (ReflowForDisplay, false),
-            }
-        };
-
-        if force_reflow {
-            let frame = self.frame();
-            let window = frame.as_ref().unwrap().window.root();
-            self.reflow(reflow_goal, window.control_chan().clone(), &mut **window.compositor(), query);
-        } else {
-            self.avoided_reflows.set(self.avoided_reflows.get() + 1);
-        }
+    pub fn flush_layout(&self, goal: ReflowGoal, query: ReflowQueryType) {
+        let frame = self.frame();
+        let window = frame.as_ref().unwrap().window.root();
+        self.reflow(goal, window.control_chan().clone(), &mut **window.compositor(), query);
     }
 
-     pub fn layout(&self) -> &LayoutRPC {
-        self.flush_layout(NoQuery);
-        self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
-        let layout_rpc: &LayoutRPC = &*self.layout_rpc;
-        layout_rpc
+    pub fn layout(&self) -> &LayoutRPC {
+        &*self.layout_rpc
     }
 
     pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Rect<Au> {
-        self.flush_layout(ContentBoxQuery(content_box_request));
+        self.flush_layout(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxQuery(content_box_request));
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
 
     pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        self.flush_layout(ContentBoxesQuery(content_boxes_request));
+        self.flush_layout(ReflowGoal::ForScriptQuery, ReflowQueryType::ContentBoxesQuery(content_boxes_request));
         self.join_layout(); //FIXME: is this necessary, or is layout_rpc's mutex good enough?
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
@@ -228,44 +193,18 @@ impl Page {
             self.children
                 .borrow_mut()
                 .iter_mut()
-                .enumerate()
-                .find(|&(_idx, ref page_tree)| {
-                    // FIXME: page_tree has a lifetime such that it's unusable for anything.
-                    let page_tree_id = page_tree.id;
-                    page_tree_id == id
-                })
-                .map(|(idx, _)| idx)
+                .position(|page_tree| page_tree.id == id)
         };
         match remove_idx {
-            Some(idx) => return Some(self.children.borrow_mut().remove(idx).unwrap()),
+            Some(idx) => Some(self.children.borrow_mut().remove(idx).unwrap()),
             None => {
-                for page_tree in self.children.borrow_mut().iter_mut() {
-                    match page_tree.remove(id) {
-                        found @ Some(_) => return found,
-                        None => (), // keep going...
-                    }
-                }
+                self.children
+                    .borrow_mut()
+                    .iter_mut()
+                    .filter_map(|page_tree| page_tree.remove(id))
+                    .next()
             }
         }
-        None
-    }
-
-    fn should_move_clip_rect(&self, clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
-        let clip_rect = Rect(Point2D(geometry::to_frac_px(clip_rect.origin.x) as f32,
-                                        geometry::to_frac_px(clip_rect.origin.y) as f32),
-                                Size2D(geometry::to_frac_px(clip_rect.size.width) as f32,
-                                       geometry::to_frac_px(clip_rect.size.height) as f32));
-
-        // We only need to move the clip rect if the viewport is getting near the edge of
-        // our preexisting clip rect. We use half of the size of the viewport as a heuristic
-        // for "close."
-        static VIEWPORT_SCROLL_MARGIN_SIZE: f32 = 0.5;
-        let viewport_scroll_margin = new_viewport.size * VIEWPORT_SCROLL_MARGIN_SIZE;
-
-        abs(clip_rect.origin.x - new_viewport.origin.x) <= viewport_scroll_margin.width ||
-        abs(clip_rect.max_x() - new_viewport.max_x()) <= viewport_scroll_margin.width ||
-        abs(clip_rect.origin.y - new_viewport.origin.y) <= viewport_scroll_margin.height ||
-        abs(clip_rect.max_y() - new_viewport.max_y()) <= viewport_scroll_margin.height
     }
 
     pub fn set_page_clip_rect_with_new_viewport(&self, viewport: Rect<f32>) -> bool {
@@ -282,7 +221,7 @@ impl Page {
         }
 
         let had_clip_rect = clip_rect != MAX_RECT;
-        if had_clip_rect && !self.should_move_clip_rect(clip_rect, viewport) {
+        if had_clip_rect && !should_move_clip_rect(clip_rect, viewport) {
             return false;
         }
 
@@ -292,18 +231,36 @@ impl Page {
         // because it was built for infinite clip (MAX_RECT).
         had_clip_rect
     }
+
+    pub fn send_title_to_compositor(&self) {
+        match *self.frame() {
+            None => {}
+            Some(ref frame) => {
+                let window = frame.window.root();
+                let document = frame.document.root();
+                window.compositor().set_title(self.id, Some(document.Title()));
+            }
+        }
+    }
+
+    pub fn dirty_all_nodes(&self) {
+        match *self.frame.borrow() {
+            None => {}
+            Some(ref frame) => frame.document.root().dirty_all_nodes(),
+        }
+    }
 }
 
 impl Iterator<Rc<Page>> for PageIterator {
     fn next(&mut self) -> Option<Rc<Page>> {
-        if !self.stack.is_empty() {
-            let next = self.stack.pop().unwrap();
-            for child in next.children.borrow().iter() {
-                self.stack.push(child.clone());
-            }
-            Some(next.clone())
-        } else {
-            None
+        match self.stack.pop() {
+            Some(next) => {
+                for child in next.children.borrow().iter() {
+                    self.stack.push(child.clone());
+                }
+                Some(next)
+            },
+            None => None,
         }
     }
 }
@@ -350,7 +307,7 @@ impl Page {
 
     /// Sends a ping to layout and waits for the response. The response will arrive when the
     /// layout task has finished any pending request messages.
-    pub fn join_layout(&self) {
+    fn join_layout(&self) {
         let mut layout_join_port = self.layout_join_port.borrow_mut();
         if layout_join_port.is_some() {
             let join_port = replace(&mut *layout_join_port, None);
@@ -374,17 +331,15 @@ impl Page {
         }
     }
 
-    /// Reflows the page if it's possible to do so. This method will wait until the layout task has
-    /// completed its current action, join the layout task, and then request a new layout run. It
-    /// won't wait for the new layout computation to finish.
+    /// Reflows the page if it's possible to do so and the page is dirty. This method will wait
+    /// for the layout thread to complete (but see the `TODO` below). If there is no window size
+    /// yet, the page is presumed invisible and no reflow is performed.
     ///
-    /// If there is no window size yet, the page is presumed invisible and no reflow is performed.
-    ///
-    /// This function fails if there is no root frame.
+    /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
     pub fn reflow(&self,
                   goal: ReflowGoal,
                   script_chan: ScriptControlChan,
-                  compositor: &mut ScriptListener,
+                  _: &mut ScriptListener,
                   query_type: ReflowQueryType) {
         let root = match *self.frame() {
             None => return,
@@ -393,57 +348,54 @@ impl Page {
             }
         };
 
-        match root.root() {
-            None => {},
-            Some(root) => {
-                debug!("avoided {:d} reflows", self.avoided_reflows.get());
-                self.avoided_reflows.set(0);
+        let root = match root.root() {
+            None => return,
+            Some(root) => root,
+        };
 
-                debug!("script: performing reflow for goal {}", goal);
+        debug!("script: performing reflow for goal {}", goal);
 
-                // Now, join the layout so that they will see the latest changes we have made.
-                self.join_layout();
-
-                // Tell the user that we're performing layout.
-                compositor.set_ready_state(self.id, PerformingLayout);
-
-                // Layout will let us know when it's done.
-                let (join_chan, join_port) = channel();
-                let mut layout_join_port = self.layout_join_port.borrow_mut();
-                *layout_join_port = Some(join_port);
-
-                let last_reflow_id = &self.last_reflow_id;
-                last_reflow_id.set(last_reflow_id.get() + 1);
-
-                let root: JSRef<Node> = NodeCast::from_ref(*root);
-
-                let window_size = self.window_size.get();
-                self.damaged.set(false);
-
-                // Send new document and relevant styles to layout.
-                let reflow = box Reflow {
-                    document_root: root.to_trusted_node_address(),
-                    url: self.get_url(),
-                    iframe: self.subpage_id.is_some(),
-                    goal: goal,
-                    window_size: window_size,
-                    script_chan: script_chan,
-                    script_join_chan: join_chan,
-                    id: last_reflow_id.get(),
-                    query_type: query_type,
-                    page_clip_rect: self.page_clip_rect.get(),
-                };
-
-                let LayoutChan(ref chan) = self.layout_chan;
-                chan.send(ReflowMsg(reflow));
-
-                debug!("script: layout forked")
-            }
+        let root: JSRef<Node> = NodeCast::from_ref(*root);
+        if !root.get_has_dirty_descendants() {
+            debug!("root has no dirty descendants; avoiding reflow");
+            return
         }
-    }
 
-    pub fn damage(&self) {
-        self.damaged.set(true);
+        debug!("script: performing reflow for goal {}", goal);
+
+        // Layout will let us know when it's done.
+        let (join_chan, join_port) = channel();
+
+        {
+            let mut layout_join_port = self.layout_join_port.borrow_mut();
+            *layout_join_port = Some(join_port);
+        }
+
+        let last_reflow_id = &self.last_reflow_id;
+        last_reflow_id.set(last_reflow_id.get() + 1);
+
+        let window_size = self.window_size.get();
+
+        // Send new document and relevant styles to layout.
+        let reflow = box Reflow {
+            document_root: root.to_trusted_node_address(),
+            url: self.get_url(),
+            iframe: self.subpage_id.is_some(),
+            goal: goal,
+            window_size: window_size,
+            script_chan: script_chan,
+            script_join_chan: join_chan,
+            id: last_reflow_id.get(),
+            query_type: query_type,
+            page_clip_rect: self.page_clip_rect.get(),
+        };
+
+        let LayoutChan(ref chan) = self.layout_chan;
+        chan.send(Msg::Reflow(reflow));
+
+        debug!("script: layout forked");
+
+        self.join_layout();
     }
 
     /// Attempt to find a named element in this page's document.
@@ -455,11 +407,10 @@ impl Page {
     pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         let frame = self.frame();
         let document = frame.as_ref().unwrap().document.root();
-        let root = document.GetDocumentElement().root();
-        if root.is_none() {
-            return None;
-        }
-        let root = root.unwrap();
+        let root = match document.GetDocumentElement().root() {
+            None => return None,
+            Some(root) => root,
+        };
         let root: JSRef<Node> = NodeCast::from_ref(*root);
         let address = match self.layout().hit_test(root.to_trusted_node_address(), *point) {
             Ok(HitTestResponse(node_address)) => {
@@ -476,11 +427,10 @@ impl Page {
     pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<Vec<UntrustedNodeAddress>> {
         let frame = self.frame();
         let document = frame.as_ref().unwrap().document.root();
-        let root = document.GetDocumentElement().root();
-        if root.is_none() {
-            return None;
-        }
-        let root = root.unwrap();
+        let root = match document.GetDocumentElement().root() {
+            None => return None,
+            Some(root) => root,
+        };
         let root: JSRef<Node> = NodeCast::from_ref(*root);
         let address = match self.layout().mouse_over(root.to_trusted_node_address(), *point) {
             Ok(MouseOverResponse(node_address)) => {
@@ -492,6 +442,24 @@ impl Page {
         };
         address
     }
+}
+
+fn should_move_clip_rect(clip_rect: Rect<Au>, new_viewport: Rect<f32>) -> bool{
+    let clip_rect = Rect(Point2D(geometry::to_frac_px(clip_rect.origin.x) as f32,
+                                 geometry::to_frac_px(clip_rect.origin.y) as f32),
+                         Size2D(geometry::to_frac_px(clip_rect.size.width) as f32,
+                                geometry::to_frac_px(clip_rect.size.height) as f32));
+
+    // We only need to move the clip rect if the viewport is getting near the edge of
+    // our preexisting clip rect. We use half of the size of the viewport as a heuristic
+    // for "close."
+    static VIEWPORT_SCROLL_MARGIN_SIZE: f32 = 0.5;
+    let viewport_scroll_margin = new_viewport.size * VIEWPORT_SCROLL_MARGIN_SIZE;
+
+    (clip_rect.origin.x - new_viewport.origin.x).abs() <= viewport_scroll_margin.width ||
+    (clip_rect.max_x() - new_viewport.max_x()).abs() <= viewport_scroll_margin.width ||
+    (clip_rect.origin.y - new_viewport.origin.y).abs() <= viewport_scroll_margin.height ||
+    (clip_rect.max_y() - new_viewport.max_y()).abs() <= viewport_scroll_margin.height
 }
 
 /// Information for one frame in the browsing context.

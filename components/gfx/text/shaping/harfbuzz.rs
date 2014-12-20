@@ -4,7 +4,8 @@
 
 extern crate harfbuzz;
 
-use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag};
+use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag, IGNORE_LIGATURES_SHAPING_FLAG};
+use font::{ShapingOptions};
 use platform::font::FontTable;
 use text::glyph::{CharIndex, GlyphStore, GlyphId, GlyphData};
 use text::shaping::ShaperMethods;
@@ -18,9 +19,11 @@ use harfbuzz::{hb_bool_t};
 use harfbuzz::{hb_buffer_add_utf8};
 use harfbuzz::{hb_buffer_destroy};
 use harfbuzz::{hb_buffer_get_glyph_positions};
+use harfbuzz::{hb_buffer_get_length};
 use harfbuzz::{hb_buffer_set_direction};
 use harfbuzz::{hb_face_destroy};
 use harfbuzz::{hb_face_t, hb_font_t};
+use harfbuzz::{hb_feature_t};
 use harfbuzz::{hb_font_create};
 use harfbuzz::{hb_font_destroy, hb_buffer_create};
 use harfbuzz::{hb_font_funcs_create};
@@ -39,13 +42,16 @@ use harfbuzz::{hb_shape, hb_buffer_get_glyph_infos};
 use libc::{c_uint, c_int, c_void, c_char};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
-use std::mem;
 use std::char;
+use std::mem;
 use std::cmp;
 use std::ptr;
 
 static NO_GLYPH: i32 = -1;
 static CONTINUATION_BYTE: i32 = -2;
+
+static LIGA: u32 = ((b'l' as u32) << 24) | ((b'i' as u32) << 16) | ((b'g' as u32) << 8) |
+    (b'a' as u32);
 
 pub struct ShapedGlyphData {
     count: int,
@@ -131,10 +137,16 @@ impl ShapedGlyphData {
     }
 }
 
+struct FontAndShapingOptions {
+    font: *mut Font,
+    options: ShapingOptions,
+}
+
 pub struct Shaper {
     hb_face: *mut hb_face_t,
     hb_font: *mut hb_font_t,
     hb_funcs: *mut hb_font_funcs_t,
+    font_and_shaping_options: Box<FontAndShapingOptions>,
 }
 
 #[unsafe_destructor]
@@ -154,13 +166,18 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
-    pub fn new(font: &mut Font) -> Shaper {
+    pub fn new(font: &mut Font, options: &ShapingOptions) -> Shaper {
         unsafe {
-            // Indirection for Rust Issue #6248, dynamic freeze scope artifically extended
-            let font_ptr = font as *mut Font;
-            let hb_face: *mut hb_face_t = hb_face_create_for_tables(get_font_table_func,
-                                                                    font_ptr as *mut c_void,
-                                                                    None);
+            let mut font_and_shaping_options = box FontAndShapingOptions {
+                font: font,
+                options: *options,
+            };
+            let hb_face: *mut hb_face_t =
+                hb_face_create_for_tables(get_font_table_func,
+                                          (&mut *font_and_shaping_options)
+                                            as *mut FontAndShapingOptions
+                                            as *mut c_void,
+                                          None);
             let hb_font: *mut hb_font_t = hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
@@ -178,14 +195,19 @@ impl Shaper {
             hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::null_mut(), None);
             hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::null_mut(), None);
             hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, ptr::null_mut(), ptr::null_mut());
-            hb_font_set_funcs(hb_font, hb_funcs, font_ptr as *mut c_void, None);
+            hb_font_set_funcs(hb_font, hb_funcs, font as *mut Font as *mut c_void, None);
 
             Shaper {
                 hb_face: hb_face,
                 hb_font: hb_font,
                 hb_funcs: hb_funcs,
+                font_and_shaping_options: font_and_shaping_options,
             }
         }
+    }
+
+    pub fn set_options(&mut self, options: &ShapingOptions) {
+        self.font_and_shaping_options.options = *options
     }
 
     fn float_to_fixed(f: f64) -> i32 {
@@ -198,9 +220,9 @@ impl Shaper {
 }
 
 impl ShaperMethods for Shaper {
-    /// Calculate the layout metrics associated with the given text when rendered in a specific
+    /// Calculate the layout metrics associated with the given text when painted in a specific
     /// font.
-    fn shape_text(&self, text: &str, glyphs: &mut GlyphStore) {
+    fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
             hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
@@ -211,15 +233,29 @@ impl ShaperMethods for Shaper {
                                0,
                                text.len() as c_int);
 
-            hb_shape(self.hb_font, hb_buffer, ptr::null_mut(), 0);
-            self.save_glyph_results(text, glyphs, hb_buffer);
+            let mut features = Vec::new();
+            if options.flags.contains(IGNORE_LIGATURES_SHAPING_FLAG) {
+                features.push(hb_feature_t {
+                    _tag: LIGA,
+                    _value: 0,
+                    _start: 0,
+                    _end: hb_buffer_get_length(hb_buffer),
+                })
+            }
+
+            hb_shape(self.hb_font, hb_buffer, features.as_mut_ptr(), features.len() as u32);
+            self.save_glyph_results(text, options, glyphs, hb_buffer);
             hb_buffer_destroy(hb_buffer);
         }
     }
 }
 
 impl Shaper {
-    fn save_glyph_results(&self, text: &str, glyphs: &mut GlyphStore, buffer: *mut hb_buffer_t) {
+    fn save_glyph_results(&self,
+                          text: &str,
+                          options: &ShapingOptions,
+                          glyphs: &mut GlyphStore,
+                          buffer: *mut hb_buffer_t) {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
         let byte_max = text.len() as int;
@@ -282,7 +318,7 @@ impl Shaper {
         let mut y_pos = Au(0);
 
         // main loop over each glyph. each iteration usually processes 1 glyph and 1+ chars.
-        // in cases with complex glyph-character assocations, 2+ glyphs and 1+ chars can be
+        // in cases with complex glyph-character associations, 2+ glyphs and 1+ chars can be
         // processed.
         while glyph_span.begin() < glyph_count {
             // start by looking at just one glyph.
@@ -400,9 +436,14 @@ impl Shaper {
                 // for now, just pretend that every character is a cluster start.
                 // (i.e., pretend there are no combining character sequences).
                 // 1-to-1 mapping of character to glyph also treated as ligature start.
+                //
+                // NB: When we acquire the ability to handle ligatures that cross word boundaries,
+                // we'll need to do something special to handle `word-spacing` properly.
                 let shape = glyph_data.get_entry_for_glyph(glyph_span.begin(), &mut y_pos);
+                let character = text.char_at(char_byte_span.begin() as uint);
+                let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
                 let data = GlyphData::new(shape.codepoint,
-                                          shape.advance,
+                                          advance,
                                           shape.offset,
                                           false,
                                           true,
@@ -449,6 +490,24 @@ impl Shaper {
         // this must be called after adding all glyph data; it sorts the
         // lookup table for finding detailed glyphs by associated char index.
         glyphs.finalize_changes();
+    }
+
+    fn advance_for_shaped_glyph(&self, mut advance: Au, character: char, options: &ShapingOptions)
+                                -> Au {
+        match options.letter_spacing {
+            None => {}
+            Some(letter_spacing) => advance = advance + letter_spacing,
+        };
+
+        // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
+        // space (U+00A0) left in the text after the white space processing rules have been
+        // applied. The effect of the property on other word-separator characters is undefined."
+        // We elect to only space the two required code points.
+        if character == ' ' || character == '\u00a0' {
+            advance = advance + options.word_spacing
+        }
+
+        advance
     }
 }
 
@@ -504,13 +563,19 @@ extern fn glyph_h_kerning_func(_: *mut hb_font_t,
 }
 
 // Callback to get a font table out of a font.
-extern fn get_font_table_func(_: *mut hb_face_t, tag: hb_tag_t, user_data: *mut c_void) -> *mut hb_blob_t {
+extern fn get_font_table_func(_: *mut hb_face_t,
+                              tag: hb_tag_t,
+                              user_data: *mut c_void)
+                              -> *mut hb_blob_t {
     unsafe {
-        let font: *const Font = user_data as *const Font;
-        assert!(font.is_not_null());
+        // NB: These asserts have security implications.
+        let font_and_shaping_options: *const FontAndShapingOptions =
+            user_data as *const FontAndShapingOptions;
+        assert!(font_and_shaping_options.is_not_null());
+        assert!((*font_and_shaping_options).font.is_not_null());
 
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
-        match (*font).get_table_for_tag(tag as FontTableTag) {
+        match (*(*font_and_shaping_options).font).get_table_for_tag(tag as FontTableTag) {
             None => ptr::null_mut(),
             Some(ref font_table) => {
                 let skinny_font_table_ptr: *const FontTable = font_table;   // private context

@@ -36,17 +36,19 @@ use incremental::RestyleDamage;
 use util::{LayoutDataAccess, LayoutDataFlags, LayoutDataWrapper, OpaqueNodeMethods};
 use util::{PrivateLayoutData};
 
+use cssparser::RGBA;
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
-use script::dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
 use script::dom::bindings::js::JS;
-use script::dom::element::{Element, HTMLAreaElementTypeId, HTMLAnchorElementTypeId};
-use script::dom::element::{HTMLLinkElementTypeId, LayoutElementHelpers, RawLayoutElementHelpers};
+use script::dom::element::{Element, ElementTypeId};
+use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
-use script::dom::node::{DocumentNodeTypeId, ElementNodeTypeId, Node, NodeTypeId};
+use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
+use script::dom::node::{Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
 use script::dom::text::Text;
@@ -55,11 +57,12 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::str::{LengthOrPercentageOrAuto, is_whitespace};
 use std::kinds::marker::ContravariantLifetime;
 use std::mem;
-use style::computed_values::{content, display, white_space};
-use style::{AnyNamespace, AttrSelector, IntegerAttribute, LengthAttribute};
-use style::{PropertyDeclarationBlock, SpecificNamespace, TElement, TElementAttributes, TNode};
-use url::Url;
 use string_cache::{Atom, Namespace};
+use style::computed_values::{content, display, white_space};
+use style::{NamespaceConstraint, AttrSelector, IntegerAttribute};
+use style::{LengthAttribute, PropertyDeclarationBlock, SimpleColorAttribute};
+use style::{TElement, TElementAttributes, TNode, UnsignedIntegerAttribute};
+use url::Url;
 
 use std::cell::{Ref, RefMut};
 
@@ -84,14 +87,14 @@ pub trait TLayoutNode {
 
     fn node_is_element(&self) -> bool {
         match self.type_id() {
-            Some(ElementNodeTypeId(..)) => true,
+            Some(NodeTypeId::Element(..)) => true,
             _ => false
         }
     }
 
     fn node_is_document(&self) -> bool {
         match self.type_id() {
-            Some(DocumentNodeTypeId(..)) => true,
+            Some(NodeTypeId::Document(..)) => true,
             _ => false
         }
     }
@@ -183,13 +186,14 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     fn text(&self) -> String {
         unsafe {
-            let text_opt: Option<JS<Text>> = TextCast::to_js(self.get_jsmanaged());
-            match text_opt {
-                Some(text) => (*text.unsafe_get()).characterdata().data_for_layout().to_string(),
-                None => match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
-                    Some(input) => input.get_value_for_layout(),
-                    None => panic!("not text!")
-                }
+            if let Some(text) = TextCast::to_js(self.get_jsmanaged()) {
+                (*text.unsafe_get()).characterdata().data_for_layout().to_string()
+            } else if let Some(input) = HTMLInputElementCast::to_js(self.get_jsmanaged()) {
+                input.get_value_for_layout()
+            } else if let Some(area) = HTMLTextAreaElementCast::to_js(self.get_jsmanaged()) {
+                area.get_value_for_layout()
+            } else {
+                panic!("not text!")
             }
         }
     }
@@ -197,7 +201,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
 impl<'ln> LayoutNode<'ln> {
     /// Creates a new layout node, scoped to the given closure.
-    pub unsafe fn with_layout_node<R>(node: JS<Node>, f: <'a> |LayoutNode<'a>| -> R) -> R {
+    pub unsafe fn with_layout_node<R>(node: JS<Node>, f: for <'a> |LayoutNode<'a>| -> R) -> R {
         f(LayoutNode {
             node: node,
             chain: ContravariantLifetime,
@@ -223,7 +227,8 @@ impl<'ln> LayoutNode<'ln> {
     }
 
     fn debug_str(self) -> String {
-        format!("{}: dirty={}", self.type_id(), self.is_dirty())
+        format!("{}: changed={} dirty={} dirty_descendants={}",
+                self.type_id(), self.has_changed(), self.is_dirty(), self.has_dirty_descendants())
     }
 
     pub fn flow_debug_id(self) -> uint {
@@ -370,11 +375,11 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
             &attr.name
         };
         match attr.namespace {
-            SpecificNamespace(ref ns) => {
+            NamespaceConstraint::Specific(ref ns) => {
                 let element = self.as_element();
                 element.get_attr(ns, name).map_or(false, |attr| test(attr))
             },
-            AnyNamespace => {
+            NamespaceConstraint::Any => {
                 let element = self.as_element();
                 element.get_attrs(name).iter().any(|attr| test(*attr))
             }
@@ -511,9 +516,9 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         match NodeCast::from_actual(self.element).type_id_for_layout() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
-            ElementNodeTypeId(HTMLAnchorElementTypeId) |
-            ElementNodeTypeId(HTMLAreaElementTypeId) |
-            ElementNodeTypeId(HTMLLinkElementTypeId) => {
+            NodeTypeId::Element(ElementTypeId::HTMLAnchorElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLAreaElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLLinkElement) => {
                 unsafe {
                     self.element.get_attr_val_for_layout(&ns!(""), &atom!("href"))
                 }
@@ -551,6 +556,20 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline]
+    fn get_checked_state(self) -> bool {
+        unsafe {
+            self.element.get_checked_state_for_layout()
+        }
+    }
+
+    #[inline]
+    fn get_indeterminate_state(self) -> bool {
+        unsafe {
+            self.element.get_indeterminate_state_for_layout()
+        }
+    }
+
+    #[inline]
     fn has_class(self, name: &Atom) -> bool {
         unsafe {
             self.element.has_class_for_layout(name)
@@ -570,6 +589,17 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
             }
         }
     }
+
+    #[inline]
+    fn has_nonzero_border(self) -> bool {
+        unsafe {
+            match self.element
+                      .get_unsigned_integer_attribute_for_layout(UnsignedIntegerAttribute::Border) {
+                None | Some(0) => false,
+                _ => true,
+            }
+        }
+    }
 }
 
 impl<'le> TElementAttributes for LayoutElement<'le> {
@@ -582,6 +612,18 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
     fn get_integer_attribute(self, integer_attribute: IntegerAttribute) -> Option<i32> {
         unsafe {
             self.element.get_integer_attribute_for_layout(integer_attribute)
+        }
+    }
+
+    fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute) -> Option<u32> {
+        unsafe {
+            self.element.get_unsigned_integer_attribute_for_layout(attribute)
+        }
+    }
+
+    fn get_simple_color_attribute(self, attribute: SimpleColorAttribute) -> Option<RGBA> {
+        unsafe {
+            self.element.get_simple_color_attribute_for_layout(attribute)
         }
     }
 }
@@ -609,14 +651,14 @@ pub enum PseudoElementType {
 impl PseudoElementType {
     pub fn is_before(&self) -> bool {
         match *self {
-            Before(_) => true,
+            PseudoElementType::Before(_) => true,
             _ => false,
         }
     }
 
     pub fn is_after(&self) -> bool {
         match *self {
-            After(_) => true,
+            PseudoElementType::After(_) => true,
             _ => false,
         }
     }
@@ -640,13 +682,13 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
                 node: node.transmute_copy(),
                 chain: self.node.chain,
             },
-            pseudo: Normal,
+            pseudo: PseudoElementType::Normal,
         }
     }
 
     /// Returns `None` if this is a pseudo-element.
     fn type_id(&self) -> Option<NodeTypeId> {
-        if self.pseudo != Normal {
+        if self.pseudo != PseudoElementType::Normal {
             return None
         }
 
@@ -662,20 +704,20 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     }
 
     fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
-        if self.pseudo != Normal {
+        if self.pseudo != PseudoElementType::Normal {
             return None
         }
 
         if self.has_before_pseudo() {
             // FIXME(pcwalton): This logic looks weird. Is it right?
             match self.pseudo {
-                Normal => {
-                    let pseudo_before_node = self.with_pseudo(Before(self.get_before_display()));
+                PseudoElementType::Normal => {
+                    let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(self.get_before_display()));
                     return Some(pseudo_before_node)
                 }
-                Before(display::inline) => {}
-                Before(_) => {
-                    let pseudo_before_node = self.with_pseudo(Before(display::inline));
+                PseudoElementType::Before(display::inline) => {}
+                PseudoElementType::Before(_) => {
+                    let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(display::inline));
                     return Some(pseudo_before_node)
                 }
                 _ => {}
@@ -688,7 +730,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     }
 
     fn text(&self) -> String {
-        if self.pseudo != Normal {
+        if self.pseudo != PseudoElementType::Normal {
             let layout_data_ref = self.borrow_layout_data();
             let node_layout_data_wrapper = layout_data_ref.as_ref().unwrap();
 
@@ -709,7 +751,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn new<'a>(node: &LayoutNode<'a>) -> ThreadSafeLayoutNode<'a> {
         ThreadSafeLayoutNode {
             node: node.clone(),
-            pseudo: Normal,
+            pseudo: PseudoElementType::Normal,
         }
     }
 
@@ -903,6 +945,18 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
         }
     }
 
+    pub fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute)
+                                          -> Option<u32> {
+        unsafe {
+            match ElementCast::to_js(self.get_jsmanaged()) {
+                Some(element) => {
+                    (*element.unsafe_get()).get_unsigned_integer_attribute_for_layout(attribute)
+                }
+                None => panic!("not an element!")
+            }
+        }
+    }
+
     /// Get the description of how to account for recent style changes.
     /// This is a simple bitfield and fine to copy by value.
     pub fn restyle_damage(self) -> RestyleDamage {
@@ -946,6 +1000,15 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             _ => panic!("no layout data for this node"),
         }
     }
+
+    /// Returns true if this node contributes content. This is used in the implementation of
+    /// `empty_cells` per CSS 2.1 § 17.6.1.1.
+    pub fn is_content(&self) -> bool {
+        match self.type_id() {
+            Some(NodeTypeId::Element(..)) | Some(NodeTypeId::Text(..)) => true,
+            _ => false
+        }
+    }
 }
 
 pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
@@ -965,7 +1028,7 @@ impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIter
 
                 match self.parent_node {
                     Some(ref parent_node) => {
-                        if parent_node.pseudo == Normal {
+                        if parent_node.pseudo == PseudoElementType::Normal {
                             self.current_node = self.current_node.clone().and_then(|node| {
                                 unsafe {
                                     node.next_sibling()
@@ -982,8 +1045,8 @@ impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIter
                 match self.parent_node {
                     Some(ref parent_node) => {
                         if parent_node.has_after_pseudo() {
-                            let pseudo_after_node = if parent_node.pseudo == Normal {
-                                let pseudo = After(parent_node.get_after_display());
+                            let pseudo_after_node = if parent_node.pseudo == PseudoElementType::Normal {
+                                let pseudo = PseudoElementType::After(parent_node.get_after_display());
                                 Some(parent_node.with_pseudo(pseudo))
                             } else {
                                 None

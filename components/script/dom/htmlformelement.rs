@@ -2,48 +2,53 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
-use dom::bindings::codegen::InheritTypes::HTMLInputElementCast;
-use dom::bindings::global::Window;
-use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast, HTMLFormElementCast};
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, AttributeHandlers, HTMLFormElementTypeId, HTMLTextAreaElementTypeId, HTMLDataListElementTypeId};
-use dom::element::{HTMLInputElementTypeId, HTMLButtonElementTypeId, HTMLObjectElementTypeId, HTMLSelectElementTypeId};
-use dom::event::{Event, Bubbles, Cancelable};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::{Element, AttributeHandlers, ElementTypeId};
+use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmlinputelement::HTMLInputElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId, document_from_node, window_from_node};
-use http::method::Post;
+use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
+use hyper::method::Post;
 use servo_msg::constellation_msg::LoadData;
 use servo_util::str::DOMString;
-use script_task::{ScriptChan, TriggerLoadMsg};
+use script_task::{ScriptChan, ScriptMsg};
 use std::ascii::OwnedAsciiExt;
 use url::UrlParser;
 use url::form_urlencoded::serialize;
 use string_cache::Atom;
 
+use std::cell::Cell;
+
 #[dom_struct]
 pub struct HTMLFormElement {
     htmlelement: HTMLElement,
+    marked_for_reset: Cell<bool>,
 }
 
 impl HTMLFormElementDerived for EventTarget {
     fn is_htmlformelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLFormElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLFormElement))
     }
 }
 
 impl HTMLFormElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFormElement {
         HTMLFormElement {
-            htmlelement: HTMLElement::new_inherited(HTMLFormElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLFormElement, localName, prefix, document),
+            marked_for_reset: Cell::new(false),
         }
     }
 
@@ -115,7 +120,12 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#the-form-element:concept-form-submit
     fn Submit(self) {
-        self.submit(FromFormSubmitMethod, FormElement(self));
+        self.submit(SubmittedFrom::FromFormSubmitMethod, FormSubmitter::FormElement(self));
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-reset
+    fn Reset(self) {
+        self.reset(ResetFrom::FromFormResetMethod);
     }
 }
 
@@ -124,11 +134,18 @@ pub enum SubmittedFrom {
     NotFromFormSubmitMethod
 }
 
+pub enum ResetFrom {
+    FromFormResetMethod,
+    NotFromFormResetMethod
+}
+
 pub trait HTMLFormElementHelpers {
     // https://html.spec.whatwg.org/multipage/forms.html#concept-form-submit
     fn submit(self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter);
     // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
     fn get_form_dataset(self, submitter: Option<FormSubmitter>) -> Vec<FormDatum>;
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-reset
+    fn reset(self, submit_method_flag: ResetFrom);
 }
 
 impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
@@ -139,9 +156,11 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         let base = doc.url();
         // TODO: Handle browsing contexts
         // TODO: Handle validation
-        let event = Event::new(Window(*win),
+        let event = Event::new(GlobalRef::Window(*win),
                                "submit".to_string(),
-                               Bubbles, Cancelable).root();
+                               EventBubbles::Bubbles,
+                               EventCancelable::Cancelable).root();
+        event.set_trusted(true);
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
         target.DispatchEvent(*event).ok();
         if event.DefaultPrevented() {
@@ -165,29 +184,29 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         // TODO: Handle browsing contexts, partially loaded documents (step 16-17)
 
         let parsed_data = match enctype {
-            UrlEncoded => serialize(form_data.iter().map(|d| (d.name.as_slice(), d.value.as_slice())), None),
+            FormEncType::UrlEncoded => serialize(form_data.iter().map(|d| (d.name.as_slice(), d.value.as_slice()))),
             _ => "".to_string() // TODO: Add serializers for the other encoding types
         };
 
         let mut load_data = LoadData::new(action_components);
         // Step 18
         match (scheme.as_slice(), method) {
-            (_, FormDialog) => return, // Unimplemented
-            ("http", FormGet) | ("https", FormGet) => {
+            (_, FormMethod::FormDialog) => return, // Unimplemented
+            ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) => {
                 load_data.url.query = Some(parsed_data);
             },
-            ("http", FormPost) | ("https", FormPost) => {
+            ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
                 load_data.method = Post;
                 load_data.data = Some(parsed_data.into_bytes());
             },
             // https://html.spec.whatwg.org/multipage/forms.html#submit-get-action
-            ("ftp", _) | ("javascript", _) | ("data", FormGet) => (),
+            ("ftp", _) | ("javascript", _) | ("data", FormMethod::FormGet) => (),
             _ => return // Unimplemented (data and mailto)
         }
 
         // This is wrong. https://html.spec.whatwg.org/multipage/forms.html#planned-navigation
         let ScriptChan(ref script_chan) = *win.script_chan();
-        script_chan.send(TriggerLoadMsg(win.page().id, load_data));
+        script_chan.send(ScriptMsg::TriggerLoad(win.page().id, load_data));
     }
 
     fn get_form_dataset<'b>(self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {
@@ -230,12 +249,12 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             if child.get_disabled_state() {
                 return None;
             }
-            if child.ancestors().any(|a| a.type_id() == ElementNodeTypeId(HTMLDataListElementTypeId)) {
+            if child.ancestors().any(|a| a.type_id() == NodeTypeId::Element(ElementTypeId::HTMLDataListElement)) {
                 return None;
             }
             // XXXManishearth don't include it if it is a button but not the submitter
             match child.type_id() {
-                ElementNodeTypeId(HTMLInputElementTypeId) => {
+                NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
                     let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child).unwrap();
                     let ty = input.Type();
                     let name = input.Name();
@@ -255,7 +274,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
 
                     let mut value = input.Value();
                     let is_submitter = match submitter {
-                        Some(InputElement(s)) => {
+                        Some(FormSubmitter::InputElement(s)) => {
                             input == s
                         },
                         _ => false
@@ -282,19 +301,19 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                         })
                     }
                 }
-                ElementNodeTypeId(HTMLButtonElementTypeId) => {
+                NodeTypeId::Element(ElementTypeId::HTMLButtonElement) => {
                     // Unimplemented
                     None
                 }
-                ElementNodeTypeId(HTMLSelectElementTypeId) => {
+                NodeTypeId::Element(ElementTypeId::HTMLSelectElement) => {
                     // Unimplemented
                     None
                 }
-                ElementNodeTypeId(HTMLObjectElementTypeId) => {
+                NodeTypeId::Element(ElementTypeId::HTMLObjectElement) => {
                     // Unimplemented
                     None
                 }
-                ElementNodeTypeId(HTMLTextAreaElementTypeId) => {
+                NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) => {
                     // Unimplemented
                     None
                 }
@@ -314,6 +333,60 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             }
         };
         ret
+    }
+
+    fn reset(self, _reset_method_flag: ResetFrom) {
+        // https://html.spec.whatwg.org/multipage/forms.html#locked-for-reset
+        if self.marked_for_reset.get() {
+            return;
+        } else {
+            self.marked_for_reset.set(true);
+        }
+
+        let win = window_from_node(self).root();
+        let event = Event::new(GlobalRef::Window(*win),
+                               "reset".to_string(),
+                               EventBubbles::Bubbles,
+                               EventCancelable::Cancelable).root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        target.DispatchEvent(*event).ok();
+        if event.DefaultPrevented() {
+            return;
+        }
+
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+
+        // TODO: This is an incorrect way of getting controls owned
+        //       by the form, but good enough until html5ever lands
+        for child in node.traverse_preorder() {
+            match child.type_id() {
+                NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
+                    let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child)
+                                                                               .unwrap();
+                    input.reset()
+                }
+                // TODO HTMLKeygenElement unimplemented
+                //NodeTypeId::Element(ElementTypeId::HTMLKeygenElement) => {
+                //    // Unimplemented
+                //    {}
+                //}
+                NodeTypeId::Element(ElementTypeId::HTMLSelectElement) => {
+                    // Unimplemented
+                    {}
+                }
+                NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) => {
+                    let textarea: JSRef<HTMLTextAreaElement> = HTMLTextAreaElementCast::to_ref(child)
+                                                                                        .unwrap();
+                    textarea.reset()
+                }
+                NodeTypeId::Element(ElementTypeId::HTMLOutputElement) => {
+                    // Unimplemented
+                    {}
+                }
+                _ => {}
+            }
+        };
+        self.marked_for_reset.set(false);
     }
 }
 
@@ -351,8 +424,8 @@ pub enum FormSubmitter<'a> {
 impl<'a> FormSubmitter<'a> {
     fn action(&self) -> DOMString {
         match *self {
-            FormElement(form) => form.Action(),
-            InputElement(input_element) => {
+            FormSubmitter::FormElement(form) => form.Action(),
+            FormSubmitter::InputElement(input_element) => {
                 // FIXME(pcwalton): Make this a static atom.
                 input_element.get_form_attribute(&Atom::from_slice("formaction"),
                                                  |i| i.FormAction(),
@@ -363,8 +436,8 @@ impl<'a> FormSubmitter<'a> {
 
     fn enctype(&self) -> FormEncType {
         let attr = match *self {
-            FormElement(form) => form.Enctype(),
-            InputElement(input_element) => {
+            FormSubmitter::FormElement(form) => form.Enctype(),
+            FormSubmitter::InputElement(input_element) => {
                 // FIXME(pcwalton): Make this a static atom.
                 input_element.get_form_attribute(&Atom::from_slice("formenctype"),
                                                  |i| i.FormEnctype(),
@@ -372,18 +445,18 @@ impl<'a> FormSubmitter<'a> {
             }
         };
         match attr.as_slice() {
-            "multipart/form-data" => FormDataEncoded,
-            "text/plain" => TextPlainEncoded,
+            "multipart/form-data" => FormEncType::FormDataEncoded,
+            "text/plain" => FormEncType::TextPlainEncoded,
             // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-enctype
             // urlencoded is the default
-            _ => UrlEncoded
+            _ => FormEncType::UrlEncoded
         }
     }
 
     fn method(&self) -> FormMethod {
         let attr = match *self {
-            FormElement(form) => form.Method(),
-            InputElement(input_element) => {
+            FormSubmitter::FormElement(form) => form.Method(),
+            FormSubmitter::InputElement(input_element) => {
                 // FIXME(pcwalton): Make this a static atom.
                 input_element.get_form_attribute(&Atom::from_slice("formmethod"),
                                                  |i| i.FormMethod(),
@@ -391,16 +464,16 @@ impl<'a> FormSubmitter<'a> {
             }
         };
         match attr.as_slice() {
-            "dialog" => FormDialog,
-            "post" => FormPost,
-            _ => FormGet
+            "dialog" => FormMethod::FormDialog,
+            "post" => FormMethod::FormPost,
+            _ => FormMethod::FormGet
         }
     }
 
     fn target(&self) -> DOMString {
         match *self {
-            FormElement(form) => form.Target(),
-            InputElement(input_element) => {
+            FormSubmitter::FormElement(form) => form.Target(),
+            FormSubmitter::InputElement(input_element) => {
                 // FIXME(pcwalton): Make this a static atom.
                 input_element.get_form_attribute(&Atom::from_slice("formtarget"),
                                                  |i| i.FormTarget(),
@@ -410,8 +483,31 @@ impl<'a> FormSubmitter<'a> {
     }
 }
 
-pub trait FormOwner<'a> : Copy {
-    fn form_owner(self) -> Option<Temporary<HTMLFormElement>>;
+pub trait FormControl<'a> : Copy {
+    // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
+    //        but we need html5ever to do it correctly
+    fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
+        // https://html.spec.whatwg.org/multipage/forms.html#reset-the-form-owner
+        let elem = self.to_element();
+        let owner = elem.get_string_attribute(&atom!("form"));
+        if !owner.is_empty() {
+            let doc = document_from_node(elem).root();
+            let owner = doc.GetElementById(owner).root();
+            match owner {
+                Some(o) => {
+                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(*o);
+                    if maybe_form.is_some() {
+                        return maybe_form.map(Temporary::from_rooted);
+                    }
+                },
+                _ => ()
+            }
+        }
+        let node: JSRef<Node> = NodeCast::from_ref(elem);
+        node.ancestors().filter_map(|a| HTMLFormElementCast::to_ref(a)).next()
+            .map(Temporary::from_rooted)
+    }
+
     fn get_form_attribute(self,
                           attr: &Atom,
                           input: |Self| -> DOMString,
@@ -423,4 +519,7 @@ pub trait FormOwner<'a> : Copy {
         }
     }
     fn to_element(self) -> JSRef<'a, Element>;
+    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
+    fn mutable(self) -> bool;
+    fn reset(self);
 }

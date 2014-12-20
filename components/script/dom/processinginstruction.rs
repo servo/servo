@@ -9,8 +9,8 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
-use dom::node::{Node, ProcessingInstructionNodeTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
 /// An HTML processing instruction node.
@@ -22,14 +22,14 @@ pub struct ProcessingInstruction {
 
 impl ProcessingInstructionDerived for EventTarget {
     fn is_processinginstruction(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ProcessingInstructionNodeTypeId)
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::ProcessingInstruction)
     }
 }
 
 impl ProcessingInstruction {
     fn new_inherited(target: DOMString, data: DOMString, document: JSRef<Document>) -> ProcessingInstruction {
         ProcessingInstruction {
-            characterdata: CharacterData::new_inherited(ProcessingInstructionNodeTypeId, data, document),
+            characterdata: CharacterData::new_inherited(NodeTypeId::ProcessingInstruction, data, document),
             target: target
         }
     }

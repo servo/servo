@@ -2,10 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositor_task::{GetGraphicsMetadata, CreateOrUpdateRootLayer, CreateOrUpdateDescendantLayer};
-use compositor_task::{Exit, ChangeReadyState, LoadComplete, Paint, ScrollFragmentPoint, SetIds};
-use compositor_task::{SetLayerOrigin, ShutdownComplete, ChangeRenderState, RenderMsgDiscarded};
-use compositor_task::{CompositorEventListener, CompositorReceiver, ScrollTimeout, FrameTreeUpdateMsg};
+use compositor_task::{CompositorEventListener, CompositorReceiver, Msg};
 use windowing::WindowEvent;
 
 use geom::scale_factor::ScaleFactor;
@@ -72,27 +69,27 @@ impl NullCompositor {
 impl CompositorEventListener for NullCompositor {
     fn handle_event(&mut self, _: WindowEvent) -> bool {
         match self.port.recv_compositor_msg() {
-            Exit(chan) => {
+            Msg::Exit(chan) => {
                 debug!("shutting down the constellation");
                 let ConstellationChan(ref con_chan) = self.constellation_chan;
                 con_chan.send(ExitMsg);
                 chan.send(());
             }
 
-            ShutdownComplete => {
+            Msg::ShutdownComplete => {
                 debug!("constellation completed shutdown");
                 return false
             }
 
-            GetGraphicsMetadata(chan) => {
+            Msg::GetGraphicsMetadata(chan) => {
                 chan.send(None);
             }
 
-            SetIds(_, response_chan, _) => {
+            Msg::SetIds(_, response_chan, _) => {
                 response_chan.send(());
             }
 
-            FrameTreeUpdateMsg(_, response_channel) => {
+            Msg::FrameTreeUpdate(_, response_channel) => {
                 response_channel.send(());
             }
 
@@ -100,11 +97,20 @@ impl CompositorEventListener for NullCompositor {
             // we'll notice and think about whether it needs a response, like
             // SetIds.
 
-            CreateOrUpdateRootLayer(..) |
-            CreateOrUpdateDescendantLayer(..) |
-            SetLayerOrigin(..) | Paint(..) |
-            ChangeReadyState(..) | ChangeRenderState(..) | ScrollFragmentPoint(..) |
-            LoadComplete | RenderMsgDiscarded(..) | ScrollTimeout(..) => ()
+            Msg::CreateOrUpdateRootLayer(..) |
+            Msg::CreateOrUpdateDescendantLayer(..) |
+            Msg::SetLayerOrigin(..) |
+            Msg::Paint(..) |
+            Msg::ChangeReadyState(..) |
+            Msg::ChangePaintState(..) |
+            Msg::ScrollFragmentPoint(..) |
+            Msg::LoadComplete |
+            Msg::PaintMsgDiscarded(..) |
+            Msg::ScrollTimeout(..) |
+            Msg::ChangePageTitle(..) |
+            Msg::ChangePageLoadData(..) |
+            Msg::KeyEvent(..) |
+            Msg::SetCursor(..) => {}
         }
         true
     }
@@ -116,7 +122,13 @@ impl CompositorEventListener for NullCompositor {
         // another task from finishing (i.e. SetIds)
         while self.port.try_recv_compositor_msg().is_some() {}
 
-        self.time_profiler_chan.send(time::ExitMsg);
-        self.memory_profiler_chan.send(memory::ExitMsg);
+        self.time_profiler_chan.send(time::TimeProfilerMsg::Exit);
+        self.memory_profiler_chan.send(memory::MemoryProfilerMsg::Exit);
     }
+
+    fn pinch_zoom_level(&self) -> f32 {
+        1.0
+    }
+
+    fn get_title_for_main_frame(&self) {}
 }

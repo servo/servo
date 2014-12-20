@@ -30,10 +30,13 @@ class MachCommands(CommandBase):
     @CommandArgument(
         'params', default=None, nargs='...',
         help='Command-line arguments to be passed through to cargo update')
-    def update_cargo(self, params):
-        cargo_paths = [path.join('.'),
+    def update_cargo(self, params=None):
+        if not params:
+            params = []
+
+        cargo_paths = [path.join('components', 'servo'),
                        path.join('ports', 'cef'),
-                       path.join('ports', 'android', 'glut_app')]
+                       path.join('ports', 'gonk')]
 
         for cargo_path in cargo_paths:
             with cd(cargo_path):
@@ -48,6 +51,8 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to rustc")
     def rustc(self, params):
+        if params is None:
+            params = []
         return subprocess.call(["rustc"] + params, env=self.build_env())
 
     @Command('rust-root',

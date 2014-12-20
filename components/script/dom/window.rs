@@ -8,25 +8,26 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
-use dom::bindings::error::{Fallible, InvalidCharacter};
-use dom::bindings::global;
-use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::error::Fallible;
+use dom::bindings::error::Error::InvalidCharacter;
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
 use dom::document::Document;
-use dom::eventtarget::{EventTarget, WindowTypeId, EventTargetHelpers};
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::performance::Performance;
 use dom::screen::Screen;
 use dom::storage::Storage;
-use layout_interface::NoQuery;
+use layout_interface::{ReflowGoal, ReflowQueryType};
 use page::Page;
-use script_task::{ExitWindowMsg, ScriptChan, TriggerLoadMsg, TriggerFragmentMsg};
-use script_task::FromWindow;
+use script_task::{TimerSource, ScriptChan};
+use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
-use timers::{Interval, NonInterval, TimerId, TimerManager};
+use timers::{IsInterval, TimerId, TimerManager};
 
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::LoadData;
@@ -96,14 +97,6 @@ impl Window {
 
     pub fn page<'a>(&'a self) -> &'a Page {
         &*self.page
-    }
-
-    pub fn navigation_start(&self) -> u64 {
-        self.navigation_start
-    }
-
-    pub fn navigation_start_precise(&self) -> f64 {
-        self.navigation_start_precise
     }
 
     pub fn get_url(&self) -> Url {
@@ -198,7 +191,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
     fn Close(self) {
         let ScriptChan(ref chan) = self.script_chan;
-        chan.send(ExitWindowMsg(self.page.id.clone()));
+        chan.send(ScriptMsg::ExitWindow(self.page.id.clone()));
     }
 
     fn Document(self) -> Temporary<Document> {
@@ -207,44 +200,27 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Location(self) -> Temporary<Location> {
-        if self.location.get().is_none() {
-            let page = self.page.clone();
-            let location = Location::new(self, page);
-            self.location.assign(Some(location));
-        }
-        self.location.get().unwrap()
+        self.location.or_init(|| Location::new(self, self.page.clone()))
     }
 
     fn SessionStorage(self) -> Temporary<Storage> {
-        if self.session_storage.get().is_none() {
-            let session_storage = Storage::new(&global::Window(self));
-            self.session_storage.assign(Some(session_storage));
-        }
-        self.session_storage.get().unwrap()
+        self.session_storage.or_init(|| Storage::new(&GlobalRef::Window(self)))
     }
 
     fn Console(self) -> Temporary<Console> {
-        if self.console.get().is_none() {
-            let console = Console::new(global::Window(self));
-            self.console.assign(Some(console));
-        }
-        self.console.get().unwrap()
+        self.console.or_init(|| Console::new(GlobalRef::Window(self)))
     }
 
     fn Navigator(self) -> Temporary<Navigator> {
-        if self.navigator.get().is_none() {
-            let navigator = Navigator::new(self);
-            self.navigator.assign(Some(navigator));
-        }
-        self.navigator.get().unwrap()
+        self.navigator.or_init(|| Navigator::new(self))
     }
 
     fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            NonInterval,
-                                            FromWindow(self.page.id.clone()),
+                                            IsInterval::NonInterval,
+                                            TimerSource::FromWindow(self.page.id.clone()),
                                             self.script_chan.clone())
     }
 
@@ -256,8 +232,8 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.timers.set_timeout_or_interval(callback,
                                             args,
                                             timeout,
-                                            Interval,
-                                            FromWindow(self.page.id.clone()),
+                                            IsInterval::Interval,
+                                            TimerSource::FromWindow(self.page.id.clone()),
                                             self.script_chan.clone())
     }
 
@@ -284,24 +260,18 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Performance(self) -> Temporary<Performance> {
-        if self.performance.get().is_none() {
-            let performance = Performance::new(self);
-            self.performance.assign(Some(performance));
-        }
-        self.performance.get().unwrap()
+        self.performance.or_init(|| {
+            Performance::new(self, self.navigation_start,
+                             self.navigation_start_precise)
+        })
     }
 
-    event_handler!(click, GetOnclick, SetOnclick)
-    event_handler!(load, GetOnload, SetOnload)
+    global_event_handlers!()
     event_handler!(unload, GetOnunload, SetOnunload)
     error_event_handler!(error, GetOnerror, SetOnerror)
 
     fn Screen(self) -> Temporary<Screen> {
-        if self.screen.get().is_none() {
-            let screen = Screen::new(self);
-            self.screen.assign(Some(screen));
-        }
-        self.screen.get().unwrap()
+        self.screen.or_init(|| Screen::new(self))
     }
 
     fn Debug(self, message: DOMString) {
@@ -330,9 +300,7 @@ impl Reflectable for Window {
 }
 
 pub trait WindowHelpers {
-    fn reflow(self);
-    fn flush_layout(self);
-    fn wait_until_safe_to_modify_dom(self);
+    fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType);
     fn init_browser_context(self, doc: JSRef<Document>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
@@ -365,18 +333,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         })
     }
 
-    fn reflow(self) {
-        self.page().damage();
-    }
-
-    fn flush_layout(self) {
-        self.page().flush_layout(NoQuery);
-    }
-
-    fn wait_until_safe_to_modify_dom(self) {
-        // FIXME: This disables concurrent layout while we are modifying the DOM, since
-        //        our current architecture is entirely unsafe in the presence of races.
-        self.page().join_layout();
+    fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType) {
+        self.page().flush_layout(goal, query);
     }
 
     fn init_browser_context(self, doc: JSRef<Document>) {
@@ -392,15 +350,15 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         let url = url.unwrap();
         let ScriptChan(ref script_chan) = self.script_chan;
         if href.as_slice().starts_with("#") {
-            script_chan.send(TriggerFragmentMsg(self.page.id, url));
+            script_chan.send(ScriptMsg::TriggerFragment(self.page.id, url));
         } else {
-            script_chan.send(TriggerLoadMsg(self.page.id, LoadData::new(url)));
+            script_chan.send(ScriptMsg::TriggerLoad(self.page.id, LoadData::new(url)));
         }
     }
 
     fn handle_fire_timer(self, timer_id: TimerId) {
-        self.timers.fire_timer(timer_id, self.clone());
-        self.flush_layout();
+        self.timers.fire_timer(timer_id, self);
+        self.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
 }
 
@@ -413,7 +371,7 @@ impl Window {
                image_cache_task: ImageCacheTask)
                -> Temporary<Window> {
         let win = box Window {
-            eventtarget: EventTarget::new_inherited(WindowTypeId),
+            eventtarget: EventTarget::new_inherited(EventTargetTypeId::Window),
             script_chan: script_chan,
             control_chan: control_chan,
             console: Default::default(),
@@ -425,7 +383,7 @@ impl Window {
             browser_context: DOMRefCell::new(None),
             performance: Default::default(),
             navigation_start: time::get_time().sec as u64,
-            navigation_start_precise: time::precise_time_s(),
+            navigation_start_precise: time::precise_time_ns() as f64,
             screen: Default::default(),
             session_storage: Default::default(),
             timers: TimerManager::new()

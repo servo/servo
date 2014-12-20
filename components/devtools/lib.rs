@@ -35,7 +35,7 @@ use actors::root::RootActor;
 use actors::tab::TabActor;
 use protocol::JsonPacketStream;
 
-use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg};
+use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg, DevtoolsPageInfo};
 use servo_msg::constellation_msg::PipelineId;
 use servo_util::task::spawn_named;
 
@@ -101,9 +101,18 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
 
         'outer: loop {
             match stream.read_json_packet() {
-                Ok(json_packet) =>
-                    actors.lock().handle_message(json_packet.as_object().unwrap(),
-                                                                &mut stream),
+                Ok(json_packet) => {
+                    match actors.lock().handle_message(json_packet.as_object().unwrap(),
+                                                       &mut stream) {
+                        Ok(()) => {},
+                        Err(()) => {
+                            println!("error: devtools actor stopped responding");
+                            let _ = stream.close_read();
+                            let _ = stream.close_write();
+                            break 'outer
+                        }
+                    }
+                }
                 Err(e) => {
                     println!("error: {}", e.desc);
                     break 'outer
@@ -118,7 +127,8 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
     fn handle_new_global(actors: Arc<Mutex<ActorRegistry>>,
                          pipeline: PipelineId,
                          sender: Sender<DevtoolScriptControlMsg>,
-                         actor_pipelines: &mut HashMap<PipelineId, String>) {
+                         actor_pipelines: &mut HashMap<PipelineId, String>,
+                         page_info: DevtoolsPageInfo) {
         let mut actors = actors.lock();
 
         //TODO: move all this actor creation into a constructor method on TabActor
@@ -137,11 +147,12 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
                 script_chan: sender,
                 pipeline: pipeline,
             };
-            //TODO: send along the current page title and URL
+
+            let DevtoolsPageInfo { title, url } = page_info;
             let tab = TabActor {
                 name: actors.new_name("tab"),
-                title: "".to_string(),
-                url: "about:blank".to_string(),
+                title: title,
+                url: url.serialize(),
                 console: console.name(),
                 inspector: inspector.name(),
             };
@@ -168,7 +179,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Err(ref e) if e.kind == TimedOut => {
                 match receiver.try_recv() {
                     Ok(ServerExitMsg) | Err(Disconnected) => break,
-                    Ok(NewGlobal(id, sender)) => handle_new_global(actors.clone(), id, sender, &mut actor_pipelines),
+                    Ok(NewGlobal(id, sender, pageinfo)) => handle_new_global(actors.clone(), id, sender, &mut actor_pipelines, pageinfo),
                     Err(Empty) => acceptor.set_timeout(Some(POLL_TIMEOUT)),
                 }
             }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::RethrowExceptions;
+use dom::bindings::callback::ExceptionHandling::RethrowExceptions;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding::TreeWalkerMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -12,20 +12,18 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 // For now, it is defined in this file.
 // use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilterConstants;
 use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::global::Window;
-use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary};
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary, MutHeap};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
-
-use std::cell::Cell;
 
 // http://dom.spec.whatwg.org/#interface-treewalker
 #[dom_struct]
 pub struct TreeWalker {
     reflector_: Reflector,
     root_node: JS<Node>,
-    current_node: Cell<JS<Node>>,
+    current_node: MutHeap<JS<Node>>,
     what_to_show: u32,
     filter: Filter
 }
@@ -37,7 +35,7 @@ impl TreeWalker {
         TreeWalker {
             reflector_: Reflector::new(),
             root_node: JS::from_rooted(root_node),
-            current_node: Cell::new(JS::from_rooted(root_node)),
+            current_node: MutHeap::new(JS::from_rooted(root_node)),
             what_to_show: what_to_show,
             filter: filter
         }
@@ -49,7 +47,7 @@ impl TreeWalker {
                            filter: Filter) -> Temporary<TreeWalker> {
         let window = document.window().root();
         reflect_dom_object(box TreeWalker::new_inherited(root_node, what_to_show, filter),
-                           Window(*window),
+                           GlobalRef::Window(*window),
                            TreeWalkerBinding::Wrap)
     }
 
@@ -58,8 +56,8 @@ impl TreeWalker {
                what_to_show: u32,
                node_filter: Option<NodeFilter>) -> Temporary<TreeWalker> {
         let filter = match node_filter {
-            None => FilterNone,
-            Some(jsfilter) => FilterJS(jsfilter)
+            None => Filter::None,
+            Some(jsfilter) => Filter::JS(jsfilter)
         };
         TreeWalker::new_with_filter(document, root_node, what_to_show, filter)
     }
@@ -76,9 +74,9 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
 
     fn GetFilter(self) -> Option<NodeFilter> {
         match self.filter {
-            FilterNone => None,
-            FilterJS(nf) => Some(nf),
-            FilterNative(_) => panic!("Cannot convert native node filter to DOM NodeFilter")
+            Filter::None => None,
+            Filter::JS(nf) => Some(nf),
+            Filter::Native(_) => panic!("Cannot convert native node filter to DOM NodeFilter")
         }
     }
 
@@ -331,9 +329,9 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
         // "5. If an exception was thrown, re-throw the exception."
         // "6. Return result."
         match self.filter {
-            FilterNone => Ok(NodeFilterConstants::FILTER_ACCEPT),
-            FilterNative(f) => Ok((f)(node)),
-            FilterJS(callback) => callback.AcceptNode_(self, node, RethrowExceptions)
+            Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
+            Filter::Native(f) => Ok((f)(node)),
+            Filter::JS(callback) => callback.AcceptNode_(self, node, RethrowExceptions)
         }
     }
 
@@ -551,9 +549,9 @@ impl<'a> Iterator<JSRef<'a, Node>> for JSRef<'a, TreeWalker> {
 
 #[jstraceable]
 pub enum Filter {
-    FilterNone,
-    FilterNative(fn (node: JSRef<Node>) -> u16),
-    FilterJS(NodeFilter)
+    None,
+    Native(fn (node: JSRef<Node>) -> u16),
+    JS(NodeFilter)
 }
 
 // FIXME: NodeFilterConstants will be defined in NodeFilterBindings.rs

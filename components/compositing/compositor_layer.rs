@@ -4,17 +4,15 @@
 
 use compositor_task::LayerProperties;
 use pipeline::CompositionPipeline;
-use windowing::{MouseWindowEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
-use windowing::MouseWindowMouseUpEvent;
-use windowing::WindowMethods;
+use windowing::{MouseWindowEvent, WindowMethods};
 
 use azure::azure_hl;
 use geom::length::Length;
 use geom::matrix::identity;
 use geom::point::{Point2D, TypedPoint2D};
-use geom::size::{Size2D, TypedSize2D};
+use geom::size::TypedSize2D;
 use geom::rect::Rect;
-use gfx::render_task::UnusedBufferMsg;
+use gfx::paint_task::UnusedBufferMsg;
 use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
@@ -22,6 +20,8 @@ use layers::platform::surface::NativeSurfaceMethods;
 use script_traits::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent, SendEventMsg};
 use script_traits::{ScriptControlChan};
 use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId, ScrollPolicy};
+use std::num::Float;
+use std::num::FloatMath;
 use std::rc::Rc;
 
 pub struct CompositorData {
@@ -69,25 +69,25 @@ impl CompositorData {
 }
 
 pub trait CompositorLayer {
-    fn update_layer_except_size(&self, layer_properties: LayerProperties);
+    fn update_layer_except_bounds(&self, layer_properties: LayerProperties);
 
     fn update_layer(&self, layer_properties: LayerProperties);
 
     fn add_buffers(&self, new_buffers: Box<LayerBufferSet>, epoch: Epoch) -> bool;
 
-    /// Destroys all layer tiles, sending the buffers back to the renderer to be destroyed or
+    /// Destroys all layer tiles, sending the buffers back to the painter to be destroyed or
     /// reused.
     fn clear(&self);
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
-    /// renderer to be destroyed or reused.
+    /// painter to be destroyed or reused.
     fn clear_all_tiles(&self);
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
-    /// renderer. You must call this only when the render task is destined to be going down;
+    /// painter. You must call this only when the paint task is destined to be going down;
     /// otherwise, you will leak tiles.
     ///
-    /// This is used during shutdown, when we know the render task is going away.
+    /// This is used during shutdown, when we know the paint task is going away.
     fn forget_all_tiles(&self);
 
     /// Move the layer's descendants that don't want scroll events and scroll by a relative
@@ -117,6 +117,9 @@ pub trait CompositorLayer {
     fn scroll_layer_and_all_child_layers(&self,
                                          new_offset: TypedPoint2D<LayerPixel, f32>)
                                          -> bool;
+
+    /// Return a flag describing how this layer deals with scroll events.
+    fn wants_scroll_events(&self) -> WantsScrollEventsFlag;
 }
 
 #[deriving(PartialEq, Clone)]
@@ -163,7 +166,7 @@ pub enum ScrollEventResult {
 }
 
 impl CompositorLayer for Layer<CompositorData> {
-    fn update_layer_except_size(&self, layer_properties: LayerProperties) {
+    fn update_layer_except_bounds(&self, layer_properties: LayerProperties) {
         self.extra_data.borrow_mut().epoch = layer_properties.epoch;
         self.extra_data.borrow_mut().scroll_policy = layer_properties.scroll_policy;
 
@@ -173,12 +176,12 @@ impl CompositorLayer for Layer<CompositorData> {
     }
 
     fn update_layer(&self, layer_properties: LayerProperties) {
-        self.resize(Size2D::from_untyped(&layer_properties.rect.size));
+        *self.bounds.borrow_mut() = Rect::from_untyped(&layer_properties.rect);
 
         // Call scroll for bounds checking if the page shrunk. Use (-1, -1) as the
         // cursor position to make sure the scroll isn't propagated downwards.
         self.handle_scroll_event(TypedPoint2D(0f32, 0f32), TypedPoint2D(-1f32, -1f32));
-        self.update_layer_except_size(layer_properties);
+        self.update_layer_except_bounds(layer_properties);
     }
 
     // Add LayerBuffers to the specified layer. Returns the layer buffer set back if the layer that
@@ -194,7 +197,7 @@ impl CompositorLayer for Layer<CompositorData> {
                    epoch,
                    self.extra_data.borrow().pipeline.id);
             let msg = UnusedBufferMsg(new_buffers.buffers);
-            let _ = self.extra_data.borrow().pipeline.render_chan.send_opt(msg);
+            let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(msg);
             return false;
         }
 
@@ -206,7 +209,7 @@ impl CompositorLayer for Layer<CompositorData> {
             let unused_buffers = self.collect_unused_buffers();
             if !unused_buffers.is_empty() { // send back unused buffers
                 let msg = UnusedBufferMsg(unused_buffers);
-                let _ = self.extra_data.borrow().pipeline.render_chan.send_opt(msg);
+                let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(msg);
             }
         }
 
@@ -217,19 +220,19 @@ impl CompositorLayer for Layer<CompositorData> {
         let mut buffers = self.collect_buffers();
 
         if !buffers.is_empty() {
-            // We have no way of knowing without a race whether the render task is even up and
-            // running, but mark the buffers as not leaking. If the render task died, then the
+            // We have no way of knowing without a race whether the paint task is even up and
+            // running, but mark the buffers as not leaking. If the paint task died, then the
             // buffers are going to be cleaned up.
             for buffer in buffers.iter_mut() {
                 buffer.mark_wont_leak()
             }
 
-            let _ = self.extra_data.borrow().pipeline.render_chan.send_opt(UnusedBufferMsg(buffers));
+            let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(UnusedBufferMsg(buffers));
         }
     }
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
-    /// renderer to be destroyed or reused.
+    /// painter to be destroyed or reused.
     fn clear_all_tiles(&self) {
         self.clear();
         for kid in self.children().iter() {
@@ -238,10 +241,10 @@ impl CompositorLayer for Layer<CompositorData> {
     }
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
-    /// renderer. You must call this only when the render task is destined to be going down;
+    /// painter. You must call this only when the paint task is destined to be going down;
     /// otherwise, you will leak tiles.
     ///
-    /// This is used during shutdown, when we know the render task is going away.
+    /// This is used during shutdown, when we know the paint task is going away.
     fn forget_all_tiles(&self) {
         let tiles = self.collect_buffers();
         for tile in tiles.into_iter() {
@@ -260,8 +263,8 @@ impl CompositorLayer for Layer<CompositorData> {
                            -> ScrollEventResult {
         // If this layer doesn't want scroll events, neither it nor its children can handle scroll
         // events.
-        if self.extra_data.borrow().wants_scroll_events != WantsScrollEvents {
-            return ScrollEventUnhandled;
+        if self.wants_scroll_events() != WantsScrollEventsFlag::WantsScrollEvents {
+            return ScrollEventResult::ScrollEventUnhandled;
         }
 
         //// Allow children to scroll.
@@ -271,7 +274,7 @@ impl CompositorLayer for Layer<CompositorData> {
             let child_bounds = child.bounds.borrow();
             if child_bounds.contains(&new_cursor) {
                 let result = child.handle_scroll_event(delta, new_cursor - child_bounds.origin);
-                if result != ScrollEventUnhandled {
+                if result != ScrollEventResult::ScrollEventUnhandled {
                     return result;
                 }
             }
@@ -292,7 +295,7 @@ impl CompositorLayer for Layer<CompositorData> {
                     Length(new_offset.y.get().clamp(&min_y, &0.0)));
 
         if self.extra_data.borrow().scroll_offset == new_offset {
-            return ScrollPositionUnchanged;
+            return ScrollEventResult::ScrollPositionUnchanged;
         }
 
         // The scroll offset is just a record of the scroll position of this scrolling root,
@@ -305,9 +308,9 @@ impl CompositorLayer for Layer<CompositorData> {
         }
 
         if result {
-            return ScrollPositionChanged;
+            return ScrollEventResult::ScrollPositionChanged;
         } else {
-            return ScrollPositionUnchanged;
+            return ScrollEventResult::ScrollPositionUnchanged;
         }
     }
 
@@ -316,9 +319,12 @@ impl CompositorLayer for Layer<CompositorData> {
                         cursor: TypedPoint2D<LayerPixel, f32>) {
         let event_point = cursor.to_untyped();
         let message = match event {
-            MouseWindowClickEvent(button, _) => ClickEvent(button, event_point),
-            MouseWindowMouseDownEvent(button, _) => MouseDownEvent(button, event_point),
-            MouseWindowMouseUpEvent(button, _) => MouseUpEvent(button, event_point),
+            MouseWindowEvent::MouseWindowClickEvent(button, _) =>
+                ClickEvent(button, event_point),
+            MouseWindowEvent::MouseWindowMouseDownEvent(button, _) =>
+                MouseDownEvent(button, event_point),
+            MouseWindowEvent::MouseWindowMouseUpEvent(button, _) =>
+                MouseUpEvent(button, event_point),
         };
         let pipeline = &self.extra_data.borrow().pipeline;
         let ScriptControlChan(ref chan) = pipeline.script_chan;
@@ -354,6 +360,10 @@ impl CompositorLayer for Layer<CompositorData> {
         }
 
         return result;
+    }
+
+    fn wants_scroll_events(&self) -> WantsScrollEventsFlag {
+        self.extra_data.borrow().wants_scroll_events
     }
 
 }

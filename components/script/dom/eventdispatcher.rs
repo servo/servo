@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::ReportExceptions;
+use dom::bindings::callback::ExceptionHandling::ReportExceptions;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, NodeCast, NodeDerived};
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Root};
-use dom::eventtarget::{Capturing, Bubbling, EventTarget};
-use dom::event::{Event, PhaseAtTarget, PhaseNone, PhaseBubbling, PhaseCapturing};
+use dom::eventtarget::{EventTarget, ListenerPhase};
+use dom::event::{Event, EventPhase};
 use dom::node::{Node, NodeHelpers};
 use dom::virtualmethods::vtable_for;
 
@@ -16,6 +16,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
                               pseudo_target: Option<JSRef<'b, EventTarget>>,
                               event: JSRef<Event>) -> bool {
     assert!(!event.dispatching());
+    assert!(event.initialized());
 
     event.set_target(match pseudo_target {
         Some(pseudo_target) => pseudo_target,
@@ -36,13 +37,13 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         vec!()
     };
 
-    event.set_phase(PhaseCapturing);
+    event.set_phase(EventPhase::Capturing);
 
     //FIXME: The "callback this value" should be currentTarget
 
     /* capturing */
     for cur_target in chain.as_slice().iter().rev() {
-        let stopped = match cur_target.get_listeners_for(type_.as_slice(), Capturing) {
+        let stopped = match cur_target.get_listeners_for(type_.as_slice(), ListenerPhase::Capturing) {
             Some(listeners) => {
                 event.set_current_target(cur_target.deref().clone());
                 for listener in listeners.iter() {
@@ -66,7 +67,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
 
     /* at target */
     if !event.stop_propagation() {
-        event.set_phase(PhaseAtTarget);
+        event.set_phase(EventPhase::AtTarget);
         event.set_current_target(target.clone());
 
         let opt_listeners = target.get_listeners(type_.as_slice());
@@ -84,10 +85,10 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
 
     /* bubbling */
     if event.bubbles() && !event.stop_propagation() {
-        event.set_phase(PhaseBubbling);
+        event.set_phase(EventPhase::Bubbling);
 
         for cur_target in chain.iter() {
-            let stopped = match cur_target.get_listeners_for(type_.as_slice(), Bubbling) {
+            let stopped = match cur_target.get_listeners_for(type_.as_slice(), ListenerPhase::Bubbling) {
                 Some(listeners) => {
                     event.set_current_target(cur_target.deref().clone());
                     for listener in listeners.iter() {
@@ -132,7 +133,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     }
 
     event.set_dispatching(false);
-    event.set_phase(PhaseNone);
+    event.set_phase(EventPhase::None);
     event.clear_current_target();
 
     !event.DefaultPrevented()

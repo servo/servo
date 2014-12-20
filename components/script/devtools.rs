@@ -4,8 +4,8 @@
 
 use devtools_traits;
 use devtools_traits::{EvaluateJSReply, NodeInfo, Modification};
-use dom::bindings::conversions;
 use dom::bindings::conversions::FromJSValConvertible;
+use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -36,10 +36,12 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
         devtools_traits::NumberValue(FromJSValConvertible::from_jsval(cx, rval, ()).unwrap())
     } else if rval.is_string() {
         //FIXME: use jsstring_to_str when jsval grows to_jsstring
-        devtools_traits::StringValue(FromJSValConvertible::from_jsval(cx, rval, conversions::Default).unwrap())
+        devtools_traits::StringValue(FromJSValConvertible::from_jsval(cx, rval, StringificationBehavior::Default).unwrap())
+    } else if rval.is_null() {
+        devtools_traits::NullValue
     } else {
         //FIXME: jsvals don't have an is_int32/is_number yet
-        assert!(rval.is_object_or_null());
+        assert!(rval.is_object());
         panic!("object values unimplemented")
     });
 }

@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Done, Payload, Metadata, LoadData, TargetedLoadResponse, start_sending, ResponseSenders};
+use resource_task::{Metadata, LoadData, TargetedLoadResponse, start_sending, ResponseSenders};
+use resource_task::ProgressMsg::{Payload, Done};
 
 use serialize::base64::FromBase64;
 
-use http::headers::test_utils::from_stream_with_str;
-use http::headers::content_type::MediaType;
-use url::{percent_decode, NonRelativeSchemeData};
+use hyper::mime::Mime;
+use url::{percent_decode, SchemeData};
 
 
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
@@ -32,7 +32,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
     // Split out content type and data.
     let mut scheme_data = match url.scheme_data {
-        NonRelativeSchemeData(scheme_data) => scheme_data,
+        SchemeData::NonRelative(scheme_data) => scheme_data,
         _ => panic!("Expected a non-relative scheme URL.")
     };
     match url.query {
@@ -59,8 +59,8 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
     // Parse the content type using rust-http.
     // FIXME: this can go into an infinite loop! (rust-http #25)
-    let content_type: Option<MediaType> = from_stream_with_str(ct_str);
-    metadata.set_content_type(&content_type);
+    let content_type: Option<Mime> = from_str(ct_str);
+    metadata.set_content_type(content_type.as_ref());
 
     let progress_chan = start_sending(senders, metadata);
     let bytes = percent_decode(parts[1].as_bytes());

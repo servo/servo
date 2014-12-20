@@ -10,13 +10,13 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, MessageEventTypeId};
+use dom::event::{Event, EventTypeId};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 
 use servo_util::str::DOMString;
 
 use js::jsapi::JSContext;
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
 
 #[dom_struct]
 pub struct MessageEvent {
@@ -28,7 +28,7 @@ pub struct MessageEvent {
 
 impl MessageEventDerived for Event {
     fn is_messageevent(&self) -> bool {
-        *self.type_id() == MessageEventTypeId
+        *self.type_id() == EventTypeId::MessageEvent
     }
 }
 
@@ -36,20 +36,28 @@ impl MessageEvent {
     fn new_inherited(data: JSVal, origin: DOMString, lastEventId: DOMString)
                          -> MessageEvent {
         MessageEvent {
-            event: Event::new_inherited(MessageEventTypeId),
+            event: Event::new_inherited(EventTypeId::MessageEvent),
             data: data,
             origin: origin,
             lastEventId: lastEventId,
         }
     }
 
+    pub fn new_uninitialized(global: GlobalRef) -> Temporary<MessageEvent> {
+        MessageEvent::new_initialized(global, UndefinedValue(), "".to_string(), "".to_string())
+    }
+
+    pub fn new_initialized(global: GlobalRef, data: JSVal, origin: DOMString, lastEventId: DOMString) -> Temporary<MessageEvent> {
+        reflect_dom_object(box MessageEvent::new_inherited(data, origin, lastEventId),
+        global,
+        MessageEventBinding::Wrap)
+    }
+
     pub fn new(global: GlobalRef, type_: DOMString,
                bubbles: bool, cancelable: bool,
                data: JSVal, origin: DOMString, lastEventId: DOMString)
                -> Temporary<MessageEvent> {
-        let ev = reflect_dom_object(box MessageEvent::new_inherited(data, origin, lastEventId),
-                                    global,
-                                    MessageEventBinding::Wrap).root();
+        let ev = MessageEvent::new_initialized(global, data, origin, lastEventId).root();
         let event: JSRef<Event> = EventCast::from_ref(*ev);
         event.InitEvent(type_, bubbles, cancelable);
         Temporary::from_rooted(*ev)
@@ -73,7 +81,7 @@ impl MessageEvent {
             scope, "message".to_string(), false, false, message,
             "".to_string(), "".to_string()).root();
         let event: JSRef<Event> = EventCast::from_ref(*messageevent);
-        target.dispatch_event_with_target(None, event).unwrap();
+        target.dispatch_event(event);
     }
 }
 

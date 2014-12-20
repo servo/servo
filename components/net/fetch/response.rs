@@ -3,11 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use url::Url;
-use http::status::{Status, UnregisteredStatus};
-use http::status::Ok as StatusOk;
-use http::headers::HeaderEnum;
-use http::headers::response::HeaderCollection;
-use std::ascii::OwnedAsciiExt;
+use hyper::status::StatusCode;
+use hyper::status::Ok as StatusOk;
+use hyper::header::Headers;
+use std::ascii::AsciiExt;
 use std::comm::Receiver;
 
 /// [Response type](http://fetch.spec.whatwg.org/#concept-response-type)
@@ -57,8 +56,9 @@ pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
     pub url: Option<Url>,
-    pub status: Status,
-    pub headers: HeaderCollection,
+    /// `None` can be considered a StatusCode of `0`.
+    pub status: Option<StatusCode>,
+    pub headers: Headers,
     pub body: ResponseBody,
     /// [Internal response](http://fetch.spec.whatwg.org/#concept-internal-response), only used if the Response is a filtered response
     pub internal_response: Option<Box<Response>>,
@@ -67,31 +67,31 @@ pub struct Response {
 impl Response {
     pub fn new() -> Response {
         Response {
-            response_type: Default,
+            response_type: ResponseType::Default,
             termination_reason: None,
             url: None,
-            status: StatusOk,
-            headers: HeaderCollection::new(),
-            body: Empty,
+            status: Some(StatusOk),
+            headers: Headers::new(),
+            body: ResponseBody::Empty,
             internal_response: None
         }
     }
 
     pub fn network_error() -> Response {
         Response {
-            response_type: Error,
+            response_type: ResponseType::Error,
             termination_reason: None,
             url: None,
-            status: UnregisteredStatus(0, "".to_string()),
-            headers: HeaderCollection::new(),
-            body: Empty,
+            status: None,
+            headers: Headers::new(),
+            body: ResponseBody::Empty,
             internal_response: None
         }
     }
 
     pub fn is_network_error(&self) -> bool {
         match self.response_type {
-            Error => true,
+            ResponseType::Error => true,
             _ => false
         }
     }
@@ -99,8 +99,8 @@ impl Response {
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
     pub fn to_filtered(self, filter_type: ResponseType) -> Response {
-        assert!(filter_type != Error);
-        assert!(filter_type != Default);
+        assert!(filter_type != ResponseType::Error);
+        assert!(filter_type != ResponseType::Default);
         if self.is_network_error() {
             return self;
         }
@@ -108,35 +108,33 @@ impl Response {
         let mut response = self.clone();
         response.internal_response = Some(box self);
         match filter_type {
-            Default | Error => unreachable!(),
-            Basic => {
-                let mut headers = HeaderCollection::new();
-                for h in old_headers.iter() {
-                    match h.header_name().into_ascii_lower().as_slice() {
-                        "set-cookie" | "set-cookie2" => {},
-                        _ => headers.insert(h)
+            ResponseType::Default | ResponseType::Error => unreachable!(),
+            ResponseType::Basic => {
+                let headers = old_headers.iter().filter(|header| {
+                    match header.name().to_ascii_lower().as_slice() {
+                        "set-cookie" | "set-cookie2" => false,
+                        _ => true
                     }
-                }
+                }).collect();
                 response.headers = headers;
                 response.response_type = filter_type;
             },
-            CORS => {
-                let mut headers = HeaderCollection::new();
-                for h in old_headers.iter() {
-                    match h.header_name().into_ascii_lower().as_slice() {
+            ResponseType::CORS => {
+                let headers = old_headers.iter().filter(|header| {
+                    match header.name().to_ascii_lower().as_slice() {
                         "cache-control" | "content-language" |
-                        "content-type" | "expires" | "last-modified" | "Pragma" => {},
+                        "content-type" | "expires" | "last-modified" | "Pragma" => false,
                         // XXXManishearth handle Access-Control-Expose-Headers
-                        _ => headers.insert(h)
+                        _ => true
                     }
-                }
+                }).collect();
                 response.headers = headers;
                 response.response_type = filter_type;
             },
-            Opaque => {
-                response.headers = HeaderCollection::new();
-                response.status = UnregisteredStatus(0, "".to_string());
-                response.body = Empty;
+            ResponseType::Opaque => {
+                response.headers = Headers::new();
+                response.status = None;
+                response.body = ResponseBody::Empty;
             }
         }
         response

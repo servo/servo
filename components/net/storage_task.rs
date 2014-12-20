@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use std::comm::{channel, Receiver, Sender};
 use std::collections::HashMap;
 use std::collections::TreeMap;
@@ -70,25 +71,25 @@ impl StorageManager {
     fn start(&mut self) {
         loop {
             match self.port.recv() {
-                Length(sender, url) => {
+                StorageTaskMsg::Length(sender, url) => {
                     self.length(sender, url)
                 }
-                Key(sender, url, index) => {
+                StorageTaskMsg::Key(sender, url, index) => {
                     self.key(sender, url, index)
                 }
-                SetItem(sender, url, name, value) => {
+                StorageTaskMsg::SetItem(sender, url, name, value) => {
                     self.set_item(sender, url, name, value)
                 }
-                GetItem(sender, url, name) => {
+                StorageTaskMsg::GetItem(sender, url, name) => {
                     self.get_item(sender, url, name)
                 }
-                RemoveItem(sender, url, name) => {
+                StorageTaskMsg::RemoveItem(sender, url, name) => {
                     self.remove_item(sender, url, name)
                 }
-                Clear(sender, url) => {
+                StorageTaskMsg::Clear(sender, url) => {
                     self.clear(sender, url)
                 }
-                Exit => {
+                StorageTaskMsg::Exit => {
                     break
                 }
             }

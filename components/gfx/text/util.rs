@@ -29,7 +29,7 @@ pub fn transform_text(text: &str,
                       new_line_pos: &mut Vec<CharIndex>)
                       -> bool {
     let out_whitespace = match mode {
-        CompressNone | DiscardNewline => {
+        CompressionMode::CompressNone | CompressionMode::DiscardNewline => {
             let mut new_line_index = CharIndex(0);
             for ch in text.chars() {
                 if is_discardable_char(ch, mode) {
@@ -54,7 +54,7 @@ pub fn transform_text(text: &str,
             text.len() > 0 && is_in_whitespace(text.char_at_reverse(0), mode)
         },
 
-        CompressWhitespace | CompressWhitespaceNewline => {
+        CompressionMode::CompressWhitespace | CompressionMode::CompressWhitespaceNewline => {
             let mut in_whitespace: bool = incoming_whitespace;
             for ch in text.chars() {
                 // TODO: discard newlines between CJK chars
@@ -90,7 +90,7 @@ pub fn transform_text(text: &str,
         match (ch, mode) {
             (' ', _)  => true,
             ('\t', _) => true,
-            ('\n', CompressWhitespaceNewline) => true,
+            ('\n', CompressionMode::CompressWhitespaceNewline) => true,
             (_, _)    => false
         }
     }
@@ -100,7 +100,7 @@ pub fn transform_text(text: &str,
             return true;
         }
         match mode {
-            DiscardNewline | CompressWhitespaceNewline => ch == '\n',
+            CompressionMode::DiscardNewline | CompressionMode::CompressWhitespaceNewline => ch == '\n',
             _ => false
         }
     }
@@ -153,7 +153,7 @@ fn test_transform_compress_none() {
         "foo bar baz",
         "foobarbaz\n\n"
     );
-    let mode = CompressNone;
+    let mode = CompressionMode::CompressNone;
 
     for test in test_strs.iter() {
         let mut new_line_pos = vec!();
@@ -186,7 +186,7 @@ fn test_transform_discard_newline() {
     );
 
     assert_eq!(test_strs.len(), oracle_strs.len());
-    let mode = DiscardNewline;
+    let mode = CompressionMode::DiscardNewline;
 
     for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
         let mut new_line_pos = vec!();
@@ -244,7 +244,7 @@ fn test_transform_compress_whitespace_newline() {
                                  "foobarbaz ".to_string()];
 
     assert_eq!(test_strs.len(), oracle_strs.len());
-    let mode = CompressWhitespaceNewline;
+    let mode = CompressionMode::CompressWhitespaceNewline;
 
     for i in range(0, test_strs.len()) {
         let mut new_line_pos = ~[];
@@ -279,7 +279,7 @@ fn test_transform_compress_whitespace_newline_no_incoming() {
     );
 
     assert_eq!(test_strs.len(), oracle_strs.len());
-    let mode = CompressWhitespaceNewline;
+    let mode = CompressionMode::CompressWhitespaceNewline;
 
     for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
         let mut new_line_pos = vec!();

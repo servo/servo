@@ -7,20 +7,18 @@ use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::Dedicat
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
-use dom::bindings::error::{ErrorResult, DataClone};
-use dom::bindings::global;
+use dom::bindings::error::ErrorResult;
+use dom::bindings::error::Error::DataClone;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::eventtarget::{EventTarget, EventTargetHelpers};
-use dom::eventtarget::WorkerGlobalScopeTypeId;
+use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use dom::worker::{Worker, TrustedWorkerAddress};
-use dom::workerglobalscope::DedicatedGlobalScope;
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
+use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use dom::xmlhttprequest::XMLHttpRequest;
-use script_task::{ScriptTask, ScriptChan};
-use script_task::{ScriptMsg, FromWorker,  DOMMessage, FireTimerMsg, XHRProgressMsg, XHRReleaseMsg, WorkerRelease};
-use script_task::WorkerPostMessage;
+use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
@@ -57,8 +55,8 @@ impl DedicatedWorkerGlobalScope {
                          -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
-                DedicatedGlobalScope, worker_url, cx, resource_task,
-                own_sender),
+                WorkerGlobalScopeTypeId::DedicatedGlobalScope, worker_url, cx,
+                resource_task, own_sender),
             receiver: receiver,
             parent_sender: parent_sender,
             worker: worker,
@@ -121,7 +119,7 @@ impl DedicatedWorkerGlobalScope {
                 EventTargetCast::from_ref(*global);
             loop {
                 match global.receiver.recv_opt() {
-                    Ok(DOMMessage(data, nbytes)) => {
+                    Ok(ScriptMsg::DOMMessage(data, nbytes)) => {
                         let mut message = UndefinedValue();
                         unsafe {
                             assert!(JS_ReadStructuredClone(
@@ -130,22 +128,22 @@ impl DedicatedWorkerGlobalScope {
                                 ptr::null(), ptr::null_mut()) != 0);
                         }
 
-                        MessageEvent::dispatch_jsval(target, global::Worker(scope), message);
+                        MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message);
                         global.delayed_release_worker();
                     },
-                    Ok(XHRProgressMsg(addr, progress)) => {
+                    Ok(ScriptMsg::XHRProgress(addr, progress)) => {
                         XMLHttpRequest::handle_progress(addr, progress)
                     },
-                    Ok(XHRReleaseMsg(addr)) => {
+                    Ok(ScriptMsg::XHRRelease(addr)) => {
                         XMLHttpRequest::handle_release(addr)
                     },
-                    Ok(WorkerPostMessage(addr, data, nbytes)) => {
+                    Ok(ScriptMsg::WorkerPostMessage(addr, data, nbytes)) => {
                         Worker::handle_message(addr, data, nbytes);
                     },
-                    Ok(WorkerRelease(addr)) => {
+                    Ok(ScriptMsg::WorkerRelease(addr)) => {
                         Worker::handle_release(addr)
                     },
-                    Ok(FireTimerMsg(FromWorker, timer_id)) => {
+                    Ok(ScriptMsg::FireTimer(TimerSource::FromWorker, timer_id)) => {
                         scope.handle_fire_timer(timer_id);
                     }
                     Ok(_) => panic!("Unexpected message"),
@@ -170,7 +168,7 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
         }
 
         let ScriptChan(ref sender) = self.parent_sender;
-        sender.send(WorkerPostMessage(self.worker, data, nbytes));
+        sender.send(ScriptMsg::WorkerPostMessage(self.worker, data, nbytes));
         Ok(())
     }
 
@@ -184,7 +182,7 @@ trait PrivateDedicatedWorkerGlobalScopeHelpers {
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
     fn delayed_release_worker(self) {
         let ScriptChan(ref sender) = self.parent_sender;
-        sender.send(WorkerRelease(self.worker));
+        sender.send(ScriptMsg::WorkerRelease(self.worker));
     }
 }
 
@@ -197,7 +195,7 @@ impl Reflectable for DedicatedWorkerGlobalScope {
 impl DedicatedWorkerGlobalScopeDerived for EventTarget {
     fn is_dedicatedworkerglobalscope(&self) -> bool {
         match *self.type_id() {
-            WorkerGlobalScopeTypeId(DedicatedGlobalScope) => true,
+            EventTargetTypeId::WorkerGlobalScope(WorkerGlobalScopeTypeId::DedicatedGlobalScope) => true,
             _ => false
         }
     }

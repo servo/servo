@@ -4,9 +4,9 @@
 
 //! The `ByteString` struct.
 
-use std::from_str::FromStr;
 use std::hash::{Hash, sip};
 use std::str;
+use std::str::FromStr;
 
 /// Encapsulates the IDL `ByteString` type.
 #[deriving(Clone,Eq,PartialEq)]
@@ -89,31 +89,31 @@ impl ByteString {
             SPHT // SP or HT
         }
         let ByteString(ref vec) = *self;
-        let mut prev = Other; // The previous character
+        let mut prev = PreviousCharacter::Other; // The previous character
         vec.iter().all(|&x| {
             // http://tools.ietf.org/html/rfc2616#section-2.2
             match x {
                 13  => { // CR
-                    if prev == Other || prev == SPHT {
-                        prev = CR;
+                    if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT {
+                        prev = PreviousCharacter::CR;
                         true
                     } else {
                         false
                     }
                 },
                 10 => { // LF
-                    if prev == CR {
-                        prev = LF;
+                    if prev == PreviousCharacter::CR {
+                        prev = PreviousCharacter::LF;
                         true
                     } else {
                         false
                     }
                 },
                 32 => { // SP
-                    if prev == LF || prev == SPHT {
-                        prev = SPHT;
+                    if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
+                        prev = PreviousCharacter::SPHT;
                         true
-                    } else if prev == Other {
+                    } else if prev == PreviousCharacter::Other {
                         // Counts as an Other here, since it's not preceded by a CRLF
                         // SP is not a CTL, so it can be used anywhere
                         // though if used immediately after a CR the CR is invalid
@@ -124,8 +124,8 @@ impl ByteString {
                     }
                 },
                 9 => { // HT
-                    if prev == LF || prev == SPHT {
-                        prev = SPHT;
+                    if prev == PreviousCharacter::LF || prev == PreviousCharacter::SPHT {
+                        prev = PreviousCharacter::SPHT;
                         true
                     } else {
                         false
@@ -133,8 +133,8 @@ impl ByteString {
                 },
                 0...31 | 127 => false, // CTLs
                 x if x > 127 => false, // non ASCII
-                _ if prev == Other || prev == SPHT => {
-                    prev = Other;
+                _ if prev == PreviousCharacter::Other || prev == PreviousCharacter::SPHT => {
+                    prev = PreviousCharacter::Other;
                     true
                 },
                 _ => false // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule

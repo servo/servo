@@ -2,40 +2,57 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
-use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast, HTMLTableCaptionElementCast};
+use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
+use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLTableElementTypeId;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
-use servo_util::str::DOMString;
+use dom::node::{Node, NodeHelpers, NodeTypeId};
+use dom::virtualmethods::VirtualMethods;
+
+use cssparser::RGBA;
+use servo_util::str::{mod, DOMString, LengthOrPercentageOrAuto};
+use std::cell::Cell;
 
 #[dom_struct]
 pub struct HTMLTableElement {
     htmlelement: HTMLElement,
+    background_color: Cell<Option<RGBA>>,
+    border: Cell<Option<u32>>,
+    width: Cell<LengthOrPercentageOrAuto>,
 }
 
 impl HTMLTableElementDerived for EventTarget {
     fn is_htmltableelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLTableElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableElement))
     }
 }
 
 impl HTMLTableElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+                     -> HTMLTableElement {
         HTMLTableElement {
-            htmlelement: HTMLElement::new_inherited(HTMLTableElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTableElement,
+                                                    localName,
+                                                    prefix,
+                                                    document),
+            background_color: Cell::new(None),
+            border: Cell::new(None),
+            width: Cell::new(LengthOrPercentageOrAuto::Auto),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLTableElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+               -> Temporary<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
     }
@@ -77,3 +94,66 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
         });
     }
 }
+
+pub trait HTMLTableElementHelpers {
+    fn get_background_color(&self) -> Option<RGBA>;
+    fn get_border(&self) -> Option<u32>;
+    fn get_width(&self) -> LengthOrPercentageOrAuto;
+}
+
+impl HTMLTableElementHelpers for HTMLTableElement {
+    fn get_background_color(&self) -> Option<RGBA> {
+        self.background_color.get()
+    }
+
+    fn get_border(&self) -> Option<u32> {
+        self.border.get()
+    }
+
+    fn get_width(&self) -> LengthOrPercentageOrAuto {
+        self.width.get()
+    }
+}
+
+impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
+    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+        let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
+        Some(htmlelement as &VirtualMethods)
+    }
+
+    fn after_set_attr(&self, attr: JSRef<Attr>) {
+        match self.super_type() {
+            Some(ref s) => s.after_set_attr(attr),
+            _ => ()
+        }
+
+        match attr.local_name() {
+            &atom!("bgcolor") => {
+                self.background_color.set(str::parse_legacy_color(attr.value().as_slice()).ok())
+            }
+            &atom!("border") => {
+                // According to HTML5 § 14.3.9, invalid values map to 1px.
+                self.border.set(Some(str::parse_unsigned_integer(attr.value()
+                                                                     .as_slice()
+                                                                     .chars()).unwrap_or(1)))
+            }
+            &atom!("width") => self.width.set(str::parse_length(attr.value().as_slice())),
+            _ => ()
+        }
+    }
+
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+        match self.super_type() {
+            Some(ref s) => s.before_remove_attr(attr),
+            _ => ()
+        }
+
+        match attr.local_name() {
+            &atom!("bgcolor") => self.background_color.set(None),
+            &atom!("border") => self.border.set(None),
+            &atom!("width") => self.width.set(LengthOrPercentageOrAuto::Auto),
+            _ => ()
+        }
+    }
+}
+

@@ -211,3 +211,19 @@ macro_rules! error_event_handler(
         define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter)
     )
 )
+
+// https://html.spec.whatwg.org/multipage/webappapis.html#globaleventhandlers
+// see webidls/EventHandler.webidl
+// As more methods get added, just update them here.
+macro_rules! global_event_handlers(
+    () => (
+        event_handler!(load, GetOnload, SetOnload)
+        global_event_handlers!(NoOnload)
+
+    );
+    (NoOnload) => (
+        event_handler!(click, GetOnclick, SetOnclick)
+        event_handler!(input, GetOninput, SetOninput)
+        event_handler!(change, GetOnchange, SetOnchange)
+    )
+)

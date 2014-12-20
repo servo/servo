@@ -8,11 +8,10 @@ use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, UIEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::global;
 use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary, OptionalSettable};
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::event::{Event, EventTypeId, UIEventTypeId};
+use dom::event::{Event, EventTypeId};
 use dom::window::Window;
 use servo_util::str::DOMString;
 
@@ -28,7 +27,7 @@ pub struct UIEvent {
 
 impl UIEventDerived for Event {
     fn is_uievent(&self) -> bool {
-        *self.type_id() == UIEventTypeId
+        *self.type_id() == EventTypeId::UIEvent
     }
 }
 
@@ -42,8 +41,8 @@ impl UIEvent {
     }
 
     pub fn new_uninitialized(window: JSRef<Window>) -> Temporary<UIEvent> {
-        reflect_dom_object(box UIEvent::new_inherited(UIEventTypeId),
-                           global::Window(window),
+        reflect_dom_object(box UIEvent::new_inherited(EventTypeId::UIEvent),
+                           GlobalRef::Window(window),
                            UIEventBinding::Wrap)
     }
 

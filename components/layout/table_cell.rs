@@ -6,9 +6,9 @@
 
 #![deny(unsafe_blocks)]
 
-use block::{BlockFlow, MarginsMayNotCollapse, ISizeAndMarginsComputer};
+use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use context::LayoutContext;
-use flow::{TableCellFlowClass, FlowClass, Flow};
+use flow::{Flow, FlowClass};
 use fragment::{Fragment, FragmentBoundsIterator};
 use model::{MaybeAuto};
 use layout_debug;
@@ -17,21 +17,31 @@ use wrapper::ThreadSafeLayoutNode;
 
 use servo_util::geometry::Au;
 use std::fmt;
-use style::ComputedValues;
+use style::{UnsignedIntegerAttribute, ComputedValues};
 use sync::Arc;
 
 /// A table formatting context.
 #[deriving(Encodable)]
 pub struct TableCellFlow {
-    /// Data common to all flows.
+    /// Data common to all block flows.
     pub block_flow: BlockFlow,
+    /// The column span of this cell.
+    pub column_span: u32,
+    /// Whether this cell is visible. If false, the value of `empty-cells` means that we must not
+    /// display this cell.
+    pub visible: bool,
 }
 
 impl TableCellFlow {
-    pub fn from_node_and_fragment(node: &ThreadSafeLayoutNode, fragment: Fragment)
-                                  -> TableCellFlow {
+    pub fn from_node_fragment_and_visibility_flag(node: &ThreadSafeLayoutNode,
+                                                  fragment: Fragment,
+                                                  visible: bool)
+                                                  -> TableCellFlow {
         TableCellFlow {
-            block_flow: BlockFlow::from_node_and_fragment(node, fragment)
+            block_flow: BlockFlow::from_node_and_fragment(node, fragment),
+            column_span: node.get_unsigned_integer_attribute(UnsignedIntegerAttribute::ColSpan)
+                             .unwrap_or(1),
+            visible: visible,
         }
     }
 
@@ -45,19 +55,19 @@ impl TableCellFlow {
 
     /// Assign block-size for table-cell flow.
     ///
-    /// TODO(#2015, pcwalton): This doesn't handle floats right.
-    ///
     /// inline(always) because this is only ever called by in-order or non-in-order top-level
-    /// methods
+    /// methods.
     #[inline(always)]
     fn assign_block_size_table_cell_base<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        self.block_flow.assign_block_size_block_base(layout_context, MarginsMayNotCollapse)
+        self.block_flow.assign_block_size_block_base(
+            layout_context,
+            MarginsMayCollapseFlag::MarginsMayNotCollapse)
     }
 }
 
 impl Flow for TableCellFlow {
     fn class(&self) -> FlowClass {
-        TableCellFlowClass
+        FlowClass::TableCell
     }
 
     fn as_table_cell<'a>(&'a mut self) -> &'a mut TableCellFlow {
@@ -98,7 +108,7 @@ impl Flow for TableCellFlow {
     /// Recursively (top-down) determines the actual inline-size of child contexts and fragments.
     /// When called on this context, the context has had its inline-size set by the parent table
     /// row.
-    fn assign_inline_sizes(&mut self, ctx: &LayoutContext) {
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
         let _scope = layout_debug_scope!("table_cell::assign_inline_sizes {:x}",
                                             self.block_flow.base.debug_id());
         debug!("assign_inline_sizes({}): assigning inline_size for flow", "table_cell");
@@ -109,7 +119,7 @@ impl Flow for TableCellFlow {
         let inline_size_computer = InternalTable;
 
         inline_size_computer.compute_used_inline_size(&mut self.block_flow,
-                                                      ctx,
+                                                      layout_context,
                                                       containing_block_inline_size);
 
         let inline_start_content_edge =
@@ -119,7 +129,8 @@ impl Flow for TableCellFlow {
         let content_inline_size =
             self.block_flow.fragment.border_box.size.inline - padding_and_borders;
 
-        self.block_flow.propagate_assigned_inline_size_to_children(inline_start_content_edge,
+        self.block_flow.propagate_assigned_inline_size_to_children(layout_context,
+                                                                   inline_start_content_edge,
                                                                    content_inline_size,
                                                                    None);
     }
@@ -142,7 +153,9 @@ impl Flow for TableCellFlow {
     }
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        self.block_flow.build_display_list(layout_context)
+        if self.visible {
+            self.block_flow.build_display_list(layout_context)
+        }
     }
 
     fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {

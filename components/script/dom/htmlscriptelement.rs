@@ -12,22 +12,25 @@ use dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElemen
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived, HTMLScriptElementCast};
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{HTMLScriptElementTypeId, Element, AttributeHandlers};
-use dom::element::{ElementCreator, ParserCreated};
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::element::{ElementTypeId, Element, AttributeHandlers, ElementCreator};
+use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
+use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId, window_from_node, CloneChildrenFlag};
+use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
 
 use encoding::all::UTF_8;
-use encoding::types::{Encoding, DecodeReplace};
+use encoding::types::{Encoding, DecoderTrap};
 use servo_net::resource_task::load_whole_resource;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
 use std::cell::Cell;
+use string_cache::Atom;
 use url::UrlParser;
 
 #[dom_struct]
@@ -53,7 +56,7 @@ pub struct HTMLScriptElement {
 
 impl HTMLScriptElementDerived for EventTarget {
     fn is_htmlscriptelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLScriptElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLScriptElement))
     }
 }
 
@@ -61,10 +64,10 @@ impl HTMLScriptElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
-            htmlelement: HTMLElement::new_inherited(HTMLScriptElementTypeId, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLScriptElement, localName, prefix, document),
             already_started: Cell::new(false),
-            parser_inserted: Cell::new(creator == ParserCreated),
-            non_blocking: Cell::new(creator != ParserCreated),
+            parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
+            non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
         }
     }
@@ -186,7 +189,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                         match load_whole_resource(&page.resource_task, url) {
                             Ok((metadata, bytes)) => {
                                 // TODO: use the charset from step 13.
-                                let source = UTF_8.decode(bytes.as_slice(), DecodeReplace).unwrap();
+                                let source = UTF_8.decode(bytes.as_slice(), DecoderTrap::Replace).unwrap();
                                 (source, metadata.final_url)
                             }
                             Err(_) => {
@@ -206,6 +209,14 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         };
 
         window.evaluate_script_with_result(source.as_slice(), url.serialize().as_slice());
+
+        let event = Event::new(GlobalRef::Window(*window),
+                               "load".to_string(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        event.set_trusted(true);
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+        target.dispatch_event(*event);
     }
 
     fn is_javascript(self) -> bool {
@@ -302,10 +313,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
 }
 
 impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
-    fn Src(self) -> DOMString {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_url_attribute(&atom!("src"))
-    }
+    make_url_getter!(Src)
+
+    make_setter!(SetSrc, "src")
 
     // http://www.whatwg.org/html/#dom-script-text
     fn Text(self) -> DOMString {

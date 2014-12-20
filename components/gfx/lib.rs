@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(globs, macro_rules, phase, unsafe_destructor)]
+#![feature(globs, macro_rules, phase, unsafe_destructor, default_type_params)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
@@ -50,16 +50,16 @@ extern crate freetype;
 #[cfg(target_os="macos")] extern crate core_graphics;
 #[cfg(target_os="macos")] extern crate core_text;
 
-pub use render_context::RenderContext;
+pub use paint_context::PaintContext;
 
-// Private rendering modules
-mod render_context;
+// Private painting modules
+mod paint_context;
 
-// Rendering
+// Painting
 pub mod color;
 #[path="display_list/mod.rs"]
 pub mod display_list;
-pub mod render_task;
+pub mod paint_task;
 
 // Fonts
 pub mod font;

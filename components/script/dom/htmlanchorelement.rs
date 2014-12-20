@@ -14,11 +14,11 @@ use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
-use dom::element::{Element, AttributeHandlers, HTMLAnchorElementTypeId};
+use dom::element::{Element, AttributeHandlers, ElementTypeId};
 use dom::event::Event;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, NodeHelpers, ElementNodeTypeId};
+use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use std::default::Default;
@@ -33,14 +33,14 @@ pub struct HTMLAnchorElement {
 
 impl HTMLAnchorElementDerived for EventTarget {
     fn is_htmlanchorelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLAnchorElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLAnchorElement))
     }
 }
 
 impl HTMLAnchorElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAnchorElement {
         HTMLAnchorElement {
-            htmlelement: HTMLElement::new_inherited(HTMLAnchorElementTypeId, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLAnchorElement, localName, prefix, document),
             rel_list: Default::default(),
         }
     }
@@ -117,11 +117,8 @@ impl<'a> HTMLAnchorElementMethods for JSRef<'a, HTMLAnchorElement> {
     }
 
     fn RelList(self) -> Temporary<DOMTokenList> {
-        if self.rel_list.get().is_none() {
-            let element: JSRef<Element> = ElementCast::from_ref(self);
-            let rel_list = DOMTokenList::new(element, &atom!("rel"));
-            self.rel_list.assign(Some(rel_list));
-        }
-        self.rel_list.get().unwrap()
+        self.rel_list.or_init(|| {
+            DOMTokenList::new(ElementCast::from_ref(self), &atom!("rel"))
+        })
     }
 }

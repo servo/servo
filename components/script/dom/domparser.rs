@@ -2,16 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use dom::bindings::codegen::Bindings::DOMParserBinding;
 use dom::bindings::codegen::Bindings::DOMParserBinding::DOMParserMethods;
-use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedTypeValues::{Text_html, Text_xml};
-use dom::bindings::error::{Fallible, FailureUnknown};
+use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{Text_html, Text_xml};
+use dom::bindings::error::Fallible;
+use dom::bindings::error::Error::FailureUnknown;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
-use dom::document::{Document, HTMLDocument, NonHTMLDocument, NotFromParser};
+use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
+use dom::document::DocumentSource;
 use dom::window::Window;
+use parse::html::{HTMLInput, parse_html};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -29,7 +32,7 @@ impl DOMParser {
     }
 
     pub fn new(window: JSRef<Window>) -> Temporary<DOMParser> {
-        reflect_dom_object(box DOMParser::new_inherited(window), global::Window(window),
+        reflect_dom_object(box DOMParser::new_inherited(window), GlobalRef::Window(window),
                            DOMParserBinding::Wrap)
     }
 
@@ -39,20 +42,30 @@ impl DOMParser {
 }
 
 impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
+    // http://domparsing.spec.whatwg.org/#the-domparser-interface
     fn ParseFromString(self,
-                       _s: DOMString,
+                       s: DOMString,
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Temporary<Document>> {
-        let window = self.window.root();
-        //FIXME: these should probably be FromParser when we actually parse the string (#3756).
+        let window = self.window.root().clone();
+        let url = window.get_url();
+        let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as uint].to_string();
         match ty {
             Text_html => {
-                Ok(Document::new(*window, None, HTMLDocument, Some("text/html".to_string()),
-                                 NotFromParser))
+                let document = Document::new(window, Some(url.clone()),
+                                             IsHTMLDocument::HTMLDocument,
+                                             Some(content_type),
+                                             DocumentSource::FromParser).root().clone();
+                parse_html(document, HTMLInput::InputString(s), &url);
+                document.set_ready_state(DocumentReadyState::Complete);
+                Ok(Temporary::from_rooted(document))
             }
             Text_xml => {
-                Ok(Document::new(*window, None, NonHTMLDocument, Some("text/xml".to_string()),
-                                 NotFromParser))
+                //FIXME: this should probably be FromParser when we actually parse the string (#3756).
+                Ok(Document::new(window, Some(url.clone()),
+                                 IsHTMLDocument::NonHTMLDocument,
+                                 Some(content_type),
+                                 DocumentSource::NotFromParser))
             }
             _ => {
                 Err(FailureUnknown)

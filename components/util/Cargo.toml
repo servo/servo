@@ -7,6 +7,9 @@ authors = ["The Servo Project Developers"]
 name = "util"
 path = "lib.rs"
 
+[dependencies.cssparser]
+git = "https://github.com/servo/rust-cssparser"
+
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
@@ -24,3 +27,6 @@ git = "https://github.com/servo/string-cache"
 
 [dependencies.url]
 git = "https://github.com/servo/rust-url"
+
+[dependencies.time]
+git = "https://github.com/rust-lang/time"

@@ -55,7 +55,7 @@ impl Drop for FlowRef {
             if self.object.vtable.is_null() {
                 return
             }
-            if flow::base(self.deref()).ref_count().fetch_sub(1, SeqCst) > 1 {
+            if flow::base(&**self).ref_count().fetch_sub(1, SeqCst) > 1 {
                 return
             }
             let flow_ref: FlowRef = mem::replace(self, FlowRef {

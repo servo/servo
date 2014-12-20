@@ -8,7 +8,8 @@ use std::collections::TreeMap;
 use std::iter::AdditiveIterator;
 use std::mem;
 use std::string::String;
-use string::{cef_string_userfree_utf16_alloc,cef_string_userfree_utf16_free,cef_string_utf16_set};
+use string::{cef_string_userfree_utf16_alloc, cef_string_userfree_utf16_free};
+use string::{cef_string_utf16_set};
 use types::{cef_string_multimap_t,cef_string_t};
 
 fn string_multimap_to_treemap(smm: *mut cef_string_multimap_t) -> *mut TreeMap<String, Vec<*mut cef_string_t>> {

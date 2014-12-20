@@ -8,6 +8,9 @@ authors = ["The Servo Project Developers"]
 name = "msg"
 path = "lib.rs"
 
+[dependencies.style]
+path = "../style"
+
 [dependencies.util]
 path = "../util"
 
@@ -17,8 +20,8 @@ git = "https://github.com/servo/rust-azure"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
-[dependencies.http]
-git = "https://github.com/servo/rust-http"
+[dependencies.hyper]
+git = "https://github.com/servo/hyper"
 branch = "servo"
 
 [dependencies.layers]

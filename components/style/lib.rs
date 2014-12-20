@@ -5,7 +5,7 @@
 #![comment = "The Servo Parallel Browser Project"]
 #![license = "MPL"]
 
-#![feature(globs, macro_rules)]
+#![feature(globs, macro_rules, if_let)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
@@ -34,27 +34,29 @@ extern crate "util" as servo_util;
 
 
 // Public API
-pub use media_queries::{Device, Screen};
+pub use media_queries::{Device, MediaType};
 pub use stylesheets::{Stylesheet, iter_font_face_rules};
-pub use selector_matching::{Stylist, StylesheetOrigin, UserAgentOrigin, AuthorOrigin, UserOrigin};
+pub use selector_matching::{Stylist, StylesheetOrigin};
 pub use selector_matching::{DeclarationBlock, CommonStyleAffectingAttributes};
 pub use selector_matching::{CommonStyleAffectingAttributeInfo, CommonStyleAffectingAttributeMode};
-pub use selector_matching::{AttrIsPresentMode, AttrIsEqualMode};
 pub use selector_matching::{matches, matches_simple_selector, common_style_affecting_attributes};
-pub use selector_matching::{RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE,SELECTOR_WHITESPACE};
-pub use properties::{cascade, cascade_anonymous, computed};
+pub use selector_matching::{rare_style_affecting_attributes};
+pub use selector_matching::{RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE, SELECTOR_WHITESPACE};
+pub use properties::{cascade, cascade_anonymous, computed, longhands_from_shorthand};
+pub use properties::is_supported_property;
 pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style_structs};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
-pub use properties::{Angle, AngleOrCorner, AngleAoc, CornerAoc};
-pub use properties::{Left, Right, Bottom, Top};
+pub use properties::{Angle, AngleOrCorner};
+pub use properties::{HorizontalDirection, VerticalDirection};
 pub use node::{TElement, TElementAttributes, TNode};
-pub use selectors::{PseudoElement, Before, After, SelectorList, parse_selector_list_from_str};
-pub use selectors::{AttrSelector, NamespaceConstraint, SpecificNamespace, AnyNamespace};
-pub use selectors::{SimpleSelector,LocalNameSelector};
+pub use selectors::{PseudoElement, ParserContext, SelectorList};
+pub use selectors::{AttrSelector, NamespaceConstraint};
+pub use selectors::{SimpleSelector, parse_selector_list_from_str};
 pub use cssparser::{Color, RGBA};
-pub use legacy::{IntegerAttribute, LengthAttribute, SizeIntegerAttribute, WidthLengthAttribute};
-pub use font_face::{Source, LocalSource, UrlSource_};
+pub use legacy::{IntegerAttribute, LengthAttribute};
+pub use legacy::{SimpleColorAttribute, UnsignedIntegerAttribute};
+pub use font_face::Source;
 
 mod stylesheets;
 mod errors;

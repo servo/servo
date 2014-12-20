@@ -2,45 +2,52 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
-use dom::attr::AttrHelpers;
+use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::Bindings::HTMLBodyElementBinding;
-use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::HTMLBodyElementMethods;
+use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{mod, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::HTMLBodyElementTypeId;
-use dom::eventtarget::{EventTarget, NodeTargetTypeId, EventTargetHelpers};
+use dom::element::ElementTypeId;
+use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, ElementNodeTypeId, window_from_node};
+use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::DOMString;
+use cssparser::RGBA;
+use servo_util::str::{mod, DOMString};
+use std::cell::Cell;
 
 #[dom_struct]
 pub struct HTMLBodyElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
+    background_color: Cell<Option<RGBA>>,
 }
 
 impl HTMLBodyElementDerived for EventTarget {
     fn is_htmlbodyelement(&self) -> bool {
-        *self.type_id() == NodeTargetTypeId(ElementNodeTypeId(HTMLBodyElementTypeId))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLBodyElement))
     }
 }
 
 impl HTMLBodyElement {
-    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLBodyElement {
+    fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+                     -> HTMLBodyElement {
         HTMLBodyElement {
-            htmlelement: HTMLElement::new_inherited(HTMLBodyElementTypeId, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLBodyElement,
+                                                    localName,
+                                                    prefix,
+                                                    document),
+            background_color: Cell::new(None),
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLBodyElement> {
+    pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
+               -> Temporary<HTMLBodyElement> {
         let element = HTMLBodyElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLBodyElementBinding::Wrap)
     }
@@ -55,6 +62,16 @@ impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     fn SetOnunload(self, listener: Option<EventHandlerNonNull>) {
         let win = window_from_node(self).root();
         win.SetOnunload(listener)
+    }
+}
+
+pub trait HTMLBodyElementHelpers {
+    fn get_background_color(&self) -> Option<RGBA>;
+}
+
+impl HTMLBodyElementHelpers for HTMLBodyElement {
+    fn get_background_color(&self) -> Option<RGBA> {
+        self.background_color.get()
     }
 }
 
@@ -90,6 +107,25 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.slice_from(2),
                                                   attr.value().as_slice().to_string());
+        }
+
+        match attr.local_name() {
+            &atom!("bgcolor") => {
+                self.background_color.set(str::parse_legacy_color(attr.value().as_slice()).ok())
+            }
+            _ => {}
+        }
+    }
+
+    fn before_remove_attr(&self, attr: JSRef<Attr>) {
+        match self.super_type() {
+            Some(ref s) => s.before_remove_attr(attr),
+            _ => {}
+        }
+
+        match attr.local_name() {
+            &atom!("bgcolor") => self.background_color.set(None),
+            _ => {}
         }
     }
 }

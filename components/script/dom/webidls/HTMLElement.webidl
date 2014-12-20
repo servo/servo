@@ -23,7 +23,7 @@ interface HTMLElement : Element {
 
   // user interaction
            attribute boolean hidden;
-  //void click();
+  void click();
   //         attribute long tabIndex;
   //void focus();
   //void blur();
@@ -46,3 +46,4 @@ interface HTMLElement : Element {
   //readonly attribute boolean? commandChecked;
 };
 HTMLElement implements GlobalEventHandlers;
+HTMLElement implements ElementCSSInlineStyle;
