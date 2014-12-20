@@ -3922,10 +3922,10 @@ let this: *const %s = unwrap::<%s>(obj);
         assert(False)
 
 def finalizeHook(descriptor, hookName, context):
-    release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
-let _: Box<%s> = mem::transmute(val.to_private());
+    release = """let value = unwrap::<%s>(obj);
+let _: Box<%s> = mem::transmute(value);
 debug!("%s finalize: {:p}", this);
-""" % (descriptor.concreteType, descriptor.concreteType)
+""" % (descriptor.concreteType, descriptor.concreteType, descriptor.concreteType)
     return release
 
 class CGClassTraceHook(CGAbstractClassHook):
@@ -4492,7 +4492,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::ConstantSpec',
-            'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
+            'dom::bindings::utils::{DOM_OBJECT_SLOT, DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
             'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
