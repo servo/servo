@@ -72,10 +72,6 @@ impl<T> DOMRefCell<T> {
         }
     }
 
-    pub fn unwrap(self) -> T {
-        self.value.unwrap()
-    }
-
     pub fn borrow<'a>(&'a self) -> Ref<'a, T> {
         match self.try_borrow() {
             Some(ptr) => ptr,
