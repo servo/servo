@@ -8,10 +8,10 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::IDLInterface;
+use dom::bindings::conversions::unwrap_jsmanaged;
 use dom::bindings::error::throw_type_error;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Temporary, Root};
+use dom::bindings::js::{Temporary, Root};
 use dom::browsercontext;
 use dom::window;
 
@@ -20,9 +20,7 @@ use libc::c_uint;
 use std::cell::Cell;
 use std::mem;
 use std::ptr;
-use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
-use js::glue::{UnwrapObject, GetProxyHandlerExtra};
-use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
+use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
@@ -64,110 +62,10 @@ pub fn GlobalStaticData() -> GlobalStaticData {
     }
 }
 
-/// Returns whether the given `clasp` is one for a DOM object.
-fn is_dom_class(clasp: *const JSClass) -> bool {
-    unsafe {
-        ((*clasp).flags & js::JSCLASS_IS_DOMJSCLASS) != 0
-    }
-}
-
-/// Returns whether `obj` is a DOM object implemented as a proxy.
-pub fn is_dom_proxy(obj: *mut JSObject) -> bool {
-    unsafe {
-        (js_IsObjectProxyClass(obj) || js_IsFunctionProxyClass(obj)) &&
-            IsProxyHandlerFamily(obj)
-    }
-}
-
-/// Returns the index of the slot wherein a pointer to the reflected DOM object
-/// is stored.
-///
-/// Fails if `obj` is not a DOM object.
-pub unsafe fn dom_object_slot(obj: *mut JSObject) -> u32 {
-    let clasp = JS_GetClass(obj);
-    if is_dom_class(&*clasp) {
-        DOM_OBJECT_SLOT as u32
-    } else {
-        assert!(is_dom_proxy(obj));
-        DOM_PROXY_OBJECT_SLOT as u32
-    }
-}
-
-/// Get the DOM object from the given reflector.
-pub unsafe fn unwrap<T>(obj: *mut JSObject) -> *const T {
-    let slot = dom_object_slot(obj);
-    let val = JS_GetReservedSlot(obj, slot);
-    val.to_private() as *const T
-}
-
-/// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
-pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
-    let clasp = JS_GetClass(obj);
-    if is_dom_class(&*clasp) {
-        debug!("plain old dom object");
-        let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
-        return Ok((*domjsclass).dom_class);
-    }
-    if is_dom_proxy(obj) {
-        debug!("proxy dom object");
-        let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
-        return Ok(*dom_class);
-    }
-    debug!("not a dom object");
-    return Err(());
-}
-
-/// Get a `JS<T>` for the given DOM object, unwrapping any wrapper around it
-/// first, and checking if the object is of the correct type.
-///
-/// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
-/// not a reflector for a DOM object of the given type (as defined by the
-/// proto_id and proto_depth).
-pub fn unwrap_jsmanaged<T: Reflectable>(mut obj: *mut JSObject,
-                                        proto_id: PrototypeList::ID,
-                                        proto_depth: uint) -> Result<JS<T>, ()> {
-    unsafe {
-        let dom_class = get_dom_class(obj).or_else(|_| {
-            if IsWrapper(obj) == 1 {
-                debug!("found wrapper");
-                obj = UnwrapObject(obj, /* stopAtOuter = */ 0, ptr::null_mut());
-                if obj.is_null() {
-                    debug!("unwrapping security wrapper failed");
-                    Err(())
-                } else {
-                    assert!(IsWrapper(obj) == 0);
-                    debug!("unwrapped successfully");
-                    get_dom_class(obj)
-                }
-            } else {
-                debug!("not a dom wrapper");
-                Err(())
-            }
-        });
-
-        dom_class.and_then(|dom_class| {
-            if dom_class.interface_chain[proto_depth] == proto_id {
-                debug!("good prototype");
-                Ok(JS::from_raw(unwrap(obj)))
-            } else {
-                debug!("bad prototype");
-                Err(())
-            }
-        })
-    }
-}
-
 /// Leak the given pointer.
 pub unsafe fn squirrel_away_unique<T>(x: Box<T>) -> *const T {
     mem::transmute(x)
 }
-
-/// The index of the slot wherein a pointer to the reflected DOM object is
-/// stored for non-proxy bindings.
-// We use slot 0 for holding the raw object.  This is safe for both
-// globals and non-globals.
-pub const DOM_OBJECT_SLOT: uint = 0;
-const DOM_PROXY_OBJECT_SLOT: uint = js::JSSLOT_PROXY_PRIVATE as uint;
 
 // NOTE: This is baked into the Ion JIT as 0 in codegen for LGetDOMProperty and
 // LSetDOMProperty. Those constants need to be changed accordingly if this value
@@ -650,12 +548,7 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
     unsafe {
         debug!("outerizing");
         let obj = *obj.unnamed_field1;
-        let win: Root<window::Window> =
-            unwrap_jsmanaged(obj,
-                             IDLInterface::get_prototype_id(None::<window::Window>),
-                             IDLInterface::get_prototype_depth(None::<window::Window>))
-            .unwrap()
-            .root();
+        let win: Root<window::Window> = unwrap_jsmanaged(obj).unwrap().root();
         win.browser_context().as_ref().unwrap().window_proxy()
     }
 }

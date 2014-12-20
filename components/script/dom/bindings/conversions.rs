@@ -9,10 +9,10 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::str::ByteString;
-use dom::bindings::utils::{Reflectable, Reflector};
-use dom::bindings::utils::unwrap_jsmanaged;
+use dom::bindings::utils::{Reflectable, Reflector, DOMClass};
 use servo_util::str::DOMString;
 
+use js;
 use js::glue::{RUST_JSID_TO_STRING, RUST_JSID_IS_STRING};
 use js::glue::RUST_JS_NumberValue;
 use js::jsapi::{JSBool, JSContext, JSObject, JSString, jsid};
@@ -22,6 +22,7 @@ use js::jsapi::{JS_ValueToUint16, JS_ValueToNumber, JS_ValueToBoolean};
 use js::jsapi::{JS_ValueToString, JS_GetStringCharsAndLength};
 use js::jsapi::{JS_NewUCStringCopyN, JS_NewStringCopyN};
 use js::jsapi::{JS_WrapValue};
+use js::jsapi::{JSClass, JS_GetClass};
 use js::jsval::JSVal;
 use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value};
 use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
@@ -345,14 +346,122 @@ impl ToJSValConvertible for Reflector {
     }
 }
 
+/// Returns whether the given `clasp` is one for a DOM object.
+fn is_dom_class(clasp: *const JSClass) -> bool {
+    unsafe {
+        ((*clasp).flags & js::JSCLASS_IS_DOMJSCLASS) != 0
+    }
+}
+
+/// Returns whether `obj` is a DOM object implemented as a proxy.
+pub fn is_dom_proxy(obj: *mut JSObject) -> bool {
+    use js::glue::{js_IsObjectProxyClass, js_IsFunctionProxyClass, IsProxyHandlerFamily};
+
+    unsafe {
+        (js_IsObjectProxyClass(obj) || js_IsFunctionProxyClass(obj)) &&
+            IsProxyHandlerFamily(obj)
+    }
+}
+
+/// The index of the slot wherein a pointer to the reflected DOM object is
+/// stored for non-proxy bindings.
+// We use slot 0 for holding the raw object.  This is safe for both
+// globals and non-globals.
+pub const DOM_OBJECT_SLOT: uint = 0;
+const DOM_PROXY_OBJECT_SLOT: uint = js::JSSLOT_PROXY_PRIVATE as uint;
+
+/// Returns the index of the slot wherein a pointer to the reflected DOM object
+/// is stored.
+///
+/// Fails if `obj` is not a DOM object.
+pub unsafe fn dom_object_slot(obj: *mut JSObject) -> u32 {
+    let clasp = JS_GetClass(obj);
+    if is_dom_class(&*clasp) {
+        DOM_OBJECT_SLOT as u32
+    } else {
+        assert!(is_dom_proxy(obj));
+        DOM_PROXY_OBJECT_SLOT as u32
+    }
+}
+
+/// Get the DOM object from the given reflector.
+pub unsafe fn unwrap<T>(obj: *mut JSObject) -> *const T {
+    use js::jsapi::JS_GetReservedSlot;
+
+    let slot = dom_object_slot(obj);
+    let value = JS_GetReservedSlot(obj, slot);
+    value.to_private() as *const T
+}
+
+/// Get the `DOMClass` from `obj`, or `Err(())` if `obj` is not a DOM object.
+unsafe fn get_dom_class(obj: *mut JSObject) -> Result<DOMClass, ()> {
+    use dom::bindings::utils::DOMJSClass;
+    use js::glue::GetProxyHandlerExtra;
+
+    let clasp = JS_GetClass(obj);
+    if is_dom_class(&*clasp) {
+        debug!("plain old dom object");
+        let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
+        return Ok((*domjsclass).dom_class);
+    }
+    if is_dom_proxy(obj) {
+        debug!("proxy dom object");
+        let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
+        return Ok(*dom_class);
+    }
+    debug!("not a dom object");
+    return Err(());
+}
+
+/// Get a `JS<T>` for the given DOM object, unwrapping any wrapper around it
+/// first, and checking if the object is of the correct type.
+///
+/// Returns Err(()) if `obj` is an opaque security wrapper or if the object is
+/// not a reflector for a DOM object of the given type (as defined by the
+/// proto_id and proto_depth).
+pub fn unwrap_jsmanaged<T>(mut obj: *mut JSObject) -> Result<JS<T>, ()>
+    where T: Reflectable + IDLInterface
+{
+    use js::glue::{IsWrapper, UnwrapObject};
+    use std::ptr;
+
+    unsafe {
+        let dom_class = try!(get_dom_class(obj).or_else(|_| {
+            if IsWrapper(obj) == 1 {
+                debug!("found wrapper");
+                obj = UnwrapObject(obj, /* stopAtOuter = */ 0, ptr::null_mut());
+                if obj.is_null() {
+                    debug!("unwrapping security wrapper failed");
+                    Err(())
+                } else {
+                    assert!(IsWrapper(obj) == 0);
+                    debug!("unwrapped successfully");
+                    get_dom_class(obj)
+                }
+            } else {
+                debug!("not a dom wrapper");
+                Err(())
+            }
+        }));
+
+        let proto_id = IDLInterface::get_prototype_id(None::<T>);
+        let proto_depth = IDLInterface::get_prototype_depth(None::<T>);
+        if dom_class.interface_chain[proto_depth] == proto_id {
+            debug!("good prototype");
+            Ok(JS::from_raw(unwrap(obj)))
+        } else {
+            debug!("bad prototype");
+            Err(())
+        }
+    }
+}
+
 impl<T: Reflectable+IDLInterface> FromJSValConvertible<()> for JS<T> {
     fn from_jsval(_cx: *mut JSContext, value: JSVal, _option: ()) -> Result<JS<T>, ()> {
         if !value.is_object() {
             return Err(());
         }
-        unwrap_jsmanaged(value.to_object(),
-                         IDLInterface::get_prototype_id(None::<T>),
-                         IDLInterface::get_prototype_depth(None::<T>))
+        unwrap_jsmanaged(value.to_object())
     }
 }
 

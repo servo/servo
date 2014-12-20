@@ -102,17 +102,13 @@ class CastableObjectUnwrapper():
     """
     def __init__(self, descriptor, source, codeOnFailure):
         self.substitution = {
-            "type": descriptor.nativeType,
-            "depth": descriptor.interface.inheritanceDepth(),
-            "prototype": "PrototypeList::ID::" + descriptor.name,
-            "protoID": "PrototypeList::ID::" + descriptor.name + " as uint",
             "source": source,
             "codeOnFailure": CGIndenter(CGGeneric(codeOnFailure), 4).define(),
         }
 
     def __str__(self):
         return string.Template(
-"""match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
+"""match unwrap_jsmanaged(${source}) {
   Ok(val) => val,
   Err(()) => {
 ${codeOnFailure}
@@ -1669,10 +1665,10 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     """
 
     imports = [
-        'dom::bindings::utils::unwrap_jsmanaged',
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::conversions::FromJSValConvertible',
         'dom::bindings::conversions::ToJSValConvertible',
+        'dom::bindings::conversions::unwrap_jsmanaged',
         'dom::bindings::conversions::StringificationBehavior::Default',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::JS',
@@ -3926,10 +3922,10 @@ let this: *const %s = unwrap::<%s>(obj);
         assert(False)
 
 def finalizeHook(descriptor, hookName, context):
-    release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
-let _: Box<%s> = mem::transmute(val.to_private());
+    release = """let value = unwrap::<%s>(obj);
+let _: Box<%s> = mem::transmute(value);
 debug!("%s finalize: {:p}", this);
-""" % (descriptor.concreteType, descriptor.concreteType)
+""" % (descriptor.concreteType, descriptor.concreteType, descriptor.concreteType)
     return release
 
 class CGClassTraceHook(CGAbstractClassHook):
@@ -4496,14 +4492,14 @@ class CGBindingRoot(CGThing):
             'dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::ConstantSpec',
-            'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
+            'dom::bindings::utils::{DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
             'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
             'dom::bindings::utils::HasPropertyOnPrototype',
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::{squirrel_away_unique}',
-            'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
+            'dom::bindings::utils::{ThrowingConstructor}',
             'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
             'dom::bindings::utils::ConstantVal::{IntVal, UintVal}',
@@ -4512,6 +4508,8 @@ class CGBindingRoot(CGThing):
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::{WrapCallThisObject}',
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
+            'dom::bindings::conversions::{unwrap, unwrap_jsmanaged}',
+            'dom::bindings::conversions::DOM_OBJECT_SLOT',
             'dom::bindings::conversions::IDLInterface',
             'dom::bindings::conversions::jsid_to_str',
             'dom::bindings::conversions::StringificationBehavior::{Default, Empty}',
