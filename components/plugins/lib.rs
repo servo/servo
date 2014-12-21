@@ -65,11 +65,10 @@ macro_rules! define_css_keyword_enum {
 
         impl $name {
             pub fn parse(component_value: &::cssparser::ast::ComponentValue) -> Result<$name, ()> {
-                use std::ascii::AsciiExt;
                 match component_value {
                     &::cssparser::ast::Ident(ref value) => {
-                        match value.to_ascii_lower().as_slice() {
-                            $( concat!($css) => Ok($name::$variant), )+
+                        match_ignore_ascii_case! { value:
+                            $( $css => Ok($name::$variant) ),+
                             _ => Err(())
                         }
                     }
@@ -95,4 +94,24 @@ macro_rules! define_css_keyword_enum {
             }
         }
     }
+}
+
+
+#[macro_export]
+macro_rules! match_ignore_ascii_case {
+    ( $value: expr: $( $string: expr => $result: expr ),+ _ => $fallback: expr, ) => {
+        match_ignore_ascii_case! { $value:
+            $( $string => $result ),+
+            _ => $fallback
+        }
+    };
+    ( $value: expr: $( $string: expr => $result: expr ),+ _ => $fallback: expr ) => {
+        {
+            use std::ascii::AsciiExt;
+            match $value.as_slice() {
+                $( s if s.eq_ignore_ascii_case($string) => $result, )+
+                _ => $fallback
+            }
+        }
+    };
 }

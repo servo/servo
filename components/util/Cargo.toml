@@ -7,6 +7,9 @@ authors = ["The Servo Project Developers"]
 name = "util"
 path = "lib.rs"
 
+[dependencies.plugins]
+path = "../plugins"
+
 [dependencies.cssparser]
 git = "https://github.com/servo/rust-cssparser"
 
