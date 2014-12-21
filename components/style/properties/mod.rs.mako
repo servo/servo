@@ -448,14 +448,14 @@ pub mod longhands {
         pub use super::computed_as_specified as to_computed_value;
         pub type SpecifiedValue = computed_value::T;
         pub mod computed_value {
-	    use std::fmt;
+            use std::fmt;
 
             #[deriving(PartialEq, Clone)]
             pub enum T {
                 Auto,
                 Number(i32),
             }
-	    impl fmt::Show for T {
+            impl fmt::Show for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     match self {
                         &T::Auto => write!(f, "auto"),
@@ -555,7 +555,7 @@ pub mod longhands {
                     &SpecifiedValue::Normal => write!(f, "normal"),
                     &SpecifiedValue::Length(length) => write!(f, "{}", length),
                     &SpecifiedValue::Number(number) => write!(f, "{}", number),
-		    &SpecifiedValue::Percentage(number) => write!(f, "{}%", number * 100.),
+                    &SpecifiedValue::Percentage(number) => write!(f, "{}%", number * 100.),
                 }
             }
         }
@@ -628,7 +628,7 @@ pub mod longhands {
                     % for keyword in vertical_align_keywords:
                         &SpecifiedValue::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
                     % endfor
-		    &SpecifiedValue::LengthOrPercentage(lop) => write!(f, "{}", lop),
+                    &SpecifiedValue::LengthOrPercentage(lop) => write!(f, "{}", lop),
                 }
             }
         }
@@ -708,13 +708,13 @@ pub mod longhands {
     <%self:longhand name="content">
             pub use super::computed_as_specified as to_computed_value;
             pub mod computed_value {
-	        use std::fmt;
+            use std::fmt;
                 #[deriving(PartialEq, Clone)]
                 pub enum ContentItem {
                     StringContent(String),
                 }
                 impl fmt::Show for ContentItem {
-		    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                         match self {
                             &ContentItem::StringContent(ref s) => write!(f, "\"{}\"", s),
                         }
@@ -728,16 +728,16 @@ pub mod longhands {
                     Content(Vec<ContentItem>),
                 }
                 impl fmt::Show for T {
-		    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                         match self {
-			    &T::normal => write!(f, "normal"),
-			    &T::none => write!(f, "none"),
-			    &T::Content(ref content) => {
+                            &T::normal => write!(f, "normal"),
+                            &T::none => write!(f, "none"),
+                            &T::Content(ref content) => {
                                 for c in content.iter() {
                                     let _ = write!(f, "{}", c);
                                 }
                                 Ok(())
-			    }
+                            }
                         }
                     }
                 }
@@ -866,7 +866,7 @@ pub mod longhands {
                     pub vertical: LengthOrPercentage,
                 }
                 impl fmt::Show for T {
-		    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                         write!(f, "{} {}", self.horizontal, self.vertical)
                     }
                 }
@@ -1356,7 +1356,7 @@ pub mod longhands {
                     }
                     let _ = write!(f, "line-through");
                 }
-		Ok(())
+                Ok(())
             }
         }
         pub mod computed_value {
@@ -1602,7 +1602,7 @@ pub mod longhands {
                 if let Some(ref color) = self.color {
                     let _ = write!(f, "{}", color);
                 }
-		Ok(())
+                Ok(())
             }
         }
 
@@ -1630,7 +1630,7 @@ pub mod longhands {
                     }
                     let _ = write!(f, "{} {} {} {} {}", self.offset_x, self.offset_y,
                                    self.blur_radius, self.spread_radius, self.color);
-		    Ok(())
+                    Ok(())
                 }
             }
         }
@@ -2510,7 +2510,7 @@ impl PropertyDeclaration {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".to_string(),
-		% endif
+                % endif
             % endfor
             _ => "".to_string(),
         }
@@ -2523,7 +2523,7 @@ impl PropertyDeclaration {
                     &PropertyDeclaration::${property.camel_case}Declaration(ref value) =>
                         value.specified_value()
                              .unwrap_or_else(|| format!("{}", longhands::${property.ident}::get_initial_value())),
-		% endif
+                % endif
             % endfor
             decl => panic!("unsupported property declaration: {}", decl.name()),
         }
@@ -2535,7 +2535,7 @@ impl PropertyDeclaration {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     (&PropertyDeclaration::${property.camel_case}Declaration(..), "${property.name}") => true,
-		% endif
+                % endif
             % endfor
             _ => false,
         }
