@@ -340,9 +340,9 @@ pub trait Reflectable {
 pub fn reflect_dom_object<T: Reflectable>
         (obj:     Box<T>,
          global:  GlobalRef,
-         wrap_fn: extern "Rust" fn(*mut JSContext, &GlobalRef, Box<T>) -> Temporary<T>)
+         wrap_fn: extern "Rust" fn(*mut JSContext, GlobalRef, Box<T>) -> Temporary<T>)
          -> Temporary<T> {
-    wrap_fn(global.get_cx(), &global, obj)
+    wrap_fn(global.get_cx(), global, obj)
 }
 
 /// A struct to store a reference to the reflector of a DOM object.

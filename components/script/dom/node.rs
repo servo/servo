@@ -1157,7 +1157,7 @@ impl Node {
     pub fn reflect_node<N: Reflectable+NodeBase>
             (node:      Box<N>,
              document:  JSRef<Document>,
-             wrap_fn:   extern "Rust" fn(*mut JSContext, &GlobalRef, Box<N>) -> Temporary<N>)
+             wrap_fn:   extern "Rust" fn(*mut JSContext, GlobalRef, Box<N>) -> Temporary<N>)
              -> Temporary<N> {
         let window = document.window().root();
         reflect_dom_object(node, GlobalRef::Window(*window), wrap_fn)
