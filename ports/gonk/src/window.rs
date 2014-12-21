@@ -22,6 +22,7 @@ use std::mem::transmute;
 use std::mem::size_of;
 use std::mem::zeroed;
 use std::ptr;
+use servo_util::cursor::Cursor;
 use servo_util::geometry::ScreenPx;
 use gleam::gl;
 
@@ -612,8 +613,8 @@ impl GonkNativeWindowBuffer {
 
 /// The type of a window.
 pub struct Window {
-    event_recv: Receiver<Option<WindowEvent>>,
-    pub event_send: Sender<Option<WindowEvent>>,
+    event_recv: Receiver<WindowEvent>,
+    pub event_send: Sender<WindowEvent>,
     width: i32,
     height: i32,
     native_window: *mut GonkNativeWindow,
@@ -753,7 +754,7 @@ impl Window {
         Rc::new(window)
     }
 
-    pub fn wait_events(&self) -> Option<WindowEvent> {
+    pub fn wait_events(&self) -> WindowEvent {
         self.event_recv.recv()
     }
 }
@@ -824,6 +825,9 @@ impl WindowMethods for Window {
          box receiver as Box<CompositorReceiver>)
     }
 
+    fn set_cursor(&self, _: Cursor) {
+    }
+
     fn prepare_for_composite(&self) -> bool {
         true
     }
@@ -831,14 +835,14 @@ impl WindowMethods for Window {
 
 struct GonkCompositorProxy {
     sender: Sender<compositor_task::Msg>,
-    event_sender: Sender<Option<WindowEvent>>,
+    event_sender: Sender<WindowEvent>,
 }
 
 impl CompositorProxy for GonkCompositorProxy {
     fn send(&mut self, msg: compositor_task::Msg) {
         // Send a message and kick the OS event loop awake.
         self.sender.send(msg);
-        self.event_sender.send(None);
+        self.event_sender.send(WindowEvent::Idle);
     }
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
         box GonkCompositorProxy {
