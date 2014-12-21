@@ -50,3 +50,49 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_lint_pass(box lints::InheritancePass as LintPassObject);
 }
 
+
+#[macro_export]
+macro_rules! define_css_keyword_enum {
+    ($name: ident: $( $css: expr => $variant: ident ),+,) => {
+        define_css_keyword_enum!($name: $( $css => $variant ),+)
+    };
+    ($name: ident: $( $css: expr => $variant: ident ),+) => {
+        #[allow(non_camel_case_types)]
+        #[deriving(Clone, Eq, PartialEq, FromPrimitive)]
+        pub enum $name {
+            $( $variant ),+
+        }
+
+        impl $name {
+            pub fn parse(component_value: &::cssparser::ast::ComponentValue) -> Result<$name, ()> {
+                use std::ascii::AsciiExt;
+                match component_value {
+                    &::cssparser::ast::Ident(ref value) => {
+                        match value.to_ascii_lower().as_slice() {
+                            $( concat!($css) => Ok($name::$variant), )+
+                            _ => Err(())
+                        }
+                    }
+                    _ => Err(())
+                }
+            }
+        }
+
+        impl ::std::fmt::Show for $name {
+            #[inline]
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                use cssparser::ToCss;
+                self.fmt_to_css(f)
+            }
+        }
+
+        impl ::cssparser::ToCss for $name {
+            fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
+            where W: ::text_writer::TextWriter {
+                match self {
+                    $( &$name::$variant => dest.write_str($css) ),+
+                }
+            }
+        }
+    }
+}
