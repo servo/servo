@@ -120,9 +120,10 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-cssparser#97d8c3b20a240881573748d4eadcda610bfb888c"
+source = "git+https://github.com/servo/rust-cssparser#a2b0b6b00ad84dc3a4b4faf77ddd63611c8ce58a"
 dependencies = [
  "encoding 0.2.3 (git+https://github.com/lifthrasiir/rust-encoding)",
+ "text_writer 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -664,6 +665,11 @@ dependencies = [
 [[package]]
 name = "task_info"
 version = "0.0.1"
+
+[[package]]
+name = "text_writer"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "time"

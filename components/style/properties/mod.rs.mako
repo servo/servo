@@ -2547,13 +2547,13 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
                 };
                 match PropertyDeclaration::parse(n.as_slice(), v.as_slice(), list, base_url, seen) {
                     PropertyDeclarationParseResult::UnknownProperty => log_css_error(l, format!(
-                        "Unsupported property: {}:{}", n, v.iter().to_css()).as_slice()),
+                        "Unsupported property: {}:{}", n, v.to_css_string()).as_slice()),
                     PropertyDeclarationParseResult::ExperimentalProperty => log_css_error(l, format!(
                         "Experimental property, use `servo --enable_experimental` \
                          or `servo -e` to enable: {}:{}",
-                        n, v.iter().to_css()).as_slice()),
+                        n, v.to_css_string()).as_slice()),
                     PropertyDeclarationParseResult::InvalidValue => log_css_error(l, format!(
-                        "Invalid value: {}:{}", n, v.iter().to_css()).as_slice()),
+                        "Invalid value: {}:{}", n, v.to_css_string()).as_slice()),
                     PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => (),
                 }
             }
