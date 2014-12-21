@@ -6,8 +6,8 @@
 
 use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
-use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString, jschar};
-use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewUCString, JS_malloc, JS_free};
+use js::jsapi::{JSContext, jsid, JSPropertyDescriptor, JSObject, JSString};
+use js::jsapi::{JS_GetPropertyDescriptorById, JS_NewStringCopyN};
 use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto};
 use js::jsapi::{JS_ReportErrorFlagsAndNumber, JS_StrictPropertyStub};
 use js::jsapi::{JSREPORT_WARNING, JSREPORT_STRICT, JSREPORT_STRICT_MODE_ERROR};
@@ -21,8 +21,6 @@ use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY, JSRESOLVE_QUALIFIED};
 use libc;
 use std::mem;
 use std::ptr;
-use std::string;
-use std::mem::size_of;
 
 static JSPROXYSLOT_EXPANDO: u32 = 0;
 
@@ -82,27 +80,17 @@ pub unsafe extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
     return delete_property_by_id(cx, expando, id, &mut *bp);
 }
 
-pub fn _obj_toString(cx: *mut JSContext, className: *const libc::c_char) -> *mut JSString {
-  unsafe {
-    let name = string::raw::from_buf(className as *const i8 as *const u8);
-    let nchars = "[object ]".len() + name.len();
-    let chars: *mut jschar = JS_malloc(cx, (nchars + 1) as libc::size_t * (size_of::<jschar>() as libc::size_t)) as *mut jschar;
-    if chars.is_null() {
-        return ptr::null_mut();
-    }
+pub fn _obj_toString(cx: *mut JSContext, name: &str) -> *mut JSString {
+    unsafe {
+        let result = format!("[object {}]", name);
 
-    let result = format!("[object {}]", name);
-    let result = result.as_slice();
-    for (i, c) in result.chars().enumerate() {
-      *chars.offset(i as int) = c as jschar;
+        let chars = result.as_ptr() as *const libc::c_char;
+        let length = result.len() as libc::size_t;
+
+        let string = JS_NewStringCopyN(cx, chars, length);
+        assert!(string.is_not_null());
+        return string;
     }
-    *chars.offset(nchars as int) = 0;
-    let jsstr = JS_NewUCString(cx, chars, nchars as libc::size_t);
-    if jsstr.is_null() {
-        JS_free(cx, chars as *mut libc::c_void);
-    }
-    jsstr
-  }
 }
 
 pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
