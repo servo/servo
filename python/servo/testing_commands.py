@@ -87,7 +87,7 @@ class MachCommands(CommandBase):
             return self.infer_test_by_dir(params)
 
         test_start = time()
-        for t in ["tidy", "unit", "ref", "content", "wpt"]:
+        for t in ["tidy", "ref", "content", "wpt", "unit"]:
             Registrar.dispatch("test-%s" % t, context=self.context)
         elapsed = time() - test_start
 
@@ -121,6 +121,9 @@ class MachCommands(CommandBase):
                 if c != "servo":
                     ret = ret or cargo_test(c)
 
+        print("WARNING: test-unit has probably destroyed your servo binary "
+              " (see https://github.com/rust-lang/cargo/issues/961 ). You "
+              " may want to rebuild now.")
         return ret
 
     @Command('test-ref',
