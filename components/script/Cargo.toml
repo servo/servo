@@ -52,8 +52,7 @@ git = "https://github.com/servo/html5ever"
 git = "https://github.com/lifthrasiir/rust-encoding"
 
 [dependencies.hyper]
-git = "https://github.com/servo/hyper"
-branch = "servo"
+git = "https://github.com/hyperium/hyper"
 
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"

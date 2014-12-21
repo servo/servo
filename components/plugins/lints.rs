@@ -8,7 +8,6 @@ use syntax::attr::AttrMetaMethods;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
 use rustc::middle::{ty, def};
-use rustc::middle::typeck::astconv::AstConv;
 use rustc::util::ppaux::Repr;
 
 declare_lint!(TRANSMUTE_TYPE_LINT, Allow,
@@ -22,6 +21,7 @@ declare_lint!(PRIVATIZE, Deny,
 ///
 /// This lint (off by default, enable with `-W transmute-type-lint`) warns about all the transmutes
 /// being used, along with the types they transmute to/from.
+#[allow(missing_copy_implementations)]
 pub struct TransmutePass;
 
 /// Lint for ensuring safe usage of unrooted pointers
@@ -34,11 +34,13 @@ pub struct TransmutePass;
 ///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
 ///
 /// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a GC pass.
+#[allow(missing_copy_implementations)]
 pub struct UnrootedPass;
 
 /// Lint for keeping DOM fields private
 ///
 /// This lint (disable with `-A privatize`/`#[allow(privatize)]`) ensures all types marked with `#[privatize]` have no private fields
+#[allow(missing_copy_implementations)]
 pub struct PrivatizePass;
 
 impl LintPass for TransmutePass {
@@ -54,7 +56,7 @@ impl LintPass for TransmutePass {
                         if path.segments.last()
                                         .map_or(false, |ref segment| segment.identifier.name.as_str() == "transmute")
                            && args.len() == 1 {
-                            let tcx = cx.tcx();
+                            let tcx = cx.tcx;
                             cx.span_lint(TRANSMUTE_TYPE_LINT, ex.span,
                                          format!("Transmute from {} to {} detected",
                                                  expr_ty(tcx, ex).repr(tcx),
@@ -77,7 +79,7 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
     match ty.node {
         ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
         ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) => lint_unrooted_ty(cx, &**t, warning),
-        ast::TyPath(_, _, id) => {
+        ast::TyPath(_, id) => {
                 match cx.tcx.def_map.borrow()[id].clone() {
                     def::DefTy(def_id, _) => {
                         if ty::has_attr(cx.tcx, def_id, "must_root") {
@@ -219,7 +221,7 @@ impl LintPass for UnrootedPass {
         };
 
         let t = expr_ty(cx.tcx, &*expr);
-        match ty::get(t).sty {
+        match t.sty {
             ty::ty_struct(did, _) |
             ty::ty_enum(did, _) => {
                 if ty::has_attr(cx.tcx, did, "must_root") {

@@ -21,8 +21,7 @@ git = "https://github.com/servo/rust-azure"
 git = "https://github.com/servo/rust-geom"
 
 [dependencies.hyper]
-git = "https://github.com/servo/hyper"
-branch = "servo"
+git = "https://github.com/hyperium/hyper"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
