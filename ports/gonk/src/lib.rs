@@ -117,7 +117,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             for url in opts.urls.iter() {
                 let url = match url::Url::parse(url.as_slice()) {
                     Ok(url) => url,
-                    Err(url::RelativeUrlWithoutBase)
+                    Err(url::ParseError::RelativeUrlWithoutBase)
                     => url::Url::from_file_path(&cwd.join(url.as_slice())).unwrap(),
                     Err(_) => panic!("URL parsing failed"),
                 };
@@ -151,6 +151,14 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
     pub fn repaint_synchronously(&mut self) {
         self.compositor.repaint_synchronously()
+    }
+
+    pub fn pinch_zoom_level(&self) -> f32 {
+        self.compositor.pinch_zoom_level()
+    }
+
+    pub fn get_title_for_main_frame(&self) {
+        self.compositor.get_title_for_main_frame()
     }
 
     pub fn shutdown(mut self) {
