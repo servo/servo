@@ -159,40 +159,21 @@ pub mod longhands {
 
     <%def name="single_keyword_computed(name, values, experimental=False)">
         <%self:single_component_value name="${name}" experimental="${experimental}">
+            pub use self::computed_value::T as SpecifiedValue;
             ${caller.body()}
             pub mod computed_value {
-                use std::fmt;
-                #[allow(non_camel_case_types)]
-                #[deriving(PartialEq, Clone, FromPrimitive)]
-                pub enum T {
+                define_css_keyword_enum! { T:
                     % for value in values.split():
-                        ${to_rust_ident(value)},
+                        "${value}" => ${to_rust_ident(value)},
                     % endfor
                 }
-                impl fmt::Show for T {
-		    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                        match self {
-                            % for value in values.split():
-                                &T::${to_rust_ident(value)} => write!(f, "${value}"),
-                            % endfor
-                        }
-                    }
-                }
             }
-            pub type SpecifiedValue = computed_value::T;
             #[inline] pub fn get_initial_value() -> computed_value::T {
                 T::${to_rust_ident(values.split()[0])}
             }
             pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
                                         -> Result<SpecifiedValue, ()> {
-                get_ident_lower(v).and_then(|keyword| {
-                    match keyword.as_slice() {
-                        % for value in values.split():
-                            "${value}" => Ok(T::${to_rust_ident(value)}),
-                        % endfor
-                        _ => Err(()),
-                    }
-                })
+                computed_value::T::parse(v)
             }
         </%self:single_component_value>
     </%def>
@@ -1550,111 +1531,13 @@ pub mod longhands {
         pub fn from_component_value(value: &ComponentValue, _: &Url)
                                     -> Result<SpecifiedValue,()> {
             match value {
-                &Ident(ref value) if value.eq_ignore_ascii_case("auto") => Ok(T::AutoCursor),
-                &Ident(ref value) if value.eq_ignore_ascii_case("none") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NoCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("default") => {
-                    Ok(T::SpecifiedCursor(util_cursor::DefaultCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("pointer") => {
-                    Ok(T::SpecifiedCursor(util_cursor::PointerCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("context-menu") => {
-                    Ok(T::SpecifiedCursor(util_cursor::ContextMenuCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("help") => {
-                    Ok(T::SpecifiedCursor(util_cursor::HelpCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("progress") => {
-                    Ok(T::SpecifiedCursor(util_cursor::ProgressCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("wait") => {
-                    Ok(T::SpecifiedCursor(util_cursor::WaitCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("cell") => {
-                    Ok(T::SpecifiedCursor(util_cursor::CellCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("crosshair") => {
-                    Ok(T::SpecifiedCursor(util_cursor::CrosshairCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("text") => {
-                    Ok(T::SpecifiedCursor(util_cursor::TextCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("vertical-text") => {
-                    Ok(T::SpecifiedCursor(util_cursor::VerticalTextCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("alias") => {
-                    Ok(T::SpecifiedCursor(util_cursor::AliasCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("copy") => {
-                    Ok(T::SpecifiedCursor(util_cursor::CopyCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("move") => {
-                    Ok(T::SpecifiedCursor(util_cursor::MoveCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("no-drop") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NoDropCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("not-allowed") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NotAllowedCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("grab") => {
-                    Ok(T::SpecifiedCursor(util_cursor::GrabCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("grabbing") => {
-                    Ok(T::SpecifiedCursor(util_cursor::GrabbingCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("e-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::EResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("n-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("ne-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NeResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("nw-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NwResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("s-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::SResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("se-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::SeResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("sw-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::SwResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("w-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::WResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("ew-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::EwResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("ns-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NsResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("nesw-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NeswResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("nwse-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NwseResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("col-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::ColResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("row-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::RowResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("all-scroll") => {
-                    Ok(T::SpecifiedCursor(util_cursor::AllScrollCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("zoom-in") => {
-                    Ok(T::SpecifiedCursor(util_cursor::ZoomInCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("zoom-out") => {
-                    Ok(T::SpecifiedCursor(util_cursor::ZoomOutCursor))
+                &Ident(ref ident) => {
+                    if ident.eq_ignore_ascii_case("auto") {
+                        Ok(T::AutoCursor)
+                    } else {
+                        util_cursor::Cursor::from_css_keyword(ident.as_slice())
+                        .map(T::SpecifiedCursor)
+                    }
                 }
                 _ => Err(())
             }

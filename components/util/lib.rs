@@ -26,6 +26,7 @@ extern crate sync;
 #[cfg(target_os="macos")]
 extern crate task_info;
 extern crate "time" as std_time;
+extern crate text_writer;
 extern crate string_cache;
 extern crate unicode;
 extern crate url;
