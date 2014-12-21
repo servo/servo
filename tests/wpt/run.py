@@ -14,23 +14,36 @@ def wptsubdir(*args):
 sys.path.append(wptsubdir("web-platform-tests"))
 sys.path.append(wptsubdir("web-platform-tests", "tools", "scripts"))
 from wptrunner import wptrunner, wptcommandline
-import manifest
 
-def update_manifest():
-    manifest.update_manifest(wptsubdir("web-platform-tests"),
-                             rebuild=False,
-                             experimental_include_local_changes=True,
-                             path=wptsubdir("metadata", "MANIFEST.json"))
+def manifest_path(**kwargs):
+    return wptsubdir("csswg-metadata", "MANIFEST.json") if kwargs['csswg'] else wptsubdir("metadata", "MANIFEST.json")
+
+def update_manifest(args):
+    subdir = wptsubdir("csswg-test") if args.csswg else wptsubdir("web-platform-tests")
+    import manifest
+    if args.csswg:
+        manifest._repo_root = wptsubdir("csswg-test")
+    opts = {
+        'tests_root': subdir,
+        'path': manifest_path(**vars(args)),
+        'rebuild': False,
+        'experimental_include_local_changes': True,
+        'url_base': '/',
+    }
+    manifest.update_from_cli(**opts)
     return True
 
 def run_tests(**kwargs):
-    if not os.path.isfile(wptsubdir("metadata", "MANIFEST.json")):
+    if not os.path.isfile(manifest_path(**kwargs)):
         raise Exception("Manifest not found. Please use --update-manifest in WPTARGS to create one")
     wptrunner.setup_logging(kwargs, {"raw": sys.stdout})
     return wptrunner.run_tests(**kwargs)
 
+def default_manifest(args):
+    return wptsubdir("csswg-include.ini") if args.csswg else wptsubdir("include.ini")
+
 def set_defaults(args):
-    args.include_manifest = args.include_manifest if args.include_manifest else wptsubdir("include.ini")
+    args.include_manifest = args.include_manifest if args.include_manifest else default_manifest(args)
     args.product = "servo"
     rv = vars(args)
     wptcommandline.check_args(rv)
@@ -39,9 +52,10 @@ def set_defaults(args):
 def main():
     parser = wptcommandline.create_parser()
     parser.add_argument('--update-manifest', dest='update_manifest', action='store_true')
+    parser.add_argument('--csswg', dest='csswg', action='store_true')
     args = parser.parse_args()
     if args.update_manifest:
-        return update_manifest()
+        return update_manifest(args)
     kwargs = set_defaults(args)
     return run_tests(**kwargs)
 

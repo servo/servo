@@ -9,17 +9,23 @@ wpt_root=$(dirname $0)
 PYTHON=$(which python2 2> /dev/null || echo python)
 VIRTUALENV=$(which virtualenv2 2> /dev/null || echo virtualenv)
 
+PREFIX=
+if [[ $* == *--csswg* ]]; then
+    PREFIX=csswg-
+fi
+
 test -d $wpt_root/_virtualenv || $VIRTUALENV $wpt_root/_virtualenv -p $PYTHON
-test -d $wpt_root/metadata || mkdir -p $wpt_root/metadata
+test -d $wpt_root/${PREFIX}metadata || mkdir -p $wpt_root/${PREFIX}metadata
 test -d $wpt_root/prefs || mkdir -p $wpt_root/prefs
 source $wpt_root/_virtualenv/bin/activate
+
 if [[ $* == *--update-manifest* ]]; then
     (python -c "import html5lib" &>/dev/null) || pip install html5lib
 fi
 (python -c "import wptrunner"  &>/dev/null) || pip install 'wptrunner==1.8'
 
 python $wpt_root/run.py \
-  --config $wpt_root/config.ini \
+  --config $wpt_root/${PREFIX}config.ini \
   --binary $wpt_root/../../components/servo/target/servo \
   --log-mach - \
   "$@"
