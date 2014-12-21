@@ -1830,7 +1830,7 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
         if not descriptor.isGlobal():
-            args = [Argument('*mut JSContext', 'aCx'), Argument('&GlobalRef', 'aScope'),
+            args = [Argument('*mut JSContext', 'aCx'), Argument('GlobalRef', 'aScope'),
                     Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
         else:
             args = [Argument('*mut JSContext', 'aCx'),
