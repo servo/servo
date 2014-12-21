@@ -658,6 +658,7 @@ dependencies = [
  "plugins 0.0.1",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
+ "text_writer 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
  "util 0.0.1",
 ]
@@ -699,6 +700,7 @@ dependencies = [
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
  "task_info 0.0.1",
+ "text_writer 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.0 (git+https://github.com/rust-lang/time)",
  "url 0.1.0 (git+https://github.com/servo/rust-url)",
 ]
