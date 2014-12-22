@@ -27,8 +27,8 @@ path = "../../tests/contenttest.rs"
 harness = false
 
 [features]
-default = ["glfw_app"]
-glutin = ["glutin_app"]
+default = ["glutin_app"]
+glfw = ["glfw_app"]
 
 [dependencies.compositing]
 path = "../compositing"
