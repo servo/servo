@@ -47,6 +47,19 @@ enum WindowHandle {
     Headless(HeadlessContext),
 }
 
+static mut g_nested_event_loop_listener: Option<*mut NestedEventLoopListener + 'static> = None;
+
+fn nested_window_resize(width: uint, height: uint) {
+    unsafe {
+        match g_nested_event_loop_listener {
+            None => {}
+            Some(listener) => {
+                (*listener).handle_event_from_nested_event_loop(Resize(TypedSize2D(width, height)));
+            }
+        }
+    }
+}
+
 bitflags!(
     #[deriving(Show)]
     flags KeyModifiers: u8 {
@@ -107,7 +120,7 @@ impl Window {
 
         let glutin = match render_api {
             OpenGL => {
-                let glutin_window = glutin::WindowBuilder::new()
+                let mut glutin_window = glutin::WindowBuilder::new()
                                     .with_title("Servo [glutin]".to_string())
                                     .with_dimensions(window_size.width, window_size.height)
                                     .with_gl_version(gl_version())
@@ -116,6 +129,7 @@ impl Window {
                                     .unwrap();
                 unsafe { glutin_window.make_current() };
 
+                glutin_window.set_window_resize_callback(Some(nested_window_resize));
                 WindowHandle::Windowed(glutin_window)
             }
             Mesa => {
@@ -186,11 +200,23 @@ impl WindowMethods for Window {
         }
     }
 
-    fn create_compositor_channel(_: &Option<Rc<Window>>)
+    fn create_compositor_channel(window: &Option<Rc<Window>>)
                                  -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
+
+        let window_proxy = match window {
+            &Some(ref window) => {
+                match window.glutin {
+                    WindowHandle::Windowed(ref window) => Some(window.create_window_proxy()),
+                    WindowHandle::Headless(_) => None,
+                }
+            }
+            &None => None,
+        };
+
         (box GlutinCompositorProxy {
              sender: sender,
+             window_proxy: window_proxy,
          } as Box<CompositorProxy+Send>,
          box receiver as Box<CompositorReceiver>)
     }
@@ -476,20 +502,12 @@ impl Window {
 
     pub unsafe fn set_nested_event_loop_listener(
             &self,
-            _listener: *mut NestedEventLoopListener + 'static) {
-        // TODO: Support this with glutin
-        //self.glfw_window.set_refresh_polling(false);
-        //glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.ptr, Some(on_refresh));
-        //glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.ptr, Some(on_framebuffer_size));
-        //g_nested_event_loop_listener = Some(listener)
+            listener: *mut NestedEventLoopListener + 'static) {
+        g_nested_event_loop_listener = Some(listener)
     }
 
     pub unsafe fn remove_nested_event_loop_listener(&self) {
-        // TODO: Support this with glutin
-        //glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.ptr, None);
-        //glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.ptr, None);
-        //self.glfw_window.set_refresh_polling(true);
-        //g_nested_event_loop_listener = None
+        g_nested_event_loop_listener = None
     }
 
     pub fn wait_events(&self) -> WindowEvent {
@@ -525,18 +543,22 @@ impl Window {
 
 struct GlutinCompositorProxy {
     sender: Sender<compositor_task::Msg>,
+    window_proxy: Option<glutin::WindowProxy>,
 }
 
 impl CompositorProxy for GlutinCompositorProxy {
     fn send(&mut self, msg: compositor_task::Msg) {
         // Send a message and kick the OS event loop awake.
         self.sender.send(msg);
-        // TODO: Support this with glutin
-        //glfw::Glfw::post_empty_event()
+        match self.window_proxy {
+            Some(ref window_proxy) => window_proxy.wakeup_event_loop(),
+            None => {}
+        }
     }
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
         box GlutinCompositorProxy {
             sender: self.sender.clone(),
+            window_proxy: self.window_proxy.clone(),
         } as Box<CompositorProxy+Send>
     }
 }
