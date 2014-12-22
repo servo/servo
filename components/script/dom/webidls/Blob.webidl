@@ -7,7 +7,7 @@
 //[Exposed=Window,Worker][Constructor,
 // Constructor(sequence<(ArrayBuffer or ArrayBufferView or Blob or DOMString)> blobParts, optional BlobPropertyBag options)]
 [Constructor,
- Constructor(DOMString blobParts)]
+ Constructor(DOMString blobParts, optional BlobPropertyBag options)]
 interface Blob {
 
   readonly attribute unsigned long long size;

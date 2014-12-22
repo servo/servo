@@ -20,7 +20,8 @@ impl File {
     fn new_inherited(global: &GlobalRef, type_: BlobTypeId,
                      _file_bits: JSRef<Blob>, name: DOMString) -> File {
         File {
-            blob: Blob::new_inherited(global, type_, None),
+            //TODO: get type from the underlying filesystem instead of "".to_string()
+            blob: Blob::new_inherited(global, type_, None, ""),
             name: name,
         }
         // XXXManishearth Once Blob is able to store data
