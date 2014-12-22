@@ -50,8 +50,7 @@ use geom::{Point2D, Rect, Size2D};
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
-use servo_util::logical_geometry::WritingMode;
-use servo_util::logical_geometry::{LogicalRect, LogicalSize};
+use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use std::mem;
 use std::fmt;
 use std::iter::Zip;
@@ -290,7 +289,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// NB: Do not change this `&self` to `&mut self` under any circumstances! It has security
     /// implications because this can be called on parents concurrently from descendants!
     fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        panic!("generated_containing_block_position not yet implemented for this flow")
+        panic!("generated_containing_block_rect not yet implemented for this flow")
     }
 
     /// Returns a layer ID for the given fragment.

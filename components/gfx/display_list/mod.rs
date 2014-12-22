@@ -6,8 +6,8 @@
 //! perform. Using a list instead of painting elements in immediate mode allows transforms, hit
 //! testing, and invalidation to be performed using the same primitives as painting. It also allows
 //! Servo to aggressively cull invisible and out-of-bounds painting elements, to reduce overdraw.
-//! Finally, display lists allow tiles to be farmed out onto multiple CPUs and painted in
-//! parallel (although this benefit does not apply to GPU-based painting).
+//! Finally, display lists allow tiles to be farmed out onto multiple CPUs and painted in parallel
+//! (although this benefit does not apply to GPU-based painting).
 //!
 //! Display items describe relatively high-level drawing operations (for example, entire borders
 //! and shadows instead of lines and blur operations), to reduce the amount of allocation required.
@@ -610,12 +610,12 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[deriving(Clone, Default, Show)]
+#[deriving(Clone, Default, PartialEq, Show)]
 pub struct BorderRadii<T> {
-    pub top_left:     T,
-    pub top_right:    T,
+    pub top_left: T,
+    pub top_right: T,
     pub bottom_right: T,
-    pub bottom_left:  T,
+    pub bottom_left: T,
 }
 
 /// Paints a line segment.
@@ -693,6 +693,8 @@ impl DisplayItem {
             }
 
             DisplayItem::ImageClass(ref image_item) => {
+                // FIXME(pcwalton): This is a really inefficient way to draw a tiled image; use a
+                // brush instead.
                 debug!("Drawing image at {}.", image_item.base.bounds);
 
                 let mut y_offset = Au(0);
@@ -715,23 +717,21 @@ impl DisplayItem {
 
             DisplayItem::BorderClass(ref border) => {
                 paint_context.draw_border(&border.base.bounds,
-                                           border.border_widths,
-                                           &border.radius,
-                                           border.color,
-                                           border.style)
+                                          &border.border_widths,
+                                          &border.radius,
+                                          &border.color,
+                                          &border.style)
             }
 
             DisplayItem::GradientClass(ref gradient) => {
                 paint_context.draw_linear_gradient(&gradient.base.bounds,
-                                                    &gradient.start_point,
-                                                    &gradient.end_point,
-                                                    gradient.stops.as_slice());
+                                                   &gradient.start_point,
+                                                   &gradient.end_point,
+                                                   gradient.stops.as_slice());
             }
 
             DisplayItem::LineClass(ref line) => {
-                paint_context.draw_line(&line.base.bounds,
-                                          line.color,
-                                          line.style)
+                paint_context.draw_line(&line.base.bounds, line.color, line.style)
             }
 
             DisplayItem::BoxShadowClass(ref box_shadow) => {
