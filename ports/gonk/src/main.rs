@@ -8,8 +8,6 @@
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 
-#![allow(non_snake_case)]
-
 extern crate servo;
 extern crate native;
 extern crate time;
@@ -27,8 +25,7 @@ extern crate egl;
 use servo_util::opts;
 use servo_util::rtinstrument;
 use servo::Browser;
-use compositing::windowing::IdleWindowEvent;
-use compositing::windowing::InitializeCompositingWindowEvent;
+use compositing::windowing::WindowEvent;
 
 use std::os;
 
@@ -39,50 +36,44 @@ struct BrowserWrapper {
     browser: Browser<window::Window>,
 }
 
-#[start]
-#[allow(dead_code)]
-fn start(argc: int, argv: *const *const u8) -> int {
-    native::start(argc, argv, proc() {
-        if opts::from_cmdline_args(os::args().as_slice()) {
-            let window = if opts::get().headless {
-                None
-            } else {
-                Some(window::Window::new())
-            };
+fn main() {
+    if opts::from_cmdline_args(os::args().as_slice()) {
+        let window = if opts::get().headless {
+            None
+        } else {
+            Some(window::Window::new())
+        };
 
-            let mut browser = BrowserWrapper {
-                browser: Browser::new(window.clone()),
-            };
+        let mut browser = BrowserWrapper {
+            browser: Browser::new(window.clone()),
+        };
 
-            match window {
-                None => (),
-                Some(ref window) => input::run_input_loop(&window.event_send)
-            }
-
-            browser.browser.handle_event(InitializeCompositingWindowEvent);
-
-            loop {
-                let should_continue = match window {
-                    None => browser.browser.handle_event(IdleWindowEvent),
-                    Some(ref window) => {
-                        match window.wait_events() {
-                            Some(evt) => browser.browser.handle_event(evt),
-                            None => browser.browser.handle_event(IdleWindowEvent),
-                        }
-                    }
-                };
-                if !should_continue {
-                    break
-                }
-            }
-
-            let BrowserWrapper {
-                browser
-            } = browser;
-            browser.shutdown();
-
-            rtinstrument::teardown();
+        match window {
+            None => (),
+            Some(ref window) => input::run_input_loop(&window.event_send)
         }
-    })
+
+        browser.browser.handle_event(WindowEvent::InitializeCompositing);
+
+        loop {
+            let should_continue = match window {
+                None => browser.browser.handle_event(WindowEvent::Idle),
+                Some(ref window) => {
+                    let event = window.wait_events();
+                    browser.browser.handle_event(event)
+                }
+            };
+            if !should_continue {
+                break
+            }
+        }
+
+        let BrowserWrapper {
+            browser
+        } = browser;
+        browser.shutdown();
+
+        rtinstrument::teardown();
+    }
 }
 

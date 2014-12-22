@@ -7,6 +7,7 @@ use std::mem::size_of;
 use std::mem::transmute;
 use std::mem::zeroed;
 use std::os::errno;
+use std::num::Float;
 
 use geom::point::TypedPoint2D;
 
@@ -18,12 +19,7 @@ use libc::read;
 use libc::O_RDONLY;
 
 use compositing::windowing::WindowEvent;
-use compositing::windowing::ScrollWindowEvent;
-use compositing::windowing::ZoomWindowEvent;
-use compositing::windowing::MouseWindowMouseDownEvent;
-use compositing::windowing::MouseWindowMouseUpEvent;
-use compositing::windowing::MouseWindowClickEvent;
-use compositing::windowing::MouseWindowEventClass;
+use compositing::windowing::MouseWindowEvent;
 
 
 extern {
@@ -90,7 +86,7 @@ fn dist(x1: i32, x2: i32, y1: i32, y2: i32) -> f32 {
 }
 
 fn read_input_device(device_path: &Path,
-                     sender: &Sender<Option<WindowEvent>>) {
+                     sender: &Sender<WindowEvent>) {
     // XXX we really want to use std::io:File but it currently doesn't expose
     // the raw FD which is necessary for ioctl.
     let device = unsafe { device_path.as_str().unwrap().with_c_str(|s| open(s, O_RDONLY, 0)) };
@@ -164,9 +160,9 @@ fn read_input_device(device_path: &Path,
                             if dist < 16 {
                                 let click_pt = TypedPoint2D(slotA.x as f32, slotA.y as f32);
                                 println!("Dispatching click!");
-                                sender.send(Some(MouseWindowEventClass(MouseWindowMouseDownEvent(0, click_pt))));
-                                sender.send(Some(MouseWindowEventClass(MouseWindowMouseUpEvent(0, click_pt))));
-                                sender.send(Some(MouseWindowEventClass(MouseWindowClickEvent(0, click_pt))));
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseWindowMouseDownEvent(0, click_pt)));
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseWindowMouseUpEvent(0, click_pt)));
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseWindowClickEvent(0, click_pt)));
                             }
                         } else {
                             println!("Touch down");
@@ -181,14 +177,14 @@ fn read_input_device(device_path: &Path,
                         }
                     } else {
                         println!("Touch move x: {}, y: {}", slotA.x, slotA.y);
-                        sender.send(Some(ScrollWindowEvent(TypedPoint2D((slotA.x - last_x) as f32, (slotA.y - last_y) as f32), TypedPoint2D(slotA.x, slotA.y))));
+                        sender.send(WindowEvent::Scroll(TypedPoint2D((slotA.x - last_x) as f32, (slotA.y - last_y) as f32), TypedPoint2D(slotA.x, slotA.y)));
                         last_x = slotA.x;
                         last_y = slotA.y;
                         if touch_count >= 2 {
                             let slotB = &slots[1];
                             let cur_dist = dist(slotA.x, slotB.x, slotA.y, slotB.y);
                             println!("Zooming {} {} {} {}", cur_dist, last_dist, screen_dist, ((screen_dist + (cur_dist - last_dist))/screen_dist));
-                            sender.send(Some(ZoomWindowEvent((screen_dist + (cur_dist - last_dist))/screen_dist)));
+                            sender.send(WindowEvent::Zoom((screen_dist + (cur_dist - last_dist))/screen_dist));
                             last_dist = cur_dist;
                         }
                     }
@@ -232,7 +228,7 @@ fn read_input_device(device_path: &Path,
     }
 }
 
-pub fn run_input_loop(event_sender: &Sender<Option<WindowEvent>>) {
+pub fn run_input_loop(event_sender: &Sender<WindowEvent>) {
     let sender = event_sender.clone();
     spawn(proc () {
         // XXX need to scan all devices and read every one.

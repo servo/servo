@@ -19,6 +19,7 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataCast, NodeBase, NodeDeri
 use dom::bindings::codegen::InheritTypes::{ProcessingInstructionCast, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::{HTMLLegendElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::HTMLOptGroupElementDerived;
+use dom::bindings::conversions;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
@@ -26,7 +27,6 @@ use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils;
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
@@ -884,7 +884,7 @@ pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: Untrusted
         if object.is_null() {
             panic!("Attempted to create a `JS<Node>` from an invalid pointer!")
         }
-        let boxed_node: *const Node = utils::unwrap(object);
+        let boxed_node: *const Node = conversions::unwrap(object);
         Temporary::new(JS::from_raw(boxed_node))
     }
 }
@@ -1157,7 +1157,7 @@ impl Node {
     pub fn reflect_node<N: Reflectable+NodeBase>
             (node:      Box<N>,
              document:  JSRef<Document>,
-             wrap_fn:   extern "Rust" fn(*mut JSContext, &GlobalRef, Box<N>) -> Temporary<N>)
+             wrap_fn:   extern "Rust" fn(*mut JSContext, GlobalRef, Box<N>) -> Temporary<N>)
              -> Temporary<N> {
         let window = document.window().root();
         reflect_dom_object(node, GlobalRef::Window(*window), wrap_fn)

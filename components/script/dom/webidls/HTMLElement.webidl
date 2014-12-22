@@ -10,7 +10,7 @@ interface HTMLElement : Element {
            attribute DOMString lang;
   //         attribute boolean translate;
   //         attribute DOMString dir;
-  //readonly attribute DOMStringMap dataset;
+  readonly attribute DOMStringMap dataset;
 
   // microdata
   //         attribute boolean itemScope;

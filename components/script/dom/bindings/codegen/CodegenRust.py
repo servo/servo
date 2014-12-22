@@ -102,17 +102,13 @@ class CastableObjectUnwrapper():
     """
     def __init__(self, descriptor, source, codeOnFailure):
         self.substitution = {
-            "type": descriptor.nativeType,
-            "depth": descriptor.interface.inheritanceDepth(),
-            "prototype": "PrototypeList::ID::" + descriptor.name,
-            "protoID": "PrototypeList::ID::" + descriptor.name + " as uint",
             "source": source,
             "codeOnFailure": CGIndenter(CGGeneric(codeOnFailure), 4).define(),
         }
 
     def __str__(self):
         return string.Template(
-"""match unwrap_jsmanaged(${source}, ${prototype}, ${depth}) {
+"""match unwrap_jsmanaged(${source}) {
   Ok(val) => val,
   Err(()) => {
 ${codeOnFailure}
@@ -1669,10 +1665,10 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     """
 
     imports = [
-        'dom::bindings::utils::unwrap_jsmanaged',
         'dom::bindings::codegen::PrototypeList',
         'dom::bindings::conversions::FromJSValConvertible',
         'dom::bindings::conversions::ToJSValConvertible',
+        'dom::bindings::conversions::unwrap_jsmanaged',
         'dom::bindings::conversions::StringificationBehavior::Default',
         'dom::bindings::error::throw_not_in_union',
         'dom::bindings::js::JS',
@@ -1834,7 +1830,7 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
         if not descriptor.isGlobal():
-            args = [Argument('*mut JSContext', 'aCx'), Argument('&GlobalRef', 'aScope'),
+            args = [Argument('*mut JSContext', 'aCx'), Argument('GlobalRef', 'aScope'),
                     Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
         else:
             args = [Argument('*mut JSContext', 'aCx'),
@@ -2090,11 +2086,14 @@ class CGDefineProxyHandler(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
+        customDefineProperty = 'defineProperty_'
+        if self.descriptor.operations['IndexedSetter'] or self.descriptor.operations['NamedSetter']:
+            customDefineProperty = 'defineProperty'
         body = """\
 let traps = ProxyTraps {
   getPropertyDescriptor: Some(getPropertyDescriptor),
   getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
-  defineProperty: Some(defineProperty_),
+  defineProperty: Some(%s),
   getOwnPropertyNames: ptr::null(),
   delete_: Some(delete_),
   enumerate: ptr::null(),
@@ -2124,7 +2123,7 @@ let traps = ProxyTraps {
 };
 
 CreateProxyHandler(&traps, &Class as *const _ as *const _)
-""" % (FINALIZE_HOOK_NAME,
+""" % (customDefineProperty, FINALIZE_HOOK_NAME,
        TRACE_HOOK_NAME)
         return CGGeneric(body)
 
@@ -2280,8 +2279,15 @@ class CGPerSignatureCall(CGThing):
                                              invalidEnumValueFatal=not setter) for
                          i in range(argConversionStartsAt, self.argCount)])
 
+        errorResult = None
+        if self.isFallible():
+            if nativeMethodName == "NamedSetter":
+                errorResult = " false"
+            else:
+                errorResult = " false as JSBool"
+
         cgThings.append(CGCallGenerator(
-                    ' false as JSBool' if self.isFallible() else None,
+                    errorResult,
                     self.getArguments(), self.argsPre, returnType,
                     self.extendedAttributes, descriptor, nativeMethodName,
                     static))
@@ -3840,14 +3846,14 @@ if expando.is_not_null() {
             getIndexedOrExpando = getFromExpando + "\n"
 
         namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter and False: #XXXjdm unfinished
-            getNamed = ("if (JSID_IS_STRING(id)) {\n" +
+        if namedGetter:
+            getNamed = ("if (RUST_JSID_IS_STRING(id) != 0) {\n" +
                         "  let name = jsid_to_str(cx, id);\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         "  let this = JS::from_raw(this);\n" +
                         "  let this = this.root();\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
-                        "}\n") % (self.descriptor.concreteType)
+                        "}\n")
         else:
             getNamed = ""
 
@@ -3895,8 +3901,7 @@ class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
 JSString* jsresult;
 return xpc_qsStringToJsstring(cx, result, &jsresult) ? jsresult : NULL;"""
 
-        return """let s = "%s".to_c_str();
-  _obj_toString(cx, s.as_ptr())""" % self.descriptor.name
+        return """_obj_toString(cx, "%s")""" % self.descriptor.name
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -3926,10 +3931,10 @@ let this: *const %s = unwrap::<%s>(obj);
         assert(False)
 
 def finalizeHook(descriptor, hookName, context):
-    release = """let val = JS_GetReservedSlot(obj, dom_object_slot(obj));
-let _: Box<%s> = mem::transmute(val.to_private());
+    release = """let value = unwrap::<%s>(obj);
+let _: Box<%s> = mem::transmute(value);
 debug!("%s finalize: {:p}", this);
-""" % (descriptor.concreteType, descriptor.concreteType)
+""" % (descriptor.concreteType, descriptor.concreteType, descriptor.concreteType)
     return release
 
 class CGClassTraceHook(CGAbstractClassHook):
@@ -4496,14 +4501,14 @@ class CGBindingRoot(CGThing):
             'dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable}',
             'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
             'dom::bindings::utils::ConstantSpec',
-            'dom::bindings::utils::{dom_object_slot, DOM_OBJECT_SLOT, DOMClass}',
+            'dom::bindings::utils::{DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
             'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
             'dom::bindings::utils::HasPropertyOnPrototype',
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::{squirrel_away_unique}',
-            'dom::bindings::utils::{ThrowingConstructor,  unwrap, unwrap_jsmanaged}',
+            'dom::bindings::utils::{ThrowingConstructor}',
             'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
             'dom::bindings::utils::ConstantVal::{IntVal, UintVal}',
@@ -4512,6 +4517,8 @@ class CGBindingRoot(CGThing):
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
             'dom::bindings::callback::{WrapCallThisObject}',
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
+            'dom::bindings::conversions::{unwrap, unwrap_jsmanaged}',
+            'dom::bindings::conversions::DOM_OBJECT_SLOT',
             'dom::bindings::conversions::IDLInterface',
             'dom::bindings::conversions::jsid_to_str',
             'dom::bindings::conversions::StringificationBehavior::{Default, Empty}',

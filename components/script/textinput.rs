@@ -97,15 +97,20 @@ impl TextInput {
         self.replace_selection(ch.to_string());
     }
 
-    fn replace_selection(&mut self, insert: String) {
-        let begin = self.selection_begin.take().unwrap();
+    fn get_sorted_selection(&self) -> (TextPoint, TextPoint) {
+        let begin = self.selection_begin.unwrap();
         let end = self.edit_point;
 
-        let (begin, end) = if begin.line < end.line || (begin.line == end.line && begin.index < end.index) {
+        if begin.line < end.line || (begin.line == end.line && begin.index < end.index) {
             (begin, end)
         } else {
             (end, begin)
-        };
+        }
+    }
+
+    fn replace_selection(&mut self, insert: String) {
+        let (begin, end) = self.get_sorted_selection();
+        self.selection_begin = None;
 
         let new_lines = {
             let prefix = self.lines[begin.line].slice_chars(0, begin.index);
@@ -186,7 +191,12 @@ impl TextInput {
                 self.selection_begin = Some(self.edit_point);
             }
         } else {
-            self.selection_begin = None;
+            if self.selection_begin.is_some() {
+                let (begin, end) = self.get_sorted_selection();
+                self.edit_point = if adjust < 0 {begin} else {end};
+                self.selection_begin = None;
+                return
+            }
         }
 
         if adjust < 0 {
