@@ -59,7 +59,7 @@ dependencies = [
 [[package]]
 name = "cocoa"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-cocoa#19d6f6977dcedbf29000b65d83df66cf589c20c3"
+source = "git+https://github.com/servo/rust-cocoa#8f47f126fe534d4dad86aa1f5b2da46a0581a232"
 
 [[package]]
 name = "compile_msg"
@@ -329,14 +329,14 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.2"
-source = "git+https://github.com/servo/glutin?ref=servo#b86cbe5c61a943683309384fc9d7e7e97d58e290"
+source = "git+https://github.com/servo/glutin?ref=servo#936519a44f77f6b646c504eff38fe7d57a17b1f4"
 dependencies = [
  "android_glue 0.0.1 (git+https://github.com/servo/android-rs-glue?ref=servo)",
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "gl_common 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
  "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
- "winapi 0.0.1 (git+https://github.com/retep998/winapi-rs)",
+ "winapi 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -720,8 +720,8 @@ source = "git+https://github.com/rust-lang/uuid#f5d94d0043a615756edefaf9c6041f11
 
 [[package]]
 name = "winapi"
-version = "0.0.1"
-source = "git+https://github.com/retep998/winapi-rs#80b6574a8bad8fc0a1f19c788b27a459bab26c83"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "xlib"
