@@ -20,6 +20,7 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
+use servo_util::logical_geometry::LogicalRect;
 use std::cmp::max;
 use std::fmt;
 use style::ComputedValues;
@@ -318,6 +319,10 @@ impl Flow for TableRowFlow {
 
     fn compute_overflow(&self) -> Rect<Au> {
         self.block_flow.compute_overflow()
+    }
+
+    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
+        self.block_flow.generated_containing_block_rect()
     }
 
     fn iterate_through_fragment_border_boxes(&self,
