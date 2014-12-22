@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use devtools_traits::{SendConsoleMessage, LogMessage};
+use devtools_traits::{SendConsoleMessage, ConsoleMessage, LogMessage};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -32,7 +32,7 @@ impl Console {
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Log(self, message: DOMString) {
         println!("{:s}", message);
-        propagate_console_msg(&self, message, ConsoleMsgType::LogMsg);
+        propagate_console_msg(&self, LogMessage(message));
     }
 
     fn Debug(self, message: DOMString) {
@@ -45,7 +45,7 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
 
     fn Warn(self, message: DOMString) {
         println!("{:s}", message);
-        propagate_console_msg(&self, message, ConsoleMsgType::WarnMsg);
+        //propagate_console_msg(&self, WarnMessage(message));
     }
 
     fn Error(self, message: DOMString) {
@@ -70,24 +70,9 @@ impl Reflectable for Console {
     }
 }
 
-//TODO: Must be extended to contain all types of console message flavors:
-// Error, Assert, Debug, Info
-enum ConsoleMsgType {
-    LogMsg,
-    WarnMsg,
-}
-
-fn propagate_console_msg(console: &JSRef<Console>, message: DOMString, msg_type: ConsoleMsgType) {
-    match msg_type {
-        ConsoleMsgType::LogMsg => {
-            let pipelineId = console.global.root().root_ref().as_window().page().id;
-            console.global.root().root_ref().as_window().page().devtools_chan.as_ref().map(|chan| {
-                chan.send(SendConsoleMessage(pipelineId, LogMessage(message.clone())));
-            });
-        }
-
-        ConsoleMsgType::WarnMsg => {
-            //TODO: to be implemented for warning messages
-        }
-    }
+fn propagate_console_msg(console: &JSRef<Console>, console_message: ConsoleMessage) {
+    let pipelineId = console.global.root().root_ref().as_window().page().id;
+    console.global.root().root_ref().as_window().page().devtools_chan.as_ref().map(|chan| {
+        chan.send(SendConsoleMessage(pipelineId, console_message.clone()));
+    });
 }

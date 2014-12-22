@@ -32,8 +32,8 @@ use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
-use devtools;
 
+use devtools;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, GetRootNode, DevtoolsPageInfo};
 use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, GetDocumentElement};
 use devtools_traits::{GetChildren, GetLayout, ModifyAttribute};
