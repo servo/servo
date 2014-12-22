@@ -1215,15 +1215,15 @@ impl Flow for InlineFlow {
                 _ => continue,
             };
 
-            let clip_rect = fragment.clip_rect_for_children(&self.base.clip_rect,
-                                                            &stacking_relative_position);
+            let clip = fragment.clipping_region_for_children(&self.base.clip,
+                                                             &stacking_relative_position);
 
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                    flow::mut_base(info.flow_ref.deref_mut()).clip_rect = clip_rect
+                    flow::mut_base(info.flow_ref.deref_mut()).clip = clip
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                    flow::mut_base(info.flow_ref.deref_mut()).clip_rect = clip_rect
+                    flow::mut_base(info.flow_ref.deref_mut()).clip = clip
                 }
                 _ => {}
             }
@@ -1246,7 +1246,7 @@ impl Flow for InlineFlow {
                                         layout_context,
                                         fragment_origin,
                                         BackgroundAndBorderLevel::Content,
-                                        &self.base.clip_rect);
+                                        &self.base.clip);
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
                     let block_flow = block_flow.flow_ref.deref_mut();

@@ -8,13 +8,13 @@ use azure::azure::AzIntSize;
 use azure::azure_hl::{A8, B8G8R8A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GaussianBlurFilterType};
 use azure::azure_hl::{GaussianBlurInput, GradientStop, Linear, LinearGradientPattern};
-use azure::azure_hl::{LinearGradientPatternRef, Path, SourceOp, StdDeviationGaussianBlurAttribute};
-use azure::azure_hl::{StrokeOptions};
+use azure::azure_hl::{LinearGradientPatternRef, Path, PathBuilder, SourceOp};
+use azure::azure_hl::{StdDeviationGaussianBlurAttribute, StrokeOptions};
 use azure::scaled_font::ScaledFont;
 use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
-use display_list::{BOX_SHADOW_INFLATION_FACTOR, TextDisplayItem, BorderRadii};
 use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
+use display_list::{BOX_SHADOW_INFLATION_FACTOR, BorderRadii, ClippingRegion, TextDisplayItem};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -29,6 +29,7 @@ use servo_util::geometry::{Au, MAX_RECT};
 use servo_util::opts;
 use servo_util::range::Range;
 use std::default::Default;
+use std::mem;
 use std::num::{Float, FloatMath};
 use std::ptr;
 use style::computed_values::border_style;
@@ -45,10 +46,10 @@ pub struct PaintContext<'a> {
     pub screen_rect: Rect<uint>,
     /// The clipping rect for the stacking context as a whole.
     pub clip_rect: Option<Rect<Au>>,
-    /// The current transient clipping rect, if any. A "transient clipping rect" is the clipping
-    /// rect used by the last display item. We cache the last value so that we avoid pushing and
-    /// popping clip rects unnecessarily.
-    pub transient_clip_rect: Option<Rect<Au>>,
+    /// The current transient clipping region, if any. A "transient clipping region" is the
+    /// clipping region used by the last display item. We cache the last value so that we avoid
+    /// pushing and popping clipping regions unnecessarily.
+    pub transient_clip: Option<ClippingRegion>,
 }
 
 enum Direction {
@@ -77,25 +78,20 @@ impl<'a> PaintContext<'a> {
 
     pub fn draw_border(&self,
                        bounds: &Rect<Au>,
-                       border: SideOffsets2D<Au>,
+                       border: &SideOffsets2D<Au>,
                        radius: &BorderRadii<Au>,
-                       color: SideOffsets2D<Color>,
-                       style: SideOffsets2D<border_style::T>) {
+                       color: &SideOffsets2D<Color>,
+                       style: &SideOffsets2D<border_style::T>) {
         let border = border.to_float_px();
         let radius = radius.to_radii_px();
 
-        self.draw_target.make_current();
-
-        self.draw_border_segment(Direction::Top, bounds, border, &radius, color, style);
-        self.draw_border_segment(Direction::Right, bounds, border, &radius, color, style);
-        self.draw_border_segment(Direction::Bottom, bounds, border, &radius, color, style);
-        self.draw_border_segment(Direction::Left, bounds, border, &radius, color, style);
+        self.draw_border_segment(Direction::Top, bounds, &border, &radius, color, style);
+        self.draw_border_segment(Direction::Right, bounds, &border, &radius, color, style);
+        self.draw_border_segment(Direction::Bottom, bounds, &border, &radius, color, style);
+        self.draw_border_segment(Direction::Left, bounds, &border, &radius, color, style);
     }
 
-    pub fn draw_line(&self,
-                     bounds: &Rect<Au>,
-                     color: Color,
-                     style: border_style::T) {
+    pub fn draw_line(&self, bounds: &Rect<Au>, color: Color, style: border_style::T) {
         self.draw_target.make_current();
 
         self.draw_line_segment(bounds, &Default::default(), color, style);
@@ -108,7 +104,8 @@ impl<'a> PaintContext<'a> {
         let left_top = Point2D(rect.origin.x, rect.origin.y);
         let right_top = Point2D(rect.origin.x + rect.size.width, rect.origin.y);
         let left_bottom = Point2D(rect.origin.x, rect.origin.y + rect.size.height);
-        let right_bottom = Point2D(rect.origin.x + rect.size.width, rect.origin.y + rect.size.height);
+        let right_bottom = Point2D(rect.origin.x + rect.size.width,
+                                   rect.origin.y + rect.size.height);
 
         path_builder.move_to(left_top);
         path_builder.line_to(right_top);
@@ -166,10 +163,10 @@ impl<'a> PaintContext<'a> {
     fn draw_border_segment(&self,
                            direction: Direction,
                            bounds: &Rect<Au>,
-                           border: SideOffsets2D<f32>,
+                           border: &SideOffsets2D<f32>,
                            radius: &BorderRadii<AzFloat>,
-                           color: SideOffsets2D<Color>,
-                           style: SideOffsets2D<border_style::T>) {
+                           color: &SideOffsets2D<Color>,
+                           style: &SideOffsets2D<border_style::T>) {
         let (style_select, color_select) = match direction {
             Direction::Top => (style.top, color.top),
             Direction::Left => (style.left, color.left),
@@ -177,57 +174,115 @@ impl<'a> PaintContext<'a> {
             Direction::Bottom => (style.bottom, color.bottom)
         };
 
-        match style_select{
-            border_style::none                         => {
+        match style_select {
+            border_style::none | border_style::hidden => {}
+            border_style::dotted => {
+                // FIXME(sammykim): This doesn't work well with dash_pattern and cap_style.
+                self.draw_dashed_border_segment(direction,
+                                                bounds,
+                                                border,
+                                                color_select,
+                                                DashSize::DottedBorder);
             }
-            border_style::hidden                       => {
+            border_style::dashed => {
+                self.draw_dashed_border_segment(direction,
+                                                bounds,
+                                                border,
+                                                color_select,
+                                                DashSize::DashedBorder);
             }
-            //FIXME(sammykim): This doesn't work with dash_pattern and cap_style well. I referred firefox code.
-            border_style::dotted                       => {
-                self.draw_dashed_border_segment(direction, bounds, border, color_select, DashSize::DottedBorder);
+            border_style::solid => {
+                self.draw_solid_border_segment(direction, bounds, border, radius, color_select);
             }
-            border_style::dashed                       => {
-                self.draw_dashed_border_segment(direction, bounds, border, color_select, DashSize::DashedBorder);
-            }
-            border_style::solid                        => {
-                self.draw_solid_border_segment(direction,bounds,border,radius,color_select);
-            }
-            border_style::double                       => {
+            border_style::double => {
                 self.draw_double_border_segment(direction, bounds, border, radius, color_select);
             }
             border_style::groove | border_style::ridge => {
-                self.draw_groove_ridge_border_segment(direction, bounds, border, radius, color_select, style_select);
+                self.draw_groove_ridge_border_segment(direction,
+                                                      bounds,
+                                                      border,
+                                                      radius,
+                                                      color_select,
+                                                      style_select);
             }
             border_style::inset | border_style::outset => {
-                self.draw_inset_outset_border_segment(direction, bounds, border, radius, color_select, style_select);
+                self.draw_inset_outset_border_segment(direction,
+                                                      bounds,
+                                                      border,
+                                                      radius,
+                                                      color_select,
+                                                      style_select);
             }
         }
     }
 
-    fn draw_line_segment(&self, bounds: &Rect<Au>, radius: &BorderRadii<AzFloat>, color: Color, style: border_style::T) {
+    fn draw_line_segment(&self,
+                         bounds: &Rect<Au>,
+                         radius: &BorderRadii<AzFloat>,
+                         color: Color,
+                         style: border_style::T) {
         let border = SideOffsets2D::new_all_same(bounds.size.width).to_float_px();
-
         match style {
-            border_style::none | border_style::hidden  => {}
-            border_style::dotted                       => {
-                self.draw_dashed_border_segment(Direction::Right, bounds, border, color, DashSize::DottedBorder);
+            border_style::none | border_style::hidden => {}
+            border_style::dotted => {
+                self.draw_dashed_border_segment(Direction::Right,
+                                                bounds,
+                                                &border,
+                                                color,
+                                                DashSize::DottedBorder);
             }
-            border_style::dashed                       => {
-                self.draw_dashed_border_segment(Direction::Right, bounds, border, color, DashSize::DashedBorder);
+            border_style::dashed => {
+                self.draw_dashed_border_segment(Direction::Right,
+                                                bounds,
+                                                &border,
+                                                color,
+                                                DashSize::DashedBorder);
             }
-            border_style::solid                        => {
-                self.draw_solid_border_segment(Direction::Right, bounds, border, radius, color);
+            border_style::solid => {
+                self.draw_solid_border_segment(Direction::Right, bounds, &border, radius, color)
             }
-            border_style::double                       => {
-                self.draw_double_border_segment(Direction::Right, bounds, border, radius, color);
+            border_style::double => {
+                self.draw_double_border_segment(Direction::Right, bounds, &border, radius, color)
             }
             border_style::groove | border_style::ridge => {
-                self.draw_groove_ridge_border_segment(Direction::Right, bounds, border, radius, color, style);
+                self.draw_groove_ridge_border_segment(Direction::Right,
+                                                      bounds,
+                                                      &border,
+                                                      radius,
+                                                      color,
+                                                      style);
             }
             border_style::inset | border_style::outset => {
-                self.draw_inset_outset_border_segment(Direction::Right, bounds, border, radius, color, style);
+                self.draw_inset_outset_border_segment(Direction::Right,
+                                                      bounds,
+                                                      &border,
+                                                      radius,
+                                                      color,
+                                                      style);
             }
         }
+    }
+
+    fn draw_border_path(&self,
+                        bounds: &Rect<f32>,
+                        direction: Direction,
+                        border: &SideOffsets2D<f32>,
+                        radii: &BorderRadii<AzFloat>,
+                        color: Color) {
+        let mut path_builder = self.draw_target.create_path_builder();
+        self.create_border_path_segment(&mut path_builder,
+                                        bounds,
+                                        direction,
+                                        border,
+                                        radii);
+        let draw_options = DrawOptions::new(1.0, 0);
+        self.draw_target.fill(&path_builder.finish(), &ColorPattern::new(color), &draw_options);
+    }
+
+    fn push_rounded_rect_clip(&self, bounds: &Rect<f32>, radii: &BorderRadii<AzFloat>) {
+        let mut path_builder = self.draw_target.create_path_builder();
+        self.create_rounded_rect_path(&mut path_builder, bounds, radii);
+        self.draw_target.push_clip(&path_builder.finish());
     }
 
     // The following comment is wonderful, and stolen from
@@ -310,23 +365,19 @@ impl<'a> PaintContext<'a> {
     // For the various corners and for each axis, the sign of this
     // constant changes, or it might be 0 -- it's multiplied by the
     // appropriate multiplier from the list before using.
-
     #[allow(non_snake_case)]
-    fn draw_border_path(&self,
-                        bounds:    &Rect<f32>,
-                        direction: Direction,
-                        border:    SideOffsets2D<f32>,
-                        radius:    &BorderRadii<AzFloat>,
-                        color:     Color) {
+    fn create_border_path_segment(&self,
+                                  path_builder: &mut PathBuilder,
+                                  bounds: &Rect<f32>,
+                                  direction: Direction,
+                                  border: &SideOffsets2D<f32>,
+                                  radius: &BorderRadii<AzFloat>) {
         // T = top, B = bottom, L = left, R = right
 
         let box_TL = bounds.origin;
         let box_TR = box_TL + Point2D(bounds.size.width, 0.0);
         let box_BL = box_TL + Point2D(0.0, bounds.size.height);
         let box_BR = box_TL + Point2D(bounds.size.width, bounds.size.height);
-
-        let draw_opts    = DrawOptions::new(1.0, 0);
-        let path_builder = self.draw_target.create_path_builder();
 
         let rad_R: AzFloat = 0.;
         let rad_BR = rad_R  + Float::frac_pi_4();
@@ -354,9 +405,9 @@ impl<'a> PaintContext<'a> {
         }
 
         match direction {
-            Direction::Top    => {
-                let edge_TL = box_TL  + dx(radius.top_left.max(border.left));
-                let edge_TR = box_TR  + dx(-radius.top_right.max(border.right));
+            Direction::Top => {
+                let edge_TL = box_TL + dx(radius.top_left.max(border.left));
+                let edge_TR = box_TR + dx(-radius.top_right.max(border.right));
                 let edge_BR = edge_TR + dy(border.top);
                 let edge_BL = edge_TL + dy(border.top);
 
@@ -368,7 +419,8 @@ impl<'a> PaintContext<'a> {
 
                 if radius.top_right != 0. {
                     // the origin is the center of the arcs we're about to draw.
-                    let origin = edge_TR + Point2D((border.right - radius.top_right).max(0.), radius.top_right);
+                    let origin = edge_TR + Point2D((border.right - radius.top_right).max(0.),
+                                                   radius.top_right);
                     // the elbow is the inside of the border's curve.
                     let distance_to_elbow = (radius.top_right - border.top).max(0.);
 
@@ -380,16 +432,17 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(edge_BL);
 
                 if radius.top_left != 0. {
-                    let origin = edge_TL + Point2D(-(border.left - radius.top_left).max(0.), radius.top_left);
+                    let origin = edge_TL + Point2D(-(border.left - radius.top_left).max(0.),
+                                                   radius.top_left);
                     let distance_to_elbow = (radius.top_left - border.top).max(0.);
 
                     path_builder.arc(origin, distance_to_elbow, rad_T, rad_TL, true);
                     path_builder.arc(origin, radius.top_left,   rad_TL, rad_T, false);
                 }
             }
-            Direction::Left   => {
-                let edge_TL = box_TL  + dy(radius.top_left.max(border.top));
-                let edge_BL = box_BL  + dy(-radius.bottom_left.max(border.bottom));
+            Direction::Left => {
+                let edge_TL = box_TL + dy(radius.top_left.max(border.top));
+                let edge_BL = box_BL + dy(-radius.bottom_left.max(border.bottom));
                 let edge_TR = edge_TL + dx(border.left);
                 let edge_BR = edge_BL + dx(border.left);
 
@@ -400,7 +453,8 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(corner_TL);
 
                 if radius.top_left != 0. {
-                    let origin = edge_TL + Point2D(radius.top_left, -(border.top - radius.top_left).max(0.));
+                    let origin = edge_TL + Point2D(radius.top_left,
+                                                   -(border.top - radius.top_left).max(0.));
                     let distance_to_elbow = (radius.top_left - border.left).max(0.);
 
                     path_builder.arc(origin, radius.top_left,   rad_L, rad_TL, false);
@@ -411,16 +465,18 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(edge_BR);
 
                 if radius.bottom_left != 0. {
-                    let origin = edge_BL + Point2D(radius.bottom_left, (border.bottom - radius.bottom_left).max(0.));
+                    let origin = edge_BL +
+                        Point2D(radius.bottom_left,
+                                (border.bottom - radius.bottom_left).max(0.));
                     let distance_to_elbow = (radius.bottom_left - border.left).max(0.);
 
                     path_builder.arc(origin, distance_to_elbow,  rad_L, rad_BL, true);
                     path_builder.arc(origin, radius.bottom_left, rad_BL, rad_L, false);
                 }
             }
-            Direction::Right  => {
-                let edge_TR = box_TR  + dy(radius.top_right.max(border.top));
-                let edge_BR = box_BR  + dy(-radius.bottom_right.max(border.bottom));
+            Direction::Right => {
+                let edge_TR = box_TR + dy(radius.top_right.max(border.top));
+                let edge_BR = box_BR + dy(-radius.bottom_right.max(border.bottom));
                 let edge_TL = edge_TR + dx(-border.right);
                 let edge_BL = edge_BR + dx(-border.right);
 
@@ -431,7 +487,8 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(edge_TL);
 
                 if radius.top_right != 0. {
-                    let origin = edge_TR + Point2D(-radius.top_right, -(border.top - radius.top_right).max(0.));
+                    let origin = edge_TR + Point2D(-radius.top_right,
+                                                   -(border.top - radius.top_right).max(0.));
                     let distance_to_elbow = (radius.top_right - border.right).max(0.);
 
                     path_builder.arc(origin, distance_to_elbow, rad_R, rad_TR, true);
@@ -442,7 +499,9 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(corner_BR);
 
                 if radius.bottom_right != 0. {
-                    let origin = edge_BR + Point2D(-radius.bottom_right, (border.bottom - radius.bottom_right).max(0.));
+                    let origin = edge_BR +
+                        Point2D(-radius.bottom_right,
+                                (border.bottom - radius.bottom_right).max(0.));
                     let distance_to_elbow = (radius.bottom_right - border.right).max(0.);
 
                     path_builder.arc(origin, radius.bottom_right, rad_R, rad_BR, false);
@@ -450,8 +509,8 @@ impl<'a> PaintContext<'a> {
                 }
             }
             Direction::Bottom => {
-                let edge_BL = box_BL  + dx(radius.bottom_left.max(border.left));
-                let edge_BR = box_BR  + dx(-radius.bottom_right.max(border.right));
+                let edge_BL = box_BL + dx(radius.bottom_left.max(border.left));
+                let edge_BR = box_BR + dx(-radius.bottom_right.max(border.right));
                 let edge_TL = edge_BL + dy(-border.bottom);
                 let edge_TR = edge_BR + dy(-border.bottom);
 
@@ -462,7 +521,8 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(edge_TR);
 
                 if radius.bottom_right != 0. {
-                    let origin = edge_BR + Point2D((border.right - radius.bottom_right).max(0.), -radius.bottom_right);
+                    let origin = edge_BR + Point2D((border.right - radius.bottom_right).max(0.),
+                                                   -radius.bottom_right);
                     let distance_to_elbow = (radius.bottom_right - border.bottom).max(0.);
 
                     path_builder.arc(origin, distance_to_elbow,   rad_B, rad_BR, true);
@@ -473,7 +533,8 @@ impl<'a> PaintContext<'a> {
                 path_builder.line_to(corner_BL);
 
                 if radius.bottom_left != 0. {
-                    let origin = edge_BL - Point2D((border.left - radius.bottom_left).max(0.), radius.bottom_left);
+                    let origin = edge_BL - Point2D((border.left - radius.bottom_left).max(0.),
+                                                   radius.bottom_left);
                     let distance_to_elbow = (radius.bottom_left - border.bottom).max(0.);
 
                     path_builder.arc(origin, radius.bottom_left, rad_B, rad_BL, false);
@@ -481,16 +542,64 @@ impl<'a> PaintContext<'a> {
                 }
             }
         }
+    }
 
-        let path = path_builder.finish();
-        self.draw_target.fill(&path, &ColorPattern::new(color), &draw_opts);
+    /// Creates a path representing the given rounded rectangle.
+    ///
+    /// TODO(pcwalton): Should we unify with the code above? It doesn't seem immediately obvious
+    /// how to do that (especially without regressing performance) unless we have some way to
+    /// efficiently intersect or union paths, since different border styles/colors can force us to
+    /// slice through the rounded corners. My first attempt to unify with the above code resulted
+    /// in making a mess of it, and the simplicity of this code path is appealing, so it may not
+    /// be worth it… In any case, revisit this decision when we support elliptical radii.
+    fn create_rounded_rect_path(&self,
+                                path_builder: &mut PathBuilder,
+                                bounds: &Rect<f32>,
+                                radii: &BorderRadii<AzFloat>) {
+        //    +----------+
+        //   / 1        2 \
+        //  + 8          3 +
+        //  |              |
+        //  + 7          4 +
+        //   \ 6        5 /
+        //    +----------+
+
+        path_builder.move_to(Point2D(bounds.origin.x + radii.top_left, bounds.origin.y));   // 1
+        path_builder.line_to(Point2D(bounds.max_x() - radii.top_right, bounds.origin.y));   // 2
+        path_builder.arc(Point2D(bounds.max_x() - radii.top_right,
+                                 bounds.origin.y + radii.top_right),
+                         radii.top_right,
+                         1.5f32 * Float::frac_pi_2(),
+                         Float::two_pi(),
+                         false);                                                            // 3
+        path_builder.line_to(Point2D(bounds.max_x(), bounds.max_y() - radii.bottom_right)); // 4
+        path_builder.arc(Point2D(bounds.max_x() - radii.bottom_right,
+                                 bounds.max_y() - radii.bottom_right),
+                         radii.bottom_right,
+                         0.0,
+                         Float::frac_pi_2(),
+                         false);                                                            // 5
+        path_builder.line_to(Point2D(bounds.origin.x + radii.bottom_left, bounds.max_y())); // 6
+        path_builder.arc(Point2D(bounds.origin.x + radii.bottom_left,
+                                 bounds.max_y() - radii.bottom_left),
+                         radii.bottom_left,
+                         Float::frac_pi_2(),
+                         Float::pi(),
+                         false);                                                            // 7
+        path_builder.line_to(Point2D(bounds.origin.x, bounds.origin.y + radii.top_left));   // 8
+        path_builder.arc(Point2D(bounds.origin.x + radii.top_left,
+                                 bounds.origin.y + radii.top_left),
+                         radii.top_left,
+                         Float::pi(),
+                         1.5f32 * Float::frac_pi_2(),
+                         false);                                                            // 1
     }
 
     fn draw_dashed_border_segment(&self,
                                   direction: Direction,
-                                  bounds:    &Rect<Au>,
-                                  border:    SideOffsets2D<f32>,
-                                  color:     Color,
+                                  bounds: &Rect<Au>,
+                                  border: &SideOffsets2D<f32>,
+                                  color: Color,
                                   dash_size: DashSize) {
         let rect = bounds.to_azure_rect();
         let draw_opts = DrawOptions::new(1u as AzFloat, 0 as uint16_t);
@@ -546,14 +655,19 @@ impl<'a> PaintContext<'a> {
                                      &draw_opts);
     }
 
-    fn draw_solid_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<AzFloat>, color: Color) {
+    fn draw_solid_border_segment(&self,
+                                 direction: Direction,
+                                 bounds: &Rect<Au>,
+                                 border: &SideOffsets2D<f32>,
+                                 radius: &BorderRadii<AzFloat>,
+                                 color: Color) {
         let rect = bounds.to_azure_rect();
         self.draw_border_path(&rect, direction, border, radius, color);
     }
 
     fn get_scaled_bounds(&self,
-                         bounds:        &Rect<Au>,
-                         border:        SideOffsets2D<f32>,
+                         bounds: &Rect<Au>,
+                         border: &SideOffsets2D<f32>,
                          shrink_factor: f32) -> Rect<f32> {
         let rect            = bounds.to_azure_rect();
         let scaled_border   = SideOffsets2D::new(shrink_factor * border.top,
@@ -571,25 +685,30 @@ impl<'a> PaintContext<'a> {
         return Color::new(color.r * scale_factor, color.g * scale_factor, color.b * scale_factor, color.a);
     }
 
-    fn draw_double_border_segment(&self, direction: Direction, bounds: &Rect<Au>, border: SideOffsets2D<f32>, radius: &BorderRadii<AzFloat>, color: Color) {
-        let scaled_border       = SideOffsets2D::new((1.0/3.0) * border.top,
-                                                     (1.0/3.0) * border.right,
-                                                     (1.0/3.0) * border.bottom,
-                                                     (1.0/3.0) * border.left);
+    fn draw_double_border_segment(&self,
+                                  direction: Direction,
+                                  bounds: &Rect<Au>,
+                                  border: &SideOffsets2D<f32>,
+                                  radius: &BorderRadii<AzFloat>,
+                                  color: Color) {
+        let scaled_border = SideOffsets2D::new((1.0/3.0) * border.top,
+                                               (1.0/3.0) * border.right,
+                                               (1.0/3.0) * border.bottom,
+                                               (1.0/3.0) * border.left);
         let inner_scaled_bounds = self.get_scaled_bounds(bounds, border, 2.0/3.0);
         // draw the outer portion of the double border.
-        self.draw_solid_border_segment(direction, bounds, scaled_border, radius, color);
+        self.draw_solid_border_segment(direction, bounds, &scaled_border, radius, color);
         // draw the inner portion of the double border.
-        self.draw_border_path(&inner_scaled_bounds, direction, scaled_border, radius, color);
+        self.draw_border_path(&inner_scaled_bounds, direction, &scaled_border, radius, color);
     }
 
     fn draw_groove_ridge_border_segment(&self,
                                         direction: Direction,
-                                        bounds:    &Rect<Au>,
-                                        border:    SideOffsets2D<f32>,
-                                        radius:    &BorderRadii<AzFloat>,
-                                        color:     Color,
-                                        style:     border_style::T) {
+                                        bounds: &Rect<Au>,
+                                        border: &SideOffsets2D<f32>,
+                                        radius: &BorderRadii<AzFloat>,
+                                        color: Color,
+                                        style: border_style::T) {
         // original bounds as a Rect<f32>, with no scaling.
         let original_bounds            = self.get_scaled_bounds(bounds, border, 0.0);
         // shrink the bounds by 1/2 of the border, leaving the innermost 1/2 of the border
@@ -617,44 +736,65 @@ impl<'a> PaintContext<'a> {
         }
 
         let (outer_color, inner_color) = match (direction, is_groove) {
-            (Direction::Top, true)  | (Direction::Left, true)  |
-            (Direction::Right, false) | (Direction::Bottom, false) => (darker_color, lighter_color),
+            (Direction::Top, true) | (Direction::Left, true) |
+            (Direction::Right, false) | (Direction::Bottom, false) => {
+                (darker_color, lighter_color)
+            }
             (Direction::Top, false) | (Direction::Left, false) |
-            (Direction::Right, true)  | (Direction::Bottom, true)  => (lighter_color, darker_color)
+            (Direction::Right, true) | (Direction::Bottom, true) => (lighter_color, darker_color),
         };
         // outer portion of the border
-        self.draw_border_path(&original_bounds, direction, scaled_border, radius, outer_color);
+        self.draw_border_path(&original_bounds, direction, &scaled_border, radius, outer_color);
         // inner portion of the border
-        self.draw_border_path(&inner_scaled_bounds, direction, scaled_border, radius, inner_color);
+        self.draw_border_path(&inner_scaled_bounds,
+                              direction,
+                              &scaled_border,
+                              radius,
+                              inner_color);
     }
 
     fn draw_inset_outset_border_segment(&self,
                                         direction: Direction,
-                                        bounds:    &Rect<Au>,
-                                        border:    SideOffsets2D<f32>,
-                                        radius:    &BorderRadii<AzFloat>,
-                                        color:     Color,
-                                        style:     border_style::T) {
+                                        bounds: &Rect<Au>,
+                                        border: &SideOffsets2D<f32>,
+                                        radius: &BorderRadii<AzFloat>,
+                                        color: Color,
+                                        style: border_style::T) {
         let is_inset = match style {
-                border_style::inset  =>  true,
-                border_style::outset =>  false,
-                _                    =>  panic!("invalid border style")
+            border_style::inset  => true,
+            border_style::outset => false,
+            _                    => panic!("invalid border style")
         };
         // original bounds as a Rect<f32>
         let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);
 
-        let mut scaled_color;
-
         // You can't scale black color (i.e. 'scaled = 0 * scale', equals black).
+        let mut scaled_color;
         if color.r != 0.0 || color.g != 0.0 || color.b != 0.0 {
             scaled_color = match direction {
-                Direction::Top | Direction::Left      => self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     }),
-                Direction::Right | Direction::Bottom  => self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 })
+                Direction::Top | Direction::Left => {
+                    self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     })
+                }
+                Direction::Right | Direction::Bottom => {
+                    self.scale_color(color, if is_inset { 1.0     } else { 2.0/3.0 })
+                }
             };
         } else {
             scaled_color = match direction {
-                Direction::Top | Direction::Left      => if is_inset { Color::new(0.3, 0.3, 0.3, color.a) } else { Color::new(0.7, 0.7, 0.7, color.a) },
-                Direction::Right | Direction::Bottom  => if is_inset { Color::new(0.7, 0.7, 0.7, color.a) } else { Color::new(0.3, 0.3, 0.3, color.a) }
+                Direction::Top | Direction::Left => {
+                    if is_inset {
+                        Color::new(0.3, 0.3, 0.3, color.a)
+                    } else {
+                        Color::new(0.7, 0.7, 0.7, color.a)
+                    }
+                }
+                Direction::Right | Direction::Bottom => {
+                    if is_inset {
+                        Color::new(0.7, 0.7, 0.7, color.a)
+                    } else {
+                        Color::new(0.3, 0.3, 0.3, color.a)
+                    }
+                }
             };
         }
 
@@ -728,6 +868,12 @@ impl<'a> PaintContext<'a> {
 
     pub fn get_or_create_temporary_draw_target(&mut self, opacity: AzFloat) -> DrawTarget {
         if opacity == 1.0 {
+            // Reuse the draw target, but remove the transient clip. If we don't do the latter,
+            // we'll be in a state whereby the paint subcontext thinks it has no transient clip
+            // (see `StackingContext::optimize_and_draw_into_context`) but it actually does,
+            // resulting in a situation whereby display items are seemingly randomly clipped out.
+            self.remove_transient_clip_if_applicable();
+
             return self.draw_target.clone()
         }
 
@@ -852,9 +998,8 @@ impl<'a> PaintContext<'a> {
     }
 
     pub fn push_clip_if_applicable(&self) {
-        match self.clip_rect {
-            None => {}
-            Some(ref clip_rect) => self.draw_push_clip(clip_rect),
+        if let Some(ref clip_rect) = self.clip_rect {
+            self.draw_push_clip(clip_rect)
         }
     }
 
@@ -865,10 +1010,26 @@ impl<'a> PaintContext<'a> {
     }
 
     pub fn remove_transient_clip_if_applicable(&mut self) {
-        if self.transient_clip_rect.is_some() {
-            self.draw_pop_clip();
-            self.transient_clip_rect = None
+        if let Some(old_transient_clip) = mem::replace(&mut self.transient_clip, None) {
+            for _ in old_transient_clip.complex.iter() {
+                self.draw_pop_clip()
+            }
+            self.draw_pop_clip()
         }
+    }
+
+    /// Sets a new transient clipping region. Automatically calls
+    /// `remove_transient_clip_if_applicable()` first.
+    pub fn push_transient_clip(&mut self, clip_region: ClippingRegion) {
+        self.remove_transient_clip_if_applicable();
+
+        self.draw_push_clip(&clip_region.main);
+        for complex_region in clip_region.complex.iter() {
+            // FIXME(pcwalton): Actually draw a rounded rect.
+            self.push_rounded_rect_clip(&complex_region.rect.to_azure_rect(),
+                                        &complex_region.radii.to_radii_px())
+        }
+        self.transient_clip = Some(clip_region)
     }
 }
 

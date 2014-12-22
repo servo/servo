@@ -23,7 +23,7 @@ use geom::approxeq::ApproxEq;
 use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
 use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
-use gfx::display_list::{BorderRadii, BoxShadowDisplayItem};
+use gfx::display_list::{BorderRadii, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList, DisplayItemMetadata};
 use gfx::display_list::{GradientDisplayItem};
 use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
@@ -35,7 +35,7 @@ use servo_msg::compositor_msg::{FixedPosition, Scrollable};
 use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg};
 use servo_net::image::holder::ImageHolder;
 use servo_util::cursor::{DefaultCursor, TextCursor, VerticalTextCursor};
-use servo_util::geometry::{mod, Au, ZERO_POINT, ZERO_RECT};
+use servo_util::geometry::{mod, Au, ZERO_POINT};
 use servo_util::logical_geometry::{LogicalRect, WritingMode};
 use servo_util::opts;
 use std::default::Default;
@@ -82,7 +82,7 @@ pub trait FragmentDisplayListBuilding {
                                                        layout_context: &LayoutContext,
                                                        level: StackingLevel,
                                                        absolute_bounds: &Rect<Au>,
-                                                       clip_rect: &Rect<Au>);
+                                                       clip: &ClippingRegion);
 
     /// Adds the display items necessary to paint the background image of this fragment to the
     /// display list at the appropriate stacking level.
@@ -92,7 +92,7 @@ pub trait FragmentDisplayListBuilding {
                                                layout_context: &LayoutContext,
                                                level: StackingLevel,
                                                absolute_bounds: &Rect<Au>,
-                                               clip_rect: &Rect<Au>,
+                                               clip: &ClippingRegion,
                                                image_url: &Url);
 
     /// Adds the display items necessary to paint the background linear gradient of this fragment
@@ -101,7 +101,7 @@ pub trait FragmentDisplayListBuilding {
                                                          display_list: &mut DisplayList,
                                                          level: StackingLevel,
                                                          absolute_bounds: &Rect<Au>,
-                                                         clip_rect: &Rect<Au>,
+                                                         clip: &ClippingRegion,
                                                          gradient: &LinearGradient,
                                                          style: &ComputedValues);
 
@@ -112,7 +112,7 @@ pub trait FragmentDisplayListBuilding {
                                                     display_list: &mut DisplayList,
                                                     abs_bounds: &Rect<Au>,
                                                     level: StackingLevel,
-                                                    clip_rect: &Rect<Au>);
+                                                    clip: &ClippingRegion);
 
     /// Adds the display items necessary to paint the outline of this fragment to the display list
     /// if necessary.
@@ -120,7 +120,7 @@ pub trait FragmentDisplayListBuilding {
                                                     style: &ComputedValues,
                                                     display_list: &mut DisplayList,
                                                     bounds: &Rect<Au>,
-                                                    clip_rect: &Rect<Au>);
+                                                    clip: &ClippingRegion);
 
     /// Adds the display items necessary to paint the box shadow of this fragment to the display
     /// list if necessary.
@@ -130,19 +130,19 @@ pub trait FragmentDisplayListBuilding {
                                                        layout_context: &LayoutContext,
                                                        level: StackingLevel,
                                                        absolute_bounds: &Rect<Au>,
-                                                       clip_rect: &Rect<Au>);
+                                                       clip: &ClippingRegion);
 
     fn build_debug_borders_around_text_fragments(&self,
                                                  style: &ComputedValues,
                                                  display_list: &mut DisplayList,
                                                  flow_origin: Point2D<Au>,
                                                  text_fragment: &ScannedTextFragmentInfo,
-                                                 clip_rect: &Rect<Au>);
+                                                 clip: &ClippingRegion);
 
     fn build_debug_borders_around_fragment(&self,
                                            display_list: &mut DisplayList,
                                            flow_origin: Point2D<Au>,
-                                           clip_rect: &Rect<Au>);
+                                           clip: &ClippingRegion);
 
     /// Adds the display items for this fragment to the given display list.
     ///
@@ -152,13 +152,13 @@ pub trait FragmentDisplayListBuilding {
     /// * `layout_context`: The layout context.
     /// * `dirty`: The dirty rectangle in the coordinate system of the owning flow.
     /// * `flow_origin`: Position of the origin of the owning flow wrt the display list root flow.
-    /// * `clip_rect`: The rectangle to clip the display items to.
+    /// * `clip`: The region to clip the display items to.
     fn build_display_list(&mut self,
                           display_list: &mut DisplayList,
                           layout_context: &LayoutContext,
                           flow_origin: Point2D<Au>,
                           background_and_border_level: BackgroundAndBorderLevel,
-                          clip_rect: &Rect<Au>);
+                          clip: &ClippingRegion);
 
     /// Sends the size and position of this iframe fragment to the constellation. This is out of
     /// line to guide inlining.
@@ -167,25 +167,53 @@ pub trait FragmentDisplayListBuilding {
                                             offset: Point2D<Au>,
                                             layout_context: &LayoutContext);
 
-    fn clip_rect_for_children(&self, current_clip_rect: &Rect<Au>, flow_origin: &Point2D<Au>)
-                              -> Rect<Au>;
+    fn clipping_region_for_children(&self, current_clip: &ClippingRegion, flow_origin: &Point2D<Au>)
+                                    -> ClippingRegion;
 
     /// Calculates the clipping rectangle for a fragment, taking the `clip` property into account
     /// per CSS 2.1 § 11.1.2.
-    fn calculate_style_specified_clip(&self, parent_clip_rect: &Rect<Au>, origin: &Point2D<Au>)
-                                      -> Rect<Au>;
+    fn calculate_style_specified_clip(&self, parent_clip: &ClippingRegion, origin: &Point2D<Au>)
+                                      -> ClippingRegion;
+
+    /// Creates the text display item for one text fragment.
+    fn build_display_list_for_text_fragment(&self,
+                                            display_list: &mut DisplayList,
+                                            text_fragment: &ScannedTextFragmentInfo,
+                                            text_color: RGBA,
+                                            offset: &Point2D<Au>,
+                                            flow_origin: &Point2D<Au>,
+                                            clip: &ClippingRegion);
+
+    /// Creates the display item for a text decoration: underline, overline, or line-through.
+    fn build_display_list_for_text_decoration(&self,
+                                              display_list: &mut DisplayList,
+                                              color: RGBA,
+                                              flow_origin: &Point2D<Au>,
+                                              clip: &ClippingRegion,
+                                              logical_bounds: &LogicalRect<Au>,
+                                              offset: &Point2D<Au>);
+
+    /// A helper method that `build_display_list` calls to create per-fragment-type display items.
+    fn build_fragment_type_specific_display_items(&mut self,
+                                                  display_list: &mut DisplayList,
+                                                  flow_origin: Point2D<Au>,
+                                                  clip: &ClippingRegion);
 }
 
 fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &Border) -> BorderRadii<Au> {
     // TODO(cgaebel): Support border radii even in the case of multiple border widths.
-    // This is an extennsion of supporting elliptical radii. For now, all percentage
+    // This is an extension of supporting elliptical radii. For now, all percentage
     // radii will be relative to the width.
 
     BorderRadii {
-        top_left:     model::specified(border_style.border_top_left_radius.radius,     abs_bounds.size.width),
-        top_right:    model::specified(border_style.border_top_right_radius.radius,    abs_bounds.size.width),
-        bottom_right: model::specified(border_style.border_bottom_right_radius.radius, abs_bounds.size.width),
-        bottom_left:  model::specified(border_style.border_bottom_left_radius.radius,  abs_bounds.size.width),
+        top_left:     model::specified(border_style.border_top_left_radius.radius,
+                                       abs_bounds.size.width),
+        top_right:    model::specified(border_style.border_top_right_radius.radius,
+                                       abs_bounds.size.width),
+        bottom_right: model::specified(border_style.border_bottom_right_radius.radius,
+                                       abs_bounds.size.width),
+        bottom_left:  model::specified(border_style.border_bottom_left_radius.radius,
+                                       abs_bounds.size.width),
     }
 }
 
@@ -196,7 +224,14 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        layout_context: &LayoutContext,
                                                        level: StackingLevel,
                                                        absolute_bounds: &Rect<Au>,
-                                                       clip_rect: &Rect<Au>) {
+                                                       clip: &ClippingRegion) {
+        // Adjust the clipping region as necessary to account for `border-radius`.
+        let border_radii = build_border_radius(absolute_bounds, style.get_border());
+        let mut clip = (*clip).clone();
+        if !border_radii.is_square() {
+            clip = clip.intersect_with_rounded_rect(absolute_bounds, &border_radii)
+        }
+
         // FIXME: This causes a lot of background colors to be displayed when they are clearly not
         // needed. We could use display list optimization to clean this up, but it still seems
         // inefficient. What we really want is something like "nearest ancestor element that
@@ -208,7 +243,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                            DisplayItemMetadata::new(self.node,
                                                                     style,
                                                                     DefaultCursor),
-                                           *clip_rect),
+                                           clip.clone()),
                 color: background_color.to_gfx_color(),
             }), level);
         }
@@ -223,7 +258,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 self.build_display_list_for_background_linear_gradient(display_list,
                                                                        level,
                                                                        absolute_bounds,
-                                                                       clip_rect,
+                                                                       &clip,
                                                                        gradient,
                                                                        style)
             }
@@ -233,7 +268,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                              layout_context,
                                                              level,
                                                              absolute_bounds,
-                                                             clip_rect,
+                                                             &clip,
                                                              image_url)
             }
         }
@@ -245,7 +280,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                layout_context: &LayoutContext,
                                                level: StackingLevel,
                                                absolute_bounds: &Rect<Au>,
-                                               clip_rect: &Rect<Au>,
+                                               clip: &ClippingRegion,
                                                image_url: &Url) {
         let background = style.get_background();
         let mut holder = ImageHolder::new(image_url.clone(),
@@ -269,7 +304,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Clip.
         //
         // TODO: Check the bounds to see if a clip item is actually required.
-        let clip_rect = clip_rect.intersection(&bounds).unwrap_or(ZERO_RECT);
+        let clip = clip.clone().intersect_rect(&bounds);
 
         // Use background-attachment to get the initial virtual origin
         let (virtual_origin_x, virtual_origin_y) = match background.background_attachment {
@@ -322,7 +357,7 @@ impl FragmentDisplayListBuilding for Fragment {
         display_list.push(DisplayItem::ImageClass(box ImageDisplayItem {
             base: BaseDisplayItem::new(bounds,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
-                                       clip_rect),
+                                       clip),
             image: image.clone(),
             stretch_size: Size2D(Au::from_px(image.width as int),
                                  Au::from_px(image.height as int)),
@@ -333,10 +368,10 @@ impl FragmentDisplayListBuilding for Fragment {
                                                          display_list: &mut DisplayList,
                                                          level: StackingLevel,
                                                          absolute_bounds: &Rect<Au>,
-                                                         clip_rect: &Rect<Au>,
+                                                         clip: &ClippingRegion,
                                                          gradient: &LinearGradient,
                                                          style: &ComputedValues) {
-        let clip_rect = clip_rect.intersection(absolute_bounds).unwrap_or(ZERO_RECT);
+        let clip = clip.clone().intersect_rect(absolute_bounds);
 
         // This is the distance between the center and the ending point; i.e. half of the distance
         // between the starting point and the ending point.
@@ -432,7 +467,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let gradient_display_item = DisplayItem::GradientClass(box GradientDisplayItem {
             base: BaseDisplayItem::new(*absolute_bounds,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
-                                       clip_rect),
+                                       clip),
             start_point: center - delta,
             end_point: center + delta,
             stops: stops,
@@ -447,7 +482,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        _layout_context: &LayoutContext,
                                                        level: StackingLevel,
                                                        absolute_bounds: &Rect<Au>,
-                                                       clip_rect: &Rect<Au>) {
+                                                       clip: &ClippingRegion) {
         // NB: According to CSS-BACKGROUNDS, box shadows render in *reverse* order (front to back).
         for box_shadow in style.get_effects().box_shadow.iter().rev() {
             let inflation = box_shadow.spread_radius + box_shadow.blur_radius *
@@ -460,7 +495,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                            DisplayItemMetadata::new(self.node,
                                                                     style,
                                                                     DefaultCursor),
-                                           *clip_rect),
+                                           (*clip).clone()),
                 box_bounds: *absolute_bounds,
                 color: style.resolve_color(box_shadow.color).to_gfx_color(),
                 offset: Point2D(box_shadow.offset_x, box_shadow.offset_y),
@@ -476,7 +511,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                     display_list: &mut DisplayList,
                                                     abs_bounds: &Rect<Au>,
                                                     level: StackingLevel,
-                                                    clip_rect: &Rect<Au>) {
+                                                    clip: &ClippingRegion) {
         let border = style.logical_border_width();
         if border.is_zero() {
             return
@@ -491,7 +526,7 @@ impl FragmentDisplayListBuilding for Fragment {
         display_list.push(DisplayItem::BorderClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(*abs_bounds,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
-                                       *clip_rect),
+                                       (*clip).clone()),
             border_widths: border.to_physical(style.writing_mode),
             color: SideOffsets2D::new(top_color.to_gfx_color(),
                                       right_color.to_gfx_color(),
@@ -509,7 +544,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                     style: &ComputedValues,
                                                     display_list: &mut DisplayList,
                                                     bounds: &Rect<Au>,
-                                                    clip_rect: &Rect<Au>) {
+                                                    clip: &ClippingRegion) {
         let width = style.get_outline().outline_width;
         if width == Au(0) {
             return
@@ -533,7 +568,7 @@ impl FragmentDisplayListBuilding for Fragment {
         display_list.outlines.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(bounds,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
-                                       *clip_rect),
+                                       (*clip).clone()),
             border_widths: SideOffsets2D::new_all_same(width),
             color: SideOffsets2D::new_all_same(color),
             style: SideOffsets2D::new_all_same(outline_style),
@@ -546,7 +581,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                  display_list: &mut DisplayList,
                                                  flow_origin: Point2D<Au>,
                                                  text_fragment: &ScannedTextFragmentInfo,
-                                                 clip_rect: &Rect<Au>) {
+                                                 clip: &ClippingRegion) {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
         // Fragment position wrt to the owning flow.
@@ -559,7 +594,7 @@ impl FragmentDisplayListBuilding for Fragment {
         display_list.content.push_back(DisplayItem::BorderClass(box BorderDisplayItem {
             base: BaseDisplayItem::new(absolute_fragment_bounds,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
-                                       *clip_rect),
+                                       (*clip).clone()),
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::solid),
@@ -577,7 +612,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let line_display_item = box LineDisplayItem {
             base: BaseDisplayItem::new(baseline,
                                        DisplayItemMetadata::new(self.node, style, DefaultCursor),
-                                       *clip_rect),
+                                       (*clip).clone()),
             color: color::rgb(0, 200, 0),
             style: border_style::dashed,
         };
@@ -587,7 +622,7 @@ impl FragmentDisplayListBuilding for Fragment {
     fn build_debug_borders_around_fragment(&self,
                                            display_list: &mut DisplayList,
                                            flow_origin: Point2D<Au>,
-                                           clip_rect: &Rect<Au>) {
+                                           clip: &ClippingRegion) {
         // FIXME(#2795): Get the real container size
         let container_size = Size2D::zero();
         // Fragment position wrt to the owning flow.
@@ -602,7 +637,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                        DisplayItemMetadata::new(self.node,
                                                                 &*self.style,
                                                                 DefaultCursor),
-                                       *clip_rect),
+                                       (*clip).clone()),
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::solid),
@@ -610,22 +645,24 @@ impl FragmentDisplayListBuilding for Fragment {
         }));
     }
 
-    fn calculate_style_specified_clip(&self, parent_clip_rect: &Rect<Au>, origin: &Point2D<Au>)
-                                      -> Rect<Au> {
+    fn calculate_style_specified_clip(&self, parent_clip: &ClippingRegion, origin: &Point2D<Au>)
+                                      -> ClippingRegion {
         // Account for `clip` per CSS 2.1 § 11.1.2.
         let style_clip_rect = match (self.style().get_box().position,
                                      self.style().get_effects().clip) {
             (position::absolute, Some(style_clip_rect)) => style_clip_rect,
-            _ => return *parent_clip_rect,
+            _ => return (*parent_clip).clone(),
         };
 
         // FIXME(pcwalton, #2795): Get the real container size.
         let border_box = self.border_box.to_physical(self.style.writing_mode, Size2D::zero());
         let clip_origin = Point2D(border_box.origin.x + style_clip_rect.left,
                                   border_box.origin.y + style_clip_rect.top);
-        Rect(clip_origin + *origin,
-             Size2D(style_clip_rect.right.unwrap_or(border_box.size.width) - clip_origin.x,
-                    style_clip_rect.bottom.unwrap_or(border_box.size.height) - clip_origin.y))
+        let new_clip_rect =
+            Rect(clip_origin + *origin,
+                 Size2D(style_clip_rect.right.unwrap_or(border_box.size.width) - clip_origin.x,
+                        style_clip_rect.bottom.unwrap_or(border_box.size.height) - clip_origin.y));
+        (*parent_clip).clone().intersect_rect(&new_clip_rect)
     }
 
     fn build_display_list(&mut self,
@@ -633,7 +670,7 @@ impl FragmentDisplayListBuilding for Fragment {
                           layout_context: &LayoutContext,
                           flow_origin: Point2D<Au>,
                           background_and_border_level: BackgroundAndBorderLevel,
-                          clip_rect: &Rect<Au>) {
+                          clip: &ClippingRegion) {
         // Compute the fragment position relative to the parent stacking context. If the fragment
         // itself establishes a stacking context, then the origin of its position will be (0, 0)
         // for the purposes of this computation.
@@ -644,13 +681,6 @@ impl FragmentDisplayListBuilding for Fragment {
         };
         let absolute_fragment_bounds =
             self.stacking_relative_bounds(&stacking_relative_flow_origin);
-
-        // FIXME(#2795): Get the real container size
-        let container_size = Size2D::zero();
-        let rect_to_absolute = |writing_mode: WritingMode, logical_rect: LogicalRect<Au>| {
-            let physical_rect = logical_rect.to_physical(writing_mode, container_size);
-            Rect(physical_rect.origin + stacking_relative_flow_origin, physical_rect.size)
-        };
 
         debug!("Fragment::build_display_list at rel={}, abs={}: {}",
                self.border_box,
@@ -671,9 +701,8 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Calculate the clip rect. If there's nothing to render at all, don't even construct
         // display list items.
-        let clip_rect = self.calculate_style_specified_clip(clip_rect,
-                                                            &absolute_fragment_bounds.origin);
-        if !absolute_fragment_bounds.intersects(&clip_rect) {
+        let clip = self.calculate_style_specified_clip(clip, &absolute_fragment_bounds.origin);
+        if !clip.might_intersect_rect(&absolute_fragment_bounds) {
             return;
         }
 
@@ -684,230 +713,77 @@ impl FragmentDisplayListBuilding for Fragment {
                 StackingLevel::from_background_and_border_level(background_and_border_level);
 
             // Add a shadow to the list, if applicable.
-            match self.inline_context {
-                Some(ref inline_context) => {
-                    for style in inline_context.styles.iter().rev() {
-                        self.build_display_list_for_box_shadow_if_applicable(
-                            &**style,
-                            display_list,
-                            layout_context,
-                            level,
-                            &absolute_fragment_bounds,
-                            &clip_rect);
-                    }
+            if let Some(ref inline_context) = self.inline_context {
+                for style in inline_context.styles.iter().rev() {
+                    self.build_display_list_for_box_shadow_if_applicable(&**style,
+                                                                         display_list,
+                                                                         layout_context,
+                                                                         level,
+                                                                         &absolute_fragment_bounds,
+                                                                         &clip);
                 }
-                None => {}
             }
-            match self.specific {
-                SpecificFragmentInfo::ScannedText(_) => {},
-                _ => {
-                    self.build_display_list_for_box_shadow_if_applicable(
-                        &*self.style,
-                        display_list,
-                        layout_context,
-                        level,
-                        &absolute_fragment_bounds,
-                        &clip_rect);
-                }
+            if !self.is_scanned_text_fragment() {
+                self.build_display_list_for_box_shadow_if_applicable(&*self.style,
+                                                                     display_list,
+                                                                     layout_context,
+                                                                     level,
+                                                                     &absolute_fragment_bounds,
+                                                                     &clip);
             }
 
             // Add the background to the list, if applicable.
-            match self.inline_context {
-                Some(ref inline_context) => {
-                    for style in inline_context.styles.iter().rev() {
-                        self.build_display_list_for_background_if_applicable(
-                            &**style,
-                            display_list,
-                            layout_context,
-                            level,
-                            &absolute_fragment_bounds,
-                            &clip_rect);
-                    }
+            if let Some(ref inline_context) = self.inline_context {
+                for style in inline_context.styles.iter().rev() {
+                    self.build_display_list_for_background_if_applicable(&**style,
+                                                                         display_list,
+                                                                         layout_context,
+                                                                         level,
+                                                                         &absolute_fragment_bounds,
+                                                                         &clip);
                 }
-                None => {}
             }
-            match self.specific {
-                SpecificFragmentInfo::ScannedText(_) => {},
-                _ => {
-                    self.build_display_list_for_background_if_applicable(
-                        &*self.style,
-                        display_list,
-                        layout_context,
-                        level,
-                        &absolute_fragment_bounds,
-                        &clip_rect);
-                }
+            if !self.is_scanned_text_fragment() {
+                self.build_display_list_for_background_if_applicable(&*self.style,
+                                                                     display_list,
+                                                                     layout_context,
+                                                                     level,
+                                                                     &absolute_fragment_bounds,
+                                                                     &clip);
             }
 
             // Add a border and outlines, if applicable.
-            match self.inline_context {
-                Some(ref inline_context) => {
-                    for style in inline_context.styles.iter().rev() {
-                        self.build_display_list_for_borders_if_applicable(
-                            &**style,
-                            display_list,
-                            &absolute_fragment_bounds,
-                            level,
-                            &clip_rect);
-                        self.build_display_list_for_outline_if_applicable(
-                            &**style,
-                            display_list,
-                            &absolute_fragment_bounds,
-                            &clip_rect);
-                    }
+            if let Some(ref inline_context) = self.inline_context {
+                for style in inline_context.styles.iter().rev() {
+                    self.build_display_list_for_borders_if_applicable(&**style,
+                                                                      display_list,
+                                                                      &absolute_fragment_bounds,
+                                                                      level,
+                                                                      &clip);
+                    self.build_display_list_for_outline_if_applicable(&**style,
+                                                                      display_list,
+                                                                      &absolute_fragment_bounds,
+                                                                      &clip);
                 }
-                None => {}
             }
-            match self.specific {
-                SpecificFragmentInfo::ScannedText(_) => {},
-                _ => {
-                    self.build_display_list_for_borders_if_applicable(
-                        &*self.style,
-                        display_list,
-                        &absolute_fragment_bounds,
-                        level,
-                        &clip_rect);
-                    self.build_display_list_for_outline_if_applicable(
-                        &*self.style,
-                        display_list,
-                        &absolute_fragment_bounds,
-                        &clip_rect);
-                }
+            if !self.is_scanned_text_fragment() {
+                self.build_display_list_for_borders_if_applicable(&*self.style,
+                                                                  display_list,
+                                                                  &absolute_fragment_bounds,
+                                                                  level,
+                                                                  &clip);
+                self.build_display_list_for_outline_if_applicable(&*self.style,
+                                                                  display_list,
+                                                                  &absolute_fragment_bounds,
+                                                                  &clip);
             }
         }
-
-        let content_box = self.content_box();
-        let absolute_content_box = rect_to_absolute(self.style.writing_mode, content_box);
 
         // Create special per-fragment-type display items.
-        match self.specific {
-            SpecificFragmentInfo::UnscannedText(_) => panic!("Shouldn't see unscanned fragments here."),
-            SpecificFragmentInfo::TableColumn(_) => panic!("Shouldn't see table column fragments here."),
-            SpecificFragmentInfo::ScannedText(ref text_fragment) => {
-                // Create the text display item.
-                let (orientation, cursor) = if self.style.writing_mode.is_vertical() {
-                    if self.style.writing_mode.is_sideways_left() {
-                        (SidewaysLeft, VerticalTextCursor)
-                    } else {
-                        (SidewaysRight, VerticalTextCursor)
-                    }
-                } else {
-                    (Upright, TextCursor)
-                };
-
-                let metrics = &text_fragment.run.font_metrics;
-                let baseline_origin = {
-                    let mut content_box_start = content_box.start;
-                    content_box_start.b = content_box_start.b + metrics.ascent;
-                    content_box_start.to_physical(self.style.writing_mode, container_size)
-                        + flow_origin
-                };
-
-                display_list.content.push_back(DisplayItem::TextClass(box TextDisplayItem {
-                    base: BaseDisplayItem::new(absolute_content_box,
-                                               DisplayItemMetadata::new(self.node,
-                                                                        self.style(),
-                                                                        cursor),
-                                               clip_rect),
-                    text_run: text_fragment.run.clone(),
-                    range: text_fragment.range,
-                    text_color: self.style().get_color().color.to_gfx_color(),
-                    orientation: orientation,
-                    baseline_origin: baseline_origin,
-                }));
-
-                // Create display items for text decoration
-                {
-                    let line = |maybe_color: Option<RGBA>,
-                                style: &ComputedValues,
-                                rect: || -> LogicalRect<Au>| {
-                        match maybe_color {
-                            None => {}
-                            Some(color) => {
-                                let bounds = rect_to_absolute(self.style.writing_mode, rect());
-                                display_list.content.push_back(DisplayItem::SolidColorClass(
-                                    box SolidColorDisplayItem {
-                                        base: BaseDisplayItem::new(
-                                                  bounds,
-                                                  DisplayItemMetadata::new(self.node,
-                                                                           style,
-                                                                           DefaultCursor),
-                                                  clip_rect),
-                                        color: color.to_gfx_color(),
-                                    }))
-                            }
-                        }
-                    };
-
-                    let text_decorations =
-                        self.style().get_inheritedtext()._servo_text_decorations_in_effect;
-                    line(text_decorations.underline, self.style(), || {
-                        let mut rect = content_box.clone();
-                        rect.start.b = rect.start.b + metrics.ascent - metrics.underline_offset;
-                        rect.size.block = metrics.underline_size;
-                        rect
-                    });
-
-                    line(text_decorations.overline, self.style(), || {
-                        let mut rect = content_box.clone();
-                        rect.size.block = metrics.underline_size;
-                        rect
-                    });
-
-                    line(text_decorations.line_through, self.style(), || {
-                        let mut rect = content_box.clone();
-                        rect.start.b = rect.start.b + metrics.ascent - metrics.strikeout_offset;
-                        rect.size.block = metrics.strikeout_size;
-                        rect
-                    });
-                }
-
-                if opts::get().show_debug_fragment_borders {
-                    self.build_debug_borders_around_text_fragments(self.style(),
-                                                                   display_list,
-                                                                   flow_origin,
-                                                                   &**text_fragment,
-                                                                   &clip_rect);
-                }
-            }
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(..) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper | SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
-                if opts::get().show_debug_fragment_borders {
-                    self.build_debug_borders_around_fragment(display_list,
-                                                             flow_origin,
-                                                             &clip_rect);
-                }
-            }
-            SpecificFragmentInfo::Image(ref mut image_fragment) => {
-                let image_ref = &mut image_fragment.image;
-                match image_ref.get_image(self.node.to_untrusted_node_address()) {
-                    Some(image) => {
-                        debug!("(building display list) building image fragment");
-
-                        // Place the image into the display list.
-                        display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem {
-                            base: BaseDisplayItem::new(absolute_content_box,
-                                                       DisplayItemMetadata::new(self.node,
-                                                                                &*self.style,
-                                                                                DefaultCursor),
-                                                       clip_rect),
-                            image: image.clone(),
-                            stretch_size: absolute_content_box.size,
-                        }));
-                    }
-                    None => {
-                        // No image data at all? Do nothing.
-                        //
-                        // TODO: Add some kind of placeholder image.
-                        debug!("(building display list) no image :(");
-                    }
-                }
-            }
-        }
+        self.build_fragment_type_specific_display_items(display_list, flow_origin, &clip);
 
         if opts::get().show_debug_fragment_borders {
-           self.build_debug_borders_around_fragment(display_list, flow_origin, &clip_rect)
+           self.build_debug_borders_around_fragment(display_list, flow_origin, &clip)
         }
 
         // If this is an iframe, then send its position and size up to the constellation.
@@ -920,13 +796,95 @@ impl FragmentDisplayListBuilding for Fragment {
         // origin to the constellation here during display list construction. This should work
         // because layout for the iframe only needs to know size, and origin is only relevant if
         // the iframe is actually going to be displayed.
+        if let SpecificFragmentInfo::Iframe(ref iframe_fragment) = self.specific {
+            self.finalize_position_and_size_of_iframe(&**iframe_fragment,
+                                                      absolute_fragment_bounds.origin,
+                                                      layout_context)
+        }
+    }
+
+    fn build_fragment_type_specific_display_items(&mut self,
+                                                  display_list: &mut DisplayList,
+                                                  flow_origin: Point2D<Au>,
+                                                  clip: &ClippingRegion) {
+        // Compute the fragment position relative to the parent stacking context. If the fragment
+        // itself establishes a stacking context, then the origin of its position will be (0, 0)
+        // for the purposes of this computation.
+        let stacking_relative_flow_origin = if self.establishes_stacking_context() {
+            ZERO_POINT
+        } else {
+            flow_origin
+        };
+
+        // FIXME(#2795): Get the real container size.
+        let content_box = self.content_box();
+        let container_size = Size2D::zero();
+        let rect_to_absolute = |writing_mode: WritingMode, logical_rect: LogicalRect<Au>| {
+            let physical_rect = logical_rect.to_physical(writing_mode, container_size);
+            Rect(physical_rect.origin + stacking_relative_flow_origin, physical_rect.size)
+        };
+
         match self.specific {
-            SpecificFragmentInfo::Iframe(ref iframe_fragment) => {
-                self.finalize_position_and_size_of_iframe(&**iframe_fragment,
-                                                          absolute_fragment_bounds.origin,
-                                                          layout_context)
+            SpecificFragmentInfo::UnscannedText(_) => {
+                panic!("Shouldn't see unscanned fragments here.")
             }
-            _ => {}
+            SpecificFragmentInfo::TableColumn(_) => {
+                panic!("Shouldn't see table column fragments here.")
+            }
+            SpecificFragmentInfo::ScannedText(ref text_fragment) => {
+                // Create the main text display item.
+                let text_color = self.style().get_color().color;
+                self.build_display_list_for_text_fragment(display_list,
+                                                          &**text_fragment,
+                                                          text_color,
+                                                          &flow_origin,
+                                                          &Point2D(Au(0), Au(0)),
+                                                          clip);
+
+                if opts::get().show_debug_fragment_borders {
+                    self.build_debug_borders_around_text_fragments(self.style(),
+                                                                   display_list,
+                                                                   flow_origin,
+                                                                   &**text_fragment,
+                                                                   clip);
+                }
+            }
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Iframe(..) |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper |
+            SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
+                if opts::get().show_debug_fragment_borders {
+                    self.build_debug_borders_around_fragment(display_list, flow_origin, clip);
+                }
+            }
+            SpecificFragmentInfo::Image(ref mut image_fragment) => {
+                let image_ref = &mut image_fragment.image;
+                if let Some(image) = image_ref.get_image(self.node.to_untrusted_node_address()) {
+                    debug!("(building display list) building image fragment");
+                    let absolute_content_box = rect_to_absolute(self.style.writing_mode,
+                                                                content_box);
+
+                    // Place the image into the display list.
+                    display_list.content.push_back(DisplayItem::ImageClass(box ImageDisplayItem {
+                        base: BaseDisplayItem::new(absolute_content_box,
+                                                   DisplayItemMetadata::new(self.node,
+                                                                            &*self.style,
+                                                                            DefaultCursor),
+                                                   (*clip).clone()),
+                        image: image.clone(),
+                        stretch_size: absolute_content_box.size,
+                    }));
+                } else {
+                    // No image data at all? Do nothing.
+                    //
+                    // TODO: Add some kind of placeholder image.
+                    debug!("(building display list) no image :(");
+                }
+            }
         }
     }
 
@@ -951,30 +909,144 @@ impl FragmentDisplayListBuilding for Fragment {
                                iframe_rect));
     }
 
-    fn clip_rect_for_children(&self, current_clip_rect: &Rect<Au>, origin: &Point2D<Au>)
-                              -> Rect<Au> {
+    fn clipping_region_for_children(&self, current_clip: &ClippingRegion, flow_origin: &Point2D<Au>)
+                                    -> ClippingRegion {
         // Don't clip if we're text.
-        match self.specific {
-            SpecificFragmentInfo::ScannedText(_) => return *current_clip_rect,
-            _ => {}
+        if self.is_scanned_text_fragment() {
+            return (*current_clip).clone()
         }
 
         // Account for style-specified `clip`.
-        let current_clip_rect = self.calculate_style_specified_clip(current_clip_rect, origin);
+        let current_clip = self.calculate_style_specified_clip(current_clip, flow_origin);
 
         // Only clip if `overflow` tells us to.
         match self.style.get_box().overflow {
             overflow::hidden | overflow::auto | overflow::scroll => {}
-            _ => return current_clip_rect,
+            _ => return current_clip,
         }
 
         // Create a new clip rect.
         //
         // FIXME(#2795): Get the real container size.
         let physical_rect = self.border_box.to_physical(self.style.writing_mode, Size2D::zero());
-        current_clip_rect.intersection(&Rect(Point2D(physical_rect.origin.x + origin.x,
-                                                     physical_rect.origin.y + origin.y),
-                                             physical_rect.size)).unwrap_or(ZERO_RECT)
+        current_clip.intersect_rect(&Rect(physical_rect.origin + *flow_origin, physical_rect.size))
+    }
+
+    fn build_display_list_for_text_fragment(&self,
+                                            display_list: &mut DisplayList,
+                                            text_fragment: &ScannedTextFragmentInfo,
+                                            text_color: RGBA,
+                                            flow_origin: &Point2D<Au>,
+                                            offset: &Point2D<Au>,
+                                            clip: &ClippingRegion) {
+        // Determine the orientation and cursor to use.
+        let (orientation, cursor) = if self.style.writing_mode.is_vertical() {
+            if self.style.writing_mode.is_sideways_left() {
+                (SidewaysLeft, VerticalTextCursor)
+            } else {
+                (SidewaysRight, VerticalTextCursor)
+            }
+        } else {
+            (Upright, TextCursor)
+        };
+
+        // Compute location of the baseline.
+        //
+        // FIXME(pcwalton): Get the real container size.
+        let container_size = Size2D::zero();
+        let content_box = self.content_box();
+        let metrics = &text_fragment.run.font_metrics;
+        let baseline_origin = {
+            let mut content_box_start = content_box.start;
+            content_box_start.b = content_box_start.b + metrics.ascent;
+            content_box_start.to_physical(self.style.writing_mode, container_size) + *flow_origin +
+                *offset
+        };
+        let stacking_relative_flow_origin = if self.establishes_stacking_context() {
+            ZERO_POINT
+        } else {
+            *flow_origin
+        };
+        let rect_to_absolute = |writing_mode: WritingMode, logical_rect: LogicalRect<Au>| {
+            let physical_rect = logical_rect.to_physical(writing_mode, container_size);
+            Rect(physical_rect.origin + stacking_relative_flow_origin, physical_rect.size)
+        };
+        let content_rect = rect_to_absolute(self.style.writing_mode,
+                                            content_box).translate(offset);
+
+        // Create the text display item.
+        display_list.content.push_back(DisplayItem::TextClass(box TextDisplayItem {
+            base: BaseDisplayItem::new(content_rect,
+                                       DisplayItemMetadata::new(self.node, self.style(), cursor),
+                                       (*clip).clone()),
+            text_run: text_fragment.run.clone(),
+            range: text_fragment.range,
+            text_color: text_color.to_gfx_color(),
+            orientation: orientation,
+            baseline_origin: baseline_origin,
+        }));
+
+        // Create display items for text decorations.
+        let text_decorations = self.style().get_inheritedtext()._servo_text_decorations_in_effect;
+        if let Some(underline_color) = text_decorations.underline {
+            let mut rect = content_box.clone();
+            rect.start.b = rect.start.b + metrics.ascent - metrics.underline_offset;
+            rect.size.block = metrics.underline_size;
+            self.build_display_list_for_text_decoration(display_list,
+                                                        underline_color,
+                                                        flow_origin,
+                                                        clip,
+                                                        &rect,
+                                                        offset)
+        }
+
+        if let Some(overline_color) = text_decorations.overline {
+            let mut rect = content_box.clone();
+            rect.size.block = metrics.underline_size;
+            self.build_display_list_for_text_decoration(display_list,
+                                                        overline_color,
+                                                        flow_origin,
+                                                        clip,
+                                                        &rect,
+                                                        offset)
+        }
+
+        if let Some(line_through_color) = text_decorations.line_through {
+            let mut rect = content_box.clone();
+            rect.start.b = rect.start.b + metrics.ascent - metrics.strikeout_offset;
+            rect.size.block = metrics.strikeout_size;
+            self.build_display_list_for_text_decoration(display_list,
+                                                        line_through_color,
+                                                        flow_origin,
+                                                        clip,
+                                                        &rect,
+                                                        offset)
+        }
+    }
+
+    fn build_display_list_for_text_decoration(&self,
+                                              display_list: &mut DisplayList,
+                                              color: RGBA,
+                                              flow_origin: &Point2D<Au>,
+                                              clip: &ClippingRegion,
+                                              logical_bounds: &LogicalRect<Au>,
+                                              offset: &Point2D<Au>) {
+        // FIXME(pcwalton): Get the real container size.
+        let container_size = Size2D::zero();
+        let stacking_relative_flow_origin = if self.establishes_stacking_context() {
+            ZERO_POINT
+        } else {
+            *flow_origin
+        };
+        let physical_rect = logical_bounds.to_physical(self.style.writing_mode, container_size);
+
+        let bounds = Rect(physical_rect.origin + stacking_relative_flow_origin,
+                          physical_rect.size).translate(offset);
+        let metadata = DisplayItemMetadata::new(self.node, &*self.style, DefaultCursor);
+        display_list.content.push_back(DisplayItem::SolidColorClass(box SolidColorDisplayItem {
+            base: BaseDisplayItem::new(bounds, metadata, (*clip).clone()),
+            color: color.to_gfx_color(),
+        }))
     }
 }
 
@@ -1014,7 +1086,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                          layout_context,
                                          stacking_relative_fragment_origin,
                                          background_border_level,
-                                         &self.base.clip_rect);
+                                         &self.base.clip);
 
         for kid in self.base.children.iter_mut() {
             flow::mut_base(kid).display_list_building_result.add_to(display_list);
@@ -1128,7 +1200,7 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
                                           layout_context,
                                           stacking_relative_fragment_origin,
                                           BackgroundAndBorderLevel::Content,
-                                          &self.block_flow.base.clip_rect);
+                                          &self.block_flow.base.clip);
             }
         }
 

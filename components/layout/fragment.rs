@@ -954,7 +954,7 @@ impl Fragment {
     }
 
     /// Returns true if and only if this is a scanned text fragment.
-    fn is_scanned_text_fragment(&self) -> bool {
+    pub fn is_scanned_text_fragment(&self) -> bool {
         match self.specific {
             SpecificFragmentInfo::ScannedText(..) => true,
             _ => false,
