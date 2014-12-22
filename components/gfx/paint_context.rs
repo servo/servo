@@ -814,6 +814,12 @@ impl<'a> PaintContext<'a> {
 
     pub fn get_or_create_temporary_draw_target(&mut self, opacity: AzFloat) -> DrawTarget {
         if opacity == 1.0 {
+            // Reuse the draw target, but remove the transient clip. If we don't do the latter,
+            // we'll be in a state whereby the paint subcontext thinks it has no transient clip
+            // (see `StackingContext::optimize_and_draw_into_context`) but it actually does,
+            // resulting in a situation whereby display items are seemingly randomly clipped out.
+            self.remove_transient_clip_if_applicable();
+
             return self.draw_target.clone()
         }
 
