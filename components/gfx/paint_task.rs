@@ -510,7 +510,7 @@ impl WorkerThread {
                 page_rect: tile.page_rect,
                 screen_rect: tile.screen_rect,
                 clip_rect: None,
-                transient_clip_rect: None,
+                transient_clip: None,
             };
 
             // Apply the translation to paint the tile we want.

@@ -8,13 +8,13 @@ use azure::azure::AzIntSize;
 use azure::azure_hl::{A8, B8G8R8A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
 use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GaussianBlurFilterType};
 use azure::azure_hl::{GaussianBlurInput, GradientStop, Linear, LinearGradientPattern};
-use azure::azure_hl::{LinearGradientPatternRef, Path, SourceOp, StdDeviationGaussianBlurAttribute};
-use azure::azure_hl::{StrokeOptions};
+use azure::azure_hl::{LinearGradientPatternRef, Path, PathBuilder, SourceOp};
+use azure::azure_hl::{StdDeviationGaussianBlurAttribute, StrokeOptions};
 use azure::scaled_font::ScaledFont;
 use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
-use display_list::{BOX_SHADOW_INFLATION_FACTOR, TextDisplayItem, BorderRadii};
 use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
+use display_list::{BOX_SHADOW_INFLATION_FACTOR, BorderRadii, ClippingRegion, TextDisplayItem};
 use font_context::FontContext;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -29,6 +29,7 @@ use servo_util::geometry::{Au, MAX_RECT};
 use servo_util::opts;
 use servo_util::range::Range;
 use std::default::Default;
+use std::mem;
 use std::num::{Float, FloatMath};
 use std::ptr;
 use style::computed_values::border_style;
@@ -45,10 +46,10 @@ pub struct PaintContext<'a> {
     pub screen_rect: Rect<uint>,
     /// The clipping rect for the stacking context as a whole.
     pub clip_rect: Option<Rect<Au>>,
-    /// The current transient clipping rect, if any. A "transient clipping rect" is the clipping
-    /// rect used by the last display item. We cache the last value so that we avoid pushing and
-    /// popping clip rects unnecessarily.
-    pub transient_clip_rect: Option<Rect<Au>>,
+    /// The current transient clipping region, if any. A "transient clipping region" is the
+    /// clipping region used by the last display item. We cache the last value so that we avoid
+    /// pushing and popping clipping regions unnecessarily.
+    pub transient_clip: Option<ClippingRegion>,
 }
 
 enum Direction {
@@ -276,6 +277,12 @@ impl<'a> PaintContext<'a> {
                                         radii);
         let draw_options = DrawOptions::new(1.0, 0);
         self.draw_target.fill(&path_builder.finish(), &ColorPattern::new(color), &draw_options);
+    }
+
+    fn push_rounded_rect_clip(&self, bounds: &Rect<f32>, radii: &BorderRadii<AzFloat>) {
+        let mut path_builder = self.draw_target.create_path_builder();
+        self.create_rounded_rect_path(&mut path_builder, bounds, radii);
+        self.draw_target.push_clip(&path_builder.finish());
     }
 
     // The following comment is wonderful, and stolen from
@@ -537,8 +544,55 @@ impl<'a> PaintContext<'a> {
         }
     }
 
-        let path = path_builder.finish();
-        self.draw_target.fill(&path, &ColorPattern::new(color), &draw_opts);
+    /// Creates a path representing the given rounded rectangle.
+    ///
+    /// TODO(pcwalton): Should we unify with the code above? It doesn't seem immediately obvious
+    /// how to do that (especially without regressing performance) unless we have some way to
+    /// efficiently intersect or union paths, since different border styles/colors can force us to
+    /// slice through the rounded corners. My first attempt to unify with the above code resulted
+    /// in making a mess of it, and the simplicity of this code path is appealing, so it may not
+    /// be worth it… In any case, revisit this decision when we support elliptical radii.
+    fn create_rounded_rect_path(&self,
+                                path_builder: &mut PathBuilder,
+                                bounds: &Rect<f32>,
+                                radii: &BorderRadii<AzFloat>) {
+        //    +----------+
+        //   / 1        2 \
+        //  + 8          3 +
+        //  |              |
+        //  + 7          4 +
+        //   \ 6        5 /
+        //    +----------+
+
+        path_builder.move_to(Point2D(bounds.origin.x + radii.top_left, bounds.origin.y));   // 1
+        path_builder.line_to(Point2D(bounds.max_x() - radii.top_right, bounds.origin.y));   // 2
+        path_builder.arc(Point2D(bounds.max_x() - radii.top_right,
+                                 bounds.origin.y + radii.top_right),
+                         radii.top_right,
+                         1.5f32 * Float::frac_pi_2(),
+                         Float::two_pi(),
+                         false);                                                            // 3
+        path_builder.line_to(Point2D(bounds.max_x(), bounds.max_y() - radii.bottom_right)); // 4
+        path_builder.arc(Point2D(bounds.max_x() - radii.bottom_right,
+                                 bounds.max_y() - radii.bottom_right),
+                         radii.bottom_right,
+                         0.0,
+                         Float::frac_pi_2(),
+                         false);                                                            // 5
+        path_builder.line_to(Point2D(bounds.origin.x + radii.bottom_left, bounds.max_y())); // 6
+        path_builder.arc(Point2D(bounds.origin.x + radii.bottom_left,
+                                 bounds.max_y() - radii.bottom_left),
+                         radii.bottom_left,
+                         Float::frac_pi_2(),
+                         Float::pi(),
+                         false);                                                            // 7
+        path_builder.line_to(Point2D(bounds.origin.x, bounds.origin.y + radii.top_left));   // 8
+        path_builder.arc(Point2D(bounds.origin.x + radii.top_left,
+                                 bounds.origin.y + radii.top_left),
+                         radii.top_left,
+                         Float::pi(),
+                         1.5f32 * Float::frac_pi_2(),
+                         false);                                                            // 1
     }
 
     fn draw_dashed_border_segment(&self,
@@ -956,10 +1010,26 @@ impl<'a> PaintContext<'a> {
     }
 
     pub fn remove_transient_clip_if_applicable(&mut self) {
-        if self.transient_clip_rect.is_some() {
-            self.draw_pop_clip();
-            self.transient_clip_rect = None
+        if let Some(old_transient_clip) = mem::replace(&mut self.transient_clip, None) {
+            for _ in old_transient_clip.complex.iter() {
+                self.draw_pop_clip()
+            }
+            self.draw_pop_clip()
         }
+    }
+
+    /// Sets a new transient clipping region. Automatically calls
+    /// `remove_transient_clip_if_applicable()` first.
+    pub fn push_transient_clip(&mut self, clip_region: ClippingRegion) {
+        self.remove_transient_clip_if_applicable();
+
+        self.draw_push_clip(&clip_region.main);
+        for complex_region in clip_region.complex.iter() {
+            // FIXME(pcwalton): Actually draw a rounded rect.
+            self.push_rounded_rect_clip(&complex_region.rect.to_azure_rect(),
+                                        &complex_region.radii.to_radii_px())
+        }
+        self.transient_clip = Some(clip_region)
     }
 }
 

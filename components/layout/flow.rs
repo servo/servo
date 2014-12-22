@@ -47,6 +47,7 @@ use table_wrapper::TableWrapperFlow;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect, Size2D};
+use gfx::display_list::ClippingRegion;
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
 use servo_util::geometry::Au;
@@ -762,11 +763,8 @@ pub struct BaseFlow {
     /// FIXME(pcwalton): Merge with `absolute_static_i_offset` and `fixed_static_i_offset` above?
     pub absolute_position_info: AbsolutePositionInfo,
 
-    /// The clipping rectangle for this flow and its descendants, in layer coordinates.
-    ///
-    /// TODO(pcwalton): When we have `border-radius` this will need to at least support rounded
-    /// rectangles.
-    pub clip_rect: Rect<Au>,
+    /// The clipping region for this flow and its descendants, in layer coordinates.
+    pub clip: ClippingRegion,
 
     /// The results of display list building for this flow.
     pub display_list_building_result: DisplayListBuildingResult,
@@ -909,7 +907,7 @@ impl BaseFlow {
             absolute_cb: ContainingBlockLink::new(),
             display_list_building_result: DisplayListBuildingResult::None,
             absolute_position_info: AbsolutePositionInfo::new(writing_mode),
-            clip_rect: Rect(Point2D::zero(), Size2D::zero()),
+            clip: ClippingRegion::max(),
             flags: flags,
             writing_mode: writing_mode,
         }
@@ -945,16 +943,12 @@ impl BaseFlow {
         };
 
         for item in all_items.iter() {
-            let paint_bounds = match item.base().bounds.intersection(&item.base().clip_rect) {
-                None => continue,
-                Some(rect) => rect,
-            };
-
-            if paint_bounds.is_empty() {
+            let paint_bounds = item.base().clip.clone().intersect_rect(&item.base().bounds);
+            if !paint_bounds.might_be_nonempty() {
                 continue;
             }
 
-            if bounds.union(&paint_bounds) != bounds {
+            if bounds.union(&paint_bounds.bounding_rect()) != bounds {
                 error!("DisplayList item {} outside of Flow overflow ({})", item, paint_bounds);
             }
         }

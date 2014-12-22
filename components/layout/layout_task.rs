@@ -25,7 +25,8 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::color;
-use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, StackingContext};
+use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
+use gfx::display_list::{StackingContext};
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::{mod, PaintInitMsg, PaintChan, PaintLayer};
 use layout_traits::{mod, LayoutControlMsg, LayoutTaskFactory};
@@ -633,7 +634,8 @@ impl LayoutTask {
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              rw_data.screen_size);
 
-            flow::mut_base(&mut **layout_root).clip_rect = data.page_clip_rect;
+            flow::mut_base(&mut **layout_root).clip =
+                ClippingRegion::from_rect(&data.page_clip_rect);
 
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
