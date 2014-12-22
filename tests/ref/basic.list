@@ -233,3 +233,4 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == filter_sepia_a.html filter_sepia_ref.html
 == mix_blend_mode_a.html mix_blend_mode_ref.html
 != text_overflow_a.html text_overflow_ref.html
+== floated_list_item_a.html floated_list_item_ref.html
