@@ -50,10 +50,10 @@ use table::ColumnComputedInlineSize;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::Size2D;
-use gfx::display_list::DisplayList;
+use gfx::display_list::{ClippingRegion, DisplayList};
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
-use servo_util::geometry::{Au, MAX_AU, MAX_RECT, ZERO_POINT};
+use servo_util::geometry::{Au, MAX_AU, ZERO_POINT};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::cmp::{max, min};
@@ -1699,7 +1699,7 @@ impl Flow for BlockFlow {
         let container_size = Size2D::zero();
 
         if self.is_root() {
-            self.base.clip_rect = MAX_RECT
+            self.base.clip = ClippingRegion::max()
         }
 
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
@@ -1774,8 +1774,8 @@ impl Flow for BlockFlow {
         } else {
             self.base.stacking_relative_position
         };
-        let clip_rect = self.fragment.clip_rect_for_children(&self.base.clip_rect,
-                                                             &origin_for_children);
+        let clip = self.fragment.clipping_region_for_children(&self.base.clip,
+                                                              &origin_for_children);
 
         // Process children.
         let writing_mode = self.base.writing_mode;
@@ -1789,7 +1789,7 @@ impl Flow for BlockFlow {
             }
 
             flow::mut_base(kid).absolute_position_info = absolute_position_info_for_children;
-            flow::mut_base(kid).clip_rect = clip_rect
+            flow::mut_base(kid).clip = clip.clone()
         }
     }
 

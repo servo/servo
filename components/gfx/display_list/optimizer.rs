@@ -47,7 +47,7 @@ impl DisplayListOptimizer {
                                          where I: Iterator<&'a DisplayItem> {
         for display_item in display_items {
             if self.visible_rect.intersects(&display_item.base().bounds) &&
-                    self.visible_rect.intersects(&display_item.base().clip_rect) {
+                    display_item.base().clip.might_intersect_rect(&self.visible_rect) {
                 result_list.push_back((*display_item).clone())
             }
         }

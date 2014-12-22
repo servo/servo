@@ -221,4 +221,4 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == clip_a.html clip_ref.html
 != inset_blackborder.html blackborder_ref.html
 != outset_blackborder.html blackborder_ref.html
-
+== border_radius_clip_a.html border_radius_clip_ref.html

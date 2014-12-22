@@ -6,8 +6,8 @@
 //! perform. Using a list instead of painting elements in immediate mode allows transforms, hit
 //! testing, and invalidation to be performed using the same primitives as painting. It also allows
 //! Servo to aggressively cull invisible and out-of-bounds painting elements, to reduce overdraw.
-//! Finally, display lists allow tiles to be farmed out onto multiple CPUs and painted in
-//! parallel (although this benefit does not apply to GPU-based painting).
+//! Finally, display lists allow tiles to be farmed out onto multiple CPUs and painted in parallel
+//! (although this benefit does not apply to GPU-based painting).
 //!
 //! Display items describe relatively high-level drawing operations (for example, entire borders
 //! and shadows instead of lines and blur operations), to reduce the amount of allocation required.
@@ -33,10 +33,11 @@ use servo_msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
 use servo_util::cursor::Cursor;
 use servo_util::dlist as servo_dlist;
-use servo_util::geometry::{mod, Au, ZERO_POINT};
+use servo_util::geometry::{mod, Au, MAX_RECT, ZERO_POINT, ZERO_RECT};
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
+use std::num::Zero;
 use std::slice::Items;
 use style::ComputedValues;
 use style::computed_values::border_style;
@@ -205,7 +206,7 @@ impl StackingContext {
                 page_rect: paint_context.page_rect,
                 screen_rect: paint_context.screen_rect,
                 clip_rect: clip_rect,
-                transient_clip_rect: None,
+                transient_clip: None,
             };
 
             // Optimize the display list to throw out out-of-bounds display items and so forth.
@@ -348,7 +349,9 @@ impl StackingContext {
                                   mut iterator: I)
                                   where I: Iterator<&'a DisplayItem> {
             for item in iterator {
-                if !geometry::rect_contains_point(item.base().clip_rect, point) {
+                // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
+                // test elements with `border-radius`, for example.
+                if !item.base().clip.might_intersect_point(&point) {
                     // Clipped out.
                     continue
                 }
@@ -477,22 +480,130 @@ pub struct BaseDisplayItem {
     /// Metadata attached to this display item.
     pub metadata: DisplayItemMetadata,
 
-    /// The rectangle to clip to.
-    ///
-    /// TODO(pcwalton): Eventually, to handle `border-radius`, this will (at least) need to grow
-    /// the ability to describe rounded rectangles.
-    pub clip_rect: Rect<Au>,
+    /// The region to clip to.
+    pub clip: ClippingRegion,
 }
 
 impl BaseDisplayItem {
     #[inline(always)]
-    pub fn new(bounds: Rect<Au>, metadata: DisplayItemMetadata, clip_rect: Rect<Au>)
+    pub fn new(bounds: Rect<Au>, metadata: DisplayItemMetadata, clip: ClippingRegion)
                -> BaseDisplayItem {
         BaseDisplayItem {
             bounds: bounds,
             metadata: metadata,
-            clip_rect: clip_rect,
+            clip: clip,
         }
+    }
+}
+
+/// A clipping region for a display item. Currently, this can describe rectangles, rounded
+/// rectangles (for `border-radius`), or arbitrary intersections of the two. Arbitrary transforms
+/// are not supported because those are handled by the higher-level `StackingContext` abstraction.
+#[deriving(Clone, PartialEq, Show)]
+pub struct ClippingRegion {
+    /// The main rectangular region. This does not include any corners.
+    pub main: Rect<Au>,
+    /// Any complex regions.
+    ///
+    /// TODO(pcwalton): Atomically reference count these? Not sure if it's worth the trouble.
+    /// Measure and follow up.
+    pub complex: Vec<ComplexClippingRegion>,
+}
+
+/// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
+/// they're stored in a list over to the side. Currently a complex clipping region is just a
+/// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
+#[deriving(Clone, PartialEq, Show)]
+pub struct ComplexClippingRegion {
+    /// The boundaries of the rectangle.
+    pub rect: Rect<Au>,
+    /// Border radii of this rectangle.
+    pub radii: BorderRadii<Au>,
+}
+
+impl ClippingRegion {
+    /// Returns an empty clipping region that, if set, will result in no pixels being visible.
+    #[inline]
+    pub fn empty() -> ClippingRegion {
+        ClippingRegion {
+            main: ZERO_RECT,
+            complex: Vec::new(),
+        }
+    }
+
+    /// Returns an all-encompassing clipping region that clips no pixels out.
+    #[inline]
+    pub fn max() -> ClippingRegion {
+        ClippingRegion {
+            main: MAX_RECT,
+            complex: Vec::new(),
+        }
+    }
+
+    /// Returns a clipping region that represents the given rectangle.
+    #[inline]
+    pub fn from_rect(rect: &Rect<Au>) -> ClippingRegion {
+        ClippingRegion {
+            main: *rect,
+            complex: Vec::new(),
+        }
+    }
+
+    /// Returns the intersection of this clipping region and the given rectangle.
+    ///
+    /// TODO(pcwalton): This could more eagerly eliminate complex clipping regions, at the cost of
+    /// complexity.
+    #[inline]
+    pub fn intersect_rect(self, rect: &Rect<Au>) -> ClippingRegion {
+        ClippingRegion {
+            main: self.main.intersection(rect).unwrap_or(ZERO_RECT),
+            complex: self.complex,
+        }
+    }
+
+    /// Returns true if this clipping region might be nonempty. This can return false positives,
+    /// but never false negatives.
+    #[inline]
+    pub fn might_be_nonempty(&self) -> bool {
+        !self.main.is_empty()
+    }
+
+    /// Returns true if this clipping region might contain the given point and false otherwise.
+    /// This is a quick, not a precise, test; it can yield false positives.
+    #[inline]
+    pub fn might_intersect_point(&self, point: &Point2D<Au>) -> bool {
+        geometry::rect_contains_point(self.main, *point) &&
+            self.complex.iter().all(|complex| geometry::rect_contains_point(complex.rect, *point))
+    }
+
+    /// Returns true if this clipping region might intersect the given rectangle and false
+    /// otherwise. This is a quick, not a precise, test; it can yield false positives.
+    #[inline]
+    pub fn might_intersect_rect(&self, rect: &Rect<Au>) -> bool {
+        self.main.intersects(rect) &&
+            self.complex.iter().all(|complex| complex.rect.intersects(rect))
+    }
+
+
+    /// Returns a bounding rect that surrounds this entire clipping region.
+    #[inline]
+    pub fn bounding_rect(&self) -> Rect<Au> {
+        let mut rect = self.main;
+        for complex in self.complex.iter() {
+            rect = rect.union(&complex.rect)
+        }
+        rect
+    }
+
+    /// Intersects this clipping region with the given rounded rectangle.
+    #[inline]
+    pub fn intersect_with_rounded_rect(mut self, rect: &Rect<Au>, radii: &BorderRadii<Au>)
+                                       -> ClippingRegion {
+        self.complex.push(ComplexClippingRegion {
+            rect: *rect,
+            radii: *radii,
+        });
+        self
     }
 }
 
@@ -610,12 +721,21 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[deriving(Clone, Default, Show)]
+#[deriving(Clone, Default, PartialEq, Show)]
 pub struct BorderRadii<T> {
-    pub top_left:     T,
-    pub top_right:    T,
+    pub top_left: T,
+    pub top_right: T,
     pub bottom_right: T,
-    pub bottom_left:  T,
+    pub bottom_left: T,
+}
+
+impl<T> BorderRadii<T> where T: PartialEq + Zero {
+    /// Returns true if all the radii are zero.
+    pub fn is_square(&self) -> bool {
+        let zero = Zero::zero();
+        self.top_left == zero && self.top_right == zero && self.bottom_right == zero &&
+            self.bottom_left == zero
+    }
 }
 
 /// Paints a line segment.
@@ -673,13 +793,12 @@ impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
 impl DisplayItem {
     /// Paints this display item into the given painting context.
     fn draw_into_context(&self, paint_context: &mut PaintContext) {
-        let this_clip_rect = self.base().clip_rect;
-        if paint_context.transient_clip_rect != Some(this_clip_rect) {
-            if paint_context.transient_clip_rect.is_some() {
-                paint_context.draw_pop_clip();
+        {
+            let this_clip = &self.base().clip;
+            match paint_context.transient_clip {
+                Some(ref transient_clip) if transient_clip == this_clip => {}
+                Some(_) | None => paint_context.push_transient_clip((*this_clip).clone()),
             }
-            paint_context.draw_push_clip(&this_clip_rect);
-            paint_context.transient_clip_rect = Some(this_clip_rect)
         }
 
         match *self {
@@ -693,6 +812,8 @@ impl DisplayItem {
             }
 
             DisplayItem::ImageClass(ref image_item) => {
+                // FIXME(pcwalton): This is a really inefficient way to draw a tiled image; use a
+                // brush instead.
                 debug!("Drawing image at {}.", image_item.base.bounds);
 
                 let mut y_offset = Au(0);
@@ -715,23 +836,21 @@ impl DisplayItem {
 
             DisplayItem::BorderClass(ref border) => {
                 paint_context.draw_border(&border.base.bounds,
-                                           border.border_widths,
-                                           &border.radius,
-                                           border.color,
-                                           border.style)
+                                          &border.border_widths,
+                                          &border.radius,
+                                          &border.color,
+                                          &border.style)
             }
 
             DisplayItem::GradientClass(ref gradient) => {
                 paint_context.draw_linear_gradient(&gradient.base.bounds,
-                                                    &gradient.start_point,
-                                                    &gradient.end_point,
-                                                    gradient.stops.as_slice());
+                                                   &gradient.start_point,
+                                                   &gradient.end_point,
+                                                   gradient.stops.as_slice());
             }
 
             DisplayItem::LineClass(ref line) => {
-                paint_context.draw_line(&line.base.bounds,
-                                          line.color,
-                                          line.style)
+                paint_context.draw_line(&line.base.bounds, line.color, line.style)
             }
 
             DisplayItem::BoxShadowClass(ref box_shadow) => {
