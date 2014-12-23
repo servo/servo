@@ -27,6 +27,7 @@ use std::num::Float;
 use std::rc::Rc;
 use time::{mod, Timespec};
 use util::geometry::ScreenPx;
+use util::opts;
 use util::opts::{RenderApi, Mesa, OpenGL};
 use gleam::gl;
 use glutin;
@@ -521,10 +522,23 @@ impl Window {
         match self.glutin {
             WindowHandle::Windowed(ref window) => {
                 let mut close_event = false;
-                for event in window.wait_events() {
-                    close_event = self.handle_window_event(event);
-                    if close_event {
-                        break;
+
+                // When writing to a file then exiting, use event
+                // polling so that we don't block on a GUI event
+                // such as mouse click.
+                if opts::get().output_file.is_some() {
+                    for event in window.poll_events() {
+                        close_event = self.handle_window_event(event);
+                        if close_event {
+                            break;
+                        }
+                    }
+                } else {
+                    for event in window.wait_events() {
+                        close_event = self.handle_window_event(event);
+                        if close_event {
+                            break;
+                        }
                     }
                 }
 
