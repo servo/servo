@@ -20,8 +20,10 @@ interface CSSStyleDeclaration {
                                        [TreatNullAs=EmptyString] optional DOMString priority = "");
   [Throws]
   void setPropertyValue(DOMString property, [TreatNullAs=EmptyString] DOMString value);
-  //[Throws]
-  //void setPropertyPriority(DOMString property, [TreatNullAs=EmptyString] DOMString priority);
+
+  [Throws]
+  void setPropertyPriority(DOMString property, [TreatNullAs=EmptyString] DOMString priority);
+
   DOMString removeProperty(DOMString property);
   //readonly attribute CSSRule? parentRule;
   [SetterThrows]
