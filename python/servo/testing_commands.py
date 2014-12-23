@@ -200,6 +200,17 @@ class MachCommands(CommandBase):
     def test_tidy(self):
         return tidy.scan()
 
+    @Command('test-wpt-failure',
+             description='Run the web platform tests',
+             category='testing')
+    def test_wpt_failure(self):
+        return not subprocess.call([
+            "bash",
+            path.join("tests", "wpt", "run.sh"),
+            "--include",
+            "infrastructure/failing-test.html"
+        ], env=self.build_env())
+
     @Command('test-wpt',
              description='Run the web platform tests',
              category='testing')
