@@ -23,6 +23,7 @@ use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
+use dom::mouseevent::MouseEvent;
 use dom::node::{mod, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
@@ -1166,6 +1167,33 @@ impl ScriptTask {
                         }
                     }
                     None => {}
+                }
+
+                if node_address.len() > 0 {
+                  let top_most_node =
+                      node::from_untrusted_node_address(self.js_runtime.ptr, node_address[0]).root();
+
+                  if let Some(ref frame) = *page.frame() {
+                      let window = frame.window.root();
+
+                      let x = point.x.to_i32().unwrap_or(0);
+                      let y = point.y.to_i32().unwrap_or(0);
+
+                      let mouse_event = MouseEvent::new(*window,
+                          "mousemove".to_string(),
+                          true,
+                          true,
+                          Some(*window),
+                          0i32,
+                          x, y, x, y,
+                          false, false, false, false,
+                          0i16,
+                          None).root();
+
+                      let event: JSRef<Event> = EventCast::from_ref(*mouse_event);
+                      let target: JSRef<EventTarget> = EventTargetCast::from_ref(*top_most_node);
+                      target.dispatch_event(event);
+                  }
                 }
 
                 for node_address in node_address.iter() {
