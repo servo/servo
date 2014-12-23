@@ -2086,11 +2086,14 @@ class CGDefineProxyHandler(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
+        customDefineProperty = 'defineProperty_'
+        if self.descriptor.operations['IndexedSetter'] or self.descriptor.operations['NamedSetter']:
+            customDefineProperty = 'defineProperty'
         body = """\
 let traps = ProxyTraps {
   getPropertyDescriptor: Some(getPropertyDescriptor),
   getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
-  defineProperty: Some(defineProperty_),
+  defineProperty: Some(%s),
   getOwnPropertyNames: ptr::null(),
   delete_: Some(delete_),
   enumerate: ptr::null(),
@@ -2120,7 +2123,7 @@ let traps = ProxyTraps {
 };
 
 CreateProxyHandler(&traps, &Class as *const _ as *const _)
-""" % (FINALIZE_HOOK_NAME,
+""" % (customDefineProperty, FINALIZE_HOOK_NAME,
        TRACE_HOOK_NAME)
         return CGGeneric(body)
 
