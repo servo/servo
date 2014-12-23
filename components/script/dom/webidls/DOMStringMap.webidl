@@ -7,7 +7,6 @@
 [OverrideBuiltins]
 interface DOMStringMap {
   getter DOMString (DOMString name);
-  [Throws]
   setter creator void (DOMString name, DOMString value);
   deleter void (DOMString name);
 };
