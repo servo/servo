@@ -469,6 +469,7 @@ pub trait ElementHelpers<'a> {
     fn remove_inline_style_property(self, property: DOMString);
     fn update_inline_style(self, property_decl: style::PropertyDeclaration, important: bool);
     fn get_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration>;
+    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration>;
 }
 
 impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
@@ -591,6 +592,16 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
             declarations.normal
                         .iter()
                         .chain(declarations.important.iter())
+                        .find(|decl| decl.matches(property.as_slice()))
+                        .map(|decl| decl.clone())
+        })
+    }
+
+    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration> {
+        let inline_declarations = self.style_attribute.borrow();
+        inline_declarations.as_ref().and_then(|declarations| {
+            declarations.important
+                        .iter()
                         .find(|decl| decl.matches(property.as_slice()))
                         .map(|decl| decl.clone())
         })
