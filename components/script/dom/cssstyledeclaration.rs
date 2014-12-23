@@ -200,6 +200,43 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         Ok(())
     }
 
+    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertypriority
+    fn SetPropertyPriority(self, property: DOMString, priority: DOMString) -> ErrorResult {
+        //TODO: disallow modifications if readonly flag is set
+
+        // Step 2
+        let property = property.as_slice().to_ascii_lower();
+
+        // Step 3
+        if !is_supported_property(property.as_slice()) {
+            return Ok(());
+        }
+
+        // Step 4
+        let priority = priority.as_slice().to_ascii_lower();
+        if priority.as_slice() != "important" && !priority.is_empty() {
+            return Ok(());
+        }
+
+        let owner = self.owner.root();
+        let window = window_from_node(*owner).root();
+        let page = window.page();
+        let decl_block = parse_style_attribute(property.as_slice(),
+                                               &page.get_url());
+        let element: JSRef<Element> = ElementCast::from_ref(*owner);
+
+        // Step 5
+        for decl in decl_block.normal.iter() {
+            // Step 6
+            element.update_inline_style(decl.clone(), !priority.is_empty());
+        }
+
+        let document = document_from_node(element).root();
+        let node: JSRef<Node> = NodeCast::from_ref(element);
+        document.content_changed(node, NodeDamage::NodeStyleDamaged);
+        Ok(())
+    }
+
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
     fn SetPropertyValue(self, property: DOMString, value: DOMString) -> ErrorResult {
         self.SetProperty(property, value, "".to_string())
