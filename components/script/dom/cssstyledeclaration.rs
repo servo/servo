@@ -69,6 +69,7 @@ impl CSSStyleDeclaration {
 
 trait PrivateCSSStyleDeclarationHelpers {
     fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
+    fn get_important_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
 }
 
 impl<'a> PrivateCSSStyleDeclarationHelpers for JSRef<'a, CSSStyleDeclaration> {
@@ -76,6 +77,12 @@ impl<'a> PrivateCSSStyleDeclarationHelpers for JSRef<'a, CSSStyleDeclaration> {
         let owner = self.owner.root();
         let element: JSRef<Element> = ElementCast::from_ref(*owner);
         element.get_inline_style_declaration(property).map(|decl| decl.clone())
+    }
+
+    fn get_important_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
+        let owner = self.owner.root();
+        let element: JSRef<Element> = ElementCast::from_ref(*owner);
+        element.get_important_inline_style_declaration(property).map(|decl| decl.clone())
     }
 }
 
@@ -142,6 +149,30 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         } else {
             "".to_string()
         }
+    }
+
+    // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
+    fn GetPropertyPriority(self, property: DOMString) -> DOMString {
+        // Step 1
+        let property = Atom::from_slice(property.as_slice().to_ascii_lower().as_slice());
+
+        // Step 2
+        let longhand_properties = longhands_from_shorthand(property.as_slice());
+        if let Some(longhand_properties) = longhand_properties {
+            // Step 2.1 & 2.2 & 2.3
+            if longhand_properties.iter()
+                                  .map(|longhand| self.GetPropertyPriority(longhand.clone()))
+                                  .all(|priority| priority.as_slice() == "important") {
+
+                return "important".to_string();
+            }
+        // Step 3
+        } else if self.get_important_declaration(&property).is_some() {
+            return "important".to_string();
+        }
+
+        // Step 4
+        "".to_string()
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
