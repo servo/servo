@@ -459,7 +459,6 @@ impl LayoutElementHelpers for JS<Element> {
 pub trait ElementHelpers<'a> {
     fn html_element_in_html_document(self) -> bool;
     fn local_name(self) -> &'a Atom;
-    fn parsed_name(self, name: DOMString) -> DOMString;
     fn namespace(self) -> &'a Namespace;
     fn prefix(self) -> &'a Option<DOMString>;
     fn attrs(&self) -> Ref<Vec<JS<Attr>>>;
@@ -480,15 +479,6 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 
     fn local_name(self) -> &'a Atom {
         &self.extended_deref().local_name
-    }
-
-    // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
-    fn parsed_name(self, name: DOMString) -> DOMString {
-        if self.html_element_in_html_document() {
-            name.as_slice().to_ascii_lower()
-        } else {
-            name
-        }
     }
 
     fn namespace(self) -> &'a Namespace {
@@ -619,7 +609,6 @@ pub trait AttributeHandlers {
                                  value: DOMString,
                                  prefix: Option<DOMString>);
     fn set_attribute(self, name: &Atom, value: AttrValue);
-    fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult;
     fn do_set_attribute(self, local_name: Atom, value: AttrValue,
                         name: Atom, namespace: Namespace,
                         prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool);
@@ -687,23 +676,6 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
         self.do_set_attribute(name.clone(), value, name.clone(),
             ns!(""), None, |attr| *attr.local_name() == *name);
-    }
-
-    // https://html.spec.whatwg.org/multipage/dom.html#attr-data-*
-    fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult {
-        // Step 1.
-        match xml_name_type(name.as_slice()) {
-            InvalidXMLName => return Err(InvalidCharacter),
-            _ => {}
-        }
-
-        // Steps 2-5.
-        let name = Atom::from_slice(name.as_slice());
-        let value = self.parse_attribute(&ns!(""), &name, value);
-        self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
-            *attr.name() == name && *attr.namespace() == ns!("")
-        });
-        Ok(())
     }
 
     fn do_set_attribute(self, local_name: Atom, value: AttrValue,
@@ -930,7 +902,11 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-getattribute
     fn GetAttribute(self, name: DOMString) -> Option<DOMString> {
-        let name = self.parsed_name(name);
+        let name = if self.html_element_in_html_document() {
+            name.as_slice().to_ascii_lower()
+        } else {
+            name
+        };
         self.get_attribute(ns!(""), &Atom::from_slice(name.as_slice())).root()
                      .map(|s| s.Value())
     }
@@ -955,13 +931,17 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         }
 
         // Step 2.
-        let name = self.parsed_name(name);
+        let name = if self.html_element_in_html_document() {
+            name.as_slice().to_ascii_lower()
+        } else {
+            name
+        };
 
         // Step 3-5.
         let name = Atom::from_slice(name.as_slice());
         let value = self.parse_attribute(&ns!(""), &name, value);
         self.do_set_attribute(name.clone(), value, name.clone(), ns!(""), None, |attr| {
-            *attr.name() == name
+            attr.name().as_slice() == name.as_slice()
         });
         Ok(())
     }
@@ -1032,7 +1012,11 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-removeattribute
     fn RemoveAttribute(self, name: DOMString) {
-        let name = self.parsed_name(name);
+        let name = if self.html_element_in_html_document() {
+            name.as_slice().to_ascii_lower()
+        } else {
+            name
+        };
         self.remove_attribute(ns!(""), name.as_slice())
     }
 

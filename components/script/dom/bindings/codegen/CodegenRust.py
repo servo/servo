@@ -2086,14 +2086,11 @@ class CGDefineProxyHandler(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        customDefineProperty = 'defineProperty_'
-        if self.descriptor.operations['IndexedSetter'] or self.descriptor.operations['NamedSetter']:
-            customDefineProperty = 'defineProperty'
         body = """\
 let traps = ProxyTraps {
   getPropertyDescriptor: Some(getPropertyDescriptor),
   getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
-  defineProperty: Some(%s),
+  defineProperty: Some(defineProperty_),
   getOwnPropertyNames: ptr::null(),
   delete_: Some(delete_),
   enumerate: ptr::null(),
@@ -2123,7 +2120,7 @@ let traps = ProxyTraps {
 };
 
 CreateProxyHandler(&traps, &Class as *const _ as *const _)
-""" % (customDefineProperty, FINALIZE_HOOK_NAME,
+""" % (FINALIZE_HOOK_NAME,
        TRACE_HOOK_NAME)
         return CGGeneric(body)
 
@@ -2279,15 +2276,8 @@ class CGPerSignatureCall(CGThing):
                                              invalidEnumValueFatal=not setter) for
                          i in range(argConversionStartsAt, self.argCount)])
 
-        errorResult = None
-        if self.isFallible():
-            if nativeMethodName == "NamedSetter":
-                errorResult = " false"
-            else:
-                errorResult = " false as JSBool"
-
         cgThings.append(CGCallGenerator(
-                    errorResult,
+                    ' false as JSBool' if self.isFallible() else None,
                     self.getArguments(), self.argsPre, returnType,
                     self.extendedAttributes, descriptor, nativeMethodName,
                     static))
@@ -3846,14 +3836,14 @@ if expando.is_not_null() {
             getIndexedOrExpando = getFromExpando + "\n"
 
         namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter:
-            getNamed = ("if (RUST_JSID_IS_STRING(id) != 0) {\n" +
+        if namedGetter and False: #XXXjdm unfinished
+            getNamed = ("if (JSID_IS_STRING(id)) {\n" +
                         "  let name = jsid_to_str(cx, id);\n" +
                         "  let this = UnwrapProxy(proxy);\n" +
                         "  let this = JS::from_raw(this);\n" +
                         "  let this = this.root();\n" +
                         CGIndenter(CGProxyNamedGetter(self.descriptor, templateValues)).define() +
-                        "}\n")
+                        "}\n") % (self.descriptor.concreteType)
         else:
             getNamed = ""
 
