@@ -251,7 +251,7 @@ impl LayoutDataRef {
 }
 
 /// The different types of nodes.
-#[deriving(PartialEq, Show)]
+#[deriving(PartialEq, Eq, Show)]
 #[jstraceable]
 pub enum NodeTypeId {
     DocumentType,
@@ -825,9 +825,8 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn remove_self(self) {
-        match self.parent_node().root() {
-            Some(parent) => parent.remove_child(self),
-            None => ()
+        if let Some(parent) = self.parent_node().root() {
+            parent.remove_child(self);
         }
     }
 
@@ -1245,9 +1244,10 @@ impl Node {
         }
 
         // Step 3.
-        match child {
-            Some(child) if !parent.is_parent_of(child) => return Err(NotFound),
-            _ => ()
+        if let Some(child) = child {
+            if !parent.is_parent_of(child) {
+                return Err(NotFound);
+            }
         }
 
         // Step 4-5.
@@ -1270,78 +1270,66 @@ impl Node {
         }
 
         // Step 6.
-        match parent.type_id() {
-            NodeTypeId::Document => {
-                match node.type_id() {
-                    // Step 6.1
-                    NodeTypeId::DocumentFragment => {
-                        // Step 6.1.1(b)
-                        if node.children().any(|c| c.is_text()) {
-                            return Err(HierarchyRequest);
-                        }
-                        match node.child_elements().count() {
-                            0 => (),
-                            // Step 6.1.2
-                            1 => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                                match child {
-                                    Some(child) => {
-                                        if child.inclusively_following_siblings()
-                                            .any(|child| child.is_doctype()) {
-                                                return Err(HierarchyRequest)
-                                            }
-                                    }
-                                    _ => (),
-                                }
-                            },
-                            // Step 6.1.1(a)
-                            _ => return Err(HierarchyRequest),
-                        }
-                    },
-                    // Step 6.2
-                    NodeTypeId::Element(_) => {
-                        if !parent.child_elements().is_empty() {
-                            return Err(HierarchyRequest);
-                        }
-                        match child {
-                            Some(ref child) => {
+        if NodeTypeId::Document == parent.type_id() {
+            match node.type_id() {
+                // Step 6.1
+                NodeTypeId::DocumentFragment => {
+                    // Step 6.1.1(b)
+                    if node.children().any(|c| c.is_text()) {
+                        return Err(HierarchyRequest);
+                    }
+                    match node.child_elements().count() {
+                        0 => (),
+                        // Step 6.1.2
+                        1 => {
+                            if !parent.child_elements().is_empty() {
+                                return Err(HierarchyRequest);
+                            }
+                            if let Some(child) = child {
                                 if child.inclusively_following_siblings()
                                     .any(|child| child.is_doctype()) {
                                         return Err(HierarchyRequest)
                                     }
                             }
-                            _ => (),
-                        }
-                    },
-                    // Step 6.3
-                    NodeTypeId::DocumentType => {
-                        if parent.children().any(|c| c.is_doctype()) {
+                        },
+                        // Step 6.1.1(a)
+                        _ => return Err(HierarchyRequest),
+                    }
+                },
+                // Step 6.2
+                NodeTypeId::Element(_) => {
+                    if !parent.child_elements().is_empty() {
+                        return Err(HierarchyRequest);
+                    }
+                    if let Some(ref child) = child {
+                        if child.inclusively_following_siblings()
+                            .any(|child| child.is_doctype()) {
+                                return Err(HierarchyRequest)
+                            }
+                    }
+                },
+                // Step 6.3
+                NodeTypeId::DocumentType => {
+                    if parent.children().any(|c| c.is_doctype()) {
+                        return Err(HierarchyRequest);
+                    }
+                    if let Some(ref child) = child {
+                        if parent.children()
+                            .take_while(|c| c != child)
+                            .any(|c| c.is_element()) {
                             return Err(HierarchyRequest);
                         }
-                        match child {
-                            Some(ref child) => {
-                                if parent.children()
-                                    .take_while(|c| c != child)
-                                    .any(|c| c.is_element()) {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
-                            None => {
-                                if !parent.child_elements().is_empty() {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
+                    } else {
+                        if !parent.child_elements().is_empty() {
+                            return Err(HierarchyRequest);
                         }
-                    },
-                    NodeTypeId::Text |
-                    NodeTypeId::ProcessingInstruction |
-                    NodeTypeId::Comment => (),
-                    NodeTypeId::Document => unreachable!(),
-                }
-            },
-            _ => (),
+                    }
+                },
+                NodeTypeId::Text |
+                NodeTypeId::ProcessingInstruction |
+                NodeTypeId::Comment => (),
+                NodeTypeId::Document => unreachable!(),
+            }
         }
 
         // Step 7-8.
@@ -1390,49 +1378,43 @@ impl Node {
         // XXX assert owner_doc
         // Step 1-3: ranges.
 
-        match node.type_id() {
-            NodeTypeId::DocumentFragment => {
-                // Step 4.
-                // Step 5: DocumentFragment, mutation records.
-                // Step 6: DocumentFragment.
-                let mut kids = Vec::new();
-                for kid in node.children() {
-                    kids.push(kid.clone());
-                    Node::remove(kid, node, SuppressObserver::Suppressed);
-                }
-
-                // Step 7: mutation records.
-                // Step 8.
-                for kid in kids.iter() {
-                    do_insert((*kid).clone(), parent, child);
-                }
-
-                for kid in kids.into_iter() {
-                    fire_observer_if_necessary(kid, suppress_observers);
-                }
+        if NodeTypeId::DocumentFragment == node.type_id() {
+            // Step 4.
+            // Step 5: DocumentFragment, mutation records.
+            // Step 6: DocumentFragment.
+            let mut kids = Vec::new();
+            for kid in node.children() {
+                kids.push(kid.clone());
+                Node::remove(kid, node, SuppressObserver::Suppressed);
             }
-            _ => {
-                // Step 4.
-                // Step 5: DocumentFragment, mutation records.
-                // Step 6: DocumentFragment.
-                // Step 7: mutation records.
-                // Step 8.
-                do_insert(node, parent, child);
-                // Step 9.
-                fire_observer_if_necessary(node, suppress_observers);
+
+            // Step 7: mutation records.
+            // Step 8.
+            for kid in kids.iter() {
+                do_insert((*kid).clone(), parent, child);
             }
+
+            for kid in kids.into_iter() {
+                fire_observer_if_necessary(kid, suppress_observers);
+            }
+        } else {
+            // Step 4.
+            // Step 5: DocumentFragment, mutation records.
+            // Step 6: DocumentFragment.
+            // Step 7: mutation records.
+            // Step 8.
+            do_insert(node, parent, child);
+            // Step 9.
+            fire_observer_if_necessary(node, suppress_observers);
         }
     }
 
     // http://dom.spec.whatwg.org/#concept-node-replace-all
     fn replace_all(node: Option<JSRef<Node>>, parent: JSRef<Node>) {
         // Step 1.
-        match node {
-            Some(node) => {
-                let document = document_from_node(parent).root();
-                Node::adopt(node, *document);
-            }
-            None => (),
+        if let Some(node) = node {
+            let document = document_from_node(parent).root();
+            Node::adopt(node, *document);
         }
 
         // Step 2.
@@ -1453,9 +1435,8 @@ impl Node {
         }
 
         // Step 5.
-        match node {
-            Some(node) => Node::insert(node, parent, None, SuppressObserver::Suppressed),
-            None => (),
+        if let Some(node) = node {
+            Node::insert(node, parent, None, SuppressObserver::Suppressed);
         }
 
         // Step 6: mutation records.
@@ -1473,9 +1454,10 @@ impl Node {
     // http://dom.spec.whatwg.org/#concept-node-pre-remove
     fn pre_remove(child: JSRef<Node>, parent: JSRef<Node>) -> Fallible<Temporary<Node>> {
         // Step 1.
-        match child.parent_node() {
-            Some(ref node) if node != &Temporary::from_rooted(parent) => return Err(NotFound),
-            _ => ()
+        if let Some(ref node) = child.parent_node() {
+            if node != &Temporary::from_rooted(parent) {
+                return Err(NotFound);
+            }
         }
 
         // Step 2.
@@ -1620,12 +1602,9 @@ impl Node {
         if self.layout_data.is_present() {
             let layout_data = mem::replace(&mut self.layout_data, LayoutDataRef::new());
             let layout_chan = layout_data.take_chan();
-            match layout_chan {
-                None => {}
-                Some(chan) => {
-                    let LayoutChan(chan) = chan;
-                    chan.send(Msg::ReapLayoutData(layout_data))
-                },
+            if let Some(chan) = layout_chan {
+                let LayoutChan(chan) = chan;
+                chan.send(Msg::ReapLayoutData(layout_data))
             }
         }
     }
@@ -1634,9 +1613,8 @@ impl Node {
         let mut content = String::new();
         for node in iterator {
             let text: Option<JSRef<Text>> = TextCast::to_ref(node);
-            match text {
-                Some(text) => content.push_str(text.characterdata().data().as_slice()),
-                None => (),
+            if let Some(text) = text {
+                content.push_str(text.characterdata().data().as_slice());
             }
         }
         content
@@ -1874,59 +1852,56 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
         }
 
         // Step 6.
-        match self.type_id {
-            NodeTypeId::Document => {
-                match node.type_id() {
-                    // Step 6.1
-                    NodeTypeId::DocumentFragment => {
-                        // Step 6.1.1(b)
-                        if node.children().any(|c| c.is_text()) {
-                            return Err(HierarchyRequest);
-                        }
-                        match node.child_elements().count() {
-                            0 => (),
-                            // Step 6.1.2
-                            1 => {
-                                if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
-                                    return Err(HierarchyRequest);
-                                }
-                                if child.following_siblings()
-                                        .any(|child| child.is_doctype()) {
-                                    return Err(HierarchyRequest);
-                                }
-                            },
-                            // Step 6.1.1(a)
-                            _ => return Err(HierarchyRequest)
-                        }
-                    },
-                    // Step 6.2
-                    NodeTypeId::Element(..) => {
-                        if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
-                            return Err(HierarchyRequest);
-                        }
-                        if child.following_siblings()
-                                .any(|child| child.is_doctype()) {
-                            return Err(HierarchyRequest);
-                        }
-                    },
-                    // Step 6.3
-                    NodeTypeId::DocumentType => {
-                        if self.children().any(|c| c.is_doctype() && c != child) {
-                            return Err(HierarchyRequest);
-                        }
-                        if self.children()
-                            .take_while(|c| *c != child)
-                            .any(|c| c.is_element()) {
-                            return Err(HierarchyRequest);
-                        }
-                    },
-                    NodeTypeId::Text |
-                    NodeTypeId::ProcessingInstruction |
-                    NodeTypeId::Comment => (),
-                    NodeTypeId::Document => unreachable!()
-                }
-            },
-            _ => ()
+        if NodeTypeId::Document == self.type_id {
+            match node.type_id() {
+                // Step 6.1
+                NodeTypeId::DocumentFragment => {
+                    // Step 6.1.1(b)
+                    if node.children().any(|c| c.is_text()) {
+                        return Err(HierarchyRequest);
+                    }
+                    match node.child_elements().count() {
+                        0 => (),
+                        // Step 6.1.2
+                        1 => {
+                            if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
+                                return Err(HierarchyRequest);
+                            }
+                            if child.following_siblings()
+                                    .any(|child| child.is_doctype()) {
+                                return Err(HierarchyRequest);
+                            }
+                        },
+                        // Step 6.1.1(a)
+                        _ => return Err(HierarchyRequest)
+                    }
+                },
+                // Step 6.2
+                NodeTypeId::Element(..) => {
+                    if self.child_elements().any(|c| NodeCast::from_ref(c) != child) {
+                        return Err(HierarchyRequest);
+                    }
+                    if child.following_siblings()
+                            .any(|child| child.is_doctype()) {
+                        return Err(HierarchyRequest);
+                    }
+                },
+                // Step 6.3
+                NodeTypeId::DocumentType => {
+                    if self.children().any(|c| c.is_doctype() && c != child) {
+                        return Err(HierarchyRequest);
+                    }
+                    if self.children()
+                        .take_while(|c| *c != child)
+                        .any(|c| c.is_element()) {
+                        return Err(HierarchyRequest);
+                    }
+                },
+                NodeTypeId::Text |
+                NodeTypeId::ProcessingInstruction |
+                NodeTypeId::Comment => (),
+                NodeTypeId::Document => unreachable!()
+            }
         }
 
         // Ok if not caught by previous error checks.
@@ -2328,12 +2303,9 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
                 self.set_enabled_state(false);
                 return;
             }
-            match ancestor.children().find(|child| child.is_htmllegendelement()) {
-                Some(legend) => {
-                    // XXXabinader: should we save previous ancestor to avoid this iteration?
-                    if self.ancestors().any(|ancestor| ancestor == legend) { continue; }
-                },
-                None => ()
+            if let Some(legend) = ancestor.children().find(|child| child.is_htmllegendelement()) {
+                // XXXabinader: should we save previous ancestor to avoid this iteration?
+                if self.ancestors().any(|ancestor| ancestor == legend) { continue; }
             }
             self.set_disabled_state(true);
             self.set_enabled_state(false);
@@ -2343,12 +2315,11 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
 
     fn check_parent_disabled_state_for_option(self) {
         if self.get_disabled_state() { return; }
-        match self.parent_node().root() {
-            Some(ref parent) if parent.is_htmloptgroupelement() && parent.get_disabled_state() => {
+        if let Some(ref parent) = self.parent_node().root() {
+            if parent.is_htmloptgroupelement() && parent.get_disabled_state() {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
-            },
-            _ => ()
+            }
         }
     }
 

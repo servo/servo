@@ -205,9 +205,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
         match attr.local_name() {
@@ -233,9 +232,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn before_remove_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
         }
 
         match attr.local_name() {
@@ -256,9 +254,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.bind_to_tree(tree_in_doc),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);
@@ -274,9 +271,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.unbind_from_tree(tree_in_doc),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(tree_in_doc);
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);
@@ -288,11 +284,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 
     fn child_inserted(&self, child: JSRef<Node>) {
-        match self.super_type() {
-            Some(s) => {
-                s.child_inserted(child);
-            }
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.child_inserted(child);
         }
 
         if child.is_text() && !self.value_changed.get() {
@@ -302,11 +295,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // copied and modified from htmlinputelement.rs
     fn handle_event(&self, event: JSRef<Event>) {
-        match self.super_type() {
-            Some(s) => {
-                s.handle_event(event);
-            }
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.handle_event(event);
         }
 
         if "click" == event.Type().as_slice() && !event.DefaultPrevented() {

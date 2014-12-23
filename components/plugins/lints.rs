@@ -47,25 +47,19 @@ impl LintPass for TransmutePass {
     }
 
     fn check_expr(&mut self, cx: &Context, ex: &ast::Expr) {
-        match ex.node {
-            ast::ExprCall(ref expr, ref args) => {
-                match expr.node {
-                    ast::ExprPath(ref path) => {
-                        if path.segments.last()
-                                        .map_or(false, |ref segment| segment.identifier.name.as_str() == "transmute")
-                           && args.len() == 1 {
-                            let tcx = cx.tcx();
-                            cx.span_lint(TRANSMUTE_TYPE_LINT, ex.span,
-                                         format!("Transmute from {} to {} detected",
-                                                 expr_ty(tcx, ex).repr(tcx),
-                                                 expr_ty(tcx, &**args.get(0).unwrap()).repr(tcx)
-                                        ).as_slice());
-                        }
-                    }
-                    _ => {}
+        if let ast::ExprCall(ref expr, ref args) = ex.node {
+            if let ast::ExprPath(ref path) = expr.node {
+                if path.segments.last()
+                                .map_or(false, |ref segment| segment.identifier.name.as_str() == "transmute")
+                   && args.len() == 1 {
+                    let tcx = cx.tcx();
+                    cx.span_lint(TRANSMUTE_TYPE_LINT, ex.span,
+                                 format!("Transmute from {} to {} detected",
+                                         expr_ty(tcx, ex).repr(tcx),
+                                         expr_ty(tcx, &**args.get(0).unwrap()).repr(tcx)
+                                ).as_slice());
                 }
             }
-            _ => {}
         }
     }
 }
@@ -78,16 +72,13 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
         ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
         ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) => lint_unrooted_ty(cx, &**t, warning),
         ast::TyPath(_, _, id) => {
-                match cx.tcx.def_map.borrow()[id].clone() {
-                    def::DefTy(def_id, _) => {
-                        if ty::has_attr(cx.tcx, def_id, "must_root") {
-                            cx.span_lint(UNROOTED_MUST_ROOT, ty.span, warning);
-                        }
-                    }
-                    _ => (),
+            if let def::DefTy(def_id, _) = cx.tcx.def_map.borrow()[id].clone() {
+                if ty::has_attr(cx.tcx, def_id, "must_root") {
+                    cx.span_lint(UNROOTED_MUST_ROOT, ty.span, warning);
                 }
             }
-            _ => (),
+        }
+        _ => (),
     };
 }
 
@@ -137,14 +128,11 @@ impl LintPass for UnrootedPass {
     fn check_variant(&mut self, cx: &Context, var: &ast::Variant, _gen: &ast::Generics) {
         let ref map = cx.tcx.map;
         if map.expect_item(map.get_parent(var.node.id)).attrs.iter().all(|a| !a.check_name("must_root")) {
-            match var.node.kind {
-                ast::TupleVariantKind(ref vec) => {
-                    for ty in vec.iter() {
-                        lint_unrooted_ty(cx, &*ty.ty,
-                                         "Type must be rooted, use #[must_root] on the enum definition to propagate")
-                    }
+            if let ast::TupleVariantKind(ref vec) = var.node.kind {
+                for ty in vec.iter() {
+                    lint_unrooted_ty(cx, &*ty.ty,
+                                     "Type must be rooted, use #[must_root] on the enum definition to propagate")
                 }
-                _ => () // Struct variants already caught by check_struct_def
             }
         }
     }
@@ -167,14 +155,11 @@ impl LintPass for UnrootedPass {
             return;
         }
 
-        match block.rules {
-            ast::DefaultBlock => {
-                for arg in decl.inputs.iter() {
-                    lint_unrooted_ty(cx, &*arg.ty,
-                                     "Type must be rooted")
-                }
+        if ast::DefaultBlock == block.rules {
+            for arg in decl.inputs.iter() {
+                lint_unrooted_ty(cx, &*arg.ty,
+                                 "Type must be rooted")
             }
-            _ => () // fn is `unsafe`
         }
     }
 
@@ -240,12 +225,11 @@ impl LintPass for PrivatizePass {
     fn check_struct_def(&mut self, cx: &Context, def: &ast::StructDef, _i: ast::Ident, _gen: &ast::Generics, id: ast::NodeId) {
         if ty::has_attr(cx.tcx, ast_util::local_def(id), "privatize") {
             for field in def.fields.iter() {
-                match field.node {
-                    ast::StructField_ { kind: ast::NamedField(ident, visibility), .. } if visibility == Public => {
+                if let ast::StructField_ { kind: ast::NamedField(ident, visibility), .. } = field.node {
+                    if visibility == Public {
                         cx.span_lint(PRIVATIZE, field.span,
                                      format!("Field {} is public where only private fields are allowed", ident.name).as_slice());
                     }
-                    _ => {}
                 }
             }
         }

@@ -63,16 +63,13 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
         let elem: JSRef<Element> = ElementCast::from_ref(*self);
 
         // TODO: support other values
-        match (elem.get_attribute(ns!(""), &atom!("type")).map(|x| x.root().Value()),
+        if let (None, Some(uri)) = (elem.get_attribute(ns!(""), &atom!("type")).map(|x| x.root().Value()),
                elem.get_attribute(ns!(""), &atom!("data")).map(|x| x.root().Value())) {
-            (None, Some(uri)) => {
-                if is_image_data(uri.as_slice()) {
-                    let data_url = Url::parse(uri.as_slice()).unwrap();
-                    // Issue #84
-                    image_cache.send(image_cache_task::Prefetch(data_url));
-                }
+            if is_image_data(uri.as_slice()) {
+                let data_url = Url::parse(uri.as_slice()).unwrap();
+                // Issue #84
+                image_cache.send(image_cache_task::Prefetch(data_url));
             }
-            _ => { }
         }
     }
 }
@@ -102,9 +99,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
         match attr.local_name() {
