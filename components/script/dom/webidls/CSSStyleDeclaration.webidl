@@ -14,7 +14,7 @@ interface CSSStyleDeclaration {
   readonly attribute unsigned long length;
   getter DOMString item(unsigned long index);
   DOMString getPropertyValue(DOMString property);
-  //DOMString getPropertyPriority(DOMString property);
+  DOMString getPropertyPriority(DOMString property);
   [Throws]
   void setProperty(DOMString property, [TreatNullAs=EmptyString] DOMString value,
                                        [TreatNullAs=EmptyString] optional DOMString priority = "");
