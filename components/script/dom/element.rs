@@ -92,7 +92,7 @@ impl Reflectable for Element {
     }
 }
 
-#[deriving(PartialEq, Show)]
+#[deriving(PartialEq, Eq, Show)]
 #[jstraceable]
 pub enum ElementTypeId {
     HTMLElement,
@@ -1154,9 +1154,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
         match attr.local_name() {
@@ -1206,9 +1205,8 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 
     fn before_remove_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
         }
 
         match attr.local_name() {
@@ -1263,44 +1261,36 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.bind_to_tree(tree_in_doc),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
         }
 
         if !tree_in_doc { return; }
 
-        match self.get_attribute(ns!(""), &atom!("id")).root() {
-            Some(attr) => {
-                let doc = document_from_node(*self).root();
-                let value = attr.Value();
-                if !value.is_empty() {
-                    let value = Atom::from_slice(value.as_slice());
-                    doc.register_named_element(*self, value);
-                }
+        if let Some(attr) = self.get_attribute(ns!(""), &atom!("id")).root() {
+            let doc = document_from_node(*self).root();
+            let value = attr.Value();
+            if !value.is_empty() {
+                let value = Atom::from_slice(value.as_slice());
+                doc.register_named_element(*self, value);
             }
-            _ => ()
         }
     }
 
     fn unbind_from_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.unbind_from_tree(tree_in_doc),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(tree_in_doc);
         }
 
         if !tree_in_doc { return; }
 
-        match self.get_attribute(ns!(""), &atom!("id")).root() {
-            Some(attr) => {
-                let doc = document_from_node(*self).root();
-                let value = attr.Value();
-                if !value.is_empty() {
-                    let value = Atom::from_slice(value.as_slice());
-                    doc.unregister_named_element(*self, value);
-                }
+        if let Some(ref attr) = self.get_attribute(ns!(""), &atom!("id")).root() {
+            let doc = document_from_node(*self).root();
+            let value = attr.Value();
+            if !value.is_empty() {
+                let value = Atom::from_slice(value.as_slice());
+                doc.unregister_named_element(*self, value);
             }
-            _ => ()
         }
     }
 }

@@ -157,7 +157,7 @@ enum ImageState {
     Failed
 }
 
-#[deriving(Clone)]
+#[deriving(Clone, PartialEq, Eq)]
 enum AfterPrefetch {
     DoDecode,
     DoNotDecode
@@ -204,8 +204,7 @@ impl ImageCache {
 
             let need_exit = replace(&mut self.need_exit, None);
 
-            match need_exit {
-              Some(response) => {
+            if let Some(response) = need_exit {
                 // Wait until we have no outstanding requests and subtasks
                 // before exiting
                 let mut can_exit = true;
@@ -225,8 +224,6 @@ impl ImageCache {
                 } else {
                     self.need_exit = Some(response);
                 }
-              }
-              None => ()
             }
         }
     }
@@ -274,9 +271,8 @@ impl ImageCache {
             match data {
               Ok(data) => {
                 self.set_state(url.clone(), ImageState::Prefetched(data));
-                match next_step {
-                  AfterPrefetch::DoDecode => self.decode(url),
-                  _ => ()
+                if AfterPrefetch::DoDecode == next_step {
+                  self.decode(url);
                 }
               }
               Err(..) => {
@@ -359,14 +355,11 @@ impl ImageCache {
     }
 
     fn purge_waiters(&mut self, url: Url, f: || -> ImageResponseMsg) {
-        match self.wait_map.remove(&url) {
-            Some(waiters) => {
-                let items = waiters.lock();
-                for response in items.iter() {
-                    response.send(f());
-                }
+        if let Some(waiters) = self.wait_map.remove(&url) {
+            let items = waiters.lock();
+            for response in items.iter() {
+                response.send(f());
             }
-            None => ()
         }
     }
 

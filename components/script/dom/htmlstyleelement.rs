@@ -69,9 +69,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
     }
 
     fn child_inserted(&self, child: JSRef<Node>) {
-        match self.super_type() {
-            Some(ref s) => s.child_inserted(child),
-            _ => (),
+        if let Some(ref s) = self.super_type() {
+            s.child_inserted(child);
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(*self);
@@ -81,9 +80,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.bind_to_tree(tree_in_doc),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
         }
 
         if tree_in_doc {

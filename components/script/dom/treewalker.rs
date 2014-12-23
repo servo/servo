@@ -173,13 +173,10 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
                         Ok(NodeFilterConstants::FILTER_SKIP) => {
                             // "1. Let child be node's first child if type is first,
                             //     and node's last child if type is last."
-                            match next_child(node) {
+                            if let Some(child) = next_child(node) {
                                 // "2. If child is not null, set node to child and goto Main."
-                                Some(child) => {
-                                    node_op = Some(child.root().clone());
-                                    continue 'main
-                                },
-                                None => {}
+                                node_op = Some(child.root().clone());
+                                continue 'main
                             }
                         },
                         _ => {}
@@ -482,9 +479,8 @@ impl<'a> TreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
         loop {
             // "1. While result is not FILTER_REJECT and node has a child, run these subsubsteps:"
             loop {
-                match result {
-                    Ok(NodeFilterConstants::FILTER_REJECT) => break,
-                    _ => {}
+                if let Ok(NodeFilterConstants::FILTER_REJECT) = result {
+                    break;
                 }
                 match node.first_child() {
                     None => break,

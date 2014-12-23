@@ -215,15 +215,12 @@ impl<'a> ScriptMemoryFailsafe<'a> {
 #[unsafe_destructor]
 impl<'a> Drop for ScriptMemoryFailsafe<'a> {
     fn drop(&mut self) {
-        match self.owner {
-            Some(owner) => {
-                let page = owner.page.borrow_mut();
-                for page in page.iter() {
-                    *page.mut_js_info() = None;
-                }
-                *owner.js_context.borrow_mut() = None;
+        if let Some(owner) = self.owner {
+            let page = owner.page.borrow_mut();
+            for page in page.iter() {
+                *page.mut_js_info() = None;
             }
-            None => (),
+            *owner.js_context.borrow_mut() = None;
         }
     }
 }
@@ -430,9 +427,8 @@ impl ScriptTask {
                 let layout_join_port = page.layout_join_port.borrow();
                 if layout_join_port.is_none() {
                     let mut resize_event = page.resize_event.get();
-                    match resize_event.take() {
-                        Some(size) => resizes.push((page.id, size)),
-                        None => ()
+                    if let Some(size) = resize_event.take() {
+                        resizes.push((page.id, size));
                     }
                     page.resize_event.set(None);
                 }
@@ -864,16 +860,13 @@ impl ScriptTask {
         chan.send(LoadCompleteMsg);
 
         // Notify devtools that a new script global exists.
-        match self.devtools_chan {
-            None => {}
-            Some(ref chan) => {
-                let page_info = DevtoolsPageInfo {
-                    title: document.Title(),
-                    url: final_url
-                };
-                chan.send(NewGlobal(pipeline_id, self.devtools_sender.clone(),
-                                    page_info));
-            }
+        if let Some(ref chan) = self.devtools_chan {
+            let page_info = DevtoolsPageInfo {
+                title: document.Title(),
+                url: final_url
+            };
+            chan.send(NewGlobal(pipeline_id, self.devtools_sender.clone(),
+                                page_info));
         }
     }
 
@@ -1037,11 +1030,8 @@ impl ScriptTask {
     /// for the given pipeline.
     fn trigger_fragment(&self, pipeline_id: PipelineId, url: Url) {
         let page = get_page(&*self.page.borrow(), pipeline_id);
-        match page.find_fragment_node(url.fragment.unwrap()).root() {
-            Some(node) => {
-                self.scroll_fragment_point(pipeline_id, *node);
-            }
-            None => {}
+        if let Some(node) = page.find_fragment_node(url.fragment.unwrap()).root() {
+            self.scroll_fragment_point(pipeline_id, *node);
         }
     }
 
@@ -1062,28 +1052,24 @@ impl ScriptTask {
                     .take()
                     .and_then(|name| page.find_fragment_node(name))
                     .root();
-            match fragment_node {
-                Some(node) => self.scroll_fragment_point(pipeline_id, *node),
-                None => {}
+            if let Some(node) = fragment_node {
+                self.scroll_fragment_point(pipeline_id, *node);
             }
 
             frame.as_ref().map(|frame| Temporary::new(frame.window.clone()))
         };
 
-        match window.root() {
-            Some(window) => {
-                // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
-                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                let uievent = UIEvent::new(window.clone(),
-                                           "resize".to_string(), false,
-                                           false, Some(window.clone()),
-                                           0i32).root();
-                let event: JSRef<Event> = EventCast::from_ref(*uievent);
+        if let Some(window) = window.root() {
+            // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
+            // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
+            let uievent = UIEvent::new(window.clone(),
+                                       "resize".to_string(), false,
+                                       false, Some(window.clone()),
+                                       0i32).root();
+            let event: JSRef<Event> = EventCast::from_ref(*uievent);
 
-                let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
-                wintarget.dispatch_event(event);
-            }
-            None => ()
+            let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
+            wintarget.dispatch_event(event);
         }
     }
 
@@ -1099,113 +1085,91 @@ impl ScriptTask {
     fn handle_click_event(&self, pipeline_id: PipelineId, _button: uint, point: Point2D<f32>) {
         debug!("ClickEvent: clicked at {}", point);
         let page = get_page(&*self.page.borrow(), pipeline_id);
-        match page.hit_test(&point) {
-            Some(node_address) => {
-                debug!("node address is {}", node_address);
+        if let Some(node_address) = page.hit_test(&point) {
+            debug!("node address is {}", node_address);
 
-                let temp_node =
-                        node::from_untrusted_node_address(
-                            self.js_runtime.ptr, node_address).root();
+            let temp_node =
+                    node::from_untrusted_node_address(
+                        self.js_runtime.ptr, node_address).root();
 
-                let maybe_node = if !temp_node.is_element() {
-                    temp_node.ancestors().find(|node| node.is_element())
-                } else {
-                    Some(*temp_node)
-                };
+            let maybe_node = if !temp_node.is_element() {
+                temp_node.ancestors().find(|node| node.is_element())
+            } else {
+                Some(*temp_node)
+            };
 
-                match maybe_node {
-                    Some(node) => {
-                        debug!("clicked on {:s}", node.debug_str());
-                        // Prevent click event if form control element is disabled.
-                        if node.click_event_filter_by_disabled_state() { return; }
-                        match *page.frame() {
-                            Some(ref frame) => {
-                                let window = frame.window.root();
-                                let doc = window.Document().root();
-                                doc.begin_focus_transaction();
+            if let Some(node) = maybe_node {
+                debug!("clicked on {:s}", node.debug_str());
+                // Prevent click event if form control element is disabled.
+                if node.click_event_filter_by_disabled_state() { return; }
+                if let Some(ref frame) = *page.frame() {
+                    let window = frame.window.root();
+                    let doc = window.Document().root();
+                    doc.begin_focus_transaction();
 
-                                let event =
-                                    Event::new(GlobalRef::Window(*window),
-                                               "click".to_string(),
-                                               EventBubbles::Bubbles,
-                                               EventCancelable::Cancelable).root();
-                                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
-                                event.set_trusted(true);
-                                // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
-                                let el = ElementCast::to_ref(node).unwrap(); // is_element() check already exists above
-                                el.authentic_click_activation(*event);
+                    let event =
+                        Event::new(GlobalRef::Window(*window),
+                                   "click".to_string(),
+                                   EventBubbles::Bubbles,
+                                   EventCancelable::Cancelable).root();
+                    // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
+                    event.set_trusted(true);
+                    // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
+                    let el = ElementCast::to_ref(node).unwrap(); // is_element() check already exists above
+                    el.authentic_click_activation(*event);
 
-                                doc.commit_focus_transaction();
-                                window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
-                            }
-                            None => {}
-                        }
-                    }
-                    None => {}
+                    doc.commit_focus_transaction();
+                    window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
                 }
             }
-
-            None => {}
         }
     }
 
 
     fn handle_mouse_move_event(&self, pipeline_id: PipelineId, point: Point2D<f32>) {
         let page = get_page(&*self.page.borrow(), pipeline_id);
-        match page.get_nodes_under_mouse(&point) {
-            Some(node_address) => {
-                let mut target_list = vec!();
-                let mut target_compare = false;
+        if let Some(node_address) = page.get_nodes_under_mouse(&point) {
+            let mut target_list = vec!();
+            let mut target_compare = false;
 
-                let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
-                match *mouse_over_targets {
-                    Some(ref mut mouse_over_targets) => {
-                        for node in mouse_over_targets.iter_mut() {
-                            let node = node.root();
-                            node.set_hover_state(false);
-                        }
-                    }
-                    None => {}
-                }
-
-                for node_address in node_address.iter() {
-                    let temp_node =
-                        node::from_untrusted_node_address(self.js_runtime.ptr, *node_address);
-
-                    let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
-                    match maybe_node {
-                        Some(node) => {
-                            node.set_hover_state(true);
-                            match *mouse_over_targets {
-                                Some(ref mouse_over_targets) if !target_compare => {
-                                    target_compare =
-                                        !mouse_over_targets.contains(&JS::from_rooted(node));
-                                }
-                                _ => {}
-                            }
-                            target_list.push(JS::from_rooted(node));
-                        }
-                        None => {}
-                    }
-                }
-                match *mouse_over_targets {
-                    Some(ref mouse_over_targets) => {
-                        if mouse_over_targets.len() != target_list.len() {
-                            target_compare = true
-                        }
-                    }
-                    None => target_compare = true,
-                }
-
-                if target_compare {
-                    if mouse_over_targets.is_some() {
-                        self.force_reflow(&*page)
-                    }
-                    *mouse_over_targets = Some(target_list);
+            let mouse_over_targets = &mut *self.mouse_over_targets.borrow_mut();
+            if let Some(ref mut mouse_over_targets) = *mouse_over_targets {
+                for node in mouse_over_targets.iter_mut() {
+                    let node = node.root();
+                    node.set_hover_state(false);
                 }
             }
 
-            None => {}
+            for node_address in node_address.iter() {
+                let temp_node =
+                    node::from_untrusted_node_address(self.js_runtime.ptr, *node_address);
+
+                let maybe_node = temp_node.root().ancestors().find(|node| node.is_element());
+                if let Some(node) = maybe_node {
+                    node.set_hover_state(true);
+                    if let Some(ref mouse_over_targets) = *mouse_over_targets {
+                        if !target_compare {
+                            target_compare =
+                                !mouse_over_targets.contains(&JS::from_rooted(node));
+                        }
+                    }
+                    target_list.push(JS::from_rooted(node));
+                }
+            }
+            if let Some(ref mouse_over_targets) = *mouse_over_targets {
+                if mouse_over_targets.len() != target_list.len() {
+                    target_compare = true;
+                }
+            } else {
+                target_compare = true;
+            }
+
+            if target_compare {
+                if mouse_over_targets.is_some() {
+                    self.force_reflow(&*page)
+                }
+                *mouse_over_targets = Some(target_list);
+            }
         }
     }
 }

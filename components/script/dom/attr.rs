@@ -22,6 +22,7 @@ use string_cache::{Atom, Namespace};
 use std::cell::Ref;
 use std::mem;
 
+#[deriving(PartialEq, Eq)]
 pub enum AttrSettingType {
     FirstSetAttr,
     ReplacedAttr,
@@ -206,10 +207,8 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
         let node: JSRef<Node> = NodeCast::from_ref(owner);
         let namespace_is_null = self.namespace == ns!("");
 
-        match set_type {
-            AttrSettingType::ReplacedAttr if namespace_is_null =>
-                vtable_for(&node).before_remove_attr(self),
-            _ => ()
+        if AttrSettingType::ReplacedAttr == set_type && namespace_is_null {
+            vtable_for(&node).before_remove_attr(self);
         }
 
         *self.value.borrow_mut() = value;

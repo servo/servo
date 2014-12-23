@@ -74,9 +74,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
         let element: JSRef<Element> = ElementCast::from_ref(*self);
@@ -100,9 +99,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
     }
 
     fn bind_to_tree(&self, tree_in_doc: bool) {
-        match self.super_type() {
-            Some(ref s) => s.bind_to_tree(tree_in_doc),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.bind_to_tree(tree_in_doc);
         }
 
         if tree_in_doc {
@@ -111,11 +109,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
             let rel = get_attr(element, &atom!("rel"));
             let href = get_attr(element, &atom!("href"));
 
-            match (rel, href) {
-                (ref rel, Some(ref href)) if is_stylesheet(rel) => {
+            if let (ref rel, Some(ref href)) = (rel, href) {
+                if is_stylesheet(rel) {
                     self.handle_stylesheet_url(href.as_slice());
                 }
-                _ => {}
             }
         }
     }

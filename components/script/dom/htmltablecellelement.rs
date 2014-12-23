@@ -82,9 +82,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn after_set_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.after_set_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.after_set_attr(attr);
         }
 
         match attr.local_name() {
@@ -100,9 +99,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
     }
 
     fn before_remove_attr(&self, attr: JSRef<Attr>) {
-        match self.super_type() {
-            Some(ref s) => s.before_remove_attr(attr),
-            _ => ()
+        if let Some(ref s) = self.super_type() {
+            s.before_remove_attr(attr);
         }
 
         match attr.local_name() {
