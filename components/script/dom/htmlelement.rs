@@ -13,13 +13,10 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLFrameSetElementDeriv
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLInputElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDerived};
 use dom::bindings::js::{JSRef, Temporary, MutNullableJS};
-use dom::bindings::error::ErrorResult;
-use dom::bindings::error::Error::Syntax;
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::cssstyledeclaration::CSSStyleDeclaration;
 use dom::document::Document;
-use dom::domstringmap::DOMStringMap;
-use dom::element::{Element, ElementTypeId, ActivationElementHelpers, AttributeHandlers};
+use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
@@ -34,7 +31,6 @@ use std::default::Default;
 pub struct HTMLElement {
     element: Element,
     style_decl: MutNullableJS<CSSStyleDeclaration>,
-    dataset: MutNullableJS<DOMStringMap>,
 }
 
 impl HTMLElementDerived for EventTarget {
@@ -52,7 +48,6 @@ impl HTMLElement {
         HTMLElement {
             element: Element::new_inherited(type_id, tag_name, ns!(HTML), prefix, document),
             style_decl: Default::default(),
-            dataset: Default::default(),
         }
     }
 
@@ -94,11 +89,6 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
 
     global_event_handlers!(NoOnload)
 
-    // https://html.spec.whatwg.org/multipage/dom.html#dom-dataset
-    fn Dataset(self) -> Temporary<DOMStringMap> {
-        self.dataset.or_init(|| DOMStringMap::new(self))
-    }
-
     fn GetOnload(self) -> Option<EventHandlerNonNull> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();
@@ -129,51 +119,6 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27430 ?
         element.as_maybe_activatable().map(|a| a.synthetic_click_activation(false, false, false, false));
-    }
-}
-
-// https://html.spec.whatwg.org/#attr-data-*
-pub trait HTMLElementCustomAttributeHelpers {
-    fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult;
-    fn get_custom_attr(self, name: DOMString) -> Option<DOMString>;
-    fn delete_custom_attr(self, name: DOMString);
-}
-
-fn to_snake_case(name: DOMString) -> DOMString {
-    let mut attr_name = "data-".into_string();
-    for ch in name.as_slice().chars() {
-        if ch.is_uppercase() {
-            attr_name.push('\x2d');
-            attr_name.push(ch.to_lowercase());
-        } else {
-            attr_name.push(ch);
-        }
-    }
-    attr_name
-}
-
-impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
-    fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult {
-        if name.as_slice().chars()
-               .skip_while(|&ch| ch != '\u002d')
-               .nth(1).map_or(false, |ch| ch as u8 - b'a' < 26) {
-            return Err(Syntax);
-        }
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_custom_attribute(to_snake_case(name), value)
-    }
-
-    fn get_custom_attr(self, name: DOMString) -> Option<DOMString> {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.get_attribute(ns!(""), &Atom::from_slice(to_snake_case(name).as_slice())).map(|attr| {
-            let attr = attr.root();
-            attr.value().as_slice().to_string()
-        })
-    }
-
-    fn delete_custom_attr(self, name: DOMString) {
-        let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.remove_attribute(ns!(""), to_snake_case(name).as_slice())
     }
 }
 
