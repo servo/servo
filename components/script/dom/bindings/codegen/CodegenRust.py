@@ -2279,8 +2279,15 @@ class CGPerSignatureCall(CGThing):
                                              invalidEnumValueFatal=not setter) for
                          i in range(argConversionStartsAt, self.argCount)])
 
+        errorResult = None
+        if self.isFallible():
+            if nativeMethodName == "NamedSetter":
+                errorResult = " false"
+            else:
+                errorResult = " false as JSBool"
+
         cgThings.append(CGCallGenerator(
-                    ' false as JSBool' if self.isFallible() else None,
+                    errorResult,
                     self.getArguments(), self.argsPre, returnType,
                     self.extendedAttributes, descriptor, nativeMethodName,
                     static))
