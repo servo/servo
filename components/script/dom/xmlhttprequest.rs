@@ -25,7 +25,7 @@ use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
-use script_task::{ScriptChan, ScriptMsg};
+use script_task::{ScriptChan, ScriptMsg, Runnable};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -73,10 +73,37 @@ enum XMLHttpRequestState {
     XHRDone = 4, // So as not to conflict with the ProgressMsg `Done`
 }
 
-#[deriving(PartialEq)]
+struct XHRReleaseHandler(TrustedXHRAddress);
+
+impl Runnable for XHRReleaseHandler {
+    fn handler(&self) {
+        let XHRReleaseHandler(addr) = *self;
+        XMLHttpRequest::handle_release(addr);
+    }
+}
+
+struct XHRProgressHandler {
+    addr: TrustedXHRAddress,
+    progress: XHRProgress,
+}
+
+impl XHRProgressHandler {
+    fn new(addr: TrustedXHRAddress, progress: XHRProgress) -> XHRProgressHandler {
+        XHRProgressHandler { addr: addr, progress: progress }
+    }
+}
+
+impl Runnable for XHRProgressHandler {
+    fn handler(&self) {
+        XMLHttpRequest::handle_progress(self.addr, self.progress.clone());
+    }
+}
+
+#[deriving(PartialEq, Clone)]
 #[jstraceable]
 pub struct GenerationId(uint);
 
+#[deriving(Clone)]
 pub enum XHRProgress {
     /// Notify that headers have been received
     HeadersReceived(GenerationId, Option<Headers>, Option<RawStatus>),
@@ -208,7 +235,7 @@ impl XMLHttpRequest {
                 },
                 SyncOrAsync::Async(addr, script_chan) => {
                     let ScriptChan(ref chan) = *script_chan;
-                    chan.send(ScriptMsg::XHRProgress(addr, msg));
+                    chan.send(ScriptMsg::RunnableMsg(box XHRProgressHandler::new(addr, msg)));
                 }
             }
         }
@@ -609,7 +636,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             self.fetch_time.set(time::now().to_timespec().sec);
             let script_chan = global.root_ref().script_chan().clone();
             // Pin the object before launching the fetch task.
-            // The `ScriptMsg::XHRRelease` sent when the fetch task completes will
+            // The `ScriptMsg::RunnableMsg` sent when the fetch task completes will
             // unpin it. This is to ensure that the object will stay alive
             // as long as there are (possibly cancelled) inflight events queued up
             // in the script task's port
@@ -625,7 +652,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                                               gen_id,
                                               start_port);
                 let ScriptChan(ref chan) = script_chan;
-                chan.send(ScriptMsg::XHRRelease(addr));
+                chan.send(ScriptMsg::RunnableMsg(box XHRReleaseHandler(addr)));
             });
             let timeout = self.timeout.get();
             if timeout > 0 {

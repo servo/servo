@@ -19,7 +19,7 @@ use libc;
 use std::ptr;
 
 /// DOM exceptions that can be thrown by a native DOM method.
-#[deriving(Show)]
+#[deriving(Show, Clone)]
 pub enum Error {
     IndexSize,
     FailureUnknown,
