@@ -64,6 +64,19 @@ enum DeleteDir {
     Backward
 }
 
+
+/// Was the keyboard event accompanied by the standard control modifier,
+/// i.e. cmd on Mac OS or ctrl on other platforms.
+#[cfg(target_os="macos")]
+fn is_control_key(event: JSRef<KeyboardEvent>) -> bool {
+    event.MetaKey() && !event.CtrlKey() && !event.AltKey()
+}
+
+#[cfg(not(target_os="macos"))]
+fn is_control_key(event: JSRef<KeyboardEvent>) -> bool {
+    event.CtrlKey() && !event.MetaKey() && !event.AltKey()
+}
+
 impl TextInput {
     /// Instantiate a new text input control
     pub fn new(lines: Lines, initial: DOMString) -> TextInput {
@@ -231,9 +244,24 @@ impl TextInput {
         return KeyReaction::DispatchInput;
     }
 
+    /// Select all text in the input control.
+    fn select_all(&mut self) {
+        self.selection_begin = Some(TextPoint {
+            line: 0,
+            index: 0,
+        });
+        let last_line = self.lines.len() - 1;
+        self.edit_point.line = last_line;
+        self.edit_point.index = self.lines[last_line].char_len();
+    }
+
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
     pub fn handle_keydown(&mut self, event: JSRef<KeyboardEvent>) -> KeyReaction {
         match event.Key().as_slice() {
+           "a" if is_control_key(event) => {
+                self.select_all();
+                KeyReaction::Nothing
+            },
             // printable characters have single-character key values
             c if c.len() == 1 => {
                 self.insert_char(c.char_at(0));
