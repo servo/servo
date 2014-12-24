@@ -356,7 +356,7 @@ source = "git+https://github.com/servo/html5ever#e6f8d83de9fffe63a825d95d957ba6b
 [[package]]
 name = "hyper"
 version = "0.0.1"
-source = "git+https://github.com/servo/hyper?ref=servo#9c70c58e65ec80446fdb6e338f1060589b562f8c"
+source = "git+https://github.com/servo/hyper?ref=servo#4a2c82c75013f8ee55d2017876319b48d656dcb3"
 dependencies = [
  "cookie 0.0.1 (git+https://github.com/servo/cookie-rs)",
  "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
@@ -490,7 +490,7 @@ dependencies = [
 [[package]]
 name = "openssl"
 version = "0.0.2"
-source = "git+https://github.com/servo/rust-openssl#19d9b53a86d602e16ab2274813a517cfaa4a2512"
+source = "git+https://github.com/servo/rust-openssl#aed5df1036d6f4b5f7b8be6457d10f8a0379b39f"
 dependencies = [
  "libressl-pnacl-sys 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-sys 0.0.2 (git+https://github.com/servo/rust-openssl)",
@@ -499,7 +499,7 @@ dependencies = [
 [[package]]
 name = "openssl-sys"
 version = "0.0.2"
-source = "git+https://github.com/servo/rust-openssl#19d9b53a86d602e16ab2274813a517cfaa4a2512"
+source = "git+https://github.com/servo/rust-openssl#aed5df1036d6f4b5f7b8be6457d10f8a0379b39f"
 dependencies = [
  "pkg-config 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
