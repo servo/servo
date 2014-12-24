@@ -1124,16 +1124,27 @@ impl ScriptTask {
                                 let doc = window.Document().root();
                                 doc.begin_focus_transaction();
 
-                                let event =
-                                    Event::new(GlobalRef::Window(*window),
+                                let x = point.x.to_i32().unwrap_or(0);
+                                let y = point.x.to_i32().unwrap_or(0);
+
+                                let mouse_event =
+                                    MouseEvent::new(*window,
                                                "click".to_string(),
-                                               EventBubbles::Bubbles,
-                                               EventCancelable::Cancelable).root();
-                                // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
+                                               true,
+                                               true,
+                                               Some(*window),
+                                               0i32,
+                                               x, y, x, y,
+                                               false, false, false, false,
+                                               0i16,
+                                               None).root();
+
+                                let event: JSRef<Event> = EventCast::from_ref(*mouse_event);
+                                // https://dvcs.3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
                                 event.set_trusted(true);
                                 // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
                                 let el = ElementCast::to_ref(node).unwrap(); // is_element() check already exists above
-                                el.authentic_click_activation(*event);
+                                el.authentic_click_activation(event);
 
                                 doc.commit_focus_transaction();
                                 window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
