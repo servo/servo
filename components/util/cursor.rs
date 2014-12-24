@@ -39,7 +39,7 @@ macro_rules! define_cursor {
 
 define_cursor! {
     "none" => NoCursor = 0,
-    "defalut" => DefaultCursor = 1,
+    "default" => DefaultCursor = 1,
     "pointer" => PointerCursor = 2,
     "context-menu" => ContextMenuCursor = 3,
     "help" => HelpCursor = 4,
