@@ -27,7 +27,6 @@ use dom::mouseevent::MouseEvent;
 use dom::node::{mod, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
-use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
 use parse::html::{HTMLInput, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use layout_interface;
@@ -87,6 +86,10 @@ pub enum TimerSource {
     FromWorker
 }
 
+pub trait Runnable {
+    fn handler(&self);
+}
+
 /// Messages used to control script event loops, such as ScriptTask and
 /// DedicatedWorkerGlobalScope.
 pub enum ScriptMsg {
@@ -106,10 +109,6 @@ pub enum ScriptMsg {
     /// Notifies the script that a window associated with a particular pipeline
     /// should be closed (only dispatched to ScriptTask).
     ExitWindow(PipelineId),
-    /// Notifies the script of progress on a fetch (dispatched to all tasks).
-    XHRProgress(TrustedXHRAddress, XHRProgress),
-    /// Releases one reference to the XHR object (dispatched to all tasks).
-    XHRRelease(TrustedXHRAddress),
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
     DOMMessage(*mut u64, size_t),
@@ -117,6 +116,8 @@ pub enum ScriptMsg {
     WorkerPostMessage(TrustedWorkerAddress, *mut u64, size_t),
     /// Releases one reference to the Worker object (dispatched to all tasks).
     WorkerRelease(TrustedWorkerAddress),
+    /// Generic message that encapsulates event handling.
+    RunnableMsg(Box<Runnable+Send>),
 }
 
 /// Encapsulates internal communication within the script task.
@@ -572,16 +573,14 @@ impl ScriptTask {
                 self.handle_navigate_msg(direction),
             ScriptMsg::ExitWindow(id) =>
                 self.handle_exit_window_msg(id),
-            ScriptMsg::XHRProgress(addr, progress) =>
-                XMLHttpRequest::handle_progress(addr, progress),
-            ScriptMsg::XHRRelease(addr) =>
-                XMLHttpRequest::handle_release(addr),
             ScriptMsg::DOMMessage(..) =>
                 panic!("unexpected message"),
             ScriptMsg::WorkerPostMessage(addr, data, nbytes) =>
                 Worker::handle_message(addr, data, nbytes),
             ScriptMsg::WorkerRelease(addr) =>
                 Worker::handle_release(addr),
+            ScriptMsg::RunnableMsg(runnable) =>
+                runnable.handler(),
         }
     }
 

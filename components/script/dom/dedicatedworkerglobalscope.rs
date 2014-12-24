@@ -17,7 +17,6 @@ use dom::messageevent::MessageEvent;
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
-use dom::xmlhttprequest::XMLHttpRequest;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
 use script_task::StackRootTLS;
 
@@ -131,11 +130,8 @@ impl DedicatedWorkerGlobalScope {
                         MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message);
                         global.delayed_release_worker();
                     },
-                    Ok(ScriptMsg::XHRProgress(addr, progress)) => {
-                        XMLHttpRequest::handle_progress(addr, progress)
-                    },
-                    Ok(ScriptMsg::XHRRelease(addr)) => {
-                        XMLHttpRequest::handle_release(addr)
+                    Ok(ScriptMsg::RunnableMsg(runnable)) => {
+                        runnable.handler()
                     },
                     Ok(ScriptMsg::WorkerPostMessage(addr, data, nbytes)) => {
                         Worker::handle_message(addr, data, nbytes);
