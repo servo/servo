@@ -9,7 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, OptionalRootedRootable, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
 use dom::document::DocumentHelpers;
-use dom::element::{Element, ElementHelpers};
+use dom::element::{Element, ElementHelpers, StylePriority};
 use dom::htmlelement::HTMLElement;
 use dom::node::{window_from_node, document_from_node, NodeDamage, Node};
 use dom::window::Window;
@@ -222,7 +222,8 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         // Step 8
         for decl in decl_block.normal.iter() {
             // Step 9
-            element.update_inline_style(decl.clone(), !priority.is_empty());
+            let style_priority = if priority.is_empty() { StylePriority::Normal } else { StylePriority::Important };
+            element.update_inline_style(decl.clone(), style_priority);
         }
 
         let document = document_from_node(element).root();
@@ -259,7 +260,8 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         // Step 5
         for decl in decl_block.normal.iter() {
             // Step 6
-            element.update_inline_style(decl.clone(), !priority.is_empty());
+            let style_priority = if priority.is_empty() { StylePriority::Normal } else { StylePriority::Important };
+            element.update_inline_style(decl.clone(), style_priority);
         }
 
         let document = document_from_node(element).root();

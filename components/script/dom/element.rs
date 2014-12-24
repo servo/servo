@@ -456,6 +456,12 @@ impl LayoutElementHelpers for JS<Element> {
     }
 }
 
+#[deriving(PartialEq)]
+pub enum StylePriority {
+    Important,
+    Normal,
+}
+
 pub trait ElementHelpers<'a> {
     fn html_element_in_html_document(self) -> bool;
     fn local_name(self) -> &'a Atom;
@@ -467,7 +473,7 @@ pub trait ElementHelpers<'a> {
     fn summarize(self) -> Vec<AttrInfo>;
     fn is_void(self) -> bool;
     fn remove_inline_style_property(self, property: DOMString);
-    fn update_inline_style(self, property_decl: style::PropertyDeclaration, important: bool);
+    fn update_inline_style(self, property_decl: style::PropertyDeclaration, style_priority: StylePriority);
     fn get_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration>;
     fn get_important_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration>;
 }
@@ -555,10 +561,10 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         });
     }
 
-    fn update_inline_style(self, property_decl: style::PropertyDeclaration, important: bool) {
+    fn update_inline_style(self, property_decl: style::PropertyDeclaration, style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let Some(ref mut declarations) = *inline_declarations.deref_mut() {
-            let existing_declarations = if important {
+            let existing_declarations = if style_priority == StylePriority::Important {
                 declarations.important.make_unique()
             } else {
                 declarations.normal.make_unique()
@@ -574,7 +580,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
             return;
         }
 
-        let (important, normal) = if important {
+        let (important, normal) = if style_priority == StylePriority::Important {
             (vec!(property_decl), vec!())
         } else {
             (vec!(), vec!(property_decl))
