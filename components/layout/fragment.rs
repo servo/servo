@@ -31,8 +31,7 @@ use serialize::{Encodable, Encoder};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
-use servo_util::geometry::Au;
-use servo_util::geometry;
+use servo_util::geometry::{mod, Au, ZERO_POINT};
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin};
 use servo_util::range::*;
 use servo_util::smallvec::SmallVec;
@@ -62,8 +61,8 @@ use url::Url;
 ///   positioned as if it were a block fragment, but its children are positioned according to
 ///   inline flow.
 ///
-/// A `SpecificFragmentInfo::Generic` is an empty fragment that contributes only borders, margins, padding, and
-/// backgrounds. It is analogous to a CSS nonreplaced content box.
+/// A `SpecificFragmentInfo::Generic` is an empty fragment that contributes only borders, margins,
+/// padding, and backgrounds. It is analogous to a CSS nonreplaced content box.
 ///
 /// A fragment's type influences how its styles are interpreted during layout. For example,
 /// replaced content such as images are resized differently from tables, text, or other content.
@@ -83,8 +82,10 @@ pub struct Fragment {
     /// The CSS style of this fragment.
     pub style: Arc<ComputedValues>,
 
-    /// The position of this fragment relative to its owning flow.
-    /// The size includes padding and border, but not margin.
+    /// The position of this fragment relative to its owning flow. The size includes padding and
+    /// border, but not margin.
+    ///
+    /// NB: This does not account for relative positioning.
     pub border_box: LogicalRect<Au>,
 
     /// The sum of border and padding; i.e. the distance from the edge of the border box to the
@@ -520,10 +521,28 @@ impl Fragment {
         }
     }
 
+    /// Constructs a new `Fragment` instance for an anonymous object.
+    pub fn new_anonymous(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode)
+                         -> Fragment {
+        let node_style = cascade_anonymous(&**node.style());
+        let writing_mode = node_style.writing_mode;
+        Fragment {
+            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
+            style: Arc::new(node_style),
+            restyle_damage: node.restyle_damage(),
+            border_box: LogicalRect::zero(writing_mode),
+            border_padding: LogicalMargin::zero(writing_mode),
+            margin: LogicalMargin::zero(writing_mode),
+            specific: constructor.build_specific_fragment_info_for_node(node),
+            inline_context: None,
+            debug_id: layout_debug::generate_unique_debug_id(),
+        }
+    }
+
     /// Constructs a new `Fragment` instance for an anonymous table object.
-    pub fn new_anonymous_table_fragment(node: &ThreadSafeLayoutNode,
-                                        specific: SpecificFragmentInfo)
-                                        -> Fragment {
+    pub fn new_anonymous_from_specific_info(node: &ThreadSafeLayoutNode,
+                                            specific: SpecificFragmentInfo)
+                                            -> Fragment {
         // CSS 2.1 § 17.2.1 This is for non-inherited properties on anonymous table fragments
         // example:
         //
@@ -1508,10 +1527,17 @@ impl Fragment {
     /// because the corresponding table flow is the primary fragment.
     pub fn is_primary_fragment(&self) -> bool {
         match self.specific {
-            SpecificFragmentInfo::InlineBlock(_) | SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::TableWrapper => false,
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::ScannedText(_) |
-            SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell | SpecificFragmentInfo::TableColumn(_) | SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableColumn(_) |
+            SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::UnscannedText(_) => true,
         }
     }
@@ -1540,15 +1566,48 @@ impl Fragment {
         self.style = (*new_style).clone()
     }
 
-    /// Given the stacking-context-relative position of the containing flow, returns the boundaries
-    /// of this fragment relative to the parent stacking context.
-    pub fn stacking_relative_bounds(&self, stacking_relative_flow_origin: &Point2D<Au>)
-                                    -> Rect<Au> {
-        // FIXME(#2795): Get the real container size
+    /// Given the stacking-context-relative position of the containing flow, returns the border box
+    /// of this fragment relative to the parent stacking context. This takes `position: relative`
+    /// into account.
+    ///
+    /// If `coordinate_system` is `Parent`, this returns the border box in the parent stacking
+    /// context's coordinate system. Otherwise, if `coordinate_system` is `Self` and this fragment
+    /// establishes a stacking context itself, this returns a border box anchored at (0, 0). (If
+    /// this fragment does not establish a stacking context, then it always belongs to its parent
+    /// stacking context and thus `coordinate_system` is ignored.)
+    ///
+    /// This is the method you should use for display list construction as well as
+    /// `getBoundingClientRect()` and so forth.
+    pub fn stacking_relative_border_box(&self,
+                                        stacking_relative_flow_origin: &Point2D<Au>,
+                                        relative_containing_block_size: &LogicalSize<Au>,
+                                        coordinate_system: CoordinateSystem)
+                                        -> Rect<Au> {
+        // FIXME(pcwalton, #2795): Get the real container size.
         let container_size = Size2D::zero();
-        self.border_box
-            .to_physical(self.style.writing_mode, container_size)
-            .translate(stacking_relative_flow_origin)
+        let border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
+        if coordinate_system == CoordinateSystem::Self && self.establishes_stacking_context() {
+            return Rect(ZERO_POINT, border_box.size)
+        }
+
+        // FIXME(pcwalton): This can double-count relative position sometimes for inlines (e.g.
+        // `<div style="position:relative">x</div>`, because the `position:relative` trickles down
+        // to the inline flow. Possibly we should extend the notion of "primary fragment" to fix
+        // this.
+        let relative_position = self.relative_position(relative_containing_block_size);
+        border_box.translate_by_size(&relative_position.to_physical(self.style.writing_mode))
+                  .translate(stacking_relative_flow_origin)
+    }
+
+    /// Given the stacking-context-relative border box, returns the stacking-context-relative
+    /// content box.
+    pub fn stacking_relative_content_box(&self, stacking_relative_border_box: &Rect<Au>)
+                                         -> Rect<Au> {
+        let border_padding = self.border_padding.to_physical(self.style.writing_mode);
+        Rect(Point2D(stacking_relative_border_box.origin.x + border_padding.left,
+                     stacking_relative_border_box.origin.y + border_padding.top),
+             Size2D(stacking_relative_border_box.size.width - border_padding.horizontal(),
+                    stacking_relative_border_box.size.height - border_padding.vertical()))
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
@@ -1637,13 +1696,23 @@ bitflags! {
     }
 }
 
-/// A top-down fragment overflow region iteration handler.
-pub trait FragmentOverflowIterator {
+/// A top-down fragment border box iteration handler.
+pub trait FragmentBorderBoxIterator {
     /// The operation to perform.
-    fn process(&mut self, fragment: &Fragment, overflow: Rect<Au>);
+    fn process(&mut self, fragment: &Fragment, overflow: &Rect<Au>);
 
     /// Returns true if this fragment must be processed in-order. If this returns false,
     /// we skip the operation for this fragment, but continue processing siblings.
     fn should_process(&mut self, fragment: &Fragment) -> bool;
+}
+
+/// The coordinate system used in `stacking_relative_border_box()`. See the documentation of that
+/// method for details.
+#[deriving(Clone, PartialEq, Show)]
+pub enum CoordinateSystem {
+    /// The border box returned is relative to the fragment's parent stacking context.
+    Parent,
+    /// The border box returned is relative to the fragment's own stacking context, if applicable.
+    Self,
 }
 

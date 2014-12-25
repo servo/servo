@@ -609,6 +609,20 @@ impl ClippingRegion {
         });
         self
     }
+
+    /// Translates this clipping region by the given vector.
+    #[inline]
+    pub fn translate(&self, delta: &Point2D<Au>) -> ClippingRegion {
+        ClippingRegion {
+            main: self.main.translate(delta),
+            complex: self.complex.iter().map(|complex| {
+                ComplexClippingRegion {
+                    rect: complex.rect.translate(delta),
+                    radii: complex.radii,
+                }
+            }).collect(),
+        }
+    }
 }
 
 /// Metadata attached to each display item. This is useful for performing auxiliary tasks with

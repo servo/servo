@@ -32,7 +32,7 @@ use display_list_builder::DisplayListBuildingResult;
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
-use fragment::{Fragment, FragmentOverflowIterator, SpecificFragmentInfo};
+use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
 use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
@@ -223,8 +223,10 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// Returns the union of all overflow rects of all of this flow's fragments.
     fn compute_overflow(&self) -> Rect<Au>;
 
-    /// Iterates through overflow rects of all of this flow's fragments.
-    fn iterate_through_fragment_overflow(&self, iterator: &mut FragmentOverflowIterator);
+    /// Iterates through border boxes of all of this flow's fragments.
+    fn iterate_through_fragment_border_boxes(&self,
+                                             iterator: &mut FragmentBorderBoxIterator,
+                                             stacking_context_position: &Point2D<Au>);
 
     fn compute_collapsible_block_start_margin(&mut self,
                                               _layout_context: &mut LayoutContext,
@@ -958,17 +960,6 @@ impl BaseFlow {
             }
         }
     }
-
-    /// Returns the position of the given fragment relative to the start of the nearest ancestor
-    /// stacking context. The fragment must be a child fragment of this flow.
-    pub fn stacking_relative_position_of_child_fragment(&self, fragment: &Fragment)
-                                                        -> Point2D<Au> {
-        let relative_offset =
-            fragment.relative_position(&self
-                                       .absolute_position_info
-                                       .relative_containing_block_size);
-        self.stacking_relative_position.add_size(&relative_offset.to_physical(self.writing_mode))
-    }
 }
 
 impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
@@ -1065,14 +1056,14 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
         let flow = match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {
                 let fragment =
-                    Fragment::new_anonymous_table_fragment(node,
-                                                           SpecificFragmentInfo::TableRow);
+                    Fragment::new_anonymous_from_specific_info(node,
+                                                               SpecificFragmentInfo::TableRow);
                 box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow>
             },
             FlowClass::TableRow => {
                 let fragment =
-                    Fragment::new_anonymous_table_fragment(node,
-                                                           SpecificFragmentInfo::TableCell);
+                    Fragment::new_anonymous_from_specific_info(node,
+                                                               SpecificFragmentInfo::TableCell);
                 let hide = node.style().get_inheritedtable().empty_cells == empty_cells::hide;
                 box TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide) as
                     Box<Flow>
