@@ -84,15 +84,15 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     getPropertyDescriptor: None,
     getOwnPropertyDescriptor: None,
     defineProperty: None,
-    getOwnPropertyNames: 0 as *const u8,
+    getOwnPropertyNames: None,
     delete_: None,
-    enumerate: 0 as *const u8,
+    enumerate: None,
 
     has: None,
     hasOwn: None,
     get: None,
     set: None,
-    keys: 0 as *const u8,
+    keys: None,
     iterate: None,
 
     call: None,

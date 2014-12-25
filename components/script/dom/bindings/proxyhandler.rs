@@ -16,6 +16,7 @@ use js::glue::GetProxyExtra;
 use js::glue::{GetObjectProto, GetObjectParent, SetProxyExtra, GetProxyHandler};
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::glue::RUST_js_GetErrorMessage;
+use js::glue::AutoIdVector;
 use js::{JSPROP_GETTER, JSPROP_ENUMERATE, JSPROP_READONLY, JSRESOLVE_QUALIFIED};
 
 use libc;
@@ -129,4 +130,15 @@ pub fn FillPropertyDescriptor(desc: &mut JSPropertyDescriptor, obj: *mut JSObjec
     desc.getter = None;
     desc.setter = None;
     desc.shortid = 0;
+}
+
+pub unsafe extern fn getOwnPropertyNames_(_cx: *mut JSContext,
+                                          _obj: *mut JSObject,
+                                          _v: *mut AutoIdVector) -> bool {
+    true
+}
+
+pub unsafe extern fn enumerate_(_cx: *mut JSContext, _obj: *mut JSObject,
+                                _v: *mut AutoIdVector) -> bool {
+    true
 }

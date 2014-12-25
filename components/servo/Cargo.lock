@@ -412,7 +412,7 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#e04e7307a3e52f46bc9ba3d5682188285110bc67"
+source = "git+https://github.com/servo/rust-mozjs#2d86d6fb7ece49ff2f469c391e15e13f2b02af42"
 dependencies = [
  "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs)",
 ]
