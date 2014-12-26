@@ -13,7 +13,7 @@ use std::rt::local::Local;
 //use std::rt::rtio;
 use std::rt::task::{Task, TaskOpts, BlockedTask};
 use std_time;
-use sync::Mutex;
+use std::sync::Mutex;
 #[cfg(not(test))]
 use serialize::json;
 

@@ -7,7 +7,7 @@
 //! Data associated with queues is simply a pair of unsigned integers. It is expected that a
 //! higher-level API on top of this could allow safe fork-join parallelism.
 
-use task::spawn_named_native;
+use task::spawn_named;
 use task_state;
 
 use libc::funcs::posix88::unistd::usleep;
@@ -15,7 +15,7 @@ use rand::{Rng, XorShiftRng};
 use std::mem;
 use std::rand::weak_rng;
 use std::sync::atomic::{AtomicUint, SeqCst};
-use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
+use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 
 /// A unit of work.
 ///
@@ -248,7 +248,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         // Spawn threads.
         for (i, thread) in threads.into_iter().enumerate() {
 
-            spawn_named_native(
+            spawn_named(
                 format!("{} worker {}/{}", task_name, i+1, thread_count),
                 proc() {
                     task_state::initialize(state | task_state::IN_WORKER);

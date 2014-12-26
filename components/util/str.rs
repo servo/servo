@@ -56,11 +56,11 @@ pub fn is_whitespace(s: &str) -> bool {
 ///
 /// http://www.whatwg.org/specs/web-apps/current-work/multipage/common-microsyntaxes.html#space-character
 pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
-    '\u0020',
-    '\u0009',
-    '\u000a',
-    '\u000c',
-    '\u000d',
+    '\u{0020}',
+    '\u{0009}',
+    '\u{000a}',
+    '\u{000c}',
+    '\u{000d}',
 ];
 
 pub fn split_html_space_chars<'a>(s: &'a str)
