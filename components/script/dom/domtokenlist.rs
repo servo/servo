@@ -5,7 +5,7 @@
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::DOMTokenListBinding;
 use dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidCharacter, Syntax};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
@@ -48,7 +48,7 @@ impl Reflectable for DOMTokenList {
 
 trait PrivateDOMTokenListHelpers {
     fn attribute(self) -> Option<Temporary<Attr>>;
-    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<&'a str>;
+    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<Atom>;
 }
 
 impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
@@ -57,11 +57,11 @@ impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
         element.get_attribute(ns!(""), &self.local_name)
     }
 
-    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<&'a str> {
+    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<Atom> {
         match token {
             "" => Err(Syntax),
-            token if token.find(HTML_SPACE_CHARACTERS).is_some() => Err(InvalidCharacter),
-            token => Ok(token)
+            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(InvalidCharacter),
+            slice => Ok(Atom::from_slice(slice))
         }
     }
 }
@@ -90,14 +90,67 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
 
     // http://dom.spec.whatwg.org/#dom-domtokenlist-contains
     fn Contains(self, token: DOMString) -> Fallible<bool> {
-        self.check_token_exceptions(token.as_slice()).map(|slice| {
+        self.check_token_exceptions(token.as_slice()).map(|token| {
             self.attribute().root().map(|attr| {
-                let value = attr.value();
-                let tokens = value.tokens()
-                                  .expect("Should have parsed this attribute");
-                let atom = Atom::from_slice(slice);
-                tokens.iter().any(|token| *token == atom)
+                attr.value()
+                    .tokens()
+                    .expect("Should have parsed this attribute")
+                    .iter()
+                    .any(|atom| *atom == token)
             }).unwrap_or(false)
         })
+    }
+
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-add
+    fn Add(self, tokens: Vec<DOMString>) -> ErrorResult {
+        let element = self.element.root();
+        let mut atoms = element.get_tokenlist_attribute(&self.local_name);
+        for token in tokens.iter() {
+            let token = try!(self.check_token_exceptions(token.as_slice()));
+            if !atoms.iter().any(|atom| *atom == token) {
+                atoms.push(token);
+            }
+        }
+        element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        Ok(())
+    }
+
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-remove
+    fn Remove(self, tokens: Vec<DOMString>) -> ErrorResult {
+        let element = self.element.root();
+        let mut atoms = element.get_tokenlist_attribute(&self.local_name);
+        for token in tokens.iter() {
+            let token = try!(self.check_token_exceptions(token.as_slice()));
+            atoms.iter().position(|atom| *atom == token).and_then(|index| {
+                atoms.remove(index)
+            });
+        }
+        element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        Ok(())
+    }
+
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-toggle
+    fn Toggle(self, token: DOMString, force: Option<bool>) -> Fallible<bool> {
+        let element = self.element.root();
+        let mut atoms = element.get_tokenlist_attribute(&self.local_name);
+        let token = try!(self.check_token_exceptions(token.as_slice()));
+        match atoms.iter().position(|atom| *atom == token) {
+            Some(index) => match force {
+                Some(true) => Ok(true),
+                _ => {
+                    atoms.remove(index);
+                    element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    Ok(false)
+                }
+            },
+            None => match force {
+                Some(false) => Ok(false),
+                _ => {
+                    atoms.push(token);
+                    element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+                    Ok(true)
+                }
+            }
+        }
     }
 }

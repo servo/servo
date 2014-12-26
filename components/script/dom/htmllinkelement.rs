@@ -94,7 +94,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("rel") => AttrValue::from_tokenlist(value),
+            &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
