@@ -2089,13 +2089,18 @@ class CGDefineProxyHandler(CGAbstractMethod):
         customDefineProperty = 'defineProperty_'
         if self.descriptor.operations['IndexedSetter'] or self.descriptor.operations['NamedSetter']:
             customDefineProperty = 'defineProperty'
+
+        customDelete = 'delete_'
+        if self.descriptor.operations['NamedDeleter']:
+            customDelete = 'delete'
+
         body = """\
 let traps = ProxyTraps {
   getPropertyDescriptor: Some(getPropertyDescriptor),
   getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
   defineProperty: Some(%s),
   getOwnPropertyNames: Some(getOwnPropertyNames_),
-  delete_: Some(delete_),
+  delete_: Some(%s),
   enumerate: Some(enumerate_),
 
   has: None,
@@ -2123,7 +2128,7 @@ let traps = ProxyTraps {
 };
 
 CreateProxyHandler(&traps, &Class as *const _ as *const _)
-""" % (customDefineProperty, FINALIZE_HOOK_NAME,
+""" % (customDefineProperty, customDelete, FINALIZE_HOOK_NAME,
        TRACE_HOOK_NAME)
         return CGGeneric(body)
 
@@ -3580,6 +3585,14 @@ class CGProxyNamedSetter(CGProxySpecialOperation):
     def __init__(self, descriptor):
         CGProxySpecialOperation.__init__(self, descriptor, 'NamedSetter')
 
+class CGProxyNamedDeleter(CGProxySpecialOperation):
+    """
+    Class to generate a call to a named deleter.
+    """
+    def __init__(self, descriptor):
+        CGProxySpecialOperation.__init__(self, descriptor, 'NamedDeleter')
+
+
 class CGProxyUnwrap(CGAbstractMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSObject', 'obj')]
@@ -3744,6 +3757,28 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "  return true;\n"
                     "}\n") % (self.descriptor.name)
         return set + """return proxyhandler::defineProperty_(%s);""" % ", ".join(a.name for a in self.args)
+
+    def definition_body(self):
+        return CGGeneric(self.getBody())
+
+class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
+    def __init__(self, descriptor):
+        args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'proxy'),
+                Argument('jsid', 'id'),
+                Argument('*mut bool', 'bp')]
+        CGAbstractExternMethod.__init__(self, descriptor, "delete", "bool", args)
+        self.descriptor = descriptor
+
+    def getBody(self):
+        set = ""
+        if self.descriptor.operations['NamedDeleter']:
+            set += ("let name = jsid_to_str(cx, id);\n" +
+                    "let this = UnwrapProxy(proxy);\n" +
+                    "let this = JS::from_raw(this);\n" +
+                    "let this = this.root();\n" +
+                    "%s") % (CGProxyNamedDeleter(self.descriptor).define())
+        set += "return proxyhandler::delete_(%s);" % ", ".join(a.name for a in self.args)
+        return set
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -4163,6 +4198,12 @@ class CGDescriptor(CGThing):
 
                 if descriptor.operations['IndexedSetter'] or descriptor.operations['NamedSetter']:
                     cgThings.append(CGDOMJSProxyHandler_defineProperty(descriptor))
+
+                # We want to prevent indexed deleters from compiling at all.
+                assert not descriptor.operations['IndexedDeleter']
+
+                if descriptor.operations['NamedDeleter']:
+                    cgThings.append(CGDOMJSProxyHandler_delete(descriptor))
 
                 #cgThings.append(CGDOMJSProxyHandler(descriptor))
                 #cgThings.append(CGIsMethod(descriptor))
