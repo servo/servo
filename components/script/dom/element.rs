@@ -655,7 +655,9 @@ pub trait AttributeHandlers {
     fn set_url_attribute(self, name: &Atom, value: DOMString);
     fn get_string_attribute(self, name: &Atom) -> DOMString;
     fn set_string_attribute(self, name: &Atom, value: DOMString);
+    fn get_tokenlist_attribute(self, name: &Atom) -> Vec<Atom>;
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString);
+    fn set_atomic_tokenlist_attribute(self, name: &Atom, tokens: Vec<Atom>);
     fn get_uint_attribute(self, name: &Atom) -> u32;
     fn set_uint_attribute(self, name: &Atom, value: u32);
 }
@@ -846,9 +848,23 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         self.set_attribute(name, AttrValue::String(value));
     }
 
+    fn get_tokenlist_attribute(self, name: &Atom) -> Vec<Atom> {
+        self.get_attribute(ns!(""), name).root().map(|attr| {
+            attr.value()
+                .tokens()
+                .expect("Expected a TokenListAttrValue")
+                .to_vec()
+        }).unwrap_or(vec!())
+    }
+
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString) {
         assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
-        self.set_attribute(name, AttrValue::from_tokenlist(value));
+        self.set_attribute(name, AttrValue::from_serialized_tokenlist(value));
+    }
+
+    fn set_atomic_tokenlist_attribute(self, name: &Atom, tokens: Vec<Atom>) {
+        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        self.set_attribute(name, AttrValue::from_atomic_tokens(tokens));
     }
 
     fn get_uint_attribute(self, name: &Atom) -> u32 {
@@ -1290,7 +1306,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
             &atom!("id") => AttrValue::from_atomic(value),
-            &atom!("class") => AttrValue::from_tokenlist(value),
+            &atom!("class") => AttrValue::from_serialized_tokenlist(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
