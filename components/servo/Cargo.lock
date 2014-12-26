@@ -375,7 +375,7 @@ source = "git+https://github.com/servo/rust-harfbuzz#8aab215463214647b7a81f66011
 [[package]]
 name = "html5ever"
 version = "0.0.0"
-source = "git+https://github.com/servo/html5ever#419d81a15409bea89214a114edc0f8ca7e3ec1aa"
+source = "git+https://github.com/servo/html5ever#0abe5e30cc03f9e73bfd4fdc018192d149c21fb3"
 dependencies = [
  "html5ever_macros 0.0.0 (git+https://github.com/servo/html5ever)",
  "phf 0.0.1 (git+https://github.com/sfackler/rust-phf)",
@@ -388,12 +388,12 @@ dependencies = [
 [[package]]
 name = "html5ever_macros"
 version = "0.0.0"
-source = "git+https://github.com/servo/html5ever#419d81a15409bea89214a114edc0f8ca7e3ec1aa"
+source = "git+https://github.com/servo/html5ever#0abe5e30cc03f9e73bfd4fdc018192d149c21fb3"
 
 [[package]]
 name = "hyper"
 version = "0.0.1"
-source = "git+https://github.com/hyperium/hyper#d19cfed42215c0e1e40ee3052a6708ca5a15b566"
+source = "git+https://github.com/hyperium/hyper#8c83a3358ea5fa15289ddde167ff7033cb4ea5b5"
 dependencies = [
  "cookie 0.1.0 (git+https://github.com/alexcrichton/cookie-rs)",
  "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
