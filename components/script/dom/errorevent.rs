@@ -8,12 +8,20 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+<<<<<<< HEAD
 use dom::bindings::js::{JSRef, Temporary, MutHeap};
+=======
+use dom::bindings::js::{JSRef, Temporary};
+>>>>>>> f1295ed7da64faaa5a44ba8099db1590409f83aa
 use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+<<<<<<< HEAD
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
+=======
+use dom::event::{Event, EventTypeId, ErrorEventTypeId};
+>>>>>>> f1295ed7da64faaa5a44ba8099db1590409f83aa
 use servo_util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
@@ -21,6 +29,9 @@ use std::cell::{Cell};
 use js::jsval::{JSVal, NullValue};
 
 #[dom_struct]
+#[privatize]
+#[must_root]
+//#[jstraceable]
 pub struct ErrorEvent {
     event: Event,
     message: DOMRefCell<DOMString>,
@@ -100,6 +111,15 @@ impl ErrorEvent {
                                 bubbles, cancelable,
                                 msg, file_name,
                                 line_num, col_num, init.error);
+       /* let ev = ErrorEvent::new_uninitialized(*global.as_window()).root();
+        let event: JSRef<Event> = EventCast::from_ref(ev);
+        event.InitEvent(type_, init.parent.bubbles, init.parent.cancelable);
+        *ev.message.borrow_mut() = msg;
+        *ev.filename.borrow_mut() = file_name;
+        ev.lineno.set(line_num);
+        ev.colno.set(col_num);
+        ev.error.set(init.error);
+        let event = Temporary::from_rooted(*ev);*/
         Ok(event)
     }
 
@@ -125,7 +145,6 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
     fn Error(self, _cx: *mut JSContext) -> JSVal {
         self.error.get()
     }
-
 }
 
 impl Reflectable for ErrorEvent {

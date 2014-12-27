@@ -4,23 +4,30 @@
 
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
-
+#[allow(unused_imports)]
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
-use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::conversions::{FromJSValConvertible};
+use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::conversions;
+use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentSource};
-use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
+use dom::element::{ElementTypeId, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
+use dom::bindings::global::global_object_for_js_object;
+use dom::element::{Element};
 use dom::uievent::UIEvent;
+//use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
@@ -29,8 +36,9 @@ use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use parse::html::{HTMLInput, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
+use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
 use layout_interface;
-use page::{Page, IterablePage, Frame};
+use page::{Page, IterablePage/*, Frame*/};
 use timers::TimerId;
 use devtools;
 
@@ -41,11 +49,11 @@ use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, Mouse
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, GetTitleMsg, KeyEvent, LoadMsg, ViewportMsg};
 use script_traits::{ResizeInactiveMsg, ExitPipelineMsg, NewLayoutInfo, OpaqueScriptLayoutChannel};
-use script_traits::{ScriptControlChan, ReflowCompleteMsg, SendEventMsg};
+use script_traits::{ScriptControlChan, ReflowCompleteMsg, SendEventMsg, UntrustedNodeAddress};
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
 use servo_msg::compositor_msg::{ScriptListener};
-use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg};
-use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, NavigationDirection, PipelineId};
+use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
+use servo_msg::constellation_msg::{LoadData, PipelineId};
 use servo_msg::constellation_msg::{Failure, FailureMsg, WindowSizeData, Key, KeyState};
 use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed};
 use servo_msg::constellation_msg::{Released};
@@ -63,14 +71,17 @@ use geom::point::Point2D;
 use hyper::header::{Header, HeaderFormat};
 use hyper::header::common::util as header_util;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
-use js::jsapi::{JSContext, JSRuntime, JSTracer};
+use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
+//use js::jsapi::JSType;
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
-use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
+//use js::jsapi::{JS_GetGlobalObject};
+//use js::jsval::{UndefinedValue};
 use js::rust::{Cx, RtUtils};
 use js;
 use url::Url;
 
 use libc::size_t;
+use libc::c_char;
 use std::any::{Any, AnyRefExt};
 use std::comm::{channel, Sender, Receiver, Select};
 use std::fmt::{mod, Show};
@@ -78,6 +89,7 @@ use std::mem::replace;
 use std::rc::Rc;
 use std::u32;
 use time::{Tm, strptime};
+use std::string;
 
 local_data_key!(pub StackRoots: *const RootCollection)
 
@@ -298,13 +310,13 @@ impl ScriptTaskFactory for ScriptTask {
     }
 }
 
-unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) {
+/*unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) {
     match status {
         JSGC_BEGIN => task_state::enter(task_state::IN_GC),
         JSGC_END   => task_state::exit(task_state::IN_GC),
         _ => (),
     }
-}
+}*/
 
 impl ScriptTask {
     /// Creates a new script task.
@@ -389,17 +401,18 @@ impl ScriptTask {
             ptr.is_not_null()
         });
         js_context.set_default_options_and_version();
-        js_context.set_logging_error_reporter();
+        //js_context.set_logging_error_reporter();
+        js_context.set_error_reporter(reportError);
         unsafe {
             JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
         }
 
         // Needed for debug assertions about whether GC is running.
-        if !cfg!(ndebug) {
+        /*if !cfg!(ndebug) {
             unsafe {
                 JS_SetGCCallback(js_runtime.ptr, Some(debug_gc_callback));
             }
-        }
+        }*/
 
         (js_runtime, js_context)
     }
@@ -1315,4 +1328,31 @@ impl HeaderFormat for LastModified {
 
 fn dom_last_modified(tm: &Tm) -> String {
     format!("{}", tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap())
+pub unsafe fn set_logging_error_reporter() {
+    
+    }
+pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report: *mut JSErrorReport) {
+    error!("MyError called\n");
+    let fnptr = (*report).filename;
+    let fname = if fnptr.is_not_null() {string::raw::from_buf(fnptr as *const i8 as *const u8)} else {"none".to_string()};
+    let lineno = (*report).lineno;
+    let colno = (*report).column;
+    let msg = string::raw::from_buf(msg as *const i8 as *const u8);
+    error!("MyError at file {:s} on line :{} on column :{} Error Message = {:s}\n", fname, lineno , colno , msg);
+
+    //let Dnb = true;   // DoesNotBubble : How to get this value ?
+    //let Cncl = true;  // Cancelable: How to get this value?
+/*
+    let global = JS_GetGlobalObject(_cx);
+    let errorWindow = global_object_for_js_object(global);
+
+    let event = ErrorEvent::new(&global.root_ref(),
+                           "error".to_string(),
+                           DoesNotBubble, Cancelable,
+                           msg, fname, lineno, colno, UndefinedValue()).root();
+    let target: JSRef<EventTarget> = EventTargetCast::from_ref(*event);
+    target.dispatch_event_with_target(None, *event).ok(); */
+    //let e1 = errorWindow.root();
+    //let e1 = errorWindow.root();
+}
 }
