@@ -76,7 +76,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
 
     message_queue.replace(Some(RefCell::new(Vec::new())));
 
-    let urls = vec![HOME_URL.to_string()];
+    let urls = vec![HOME_URL.into_string()];
     opts::set_opts(opts::Opts {
         urls: urls,
         n_paint_threads: 1,

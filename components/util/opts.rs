@@ -297,7 +297,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         }
     };
 
-    let render_api = match opt_match.opt_str("r").unwrap_or("gl".to_string()).as_slice() {
+    let render_api = match opt_match.opt_str("r").unwrap_or("gl".into_string()).as_slice() {
         "mesa" => RenderApi::Mesa,
         "gl" => RenderApi::OpenGL,
         _ => {

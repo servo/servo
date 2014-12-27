@@ -107,7 +107,7 @@ fn browser_host_create(window_info: &cef_window_info_t,
                        callback_executed: bool)
                        -> CefBrowser {
     let mut urls = Vec::new();
-    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".to_string());
+    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".into_string());
     let mut opts = opts::default_opts();
     opts.urls = urls;
     let browser = ServoCefBrowser::new(window_info, client).as_cef_interface();
