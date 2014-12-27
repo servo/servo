@@ -44,8 +44,8 @@ impl KeyboardEvent {
     fn new_inherited() -> KeyboardEvent {
         KeyboardEvent {
             uievent: UIEvent::new_inherited(EventTypeId::KeyboardEvent),
-            key: RefCell::new("".to_string()),
-            code: RefCell::new("".to_string()),
+            key: RefCell::new("".into_string()),
+            code: RefCell::new("".into_string()),
             location: Cell::new(0),
             ctrl: Cell::new(false),
             alt: Cell::new(false),
@@ -83,7 +83,7 @@ impl KeyboardEvent {
                key_code: u32) -> Temporary<KeyboardEvent> {
         let ev = KeyboardEvent::new_uninitialized(window).root();
         ev.deref().InitKeyboardEvent(type_, canBubble, cancelable, view, key, location,
-                                     "".to_string(), repeat, "".to_string());
+                                     "".into_string(), repeat, "".into_string());
         *ev.code.borrow_mut() = code;
         ev.ctrl.set(ctrlKey);
         ev.alt.set(altKey);

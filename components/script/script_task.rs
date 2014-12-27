@@ -818,7 +818,7 @@ impl ScriptTask {
             let jsval = window.evaluate_js_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
                                                           StringificationBehavior::Empty);
-            (HTMLInput::InputString(strval.unwrap_or("".to_string())), doc_url)
+            (HTMLInput::InputString(strval.unwrap_or("".into_string())), doc_url)
         };
 
         parse_html(*document, parser_input, &final_url);
@@ -839,7 +839,7 @@ impl ScriptTask {
         }
 
         // https://html.spec.whatwg.org/multipage/#the-end step 4
-        let event = Event::new(GlobalRef::Window(*window), "DOMContentLoaded".to_string(),
+        let event = Event::new(GlobalRef::Window(*window), "DOMContentLoaded".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(*document);
@@ -852,7 +852,7 @@ impl ScriptTask {
         // https://html.spec.whatwg.org/multipage/#the-end step 7
         document.set_ready_state(DocumentReadyState::Complete);
 
-        let event = Event::new(GlobalRef::Window(*window), "load".to_string(),
+        let event = Event::new(GlobalRef::Window(*window), "load".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
@@ -974,12 +974,12 @@ impl ScriptTask {
         let ev_type = match state {
             KeyState::Pressed | KeyState::Repeated => "keydown",
             KeyState::Released => "keyup",
-        }.to_string();
+        }.into_string();
 
         let props = KeyboardEvent::key_properties(key, modifiers);
 
         let keyevent = KeyboardEvent::new(*window, ev_type, true, true, Some(*window), 0,
-                                          props.key.to_string(), props.code.to_string(),
+                                          props.key.into_string(), props.code.into_string(),
                                           props.location, is_repeating, is_composing,
                                           ctrl, alt, shift, meta,
                                           None, props.key_code).root();
@@ -990,8 +990,8 @@ impl ScriptTask {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
         if state != KeyState::Released && props.is_printable() && !prevented {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
-            let event = KeyboardEvent::new(*window, "keypress".to_string(), true, true, Some(*window),
-                                           0, props.key.to_string(), props.code.to_string(),
+            let event = KeyboardEvent::new(*window, "keypress".into_string(), true, true, Some(*window),
+                                           0, props.key.into_string(), props.code.into_string(),
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,
                                            props.char_code, 0).root();
@@ -1075,7 +1075,7 @@ impl ScriptTask {
                 // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
                 let uievent = UIEvent::new(window.clone(),
-                                           "resize".to_string(), false,
+                                           "resize".into_string(), false,
                                            false, Some(window.clone()),
                                            0i32).root();
                 let event: JSRef<Event> = EventCast::from_ref(*uievent);
@@ -1126,7 +1126,7 @@ impl ScriptTask {
 
                                 let event =
                                     Event::new(GlobalRef::Window(*window),
-                                               "click".to_string(),
+                                               "click".into_string(),
                                                EventBubbles::Bubbles,
                                                EventCancelable::Cancelable).root();
                                 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events

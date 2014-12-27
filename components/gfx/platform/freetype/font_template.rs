@@ -29,7 +29,7 @@ impl FontTemplateData {
 
         FontTemplateData {
             bytes: bytes,
-            identifier: identifier.to_string(),
+            identifier: identifier.into_string(),
         }
     }
 }

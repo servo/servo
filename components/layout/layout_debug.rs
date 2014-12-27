@@ -104,7 +104,7 @@ pub fn begin_trace(flow_root: FlowRef) {
 
     let flow_trace = json::encode(&flow::base(flow_root.deref()));
     let state = State {
-        scope_stack: vec![box ScopeData::new("root".to_string(), flow_trace)],
+        scope_stack: vec![box ScopeData::new("root".into_string(), flow_trace)],
         flow_root: flow_root,
     };
     state_key.replace(Some(RefCell::new(state)));

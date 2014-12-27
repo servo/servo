@@ -241,7 +241,7 @@ impl StyleSharingCandidate {
             parent_style: parent_style,
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&ns!(""), &atom!("class"))
-                          .map(|string| string.to_string()),
+                          .map(|string| string.into_string()),
             link: element.get_link().is_some(),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:

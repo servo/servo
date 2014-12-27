@@ -99,7 +99,7 @@ impl TextInput {
                 -1
             }, true);
         }
-        self.replace_selection("".to_string());
+        self.replace_selection("".into_string());
     }
 
     /// Insert a character at the current editing point
@@ -132,12 +132,12 @@ impl TextInput {
             let lines_suffix = self.lines.slice(end.line + 1, self.lines.len());
 
             let mut insert_lines = if self.multiline {
-                insert.as_slice().split('\n').map(|s| s.to_string()).collect()
+                insert.as_slice().split('\n').map(|s| s.into_string()).collect()
             } else {
                 vec!(insert)
             };
 
-            let mut new_line = prefix.to_string();
+            let mut new_line = prefix.into_string();
             new_line.push_str(insert_lines[0].as_slice());
             insert_lines[0] = new_line;
 
@@ -319,7 +319,7 @@ impl TextInput {
 
     /// Get the current contents of the text input. Multiple lines are joined by \n.
     pub fn get_content(&self) -> DOMString {
-        let mut content = "".to_string();
+        let mut content = "".into_string();
         for (i, line) in self.lines.iter().enumerate() {
             content.push_str(line.as_slice());
             if i < self.lines.len() - 1 {
@@ -333,7 +333,7 @@ impl TextInput {
     /// any \n encountered will be stripped and force a new logical line.
     pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
-            content.as_slice().split('\n').map(|s| s.to_string()).collect()
+            content.as_slice().split('\n').map(|s| s.into_string()).collect()
         } else {
             vec!(content)
         };

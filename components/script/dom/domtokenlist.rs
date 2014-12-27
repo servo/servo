@@ -78,7 +78,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     // http://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(self, index: u32) -> Option<DOMString> {
         self.attribute().root().and_then(|attr| attr.value().tokens().and_then(|tokens| {
-            tokens.get(index as uint).map(|token| token.as_slice().to_string())
+            tokens.get(index as uint).map(|token| token.as_slice().into_string())
         }))
     }
 

@@ -106,7 +106,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.slice_from(2),
-                                                  attr.value().as_slice().to_string());
+                                                  attr.value().as_slice().into_string());
         }
 
         match attr.local_name() {

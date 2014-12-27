@@ -66,7 +66,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         // https://html.spec.whatwg.org/multipage/forms.html#attr-button-type
         match ty.as_slice() {
             "reset" | "button" | "menu" => ty,
-            _ => "submit".to_string()
+            _ => "submit".into_string()
         }
     }
 
