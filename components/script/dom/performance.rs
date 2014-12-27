@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::PerformanceBinding;
 use dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::performancetiming::{PerformanceTiming, PerformanceTimingHelpers};
 use dom::window::Window;
 use time;
@@ -54,8 +54,3 @@ impl<'a> PerformanceMethods for JSRef<'a, Performance> {
     }
 }
 
-impl Reflectable for Performance {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

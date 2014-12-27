@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
 use dom::window::Window;
@@ -95,12 +95,6 @@ pub struct Attr {
 
     /// the element that owns this attribute.
     owner: Option<JS<Element>>,
-}
-
-impl Reflectable for Attr {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
 }
 
 impl Attr {

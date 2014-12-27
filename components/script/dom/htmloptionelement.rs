@@ -12,7 +12,6 @@ use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, ElementHelpers, ElementTypeId};
@@ -186,8 +185,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
     }
 }
 
-impl Reflectable for HTMLOptionElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

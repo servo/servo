@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::HTMLTableColElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableColElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -38,8 +37,3 @@ impl HTMLTableColElement {
     }
 }
 
-impl Reflectable for HTMLTableColElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

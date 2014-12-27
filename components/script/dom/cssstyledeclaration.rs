@@ -7,7 +7,7 @@ use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, OptionalRootedRootable, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::DocumentHelpers;
 use dom::element::{Element, ElementHelpers, StylePriority};
 use dom::htmlelement::HTMLElement;
@@ -411,10 +411,4 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         [Top, SetTop, "top"],
         [ZIndex, SetZIndex, "z-index"]
     )
-}
-
-impl Reflectable for CSSStyleDeclaration {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
 }

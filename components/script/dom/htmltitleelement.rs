@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{TextCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -65,12 +64,6 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
     }
 }
 
-impl Reflectable for HTMLTitleElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}
-
 impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
@@ -85,4 +78,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
         }
     }
 }
-

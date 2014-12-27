@@ -6,7 +6,6 @@ use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableSectionElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -47,12 +46,6 @@ impl HTMLTableSectionElement {
                -> Temporary<HTMLTableSectionElement> {
         let element = HTMLTableSectionElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableSectionElementBinding::Wrap)
-    }
-}
-
-impl Reflectable for HTMLTableSectionElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
     }
 }
 
@@ -98,4 +91,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableSectionElement> {
         }
     }
 }
-

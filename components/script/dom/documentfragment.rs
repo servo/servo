@@ -9,7 +9,6 @@ use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -70,8 +69,3 @@ impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
     }
 }
 
-impl Reflectable for DocumentFragment {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-}

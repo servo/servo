@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use servo_util::str::DOMString;
 use servo_net::storage_task::StorageTask;
@@ -118,8 +118,3 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     }
 }
 
-impl Reflectable for Storage {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

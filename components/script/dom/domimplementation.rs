@@ -11,7 +11,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{InvalidCharacter, NamespaceError};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Root, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
@@ -27,15 +27,15 @@ use servo_util::str::DOMString;
 
 #[dom_struct]
 pub struct DOMImplementation {
-    document: JS<Document>,
     reflector_: Reflector,
+    document: JS<Document>,
 }
 
 impl DOMImplementation {
     fn new_inherited(document: JSRef<Document>) -> DOMImplementation {
         DOMImplementation {
-            document: JS::from_rooted(document),
             reflector_: Reflector::new(),
+            document: JS::from_rooted(document),
         }
     }
 
@@ -44,12 +44,6 @@ impl DOMImplementation {
         reflect_dom_object(box DOMImplementation::new_inherited(document),
                            GlobalRef::Window(*window),
                            DOMImplementationBinding::Wrap)
-    }
-}
-
-impl Reflectable for DOMImplementation {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 

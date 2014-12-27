@@ -10,7 +10,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eURLSearchPara
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 use servo_util::str::DOMString;
 
@@ -24,15 +24,15 @@ use std::ascii::OwnedAsciiExt;
 
 #[dom_struct]
 pub struct URLSearchParams {
-    data: DOMRefCell<HashMap<DOMString, Vec<DOMString>>>,
     reflector_: Reflector,
+    data: DOMRefCell<HashMap<DOMString, Vec<DOMString>>>,
 }
 
 impl URLSearchParams {
     fn new_inherited() -> URLSearchParams {
         URLSearchParams {
-            data: DOMRefCell::new(HashMap::new()),
             reflector_: Reflector::new(),
+            data: DOMRefCell::new(HashMap::new()),
         }
     }
 
@@ -90,12 +90,6 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
     fn Set(self, name: DOMString, value: DOMString) {
         self.data.borrow_mut().insert(name, vec!(value));
         self.update_steps();
-    }
-}
-
-impl Reflectable for URLSearchParams {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 

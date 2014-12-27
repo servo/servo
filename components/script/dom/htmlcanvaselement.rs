@@ -10,7 +10,6 @@ use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, AttributeHandlers};
@@ -156,8 +155,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
     }
 }
 
-impl Reflectable for HTMLCanvasElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

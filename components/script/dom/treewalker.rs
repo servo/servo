@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary, MutHeap};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
 
@@ -116,12 +116,6 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
 
     fn NextNode(self) -> Fallible<Option<Temporary<Node>>> {
         self.next_node()
-    }
-}
-
-impl Reflectable for TreeWalker {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 

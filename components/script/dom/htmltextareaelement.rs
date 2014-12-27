@@ -13,7 +13,6 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCas
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers, ElementTypeId};
 use dom::event::Event;
@@ -327,12 +326,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
                 }
             });
         }
-    }
-}
-
-impl Reflectable for HTMLTextAreaElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
     }
 }
 

@@ -17,7 +17,6 @@ use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Comparable, JS, JSRef, Root, Temporary, OptionalRootable};
 use dom::bindings::js::{ResultRootable, RootedReference, MutNullableJS};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
@@ -568,12 +567,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
                     }
                 });
         }
-    }
-}
-
-impl Reflectable for HTMLInputElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
     }
 }
 

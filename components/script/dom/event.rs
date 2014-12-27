@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventBinding::{EventConstants, EventMethod
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use servo_util::str::DOMString;
 use std::cell::Cell;
@@ -51,8 +51,8 @@ pub enum EventCancelable {
 
 #[dom_struct]
 pub struct Event {
-    type_id: EventTypeId,
     reflector_: Reflector,
+    type_id: EventTypeId,
     current_target: MutNullableJS<EventTarget>,
     target: MutNullableJS<EventTarget>,
     type_: DOMRefCell<DOMString>,
@@ -71,8 +71,8 @@ pub struct Event {
 impl Event {
     pub fn new_inherited(type_id: EventTypeId) -> Event {
         Event {
-            type_id: type_id,
             reflector_: Reflector::new(),
+            type_id: type_id,
             current_target: Default::default(),
             target: Default::default(),
             phase: Cell::new(EventPhase::None),
@@ -237,12 +237,6 @@ impl<'a> EventMethods for JSRef<'a, Event> {
 
     fn IsTrusted(self) -> bool {
         self.trusted.get()
-    }
-}
-
-impl Reflectable for Event {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 

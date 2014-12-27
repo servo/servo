@@ -27,7 +27,7 @@ use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
 use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument, DocumentSource};
@@ -480,7 +480,6 @@ pub trait NodeHelpers<'a> {
     fn get_unique_id(self) -> String;
     fn summarize(self) -> NodeInfo;
 }
-
 
 impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     /// Dumps the subtree rooted at this node, for debugging.
@@ -2169,11 +2168,6 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 }
 
 
-impl Reflectable for Node {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-}
 
 /// The address of a node known to be valid. These are sent from script to layout,
 /// and are also used in the HTML parser interface.

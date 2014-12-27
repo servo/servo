@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::HTMLUListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLUListElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -38,8 +37,3 @@ impl HTMLUListElement {
     }
 }
 
-impl Reflectable for HTMLUListElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

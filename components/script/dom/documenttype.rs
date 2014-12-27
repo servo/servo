@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::DocumentTypeBinding;
 use dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentTypeDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
@@ -89,8 +88,3 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
     }
 }
 
-impl Reflectable for DocumentType {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-}
