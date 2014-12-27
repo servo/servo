@@ -196,63 +196,71 @@ fn test_transform_discard_newline() {
     }
 }
 
-/* FIXME: Fix and re-enable
 #[test]
 fn test_transform_compress_whitespace() {
-    let  test_strs : ~[String] = ~["  foo bar".into_string(),
-                                 "foo bar  ".into_string(),
-                                 "foo\n bar".into_string(),
-                                 "foo \nbar".into_string(),
-                                 "  foo  bar  \nbaz".into_string(),
-                                 "foo bar baz".into_string(),
-                                 "foobarbaz\n\n".into_string()];
+    let test_strs = vec![
+        "  foo bar",
+        "foo bar  ",
+        "foo\n bar",
+        "foo \nbar",
+        "  foo  bar  \nbaz",
+        "foo bar baz",
+        "foobarbaz\n\n",
+    ];
 
-    let oracle_strs : ~[String] = ~[" foo bar".into_string(),
-                                 "foo bar ".into_string(),
-                                 "foo\n bar".into_string(),
-                                 "foo \nbar".into_string(),
-                                 " foo bar \nbaz".into_string(),
-                                 "foo bar baz".into_string(),
-                                 "foobarbaz\n\n".into_string()];
+    let oracle_strs = vec![
+        "foo bar",
+        "foo bar ",
+        "foo\n bar",
+        "foo \nbar",
+        "foo bar \nbaz",
+        "foo bar baz",
+        "foobarbaz\n\n",
+    ];
 
     assert_eq!(test_strs.len(), oracle_strs.len());
-    let mode = CompressWhitespace;
+    let mode = CompressionMode::CompressWhitespace;
 
-    for i in range(0, test_strs.len()) {
-        let mut new_line_pos = ~[];
-        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
-        assert_eq!(&trimmed_str, &oracle_strs[i])
+    for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
+        let mut new_line_pos = vec![];
+        let mut trimmed_str = String::new();
+        transform_text(*test, mode, true, &mut trimmed_str, &mut new_line_pos);
+        assert_eq!(&*trimmed_str, *oracle)
     }
 }
 
 #[test]
 fn test_transform_compress_whitespace_newline() {
-    let  test_strs : ~[String] = ~["  foo bar".into_string(),
-                                 "foo bar  ".into_string(),
-                                 "foo\n bar".into_string(),
-                                 "foo \nbar".into_string(),
-                                 "  foo  bar  \nbaz".into_string(),
-                                 "foo bar baz".into_string(),
-                                 "foobarbaz\n\n".into_string()];
+    let test_strs = vec![
+        "  foo bar",
+        "foo bar  ",
+        "foo\n bar",
+        "foo \nbar",
+        "  foo  bar  \nbaz",
+        "foo bar baz",
+        "foobarbaz\n\n"
+    ];
 
-    let oracle_strs : ~[String] = ~["foo bar".into_string(),
-                                 "foo bar ".into_string(),
-                                 "foo bar".into_string(),
-                                 "foo bar".into_string(),
-                                 " foo bar baz".into_string(),
-                                 "foo bar baz".into_string(),
-                                 "foobarbaz ".into_string()];
+    let oracle_strs = vec![
+        "foo bar",
+        "foo bar ",
+        "foo bar",
+        "foo bar",
+        "foo bar baz",
+        "foo bar baz",
+        "foobarbaz "
+    ];
 
     assert_eq!(test_strs.len(), oracle_strs.len());
     let mode = CompressionMode::CompressWhitespaceNewline;
 
-    for i in range(0, test_strs.len()) {
-        let mut new_line_pos = ~[];
-        let (trimmed_str, _out) = transform_text(test_strs[i], mode, true, &mut new_line_pos);
-        assert_eq!(&trimmed_str, &oracle_strs[i])
+    for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
+        let mut new_line_pos = vec![];
+        let mut trimmed_str = String::new();
+        transform_text(*test, mode, true, &mut trimmed_str, &mut new_line_pos);
+        assert_eq!(&*trimmed_str, *oracle)
     }
 }
-*/
 
 #[test]
 fn test_transform_compress_whitespace_newline_no_incoming() {
