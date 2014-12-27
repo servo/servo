@@ -188,7 +188,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
             &atom!("src") => {
                 let window = window_from_node(*self).root();
                 let url = window.get_url();
-                self.update_image(Some((attr.value().as_slice().to_string(), &url)));
+                self.update_image(Some((attr.value().as_slice().into_string(), &url)));
             },
             _ => ()
         }

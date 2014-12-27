@@ -40,8 +40,8 @@ impl ErrorEvent {
     fn new_inherited(type_id: EventTypeId) -> ErrorEvent {
         ErrorEvent {
             event: Event::new_inherited(type_id),
-            message: DOMRefCell::new("".to_string()),
-            filename: DOMRefCell::new("".to_string()),
+            message: DOMRefCell::new("".into_string()),
+            filename: DOMRefCell::new("".into_string()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
             error: MutHeap::new(NullValue())
@@ -80,7 +80,7 @@ impl ErrorEvent {
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Temporary<ErrorEvent>>{
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
-            None => "".to_string(),
+            None => "".into_string(),
         };
 
         let file_name = match init.filename.as_ref() {

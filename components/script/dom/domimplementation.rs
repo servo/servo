@@ -129,18 +129,18 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
 
         {
             // Step 3.
-            let doc_type = DocumentType::new("html".to_string(), None, None, *doc).root();
+            let doc_type = DocumentType::new("html".into_string(), None, None, *doc).root();
             assert!(doc_node.AppendChild(NodeCast::from_ref(*doc_type)).is_ok());
         }
 
         {
             // Step 4.
-            let doc_html: Root<Node> = NodeCast::from_temporary(HTMLHtmlElement::new("html".to_string(), None, *doc)).root();
+            let doc_html: Root<Node> = NodeCast::from_temporary(HTMLHtmlElement::new("html".into_string(), None, *doc)).root();
             assert!(doc_node.AppendChild(*doc_html).is_ok());
 
             {
                 // Step 5.
-                let doc_head: Root<Node> = NodeCast::from_temporary(HTMLHeadElement::new("head".to_string(), None, *doc)).root();
+                let doc_head: Root<Node> = NodeCast::from_temporary(HTMLHeadElement::new("head".into_string(), None, *doc)).root();
                 assert!(doc_html.AppendChild(*doc_head).is_ok());
 
                 // Step 6.
@@ -148,7 +148,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
                     None => (),
                     Some(title_str) => {
                         // Step 6.1.
-                        let doc_title: Root<Node> = NodeCast::from_temporary(HTMLTitleElement::new("title".to_string(), None, *doc)).root();
+                        let doc_title: Root<Node> = NodeCast::from_temporary(HTMLTitleElement::new("title".into_string(), None, *doc)).root();
                         assert!(doc_head.AppendChild(*doc_title).is_ok());
 
                         // Step 6.2.
@@ -159,7 +159,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
             }
 
             // Step 7.
-            let doc_body: Root<HTMLBodyElement> = HTMLBodyElement::new("body".to_string(), None, *doc).root();
+            let doc_body: Root<HTMLBodyElement> = HTMLBodyElement::new("body".into_string(), None, *doc).root();
             assert!(doc_html.AppendChild(NodeCast::from_ref(*doc_body)).is_ok());
         }
 

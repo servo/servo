@@ -44,7 +44,7 @@ impl MessageEvent {
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Temporary<MessageEvent> {
-        MessageEvent::new_initialized(global, UndefinedValue(), "".to_string(), "".to_string())
+        MessageEvent::new_initialized(global, UndefinedValue(), "".into_string(), "".into_string())
     }
 
     pub fn new_initialized(global: GlobalRef, data: JSVal, origin: DOMString, lastEventId: DOMString) -> Temporary<MessageEvent> {
@@ -78,8 +78,8 @@ impl MessageEvent {
                           scope: GlobalRef,
                           message: JSVal) {
         let messageevent = MessageEvent::new(
-            scope, "message".to_string(), false, false, message,
-            "".to_string(), "".to_string()).root();
+            scope, "message".into_string(), false, false, message,
+            "".into_string(), "".into_string()).root();
         let event: JSRef<Event> = EventCast::from_ref(*messageevent);
         target.dispatch_event(event);
     }

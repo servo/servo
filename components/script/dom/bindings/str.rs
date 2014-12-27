@@ -154,6 +154,6 @@ impl Hash for ByteString {
 
 impl FromStr for ByteString {
     fn from_str(s: &str) -> Option<ByteString> {
-        Some(ByteString::new(s.to_string().into_bytes()))
+        Some(ByteString::new(s.into_string().into_bytes()))
     }
 }

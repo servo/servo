@@ -1081,7 +1081,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            vec![FontFamily::FamilyName("serif".to_string())]
+            vec![FontFamily::FamilyName("serif".into_string())]
         }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
