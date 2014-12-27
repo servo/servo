@@ -13,27 +13,26 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCast, EventCast};
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::conversions::{FromJSValConvertible, Empty};
+use dom::bindings::conversions::{FromJSValConvertible};
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentSource};
-use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
+use dom::element::{ElementTypeId, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::bindings::global::global_object_for_js_object;
-use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
-use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
+use dom::element::{Element};
 use dom::uievent::UIEvent;
 //use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{mod, Node, NodeHelpers, NodeDamage, NodeTypeId, ElementNodeTypeId};
+use dom::node::{mod, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use parse::html::{HTMLInput, parse_html};
-use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal,NoQuery, ReflowQueryType};
+use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
 use layout_interface;
 use page::{Page, IterablePage/*, Frame*/};
@@ -47,20 +46,12 @@ use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, Mouse
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, GetTitleMsg, KeyEvent, LoadMsg, ViewportMsg};
 use script_traits::{ResizeInactiveMsg, ExitPipelineMsg, NewLayoutInfo, OpaqueScriptLayoutChannel};
-<<<<<<< HEAD
-use script_traits::{ScriptControlChan, ReflowCompleteMsg, SendEventMsg};
+use script_traits::{ScriptControlChan, ReflowCompleteMsg, SendEventMsg, UntrustedNodeAddress};
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
 use servo_msg::compositor_msg::{ScriptListener};
-use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg};
-use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, NavigationDirection, PipelineId};
+use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg, LoadUrlMsg, NavigationDirection};
+use servo_msg::constellation_msg::{LoadData, PipelineId};
 use servo_msg::constellation_msg::{Failure, FailureMsg, WindowSizeData, Key, KeyState};
-=======
-use script_traits::{ScriptControlChan, ReflowCompleteMsg, UntrustedNodeAddress, KeyEvent};
-use servo_msg::compositor_msg::{FinishedLoading, LayerId/*, Loading*/};
-use servo_msg::compositor_msg::{ScriptListener};
-use servo_msg::constellation_msg::{ConstellationChan, /*LoadCompleteMsg,*/ LoadUrlMsg, NavigationDirection};
-use servo_msg::constellation_msg::{LoadData, PipelineId, Failure, FailureMsg, WindowSizeData, Key, KeyState};
->>>>>>> interim 26dec
 use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed};
 use servo_msg::constellation_msg::{Released};
 use servo_msg::constellation_msg;
@@ -90,12 +81,8 @@ use libc::size_t;
 use libc::c_char;
 use std::any::{Any, AnyRefExt};
 use std::comm::{channel, Sender, Receiver, Select};
-<<<<<<< HEAD
 use std::fmt::{mod, Show};
 use std::mem::replace;
-=======
-//use std::mem::replace;
->>>>>>> interim 26dec
 use std::rc::Rc;
 use std::u32;
 use time::{Tm, strptime};
@@ -411,7 +398,7 @@ impl ScriptTask {
             ptr.is_not_null()
         });
         js_context.set_default_options_and_version();
-        js_context.set_logging_error_reporter();
+        //js_context.set_logging_error_reporter();
         js_context.set_error_reporter(reportError);
         unsafe {
             JS_SetGCZeal((*js_context).ptr, 0, JS_DEFAULT_ZEAL_FREQ);
@@ -741,14 +728,8 @@ impl ScriptTask {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-<<<<<<< HEAD
     fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
         let url = load_data.url.clone();
-=======
-#[allow(unused_variables)]
-fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
-     /*   let mut url = load_data.url.clone();
->>>>>>> interim 26dec
         debug!("ScriptTask: loading {} on page {}", url, pipeline_id);
 
         let page = self.page.borrow_mut();
@@ -890,7 +871,6 @@ fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-<<<<<<< HEAD
         chan.send(LoadCompleteMsg);
 
         // Notify devtools that a new script global exists.
@@ -905,9 +885,6 @@ fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
                                     page_info));
             }
         }
-=======
-        chan.send(LoadCompleteMsg);*/
->>>>>>> interim 26dec
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {
@@ -1311,7 +1288,6 @@ pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
          This is a bug.")
 }
 
-<<<<<<< HEAD
 //FIXME(seanmonstar): uplift to Hyper
 #[deriving(Clone)]
 struct LastModified(pub Tm);
@@ -1352,9 +1328,6 @@ fn dom_last_modified(tm: &Tm) -> String {
 pub unsafe fn set_logging_error_reporter() {
     
     }
-=======
-#[allow(unrooted_must_root)]
->>>>>>> Creating ErrorEvent
 pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report: *mut JSErrorReport) {
     error!("MyError called\n");
     let fnptr = (*report).filename;
@@ -1378,4 +1351,5 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
     target.dispatch_event_with_target(None, *event).ok(); */
     //let e1 = errorWindow.root();
     //let e1 = errorWindow.root();
+}
 }
