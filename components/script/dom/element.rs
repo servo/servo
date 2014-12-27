@@ -226,8 +226,8 @@ pub trait RawLayoutElementHelpers {
 #[inline]
 unsafe fn get_attr_for_layout<'a>(elem: &'a Element, namespace: &Namespace, name: &Atom) -> Option<&'a JS<Attr>> {
     // cast to point to T in RefCell<T> directly
-    let attrs: *const Vec<JS<Attr>> = mem::transmute(&elem.attrs);
-    (*attrs).iter().find(|attr: & &JS<Attr>| {
+    let attrs = elem.attrs.borrow_for_layout();
+    attrs.iter().find(|attr: & &JS<Attr>| {
         let attr = attr.unsafe_get();
         *name == (*attr).local_name_atom_forever() &&
         (*attr).namespace() == namespace

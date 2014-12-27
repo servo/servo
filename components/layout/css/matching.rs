@@ -460,7 +460,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
         };
 
         let parent_layout_data: &Option<LayoutDataWrapper> = unsafe {
-            mem::transmute(parent_node.borrow_layout_data_unchecked())
+            &*parent_node.borrow_layout_data_unchecked()
         };
         match parent_layout_data {
             &Some(ref parent_layout_data_ref) => {
