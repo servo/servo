@@ -4,7 +4,7 @@
 
 //! The script task is the task that owns the DOM in memory, runs JavaScript, and spawns parsing
 //! and layout tasks.
-
+#[allow(unused_imports)]
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -25,17 +25,18 @@ use dom::bindings::global::global_object_for_js_object;
 use dom::element::{Element, HTMLButtonElementTypeId, HTMLInputElementTypeId};
 use dom::element::{HTMLSelectElementTypeId, HTMLTextAreaElementTypeId, HTMLOptionElementTypeId};
 use dom::uievent::UIEvent;
-use dom::errorevent::ErrorEvent;
+//use dom::errorevent::ErrorEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
-use dom::node::{mod, Node, NodeHelpers, NodeDamage, NodeTypeId};
+use dom::node::{mod, Node, NodeHelpers, NodeDamage, NodeTypeId, ElementNodeTypeId};
 use dom::window::{Window, WindowHelpers};
 use dom::worker::{Worker, TrustedWorkerAddress};
 use parse::html::{HTMLInput, parse_html};
-use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
+use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal,NoQuery, ReflowQueryType};
+use dom::xmlhttprequest::{TrustedXHRAddress, XMLHttpRequest, XHRProgress};
 use layout_interface;
-use page::{Page, IterablePage, Frame};
+use page::{Page, IterablePage/*, Frame*/};
 use timers::TimerId;
 use devtools;
 
@@ -46,12 +47,20 @@ use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, Mouse
 use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
 use script_traits::{ResizeMsg, AttachLayoutMsg, GetTitleMsg, KeyEvent, LoadMsg, ViewportMsg};
 use script_traits::{ResizeInactiveMsg, ExitPipelineMsg, NewLayoutInfo, OpaqueScriptLayoutChannel};
+<<<<<<< HEAD
 use script_traits::{ScriptControlChan, ReflowCompleteMsg, SendEventMsg};
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
 use servo_msg::compositor_msg::{ScriptListener};
 use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg};
 use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, NavigationDirection, PipelineId};
 use servo_msg::constellation_msg::{Failure, FailureMsg, WindowSizeData, Key, KeyState};
+=======
+use script_traits::{ScriptControlChan, ReflowCompleteMsg, UntrustedNodeAddress, KeyEvent};
+use servo_msg::compositor_msg::{FinishedLoading, LayerId/*, Loading*/};
+use servo_msg::compositor_msg::{ScriptListener};
+use servo_msg::constellation_msg::{ConstellationChan, /*LoadCompleteMsg,*/ LoadUrlMsg, NavigationDirection};
+use servo_msg::constellation_msg::{LoadData, PipelineId, Failure, FailureMsg, WindowSizeData, Key, KeyState};
+>>>>>>> interim 26dec
 use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed};
 use servo_msg::constellation_msg::{Released};
 use servo_msg::constellation_msg;
@@ -71,8 +80,8 @@ use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, J
 use js::jsapi::{JSContext, JSRuntime, JSTracer, JSErrorReport};
 //use js::jsapi::JSType;
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
-use js::jsapi::{JS_GetGlobalObject};
-use js::jsval::{UndefinedValue};
+//use js::jsapi::{JS_GetGlobalObject};
+//use js::jsval::{UndefinedValue};
 use js::rust::{Cx, RtUtils};
 use js;
 use url::Url;
@@ -81,8 +90,12 @@ use libc::size_t;
 use libc::c_char;
 use std::any::{Any, AnyRefExt};
 use std::comm::{channel, Sender, Receiver, Select};
+<<<<<<< HEAD
 use std::fmt::{mod, Show};
 use std::mem::replace;
+=======
+//use std::mem::replace;
+>>>>>>> interim 26dec
 use std::rc::Rc;
 use std::u32;
 use time::{Tm, strptime};
@@ -307,13 +320,13 @@ impl ScriptTaskFactory for ScriptTask {
     }
 }
 
-unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) {
+/*unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus) {
     match status {
         JSGC_BEGIN => task_state::enter(task_state::IN_GC),
         JSGC_END   => task_state::exit(task_state::IN_GC),
         _ => (),
     }
-}
+}*/
 
 impl ScriptTask {
     /// Creates a new script task.
@@ -405,11 +418,11 @@ impl ScriptTask {
         }
 
         // Needed for debug assertions about whether GC is running.
-        if !cfg!(ndebug) {
+        /*if !cfg!(ndebug) {
             unsafe {
                 JS_SetGCCallback(js_runtime.ptr, Some(debug_gc_callback));
             }
-        }
+        }*/
 
         (js_runtime, js_context)
     }
@@ -728,8 +741,14 @@ impl ScriptTask {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
+<<<<<<< HEAD
     fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
         let url = load_data.url.clone();
+=======
+#[allow(unused_variables)]
+fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
+     /*   let mut url = load_data.url.clone();
+>>>>>>> interim 26dec
         debug!("ScriptTask: loading {} on page {}", url, pipeline_id);
 
         let page = self.page.borrow_mut();
@@ -871,6 +890,7 @@ impl ScriptTask {
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
+<<<<<<< HEAD
         chan.send(LoadCompleteMsg);
 
         // Notify devtools that a new script global exists.
@@ -885,6 +905,9 @@ impl ScriptTask {
                                     page_info));
             }
         }
+=======
+        chan.send(LoadCompleteMsg);*/
+>>>>>>> interim 26dec
     }
 
     fn scroll_fragment_point(&self, pipeline_id: PipelineId, node: JSRef<Element>) {
@@ -1343,7 +1366,7 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
 
     //let Dnb = true;   // DoesNotBubble : How to get this value ?
     //let Cncl = true;  // Cancelable: How to get this value?
-
+/*
     let global = JS_GetGlobalObject(_cx);
     let errorWindow = global_object_for_js_object(global);
 
@@ -1352,7 +1375,7 @@ pub unsafe extern fn reportError(_cx: *mut JSContext, msg: *const c_char, report
                            DoesNotBubble, Cancelable,
                            msg, fname, lineno, colno, UndefinedValue()).root();
     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*event);
-    target.dispatch_event_with_target(None, *event).ok();
+    target.dispatch_event_with_target(None, *event).ok(); */
     //let e1 = errorWindow.root();
     //let e1 = errorWindow.root();
 }

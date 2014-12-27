@@ -23,7 +23,7 @@ use js::jsval::{JSVal, NullValue};
 #[dom_struct]
 #[privatize]
 #[must_root]
-#[jstraceable]
+//#[jstraceable]
 pub struct ErrorEvent {
     event: Event,
     message: DOMRefCell<DOMString>,
@@ -103,7 +103,7 @@ impl ErrorEvent {
                                 bubbles, cancelable,
                                 msg, file_name,
                                 line_num, col_num, init.error);
-        let ev = ErrorEvent::new_uninitialized(global.as_window()).root();
+       /* let ev = ErrorEvent::new_uninitialized(*global.as_window()).root();
         let event: JSRef<Event> = EventCast::from_ref(ev);
         event.InitEvent(type_, init.parent.bubbles, init.parent.cancelable);
         *ev.message.borrow_mut() = msg;
@@ -111,7 +111,7 @@ impl ErrorEvent {
         ev.lineno.set(line_num);
         ev.colno.set(col_num);
         ev.error.set(init.error);
-        let event = Temporary::from_rooted(*ev);
+        let event = Temporary::from_rooted(*ev);*/
         Ok(event)
     }
 
@@ -137,11 +137,11 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
     fn Error(self, _cx: *mut JSContext) -> JSVal {
         self.error.get()
     }
-
+/*
     #[inline]
     pub fn event<'a>(&'a self) -> &'a Event {
         &self.event
-    }
+    }*/
 }
 
 impl Reflectable for ErrorEvent {
