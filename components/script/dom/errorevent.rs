@@ -8,12 +8,20 @@ use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::InheritTypes::{EventCast, ErrorEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
+<<<<<<< HEAD
 use dom::bindings::js::{JSRef, Temporary, MutHeap};
+=======
+use dom::bindings::js::{JSRef, Temporary};
+>>>>>>> f1295ed7da64faaa5a44ba8099db1590409f83aa
 use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+<<<<<<< HEAD
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
+=======
+use dom::event::{Event, EventTypeId, ErrorEventTypeId};
+>>>>>>> f1295ed7da64faaa5a44ba8099db1590409f83aa
 use servo_util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
@@ -137,11 +145,6 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
     fn Error(self, _cx: *mut JSContext) -> JSVal {
         self.error.get()
     }
-/*
-    #[inline]
-    pub fn event<'a>(&'a self) -> &'a Event {
-        &self.event
-    }*/
 }
 
 impl Reflectable for ErrorEvent {

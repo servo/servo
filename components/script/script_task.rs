@@ -14,6 +14,9 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCas
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::conversions::{FromJSValConvertible};
+use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::conversions;
 use dom::bindings::global;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
 use dom::bindings::trace::JSTraceable;
