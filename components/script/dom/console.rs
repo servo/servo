@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::ConsoleBinding;
 use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -58,8 +58,3 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
     }
 }
 
-impl Reflectable for Console {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

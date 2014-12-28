@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::HTMLHeadingElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHeadingElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -50,8 +49,3 @@ impl HTMLHeadingElement {
     }
 }
 
-impl Reflectable for HTMLHeadingElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

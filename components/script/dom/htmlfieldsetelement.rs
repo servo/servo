@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetEl
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{AttributeHandlers, Element, ElementHelpers, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -148,8 +147,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
     }
 }
 
-impl Reflectable for HTMLFieldSetElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

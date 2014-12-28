@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupEl
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, HTMLOptionElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{AttributeHandlers, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -99,8 +98,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
     }
 }
 
-impl Reflectable for HTMLOptGroupElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

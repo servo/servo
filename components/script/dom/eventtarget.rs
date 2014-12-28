@@ -72,16 +72,16 @@ pub struct EventListenerEntry {
 
 #[dom_struct]
 pub struct EventTarget {
-    type_id: EventTargetTypeId,
     reflector_: Reflector,
+    type_id: EventTargetTypeId,
     handlers: DOMRefCell<HashMap<DOMString, Vec<EventListenerEntry>, FnvHasher>>,
 }
 
 impl EventTarget {
     pub fn new_inherited(type_id: EventTargetTypeId) -> EventTarget {
         EventTarget {
-            type_id: type_id,
             reflector_: Reflector::new(),
+            type_id: type_id,
             handlers: DOMRefCell::new(HashMap::with_hasher(FnvHasher)),
         }
     }
@@ -298,12 +298,6 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
             return Err(InvalidState);
         }
         Ok(self.dispatch_event(event))
-    }
-}
-
-impl Reflectable for EventTarget {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 

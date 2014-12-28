@@ -16,7 +16,7 @@ use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::str::ByteString;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::document::Document;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
@@ -239,7 +239,6 @@ impl XMLHttpRequest {
                 }
             }
         }
-
 
         macro_rules! notify_error_and_return(
             ($err:expr) => ({
@@ -759,11 +758,6 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     }
 }
 
-impl Reflectable for XMLHttpRequest {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-}
 
 impl XMLHttpRequestDerived for EventTarget {
     fn is_xmlhttprequest(&self) -> bool {

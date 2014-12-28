@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::NodeListBinding;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
 
@@ -19,15 +19,15 @@ pub enum NodeListType {
 
 #[dom_struct]
 pub struct NodeList {
-    list_type: NodeListType,
     reflector_: Reflector,
+    list_type: NodeListType,
 }
 
 impl NodeList {
     fn new_inherited(list_type: NodeListType) -> NodeList {
         NodeList {
-            list_type: list_type,
             reflector_: Reflector::new(),
+            list_type: list_type,
         }
     }
 
@@ -76,8 +76,3 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
     }
 }
 
-impl Reflectable for NodeList {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

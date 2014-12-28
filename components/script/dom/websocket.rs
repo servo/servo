@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::WebSocketBinding::WebSocketMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, JSRef};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use servo_util::str::DOMString;
 
@@ -33,12 +33,6 @@ impl WebSocket {
 
     pub fn Constructor(global: &GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
         Ok(WebSocket::new(*global, url))
-    }
-}
-
-impl Reflectable for WebSocket {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
     }
 }
 

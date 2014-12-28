@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElemen
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId};
 use dom::element::AttributeHandlers;
@@ -117,8 +116,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
     }
 }
 
-impl Reflectable for HTMLObjectElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

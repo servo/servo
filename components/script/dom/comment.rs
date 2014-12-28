@@ -8,7 +8,6 @@ use dom::bindings::codegen::InheritTypes::CommentDerived;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -50,8 +49,3 @@ impl Comment {
     }
 }
 
-impl Reflectable for Comment {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.characterdata.reflector()
-    }
-}

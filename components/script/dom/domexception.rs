@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 
 #[repr(uint)]
@@ -62,15 +62,15 @@ impl DOMErrorName {
 
 #[dom_struct]
 pub struct DOMException {
+    reflector_: Reflector,
     code: DOMErrorName,
-    reflector_: Reflector
 }
 
 impl DOMException {
     fn new_inherited(code: DOMErrorName) -> DOMException {
         DOMException {
+            reflector_: Reflector::new(),
             code: code,
-            reflector_: Reflector::new()
         }
     }
 
@@ -80,12 +80,6 @@ impl DOMException {
 
     pub fn new_from_error(global: GlobalRef, code: Error) -> Temporary<DOMException> {
         DOMException::new(global, DOMErrorName::from_error(code))
-    }
-}
-
-impl Reflectable for DOMException {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 

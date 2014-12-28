@@ -12,7 +12,7 @@ use dom::bindings::js::{JSRef, Temporary, MutHeap};
 use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use servo_util::str::DOMString;
 
@@ -126,10 +126,4 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
         self.error.get()
     }
 
-}
-
-impl Reflectable for ErrorEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event.reflector()
-    }
 }

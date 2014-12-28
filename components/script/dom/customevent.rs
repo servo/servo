@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, MutHeap};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
@@ -73,8 +73,3 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
     }
 }
 
-impl Reflectable for CustomEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event.reflector()
-    }
-}

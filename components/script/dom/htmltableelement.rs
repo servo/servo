@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -55,12 +54,6 @@ impl HTMLTableElement {
                -> Temporary<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
-    }
-}
-
-impl Reflectable for HTMLTableElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
     }
 }
 

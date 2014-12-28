@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::ValidityStateBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
 #[dom_struct]
@@ -29,8 +29,3 @@ impl ValidityState {
     }
 }
 
-impl Reflectable for ValidityState {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

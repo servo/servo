@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMet
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeHandlers, Element, ElementTypeId};
@@ -135,12 +134,6 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
             }
             Err(e) => debug!("Parsing url {:s} failed: {}", href, e)
         }
-    }
-}
-
-impl Reflectable for HTMLLinkElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
     }
 }
 

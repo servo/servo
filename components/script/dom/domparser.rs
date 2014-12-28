@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::FailureUnknown;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::window::Window;
@@ -19,15 +19,15 @@ use servo_util::str::DOMString;
 
 #[dom_struct]
 pub struct DOMParser {
+    reflector_: Reflector,
     window: JS<Window>, //XXXjdm Document instead?
-    reflector_: Reflector
 }
 
 impl DOMParser {
     fn new_inherited(window: JSRef<Window>) -> DOMParser {
         DOMParser {
+            reflector_: Reflector::new(),
             window: JS::from_rooted(window),
-            reflector_: Reflector::new()
         }
     }
 
@@ -74,8 +74,3 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
     }
 }
 
-impl Reflectable for DOMParser {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

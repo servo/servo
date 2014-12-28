@@ -6,7 +6,6 @@ use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableRowElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -51,11 +50,6 @@ impl HTMLTableRowElement {
     }
 }
 
-impl Reflectable for HTMLTableRowElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}
 
 pub trait HTMLTableRowElementHelpers {
     fn get_background_color(&self) -> Option<RGBA>;
@@ -99,4 +93,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableRowElement> {
         }
     }
 }
-

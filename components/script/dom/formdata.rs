@@ -11,7 +11,7 @@ use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
@@ -29,8 +29,8 @@ pub enum FormDatum {
 
 #[dom_struct]
 pub struct FormData {
-    data: DOMRefCell<HashMap<DOMString, Vec<FormDatum>>>,
     reflector_: Reflector,
+    data: DOMRefCell<HashMap<DOMString, Vec<FormDatum>>>,
     global: GlobalField,
     form: Option<JS<HTMLFormElement>>
 }
@@ -38,8 +38,8 @@ pub struct FormData {
 impl FormData {
     fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> FormData {
         FormData {
-            data: DOMRefCell::new(HashMap::new()),
             reflector_: Reflector::new(),
+            data: DOMRefCell::new(HashMap::new()),
             global: GlobalField::from_rooted(global),
             form: form.map(|f| JS::from_rooted(f)),
         }
@@ -104,12 +104,6 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
 
     fn Set_(self, name: DOMString, value: DOMString) {
         self.data.borrow_mut().insert(name, vec!(FormDatum::StringData(value)));
-    }
-}
-
-impl Reflectable for FormData {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 

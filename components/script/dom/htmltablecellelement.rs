@@ -5,7 +5,6 @@
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
 use dom::bindings::js::JSRef;
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -114,8 +113,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
     }
 }
 
-impl Reflectable for HTMLTableCellElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

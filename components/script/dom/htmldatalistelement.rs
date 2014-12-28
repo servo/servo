@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListEl
 use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -57,8 +56,3 @@ impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
     }
 }
 
-impl Reflectable for HTMLDataListElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

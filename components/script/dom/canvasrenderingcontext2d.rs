@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 
 use geom::point::Point2D;
@@ -61,12 +61,6 @@ impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D>
     fn StrokeRect(self, x: f64, y: f64, width: f64, height: f64) {
         let rect = Rect(Point2D(x as f32, y as f32), Size2D(width as f32, height as f32));
         self.renderer.send(StrokeRect(rect));
-    }
-}
-
-impl Reflectable for CanvasRenderingContext2D {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 

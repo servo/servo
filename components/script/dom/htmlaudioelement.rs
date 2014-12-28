@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::HTMLAudioElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLAudioElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -38,8 +37,3 @@ impl HTMLAudioElement {
     }
 }
 
-impl Reflectable for HTMLAudioElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlmediaelement.reflector()
-    }
-}

@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMStringMapBinding::DOMStringMapMethods;
 use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::window_from_node;
 use dom::htmlelement::{HTMLElement, HTMLElementCustomAttributeHelpers};
 use servo_util::str::DOMString;
@@ -64,8 +64,3 @@ impl<'a> DOMStringMapMethods for JSRef<'a, DOMStringMap> {
     }
 }
 
-impl Reflectable for DOMStringMap {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

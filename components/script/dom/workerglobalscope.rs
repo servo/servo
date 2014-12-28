@@ -8,7 +8,7 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{Syntax, Network, FailureUnknown};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::Reflectable;
 use dom::console::Console;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::workerlocation::WorkerLocation;
@@ -186,8 +186,3 @@ impl<'a> WorkerGlobalScopeHelpers for JSRef<'a, WorkerGlobalScope> {
 
 }
 
-impl Reflectable for WorkerGlobalScope {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-}

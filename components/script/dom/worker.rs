@@ -11,7 +11,7 @@ use dom::bindings::error::Error::{Syntax, DataClone};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
@@ -153,8 +153,3 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
     event_handler!(message, GetOnmessage, SetOnmessage)
 }
 
-impl Reflectable for Worker {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-}
