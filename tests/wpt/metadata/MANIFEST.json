@@ -1076,13 +1076,43 @@
         "url": "/content-security-policy/generic/wildcardPortTestSuceeds.js"
       },
       {
+        "url": "/content-security-policy/img-src/img-src-4_1.html.sub.headers"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_1.html.sub.headers"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_1_2.html.sub.headers"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_2.html.sub.headers"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_2_2.html.sub.headers"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_3.html.sub.headers"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_3_2.html.sub.headers"
+      },
+      {
         "url": "/content-security-policy/object-src/object-src-2_1.html.sub.headers"
       },
       {
         "url": "/content-security-policy/object-src/object-src-2_2.html.sub.headers"
       },
       {
+        "url": "/content-security-policy/script-src/10_1_support_1.js"
+      },
+      {
+        "url": "/content-security-policy/script-src/10_1_support_2.js"
+      },
+      {
         "url": "/content-security-policy/script-src/addInlineTestsWithDOMManipulation.js"
+      },
+      {
+        "url": "/content-security-policy/script-src/buildInlineWorker.js"
       },
       {
         "url": "/content-security-policy/script-src/inlineSuccessTest.js"
@@ -1094,6 +1124,12 @@
         "url": "/content-security-policy/script-src/script-src-1_1.html.sub.headers"
       },
       {
+        "url": "/content-security-policy/script-src/script-src-1_10.html.sub.headers"
+      },
+      {
+        "url": "/content-security-policy/script-src/script-src-1_10_1.html.sub.headers"
+      },
+      {
         "url": "/content-security-policy/script-src/script-src-1_2_1.html.sub.headers"
       },
       {
@@ -1103,10 +1139,19 @@
         "url": "/content-security-policy/script-src/script-src-1_4.html.sub.headers"
       },
       {
+        "url": "/content-security-policy/script-src/script-src-1_9.html.sub.headers"
+      },
+      {
+        "url": "/content-security-policy/style-src/3_3.css"
+      },
+      {
         "url": "/content-security-policy/style-src/style-src-3_1.html.sub.headers"
       },
       {
         "url": "/content-security-policy/style-src/style-src-3_2.html.sub.headers"
+      },
+      {
+        "url": "/content-security-policy/style-src/style-src-3_3.html.sub.headers"
       },
       {
         "url": "/content-security-policy/style-src/style-src-3_4-import.css"
@@ -1121,7 +1166,13 @@
         "url": "/content-security-policy/support/checkReport.sub.js"
       },
       {
+        "url": "/content-security-policy/support/fail.png"
+      },
+      {
         "url": "/content-security-policy/support/media/flash.swf"
+      },
+      {
+        "url": "/content-security-policy/support/pass.png"
       },
       {
         "url": "/content-security-policy/support/report.py"
@@ -2670,6 +2721,12 @@
       },
       {
         "url": "/media/A4.ogv"
+      },
+      {
+        "url": "/media/foo.vtt"
+      },
+      {
+        "url": "/media/foo.vtt.headers"
       },
       {
         "url": "/media/green-at-15.mp4"
@@ -4372,6 +4429,18 @@
         "url": "/battery-status/battery-unplugged-manual.html"
       },
       {
+        "url": "/gamepad/events-manual.html"
+      },
+      {
+        "url": "/gamepad/getgamepads-polling-manual.html"
+      },
+      {
+        "url": "/gamepad/idlharness-manual.html"
+      },
+      {
+        "url": "/gamepad/timestamp-manual.html"
+      },
+      {
         "url": "/geolocation-API/getCurrentPosition_permission-manual.html"
       },
       {
@@ -5018,6 +5087,9 @@
       },
       {
         "url": "/pointerevents/pointerevent_touch-action-table-test_touch-manual.html"
+      },
+      {
+        "url": "/quirks-mode/active-and-hover-manual.html"
       },
       {
         "url": "/touch-events/multi-touch-interactions-manual.html"
@@ -5694,6 +5766,26 @@
         "ref_type": "==",
         "ref_url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element-ref.html",
         "url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element.html"
+      },
+      {
+        "ref_type": "==",
+        "ref_url": "/quirks-mode/font-element-text-decoration-color/001-ref.html",
+        "url": "/quirks-mode/font-element-text-decoration-color/001-a.html"
+      },
+      {
+        "ref_type": "==",
+        "ref_url": "/quirks-mode/font-element-text-decoration-color/001-ref.html",
+        "url": "/quirks-mode/font-element-text-decoration-color/001-q.html"
+      },
+      {
+        "ref_type": "==",
+        "ref_url": "/quirks-mode/font-element-text-decoration-color/001-ref.html",
+        "url": "/quirks-mode/font-element-text-decoration-color/001-s.html"
+      },
+      {
+        "ref_type": "==",
+        "ref_url": "/quirks-mode/font-element-text-decoration-color/001-ref.html",
+        "url": "/quirks-mode/font-element-text-decoration-color/001-x.xhtml"
       },
       {
         "ref_type": "==",
@@ -10637,6 +10729,27 @@
         "url": "/content-security-policy/generic/generic-0_9.sub.html"
       },
       {
+        "url": "/content-security-policy/img-src/img-src-4_1.html"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_1.html"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_1_2.html"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_2.html"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_2_2.html"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_3.html"
+      },
+      {
+        "url": "/content-security-policy/media-src/media-src-7_3_2.html"
+      },
+      {
         "url": "/content-security-policy/object-src/object-src-2_1.html"
       },
       {
@@ -10644,6 +10757,12 @@
       },
       {
         "url": "/content-security-policy/script-src/script-src-1_1.html"
+      },
+      {
+        "url": "/content-security-policy/script-src/script-src-1_10.html"
+      },
+      {
+        "url": "/content-security-policy/script-src/script-src-1_10_1.html"
       },
       {
         "url": "/content-security-policy/script-src/script-src-1_2_1.html"
@@ -10655,10 +10774,16 @@
         "url": "/content-security-policy/script-src/script-src-1_4.html"
       },
       {
+        "url": "/content-security-policy/script-src/script-src-1_9.html"
+      },
+      {
         "url": "/content-security-policy/style-src/style-src-3_1.html"
       },
       {
         "url": "/content-security-policy/style-src/style-src-3_2.html"
+      },
+      {
+        "url": "/content-security-policy/style-src/style-src-3_3.html"
       },
       {
         "url": "/content-security-policy/style-src/style-src-3_4.html"
@@ -11637,6 +11762,9 @@
       },
       {
         "url": "/ext-xhtml-pubid/the-xhtml-syntax/parsing-xhtml-documents/xhtml-pubid-1.html"
+      },
+      {
+        "url": "/gamepad/idlharness.html"
       },
       {
         "url": "/geolocation-API/PositionOptions.html"
@@ -13524,6 +13652,9 @@
       },
       {
         "url": "/html/semantics/forms/constraints/inputwillvalidate.html"
+      },
+      {
+        "url": "/html/semantics/forms/form-control-infrastructure/form.html"
       },
       {
         "url": "/html/semantics/forms/resetting-a-form/reset-form.html"
@@ -15671,6 +15802,12 @@
         "url": "/web-animations/animation-node/idlharness.html"
       },
       {
+        "url": "/web-animations/animation-timeline/animation-timeline.html"
+      },
+      {
+        "url": "/web-animations/animation-timeline/idlharness.html"
+      },
+      {
         "url": "/webaudio/the-audio-api/the-audiobuffer-interface/idl-test.html"
       },
       {
@@ -17766,6 +17903,6 @@
     "deleted": [],
     "items": {}
   },
-  "rev": "5bff693a497f200800d6d0dd6e3cc3556cc00bbe",
+  "rev": "b646eda81238531b7f664cb6479131f9835425ca",
   "url_base": "/"
 }
