@@ -35,7 +35,8 @@ pub enum Error {
     Network,
     Abort,
     Timeout,
-    DataClone
+    DataClone,
+    NoModificationAllowedError
 }
 
 /// The return type for IDL operations that can throw DOM exceptions.

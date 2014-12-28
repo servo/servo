@@ -24,6 +24,7 @@ interface CSSStyleDeclaration {
   [Throws]
   void setPropertyPriority(DOMString property, [TreatNullAs=EmptyString] DOMString priority);
 
+  [Throws]
   DOMString removeProperty(DOMString property);
   //readonly attribute CSSRule? parentRule;
   [SetterThrows]
