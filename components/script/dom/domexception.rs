@@ -55,6 +55,7 @@ impl DOMErrorName {
             Error::Abort => DOMErrorName::AbortError,
             Error::Timeout => DOMErrorName::TimeoutError,
             Error::DataClone => DOMErrorName::DataCloneError,
+            Error::NoModificationAllowedError => DOMErrorName::NoModificationAllowedError,
             Error::FailureUnknown => panic!(),
         }
     }
