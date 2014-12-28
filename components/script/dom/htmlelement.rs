@@ -16,7 +16,7 @@ use dom::bindings::js::{JSRef, Temporary, MutNullableJS};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::error::Error::Syntax;
 use dom::bindings::utils::Reflectable;
-use dom::cssstyledeclaration::CSSStyleDeclaration;
+use dom::cssstyledeclaration::{CSSStyleDeclaration, CSSModificationAccess};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers, AttributeHandlers};
@@ -78,7 +78,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn Style(self) -> Temporary<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self).root();
-            CSSStyleDeclaration::new(*global, self)
+            CSSStyleDeclaration::new(*global, self, CSSModificationAccess::ReadWrite)
         })
     }
 

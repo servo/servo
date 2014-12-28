@@ -4,7 +4,9 @@
 
 use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::{mod, CSSStyleDeclarationMethods};
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
+use dom::bindings::error::Error;
 use dom::bindings::error::ErrorResult;
+use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, OptionalRootedRootable, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
@@ -24,6 +26,13 @@ use std::ascii::AsciiExt;
 pub struct CSSStyleDeclaration {
     reflector_: Reflector,
     owner: JS<HTMLElement>,
+    readonly: bool,
+}
+
+#[deriving(PartialEq)]
+pub enum CSSModificationAccess {
+    ReadWrite,
+    Readonly
 }
 
 macro_rules! css_properties(
@@ -53,15 +62,16 @@ fn serialize_value(declaration: &PropertyDeclaration) -> DOMString {
 }
 
 impl CSSStyleDeclaration {
-    pub fn new_inherited(owner: JSRef<HTMLElement>) -> CSSStyleDeclaration {
+    pub fn new_inherited(owner: JSRef<HTMLElement>, modification_access: CSSModificationAccess) -> CSSStyleDeclaration {
         CSSStyleDeclaration {
             reflector_: Reflector::new(),
             owner: JS::from_rooted(owner),
+            readonly: modification_access == CSSModificationAccess::Readonly,
         }
     }
 
-    pub fn new(global: JSRef<Window>, owner: JSRef<HTMLElement>) -> Temporary<CSSStyleDeclaration> {
-        reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner),
+    pub fn new(global: JSRef<Window>, owner: JSRef<HTMLElement>, modification_access: CSSModificationAccess) -> Temporary<CSSStyleDeclaration> {
+        reflect_dom_object(box CSSStyleDeclaration::new_inherited(owner, modification_access),
                            GlobalRef::Window(global),
                            CSSStyleDeclarationBinding::Wrap)
     }
@@ -178,7 +188,10 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
     fn SetProperty(self, property: DOMString, value: DOMString,
                    priority: DOMString) -> ErrorResult {
-        //TODO: disallow modifications if readonly flag is set
+        // Step 1
+        if self.readonly {
+            return Err(Error::NoModificationAllowedError);
+        }
 
         // Step 2
         let property = property.as_slice().to_ascii_lower();
@@ -190,8 +203,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
         // Step 4
         if value.is_empty() {
-            self.RemoveProperty(property);
-            return Ok(());
+            return self.RemoveProperty(property).map(|_| ());
         }
 
         // Step 5
@@ -234,7 +246,10 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertypriority
     fn SetPropertyPriority(self, property: DOMString, priority: DOMString) -> ErrorResult {
-        //TODO: disallow modifications if readonly flag is set
+        // Step 1
+        if self.readonly {
+            return Err(Error::NoModificationAllowedError);
+        }
 
         // Step 2
         let property = property.as_slice().to_ascii_lower();
@@ -276,8 +291,11 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
-    fn RemoveProperty(self, property: DOMString) -> DOMString {
-        //TODO: disallow modifications if readonly flag is set
+    fn RemoveProperty(self, property: DOMString) -> Fallible<DOMString> {
+        // Step 1
+        if self.readonly {
+            return Err(Error::NoModificationAllowedError);
+        }
 
         // Step 2
         let property = property.as_slice().to_ascii_lower();
@@ -290,7 +308,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
             Some(longhands) => {
                 // Step 4
                 for longhand in longhands.iter() {
-                    self.RemoveProperty(longhand.clone());
+                    try!(self.RemoveProperty(longhand.clone()));
                 }
             }
 
@@ -303,7 +321,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 6
-        value
+        Ok(value)
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
