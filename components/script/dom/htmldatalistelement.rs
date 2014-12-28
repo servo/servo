@@ -8,10 +8,11 @@ use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, HTMLOptio
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId};
+use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use servo_util::str::DOMString;
 
@@ -22,14 +23,14 @@ pub struct HTMLDataListElement {
 
 impl HTMLDataListElementDerived for EventTarget {
     fn is_htmldatalistelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLDataListElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement)))
     }
 }
 
 impl HTMLDataListElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLDataListElement {
         HTMLDataListElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLDataListElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDataListElement, localName, prefix, document)
         }
     }
 

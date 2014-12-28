@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLPreElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLPreElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLPreElement {
 
 impl HTMLPreElementDerived for EventTarget {
     fn is_htmlpreelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLPreElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLPreElement)))
     }
 }
 
 impl HTMLPreElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLPreElement {
         HTMLPreElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLPreElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLPreElement, localName, prefix, document)
         }
     }
 

@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLSpanElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSpanElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLSpanElement {
 
 impl HTMLSpanElementDerived for EventTarget {
     fn is_htmlspanelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLSpanElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSpanElement)))
     }
 }
 
 impl HTMLSpanElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLSpanElement {
         HTMLSpanElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLSpanElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLSpanElement, localName, prefix, document)
         }
     }
 

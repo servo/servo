@@ -39,7 +39,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
-use dom::htmlelement::HTMLElement;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
@@ -764,7 +764,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.GetDocumentElement().root().map(|root| {
             let root: JSRef<Node> = NodeCast::from_ref(*root);
             root.traverse_preorder()
-                .find(|node| node.type_id() == NodeTypeId::Element(ElementTypeId::HTMLTitleElement))
+                .find(|node| node.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
                 .map(|title_elem| {
                     for text in title_elem.children().filter_map::<JSRef<Text>>(TextCast::to_ref) {
                         title.push_str(text.characterdata().data().as_slice());
@@ -780,11 +780,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.GetDocumentElement().root().map(|root| {
             let root: JSRef<Node> = NodeCast::from_ref(*root);
             let head_node = root.traverse_preorder().find(|child| {
-                child.type_id() == NodeTypeId::Element(ElementTypeId::HTMLHeadElement)
+                child.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement))
             });
             head_node.map(|head| {
                 let title_node = head.children().find(|child| {
-                    child.type_id() == NodeTypeId::Element(ElementTypeId::HTMLTitleElement)
+                    child.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement))
                 });
 
                 match title_node {
@@ -829,8 +829,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let node: JSRef<Node> = NodeCast::from_ref(*root);
             node.children().find(|child| {
                 match child.type_id() {
-                    NodeTypeId::Element(ElementTypeId::HTMLBodyElement) |
-                    NodeTypeId::Element(ElementTypeId::HTMLFrameSetElement) => true,
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => true,
                     _ => false
                 }
             }).map(|node| {
@@ -849,8 +849,8 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
         let node: JSRef<Node> = NodeCast::from_ref(new_body);
         match node.type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLBodyElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLFrameSetElement) => {}
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => {}
             _ => return Err(HierarchyRequest)
         }
 

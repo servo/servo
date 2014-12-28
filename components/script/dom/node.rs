@@ -36,6 +36,7 @@ use dom::documenttype::DocumentType;
 use dom::element::{AttributeHandlers, Element, ElementCreator, ElementTypeId};
 use dom::element::ElementHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::htmlelement::HTMLElementTypeId;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
@@ -154,14 +155,14 @@ impl NodeFlags {
         match type_id {
             NodeTypeId::Document => IS_IN_DOC | dirty,
             // The following elements are enabled by default.
-            NodeTypeId::Element(ElementTypeId::HTMLButtonElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLInputElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLSelectElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLOptGroupElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLOptionElement) |
-            //NodeTypeId::Element(ElementTypeId::HTMLMenuItemElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLFieldSetElement) => IN_ENABLED_STATE | dirty,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) |
+            //NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMenuItemElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => IN_ENABLED_STATE | dirty,
             _ => dirty,
         }
     }
@@ -554,7 +555,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     #[inline]
     fn is_anchor_element(self) -> bool {
-        self.type_id == NodeTypeId::Element(ElementTypeId::HTMLAnchorElement)
+        self.type_id == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement))
     }
 
     #[inline]

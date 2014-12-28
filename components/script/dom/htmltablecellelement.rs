@@ -6,9 +6,9 @@ use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
 use dom::bindings::js::JSRef;
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::NodeTypeId;
 use dom::virtualmethods::VirtualMethods;
 
@@ -27,15 +27,15 @@ pub struct HTMLTableCellElement {
 impl HTMLTableCellElementDerived for EventTarget {
     fn is_htmltablecellelement(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableDataCellElement)) |
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableHeaderCellElement)) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableDataCellElement))) |
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableHeaderCellElement))) => true,
             _ => false
         }
     }
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(type_id: ElementTypeId,
+    pub fn new_inherited(type_id: HTMLElementTypeId,
                          tag_name: DOMString,
                          prefix: Option<DOMString>,
                          document: JSRef<Document>)

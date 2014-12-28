@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLabelElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLLabelElement {
 
 impl HTMLLabelElementDerived for EventTarget {
     fn is_htmllabelelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLLabelElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)))
     }
 }
 
 impl HTMLLabelElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLabelElement {
         HTMLLabelElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLLabelElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLLabelElement, localName, prefix, document)
         }
     }
 

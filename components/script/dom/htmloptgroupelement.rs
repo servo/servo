@@ -10,9 +10,10 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLOptGroupElementDerived, HTMLOptionElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, ElementTypeId};
+use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
@@ -26,14 +27,14 @@ pub struct HTMLOptGroupElement {
 
 impl HTMLOptGroupElementDerived for EventTarget {
     fn is_htmloptgroupelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLOptGroupElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)))
     }
 }
 
 impl HTMLOptGroupElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLOptGroupElement {
         HTMLOptGroupElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLOptGroupElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLOptGroupElement, localName, prefix, document)
         }
     }
 

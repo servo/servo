@@ -6,8 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLTableDataCellElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTableDataCellElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
+use dom::element::ElementTypeId;
+use dom::htmlelement::HTMLElementTypeId;
 use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
@@ -19,14 +20,14 @@ pub struct HTMLTableDataCellElement {
 
 impl HTMLTableDataCellElementDerived for EventTarget {
     fn is_htmltabledatacellelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableDataCellElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableDataCellElement)))
     }
 }
 
 impl HTMLTableDataCellElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTableDataCellElement {
         HTMLTableDataCellElement {
-            htmltablecellelement: HTMLTableCellElement::new_inherited(ElementTypeId::HTMLTableDataCellElement, localName, prefix, document)
+            htmltablecellelement: HTMLTableCellElement::new_inherited(HTMLElementTypeId::HTMLTableDataCellElement, localName, prefix, document)
         }
     }
 

@@ -11,10 +11,11 @@ use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId};
+use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -33,14 +34,14 @@ pub struct HTMLObjectElement {
 
 impl HTMLObjectElementDerived for EventTarget {
     fn is_htmlobjectelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLObjectElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)))
     }
 }
 
 impl HTMLObjectElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLObjectElement {
         HTMLObjectElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLObjectElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLObjectElement, localName, prefix, document),
         }
     }
 

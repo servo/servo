@@ -13,10 +13,11 @@ use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaEle
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, AttributeHandlers, ElementTypeId};
+use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
@@ -39,14 +40,14 @@ pub struct HTMLFormElement {
 
 impl HTMLFormElementDerived for EventTarget {
     fn is_htmlformelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLFormElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFormElement)))
     }
 }
 
 impl HTMLFormElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFormElement {
         HTMLFormElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLFormElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFormElement, localName, prefix, document),
             marked_for_reset: Cell::new(false),
         }
     }
@@ -247,12 +248,12 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
             if child.get_disabled_state() {
                 return None;
             }
-            if child.ancestors().any(|a| a.type_id() == NodeTypeId::Element(ElementTypeId::HTMLDataListElement)) {
+            if child.ancestors().any(|a| a.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement))) {
                 return None;
             }
             // XXXManishearth don't include it if it is a button but not the submitter
             match child.type_id() {
-                NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                     let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child).unwrap();
                     let ty = input.Type();
                     let name = input.Name();
@@ -299,19 +300,19 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                         })
                     }
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLButtonElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
                     // Unimplemented
                     None
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLSelectElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
                     // Unimplemented
                     None
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLObjectElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
                     // Unimplemented
                     None
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
                     // Unimplemented
                     None
                 }
@@ -358,26 +359,26 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         //       by the form, but good enough until html5ever lands
         for child in node.traverse_preorder() {
             match child.type_id() {
-                NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                     let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child)
                                                                                .unwrap();
                     input.reset()
                 }
                 // TODO HTMLKeygenElement unimplemented
-                //NodeTypeId::Element(ElementTypeId::HTMLKeygenElement) => {
+                //NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLKeygenElement)) => {
                 //    // Unimplemented
                 //    {}
                 //}
-                NodeTypeId::Element(ElementTypeId::HTMLSelectElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
                     // Unimplemented
                     {}
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
                     let textarea: JSRef<HTMLTextAreaElement> = HTMLTextAreaElementCast::to_ref(child)
                                                                                         .unwrap();
                     textarea.reset()
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLOutputElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
                     // Unimplemented
                     {}
                 }

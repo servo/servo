@@ -9,9 +9,9 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDeri
 use dom::bindings::codegen::InheritTypes::{TextCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
@@ -24,14 +24,14 @@ pub struct HTMLTitleElement {
 
 impl HTMLTitleElementDerived for EventTarget {
     fn is_htmltitleelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTitleElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
     }
 }
 
 impl HTMLTitleElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTitleElement {
         HTMLTitleElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTitleElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTitleElement, localName, prefix, document)
         }
     }
 

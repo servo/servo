@@ -9,6 +9,7 @@ use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlmediaelement::HTMLMediaElement;
+use dom::htmlelement::HTMLElementTypeId;
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +20,14 @@ pub struct HTMLAudioElement {
 
 impl HTMLAudioElementDerived for EventTarget {
     fn is_htmlaudioelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLAudioElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAudioElement)))
     }
 }
 
 impl HTMLAudioElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAudioElement {
         HTMLAudioElement {
-            htmlmediaelement: HTMLMediaElement::new_inherited(ElementTypeId::HTMLAudioElement, localName, prefix, document)
+            htmlmediaelement: HTMLMediaElement::new_inherited(HTMLElementTypeId::HTMLAudioElement, localName, prefix, document)
         }
     }
 

@@ -5,9 +5,9 @@
 use dom::bindings::js::{JSRef};
 use dom::bindings::codegen::InheritTypes::HTMLMediaElementDerived;
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::NodeTypeId;
 use servo_util::str::DOMString;
 
@@ -19,15 +19,15 @@ pub struct HTMLMediaElement {
 impl HTMLMediaElementDerived for EventTarget {
     fn is_htmlmediaelement(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLVideoElement)) |
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLAudioElement)) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLVideoElement))) |
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAudioElement))) => true,
             _ => false
         }
     }
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMediaElement {
+    pub fn new_inherited(type_id: HTMLElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMediaElement {
         HTMLMediaElement {
             htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document)
         }

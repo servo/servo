@@ -8,7 +8,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLDirectoryElement {
 
 impl HTMLDirectoryElementDerived for EventTarget {
     fn is_htmldirectoryelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLDirectoryElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDirectoryElement)))
     }
 }
 
 impl HTMLDirectoryElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLDirectoryElement {
         HTMLDirectoryElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLDirectoryElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDirectoryElement, localName, prefix, document)
         }
     }
 
