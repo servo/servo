@@ -247,14 +247,7 @@ impl ToJSValConvertible for str {
 
 impl ToJSValConvertible for DOMString {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        unsafe {
-            let string_utf16: Vec<u16> = self.as_slice().utf16_units().collect();
-            let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr(), string_utf16.len() as libc::size_t);
-            if jsstr.is_null() {
-                panic!("JS_NewUCStringCopyN failed");
-            }
-            StringValue(&*jsstr)
-        }
+        self.as_slice().to_jsval(cx)
     }
 }
 
