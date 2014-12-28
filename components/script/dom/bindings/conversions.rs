@@ -44,7 +44,7 @@ pub trait IDLInterface {
 }
 
 /// A trait to convert Rust types to `JSVal`s.
-pub trait ToJSValConvertible {
+pub trait ToJSValConvertible for Sized? {
     /// Convert `self` to a `JSVal`. JSAPI failure causes a task failure.
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal;
 }
@@ -229,6 +229,19 @@ impl ToJSValConvertible for f64 {
 impl FromJSValConvertible<()> for f64 {
     fn from_jsval(cx: *mut JSContext, val: JSVal, _option: ()) -> Result<f64, ()> {
         unsafe { convert_from_jsval(cx, val, JS_ValueToNumber) }
+    }
+}
+
+impl ToJSValConvertible for str {
+    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
+        unsafe {
+            let string_utf16: Vec<u16> = self.utf16_units().collect();
+            let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr(), string_utf16.len() as libc::size_t);
+            if jsstr.is_null() {
+                panic!("JS_NewUCStringCopyN failed");
+            }
+            StringValue(&*jsstr)
+        }
     }
 }
 
