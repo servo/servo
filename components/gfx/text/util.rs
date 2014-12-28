@@ -144,155 +144,106 @@ fn test_true_type_tag() {
 
 #[test]
 fn test_transform_compress_none() {
-    let test_strs = vec!(
+    let test_strs = [
         "  foo bar",
         "foo bar  ",
         "foo\n bar",
         "foo \nbar",
         "  foo  bar  \nbaz",
         "foo bar baz",
-        "foobarbaz\n\n"
-    );
-    let mode = CompressionMode::CompressNone;
+        "foobarbaz\n\n",
+    ];
 
-    for test in test_strs.iter() {
-        let mut new_line_pos = vec!();
+    let mode = CompressionMode::CompressNone;
+    for &test in test_strs.iter() {
+        let mut new_line_pos = vec![];
         let mut trimmed_str = String::new();
-        transform_text(*test, mode, true, &mut trimmed_str, &mut new_line_pos);
-        assert_eq!(trimmed_str.as_slice(), *test)
+        transform_text(test, mode, true, &mut trimmed_str, &mut new_line_pos);
+        assert_eq!(trimmed_str.as_slice(), test)
     }
 }
 
 #[test]
 fn test_transform_discard_newline() {
-    let test_strs = vec!(
-        "  foo bar",
-        "foo bar  ",
-        "foo\n bar",
-        "foo \nbar",
-        "  foo  bar  \nbaz",
-        "foo bar baz",
-        "foobarbaz\n\n"
-    );
+    let test_strs = [
+        ("  foo bar",         "  foo bar"),
+        ("foo bar  ",         "foo bar  "),
+        ("foo\n bar",         "foo bar"),
+        ("foo \nbar",         "foo bar"),
+        ("  foo  bar  \nbaz", "  foo  bar  baz"),
+        ("foo bar baz",       "foo bar baz"),
+        ("foobarbaz\n\n",     "foobarbaz"),
+    ];
 
-    let oracle_strs = vec!(
-        "  foo bar",
-        "foo bar  ",
-        "foo bar",
-        "foo bar",
-        "  foo  bar  baz",
-        "foo bar baz",
-        "foobarbaz"
-    );
-
-    assert_eq!(test_strs.len(), oracle_strs.len());
     let mode = CompressionMode::DiscardNewline;
-
-    for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
-        let mut new_line_pos = vec!();
+    for &(test, oracle) in test_strs.iter() {
+        let mut new_line_pos = vec![];
         let mut trimmed_str = String::new();
-        transform_text(*test, mode, true, &mut trimmed_str, &mut new_line_pos);
-        assert_eq!(trimmed_str.as_slice(), *oracle)
+        transform_text(test, mode, true, &mut trimmed_str, &mut new_line_pos);
+        assert_eq!(trimmed_str.as_slice(), oracle)
     }
 }
 
 #[test]
 fn test_transform_compress_whitespace() {
-    let test_strs = vec![
-        "  foo bar",
-        "foo bar  ",
-        "foo\n bar",
-        "foo \nbar",
-        "  foo  bar  \nbaz",
-        "foo bar baz",
-        "foobarbaz\n\n",
+    let test_strs = [
+        ("  foo bar",          "foo bar"),
+        ("foo bar  ",          "foo bar "),
+        ("foo\n bar",          "foo\n bar"),
+        ("foo \nbar",          "foo \nbar"),
+        ("  foo  bar  \nbaz",  "foo bar \nbaz"),
+        ("foo bar baz",        "foo bar baz"),
+        ("foobarbaz\n\n",      "foobarbaz\n\n"),
     ];
 
-    let oracle_strs = vec![
-        "foo bar",
-        "foo bar ",
-        "foo\n bar",
-        "foo \nbar",
-        "foo bar \nbaz",
-        "foo bar baz",
-        "foobarbaz\n\n",
-    ];
-
-    assert_eq!(test_strs.len(), oracle_strs.len());
     let mode = CompressionMode::CompressWhitespace;
-
-    for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
+    for &(test, oracle) in test_strs.iter() {
         let mut new_line_pos = vec![];
         let mut trimmed_str = String::new();
-        transform_text(*test, mode, true, &mut trimmed_str, &mut new_line_pos);
-        assert_eq!(&*trimmed_str, *oracle)
+        transform_text(test, mode, true, &mut trimmed_str, &mut new_line_pos);
+        assert_eq!(&*trimmed_str, oracle)
     }
 }
 
 #[test]
 fn test_transform_compress_whitespace_newline() {
     let test_strs = vec![
-        "  foo bar",
-        "foo bar  ",
-        "foo\n bar",
-        "foo \nbar",
-        "  foo  bar  \nbaz",
-        "foo bar baz",
-        "foobarbaz\n\n"
+        ("  foo bar",         "foo bar"),
+        ("foo bar  ",         "foo bar "),
+        ("foo\n bar",         "foo bar"),
+        ("foo \nbar",         "foo bar"),
+        ("  foo  bar  \nbaz", "foo bar baz"),
+        ("foo bar baz",       "foo bar baz"),
+        ("foobarbaz\n\n",     "foobarbaz "),
     ];
 
-    let oracle_strs = vec![
-        "foo bar",
-        "foo bar ",
-        "foo bar",
-        "foo bar",
-        "foo bar baz",
-        "foo bar baz",
-        "foobarbaz "
-    ];
-
-    assert_eq!(test_strs.len(), oracle_strs.len());
     let mode = CompressionMode::CompressWhitespaceNewline;
-
-    for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
+    for &(test, oracle) in test_strs.iter() {
         let mut new_line_pos = vec![];
         let mut trimmed_str = String::new();
-        transform_text(*test, mode, true, &mut trimmed_str, &mut new_line_pos);
-        assert_eq!(&*trimmed_str, *oracle)
+        transform_text(test, mode, true, &mut trimmed_str, &mut new_line_pos);
+        assert_eq!(&*trimmed_str, oracle)
     }
 }
 
 #[test]
 fn test_transform_compress_whitespace_newline_no_incoming() {
-    let test_strs = vec!(
-        "  foo bar",
-        "\nfoo bar",
-        "foo bar  ",
-        "foo\n bar",
-        "foo \nbar",
-        "  foo  bar  \nbaz",
-        "foo bar baz",
-        "foobarbaz\n\n"
-    );
+    let test_strs = [
+        ("  foo bar",         " foo bar"),
+        ("\nfoo bar",         " foo bar"),
+        ("foo bar  ",         "foo bar "),
+        ("foo\n bar",         "foo bar"),
+        ("foo \nbar",         "foo bar"),
+        ("  foo  bar  \nbaz", " foo bar baz"),
+        ("foo bar baz",       "foo bar baz"),
+        ("foobarbaz\n\n",     "foobarbaz "),
+    ];
 
-    let oracle_strs = vec!(
-        " foo bar",
-        " foo bar",
-        "foo bar ",
-        "foo bar",
-        "foo bar",
-        " foo bar baz",
-        "foo bar baz",
-        "foobarbaz "
-    );
-
-    assert_eq!(test_strs.len(), oracle_strs.len());
     let mode = CompressionMode::CompressWhitespaceNewline;
-
-    for (test, oracle) in test_strs.iter().zip(oracle_strs.iter()) {
-        let mut new_line_pos = vec!();
+    for &(test, oracle) in test_strs.iter() {
+        let mut new_line_pos = vec![];
         let mut trimmed_str = String::new();
-        transform_text(*test, mode, false, &mut trimmed_str, &mut new_line_pos);
-        assert_eq!(trimmed_str.as_slice(), *oracle)
+        transform_text(test, mode, false, &mut trimmed_str, &mut new_line_pos);
+        assert_eq!(trimmed_str.as_slice(), oracle)
     }
 }
