@@ -52,52 +52,6 @@ pub fn plugin_registrar(reg: &mut Registry) {
 
 
 #[macro_export]
-macro_rules! define_css_keyword_enum {
-    ($name: ident: $( $css: expr => $variant: ident ),+,) => {
-        define_css_keyword_enum!($name: $( $css => $variant ),+)
-    };
-    ($name: ident: $( $css: expr => $variant: ident ),+) => {
-        #[allow(non_camel_case_types)]
-        #[deriving(Clone, Eq, PartialEq, FromPrimitive)]
-        pub enum $name {
-            $( $variant ),+
-        }
-
-        impl $name {
-            pub fn parse(component_value: &::cssparser::ast::ComponentValue) -> Result<$name, ()> {
-                match component_value {
-                    &::cssparser::ast::Ident(ref value) => {
-                        match_ignore_ascii_case! { value:
-                            $( $css => Ok($name::$variant) ),+
-                            _ => Err(())
-                        }
-                    }
-                    _ => Err(())
-                }
-            }
-        }
-
-        impl ::std::fmt::Show for $name {
-            #[inline]
-            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-                use cssparser::ToCss;
-                self.fmt_to_css(f)
-            }
-        }
-
-        impl ::cssparser::ToCss for $name {
-            fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
-            where W: ::text_writer::TextWriter {
-                match self {
-                    $( &$name::$variant => dest.write_str($css) ),+
-                }
-            }
-        }
-    }
-}
-
-
-#[macro_export]
 macro_rules! match_ignore_ascii_case {
     ( $value: expr: $( $string: expr => $result: expr ),+ _ => $fallback: expr, ) => {
         match_ignore_ascii_case! { $value:
