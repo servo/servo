@@ -1107,14 +1107,14 @@ impl ScriptTask {
                         node::from_untrusted_node_address(
                             self.js_runtime.ptr, node_address).root();
 
-                let maybe_node = if !temp_node.is_element() {
-                    temp_node.ancestors().find(|node| node.is_element())
-                } else {
-                    Some(*temp_node)
+                let maybe_node = match ElementCast::to_ref(*temp_node) {
+                    Some(element) => Some(element),
+                    None => temp_node.ancestors().filter_map(ElementCast::to_ref).next(),
                 };
 
                 match maybe_node {
-                    Some(node) => {
+                    Some(el) => {
+                        let node = NodeCast::from_ref(el);
                         debug!("clicked on {:s}", node.debug_str());
                         // Prevent click event if form control element is disabled.
                         if node.click_event_filter_by_disabled_state() { return; }
@@ -1132,7 +1132,6 @@ impl ScriptTask {
                                 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
                                 event.set_trusted(true);
                                 // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
-                                let el = ElementCast::to_ref(node).unwrap(); // is_element() check already exists above
                                 el.authentic_click_activation(*event);
 
                                 doc.commit_focus_transaction();
