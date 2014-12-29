@@ -168,7 +168,7 @@ pub fn parse_style_rule(context: &ParserContext,
         block
     } = rule;
     // FIXME: avoid doing this for valid selectors
-    let serialized = prelude.iter().to_css();
+    let serialized = prelude.to_css_string();
     match selectors::parse_selector_list(context, prelude.into_iter(), namespaces) {
         Ok(selectors) => parent_rules.push(CSSRule::Style(StyleRule{
             selectors: selectors,

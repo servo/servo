@@ -18,6 +18,7 @@ extern crate collections;
 extern crate geom;
 extern crate serialize;
 extern crate sync;
+extern crate text_writer;
 extern crate url;
 
 extern crate cssparser;
@@ -26,6 +27,9 @@ extern crate string_cache;
 
 #[phase(plugin)]
 extern crate string_cache_macros;
+
+#[phase(plugin)]
+extern crate plugins;
 
 #[phase(plugin)]
 extern crate lazy_static;

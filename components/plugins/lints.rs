@@ -104,8 +104,8 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
 // Determines if a block is in an unsafe context so that an unhelpful
 // lint can be aborted.
 fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
-    match map.get(map.get_parent(id)) {
-        ast_map::NodeImplItem(itm) => {
+    match map.find(map.get_parent(id)) {
+        Some(ast_map::NodeImplItem(itm)) => {
             match *itm {
                 ast::MethodImplItem(ref meth) => match meth.node {
                     ast::MethDecl(_, _, _, _, style, _, _, _) => match style {
@@ -117,7 +117,7 @@ fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
                 _ => false,
             }
         },
-        ast_map::NodeItem(itm) => {
+        Some(ast_map::NodeItem(itm)) => {
             match itm.node {
                 ast::ItemFn(_, style, _, _, _) => match style {
                     ast::UnsafeFn => true,

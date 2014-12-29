@@ -26,14 +26,14 @@ extern crate sync;
 #[cfg(target_os="macos")]
 extern crate task_info;
 extern crate "time" as std_time;
+extern crate text_writer;
 extern crate string_cache;
 extern crate unicode;
 extern crate url;
 
-#[phase(plugin)]
-extern crate string_cache_macros;
-#[phase(plugin)]
-extern crate lazy_static;
+#[phase(plugin)] extern crate plugins;
+#[phase(plugin)] extern crate string_cache_macros;
+#[phase(plugin)] extern crate lazy_static;
 
 use std::sync::Arc;
 
