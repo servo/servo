@@ -15,6 +15,7 @@ use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
+use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentSource};
@@ -63,13 +64,14 @@ use geom::point::Point2D;
 use hyper::header::{Header, HeaderFormat};
 use hyper::header::common::util as header_util;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
-use js::jsapi::{JSContext, JSRuntime, JSTracer};
+use js::jsapi::{JSContext, JSRuntime};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
 use js::rust::{Cx, RtUtils};
 use js;
 use url::Url;
 
+use libc;
 use libc::size_t;
 use std::any::{Any, AnyRefExt};
 use std::comm::{channel, Sender, Receiver, Select};
@@ -114,23 +116,41 @@ pub enum ScriptMsg {
     DOMMessage(*mut u64, size_t),
     /// Posts a message to the Worker object (dispatched to all tasks).
     WorkerPostMessage(TrustedWorkerAddress, *mut u64, size_t),
-    /// Releases one reference to the Worker object (dispatched to all tasks).
-    WorkerRelease(TrustedWorkerAddress),
     /// Generic message that encapsulates event handling.
     RunnableMsg(Box<Runnable+Send>),
+    /// A DOM object's last pinned reference was removed (dispatched to all tasks).
+    RefcountCleanup(*const libc::c_void),
+}
+
+/// A cloneable interface for communicating with an event loop.
+pub trait ScriptChan {
+    /// Send a message to the associated event loop.
+    fn send(&self, msg: ScriptMsg);
+    /// Clone this handle.
+    fn clone(&self) -> Box<ScriptChan+Send>;
 }
 
 /// Encapsulates internal communication within the script task.
-#[deriving(Clone)]
-pub struct ScriptChan(pub Sender<ScriptMsg>);
+#[jstraceable]
+pub struct NonWorkerScriptChan(pub Sender<ScriptMsg>);
 
-no_jsmanaged_fields!(ScriptChan)
+impl ScriptChan for NonWorkerScriptChan {
+    fn send(&self, msg: ScriptMsg) {
+        let NonWorkerScriptChan(ref chan) = *self;
+        chan.send(msg);
+    }
 
-impl ScriptChan {
+    fn clone(&self) -> Box<ScriptChan+Send> {
+        let NonWorkerScriptChan(ref chan) = *self;
+        box NonWorkerScriptChan(chan.clone())
+    }
+}
+
+impl NonWorkerScriptChan {
     /// Creates a new script chan.
-    pub fn new() -> (Receiver<ScriptMsg>, ScriptChan) {
+    pub fn new() -> (Receiver<ScriptMsg>, Box<NonWorkerScriptChan>) {
         let (chan, port) = channel();
-        (port, ScriptChan(chan))
+        (port, box NonWorkerScriptChan(chan))
     }
 }
 
@@ -165,7 +185,7 @@ pub struct ScriptTask {
     port: Receiver<ScriptMsg>,
     /// A channel to hand out to script task-based entities that need to be able to enqueue
     /// events in the event queue.
-    chan: ScriptChan,
+    chan: NonWorkerScriptChan,
 
     /// A channel to hand out to tasks that need to respond to a message from the script task.
     control_chan: ScriptControlChan,
@@ -280,7 +300,7 @@ impl ScriptTaskFactory for ScriptTask {
                                               box compositor as Box<ScriptListener>,
                                               layout_chan,
                                               script_port,
-                                              ScriptChan(script_chan),
+                                              NonWorkerScriptChan(script_chan),
                                               control_chan,
                                               control_port,
                                               constellation_chan,
@@ -312,7 +332,7 @@ impl ScriptTask {
                compositor: Box<ScriptListener+'static>,
                layout_chan: LayoutChan,
                port: Receiver<ScriptMsg>,
-               chan: ScriptChan,
+               chan: NonWorkerScriptChan,
                control_chan: ScriptControlChan,
                control_port: Receiver<ConstellationControlMsg>,
                constellation_chan: ConstellationChan,
@@ -368,6 +388,7 @@ impl ScriptTask {
     }
 
     pub fn new_rt_and_cx() -> (js::rust::rt, Rc<Cx>) {
+        LiveDOMReferences::initialize();
         let js_runtime = js::rust::rt();
         assert!({
             let ptr: *mut JSRuntime = (*js_runtime).ptr;
@@ -577,10 +598,10 @@ impl ScriptTask {
                 panic!("unexpected message"),
             ScriptMsg::WorkerPostMessage(addr, data, nbytes) =>
                 Worker::handle_message(addr, data, nbytes),
-            ScriptMsg::WorkerRelease(addr) =>
-                Worker::handle_release(addr),
             ScriptMsg::RunnableMsg(runnable) =>
                 runnable.handler(),
+            ScriptMsg::RefcountCleanup(addr) =>
+                LiveDOMReferences::cleanup(self.get_cx(), addr),
         }
     }
 

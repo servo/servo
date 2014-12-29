@@ -9,7 +9,8 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::{Syntax, DataClone};
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, Temporary};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -20,17 +21,16 @@ use script_task::{ScriptChan, ScriptMsg};
 use servo_util::str::DOMString;
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_AddObjectRoot, JS_RemoveObjectRoot, JSTracer};
+use js::jsapi::JSContext;
 use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
 use js::jsval::{JSVal, UndefinedValue};
 use url::UrlParser;
 
-use libc::{c_void, size_t};
+use libc::size_t;
 use std::cell::Cell;
 use std::ptr;
 
-pub struct TrustedWorkerAddress(pub *const c_void);
-no_jsmanaged_fields!(TrustedWorkerAddress)
+pub type TrustedWorkerAddress = Trusted<Worker>;
 
 #[dom_struct]
 pub struct Worker {
@@ -39,11 +39,11 @@ pub struct Worker {
     global: GlobalField,
     /// Sender to the Receiver associated with the DedicatedWorkerGlobalScope
     /// this Worker created.
-    sender: ScriptChan,
+    sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
 }
 
 impl Worker {
-    fn new_inherited(global: &GlobalRef, sender: ScriptChan) -> Worker {
+    fn new_inherited(global: &GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::Worker),
             refcount: Cell::new(0),
@@ -52,7 +52,7 @@ impl Worker {
         }
     }
 
-    pub fn new(global: &GlobalRef, sender: ScriptChan) -> Temporary<Worker> {
+    pub fn new(global: &GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Temporary<Worker> {
         reflect_dom_object(box Worker::new_inherited(global, sender),
                            *global,
                            WorkerBinding::Wrap)
@@ -68,13 +68,13 @@ impl Worker {
         };
 
         let resource_task = global.resource_task();
-        let (receiver, sender) = ScriptChan::new();
 
+        let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone()).root();
-        let worker_ref = worker.addref();
+        let worker_ref = Trusted::new(global.get_cx(), *worker, global.script_chan());
 
         DedicatedWorkerGlobalScope::run_worker_scope(
-            worker_url, worker_ref, resource_task, global.script_chan().clone(),
+            worker_url, worker_ref, resource_task, global.script_chan(),
             sender, receiver);
 
         Ok(Temporary::from_rooted(*worker))
@@ -82,7 +82,7 @@ impl Worker {
 
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: *mut u64, nbytes: size_t) {
-        let worker = unsafe { JS::from_trusted_worker_address(address).root() };
+        let worker = address.to_temporary().root();
 
         let global = worker.global.root();
 
@@ -99,38 +99,6 @@ impl Worker {
     }
 }
 
-impl Worker {
-    // Creates a trusted address to the object, and roots it. Always pair this with a release()
-    pub fn addref(&self) -> TrustedWorkerAddress {
-        let refcount = self.refcount.get();
-        if refcount == 0 {
-            let cx = self.global.root().root_ref().get_cx();
-            unsafe {
-                JS_AddObjectRoot(cx, self.reflector().rootable());
-            }
-        }
-        self.refcount.set(refcount + 1);
-        TrustedWorkerAddress(self as *const Worker as *const c_void)
-    }
-
-    pub fn release(&self) {
-        let refcount = self.refcount.get();
-        assert!(refcount > 0)
-        self.refcount.set(refcount - 1);
-        if refcount == 1 {
-            let cx = self.global.root().root_ref().get_cx();
-            unsafe {
-                JS_RemoveObjectRoot(cx, self.reflector().rootable());
-            }
-        }
-    }
-
-    pub fn handle_release(address: TrustedWorkerAddress) {
-        let worker = unsafe { JS::from_trusted_worker_address(address).root() };
-        worker.release();
-    }
-}
-
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
         let mut data = ptr::null_mut();
@@ -144,9 +112,8 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
             return Err(DataClone);
         }
 
-        self.addref();
-        let ScriptChan(ref sender) = self.sender;
-        sender.send(ScriptMsg::DOMMessage(data, nbytes));
+        let address = Trusted::new(cx, self, self.global.root().root_ref().script_chan().clone());
+        self.sender.send((address, ScriptMsg::DOMMessage(data, nbytes)));
         Ok(())
     }
 
