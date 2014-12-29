@@ -10,7 +10,7 @@
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::workerglobalscope::WorkerGlobalScope;
+use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window;
 use script_task::ScriptChan;
 
@@ -81,7 +81,7 @@ impl<'a> GlobalRef<'a> {
 
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
-    pub fn script_chan<'b>(&'b self) -> &'b ScriptChan {
+    pub fn script_chan(&self) -> Box<ScriptChan+Send> {
         match *self {
             GlobalRef::Window(ref window) => window.script_chan(),
             GlobalRef::Worker(ref worker) => worker.script_chan(),
