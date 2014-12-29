@@ -46,6 +46,8 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString borderWidth;
   [TreatNullAs=EmptyString] attribute DOMString borderBottom;
   [TreatNullAs=EmptyString] attribute DOMString borderBottomColor;
+  [TreatNullAs=EmptyString] attribute DOMString borderBottomLeftRadius;
+  [TreatNullAs=EmptyString] attribute DOMString borderBottomRightRadius;
   [TreatNullAs=EmptyString] attribute DOMString borderBottomStyle;
   [TreatNullAs=EmptyString] attribute DOMString borderBottomWidth;
   [TreatNullAs=EmptyString] attribute DOMString borderLeft;
@@ -58,6 +60,8 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString borderRightWidth;
   [TreatNullAs=EmptyString] attribute DOMString borderTop;
   [TreatNullAs=EmptyString] attribute DOMString borderTopColor;
+  [TreatNullAs=EmptyString] attribute DOMString borderTopLeftRadius;
+  [TreatNullAs=EmptyString] attribute DOMString borderTopRightRadius;
   [TreatNullAs=EmptyString] attribute DOMString borderTopStyle;
   [TreatNullAs=EmptyString] attribute DOMString borderTopWidth;
 
@@ -77,6 +81,8 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString boxShadow;
 
   //[TreatNullAs=EmptyString] attribute DOMString float; //XXXjdm need BinaryName annotation
+
+  [TreatNullAs=EmptyString] attribute DOMString clip;
 
   [TreatNullAs=EmptyString] attribute DOMString clear;
 

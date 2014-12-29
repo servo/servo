@@ -297,17 +297,32 @@ pub mod longhands {
     % endfor
 
     <%self:longhand name="border-top-left-radius">
-        #[deriving(Clone, Show)]
+        use std::fmt;
+
+        #[deriving(Clone)]
         pub struct SpecifiedValue {
             pub radius: specified::LengthOrPercentage,
         }
 
+        impl fmt::Show for SpecifiedValue {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                write!(f, "{}", self.radius)
+            }
+        }
+
         pub mod computed_value {
+            use std::fmt;
             use super::super::computed;
 
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq)]
             pub struct T {
                 pub radius: computed::LengthOrPercentage,
+            }
+
+            impl fmt::Show for T {
+                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    write!(f, "{}", self.radius)
+                }
             }
         }
 
@@ -1535,11 +1550,21 @@ pub mod longhands {
         pub use super::computed_as_specified as to_computed_value;
 
         pub mod computed_value {
+            use std::fmt;
             use servo_util::cursor::Cursor;
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq)]
             pub enum T {
                 AutoCursor,
                 SpecifiedCursor(Cursor),
+            }
+
+            impl fmt::Show for T {
+                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                     match *self {
+                         T::AutoCursor => write!(f, "auto"),
+                         T::SpecifiedCursor(cursor) => write!(f, "{}", cursor),
+                     }
+                }
             }
         }
         pub type SpecifiedValue = computed_value::T;
@@ -1864,11 +1889,13 @@ pub mod longhands {
 
     <%self:single_component_value name="clip">
         // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
+        use std::fmt;
 
         pub mod computed_value {
+            use std::fmt;
             use super::super::Au;
 
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq)]
             pub struct ClipRect {
                 pub top: Au,
                 pub right: Option<Au>,
@@ -1876,15 +1903,41 @@ pub mod longhands {
                 pub left: Au,
             }
 
+            impl fmt::Show for ClipRect {
+                fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    let _ = write!(f, "rect({}, ", self.top);
+                    if let Some(right) = self.right {
+                        let _ = write!(f, "{}, ", right);
+                    }
+                    if let Some(bottom) = self.bottom {
+                        let _ = write!(f, "{}, ", bottom);
+                    }
+                    write!(f, "{})", self.left)
+                }
+            }
+
             pub type T = Option<ClipRect>;
         }
 
-        #[deriving(Clone, Show)]
+        #[deriving(Clone)]
         pub struct SpecifiedClipRect {
             pub top: specified::Length,
             pub right: Option<specified::Length>,
             pub bottom: Option<specified::Length>,
             pub left: specified::Length,
+        }
+
+        impl fmt::Show for SpecifiedClipRect {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                let _ = write!(f, "rect({}, ", self.top);
+                if let Some(right) = self.right {
+                    let _ = write!(f, "{}, ", right);
+                }
+                if let Some(bottom) = self.bottom {
+                    let _ = write!(f, "{}, ", bottom);
+                }
+                write!(f, "{})", self.left)
+            }
         }
 
         pub type SpecifiedValue = Option<SpecifiedClipRect>;
