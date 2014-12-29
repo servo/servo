@@ -36,3 +36,5 @@ git = "https://github.com/servo/string-cache"
 [dependencies.string_cache_macros]
 git = "https://github.com/servo/string-cache"
 
+[dependencies]
+text_writer = "0.1.1"
