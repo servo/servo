@@ -170,7 +170,7 @@ pub trait DocumentHelpers<'a> {
     fn window(self) -> Temporary<Window>;
     fn encoding_name(self) -> Ref<'a, DOMString>;
     fn is_html_document(self) -> bool;
-    fn url(self) -> &'a Url;
+    fn url(self) -> Url;
     fn quirks_mode(self) -> QuirksMode;
     fn set_quirks_mode(self, mode: QuirksMode);
     fn set_last_modified(self, value: DOMString);
@@ -206,8 +206,9 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.is_html_document
     }
 
-    fn url(self) -> &'a Url {
-        &self.extended_deref().url
+    fn url(self) -> Url {
+        let window = self.window().root();
+        window.page().get_url()
     }
 
     fn quirks_mode(self) -> QuirksMode {
