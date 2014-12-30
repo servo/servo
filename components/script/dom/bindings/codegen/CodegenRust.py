@@ -374,7 +374,7 @@ class CGMethodCall(CGThing):
             CGSwitch("argcount",
                      argCountCases,
                      CGGeneric("throw_type_error(cx, \"Not enough arguments to %s.\");\n"
-                               "return 0;\n" % methodName)))
+                               "return 0;" % methodName)))
         #XXXjdm Avoid unreachable statement warnings
         #overloadCGThings.append(
         #    CGGeneric('panic!("We have an always-returning default case");\n'
@@ -532,9 +532,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             CGGeneric(
                 failureCode or
                 ('throw_type_error(cx, \"%s is not callable.\");\n'
-                 '%s' % (firstCap(sourceDescription), exceptionCode))),
-            post="\n")
-
+                 '%s' % (firstCap(sourceDescription), exceptionCode))))
 
     # A helper function for handling null default values. Checks that the
     # default value, if it exists, is null.
@@ -565,8 +563,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             templateBody += (
                 "} else {\n" +
                 CGIndenter(onFailureNotAnObject(failureCode)).define() +
-                "}\n")
-
+                "}")
         return templateBody
 
     assert not (isEnforceRange and isClamp) # These are mutually exclusive
@@ -1017,7 +1014,10 @@ def wrapForType(jsvalRef, result='result', successCode='return 1;'):
       * 'result': the name of the variable in which the Rust value is stored;
       * 'successCode': the code to run once we have done the conversion.
     """
-    return "%s = (%s).to_jsval(cx);\n%s" % (jsvalRef, result, successCode)
+    wrap = "%s = (%s).to_jsval(cx);" % (jsvalRef, result)
+    if successCode:
+        wrap += "\n%s" % successCode
+    return wrap
 
 
 def typeNeedsCx(type, retVal=False):
@@ -1149,7 +1149,7 @@ class PropertyDefiner:
 
         return (("const %s: &'static [%s] = &[\n" +
                  ",\n".join(specs) + "\n" +
-                 "];\n\n") % (name, specType))
+                 "];\n") % (name, specType))
 
 # The length of a method is the maximum of the lengths of the
 # argument lists of all its overloads.
@@ -1400,7 +1400,7 @@ class CGTemplatedType(CGWrapper):
 class CGNamespace(CGWrapper):
     def __init__(self, namespace, child, public=False):
         pre = "%smod %s {\n" % ("pub " if public else "", namespace)
-        post = "} // mod %s\n" % namespace
+        post = "} // mod %s" % namespace
         CGWrapper.__init__(self, child, pre=pre, post=post)
 
     @staticmethod
@@ -1442,7 +1442,7 @@ class CGDOMJSClass(CGThing):
         else:
             flags = "0"
             slots = "1"
-        return """
+        return """\
 const Class_name: [u8, ..%i] = %s;
 static Class: DOMJSClass = DOMJSClass {
     base: js::Class {
@@ -1526,7 +1526,7 @@ class CGPrototypeJSClass(CGThing):
         self.descriptor = descriptor
 
     def define(self):
-        return """
+        return """\
 const PrototypeClassName__: [u8, ..%s] = %s;
 static PrototypeClass: JSClass = JSClass {
     name: &PrototypeClassName__ as *const u8 as *const libc::c_char,
@@ -1559,7 +1559,7 @@ class CGInterfaceObjectJSClass(CGThing):
             return ""
         ctorname = "0 as *const u8" if not self.descriptor.interface.ctor() else CONSTRUCT_HOOK_NAME
         hasinstance = HASINSTANCE_HOOK_NAME
-        return """
+        return """\
 const InterfaceObjectClass: JSClass = {
     %s, 0,
     JS_PropertyStub,
@@ -1805,8 +1805,7 @@ let obj = with_compartment(aCx, proto, || {
                    proto, %s,
                    ptr::null_mut(), ptr::null_mut())
 });
-assert!(obj.is_not_null());
-
+assert!(obj.is_not_null());\
 """ % (descriptor.name, parent)
     else:
         if descriptor.isGlobal():
@@ -1818,7 +1817,7 @@ assert!(obj.is_not_null());
         create += """assert!(obj.is_not_null());
 
 JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                   PrivateValue(squirrel_away_unique(aObject) as *const libc::c_void));
+                   PrivateValue(squirrel_away_unique(aObject) as *const libc::c_void));\
 """
     return create
 
@@ -1881,7 +1880,7 @@ class CGIDLInterface(CGThing):
             'type': self.descriptor.name,
             'depth': self.descriptor.interface.inheritanceDepth(),
         }
-        return string.Template("""
+        return string.Template("""\
 impl IDLInterface for ${type} {
     fn get_prototype_id(_: Option<${type}>) -> PrototypeList::ID {
         PrototypeList::ID::${type}
@@ -2127,7 +2126,7 @@ let traps = ProxyTraps {
     trace: Some(%s)
 };
 
-CreateProxyHandler(&traps, &Class as *const _ as *const _)
+CreateProxyHandler(&traps, &Class as *const _ as *const _)\
 """ % (customDefineProperty, customDelete, FINALIZE_HOOK_NAME,
        TRACE_HOOK_NAME)
         return CGGeneric(body)
@@ -2226,7 +2225,7 @@ class CGCallGenerator(CGThing):
                 "        throw_dom_exception(cx, global.root_ref(), e);\n"
                 "        return%s;\n"
                 "    },\n"
-                "};\n" % (glob, errorResult)))
+                "};" % (glob, errorResult)))
 
         if typeRetValNeedsRooting(returnType):
             self.cgRoot.append(CGGeneric("let result = result.root();"))
@@ -2552,7 +2551,7 @@ class CGGenericGetter(CGAbstractBindingMethod):
     def generate_code(self):
         return CGGeneric(
             "let info: *const JSJitInfo = RUST_FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));\n"
-            "return CallJitPropertyOp(info, cx, obj, this.unsafe_get() as *mut libc::c_void, vp);\n")
+            "return CallJitPropertyOp(info, cx, obj, this.unsafe_get() as *mut libc::c_void, vp);")
 
 class CGSpecializedGetter(CGAbstractExternMethod):
     """
@@ -2677,7 +2676,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
             "if (argc == 0) {\n"
             "    throw_type_error(cx, \"Not enough arguments to %s setter.\");\n"
             "    return 0;\n"
-            "}\n" % self.attr.identifier.name)
+            "}" % self.attr.identifier.name)
         call = CGSetterCall([], self.attr.type, nativeName, self.descriptor,
                             self.attr)
         return CGList([checkForArg, call])
@@ -2696,8 +2695,7 @@ class CGMemberJITInfo(CGThing):
         protoID = "PrototypeList::ID::%s as u32" % self.descriptor.name
         depth = self.descriptor.interface.inheritanceDepth()
         failstr = "true" if infallible else "false"
-        return ("\n"
-                "const %s: JSJitInfo = JSJitInfo {\n"
+        return ("const %s: JSJitInfo = JSJitInfo {\n"
                 "    op: %s as *const u8,\n"
                 "    protoID: %s,\n"
                 "    depth: %s,\n"
@@ -2715,7 +2713,7 @@ class CGMemberJITInfo(CGThing):
                 setterinfo = ("%s_setterinfo" % self.member.identifier.name)
                 setter = ("set_%s" % self.member.identifier.name)
                 # Setters are always fallible, since they have to do a typed unwrap.
-                result += self.defineJitInfo(setterinfo, setter, False)
+                result += "\n" + self.defineJitInfo(setterinfo, setter, False)
             return result
         if self.member.isMethod():
             methodinfo = ("%s_methodinfo" % self.member.identifier.name)
@@ -2763,7 +2761,7 @@ class CGEnum(CGThing):
     def __init__(self, enum):
         CGThing.__init__(self)
 
-        decl = """
+        decl = """\
 #[repr(uint)]
 #[deriving(PartialEq)]
 #[jstraceable]
@@ -2772,7 +2770,7 @@ pub enum %s {
 }
 """ % (enum.identifier.name, ",\n    ".join(map(getEnumValueName, enum.values())))
 
-        inner = """
+        inner = """\
 use dom::bindings::conversions::ToJSValConvertible;
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
@@ -3444,7 +3442,7 @@ class CGClass(CGThing):
 
         assert len(self.bases) == 1 #XXjdm Can we support multiple inheritance?
 
-        result += '{\n%s\n' % self.indent
+        result += ' {\n'
 
         if self.bases:
             self.members = [ClassMember("parent", self.bases[0].name, "pub")] + self.members
@@ -3696,7 +3694,7 @@ if expando.is_not_null() {
         return true;
     }
 }
-""" + namedGet + """
+""" + namedGet + """\
 (*desc).obj = ptr::null_mut();
 return true;"""
 
@@ -3741,7 +3739,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    let this = UnwrapProxy(proxy);\n" +
                     "    let this = JS::from_raw(this);\n" +
                     "    let this = this.root();\n" +
-                    CGIndenter(CGProxyNamedSetter(self.descriptor)).define() + "\n" +
+                    CGIndenter(CGProxyNamedSetter(self.descriptor)).define() +
                     "}\n")
         elif self.descriptor.operations['NamedGetter']:
             set += ("if RUST_JSID_IS_STRING(id) != 0 {\n" +
@@ -3829,7 +3827,6 @@ if expando.is_not_null() {
         return ok;
     }
 }
-
 """ + named + """*bp = false;
 return true;"""
 
@@ -3870,7 +3867,7 @@ if expando.is_not_null() {
                                    "    let this = JS::from_raw(this);\n" +
                                    "    let this = this.root();\n" +
                                    CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define())
-            getIndexedOrExpando += """
+            getIndexedOrExpando += """\
     // Even if we don't have this index, we don't forward the
     // get on to our expando object.
 } else {
@@ -3968,7 +3965,7 @@ let this: *const %s = unwrap::<%s>(obj);
 def finalizeHook(descriptor, hookName, context):
     release = """let value = unwrap::<%s>(obj);
 let _: Box<%s> = mem::transmute(value);
-debug!("%s finalize: {:p}", this);
+debug!("%s finalize: {:p}", this);\
 """ % (descriptor.concreteType, descriptor.concreteType, descriptor.concreteType)
     return release
 
@@ -4027,10 +4024,7 @@ class CGDOMJSProxyHandlerDOMClass(CGThing):
         self.descriptor = descriptor
 
     def define(self):
-        return """
-static Class: DOMClass = """ + DOMClass(self.descriptor) + """;
-
-"""
+        return "static Class: DOMClass = " + DOMClass(self.descriptor) + ";\n"
 
 
 class CGInterfaceTrait(CGThing):
@@ -4218,7 +4212,6 @@ class CGDescriptor(CGThing):
         cgThings.append(CGInterfaceTrait(descriptor))
 
         cgThings = CGList(cgThings, "\n")
-        cgThings = CGWrapper(cgThings, pre='\n', post='\n')
         #self.cgRoot = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
         #                                    cgThings),
         #                        post='\n')
@@ -4652,7 +4645,6 @@ class CGNativeMember(ClassMethod):
                              # have a non-void return type, as const.
                              const=(not member.isStatic() and member.isAttr() and
                                     not signature[0].isVoid()),
-                             breakAfterReturnDecl=" ",
                              breakAfterSelf=breakAfterSelf,
                              visibility=visibility)
 
@@ -4799,7 +4791,7 @@ impl ToJSValConvertible for ${type} {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         self.callback().to_jsval(cx)
     }
-}
+}\
 """).substitute({"type": callback.name})
         CGGeneric.__init__(self, impl)
 
@@ -4867,7 +4859,7 @@ class CallbackMember(CGNativeMember):
                                 jsObjectsArePtr=True)
         # We have to do all the generation of our body now, because
         # the caller relies on us throwing if we can't manage it.
-        self.exceptionCode= "return Err(FailureUnknown);\n"
+        self.exceptionCode= "return Err(FailureUnknown);"
         self.body = self.getImpl()
 
     def getImpl(self):
@@ -4959,7 +4951,7 @@ class CallbackMember(CGNativeMember):
             conversion = string.Template(
                 "for idx in range(0, ${arg}.len()) {\n" +
                 CGIndenter(CGGeneric(conversion)).define() + "\n"
-                "}\n"
+                "}"
                 ).substitute({ "arg": arg.identifier.name })
         elif arg.optional and not arg.defaultValue:
             conversion = (
@@ -5064,7 +5056,7 @@ class CallCallback(CallbackMethod):
         return "aThisObj"
 
     def getCallableDecl(self):
-        return "let callable = ObjectValue(unsafe {&*self.parent.callback()});\n";
+        return "let callable = ObjectValue(unsafe {&*self.parent.callback()});\n"
 
 class CallbackOperationBase(CallbackMethod):
     """
@@ -5248,7 +5240,7 @@ class GlobalGenRoots():
     fn ${fname}(&self) -> bool {
         ${parentName}Cast::from_actual(self).${fname}()
     }
-}
+}\
 ''').substitute({'fname': 'is_' + name.lower(),
                  'selfName': name + 'Derived',
                  'baseName': protoDescriptor.concreteType,
