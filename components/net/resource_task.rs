@@ -10,8 +10,9 @@ use file_loader;
 use http_loader;
 use sniffer_task;
 use sniffer_task::SnifferTask;
-use cookie::Cookie;
+use cookie_rs::Cookie;
 use cookie_storage::CookieStorage;
+use cookie;
 
 use util::task::spawn_named;
 
@@ -24,11 +25,15 @@ use url::Url;
 
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Receiver, Sender};
+use std::thunk::Invoke;
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(LoadData),
-    Cookies(Vec<Cookie>),
+    /// Store a set of cookies for a given originating URL
+    SetCookies(Vec<Cookie>, Url),
+    /// Retrieve the stored cookies for a given URL
+    GetCookiesForUrl(Url, Sender<Option<String>>),
     Exit
 }
 
@@ -80,8 +85,6 @@ pub struct Metadata {
 
     /// HTTP Status
     pub status: Option<RawStatus>,
-
-    pub cookies: Vec<Cookie>
 }
 
 impl Metadata {
@@ -94,7 +97,6 @@ impl Metadata {
             headers: None,
             // http://fetch.spec.whatwg.org/#concept-response-status-message
             status: Some(RawStatus(200, "OK".to_owned())),
-            cookies: Vec::new(),
         }
     }
 
@@ -147,14 +149,13 @@ pub enum ProgressMsg {
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending(senders: ResponseSenders, metadata: Metadata, cookies_chan: Sender<ControlMsg>) -> Sender<ProgressMsg> {
-    start_sending_opt(senders, metadata, cookies_chan).ok().unwrap()
+pub fn start_sending(senders: ResponseSenders, metadata: Metadata) -> Sender<ProgressMsg> {
+    start_sending_opt(senders, metadata).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata, cookies_chan: Sender<ControlMsg>) -> Result<Sender<ProgressMsg>, ()> {
+pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result<Sender<ProgressMsg>, ()> {
     let (progress_chan, progress_port) = channel();
-    let cookies = metadata.cookies.clone();
     let result = senders.immediate_consumer.send(TargetedLoadResponse {
         load_response: LoadResponse {
             metadata:      metadata,
@@ -162,10 +163,6 @@ pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata, cookies_c
         },
         consumer: senders.eventual_consumer
     });
-    match cookies_chan.send(ControlMsg::Cookies(cookies)) {
-        Ok(_) => {}
-        Err(_) => { return Err(()) }
-    }
     match result {
         Ok(_) => Ok(progress_chan),
         Err(_) => Err(())
@@ -231,10 +228,19 @@ impl ResourceManager {
               ControlMsg::Load(load_data) => {
                 self.load(load_data)
               }
-              ControlMsg::Cookies(vector) => {
-                for cookie in vector.iter() {
-                    self.cookie_storage.push(cookie.clone());
+              ControlMsg::SetCookies(vector, request) => {
+                for cookie in vector.into_iter() {
+                    if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request) {
+                        if cookie.cookie.value.is_empty() {
+                            self.cookie_storage.remove(&cookie);
+                        } else {
+                            self.cookie_storage.push(cookie, &request);
+                        }
+                    }
                 }
+              }
+              ControlMsg::GetCookiesForUrl(url, consumer) => {
+                consumer.send(self.cookie_storage.cookies_for_url(url));
               }
               ControlMsg::Exit => {
                 break
@@ -246,29 +252,33 @@ impl ResourceManager {
     fn load(&mut self, load_data: LoadData) {
         let mut load_data = load_data;
         self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
-        if let Some(cookies) = self.cookie_storage.cookies_for_url(load_data.url.clone()) {
-            let mut v = Vec::new();
-            v.push(cookies.into_bytes());
-            load_data.headers.set_raw("cookie".to_owned(), v);
-        }
         let senders = ResponseSenders {
             immediate_consumer: self.sniffer_task.clone(),
             eventual_consumer: load_data.consumer.clone(),
         };
 
-        debug!("resource_task: loading url: {}", load_data.url.serialize());
-        match load_data.url.scheme.as_slice() {
-            "file" => file_loader::factory(load_data, self.sniffer_task.clone(), self.cookies_chan.clone()),
-            "http" | "https" => http_loader::factory(load_data, self.sniffer_task.clone(), self.cookies_chan.clone()),
-            "data" => data_loader::factory(load_data, self.sniffer_task.clone(), self.cookies_chan.clone()),
-            "about" => about_loader::factory(load_data, self.sniffer_task.clone(), self.cookies_chan.clone()),
+        fn from_factory(factory: fn(LoadData, Sender<TargetedLoadResponse>))
+                        -> Box<Invoke<(LoadData, Sender<TargetedLoadResponse>)> + Send> {
+            box move |&:(load_data, start_chan)| {
+                factory(load_data, start_chan)
+            }
+        }
+
+        let loader = match load_data.url.scheme.as_slice() {
+            "file" => from_factory(file_loader::factory),
+            "http" | "https" => http_loader::factory(self.cookies_chan.clone()),
+            "data" => from_factory(data_loader::factory),
+            "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
-                start_sending(senders, Metadata::default(load_data.url), self.cookie_chan.clone())
+                start_sending(senders, Metadata::default(load_data.url))
                     .send(ProgressMsg::Done(Err("no loader for scheme".to_string()))).unwrap();
                 return
             }
-        }
+        };
+        debug!("resource_task: loading url: {}", load_data.url.serialize());
+
+        loader.invoke((load_data, self.sniffer_task.clone()));
     }
 }
 

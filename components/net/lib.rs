@@ -11,6 +11,7 @@
 #![allow(missing_copy_implementations)]
 #![allow(unstable)]
 
+extern crate "cookie" as cookie_rs;
 extern crate collections;
 extern crate geom;
 extern crate hyper;

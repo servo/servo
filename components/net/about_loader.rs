@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use resource_task::{TargetedLoadResponse, Metadata, LoadData, start_sending, ResponseSenders};
-use resource_task::ControlMsg;
 use resource_task::ProgressMsg::Done;
 use file_loader;
 
@@ -15,7 +14,7 @@ use std::borrow::ToOwned;
 use std::io::fs::PathExtensions;
 use std::sync::mpsc::Sender;
 
-pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
+pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     let senders = ResponseSenders {
         immediate_consumer: start_chan.clone(),
         eventual_consumer: load_data.consumer.clone(),
@@ -28,8 +27,7 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>
                 charset: Some("utf-8".to_string()),
                 headers: None,
                 status: Some(RawStatus(200, "OK".to_owned())),
-                cookies: Vec::new(),
-            }, cookies_chan);
+            });
             chan.send(Done(Ok(()))).unwrap();
             return
         }
@@ -41,10 +39,10 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>
             load_data.url = Url::from_file_path(&path).unwrap();
         }
         _ => {
-            start_sending(senders, Metadata::default(load_data.url), cookies_chan)
+            start_sending(senders, Metadata::default(load_data.url))
                 .send(Done(Err("Unknown about: URL.".to_string()))).unwrap();
             return
         }
     };
-    file_loader::factory(load_data, start_chan, cookies_chan)
+    file_loader::factory(load_data, start_chan)
 }

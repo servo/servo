@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cookie::Cookie;
 use resource_task::{Metadata, TargetedLoadResponse, LoadData, start_sending_opt, ResponseSenders};
 use resource_task::ControlMsg;
 use resource_task::ProgressMsg::{Payload, Done};
@@ -11,36 +10,40 @@ use log;
 use std::collections::HashSet;
 use file_loader;
 use hyper::client::Request;
-use hyper::header::common::{ContentLength, ContentType, Host, Location};
+use hyper::header::common::{ContentLength, ContentType, Host, Location, SetCookie};
 use hyper::HttpError;
 use hyper::method::Method;
 use hyper::net::HttpConnector;
-use hyper::status::StatusClass;
+use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SslVerifyMode};
 use std::io::{IoError, IoErrorKind, Reader};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Sender, channel};
+use std::thunk::Invoke;
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
 use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
 
-pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
-    spawn_named("http_loader".to_owned(), move || load(load_data, start_chan, cookies_chan))
+pub fn factory(cookies_chan: Sender<ControlMsg>)
+               -> Box<Invoke<(LoadData, Sender<TargetedLoadResponse>)> + Send> {
+    box move |:(load_data, start_chan)| {
+        spawn_named("http_loader".to_owned(), move || load(load_data, start_chan, cookies_chan))
+    }
 }
 
-fn send_error(url: Url, err: String, senders: ResponseSenders, cookies_chan: Sender<ControlMsg>) {
+fn send_error(url: Url, err: String, senders: ResponseSenders) {
     let mut metadata = Metadata::default(url);
     metadata.status = None;
 
-    match start_sending_opt(senders, metadata, cookies_chan) {
+    match start_sending_opt(senders, metadata) {
         Ok(p) => p.send(Done(Err(err))).unwrap(),
         _ => {}
     };
 }
 
-fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
+fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -59,22 +62,15 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_c
         iters = iters + 1;
 
         if iters > max_redirects {
-            send_error(url, "too many redirects".to_string(), senders, cookies_chan);
+            send_error(url, "too many redirects".to_string(), senders);
             return;
         }
-
-        if redirected_to.contains(&url) {
-            send_error(url, "redirect loop".to_string(), senders, cookies_chan);
-            return;
-        }
-
-        redirected_to.insert(url.clone());
 
         match url.scheme.as_slice() {
             "http" | "https" => {}
             _ => {
                 let s = format!("{} request, but we don't support that scheme", url.scheme);
-                send_error(url, s, senders, cookies_chan);
+                send_error(url, s, senders);
                 return;
             }
         }
@@ -106,40 +102,63 @@ reason: \"certificate verify failed\" }]";
             },
             Err(e) => {
                 println!("{:?}", e);
-                send_error(url, e.description().to_string(), senders, cookies_chan);
+                send_error(url, e.description().to_string(), senders);
                 return;
             }
         };
 
-        // Preserve the `host` header set automatically by Request.
-        let host = req.headers().get::<Host>().unwrap().clone();
-        *req.headers_mut() = load_data.headers.clone();
-        req.headers_mut().set(host);
+        let (tx, rx) = channel();
+        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx));
+        if let Some(cookies) = rx.recv().unwrap() {
+            let mut v = Vec::new();
+            v.push(cookies.into_bytes());
+            load_data.headers.set_raw("Cookie".to_owned(), v);
+        }
+
+        // Avoid automatically preserving request headers when redirects occur.
+        // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=216828
+        if iters == 1 {
+            // Preserve the `host` header set automatically by Request.
+            let host = req.headers().get::<Host>().unwrap().clone();
+            *req.headers_mut() = load_data.headers.clone();
+            req.headers_mut().set(host);
+        }
+
         // FIXME(seanmonstar): use AcceptEncoding from Hyper once available
         //if !req.headers.has::<AcceptEncoding>() {
             // We currently don't support HTTP Compression (FIXME #2587)
             req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"identity".to_vec()]);
         //}
+        if log_enabled!(log::INFO) {
+            info!("{}", load_data.method);
+            for header in req.headers().iter() {
+                info!(" - {}", header);
+            }
+            info!("{:?}", load_data.data);
+        }
+
+        // Avoid automatically sending request body if a redirect has occurred.
         let writer = match load_data.data {
-            Some(ref data) => {
+            Some(ref data) if iters == 1 => {
                 req.headers_mut().set(ContentLength(data.len() as u64));
                 let mut writer = match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.description().to_string(), senders, cookies_chan);
+                        send_error(url, e.description().to_string(), senders);
                         return;
                     }
                 };
                 match writer.write(data.as_slice()) {
                     Err(e) => {
-                        send_error(url, e.desc.to_string(), senders, cookies_chan);
+                        send_error(url, e.desc.to_string(), senders);
                         return;
                     }
                     _ => {}
                 };
                 writer
             },
-            None => {
+            _ => {
                 match load_data.method {
                     Method::Get | Method::Head => (),
                     _ => req.headers_mut().set(ContentLength(0))
@@ -147,7 +166,7 @@ reason: \"certificate verify failed\" }]";
                 match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.description().to_string(), senders, cookies_chan);
+                        send_error(url, e.description().to_string(), senders);
                         return;
                     }
                 }
@@ -156,7 +175,7 @@ reason: \"certificate verify failed\" }]";
         let mut response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
-                send_error(url, e.description().to_string(), senders, cookies_chan);
+                send_error(url, e.description().to_string(), senders);
                 return;
             }
         };
@@ -169,14 +188,8 @@ reason: \"certificate verify failed\" }]";
             }
         }
 
-        let mut cookies = Vec::new();
-        for header in response.headers.iter() {
-            if header.name().as_slice() == "Set-Cookie" {
-                match Cookie::new(header.value_string(), &url) {
-                    Some(cookie) => cookies.push(cookie),
-                    None => continue
-                }
-            }
+        if let Some(&SetCookie(ref cookies)) = response.headers.get::<SetCookie>() {
+            cookies_chan.send(ControlMsg::SetCookies(cookies.clone(), url.clone()));
         }
 
         if response.status.class() == StatusClass::Redirection {
@@ -187,7 +200,7 @@ reason: \"certificate verify failed\" }]";
                         Some(ref c) => {
                             if c.preflight {
                                 // The preflight lied
-                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), senders, cookies_chan);
+                                send_error(url, "Preflight fetch inconsistent with main fetch".to_string(), senders);
                                 return;
                             } else {
                                 // XXXManishearth There are some CORS-related steps here,
@@ -199,12 +212,25 @@ reason: \"certificate verify failed\" }]";
                     let new_url = match UrlParser::new().base_url(&url).parse(new_url.as_slice()) {
                         Ok(u) => u,
                         Err(e) => {
-                            send_error(url, e.to_string(), senders, cookies_chan);
+                            send_error(url, e.to_string(), senders);
                             return;
                         }
                     };
                     info!("redirecting to {}", new_url);
                     url = new_url;
+
+                    if load_data.method == Method::Post &&
+                        (response.status == StatusCode::MovedPermanently ||
+                         response.status == StatusCode::Found) {
+                        load_data.method = Method::Get;
+                    }
+
+                    if redirected_to.contains(&url) {
+                        send_error(url, "redirect loop".to_string(), senders);
+                        return;
+                    }
+
+                    redirected_to.insert(url.clone());
                     continue;
                 }
                 None => ()
@@ -218,9 +244,8 @@ reason: \"certificate verify failed\" }]";
         });
         metadata.headers = Some(response.headers.clone());
         metadata.status = Some(response.status_raw().clone());
-        metadata.cookies = cookies;
 
-        let progress_chan = match start_sending_opt(senders, metadata, cookies_chan) {
+        let progress_chan = match start_sending_opt(senders, metadata) {
             Ok(p) => p,
             _ => return
         };
