@@ -103,7 +103,7 @@ class CastableObjectUnwrapper():
     def __init__(self, descriptor, source, codeOnFailure):
         self.substitution = {
             "source": source,
-            "codeOnFailure": CGIndenter(CGGeneric(codeOnFailure), 4).define(),
+            "codeOnFailure": CGIndenter(CGGeneric(codeOnFailure), 8).define(),
         }
 
     def __str__(self):
@@ -1317,7 +1317,7 @@ class CGIndenter(CGThing):
     A class that takes another CGThing and generates code that indents that
     CGThing by some number of spaces.  The default indent is two spaces.
     """
-    def __init__(self, child, indentLevel=2):
+    def __init__(self, child, indentLevel=4):
         CGThing.__init__(self)
         self.child = child
         self.indent = " " * indentLevel
@@ -1778,7 +1778,7 @@ class CGAbstractMethod(CGThing):
     def define(self):
         body = self.definition_body()
         if self.unsafe:
-            body = CGWrapper(body, pre="unsafe {\n", post="\n}")
+            body = CGWrapper(CGIndenter(body), pre="unsafe {\n", post="\n}")
 
         return CGWrapper(CGIndenter(body),
                          pre=self.definition_prologue(),
@@ -4350,8 +4350,8 @@ class CGDictionary(CGThing):
             "    }\n"
             "}").substitute({
                 "selfName": self.makeClassName(d),
-                "initParent": CGIndenter(CGGeneric(initParent), indentLevel=6).define(),
-                "initMembers": CGIndenter(memberInits, indentLevel=6).define(),
+                "initParent": CGIndenter(CGGeneric(initParent), indentLevel=12).define(),
+                "initMembers": CGIndenter(memberInits, indentLevel=12).define(),
                 })
 
     @staticmethod
