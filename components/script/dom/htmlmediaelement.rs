@@ -19,17 +19,16 @@ pub struct HTMLMediaElement {
 impl HTMLMediaElementDerived for EventTarget {
     fn is_htmlmediaelement(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLVideoElement))) |
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAudioElement))) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_)))) => true,
             _ => false
         }
     }
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(type_id: HTMLElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMediaElement {
+    pub fn new_inherited(type_id: HTMLMediaElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMediaElement {
         HTMLMediaElement {
-            htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMediaElement(type_id), tag_name, prefix, document)
         }
     }
 
@@ -37,5 +36,12 @@ impl HTMLMediaElement {
     pub fn htmlelement<'a>(&'a self) -> &'a HTMLElement {
         &self.htmlelement
     }
+}
+
+#[deriving(PartialEq, Show)]
+#[jstraceable]
+pub enum HTMLMediaElementTypeId {
+    HTMLAudioElement,
+    HTMLVideoElement,
 }
 

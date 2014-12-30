@@ -21,6 +21,8 @@ use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers, AttributeHandlers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::htmlmediaelement::HTMLMediaElementTypeId;
+use dom::htmltablecellelement::HTMLTableCellElementTypeId;
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -210,7 +212,6 @@ pub enum HTMLElementTypeId {
     HTMLAnchorElement,
     HTMLAppletElement,
     HTMLAreaElement,
-    HTMLAudioElement,
     HTMLBaseElement,
     HTMLBRElement,
     HTMLBodyElement,
@@ -239,7 +240,7 @@ pub enum HTMLElementTypeId {
     HTMLLinkElement,
     HTMLLIElement,
     HTMLMapElement,
-    HTMLMediaElement,
+    HTMLMediaElement(HTMLMediaElementTypeId),
     HTMLMetaElement,
     HTMLMeterElement,
     HTMLModElement,
@@ -260,8 +261,7 @@ pub enum HTMLElementTypeId {
     HTMLStyleElement,
     HTMLTableElement,
     HTMLTableCaptionElement,
-    HTMLTableDataCellElement,
-    HTMLTableHeaderCellElement,
+    HTMLTableCellElement(HTMLTableCellElementTypeId),
     HTMLTableColElement,
     HTMLTableRowElement,
     HTMLTableSectionElement,
@@ -271,7 +271,6 @@ pub enum HTMLElementTypeId {
     HTMLTitleElement,
     HTMLTrackElement,
     HTMLUListElement,
-    HTMLVideoElement,
     HTMLUnknownElement,
 }
 

@@ -16,6 +16,13 @@ use cssparser::RGBA;
 use servo_util::str::{mod, DOMString, LengthOrPercentageOrAuto};
 use std::cell::Cell;
 
+#[deriving(PartialEq, Show)]
+#[jstraceable]
+pub enum HTMLTableCellElementTypeId {
+    HTMLTableDataCellElement,
+    HTMLTableHeaderCellElement,
+}
+
 #[dom_struct]
 pub struct HTMLTableCellElement {
     htmlelement: HTMLElement,
@@ -27,21 +34,20 @@ pub struct HTMLTableCellElement {
 impl HTMLTableCellElementDerived for EventTarget {
     fn is_htmltablecellelement(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableDataCellElement))) |
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableHeaderCellElement))) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)))) => true,
             _ => false
         }
     }
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(type_id: HTMLElementTypeId,
+    pub fn new_inherited(type_id: HTMLTableCellElementTypeId,
                          tag_name: DOMString,
                          prefix: Option<DOMString>,
                          document: JSRef<Document>)
                          -> HTMLTableCellElement {
         HTMLTableCellElement {
-            htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableCellElement(type_id), tag_name, prefix, document),
             background_color: Cell::new(None),
             colspan: Cell::new(None),
             width: Cell::new(LengthOrPercentageOrAuto::Auto),

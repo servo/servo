@@ -46,8 +46,8 @@ use wrapper::{PostorderNodeMutTraversal, PseudoElementType, TLayoutNode, ThreadS
 use gfx::display_list::OpaqueNode;
 use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
-use script::dom::node::NodeTypeId;
 use script::dom::htmlobjectelement::is_image_data;
+use script::dom::node::NodeTypeId;
 use servo_util::opts;
 use std::collections::DList;
 use std::mem;
@@ -268,8 +268,7 @@ impl<'a> FlowConstructor<'a> {
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement))) => {
                 SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node))
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableDataCellElement))) |
-            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableHeaderCellElement))) => SpecificFragmentInfo::TableCell,
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)))) => SpecificFragmentInfo::TableCell,
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement))) |
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement))) => SpecificFragmentInfo::TableRow,
             Some(NodeTypeId::Text) => SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new(node)),

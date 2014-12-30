@@ -6,10 +6,10 @@ use dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLVideoElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::htmlelement::HTMLElementTypeId;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlmediaelement::HTMLMediaElement;
+use dom::htmlelement::HTMLElementTypeId;
+use dom::htmlmediaelement::{HTMLMediaElement, HTMLMediaElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -20,14 +20,17 @@ pub struct HTMLVideoElement {
 
 impl HTMLVideoElementDerived for EventTarget {
     fn is_htmlvideoelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLVideoElement)))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(
+                                                   ElementTypeId::HTMLElement(
+                                                   HTMLElementTypeId::HTMLMediaElement(
+                                                   HTMLMediaElementTypeId::HTMLVideoElement))))
     }
 }
 
 impl HTMLVideoElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLVideoElement {
         HTMLVideoElement {
-            htmlmediaelement: HTMLMediaElement::new_inherited(HTMLElementTypeId::HTMLVideoElement, localName, prefix, document)
+            htmlmediaelement: HTMLMediaElement::new_inherited(HTMLMediaElementTypeId::HTMLVideoElement, localName, prefix, document)
         }
     }
 
