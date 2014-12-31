@@ -7,7 +7,6 @@
 use libc::{c_char,c_int,c_void,size_t};
 use std::borrow::ToOwned;
 use std::ffi::CString;
-use std::iter::AdditiveIterator;
 use std::old_io::timer::sleep;
 #[cfg(target_os="linux")]
 use std::old_io::File;

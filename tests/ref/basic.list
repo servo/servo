@@ -259,3 +259,5 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == text_shadow_simple_a.html text_shadow_simple_ref.html
 == text_shadow_decorations_a.html text_shadow_decorations_ref.html
 == text_shadow_blur_a.html text_shadow_blur_ref.html
+== transform_simple_a.html transform_simple_ref.html
+== transform_stacking_context_a.html transform_stacking_context_ref.html
