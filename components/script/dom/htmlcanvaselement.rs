@@ -9,7 +9,7 @@ use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElemen
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
+use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use dom::document::Document;
 use dom::element::{Element, ElementTypeId, AttributeHandlers};
@@ -83,13 +83,11 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
             return None;
         }
 
-        if self.context.get().is_none() {
+        Some(self.context.or_init(|| {
             let window = window_from_node(self).root();
             let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-            let context = CanvasRenderingContext2D::new(&GlobalRef::Window(*window), self, Size2D(w, h));
-            self.context.assign(Some(context));
-        }
-        self.context.get()
+            CanvasRenderingContext2D::new(&GlobalRef::Window(*window), self, Size2D(w, h))
+        }))
      }
 }
 
