@@ -8,13 +8,15 @@
 
 use fragment::Fragment;
 
-use geom::SideOffsets2D;
-use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, LengthOrPercentage};
-use style::properties::ComputedValues;
-use util::geometry::Au;
-use util::logical_geometry::LogicalMargin;
+use geom::{Matrix2D, SideOffsets2D, Size2D};
 use std::cmp::{max, min};
 use std::fmt;
+use style::computed_values::transform::ComputedMatrix;
+use style::properties::ComputedValues;
+use style::values::computed::{LengthAndPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentageOrNone, LengthOrPercentage};
+use util::geometry::Au;
+use util::logical_geometry::LogicalMargin;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
 #[derive(Copy)]
@@ -390,3 +392,30 @@ pub fn padding_from_style(style: &ComputedValues, containing_block_inline_size: 
         specified(padding_style.padding_bottom, containing_block_inline_size),
         specified(padding_style.padding_left, containing_block_inline_size)))
 }
+
+pub trait ToGfxMatrix {
+    fn to_gfx_matrix(&self, containing_size: &Size2D<Au>) -> Matrix2D<f32>;
+}
+
+impl ToGfxMatrix for ComputedMatrix {
+    fn to_gfx_matrix(&self, containing_size: &Size2D<Au>) -> Matrix2D<f32> {
+        Matrix2D::new(self.m11 as f32,
+                      self.m12 as f32,
+                      self.m21 as f32,
+                      self.m22 as f32,
+                      self.m31.to_au(containing_size.width).to_subpx() as f32,
+                      self.m32.to_au(containing_size.height).to_subpx() as f32)
+    }
+}
+
+trait ToAu {
+    fn to_au(&self, containing_size: Au) -> Au;
+}
+
+impl ToAu for LengthAndPercentage {
+    #[inline]
+    fn to_au(&self, containing_size: Au) -> Au {
+        self.length + Au::from_frac_px(self.percentage * containing_size.to_subpx())
+    }
+}
+

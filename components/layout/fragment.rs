@@ -2001,6 +2001,9 @@ impl Fragment {
         if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
             return true
         }
+        if self.style().get_effects().transform.is_some() {
+            return true
+        }
         match self.style().get_box().position {
             position::T::absolute | position::T::fixed => {
                 // FIXME(pcwalton): This should only establish a new stacking context when

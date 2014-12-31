@@ -214,18 +214,28 @@ impl SizeOf for DisplayList {
 pub struct StackingContext {
     /// The display items that make up this stacking context.
     pub display_list: Box<DisplayList>,
+
     /// The layer for this stacking context, if there is one.
     pub layer: Option<Arc<PaintLayer>>,
+
     /// The position and size of this stacking context.
     pub bounds: Rect<Au>,
     /// The overflow rect for this stacking context in its coordinate system.
     pub overflow: Rect<Au>,
+
     /// The `z-index` for this stacking context.
     pub z_index: i32,
+
     /// CSS filters to be applied to this stacking context (including opacity).
     pub filters: filter::T,
+
     /// The blend mode with which this stacking context blends with its backdrop.
     pub blend_mode: mix_blend_mode::T,
+
+    /// A transform to be applied to this stacking context.
+    ///
+    /// TODO(pcwalton): 3D transforms.
+    pub transform: Matrix2D<AzFloat>,
 }
 
 impl StackingContext {
@@ -235,6 +245,7 @@ impl StackingContext {
                bounds: &Rect<Au>,
                overflow: &Rect<Au>,
                z_index: i32,
+               transform: &Matrix2D<AzFloat>,
                filters: filter::T,
                blend_mode: mix_blend_mode::T,
                layer: Option<Arc<PaintLayer>>)
@@ -245,6 +256,7 @@ impl StackingContext {
             bounds: *bounds,
             overflow: *overflow,
             z_index: z_index,
+            transform: *transform,
             filters: filters,
             blend_mode: blend_mode,
         }
@@ -256,6 +268,7 @@ impl StackingContext {
                                           tile_bounds: &Rect<AzFloat>,
                                           transform: &Matrix2D<AzFloat>,
                                           clip_rect: Option<&Rect<Au>>) {
+        let transform = transform.mul(&self.transform);
         let temporary_draw_target =
             paint_context.get_or_create_temporary_draw_target(&self.filters, self.blend_mode);
         {
@@ -282,7 +295,7 @@ impl StackingContext {
 
             // Set up our clip rect and transform.
             let old_transform = paint_subcontext.draw_target.get_transform();
-            paint_subcontext.draw_target.set_transform(transform);
+            paint_subcontext.draw_target.set_transform(&transform);
             paint_subcontext.push_clip_if_applicable();
 
             // Steps 1 and 2: Borders and background for the root.
@@ -408,7 +421,7 @@ impl StackingContext {
     /// the `pointer-events` CSS property If `topmost_only` is true, stops after placing one node
     /// into the list. `result` must be empty upon entry to this function.
     pub fn hit_test(&self,
-                    point: Point2D<Au>,
+                    mut point: Point2D<Au>,
                     result: &mut Vec<DisplayItemMetadata>,
                     topmost_only: bool) {
         fn hit_test_in_list<'a,I>(point: Point2D<Au>,
@@ -459,6 +472,9 @@ impl StackingContext {
         }
 
         debug_assert!(!topmost_only || result.is_empty());
+        let frac_point = self.transform.transform_point(&Point2D(point.x.to_frac32_px(),
+                                                                 point.y.to_frac32_px()));
+        point = Point2D(Au::from_frac32_px(frac_point.x), Au::from_frac32_px(frac_point.y));
 
         // Iterate through display items in reverse stacking order. Steps here refer to the
         // painting steps in CSS 2.1 Appendix E.
