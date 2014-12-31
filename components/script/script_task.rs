@@ -1199,7 +1199,7 @@ impl ScriptTask {
                       let y = point.y.to_i32().unwrap_or(0);
 
                       let mouse_event = MouseEvent::new(*window,
-                          "mousemove".to_string(),
+                          "mousemove".into_string(),
                           true,
                           true,
                           Some(*window),

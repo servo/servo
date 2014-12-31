@@ -167,7 +167,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(ns!(""), &Atom::from_slice(to_snake_case(name).as_slice())).map(|attr| {
             let attr = attr.root();
-            attr.value().as_slice().to_string()
+            attr.value().as_slice().into_string()
         })
     }
 

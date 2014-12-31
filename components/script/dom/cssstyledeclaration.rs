@@ -39,10 +39,10 @@ macro_rules! css_properties(
     ( $([$getter:ident, $setter:ident, $cssprop:expr]),* ) => (
         $(
             fn $getter(self) -> DOMString {
-                self.GetPropertyValue($cssprop.to_string())
+                self.GetPropertyValue($cssprop.into_string())
             }
             fn $setter(self, value: DOMString) {
-                self.SetPropertyValue($cssprop.to_string(), value).unwrap();
+                self.SetPropertyValue($cssprop.into_string(), value).unwrap();
             }
         )*
     );
@@ -123,7 +123,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
             }
         });
 
-        result.unwrap_or("".to_string())
+        result.unwrap_or("".into_string())
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
@@ -145,7 +145,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
                 // Step 2.2.2 & 2.2.3
                 match declaration {
                     Some(declaration) => list.push(declaration),
-                    None => return "".to_string(),
+                    None => return "".into_string(),
                 }
             }
 
@@ -157,7 +157,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         if let Some(ref declaration) = self.get_declaration(&property) {
             serialize_value(declaration)
         } else {
-            "".to_string()
+            "".into_string()
         }
     }
 
@@ -174,15 +174,15 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
                                   .map(|longhand| self.GetPropertyPriority(longhand.clone()))
                                   .all(|priority| priority.as_slice() == "important") {
 
-                return "important".to_string();
+                return "important".into_string();
             }
         // Step 3
         } else if self.get_important_declaration(&property).is_some() {
-            return "important".to_string();
+            return "important".into_string();
         }
 
         // Step 4
-        "".to_string()
+        "".into_string()
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
@@ -287,7 +287,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
     fn SetPropertyValue(self, property: DOMString, value: DOMString) -> ErrorResult {
-        self.SetProperty(property, value, "".to_string())
+        self.SetProperty(property, value, "".into_string())
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
@@ -326,12 +326,12 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn CssFloat(self) -> DOMString {
-        self.GetPropertyValue("float".to_string())
+        self.GetPropertyValue("float".into_string())
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn SetCssFloat(self, value: DOMString) -> ErrorResult {
-        self.SetPropertyValue("float".to_string(), value)
+        self.SetPropertyValue("float".into_string(), value)
     }
 
     fn IndexedGetter(self, index: u32, found: &mut bool) -> DOMString {
