@@ -2484,7 +2484,7 @@ impl<T: Show> DeclaredValue<T> {
         match self {
             &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{}", inner)),
             &DeclaredValue::Initial => None,
-            &DeclaredValue::Inherit => Some("inherit".to_string()),
+            &DeclaredValue::Inherit => Some("inherit".into_string()),
         }
     }
 }
@@ -2509,10 +2509,10 @@ impl PropertyDeclaration {
         match self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".to_string(),
+                    &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".into_string(),
                 % endif
             % endfor
-            _ => "".to_string(),
+            _ => "".into_string(),
         }
     }
 
@@ -3201,7 +3201,7 @@ pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
         % for property in SHORTHANDS:
             "${property.name}" => Some(vec!(
             % for sub in property.sub_properties:
-                "${sub.name}".to_string(),
+                "${sub.name}".into_string(),
             % endfor
             )),
         % endfor

@@ -21,6 +21,8 @@ declare_lint!(PRIVATIZE, Deny,
               "Allows to enforce private fields for struct definitions")
 declare_lint!(INHERITANCE_INTEGRITY, Deny,
               "Ensures that struct fields are properly laid out for inheritance to work")
+declare_lint!(STR_TO_STRING, Deny,
+              "Warn when a String could use into_string() instead of to_string()")
 
 /// Lint for auditing transmutes
 ///
@@ -50,6 +52,11 @@ pub struct PrivatizePass;
 /// A DOM struct must have one Reflector field or one field
 /// which itself is a DOM struct (in which case it must be the first field).
 pub struct InheritancePass;
+
+/// Prefer str.into_string() over str.to_string()
+///
+/// The latter creates a `Formatter` and is 5x slower than the former
+pub struct StrToStringPass;
 
 impl LintPass for TransmutePass {
     fn get_lints(&self) -> LintArray {
@@ -328,6 +335,37 @@ impl LintPass for InheritancePass {
             } else if dom_spans.len() == 0 {
                 cx.span_lint(INHERITANCE_INTEGRITY, cx.tcx.map.expect_item(id).span,
                              "This DOM struct has no reflector or parent DOM struct");
+            }
+        }
+    }
+}
+
+impl LintPass for StrToStringPass {
+    fn get_lints(&self) -> LintArray {
+        lint_array!(STR_TO_STRING)
+    }
+
+    fn check_expr(&mut self, cx: &Context, expr: &ast::Expr) {
+        match expr.node {
+            ast::ExprMethodCall(ref method, _, ref args)
+                if method.node.as_str() == "to_string"
+                && is_str(cx, &*args[0]) => {
+                cx.span_lint(STR_TO_STRING, expr.span,
+                             "str.into_string() is more efficient than str.to_string(), please use it instead");
+            },
+            _ => ()
+        }
+
+        fn is_str(cx: &Context, expr: &ast::Expr) -> bool {
+            fn walk_ty<'t>(ty: ty::t) -> ty::t {
+                match ty::get(ty).sty {
+                    ty::ty_ptr(ref tm) | ty::ty_rptr(_, ref tm) => walk_ty(tm.ty),
+                    _ => ty
+                }
+            }
+            match ty::get(walk_ty(expr_ty(cx.tcx, expr))).sty {
+                ty::ty_str => true,
+                _ => false
             }
         }
     }

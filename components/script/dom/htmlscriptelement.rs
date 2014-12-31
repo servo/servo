@@ -210,7 +210,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         window.evaluate_script_with_result(source.as_slice(), url.serialize().as_slice());
 
         let event = Event::new(GlobalRef::Window(*window),
-                               "load".to_string(),
+                               "load".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         event.set_trusted(true);

@@ -83,7 +83,7 @@ pub fn instrument(f: proc()) {
             let task = Local::borrow(None::<Task>);
             match task.name {
                 Some(ref name) => name.to_string(),
-                None => "unknown".to_string(),
+                None => "unknown".into_string(),
             }
         };
         let stats = TaskStats {

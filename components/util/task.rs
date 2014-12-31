@@ -42,7 +42,7 @@ pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
         TaskBuilder::new().named(name).try_future(with_state)
     };
 
-    let watched_name = name.to_string();
+    let watched_name = name.into_string();
     let watcher_name = format!("{}Watcher", watched_name);
     TaskBuilder::new().named(watcher_name).spawn(proc() {
         rtinstrument::instrument(proc() {
