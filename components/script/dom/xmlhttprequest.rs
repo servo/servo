@@ -595,7 +595,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 referer_url.serialize_host().map(|ref h| buf.push_str(h.as_slice()));
                 referer_url.port().as_ref().map(|&p| {
                     buf.push_str(":".as_slice());
-                    buf.push_str(format!("{:u}", p).as_slice());
+                    buf.push_str(format!("{}", p).as_slice());
                 });
                 referer_url.serialize_path().map(|ref h| buf.push_str(h.as_slice()));
                 self.request_headers.borrow_mut().set_raw("Referer".into_string(), vec![buf.into_bytes()]);

@@ -19,7 +19,7 @@ pub fn get_available_families(callback: |String|) {
 }
 
 pub fn get_variations_for_family(family_name: &str, callback: |String|) {
-    debug!("Looking for faces of family: {:s}", family_name);
+    debug!("Looking for faces of family: {}", family_name);
 
     let family_collection =
         core_text::font_collection::create_for_family(family_name.as_slice());

@@ -77,7 +77,7 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
         }
     }
 
-    panic!("couldn't find node with unique id {:s}", node_id)
+    panic!("couldn't find node with unique id {}", node_id)
 }
 
 pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {

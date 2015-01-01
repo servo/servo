@@ -304,7 +304,7 @@ impl Shaper {
             debug!("{} -> {}", i, loc);
         }
 
-        debug!("text: {:s}", text);
+        debug!("text: {}", text);
         debug!("(char idx): char->(glyph index):");
         for (i, ch) in text.char_indices() {
             debug!("{}: {} --> {:d}", i, ch, *byte_to_glyph.get(i).unwrap() as int);

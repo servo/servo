@@ -1237,7 +1237,7 @@ impl Flow for InlineFlow {
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
         // TODO(#228): Once we form lines and have their cached bounds, we can be smarter and
         // not recurse on a line if nothing in it can intersect the dirty region.
-        debug!("Flow: building display list for {:u} inline fragments", self.fragments.len());
+        debug!("Flow: building display list for {} inline fragments", self.fragments.len());
 
         let mut display_list = box DisplayList::new();
         for fragment in self.fragments.fragments.iter_mut() {

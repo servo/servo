@@ -251,11 +251,11 @@ impl ImageCache {
 
                 spawn_named("ImageCacheTask (prefetch)", proc() {
                     let url = url_clone;
-                    debug!("image_cache_task: started fetch for {:s}", url.serialize());
+                    debug!("image_cache_task: started fetch for {}", url.serialize());
 
                     let image = load_image_data(url.clone(), resource_task.clone());
                     to_cache.send(Msg::StorePrefetchedImageData(url.clone(), image));
-                    debug!("image_cache_task: ended fetch for {:s}", url.serialize());
+                    debug!("image_cache_task: ended fetch for {}", url.serialize());
                 });
 
                 self.set_state(url, ImageState::Prefetching(AfterPrefetch::DoNotDecode));
@@ -315,11 +315,11 @@ impl ImageCache {
 
                 self.task_pool.execute(proc() {
                     let url = url_clone;
-                    debug!("image_cache_task: started image decode for {:s}", url.serialize());
+                    debug!("image_cache_task: started image decode for {}", url.serialize());
                     let image = load_from_memory(data.as_slice());
                     let image = image.map(|image| Arc::new(box image));
                     to_cache.send(Msg::StoreImage(url.clone(), image));
-                    debug!("image_cache_task: ended image decode for {:s}", url.serialize());
+                    debug!("image_cache_task: ended image decode for {}", url.serialize());
                 });
 
                 self.set_state(url, ImageState::Decoding);

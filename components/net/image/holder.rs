@@ -87,8 +87,8 @@ impl<NodeAddress: Send> ImageHolder<NodeAddress> {
             };
             match port.recv() {
                 ImageResponseMsg::ImageReady(image) => self.image = Some(image),
-                ImageResponseMsg::ImageNotReady => debug!("image not ready for {:s}", self.url.serialize()),
-                ImageResponseMsg::ImageFailed => debug!("image decoding failed for {:s}", self.url.serialize()),
+                ImageResponseMsg::ImageNotReady => debug!("image not ready for {}", self.url.serialize()),
+                ImageResponseMsg::ImageFailed => debug!("image decoding failed for {}", self.url.serialize()),
             }
         }
 

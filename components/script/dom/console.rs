@@ -28,23 +28,23 @@ impl Console {
 
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Log(self, message: DOMString) {
-        println!("{:s}", message);
+        println!("{}", message);
     }
 
     fn Debug(self, message: DOMString) {
-        println!("{:s}", message);
+        println!("{}", message);
     }
 
     fn Info(self, message: DOMString) {
-        println!("{:s}", message);
+        println!("{}", message);
     }
 
     fn Warn(self, message: DOMString) {
-        println!("{:s}", message);
+        println!("{}", message);
     }
 
     fn Error(self, message: DOMString) {
-        println!("{:s}", message);
+        println!("{}", message);
     }
 
     fn Assert(self, condition: bool, message: Option<DOMString>) {
@@ -53,7 +53,7 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
                 Some(ref message) => message.as_slice(),
                 None => "no message",
             };
-            println!("Assertion failed: {:s}", message);
+            println!("Assertion failed: {}", message);
         }
     }
 }
