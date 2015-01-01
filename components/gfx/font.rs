@@ -105,7 +105,9 @@ bitflags! {
         #[doc="Set if the text is entirely whitespace."]
         const IS_WHITESPACE_SHAPING_FLAG = 0x01,
         #[doc="Set if we are to ignore ligatures."]
-        const IGNORE_LIGATURES_SHAPING_FLAG = 0x02
+        const IGNORE_LIGATURES_SHAPING_FLAG = 0x02,
+        #[doc="Set if we are to disable kerning."]
+        const DISABLE_KERNING_SHAPING_FLAG = 0x04
     }
 }
 

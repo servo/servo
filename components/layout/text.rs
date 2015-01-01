@@ -9,8 +9,8 @@
 use fragment::{Fragment, SpecificFragmentInfo, ScannedTextFragmentInfo};
 use inline::InlineFragments;
 
-use gfx::font::{FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG, RunMetrics, ShapingFlags};
-use gfx::font::{ShapingOptions};
+use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
+use gfx::font::{RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
@@ -23,7 +23,8 @@ use servo_util::smallvec::{SmallVec, SmallVec1};
 use std::collections::DList;
 use std::mem;
 use style::ComputedValues;
-use style::computed_values::{line_height, text_orientation, text_transform, white_space};
+use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
+use style::computed_values::{white_space};
 use style::style_structs::Font as FontStyle;
 use std::sync::Arc;
 
@@ -108,6 +109,7 @@ impl TextRunScanner {
             let text_transform;
             let letter_spacing;
             let word_spacing;
+            let text_rendering;
             {
                 let in_fragment = self.clump.front().unwrap();
                 let font_style = in_fragment.style().get_font_arc();
@@ -120,6 +122,7 @@ impl TextRunScanner {
                 text_transform = inherited_text_style.text_transform;
                 letter_spacing = inherited_text_style.letter_spacing;
                 word_spacing = inherited_text_style.word_spacing.unwrap_or(Au(0));
+                text_rendering = inherited_text_style.text_rendering;
             }
 
             // First, transform/compress text of all the nodes.
@@ -161,13 +164,19 @@ impl TextRunScanner {
             // as the default space, user agents should not use ligatures." This ensures that, for
             // example, `finally` with a wide `letter-spacing` renders as `f i n a l l y` and not
             // `ﬁ n a l l y`.
+            let mut flags = ShapingFlags::empty();
+            match letter_spacing {
+                Some(Au(0)) | None => {}
+                Some(_) => flags.insert(IGNORE_LIGATURES_SHAPING_FLAG),
+            }
+            if text_rendering == text_rendering::T::optimizespeed {
+                flags.insert(IGNORE_LIGATURES_SHAPING_FLAG);
+                flags.insert(DISABLE_KERNING_SHAPING_FLAG)
+            }
             let options = ShapingOptions {
                 letter_spacing: letter_spacing,
                 word_spacing: word_spacing,
-                flags: match letter_spacing {
-                    Some(Au(0)) | None => ShapingFlags::empty(),
-                    Some(_) => IGNORE_LIGATURES_SHAPING_FLAG,
-                },
+                flags: flags,
             };
 
             Arc::new(box TextRun::new(&mut *fontgroup.fonts.get(0).borrow_mut(),
