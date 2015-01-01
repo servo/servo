@@ -46,6 +46,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let document = node.owner_doc().root();
         let window = document.r().window().root();
+        let window = window.r();
         let image_cache = window.image_cache_task();
         match value {
             None => {

@@ -170,6 +170,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // TODO: Add support for the `defer` and `async` attributes.  (For now, we fetch all
         // scripts synchronously and execute them immediately.)
         let window = window_from_node(self).root();
+        let window = window.r();
         let page = window.page();
         let base_url = page.get_url();
 
@@ -207,9 +208,9 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             None => (text, base_url)
         };
 
-        window.r().evaluate_script_with_result(source.as_slice(), url.serialize().as_slice());
+        window.evaluate_script_with_result(source.as_slice(), url.serialize().as_slice());
 
-        let event = Event::new(GlobalRef::Window(window.r()),
+        let event = Event::new(GlobalRef::Window(window),
                                "load".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();

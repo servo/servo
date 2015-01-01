@@ -112,6 +112,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
         // Subpage Id
         let window = window_from_node(self).root();
+        let window = window.r();
         let page = window.page();
         let subpage_id = page.get_next_subpage_id();
 

@@ -127,7 +127,8 @@ trait PrivateHTMLLinkElementHelpers {
 impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
     fn handle_stylesheet_url(self, href: &str) {
         let window = window_from_node(self).root();
-        match UrlParser::new().base_url(&window.r().page().get_url()).parse(href) {
+        let window = window.r();
+        match UrlParser::new().base_url(&window.page().get_url()).parse(href) {
             Ok(url) => {
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;
                 layout_chan.send(Msg::LoadStylesheet(url));
