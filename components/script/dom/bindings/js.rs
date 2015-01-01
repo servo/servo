@@ -584,7 +584,7 @@ pub struct Root<T> {
     /// List that ensures correct dynamic root ordering
     root_list: &'static RootCollection,
     /// Reference to rooted value that must not outlive this container
-    jsref: JSRef<'static, T>,
+    ptr: NonZero<*const T>,
     /// On-stack JS pointer to assuage conservative stack scanner
     js_ptr: *mut JSObject,
 }
@@ -596,10 +596,7 @@ impl<T: Reflectable> Root<T> {
     fn new(roots: &'static RootCollection, unrooted: &JS<T>) -> Root<T> {
         let root = Root {
             root_list: roots,
-            jsref: JSRef {
-                ptr: unrooted.ptr.clone(),
-                chain: ContravariantLifetime,
-            },
+            ptr: unrooted.ptr,
             js_ptr: unrooted.reflector().get_jsobject(),
         };
         roots.root(&root);
@@ -610,7 +607,7 @@ impl<T: Reflectable> Root<T> {
     /// the lifetime of this root.
     pub fn r<'b>(&'b self) -> JSRef<'b, T> {
         JSRef {
-            ptr: self.jsref.ptr,
+            ptr: self.ptr,
             chain: ContravariantLifetime,
         }
     }
@@ -621,7 +618,7 @@ impl<T: Reflectable> Root<T> {
     /// DO NOT CALL.
     pub fn get_unsound_ref_forever<'b>(&self) -> JSRef<'b, T> {
         JSRef {
-            ptr: self.jsref.ptr,
+            ptr: self.ptr,
             chain: ContravariantLifetime,
         }
     }
