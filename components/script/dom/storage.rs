@@ -38,13 +38,13 @@ impl Storage {
 
     fn get_url(&self) -> Url {
         let global_root = self.global.root();
-        let global_ref = global_root.root_ref();
+        let global_ref = global_root.r();
         global_ref.get_url()
     }
 
     fn get_storage_task(&self) -> StorageTask {
         let global_root = self.global.root();
-        let global_ref = global_root.root_ref();
+        let global_ref = global_root.r();
         global_ref.as_window().storage_task()
     }
 

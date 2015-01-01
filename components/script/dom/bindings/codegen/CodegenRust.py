@@ -2222,7 +2222,7 @@ class CGCallGenerator(CGThing):
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
                 "%s"
-                "        throw_dom_exception(cx, global.root_ref(), e);\n"
+                "        throw_dom_exception(cx, global.r(), e);\n"
                 "        return%s;\n"
                 "    },\n"
                 "};" % (glob, errorResult)))
@@ -4014,7 +4014,7 @@ let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
 let global = global.root();
 """)
         nativeName = MakeNativeName(self._ctor.identifier.name)
-        callGenerator = CGMethodCall(["&global.root_ref()"], nativeName, True,
+        callGenerator = CGMethodCall(["&global.r()"], nativeName, True,
                                      self.descriptor, self._ctor)
         return CGList([preamble, callGenerator])
 

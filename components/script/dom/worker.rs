@@ -89,13 +89,13 @@ impl Worker {
         let mut message = UndefinedValue();
         unsafe {
             assert!(JS_ReadStructuredClone(
-                global.root_ref().get_cx(), data as *const u64, nbytes,
+                global.r().get_cx(), data as *const u64, nbytes,
                 JS_STRUCTURED_CLONE_VERSION, &mut message,
                 ptr::null(), ptr::null_mut()) != 0);
         }
 
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
-        MessageEvent::dispatch_jsval(target, global.root_ref(), message);
+        MessageEvent::dispatch_jsval(target, global.r(), message);
     }
 }
 
@@ -112,7 +112,7 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
             return Err(DataClone);
         }
 
-        let address = Trusted::new(cx, self, self.global.root().root_ref().script_chan().clone());
+        let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
         self.sender.send((address, ScriptMsg::DOMMessage(data, nbytes)));
         Ok(())
     }
