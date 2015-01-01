@@ -787,11 +787,9 @@ pub mod longhands {
 
     <%self:single_component_value name="list-style-image">
         pub use super::computed_as_specified as to_computed_value;
-        #[deriving(Clone)]
         pub type SpecifiedValue = Option<Url>;
         pub mod computed_value {
             use url::Url;
-            #[deriving(Clone, PartialEq)]
             pub type T = Option<Url>;
         }
         pub fn from_component_value(input: &ComponentValue, base_url: &Url)
@@ -823,7 +821,6 @@ pub mod longhands {
             use super::super::super::common_types::computed;
             pub type T = Option<computed::Image>;
         }
-        #[deriving(Clone)]
         pub type SpecifiedValue = common_specified::CSSImage;
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
