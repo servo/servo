@@ -32,9 +32,9 @@ pub enum GlobalRef<'a> {
 }
 
 /// A stack-based rooted reference to a global object.
-pub enum GlobalRoot<'b> {
-    Window(Root<'b, window::Window>),
-    Worker(Root<'b, WorkerGlobalScope>),
+pub enum GlobalRoot {
+    Window(Root<window::Window>),
+    Worker(Root<WorkerGlobalScope>),
 }
 
 /// A traced reference to a global object, for use in fields of traced Rust
@@ -98,7 +98,7 @@ impl<'a> Reflectable for GlobalRef<'a> {
     }
 }
 
-impl<'b> GlobalRoot<'b> {
+impl GlobalRoot {
     /// Obtain a safe reference to the global object that cannot outlive the
     /// lifetime of this root.
     pub fn root_ref<'c>(&'c self) -> GlobalRef<'c> {
