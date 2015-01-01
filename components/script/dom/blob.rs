@@ -12,6 +12,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 
 use servo_util::str::DOMString;
 use std::cmp::{min, max};
+use std::ascii::AsciiExt;
 
 #[jstraceable]
 pub enum BlobTypeId {
@@ -29,34 +30,46 @@ pub struct Blob {
     // isClosed_: bool
 }
 
+fn is_ascii_printable(string: &DOMString) -> bool{
+    // Step 5.1 in Sec 5.1 of File API spec
+    // http://dev.w3.org/2006/webapi/FileAPI/#constructorBlob
+    return string.chars().all(|c| { c >= '\x20' && c <= '\x7E' })
+}
+
 impl Blob {
     pub fn new_inherited(global: &GlobalRef, type_: BlobTypeId,
-                         bytes: Option<Vec<u8>>) -> Blob {
+                         bytes: Option<Vec<u8>>, typeString: &str) -> Blob {
         Blob {
             reflector_: Reflector::new(),
             type_: type_,
             bytes: bytes,
-            typeString: "".into_string(),
+            typeString: typeString.into_string(),
             global: GlobalField::from_rooted(global)
             //isClosed_: false
         }
     }
 
-    pub fn new(global: &GlobalRef, bytes: Option<Vec<u8>>) -> Temporary<Blob> {
-        reflect_dom_object(box Blob::new_inherited(global, BlobTypeId::Blob, bytes),
+    pub fn new(global: &GlobalRef, bytes: Option<Vec<u8>>,
+               typeString: &str) -> Temporary<Blob> {
+        reflect_dom_object(box Blob::new_inherited(global, BlobTypeId::Blob, bytes, typeString),
                            *global,
                            BlobBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Blob>> {
-        Ok(Blob::new(global, None))
+        Ok(Blob::new(global, None, ""))
     }
 
-    pub fn Constructor_(global: &GlobalRef, blobParts: DOMString) -> Fallible<Temporary<Blob>> {
+    pub fn Constructor_(global: &GlobalRef, blobParts: DOMString, blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Fallible<Temporary<Blob>> {
         //TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
-        //TODO: accept options parameter
         let bytes: Option<Vec<u8>> = Some(blobParts.into_bytes());
-        Ok(Blob::new(global, bytes))
+        let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
+            blobPropertyBag.type_.as_slice()
+        } else {
+            ""
+        };
+        let typeStrLower = typeString.as_slice().to_ascii_lower();
+        Ok(Blob::new(global, bytes, typeStrLower.as_slice()))
     }
 }
 
@@ -73,7 +86,7 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
     }
 
     fn Slice(self, start: Option<i64>, end: Option<i64>,
-             _contentType: Option<DOMString>) -> Temporary<Blob> {
+             contentType: Option<DOMString>) -> Temporary<Blob> {
         let size: i64 = self.Size().to_i64().unwrap();
         let relativeStart: i64 = match start {
             None => 0,
@@ -95,23 +108,26 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
                 }
             }
         };
-        /*
         let relativeContentType = match contentType {
             None => "".into_string(),
-            Some(str) => str
+            Some(str) => {
+                if is_ascii_printable(&str) {
+                    str.as_slice().to_ascii_lower().into_string()
+                } else {
+                    "".into_string()
+                }
+            }
         };
-        */
-        //TODO: actually use relativeContentType in constructor
         let span: i64 = max(relativeEnd - relativeStart, 0);
         let global = self.global.root();
         match self.bytes {
-            None => Blob::new(&global.root_ref(), None),
+            None => Blob::new(&global.root_ref(), None, relativeContentType.as_slice()),
             Some(ref vec) => {
                 let start = relativeStart.to_uint().unwrap();
                 let end = (relativeStart + span).to_uint().unwrap();
                 let mut bytes: Vec<u8> = Vec::new();
                 bytes.push_all(vec.slice(start, end));
-                Blob::new(&global.root_ref(), Some(bytes))
+                Blob::new(&global.root_ref(), Some(bytes), relativeContentType.as_slice())
             }
         }
     }
