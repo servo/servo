@@ -31,11 +31,11 @@
 //! Both `Temporary<T>` and `JS<T>` do not allow access to their inner value without explicitly
 //! creating a stack-based root via the `root` method. This returns a `Root<T>`, which causes
 //! the JS-owned value to be uncollectable for the duration of the `Root` object's lifetime.
-//! A `JSRef<T>` can be obtained from a `Root<T>` either by dereferencing the `Root<T>` (`*rooted`)
-//! or explicitly calling the `root_ref` method. These `JSRef<T>` values are not allowed to
-//! outlive their originating `Root<T>`, to ensure that all interactions with the enclosed value
-//! only occur when said value is uncollectable, and will cause static lifetime errors if
-//! misused.
+//! A `JSRef<T>` can be obtained from a `Root<T>` by calling the `r` method. (Dereferencing the
+//! object is still supported, but as it is unsafe, this is deprecated.) These `JSRef<T>` values
+//! are not allowed to outlive their originating `Root<T>`, to ensure that all interactions with
+//! the enclosed value only occur when said value is uncollectable, and will cause static lifetime
+//! errors if misused.
 //!
 //! Other miscellaneous helper traits:
 //!
@@ -307,23 +307,23 @@ impl<From, To> JS<From> {
 
 /// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
-    fn root_ref<'a>(&'a self) -> Option<JSRef<'a, T>>;
+    fn r<'a>(&'a self) -> Option<JSRef<'a, T>>;
 }
 
 impl<T: Reflectable> RootedReference<T> for Option<Root<T>> {
-    fn root_ref<'a>(&'a self) -> Option<JSRef<'a, T>> {
-        self.as_ref().map(|root| root.root_ref())
+    fn r<'a>(&'a self) -> Option<JSRef<'a, T>> {
+        self.as_ref().map(|root| root.r())
     }
 }
 
 /// Get an `Option<Option<JSRef<T>>>` out of an `Option<Option<Root<T>>>`
 pub trait OptionalRootedReference<T> {
-    fn root_ref<'a>(&'a self) -> Option<Option<JSRef<'a, T>>>;
+    fn r<'a>(&'a self) -> Option<Option<JSRef<'a, T>>>;
 }
 
 impl<T: Reflectable> OptionalRootedReference<T> for Option<Option<Root<T>>> {
-    fn root_ref<'a>(&'a self) -> Option<Option<JSRef<'a, T>>> {
-        self.as_ref().map(|inner| inner.root_ref())
+    fn r<'a>(&'a self) -> Option<Option<JSRef<'a, T>>> {
+        self.as_ref().map(|inner| inner.r())
     }
 }
 
@@ -513,7 +513,7 @@ impl<T: Reflectable> Root<T> {
 
     /// Obtain a safe reference to the wrapped JS owned-value that cannot outlive
     /// the lifetime of this root.
-    pub fn root_ref<'b>(&'b self) -> JSRef<'b,T> {
+    pub fn r<'b>(&'b self) -> JSRef<'b, T> {
         self.jsref.clone()
     }
 }

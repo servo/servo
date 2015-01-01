@@ -101,7 +101,7 @@ impl KeyboardEvent {
         let event = KeyboardEvent::new(global.as_window(), type_,
                                        init.parent.parent.parent.bubbles,
                                        init.parent.parent.parent.cancelable,
-                                       init.parent.parent.view.root_ref(),
+                                       init.parent.parent.view.r(),
                                        init.parent.parent.detail,
                                        init.key.clone(), init.code.clone(), init.location,
                                        init.repeat, init.isComposing, init.parent.ctrlKey,

@@ -103,8 +103,8 @@ impl GlobalRoot {
     /// lifetime of this root.
     pub fn root_ref<'c>(&'c self) -> GlobalRef<'c> {
         match *self {
-            GlobalRoot::Window(ref window) => GlobalRef::Window(window.root_ref()),
-            GlobalRoot::Worker(ref worker) => GlobalRef::Worker(worker.root_ref()),
+            GlobalRoot::Window(ref window) => GlobalRef::Window(window.r()),
+            GlobalRoot::Worker(ref worker) => GlobalRef::Worker(worker.r()),
         }
     }
 }

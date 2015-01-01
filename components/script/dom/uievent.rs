@@ -62,7 +62,7 @@ impl UIEvent {
                        init: &UIEventBinding::UIEventInit) -> Fallible<Temporary<UIEvent>> {
         let event = UIEvent::new(global.as_window(), type_,
                                  init.parent.bubbles, init.parent.cancelable,
-                                 init.view.root_ref(), init.detail);
+                                 init.view.r(), init.detail);
         Ok(event)
     }
 }

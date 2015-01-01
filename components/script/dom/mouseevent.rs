@@ -92,12 +92,12 @@ impl MouseEvent {
         let event = MouseEvent::new(global.as_window(), type_,
                                     init.parent.parent.parent.bubbles,
                                     init.parent.parent.parent.cancelable,
-                                    init.parent.parent.view.root_ref(),
+                                    init.parent.parent.view.r(),
                                     init.parent.parent.detail,
                                     init.screenX, init.screenY,
                                     init.clientX, init.clientY, init.parent.ctrlKey,
                                     init.parent.altKey, init.parent.shiftKey, init.parent.metaKey,
-                                    init.button, init.relatedTarget.root_ref());
+                                    init.button, init.relatedTarget.r());
         Ok(event)
     }
 }

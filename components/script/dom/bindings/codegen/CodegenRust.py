@@ -2307,7 +2307,7 @@ class CGPerSignatureCall(CGThing):
         def process(arg, i):
             argVal = "arg" + str(i)
             if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
-                argVal += ".root_ref()"
+                argVal += ".r()"
             return argVal
         return [(a, process(a, i)) for (i, a) in enumerate(self.arguments)]
 
@@ -3540,7 +3540,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
         def process(arg):
             argVal = arg.identifier.name
             if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
-                argVal += ".root_ref()"
+                argVal += ".r()"
             return argVal
         args = [(a, process(a)) for a in self.arguments]
         if self.idlNode.isGetter():

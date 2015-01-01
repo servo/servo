@@ -29,7 +29,7 @@ impl DOMStringMap {
     pub fn new(element: JSRef<HTMLElement>) -> Temporary<DOMStringMap> {
         let window = window_from_node(element).root();
         reflect_dom_object(box DOMStringMap::new_inherited(element),
-                           GlobalRef::Window(window.root_ref()), DOMStringMapBinding::Wrap)
+                           GlobalRef::Window(window.r()), DOMStringMapBinding::Wrap)
     }
 }
 

@@ -307,10 +307,10 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
         assert!(new_child.next_sibling().is_none());
         match before {
             Some(ref before) => {
-                assert!(before.parent_node().root().root_ref() == Some(self));
+                assert!(before.parent_node().root().r() == Some(self));
                 match before.prev_sibling().root() {
                     None => {
-                        assert!(Some(*before) == self.first_child().root().root_ref());
+                        assert!(Some(*before) == self.first_child().root().r());
                         self.first_child.assign(Some(new_child));
                     },
                     Some(prev_sibling) => {
@@ -342,7 +342,7 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
     ///
     /// Fails unless `child` is a child of this node.
     fn remove_child(self, child: JSRef<Node>) {
-        assert!(child.parent_node().root().root_ref() == Some(self));
+        assert!(child.parent_node().root().r() == Some(self));
 
         match child.prev_sibling.get().root() {
             None => {
@@ -1811,7 +1811,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 }.root();
 
                 // Step 3.
-                Node::replace_all(node.root_ref(), self);
+                Node::replace_all(node.r(), self);
             }
             NodeTypeId::Comment |
             NodeTypeId::Text |

@@ -313,7 +313,7 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
     let mut iter = unsafe {
         doc_node.query_selector_iter("input[type=radio]".into_string()).unwrap()
                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
-                .filter(|&r| in_same_group(r, owner.root_ref(), group) && broadcaster != r)
+                .filter(|&r| in_same_group(r, owner.r(), group) && broadcaster != r)
     };
     for r in iter {
         if r.Checked() {
@@ -326,7 +326,7 @@ fn in_same_group<'a,'b>(other: JSRef<'a, HTMLInputElement>,
                         owner: Option<JSRef<'b, HTMLFormElement>>,
                         group: Option<&str>) -> bool {
     let other_owner = other.form_owner().root();
-    let other_owner = other_owner.root_ref();
+    let other_owner = other_owner.r();
     other.input_type.get() == InputType::InputRadio &&
     // TODO Both a and b are in the same home subtree.
     other_owner.equals(owner) &&
@@ -638,7 +638,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     let checked_member = unsafe {
                         doc_node.query_selector_iter("input[type=radio]".into_string()).unwrap()
                                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
-                                .filter(|&r| in_same_group(r, owner.root_ref(),
+                                .filter(|&r| in_same_group(r, owner.r(),
                                                            group.as_ref().map(|gr| gr.as_slice())))
                                 .find(|r| r.Checked())
                     };
