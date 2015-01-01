@@ -480,10 +480,11 @@ trait PrivateDocumentHelpers {
 impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
     fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList> {
         let window = self.window.root();
-        let nodes = match self.GetDocumentElement().root() {
+        let document_element = self.GetDocumentElement().root();
+        let nodes = match document_element {
             None => vec!(),
-            Some(root) => {
-                let root: JSRef<Node> = NodeCast::from_ref(*root);
+            Some(ref root) => {
+                let root: JSRef<Node> = NodeCast::from_ref(root.r());
                 root.traverse_preorder().filter(|&node| callback(node)).collect()
             }
         };
