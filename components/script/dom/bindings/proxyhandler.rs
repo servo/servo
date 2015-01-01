@@ -33,7 +33,7 @@ pub unsafe extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObj
     if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, set, desc) {
         return false;
     }
-    if (*desc).obj.is_not_null() {
+    if !(*desc).obj.is_null() {
         return true;
     }
 
@@ -89,7 +89,7 @@ pub fn _obj_toString(cx: *mut JSContext, name: &str) -> *mut JSString {
         let length = result.len() as libc::size_t;
 
         let string = JS_NewStringCopyN(cx, chars, length);
-        assert!(string.is_not_null());
+        assert!(!string.is_null());
         return string;
     }
 }

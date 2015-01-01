@@ -221,7 +221,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         let funobj = unsafe {
             JS_CloneFunctionObject(cx, JS_GetFunctionObject(handler), scope)
         };
-        assert!(funobj.is_not_null());
+        assert!(!funobj.is_null());
         self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)));
     }
 

@@ -214,10 +214,10 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
     unsafe {
         let fun = JS_NewFunction(cx, Some(constructorNative), ctorNargs,
                                  JSFUN_CONSTRUCTOR, global, name);
-        assert!(fun.is_not_null());
+        assert!(!fun.is_null());
 
         let constructor = JS_GetFunctionObject(fun);
-        assert!(constructor.is_not_null());
+        assert!(!constructor.is_null());
 
         match members.staticMethods {
             Some(staticMethods) => DefineMethods(cx, constructor, staticMethods),
@@ -234,7 +234,7 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
             _ => (),
         }
 
-        if proto.is_not_null() {
+        if !proto.is_null() {
             assert!(JS_LinkConstructorAndPrototype(cx, constructor, proto) != 0);
         }
 
@@ -288,7 +288,7 @@ fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
                                   members: &'static NativeProperties) -> *mut JSObject {
     unsafe {
         let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, &*parentProto, &*global);
-        assert!(ourProto.is_not_null());
+        assert!(!ourProto.is_null());
 
         match members.methods {
             Some(methods) => DefineMethods(cx, ourProto, methods),
@@ -366,7 +366,7 @@ impl Reflector {
     /// Initialize the reflector. (May be called only once.)
     pub fn set_jsobject(&self, object: *mut JSObject) {
         assert!(self.object.get().is_null());
-        assert!(object.is_not_null());
+        assert!(!object.is_null());
         self.object.set(object);
     }
 

@@ -43,7 +43,7 @@ impl BrowserContext {
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
-        assert!(self.window_proxy.is_not_null());
+        assert!(!self.window_proxy.is_null());
         self.window_proxy
     }
 
@@ -53,14 +53,14 @@ impl BrowserContext {
         let js_info = page.js_info();
 
         let WindowProxyHandler(handler) = js_info.as_ref().unwrap().dom_static.windowproxy_handler;
-        assert!(handler.is_not_null());
+        assert!(!handler.is_null());
 
         let parent = win.reflector().get_jsobject();
         let cx = js_info.as_ref().unwrap().js_context.ptr;
         let wrapper = with_compartment(cx, parent, || unsafe {
             WrapperNew(cx, parent, handler)
         });
-        assert!(wrapper.is_not_null());
+        assert!(!wrapper.is_null());
         self.window_proxy = wrapper;
     }
 }
