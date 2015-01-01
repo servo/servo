@@ -68,7 +68,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
     for item in ErrorLoggerIterator(parse_declaration_list(block.into_iter())) {
         match item {
             DeclarationListItem::AtRule(rule) => log_css_error(
-                rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
+                rule.location, format!("Unsupported at-rule in declaration list: @{}", rule.name).as_slice()),
             DeclarationListItem::Declaration(Declaration{ location, name, value, important }) => {
                 if important {
                     log_css_error(location, "!important is not allowed on @font-face descriptors");
@@ -94,7 +94,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                         };
                     },
                     _ => {
-                        log_css_error(location, format!("Unsupported declaration {:s}", name).as_slice());
+                        log_css_error(location, format!("Unsupported declaration {}", name).as_slice());
                     }
                 }
             }

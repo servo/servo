@@ -28,5 +28,5 @@ impl<T, I: Iterator<Result<T, SyntaxError>>> Iterator<T> for ErrorLoggerIterator
 /// to log CSS parse errors to stderr.
 pub fn log_css_error(location: SourceLocation, message: &str) {
     // TODO eventually this will got into a "web console" or something.
-    info!("{:u}:{:u} {:s}", location.line, location.column, message)
+    info!("{}:{} {}", location.line, location.column, message)
 }

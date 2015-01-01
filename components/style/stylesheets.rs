@@ -153,7 +153,7 @@ pub fn parse_nested_at_rule(context: &ParserContext,
         }
         "font-face" => parse_font_face_rule(rule, parent_rules, base_url),
         _ => log_css_error(rule.location,
-                           format!("Unsupported at-rule: @{:s}", lower_name).as_slice())
+                           format!("Unsupported at-rule: @{}", lower_name).as_slice())
     }
 }
 
