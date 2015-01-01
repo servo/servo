@@ -10,7 +10,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use servo_util::cache::HashCache;
 use servo_util::smallvec::{SmallVec, SmallVec8};
-use style::computed_values::{font_variant, font_weight};
+use style::computed_values::{font_stretch, font_variant, font_weight};
 use style::style_structs::Font as FontStyle;
 use std::sync::Arc;
 
@@ -37,6 +37,7 @@ pub trait FontHandleMethods {
     fn face_name(&self) -> String;
     fn is_italic(&self) -> bool;
     fn boldness(&self) -> font_weight::T;
+    fn stretchiness(&self) -> font_stretch::T;
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
