@@ -219,6 +219,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
         let owner = self.owner.root();
         let window = window_from_node(owner.r()).root();
+        let window = window.r();
         let page = window.page();
         let decl_block = parse_style_attribute(synthesized_declaration.as_slice(),
                                                &page.get_url());
@@ -267,6 +268,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
         let owner = self.owner.root();
         let window = window_from_node(owner.r()).root();
+        let window = window.r();
         let page = window.page();
         let decl_block = parse_style_attribute(property.as_slice(),
                                                &page.get_url());
