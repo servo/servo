@@ -933,6 +933,14 @@ pub mod computed {
             }
         }
     }
+
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn compute_Length(value: specified::Length, context: &Context) -> Au {
+        compute_Au(value, context)
+    }
+
+    pub type Length = Au;
 }
 
 pub fn parse_url(input: &str, base_url: &Url) -> Url {
