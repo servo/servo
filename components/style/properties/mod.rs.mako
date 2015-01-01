@@ -2537,7 +2537,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
     for item in items.into_iter().rev() {
         match item {
             DeclarationListItem::AtRule(rule) => log_css_error(
-                rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
+                rule.location, format!("Unsupported at-rule in declaration list: @{}", rule.name).as_slice()),
             DeclarationListItem::Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
                 let (list, seen) = if i {
