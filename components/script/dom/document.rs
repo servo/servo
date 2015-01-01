@@ -24,7 +24,7 @@ use dom::bindings::error::Error::{NotSupported, InvalidCharacter};
 use dom::bindings::error::Error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
-use dom::bindings::js::OptionalRootable;
+use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
@@ -491,9 +491,11 @@ impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
     }
 
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>> {
-        self.GetDocumentElement().root().and_then(|element| {
-            HTMLHtmlElementCast::to_ref(*element)
-        }).map(Temporary::from_rooted)
+        self.GetDocumentElement()
+            .root()
+            .r()
+            .and_then(HTMLHtmlElementCast::to_ref)
+            .map(Temporary::from_rooted)
     }
 }
 
