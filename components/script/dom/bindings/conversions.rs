@@ -471,7 +471,7 @@ impl<T: Reflectable+IDLInterface> FromJSValConvertible<()> for JS<T> {
     }
 }
 
-impl<'a, 'b, T: Reflectable> ToJSValConvertible for Root<'a, 'b, T> {
+impl<'b, T: Reflectable> ToJSValConvertible for Root<'b, T> {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         self.reflector().to_jsval(cx)
     }
