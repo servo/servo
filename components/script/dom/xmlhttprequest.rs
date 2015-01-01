@@ -695,7 +695,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 if ready_state == XMLHttpRequestState::XHRDone || ready_state == XMLHttpRequestState::Loading {
                     self.text_response().to_jsval(cx)
                 } else {
-                    "".into_string().to_jsval(cx)
+                    "".to_jsval(cx)
                 }
             },
             _ if self.ready_state.get() != XMLHttpRequestState::XHRDone => NullValue(),

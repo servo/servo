@@ -2781,7 +2781,7 @@ pub const strings: &'static [&'static str] = &[
 
 impl ToJSValConvertible for super::%s {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        strings[*self as uint].into_string().to_jsval(cx)
+        strings[*self as uint].to_jsval(cx)
     }
 }
 """ % (",\n    ".join(['"%s"' % val for val in enum.values()]), enum.identifier.name)
