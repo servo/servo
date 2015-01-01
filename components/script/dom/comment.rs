@@ -40,7 +40,7 @@ impl Comment {
 
     pub fn Constructor(global: &GlobalRef, data: DOMString) -> Fallible<Temporary<Comment>> {
         let document = global.as_window().Document().root();
-        Ok(Comment::new(data, *document))
+        Ok(Comment::new(data, document.r()))
     }
 
     #[inline]

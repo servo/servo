@@ -50,7 +50,7 @@ impl HTMLSelectElement {
 impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     fn Validity(self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
-        ValidityState::new(*window)
+        ValidityState::new(window.r())
     }
 
     // Note: this function currently only exists for test_union.html.

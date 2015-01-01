@@ -41,17 +41,17 @@ impl<'a> DOMStringMapMethods for JSRef<'a, DOMStringMap> {
 
     fn NamedDeleter(self, name: DOMString) {
         let element = self.element.root();
-        element.delete_custom_attr(name)
+        element.r().delete_custom_attr(name)
     }
 
     fn NamedSetter(self, name: DOMString, value: DOMString) -> ErrorResult {
         let element = self.element.root();
-        element.set_custom_attr(name, value)
+        element.r().set_custom_attr(name, value)
     }
 
     fn NamedGetter(self, name: DOMString, found: &mut bool) -> DOMString {
         let element = self.element.root();
-        match element.get_custom_attr(name) {
+        match element.r().get_custom_attr(name) {
             Some(value) => {
                 *found = true;
                 value.clone()

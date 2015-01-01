@@ -166,7 +166,7 @@ impl Page {
     pub fn flush_layout(&self, goal: ReflowGoal, query: ReflowQueryType) {
         let frame = self.frame();
         let window = frame.as_ref().unwrap().window.root();
-        self.reflow(goal, window.control_chan().clone(), &mut **window.compositor(), query);
+        self.reflow(goal, window.r().control_chan().clone(), &mut **window.r().compositor(), query);
     }
 
     pub fn layout(&self) -> &LayoutRPC {
@@ -238,7 +238,7 @@ impl Page {
             Some(ref frame) => {
                 let window = frame.window.root();
                 let document = frame.document.root();
-                window.compositor().set_title(self.id, Some(document.Title()));
+                window.r().compositor().set_title(self.id, Some(document.r().Title()));
             }
         }
     }
@@ -246,7 +246,7 @@ impl Page {
     pub fn dirty_all_nodes(&self) {
         match *self.frame.borrow() {
             None => {}
-            Some(ref frame) => frame.document.root().dirty_all_nodes(),
+            Some(ref frame) => frame.document.root().r().dirty_all_nodes(),
         }
     }
 }
@@ -344,7 +344,7 @@ impl Page {
         let root = match *self.frame() {
             None => return,
             Some(ref frame) => {
-                frame.document.root().GetDocumentElement()
+                frame.document.root().r().GetDocumentElement()
             }
         };
 
@@ -355,7 +355,7 @@ impl Page {
 
         debug!("script: performing reflow for goal {}", goal);
 
-        let root: JSRef<Node> = NodeCast::from_ref(*root);
+        let root: JSRef<Node> = NodeCast::from_ref(root.r());
         if !root.get_has_dirty_descendants() {
             debug!("root has no dirty descendants; avoiding reflow");
             return
@@ -401,17 +401,17 @@ impl Page {
     /// Attempt to find a named element in this page's document.
     pub fn find_fragment_node(&self, fragid: DOMString) -> Option<Temporary<Element>> {
         let document = self.frame().as_ref().unwrap().document.root();
-        document.find_fragment_node(fragid)
+        document.r().find_fragment_node(fragid)
     }
 
     pub fn hit_test(&self, point: &Point2D<f32>) -> Option<UntrustedNodeAddress> {
         let frame = self.frame();
         let document = frame.as_ref().unwrap().document.root();
-        let root = match document.GetDocumentElement().root() {
+        let root = match document.r().GetDocumentElement().root() {
             None => return None,
             Some(root) => root,
         };
-        let root: JSRef<Node> = NodeCast::from_ref(*root);
+        let root: JSRef<Node> = NodeCast::from_ref(root.r());
         let address = match self.layout().hit_test(root.to_trusted_node_address(), *point) {
             Ok(HitTestResponse(node_address)) => {
                 Some(node_address)
@@ -427,11 +427,11 @@ impl Page {
     pub fn get_nodes_under_mouse(&self, point: &Point2D<f32>) -> Option<Vec<UntrustedNodeAddress>> {
         let frame = self.frame();
         let document = frame.as_ref().unwrap().document.root();
-        let root = match document.GetDocumentElement().root() {
+        let root = match document.r().GetDocumentElement().root() {
             None => return None,
             Some(root) => root,
         };
-        let root: JSRef<Node> = NodeCast::from_ref(*root);
+        let root: JSRef<Node> = NodeCast::from_ref(root.r());
         let address = match self.layout().mouse_over(root.to_trusted_node_address(), *point) {
             Ok(MouseOverResponse(node_address)) => {
                 Some(node_address)

@@ -79,11 +79,11 @@ impl MouseEvent {
                button: i16,
                relatedTarget: Option<JSRef<EventTarget>>) -> Temporary<MouseEvent> {
         let ev = MouseEvent::new_uninitialized(window).root();
-        ev.InitMouseEvent(type_, canBubble, cancelable, view, detail,
-                                  screenX, screenY, clientX, clientY,
-                                  ctrlKey, altKey, shiftKey, metaKey,
-                                  button, relatedTarget);
-        Temporary::from_rooted(*ev)
+        ev.r().InitMouseEvent(type_, canBubble, cancelable, view, detail,
+                              screenX, screenY, clientX, clientY,
+                              ctrlKey, altKey, shiftKey, metaKey,
+                              button, relatedTarget);
+        Temporary::from_rooted(ev.r())
     }
 
     pub fn Constructor(global: &GlobalRef,

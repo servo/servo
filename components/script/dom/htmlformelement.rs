@@ -152,17 +152,17 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         // Step 1
         let doc = document_from_node(self).root();
         let win = window_from_node(self).root();
-        let base = doc.url();
+        let base = doc.r().url();
         // TODO: Handle browsing contexts
         // TODO: Handle validation
-        let event = Event::new(GlobalRef::Window(*win),
+        let event = Event::new(GlobalRef::Window(win.r()),
                                "submit".into_string(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
-        event.set_trusted(true);
+        event.r().set_trusted(true);
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.DispatchEvent(*event).ok();
-        if event.DefaultPrevented() {
+        target.DispatchEvent(event.r()).ok();
+        if event.r().DefaultPrevented() {
             return;
         }
         // Step 6
@@ -204,7 +204,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         }
 
         // This is wrong. https://html.spec.whatwg.org/multipage/forms.html#planned-navigation
-        win.script_chan().send(ScriptMsg::TriggerLoad(win.page().id, load_data));
+        win.r().script_chan().send(ScriptMsg::TriggerLoad(win.r().page().id, load_data));
     }
 
     fn get_form_dataset<'b>(self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {
@@ -342,13 +342,13 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         }
 
         let win = window_from_node(self).root();
-        let event = Event::new(GlobalRef::Window(*win),
+        let event = Event::new(GlobalRef::Window(win.r()),
                                "reset".into_string(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.DispatchEvent(*event).ok();
-        if event.DefaultPrevented() {
+        target.DispatchEvent(event.r()).ok();
+        if event.r().DefaultPrevented() {
             return;
         }
 
@@ -484,10 +484,10 @@ pub trait FormControl<'a> : Copy {
         let owner = elem.get_string_attribute(&atom!("form"));
         if !owner.is_empty() {
             let doc = document_from_node(elem).root();
-            let owner = doc.GetElementById(owner).root();
+            let owner = doc.r().GetElementById(owner).root();
             match owner {
                 Some(o) => {
-                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(*o);
+                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(o.r());
                     if maybe_form.is_some() {
                         return maybe_form.map(Temporary::from_rooted);
                     }
@@ -507,7 +507,7 @@ pub trait FormControl<'a> : Copy {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or("".into_string(), |t| owner(*t.root()))
+            self.form_owner().map_or("".into_string(), |t| owner(t.root().r()))
         }
     }
     fn to_element(self) -> JSRef<'a, Element>;

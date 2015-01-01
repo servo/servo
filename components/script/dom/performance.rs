@@ -49,7 +49,7 @@ impl<'a> PerformanceMethods for JSRef<'a, Performance> {
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/HighResolutionTime/Overview.html#dom-performance-now
     fn Now(self) -> DOMHighResTimeStamp {
-        let navStart = self.timing.root().NavigationStartPrecise();
+        let navStart = self.timing.root().r().NavigationStartPrecise();
         (time::precise_time_ns() as f64 - navStart) * 1000000u as DOMHighResTimeStamp
     }
 }

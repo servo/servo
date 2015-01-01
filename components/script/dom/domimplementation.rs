@@ -42,7 +42,7 @@ impl DOMImplementation {
     pub fn new(document: JSRef<Document>) -> Temporary<DOMImplementation> {
         let window = document.window().root();
         reflect_dom_object(box DOMImplementation::new_inherited(document),
-                           GlobalRef::Window(*window),
+                           GlobalRef::Window(window.r()),
                            DOMImplementationBinding::Wrap)
     }
 }
@@ -59,7 +59,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
             // Step 3.
             QName => {
                 let document = self.document.root();
-                Ok(DocumentType::new(qname, Some(pubid), Some(sysid), *document))
+                Ok(DocumentType::new(qname, Some(pubid), Some(sysid), document.r()))
             }
         }
     }
@@ -68,23 +68,23 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
     fn CreateDocument(self, namespace: Option<DOMString>, qname: DOMString,
                       maybe_doctype: Option<JSRef<DocumentType>>) -> Fallible<Temporary<Document>> {
         let doc = self.document.root();
-        let win = doc.window().root();
+        let win = doc.r().window().root();
 
         // Step 1.
-        let doc = Document::new(*win, None, IsHTMLDocument::NonHTMLDocument,
+        let doc = Document::new(win.r(), None, IsHTMLDocument::NonHTMLDocument,
                                 None, DocumentSource::NotFromParser).root();
         // Step 2-3.
         let maybe_elem = if qname.is_empty() {
             None
         } else {
-            match doc.CreateElementNS(namespace, qname) {
+            match doc.r().CreateElementNS(namespace, qname) {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem)
             }
         };
 
         {
-            let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
+            let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
 
             // Step 4.
             match maybe_doctype {
@@ -99,7 +99,7 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
             match maybe_elem.root() {
                 None => (),
                 Some(elem) => {
-                    assert!(doc_node.AppendChild(NodeCast::from_ref(*elem)).is_ok())
+                    assert!(doc_node.AppendChild(NodeCast::from_ref(elem.r())).is_ok())
                 }
             }
         }
@@ -108,60 +108,60 @@ impl<'a> DOMImplementationMethods for JSRef<'a, DOMImplementation> {
         // FIXME: https://github.com/mozilla/servo/issues/1522
 
         // Step 7.
-        Ok(Temporary::from_rooted(*doc))
+        Ok(Temporary::from_rooted(doc.r()))
     }
 
     // http://dom.spec.whatwg.org/#dom-domimplementation-createhtmldocument
     fn CreateHTMLDocument(self, title: Option<DOMString>) -> Temporary<Document> {
         let document = self.document.root();
-        let win = document.window().root();
+        let win = document.r().window().root();
 
         // Step 1-2.
-        let doc = Document::new(*win, None, IsHTMLDocument::HTMLDocument, None,
+        let doc = Document::new(win.r(), None, IsHTMLDocument::HTMLDocument, None,
                                 DocumentSource::NotFromParser).root();
-        let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
+        let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
 
         {
             // Step 3.
-            let doc_type = DocumentType::new("html".into_string(), None, None, *doc).root();
-            assert!(doc_node.AppendChild(NodeCast::from_ref(*doc_type)).is_ok());
+            let doc_type = DocumentType::new("html".into_string(), None, None, doc.r()).root();
+            assert!(doc_node.AppendChild(NodeCast::from_ref(doc_type.r())).is_ok());
         }
 
         {
             // Step 4.
-            let doc_html: Root<Node> = NodeCast::from_temporary(HTMLHtmlElement::new("html".into_string(), None, *doc)).root();
-            assert!(doc_node.AppendChild(*doc_html).is_ok());
+            let doc_html: Root<Node> = NodeCast::from_temporary(HTMLHtmlElement::new("html".into_string(), None, doc.r())).root();
+            assert!(doc_node.AppendChild(doc_html.r()).is_ok());
 
             {
                 // Step 5.
-                let doc_head: Root<Node> = NodeCast::from_temporary(HTMLHeadElement::new("head".into_string(), None, *doc)).root();
-                assert!(doc_html.AppendChild(*doc_head).is_ok());
+                let doc_head: Root<Node> = NodeCast::from_temporary(HTMLHeadElement::new("head".into_string(), None, doc.r())).root();
+                assert!(doc_html.r().AppendChild(doc_head.r()).is_ok());
 
                 // Step 6.
                 match title {
                     None => (),
                     Some(title_str) => {
                         // Step 6.1.
-                        let doc_title: Root<Node> = NodeCast::from_temporary(HTMLTitleElement::new("title".into_string(), None, *doc)).root();
-                        assert!(doc_head.AppendChild(*doc_title).is_ok());
+                        let doc_title: Root<Node> = NodeCast::from_temporary(HTMLTitleElement::new("title".into_string(), None, doc.r())).root();
+                        assert!(doc_head.r().AppendChild(doc_title.r()).is_ok());
 
                         // Step 6.2.
-                        let title_text: Root<Text> = Text::new(title_str, *doc).root();
-                        assert!(doc_title.AppendChild(NodeCast::from_ref(*title_text)).is_ok());
+                        let title_text: Root<Text> = Text::new(title_str, doc.r()).root();
+                        assert!(doc_title.r().AppendChild(NodeCast::from_ref(title_text.r())).is_ok());
                     }
                 }
             }
 
             // Step 7.
-            let doc_body: Root<HTMLBodyElement> = HTMLBodyElement::new("body".into_string(), None, *doc).root();
-            assert!(doc_html.AppendChild(NodeCast::from_ref(*doc_body)).is_ok());
+            let doc_body: Root<HTMLBodyElement> = HTMLBodyElement::new("body".into_string(), None, doc.r()).root();
+            assert!(doc_html.r().AppendChild(NodeCast::from_ref(doc_body.r())).is_ok());
         }
 
         // Step 8.
         // FIXME: https://github.com/mozilla/servo/issues/1522
 
         // Step 9.
-        Temporary::from_rooted(*doc)
+        Temporary::from_rooted(doc.r())
     }
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-hasfeature

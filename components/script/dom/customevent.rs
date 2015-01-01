@@ -42,8 +42,8 @@ impl CustomEvent {
     }
     pub fn new(global: &GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
         let ev = CustomEvent::new_uninitialized(*global).root();
-        ev.InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
-        Temporary::from_rooted(*ev)
+        ev.r().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
+        Temporary::from_rooted(ev.r())
     }
     pub fn Constructor(global: &GlobalRef,
                        type_: DOMString,

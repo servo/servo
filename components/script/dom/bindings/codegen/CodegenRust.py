@@ -2199,7 +2199,7 @@ class CGCallGenerator(CGThing):
         if static:
             call = CGWrapper(call, pre="%s::" % descriptorProvider.interface.identifier.name)
         else:
-            call = CGWrapper(call, pre="%s." % object)
+            call = CGWrapper(call, pre="%s.r()." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=")")])
 
         self.cgRoot.append(CGList([
@@ -2214,7 +2214,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = ""
             else:
-                glob = "        let global = global_object_for_js_object(this.reflector().get_jsobject());\n"\
+                glob = "        let global = global_object_for_js_object(this.r().reflector().get_jsobject());\n"\
                        "        let global = global.root();\n"
 
             self.cgRoot.append(CGGeneric(

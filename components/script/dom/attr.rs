@@ -151,8 +151,8 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
             }
             Some(o) => {
                 let owner = o.root();
-                let value = owner.parse_attribute(&self.namespace, self.local_name(), value);
-                self.set_value(AttrSettingType::ReplacedAttr, value, *owner);
+                let value = owner.r().parse_attribute(&self.namespace, self.local_name(), value);
+                self.set_value(AttrSettingType::ReplacedAttr, value, owner.r());
             }
         }
     }

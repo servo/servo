@@ -62,8 +62,8 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
         let elem: JSRef<Element> = ElementCast::from_ref(*self);
 
         // TODO: support other values
-        match (elem.get_attribute(ns!(""), &atom!("type")).map(|x| x.root().Value()),
-               elem.get_attribute(ns!(""), &atom!("data")).map(|x| x.root().Value())) {
+        match (elem.get_attribute(ns!(""), &atom!("type")).map(|x| x.root().r().Value()),
+               elem.get_attribute(ns!(""), &atom!("data")).map(|x| x.root().r().Value())) {
             (None, Some(uri)) => {
                 if is_image_data(uri.as_slice()) {
                     let data_url = Url::parse(uri.as_slice()).unwrap();
@@ -84,7 +84,7 @@ pub fn is_image_data(uri: &str) -> bool {
 impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     fn Validity(self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
-        ValidityState::new(*window)
+        ValidityState::new(window.r())
     }
 
     // https://html.spec.whatwg.org/multipage/embedded-content.html#dom-object-type
@@ -109,7 +109,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
         match attr.local_name() {
             &atom!("data") => {
                 let window = window_from_node(*self).root();
-                self.process_data_url(window.image_cache_task().clone());
+                self.process_data_url(window.r().image_cache_task().clone());
             },
             _ => ()
         }

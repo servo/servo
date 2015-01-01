@@ -56,12 +56,12 @@ impl HTMLBodyElement {
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     fn GetOnunload(self) -> Option<EventHandlerNonNull> {
         let win = window_from_node(self).root();
-        win.GetOnunload()
+        win.r().GetOnunload()
     }
 
     fn SetOnunload(self, listener: Option<EventHandlerNonNull>) {
         let win = window_from_node(self).root();
-        win.SetOnunload(listener)
+        win.r().SetOnunload(listener)
     }
 }
 
@@ -95,12 +95,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                   "onoffline", "ononline", "onpagehide", "onpageshow", "onpopstate",
                   "onstorage", "onresize", "onunload", "onerror"];
             let window = window_from_node(*self).root();
-            let (cx, url, reflector) = (window.get_cx(),
-                                        window.get_url(),
-                                        window.reflector().get_jsobject());
+            let (cx, url, reflector) = (window.r().get_cx(),
+                                        window.r().get_url(),
+                                        window.r().reflector().get_jsobject());
             let evtarget: JSRef<EventTarget> =
                 if FORWARDED_EVENTS.iter().any(|&event| name == event) {
-                    EventTargetCast::from_ref(*window)
+                    EventTargetCast::from_ref(window.r())
                 } else {
                     EventTargetCast::from_ref(*self)
                 };

@@ -201,7 +201,7 @@ impl XMLHttpRequest {
 
     pub fn handle_progress(addr: TrustedXHRAddress, progress: XHRProgress) {
         let xhr = addr.to_temporary().root();
-        xhr.process_partial_response(progress);
+        xhr.r().process_partial_response(progress);
     }
 
     fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
@@ -769,7 +769,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.dispatch_event(*event);
+        target.dispatch_event(event.r());
     }
 
     fn process_partial_response(self, progress: XHRProgress) {
@@ -908,7 +908,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         } else {
             EventTargetCast::from_ref(self)
         };
-        let event: JSRef<Event> = EventCast::from_ref(*progressevent);
+        let event: JSRef<Event> = EventCast::from_ref(progressevent.r());
         target.dispatch_event(event);
     }
 
@@ -1008,7 +1008,7 @@ impl Extractable for SendParam {
         let encoding = UTF_8 as EncodingRef;
         match *self {
             eString(ref s) => encoding.encode(s.as_slice(), EncoderTrap::Replace).unwrap(),
-            eURLSearchParams(ref usp) => usp.root().serialize(None) // Default encoding is UTF8
+            eURLSearchParams(ref usp) => usp.root().r().serialize(None) // Default encoding is UTF8
         }
     }
 }

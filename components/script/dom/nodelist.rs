@@ -52,7 +52,7 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
             NodeListType::Simple(ref elems) => elems.len() as u32,
             NodeListType::Children(ref node) => {
                 let node = node.root();
-                node.children().count() as u32
+                node.r().children().count() as u32
             }
         }
     }
@@ -63,8 +63,8 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
             NodeListType::Simple(ref elems) => Some(Temporary::new(elems[index as uint].clone())),
             NodeListType::Children(ref node) => {
                 let node = node.root();
-                node.children().nth(index as uint)
-                                       .map(|child| Temporary::from_rooted(child))
+                node.r().children().nth(index as uint)
+                                   .map(|child| Temporary::from_rooted(child))
             }
         }
     }

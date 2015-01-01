@@ -26,13 +26,13 @@ impl Range {
     pub fn new(document: JSRef<Document>) -> Temporary<Range> {
         let window = document.window().root();
         reflect_dom_object(box Range::new_inherited(),
-                           GlobalRef::Window(*window),
+                           GlobalRef::Window(window.r()),
                            RangeBinding::Wrap)
     }
 
     pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Range>> {
         let document = global.as_window().Document().root();
-        Ok(Range::new(*document))
+        Ok(Range::new(document.r()))
     }
 }
 

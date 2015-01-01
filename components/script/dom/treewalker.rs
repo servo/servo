@@ -47,7 +47,7 @@ impl TreeWalker {
                            filter: Filter) -> Temporary<TreeWalker> {
         let window = document.window().root();
         reflect_dom_object(box TreeWalker::new_inherited(root_node, what_to_show, filter),
-                           GlobalRef::Window(*window),
+                           GlobalRef::Window(window.r()),
                            TreeWalkerBinding::Wrap)
     }
 

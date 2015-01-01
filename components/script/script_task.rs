@@ -654,7 +654,7 @@ impl ScriptTask {
             pipeline ID not associated with this script task. This is a bug.");
         let frame = page.frame();
         let window = frame.as_ref().unwrap().window.root();
-        window.handle_fire_timer(timer_id);
+        window.r().handle_fire_timer(timer_id);
     }
 
     /// Handles a notification that reflow completed.
@@ -787,11 +787,11 @@ impl ScriptTask {
         } else {
             url.clone()
         };
-        let document = Document::new(*window, Some(doc_url.clone()),
+        let document = Document::new(window.r(), Some(doc_url.clone()),
                                      IsHTMLDocument::HTMLDocument, None,
                                      DocumentSource::FromParser).root();
 
-        window.init_browser_context(*document);
+        window.r().init_browser_context(document.r());
 
         self.compositor.borrow_mut().set_ready_state(pipeline_id, Loading);
 
@@ -799,8 +799,8 @@ impl ScriptTask {
             // Create the root frame.
             let mut frame = page.mut_frame();
             *frame = Some(Frame {
-                document: JS::from_rooted(*document),
-                window: JS::from_rooted(*window),
+                document: JS::from_rooted(document.r()),
+                window: JS::from_rooted(window.r()),
             });
         }
 
@@ -820,7 +820,7 @@ impl ScriptTask {
 
             load_response.metadata.headers.as_ref().map(|headers| {
                 headers.get().map(|&LastModified(ref tm)| {
-                    document.set_last_modified(dom_last_modified(tm));
+                    document.r().set_last_modified(dom_last_modified(tm));
                 });
             });
 
@@ -836,22 +836,22 @@ impl ScriptTask {
             (HTMLInput::InputUrl(load_response), final_url)
         } else {
             let evalstr = load_data.url.non_relative_scheme_data().unwrap();
-            let jsval = window.evaluate_js_with_result(evalstr);
+            let jsval = window.r().evaluate_js_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
                                                           StringificationBehavior::Empty);
             (HTMLInput::InputString(strval.unwrap_or("".into_string())), doc_url)
         };
 
-        parse_html(*document, parser_input, &final_url);
+        parse_html(document.r(), parser_input, &final_url);
 
-        document.set_ready_state(DocumentReadyState::Interactive);
+        document.r().set_ready_state(DocumentReadyState::Interactive);
         self.compositor.borrow_mut().set_ready_state(pipeline_id, PerformingLayout);
 
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {}", final_url);
-        document.content_changed(NodeCast::from_ref(*document),
-                                 NodeDamage::OtherNodeDamage);
-        window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        document.r().content_changed(NodeCast::from_ref(document.r()),
+                                     NodeDamage::OtherNodeDamage);
+        window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
 
         {
             // No more reflow required
@@ -860,24 +860,24 @@ impl ScriptTask {
         }
 
         // https://html.spec.whatwg.org/multipage/#the-end step 4
-        let event = Event::new(GlobalRef::Window(*window), "DOMContentLoaded".into_string(),
+        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
-        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(*document);
-        let _ = doctarget.DispatchEvent(*event);
+        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
+        let _ = doctarget.DispatchEvent(event.r());
 
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        document.set_ready_state(DocumentReadyState::Complete);
+        document.r().set_ready_state(DocumentReadyState::Complete);
 
-        let event = Event::new(GlobalRef::Window(*window), "load".into_string(),
+        let event = Event::new(GlobalRef::Window(window.r()), "load".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
-        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
-        let _ = wintarget.dispatch_event_with_target(doctarget, *event);
+        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
+        let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
 
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 
@@ -889,7 +889,7 @@ impl ScriptTask {
             None => {}
             Some(ref chan) => {
                 let page_info = DevtoolsPageInfo {
-                    title: document.Title(),
+                    title: document.r().Title(),
                     url: final_url
                 };
                 chan.send(NewGlobal(pipeline_id, self.devtools_sender.clone(),
@@ -945,7 +945,8 @@ impl ScriptTask {
                     let page = get_page(&*self.page.borrow(), pipeline_id);
                     let frame = page.frame();
                     let document = frame.as_ref().unwrap().document.root();
-                    document.content_changed(*node_to_dirty, NodeDamage::OtherNodeDamage);
+                    document.r().content_changed(node_to_dirty.r(),
+                                                 NodeDamage::OtherNodeDamage);
                 }
 
                 self.handle_reflow_event(pipeline_id);
@@ -975,14 +976,14 @@ impl ScriptTask {
         let page = get_page(&*self.page.borrow(), pipeline_id);
         let frame = page.frame();
         let window = frame.as_ref().unwrap().window.root();
-        let doc = window.Document().root();
-        let focused = doc.get_focused_element().root();
-        let body = doc.GetBody().root();
+        let doc = window.r().Document().root();
+        let focused = doc.r().get_focused_element().root();
+        let body = doc.r().GetBody().root();
 
         let target: JSRef<EventTarget> = match (&focused, &body) {
-            (&Some(ref focused), _) => EventTargetCast::from_ref(**focused),
-            (&None, &Some(ref body)) => EventTargetCast::from_ref(**body),
-            (&None, &None) => EventTargetCast::from_ref(*window),
+            (&Some(ref focused), _) => EventTargetCast::from_ref(focused.r()),
+            (&None, &Some(ref body)) => EventTargetCast::from_ref(body.r()),
+            (&None, &None) => EventTargetCast::from_ref(window.r()),
         };
 
         let ctrl = modifiers.contains(CONTROL);
@@ -999,26 +1000,28 @@ impl ScriptTask {
 
         let props = KeyboardEvent::key_properties(key, modifiers);
 
-        let keyevent = KeyboardEvent::new(*window, ev_type, true, true, Some(*window), 0,
+        let keyevent = KeyboardEvent::new(window.r(), ev_type, true, true,
+                                          Some(window.r()), 0,
                                           props.key.into_string(), props.code.into_string(),
                                           props.location, is_repeating, is_composing,
                                           ctrl, alt, shift, meta,
                                           None, props.key_code).root();
-        let event = EventCast::from_ref(*keyevent);
+        let event = EventCast::from_ref(keyevent.r());
         let _ = target.DispatchEvent(event);
         let mut prevented = event.DefaultPrevented();
 
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
         if state != KeyState::Released && props.is_printable() && !prevented {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
-            let event = KeyboardEvent::new(*window, "keypress".into_string(), true, true, Some(*window),
+            let event = KeyboardEvent::new(window.r(), "keypress".into_string(),
+                                           true, true, Some(window.r()),
                                            0, props.key.into_string(), props.code.into_string(),
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,
                                            props.char_code, 0).root();
-            let _ = target.DispatchEvent(EventCast::from_ref(*event));
+            let _ = target.DispatchEvent(EventCast::from_ref(event.r()));
 
-            let ev = EventCast::from_ref(*event);
+            let ev = EventCast::from_ref(event.r());
             prevented = ev.DefaultPrevented();
             // TODO: if keypress event is canceled, prevent firing input events
         }
@@ -1044,7 +1047,7 @@ impl ScriptTask {
             _ => ()
         }
 
-        window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+        window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
 
     /// The entry point for content to notify that a new load has been requested
@@ -1060,7 +1063,7 @@ impl ScriptTask {
         let page = get_page(&*self.page.borrow(), pipeline_id);
         match page.find_fragment_node(url.fragment.unwrap()).root() {
             Some(node) => {
-                self.scroll_fragment_point(pipeline_id, *node);
+                self.scroll_fragment_point(pipeline_id, node.r());
             }
             None => {}
         }
@@ -1084,7 +1087,7 @@ impl ScriptTask {
                     .and_then(|name| page.find_fragment_node(name))
                     .root();
             match fragment_node {
-                Some(node) => self.scroll_fragment_point(pipeline_id, *node),
+                Some(node) => self.scroll_fragment_point(pipeline_id, node.r()),
                 None => {}
             }
 
@@ -1095,13 +1098,13 @@ impl ScriptTask {
             Some(window) => {
                 // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-                let uievent = UIEvent::new(window.clone(),
+                let uievent = UIEvent::new(window.r(),
                                            "resize".into_string(), false,
-                                           false, Some(window.clone()),
+                                           false, Some(window.r()),
                                            0i32).root();
-                let event: JSRef<Event> = EventCast::from_ref(*uievent);
+                let event: JSRef<Event> = EventCast::from_ref(uievent.r());
 
-                let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(*window);
+                let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
                 wintarget.dispatch_event(event);
             }
             None => ()
@@ -1128,9 +1131,9 @@ impl ScriptTask {
                         node::from_untrusted_node_address(
                             self.js_runtime.ptr, node_address).root();
 
-                let maybe_node = match ElementCast::to_ref(*temp_node) {
+                let maybe_node = match ElementCast::to_ref(temp_node.r()) {
                     Some(element) => Some(element),
-                    None => temp_node.ancestors().filter_map(ElementCast::to_ref).next(),
+                    None => temp_node.r().ancestors().filter_map(ElementCast::to_ref).next(),
                 };
 
                 match maybe_node {
@@ -1142,21 +1145,21 @@ impl ScriptTask {
                         match *page.frame() {
                             Some(ref frame) => {
                                 let window = frame.window.root();
-                                let doc = window.Document().root();
-                                doc.begin_focus_transaction();
+                                let doc = window.r().Document().root();
+                                doc.r().begin_focus_transaction();
 
                                 let event =
-                                    Event::new(GlobalRef::Window(*window),
+                                    Event::new(GlobalRef::Window(window.r()),
                                                "click".into_string(),
                                                EventBubbles::Bubbles,
                                                EventCancelable::Cancelable).root();
                                 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
-                                event.set_trusted(true);
+                                event.r().set_trusted(true);
                                 // https://html.spec.whatwg.org/multipage/interaction.html#run-authentic-click-activation-steps
-                                el.authentic_click_activation(*event);
+                                el.authentic_click_activation(event.r());
 
-                                doc.commit_focus_transaction();
-                                window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+                                doc.r().commit_focus_transaction();
+                                window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
                             }
                             None => {}
                         }
@@ -1182,7 +1185,7 @@ impl ScriptTask {
                     Some(ref mut mouse_over_targets) => {
                         for node in mouse_over_targets.iter_mut() {
                             let node = node.root();
-                            node.set_hover_state(false);
+                            node.r().set_hover_state(false);
                         }
                     }
                     None => {}
@@ -1198,19 +1201,19 @@ impl ScriptTask {
                       let x = point.x.to_i32().unwrap_or(0);
                       let y = point.y.to_i32().unwrap_or(0);
 
-                      let mouse_event = MouseEvent::new(*window,
+                      let mouse_event = MouseEvent::new(window.r(),
                           "mousemove".into_string(),
                           true,
                           true,
-                          Some(*window),
+                          Some(window.r()),
                           0i32,
                           x, y, x, y,
                           false, false, false, false,
                           0i16,
                           None).root();
 
-                      let event: JSRef<Event> = EventCast::from_ref(*mouse_event);
-                      let target: JSRef<EventTarget> = EventTargetCast::from_ref(*top_most_node);
+                      let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
+                      let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
                       target.dispatch_event(event);
                   }
                 }

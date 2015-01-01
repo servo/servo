@@ -71,20 +71,20 @@ impl Worker {
 
         let (sender, receiver) = channel();
         let worker = Worker::new(global, sender.clone()).root();
-        let worker_ref = Trusted::new(global.get_cx(), *worker, global.script_chan());
+        let worker_ref = Trusted::new(global.get_cx(), worker.r(), global.script_chan());
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             worker_url, worker_ref, resource_task, global.script_chan(),
             sender, receiver);
 
-        Ok(Temporary::from_rooted(*worker))
+        Ok(Temporary::from_rooted(worker.r()))
     }
 
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: *mut u64, nbytes: size_t) {
         let worker = address.to_temporary().root();
 
-        let global = worker.global.root();
+        let global = worker.r().global.root();
 
         let mut message = UndefinedValue();
         unsafe {
@@ -94,7 +94,7 @@ impl Worker {
                 ptr::null(), ptr::null_mut()) != 0);
         }
 
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
         MessageEvent::dispatch_jsval(target, global.root_ref(), message);
     }
 }

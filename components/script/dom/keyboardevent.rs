@@ -82,17 +82,17 @@ impl KeyboardEvent {
                char_code: Option<u32>,
                key_code: u32) -> Temporary<KeyboardEvent> {
         let ev = KeyboardEvent::new_uninitialized(window).root();
-        ev.deref().InitKeyboardEvent(type_, canBubble, cancelable, view, key, location,
-                                     "".into_string(), repeat, "".into_string());
-        *ev.code.borrow_mut() = code;
-        ev.ctrl.set(ctrlKey);
-        ev.alt.set(altKey);
-        ev.shift.set(shiftKey);
-        ev.meta.set(metaKey);
-        ev.char_code.set(char_code);
-        ev.key_code.set(key_code);
-        ev.is_composing.set(isComposing);
-        Temporary::from_rooted(*ev)
+        ev.r().InitKeyboardEvent(type_, canBubble, cancelable, view, key, location,
+                                 "".into_string(), repeat, "".into_string());
+        *ev.r().code.borrow_mut() = code;
+        ev.r().ctrl.set(ctrlKey);
+        ev.r().alt.set(altKey);
+        ev.r().shift.set(shiftKey);
+        ev.r().meta.set(metaKey);
+        ev.r().char_code.set(char_code);
+        ev.r().key_code.set(key_code);
+        ev.r().is_composing.set(isComposing);
+        Temporary::from_rooted(ev.r())
     }
 
     pub fn Constructor(global: &GlobalRef,

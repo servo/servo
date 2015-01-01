@@ -39,7 +39,7 @@ impl BrowserContext {
 
     pub fn active_window(&self) -> Temporary<Window> {
         let doc = self.active_document().root();
-        doc.window()
+        doc.r().window()
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
@@ -55,7 +55,7 @@ impl BrowserContext {
         let WindowProxyHandler(handler) = js_info.as_ref().unwrap().dom_static.windowproxy_handler;
         assert!(handler.is_not_null());
 
-        let parent = win.reflector().get_jsobject();
+        let parent = win.r().reflector().get_jsobject();
         let cx = js_info.as_ref().unwrap().js_context.ptr;
         let wrapper = with_compartment(cx, parent, || unsafe {
             WrapperNew(cx, parent, handler)
