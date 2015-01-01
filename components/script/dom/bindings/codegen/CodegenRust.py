@@ -1805,7 +1805,7 @@ let obj = with_compartment(aCx, proto, || {
                    proto, %s,
                    ptr::null_mut(), ptr::null_mut())
 });
-assert!(obj.is_not_null());\
+assert!(!obj.is_null());\
 """ % (descriptor.name, parent)
     else:
         if descriptor.isGlobal():
@@ -1815,7 +1815,7 @@ assert!(obj.is_not_null());\
                        "    JS_NewObject(aCx, &Class.base as *const js::Class as *const JSClass, &*proto, &*%s)\n"
                        "});\n" % parent)
         create += """\
-assert!(obj.is_not_null());
+assert!(!obj.is_null());
 
 JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
                    PrivateValue(squirrel_away_unique(aObject) as *const libc::c_void));"""
@@ -1841,11 +1841,11 @@ class CGWrapMethod(CGAbstractMethod):
         if not self.descriptor.isGlobal():
             return CGGeneric("""\
 let scope = aScope.reflector().get_jsobject();
-assert!(scope.is_not_null());
+assert!(!scope.is_null());
 assert!(((*JS_GetClass(scope)).flags & JSCLASS_IS_GLOBAL) != 0);
 
 let proto = with_compartment(aCx, scope, || GetProtoObject(aCx, scope, scope));
-assert!(proto.is_not_null());
+assert!(!proto.is_null());
 
 %s
 
@@ -1974,7 +1974,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                               toBindingNamespace(parentProtoName))
 
         getParentProto = ("let parentProto: *mut JSObject = %s;\n"
-                          "assert!(parentProto.is_not_null());\n") % getParentProto
+                          "assert!(!parentProto.is_null());\n") % getParentProto
 
         if self.descriptor.concrete:
             if self.descriptor.proxy:
@@ -2036,7 +2036,7 @@ let protoOrIfaceArray = GetProtoOrIfaceArray(aGlobal);
 let cachedObject: *mut JSObject = *protoOrIfaceArray.offset(%s as int);
 if cachedObject.is_null() {
     let tmp: *mut JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
-    assert!(tmp.is_not_null());
+    assert!(!tmp.is_null());
     *protoOrIfaceArray.offset(%s as int) = tmp;
     tmp
 } else {
@@ -2151,8 +2151,8 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
 
     def definition_body(self):
         return CGGeneric("""\
-assert!(global.is_not_null());
-assert!(GetProtoObject(cx, global, global).is_not_null());""")
+assert!(!global.is_null());
+assert!(!GetProtoObject(cx, global, global).is_null());""")
 
 def needCx(returnType, arguments, considerTypes):
     return (considerTypes and
@@ -3691,12 +3691,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         return setOrIndexedGet + """\
 let expando: *mut JSObject = GetExpandoObject(proxy);
 //if (!xpc::WrapperFactory::IsXrayWrapper(proxy) && (expando = GetExpandoObject(proxy))) {
-if expando.is_not_null() {
+if !expando.is_null() {
     let flags = if set { JSRESOLVE_ASSIGNING } else { 0 } | JSRESOLVE_QUALIFIED;
     if JS_GetPropertyDescriptorById(cx, expando, id, flags, desc) == 0 {
         return false;
     }
-    if (*desc).obj.is_not_null() {
+    if !(*desc).obj.is_null() {
         // Pretend the property lives on the wrapper.
         (*desc).obj = proxy;
         return true;
@@ -3828,7 +3828,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
 
         return indexed + """\
 let expando: *mut JSObject = GetExpandoObject(proxy);
-if expando.is_not_null() {
+if !expando.is_null() {
     let mut b: JSBool = 1;
     let ok = JS_HasPropertyById(cx, expando, id, &mut b) != 0;
     *bp = b != 0;
@@ -3853,7 +3853,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
     def getBody(self):
         getFromExpando = """\
 let expando = GetExpandoObject(proxy);
-if expando.is_not_null() {
+if !expando.is_null() {
     let mut hasProp = 0;
     if JS_HasPropertyById(cx, expando, id, &mut hasProp) == 0 {
         return false;

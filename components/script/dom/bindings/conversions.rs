@@ -343,7 +343,7 @@ impl FromJSValConvertible<()> for ByteString {
 impl ToJSValConvertible for Reflector {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         let obj = self.get_jsobject();
-        assert!(obj.is_not_null());
+        assert!(!obj.is_null());
         let mut value = ObjectValue(unsafe { &*obj });
         if unsafe { JS_WrapValue(cx, &mut value) } == 0 {
             panic!("JS_WrapValue failed.");

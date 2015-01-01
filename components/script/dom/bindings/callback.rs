@@ -121,7 +121,7 @@ impl CallbackInterface {
 pub fn WrapCallThisObject<T: Reflectable>(cx: *mut JSContext,
                                           p: JSRef<T>) -> *mut JSObject {
     let mut obj = p.reflector().get_jsobject();
-    assert!(obj.is_not_null());
+    assert!(!obj.is_null());
 
     unsafe {
         if JS_WrapObject(cx, &mut obj) == 0 {

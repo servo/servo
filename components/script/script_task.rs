@@ -392,7 +392,7 @@ impl ScriptTask {
         let js_runtime = js::rust::rt();
         assert!({
             let ptr: *mut JSRuntime = (*js_runtime).ptr;
-            ptr.is_not_null()
+            !ptr.is_null()
         });
 
         // Unconstrain the runtime's threshold on nominal heap size, to avoid
@@ -407,7 +407,7 @@ impl ScriptTask {
         let js_context = js_runtime.cx();
         assert!({
             let ptr: *mut JSContext = (*js_context).ptr;
-            ptr.is_not_null()
+            !ptr.is_null()
         });
         js_context.set_default_options_and_version();
         js_context.set_logging_error_reporter();
