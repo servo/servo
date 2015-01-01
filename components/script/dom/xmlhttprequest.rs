@@ -510,8 +510,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         if !self.sync.get() {
             // Step 8
-            let upload_target = *self.upload.root();
-            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
+            let upload_target = self.upload.root();
+            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target.r());
             if event_target.has_handlers() {
                 self.upload_events.set(true);
             }
@@ -898,13 +898,13 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
-        let upload_target = *self.upload.root();
+        let upload_target = self.upload.root();
         let progressevent = ProgressEvent::new(global.root_ref(),
                                                type_, false, false,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0)).root();
         let target: JSRef<EventTarget> = if upload {
-            EventTargetCast::from_ref(upload_target)
+            EventTargetCast::from_ref(upload_target.r())
         } else {
             EventTargetCast::from_ref(self)
         };
