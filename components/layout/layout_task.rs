@@ -834,6 +834,14 @@ impl LayoutTask {
             layout_debug::begin_trace(layout_root.clone());
         }
 
+        // Resolve generated content.
+        profile(TimeProfilerCategory::LayoutGeneratedContent,
+                self.profiler_metadata(data),
+                self.time_profiler_chan.clone(),
+                || {
+                    sequential::resolve_generated_content(&mut layout_root, &shared_layout_context)
+                });
+
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
         profile(TimeProfilerCategory::LayoutMain,

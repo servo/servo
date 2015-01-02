@@ -172,6 +172,11 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == block_formatting_context_containing_floats_a.html block_formatting_context_containing_floats_ref.html
 == clear_generated_content_table_a.html clear_generated_content_table_ref.html
 == inline_block_border_a.html inline_block_border_ref.html
+== counters_simple_a.html counters_simple_ref.html
+== counters_nested_a.html counters_nested_ref.html
+== quotes_simple_a.html quotes_simple_ref.html
+== ol_simple_a.html ol_simple_ref.html
+== ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
 == vertical_align_top_a.html vertical_align_top_ref.html
 == vertical_align_bottom_a.html vertical_align_bottom_ref.html
 == vertical_align_top_span_a.html vertical_align_top_span_ref.html
