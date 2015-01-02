@@ -116,6 +116,6 @@ impl PrivateFormDataHelpers for FormData {
         let global = self.global.root();
         let f: Option<JSRef<File>> = FileCast::to_ref(value);
         let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".into_string()));
-        File::new(&global.root_ref(), value, name)
+        File::new(&global.r(), value, name)
     }
 }

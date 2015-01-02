@@ -87,7 +87,7 @@ macro_rules! make_url_or_base_getter(
             match url.as_slice() {
                 "" => {
                     let window = window_from_node(self).root();
-                    window.get_url().serialize()
+                    window.r().get_url().serialize()
                 },
                 _ => url
             }

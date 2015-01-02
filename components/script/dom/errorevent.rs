@@ -64,15 +64,15 @@ impl ErrorEvent {
                colno: u32,
                error: JSVal) -> Temporary<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global).root();
-        let event: JSRef<Event> = EventCast::from_ref(*ev);
+        let event: JSRef<Event> = EventCast::from_ref(ev.r());
         event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
                         cancelable == EventCancelable::Cancelable);
-        *ev.message.borrow_mut() = message;
-        *ev.filename.borrow_mut() = filename;
-        ev.lineno.set(lineno);
-        ev.colno.set(colno);
-        ev.error.set(error);
-        Temporary::from_rooted(*ev)
+        *ev.r().message.borrow_mut() = message;
+        *ev.r().filename.borrow_mut() = filename;
+        ev.r().lineno.set(lineno);
+        ev.r().colno.set(colno);
+        ev.r().error.set(error);
+        Temporary::from_rooted(ev.r())
     }
 
     pub fn Constructor(global: &GlobalRef,

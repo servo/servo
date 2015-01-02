@@ -2199,7 +2199,7 @@ class CGCallGenerator(CGThing):
         if static:
             call = CGWrapper(call, pre="%s::" % descriptorProvider.interface.identifier.name)
         else:
-            call = CGWrapper(call, pre="%s." % object)
+            call = CGWrapper(call, pre="%s.r()." % object)
         call = CGList([call, CGWrapper(args, pre="(", post=")")])
 
         self.cgRoot.append(CGList([
@@ -2214,7 +2214,7 @@ class CGCallGenerator(CGThing):
             if static:
                 glob = ""
             else:
-                glob = "        let global = global_object_for_js_object(this.reflector().get_jsobject());\n"\
+                glob = "        let global = global_object_for_js_object(this.r().reflector().get_jsobject());\n"\
                        "        let global = global.root();\n"
 
             self.cgRoot.append(CGGeneric(
@@ -2222,7 +2222,7 @@ class CGCallGenerator(CGThing):
                 "    Ok(result) => result,\n"
                 "    Err(e) => {\n"
                 "%s"
-                "        throw_dom_exception(cx, global.root_ref(), e);\n"
+                "        throw_dom_exception(cx, global.r(), e);\n"
                 "        return%s;\n"
                 "    },\n"
                 "};" % (glob, errorResult)))
@@ -2307,7 +2307,7 @@ class CGPerSignatureCall(CGThing):
         def process(arg, i):
             argVal = "arg" + str(i)
             if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
-                argVal += ".root_ref()"
+                argVal += ".r()"
             return argVal
         return [(a, process(a, i)) for (i, a) in enumerate(self.arguments)]
 
@@ -3540,7 +3540,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
         def process(arg):
             argVal = arg.identifier.name
             if arg.type.isGeckoInterface() and not arg.type.unroll().inner.isCallback():
-                argVal += ".root_ref()"
+                argVal += ".r()"
             return argVal
         args = [(a, process(a)) for a in self.arguments]
         if self.idlNode.isGetter():
@@ -4014,7 +4014,7 @@ let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
 let global = global.root();
 """)
         nativeName = MakeNativeName(self._ctor.identifier.name)
-        callGenerator = CGMethodCall(["&global.root_ref()"], nativeName, True,
+        callGenerator = CGMethodCall(["&global.r()"], nativeName, True,
                                      self.descriptor, self._ctor)
         return CGList([preamble, callGenerator])
 

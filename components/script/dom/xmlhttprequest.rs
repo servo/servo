@@ -201,7 +201,7 @@ impl XMLHttpRequest {
 
     pub fn handle_progress(addr: TrustedXHRAddress, progress: XHRProgress) {
         let xhr = addr.to_temporary().root();
-        xhr.process_partial_response(progress);
+        xhr.r().process_partial_response(progress);
     }
 
     fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
@@ -367,7 +367,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 *self.request_method.borrow_mut() = maybe_method.unwrap();
 
                 // Step 6
-                let base = self.global.root().root_ref().get_url();
+                let base = self.global.root().r().get_url();
                 let parsed_url = match UrlParser::new().base_url(&base).parse(url.as_slice()) {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Syntax) // Step 7
@@ -510,8 +510,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         if !self.sync.get() {
             // Step 8
-            let upload_target = *self.upload.root();
-            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
+            let upload_target = self.upload.root();
+            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target.r());
             if event_target.has_handlers() {
                 self.upload_events.set(true);
             }
@@ -535,7 +535,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
 
         let global = self.global.root();
-        let resource_task = global.root_ref().resource_task();
+        let resource_task = global.r().resource_task();
         let (start_chan, start_port) = channel();
         let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap(), start_chan);
         load_data.data = extracted;
@@ -579,7 +579,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         *self.terminate_sender.borrow_mut() = Some(terminate_sender);
 
         // CORS stuff
-        let referer_url = self.global.root().root_ref().get_url();
+        let referer_url = self.global.root().r().get_url();
         let mode = if self.upload_events.get() {
             RequestMode::ForcedPreflight
         } else {
@@ -613,11 +613,11 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                                          terminate_receiver, cors_request, gen_id, start_port);
         } else {
             self.fetch_time.set(time::now().to_timespec().sec);
-            let script_chan = global.root_ref().script_chan();
+            let script_chan = global.r().script_chan();
             // Pin the object before launching the fetch task. This is to ensure that
             // the object will stay alive as long as there are (possibly cancelled)
             // inflight events queued up in the script task's port.
-            let addr = Trusted::new(self.global.root().root_ref().get_cx(), self,
+            let addr = Trusted::new(self.global.root().r().get_cx(), self,
                                     script_chan.clone());
             spawn_named("XHRTask", proc() {
                 let _ = XMLHttpRequest::fetch(&mut SyncOrAsync::Async(addr, script_chan),
@@ -764,12 +764,12 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         assert!(self.ready_state.get() != rs)
         self.ready_state.set(rs);
         let global = self.global.root();
-        let event = Event::new(global.root_ref(),
+        let event = Event::new(global.r(),
                                "readystatechange".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.dispatch_event(*event);
+        target.dispatch_event(event.r());
     }
 
     fn process_partial_response(self, progress: XHRProgress) {
@@ -898,17 +898,17 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
-        let upload_target = *self.upload.root();
-        let progressevent = ProgressEvent::new(global.root_ref(),
+        let upload_target = self.upload.root();
+        let progressevent = ProgressEvent::new(global.r(),
                                                type_, false, false,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0)).root();
         let target: JSRef<EventTarget> = if upload {
-            EventTargetCast::from_ref(upload_target)
+            EventTargetCast::from_ref(upload_target.r())
         } else {
             EventTargetCast::from_ref(self)
         };
-        let event: JSRef<Event> = EventCast::from_ref(*progressevent);
+        let event: JSRef<Event> = EventCast::from_ref(progressevent.r());
         target.dispatch_event(event);
     }
 
@@ -1008,7 +1008,7 @@ impl Extractable for SendParam {
         let encoding = UTF_8 as EncodingRef;
         match *self {
             eString(ref s) => encoding.encode(s.as_slice(), EncoderTrap::Replace).unwrap(),
-            eURLSearchParams(ref usp) => usp.root().serialize(None) // Default encoding is UTF8
+            eURLSearchParams(ref usp) => usp.root().r().serialize(None) // Default encoding is UTF8
         }
     }
 }

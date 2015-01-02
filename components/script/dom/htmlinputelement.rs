@@ -307,13 +307,13 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
     //TODO: if not in document, use root ancestor instead of document
     let owner = broadcaster.form_owner().root();
     let doc = document_from_node(broadcaster).root();
-    let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
+    let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
 
     // There is no DOM tree manipulation here, so this is safe
     let mut iter = unsafe {
         doc_node.query_selector_iter("input[type=radio]".into_string()).unwrap()
                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
-                .filter(|&r| in_same_group(r, owner.root_ref(), group) && broadcaster != r)
+                .filter(|&r| in_same_group(r, owner.r(), group) && broadcaster != r)
     };
     for r in iter {
         if r.Checked() {
@@ -326,7 +326,7 @@ fn in_same_group<'a,'b>(other: JSRef<'a, HTMLInputElement>,
                         owner: Option<JSRef<'b, HTMLFormElement>>,
                         group: Option<&str>) -> bool {
     let other_owner = other.form_owner().root();
-    let other_owner = other_owner.root_ref();
+    let other_owner = other_owner.r();
     other.input_type.get() == InputType::InputRadio &&
     // TODO Both a and b are in the same home subtree.
     other_owner.equals(owner) &&
@@ -342,7 +342,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
     fn force_relayout(self) {
         let doc = document_from_node(self).root();
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        doc.content_changed(node, NodeDamage::OtherNodeDamage)
+        doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 
     fn radio_group_updated(self, group: Option<&str>) {
@@ -356,7 +356,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
         elem.get_attribute(ns!(""), &atom!("name"))
             .root()
-            .map(|name| name.Value())
+            .map(|name| name.r().Value())
     }
 
     fn update_checked_state(self, checked: bool, dirty: bool) {
@@ -550,7 +550,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLInputElement> {
             //TODO: set the editing position for text inputs
 
             let doc = document_from_node(*self).root();
-            doc.request_focus(ElementCast::from_ref(*self));
+            doc.r().request_focus(ElementCast::from_ref(*self));
         } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() &&
             (self.input_type.get() == InputType::InputText ||
              self.input_type.get() == InputType::InputPassword) {
@@ -631,14 +631,14 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                     //TODO: if not in document, use root ancestor instead of document
                     let owner = self.form_owner().root();
                     let doc = document_from_node(*self).root();
-                    let doc_node: JSRef<Node> = NodeCast::from_ref(*doc);
+                    let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
                     let group = self.get_radio_group_name();;
 
                     // Safe since we only manipulate the DOM tree after finding an element
                     let checked_member = unsafe {
                         doc_node.query_selector_iter("input[type=radio]".into_string()).unwrap()
                                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
-                                .filter(|&r| in_same_group(r, owner.root_ref(),
+                                .filter(|&r| in_same_group(r, owner.r(),
                                                            group.as_ref().map(|gr| gr.as_slice())))
                                 .find(|r| r.Checked())
                     };
@@ -684,11 +684,11 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                         Some(o) => {
                             // Avoiding iterating through the whole tree here, instead
                             // we can check if the conditions for radio group siblings apply
-                            if name == o.get_radio_group_name() && // TODO should be compatibility caseless
-                               self.form_owner() == o.form_owner() &&
+                            if name == o.r().get_radio_group_name() && // TODO should be compatibility caseless
+                               self.form_owner() == o.r().form_owner() &&
                                // TODO Both a and b are in the same home subtree
-                               o.input_type.get() == InputType::InputRadio {
-                                    o.SetChecked(true);
+                               o.r().input_type.get() == InputType::InputRadio {
+                                    o.r().SetChecked(true);
                             } else {
                                 self.SetChecked(false);
                             }
@@ -716,8 +716,8 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 if self.mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
-                        o.root().submit(SubmittedFrom::NotFromFormSubmitMethod,
-                                        FormSubmitter::InputElement(self.clone()))
+                        o.root().r().submit(SubmittedFrom::NotFromFormSubmitMethod,
+                                            FormSubmitter::InputElement(self.clone()))
                     });
                 }
             },
@@ -726,7 +726,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 if self.mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
-                        o.root().reset(ResetFrom::NotFromFormResetMethod)
+                        o.root().r().reset(ResetFrom::NotFromFormResetMethod)
                     });
                 }
             },
@@ -735,21 +735,21 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                 // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-(type=radio):activation-behavior
                 if self.mutable() {
                     let win = window_from_node(*self).root();
-                    let event = Event::new(GlobalRef::Window(*win),
+                    let event = Event::new(GlobalRef::Window(win.r()),
                                            "input".into_string(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable).root();
-                    event.set_trusted(true);
+                    event.r().set_trusted(true);
                     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
-                    target.DispatchEvent(*event).ok();
+                    target.DispatchEvent(event.r()).ok();
 
-                    let event = Event::new(GlobalRef::Window(*win),
+                    let event = Event::new(GlobalRef::Window(win.r()),
                                            "change".into_string(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable).root();
-                    event.set_trusted(true);
+                    event.r().set_trusted(true);
                     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
-                    target.DispatchEvent(*event).ok();
+                    target.DispatchEvent(event.r()).ok();
                 }
             },
             _ => ()
@@ -759,7 +759,7 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
     fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let doc = document_from_node(*self).root();
-        let node: JSRef<Node> = NodeCast::from_ref(*doc);
+        let node: JSRef<Node> = NodeCast::from_ref(doc.r());
         let owner = self.form_owner();
         if owner.is_none() || ElementCast::from_ref(*self).click_in_progress() {
             return;

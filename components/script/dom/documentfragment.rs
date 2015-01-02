@@ -45,7 +45,7 @@ impl DocumentFragment {
         let document = global.as_window().Document();
         let document = document.root();
 
-        Ok(DocumentFragment::new(*document))
+        Ok(DocumentFragment::new(document.r()))
     }
 }
 
@@ -53,7 +53,7 @@ impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
     // http://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(self) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
-        HTMLCollection::children(*window, NodeCast::from_ref(self))
+        HTMLCollection::children(window.r(), NodeCast::from_ref(self))
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector

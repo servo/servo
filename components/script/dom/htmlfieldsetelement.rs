@@ -61,12 +61,12 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let filter = box ElementsFilter;
         let window = window_from_node(node).root();
-        HTMLCollection::create(*window, node, filter)
+        HTMLCollection::create(window.r(), node, filter)
     }
 
     fn Validity(self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
-        ValidityState::new(*window)
+        ValidityState::new(window.r())
     }
 
     // http://www.whatwg.org/html/#dom-fieldset-disabled

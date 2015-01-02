@@ -51,6 +51,7 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         assert!(node.is_in_doc());
 
         let win = window_from_node(node).root();
+        let win = win.r();
         let url = win.page().get_url();
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");

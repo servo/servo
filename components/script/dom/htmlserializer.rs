@@ -71,8 +71,8 @@ fn serialize_comment(comment: JSRef<Comment>, html: &mut String) {
 fn serialize_text(text: JSRef<Text>, html: &mut String) {
     let text_node: JSRef<Node> = NodeCast::from_ref(text);
     match text_node.parent_node().map(|node| node.root()) {
-        Some(ref parent) if parent.is_element() => {
-            let elem: JSRef<Element> = ElementCast::to_ref(**parent).unwrap();
+        Some(ref parent) if parent.r().is_element() => {
+            let elem: JSRef<Element> = ElementCast::to_ref(parent.r()).unwrap();
             match elem.local_name().as_slice() {
                 "style" | "script" | "xmp" | "iframe" |
                 "noembed" | "noframes" | "plaintext" |
@@ -105,7 +105,7 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
     html.push_str(elem.local_name().as_slice());
     for attr in elem.attrs().iter() {
         let attr = attr.root();
-        serialize_attr(*attr, html);
+        serialize_attr(attr.r(), html);
     };
     html.push('>');
 
@@ -113,8 +113,8 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
         "pre" | "listing" | "textarea" if *elem.namespace() == ns!(HTML) => {
             let node: JSRef<Node> = NodeCast::from_ref(elem);
             match node.first_child().map(|child| child.root()) {
-                Some(ref child) if child.is_text() => {
-                    let text: JSRef<CharacterData> = CharacterDataCast::to_ref(**child).unwrap();
+                Some(ref child) if child.r().is_text() => {
+                    let text: JSRef<CharacterData> = CharacterDataCast::to_ref(child.r()).unwrap();
                     if text.data().len() > 0 && text.data().as_slice().char_at(0) == '\n' {
                         html.push('\x0A');
                     }

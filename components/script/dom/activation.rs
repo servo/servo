@@ -32,22 +32,23 @@ pub trait Activatable : Copy {
     fn synthetic_click_activation(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
         let element = self.as_element().root();
         // Step 1
-        if element.click_in_progress() {
+        if element.r().click_in_progress() {
             return;
         }
         // Step 2
-        element.set_click_in_progress(true);
+        element.r().set_click_in_progress(true);
         // Step 3
         self.pre_click_activation();
 
         // Step 4
         // https://html.spec.whatwg.org/multipage/webappapis.html#fire-a-synthetic-mouse-event
-        let win = window_from_node(*element).root();
-        let target: JSRef<EventTarget> = EventTargetCast::from_ref(*element);
-        let mouse = MouseEvent::new(*win, "click".into_string(), false, false, Some(*win), 1,
+        let win = window_from_node(element.r()).root();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(element.r());
+        let mouse = MouseEvent::new(win.r(), "click".into_string(),
+                                    false, false, Some(win.r()), 1,
                                     0, 0, 0, 0, ctrlKey, shiftKey, altKey, metaKey,
                                     0, None).root();
-        let event: JSRef<Event> = EventCast::from_ref(*mouse);
+        let event: JSRef<Event> = EventCast::from_ref(mouse.r());
         event.set_trusted(true);
         target.dispatch_event(event);
 
@@ -60,6 +61,6 @@ pub trait Activatable : Copy {
         }
 
         // Step 6
-        element.set_click_in_progress(false);
+        element.r().set_click_in_progress(false);
     }
 }

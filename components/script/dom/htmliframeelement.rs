@@ -87,12 +87,12 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     fn get_url(self) -> Option<Url> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(ns!(""), &atom!("src")).root().and_then(|src| {
-            let url = src.value();
+            let url = src.r().value();
             if url.as_slice().is_empty() {
                 None
             } else {
                 let window = window_from_node(self).root();
-                UrlParser::new().base_url(&window.page().get_url())
+                UrlParser::new().base_url(&window.r().page().get_url())
                     .parse(url.as_slice()).ok()
             }
         })
@@ -112,6 +112,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
         // Subpage Id
         let window = window_from_node(self).root();
+        let window = window.r();
         let page = window.page();
         let subpage_id = page.get_next_subpage_id();
 
@@ -188,10 +189,10 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
                 Some(self_url) => self_url,
                 None => return None,
             };
-            let win_url = window_from_node(self).root().page().get_url();
+            let win_url = window_from_node(self).root().r().page().get_url();
 
             if UrlHelper::SameOrigin(&self_url, &win_url) {
-                Some(window.Document())
+                Some(window.r().Document())
             } else {
                 None
             }

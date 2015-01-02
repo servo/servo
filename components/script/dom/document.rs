@@ -24,7 +24,7 @@ use dom::bindings::error::Error::{NotSupported, InvalidCharacter};
 use dom::bindings::error::Error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
-use dom::bindings::js::OptionalRootable;
+use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
@@ -220,6 +220,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         match mode {
             Quirks => {
                 let window = self.window.root();
+                let window = window.r();
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;
                 layout_chan.send(Msg::SetQuirksMode);
             }
@@ -255,7 +256,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             Some(elements) => {
                 let position = elements.iter()
                                        .map(|elem| elem.root())
-                                       .position(|element| *element == to_unregister)
+                                       .position(|element| element.r() == to_unregister)
                                        .expect("This element should be in registered.");
                 elements.remove(position);
                 elements.is_empty()
@@ -289,13 +290,13 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
                 let new_node: JSRef<Node> = NodeCast::from_ref(element);
                 let mut head: uint = 0u;
-                let root: JSRef<Node> = NodeCast::from_ref(*root);
+                let root: JSRef<Node> = NodeCast::from_ref(root.r());
                 for node in root.traverse_preorder() {
                     let elem: Option<JSRef<Element>> = ElementCast::to_ref(node);
                     match elem {
                         None => {},
                         Some(elem) => {
-                            if *(*elements)[head].root() == elem {
+                            if (*elements)[head].root().r() == elem {
                                 head += 1;
                             }
                             if new_node == node || head == elements.len() {
@@ -312,7 +313,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
     fn load_anchor_href(self, href: DOMString) {
         let window = self.window.root();
-        window.load_url(href);
+        window.r().load_url(href);
     }
 
     /// Attempt to find a named element in this page's document.
@@ -322,7 +323,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
             let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
                 let elem: JSRef<Element> = ElementCast::from_ref(node);
                 elem.get_attribute(ns!(""), &atom!("name")).root().map_or(false, |attr| {
-                    attr.value().as_slice() == fragid.as_slice()
+                    attr.r().value().as_slice() == fragid.as_slice()
                 })
             };
             let doc_node: JSRef<Node> = NodeCast::from_ref(self);
@@ -338,11 +339,11 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.ready_state.set(state);
 
         let window = self.window.root();
-        let event = Event::new(GlobalRef::Window(*window), "readystatechange".into_string(),
+        let event = Event::new(GlobalRef::Window(window.r()), "readystatechange".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        let _ = target.DispatchEvent(*event);
+        let _ = target.DispatchEvent(event.r());
     }
 
     /// Return the element that currently has focus.
@@ -372,7 +373,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// Sends this document's title to the compositor.
     fn send_title_to_compositor(self) {
         let window = self.window().root();
-        window.page().send_title_to_compositor();
+        window.r().page().send_title_to_compositor();
     }
 
     fn dirty_all_nodes(self) {
@@ -466,9 +467,9 @@ impl Document {
                                           GlobalRef::Window(window),
                                           DocumentBinding::Wrap).root();
 
-        let node: JSRef<Node> = NodeCast::from_ref(*document);
-        node.set_owner_doc(*document);
-        Temporary::from_rooted(*document)
+        let node: JSRef<Node> = NodeCast::from_ref(document.r());
+        node.set_owner_doc(document.r());
+        Temporary::from_rooted(document.r())
     }
 }
 
@@ -480,20 +481,23 @@ trait PrivateDocumentHelpers {
 impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
     fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList> {
         let window = self.window.root();
-        let nodes = match self.GetDocumentElement().root() {
+        let document_element = self.GetDocumentElement().root();
+        let nodes = match document_element {
             None => vec!(),
-            Some(root) => {
-                let root: JSRef<Node> = NodeCast::from_ref(*root);
+            Some(ref root) => {
+                let root: JSRef<Node> = NodeCast::from_ref(root.r());
                 root.traverse_preorder().filter(|&node| callback(node)).collect()
             }
         };
-        NodeList::new_simple_list(*window, nodes)
+        NodeList::new_simple_list(window.r(), nodes)
     }
 
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>> {
-        self.GetDocumentElement().root().and_then(|element| {
-            HTMLHtmlElementCast::to_ref(*element)
-        }).map(Temporary::from_rooted)
+        self.GetDocumentElement()
+            .root()
+            .r()
+            .and_then(HTMLHtmlElementCast::to_ref)
+            .map(Temporary::from_rooted)
     }
 }
 
@@ -554,20 +558,20 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagname
     fn GetElementsByTagName(self, tag_name: DOMString) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-        HTMLCollection::by_tag_name(*window, NodeCast::from_ref(self), tag_name)
+        HTMLCollection::by_tag_name(window.r(), NodeCast::from_ref(self), tag_name)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbytagnamens
     fn GetElementsByTagNameNS(self, maybe_ns: Option<DOMString>, tag_name: DOMString) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-        HTMLCollection::by_tag_name_ns(*window, NodeCast::from_ref(self), tag_name, maybe_ns)
+        HTMLCollection::by_tag_name_ns(window.r(), NodeCast::from_ref(self), tag_name, maybe_ns)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-getelementsbyclassname
     fn GetElementsByClassName(self, classes: DOMString) -> Temporary<HTMLCollection> {
         let window = self.window.root();
 
-        HTMLCollection::by_class_name(*window, NodeCast::from_ref(self), classes)
+        HTMLCollection::by_class_name(window.r(), NodeCast::from_ref(self), classes)
     }
 
     // http://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid
@@ -652,7 +656,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         let l_name = Atom::from_slice(local_name.as_slice());
         let value = AttrValue::String("".into_string());
 
-        Ok(Attr::new(*window, name, value, l_name, ns!(""), None, None))
+        Ok(Attr::new(window.r(), name, value, l_name, ns!(""), None, None))
     }
 
     // http://dom.spec.whatwg.org/#dom-document-createdocumentfragment
@@ -724,17 +728,17 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
         match interface.as_slice().to_ascii_lower().as_slice() {
             "uievents" | "uievent" => Ok(EventCast::from_temporary(
-                UIEvent::new_uninitialized(*window))),
+                UIEvent::new_uninitialized(window.r()))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(
-                MouseEvent::new_uninitialized(*window))),
+                MouseEvent::new_uninitialized(window.r()))),
             "customevent" => Ok(EventCast::from_temporary(
-                CustomEvent::new_uninitialized(GlobalRef::Window(*window)))),
+                CustomEvent::new_uninitialized(GlobalRef::Window(window.r())))),
             "htmlevents" | "events" | "event" => Ok(Event::new_uninitialized(
-                GlobalRef::Window(*window))),
+                GlobalRef::Window(window.r()))),
             "keyboardevent" | "keyevents" => Ok(EventCast::from_temporary(
-                KeyboardEvent::new_uninitialized(*window))),
+                KeyboardEvent::new_uninitialized(window.r()))),
             "messageevent" => Ok(EventCast::from_temporary(
-                MessageEvent::new_uninitialized(GlobalRef::Window(*window)))),
+                MessageEvent::new_uninitialized(GlobalRef::Window(window.r())))),
             _ => Err(NotSupported)
         }
     }
@@ -762,7 +766,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn Title(self) -> DOMString {
         let mut title = String::new();
         self.GetDocumentElement().root().map(|root| {
-            let root: JSRef<Node> = NodeCast::from_ref(*root);
+            let root: JSRef<Node> = NodeCast::from_ref(root.r());
             root.traverse_preorder()
                 .find(|node| node.type_id() == NodeTypeId::Element(ElementTypeId::HTMLTitleElement))
                 .map(|title_elem| {
@@ -778,7 +782,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     // http://www.whatwg.org/specs/web-apps/current-work/#document.title
     fn SetTitle(self, title: DOMString) -> ErrorResult {
         self.GetDocumentElement().root().map(|root| {
-            let root: JSRef<Node> = NodeCast::from_ref(*root);
+            let root: JSRef<Node> = NodeCast::from_ref(root.r());
             let head_node = root.traverse_preorder().find(|child| {
                 child.type_id() == NodeTypeId::Element(ElementTypeId::HTMLHeadElement)
             });
@@ -794,16 +798,16 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                         }
                         if !title.is_empty() {
                             let new_text = self.CreateTextNode(title.clone()).root();
-                            assert!(title_node.AppendChild(NodeCast::from_ref(*new_text)).is_ok());
+                            assert!(title_node.AppendChild(NodeCast::from_ref(new_text.r())).is_ok());
                         }
                     },
                     None => {
                         let new_title = HTMLTitleElement::new("title".into_string(), None, self).root();
-                        let new_title: JSRef<Node> = NodeCast::from_ref(*new_title);
+                        let new_title: JSRef<Node> = NodeCast::from_ref(new_title.r());
 
                         if !title.is_empty() {
                             let new_text = self.CreateTextNode(title.clone()).root();
-                            assert!(new_title.AppendChild(NodeCast::from_ref(*new_text)).is_ok());
+                            assert!(new_title.AppendChild(NodeCast::from_ref(new_text.r())).is_ok());
                         }
                         assert!(head.AppendChild(new_title).is_ok());
                     },
@@ -817,7 +821,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn GetHead(self) -> Option<Temporary<HTMLHeadElement>> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
-            let node: JSRef<Node> = NodeCast::from_ref(*root);
+            let node: JSRef<Node> = NodeCast::from_ref(root.r());
             node.children().filter_map(HTMLHeadElementCast::to_ref).next().map(Temporary::from_rooted)
         })
     }
@@ -826,7 +830,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn GetBody(self) -> Option<Temporary<HTMLElement>> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
-            let node: JSRef<Node> = NodeCast::from_ref(*root);
+            let node: JSRef<Node> = NodeCast::from_ref(root.r());
             node.children().find(|child| {
                 match child.type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLBodyElement) |
@@ -856,7 +860,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
 
         // Step 2.
         let old_body = self.GetBody().root();
-        if old_body.as_ref().map(|body| **body) == Some(new_body) {
+        if old_body.as_ref().map(|body| body.r()) == Some(new_body) {
             return Ok(());
         }
 
@@ -867,10 +871,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             Some(ref root) => {
                 let new_body: JSRef<Node> = NodeCast::from_ref(new_body);
 
-                let root: JSRef<Node> = NodeCast::from_ref(**root);
+                let root: JSRef<Node> = NodeCast::from_ref(root.r());
                 match old_body {
                     Some(ref child) => {
-                        let child: JSRef<Node> = NodeCast::from_ref(**child);
+                        let child: JSRef<Node> = NodeCast::from_ref(child.r());
 
                         assert!(root.ReplaceChild(new_body, child).is_ok())
                     }
@@ -889,7 +893,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 None => return false,
             };
             element.get_attribute(ns!(""), &atom!("name")).root().map_or(false, |attr| {
-                attr.value().as_slice() == name.as_slice()
+                attr.r().value().as_slice() == name.as_slice()
             })
         })
     }
@@ -899,7 +903,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box ImagesFilter;
-            HTMLCollection::create(*window, root, filter)
+            HTMLCollection::create(window.r(), root, filter)
         })
     }
 
@@ -908,7 +912,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box EmbedsFilter;
-            HTMLCollection::create(*window, root, filter)
+            HTMLCollection::create(window.r(), root, filter)
         })
     }
 
@@ -921,7 +925,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box LinksFilter;
-            HTMLCollection::create(*window, root, filter)
+            HTMLCollection::create(window.r(), root, filter)
         })
     }
 
@@ -930,7 +934,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box FormsFilter;
-            HTMLCollection::create(*window, root, filter)
+            HTMLCollection::create(window.r(), root, filter)
         })
     }
 
@@ -939,7 +943,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box ScriptsFilter;
-            HTMLCollection::create(*window, root, filter)
+            HTMLCollection::create(window.r(), root, filter)
         })
     }
 
@@ -948,7 +952,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box AnchorsFilter;
-            HTMLCollection::create(*window, root, filter)
+            HTMLCollection::create(window.r(), root, filter)
         })
     }
 
@@ -958,19 +962,19 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             let window = self.window.root();
             let root = NodeCast::from_ref(self);
             let filter = box AppletsFilter;
-            HTMLCollection::create(*window, root, filter)
+            HTMLCollection::create(window.r(), root, filter)
         })
     }
 
     fn Location(self) -> Temporary<Location> {
         let window = self.window.root();
-        window.Location()
+        window.r().Location()
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(self) -> Temporary<HTMLCollection> {
         let window = self.window.root();
-        HTMLCollection::children(*window, NodeCast::from_ref(self))
+        HTMLCollection::children(window.r(), NodeCast::from_ref(self))
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector

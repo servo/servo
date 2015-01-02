@@ -43,12 +43,12 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
 
     /* capturing */
     for cur_target in chain.as_slice().iter().rev() {
-        let stopped = match cur_target.get_listeners_for(type_.as_slice(), ListenerPhase::Capturing) {
+        let stopped = match cur_target.r().get_listeners_for(type_.as_slice(), ListenerPhase::Capturing) {
             Some(listeners) => {
-                event.set_current_target(cur_target.deref().clone());
+                event.set_current_target(cur_target.r());
                 for listener in listeners.iter() {
                     // Explicitly drop any exception on the floor.
-                    let _ = listener.HandleEvent_(**cur_target, event, ReportExceptions);
+                    let _ = listener.HandleEvent_(cur_target.r(), event, ReportExceptions);
 
                     if event.stop_immediate() {
                         break;
@@ -88,12 +88,12 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
         event.set_phase(EventPhase::Bubbling);
 
         for cur_target in chain.iter() {
-            let stopped = match cur_target.get_listeners_for(type_.as_slice(), ListenerPhase::Bubbling) {
+            let stopped = match cur_target.r().get_listeners_for(type_.as_slice(), ListenerPhase::Bubbling) {
                 Some(listeners) => {
-                    event.set_current_target(cur_target.deref().clone());
+                    event.set_current_target(cur_target.r());
                     for listener in listeners.iter() {
                         // Explicitly drop any exception on the floor.
-                        let _ = listener.HandleEvent_(**cur_target, event, ReportExceptions);
+                        let _ = listener.HandleEvent_(cur_target.r(), event, ReportExceptions);
 
                         if event.stop_immediate() {
                             break;
@@ -114,7 +114,7 @@ pub fn dispatch_event<'a, 'b>(target: JSRef<'a, EventTarget>,
     let target = event.GetTarget().root();
     match target {
         Some(target) => {
-            let node: Option<JSRef<Node>> = NodeCast::to_ref(*target);
+            let node: Option<JSRef<Node>> = NodeCast::to_ref(target.r());
             match node {
                 Some(node) => {
                     let vtable = vtable_for(&node);
