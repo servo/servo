@@ -760,6 +760,7 @@ pub mod longhands {
     <%self:longhand name="content">
         use cssparser::{ToCss, Token};
         use std::ascii::AsciiExt;
+        use std::borrow::ToOwned;
         use values::computed::ComputedValueAsSpecified;
 
         use super::list_style_type;

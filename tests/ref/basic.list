@@ -268,3 +268,8 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == image_rendering_pixelated_a.html image_rendering_pixelated_ref.html
 == background_size_a.html background_size_ref.html
 == background_size_shorthand_a.html background_size_shorthand_ref.html
+== counters_simple_a.html counters_simple_ref.html
+== counters_nested_a.html counters_nested_ref.html
+== quotes_simple_a.html quotes_simple_ref.html
+== ol_simple_a.html ol_simple_ref.html
+== ol_japanese_iroha_a.html ol_japanese_iroha_ref.html
