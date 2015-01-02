@@ -8,12 +8,14 @@
 #![deny(unsafe_blocks)]
 
 use block::BlockFlow;
-use construct::FlowConstructor;
 use context::LayoutContext;
 use display_list_builder::ListItemFlowDisplayListBuilding;
 use floats::FloatKind;
 use flow::{Flow, FlowClass};
-use fragment::{Fragment, FragmentBorderBoxIterator};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, FragmentMutator};
+use fragment::{GeneratedContentInfo};
+use generated_content;
+use incremental::RESOLVE_GENERATED_CONTENT;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
@@ -36,19 +38,33 @@ pub struct ListItemFlow {
 }
 
 impl ListItemFlow {
-    pub fn from_node_marker_and_flotation(constructor: &mut FlowConstructor,
-                                          node: &ThreadSafeLayoutNode,
-                                          marker_fragment: Option<Fragment>,
-                                          flotation: Option<FloatKind>)
-                                          -> ListItemFlow {
-        ListItemFlow {
+    pub fn from_node_fragments_and_flotation(node: &ThreadSafeLayoutNode,
+                                             main_fragment: Fragment,
+                                             marker_fragment: Option<Fragment>,
+                                             flotation: Option<FloatKind>)
+                                             -> ListItemFlow {
+        let mut this = ListItemFlow {
             block_flow: if let Some(flotation) = flotation {
-                BlockFlow::float_from_node(constructor, node, flotation)
+                BlockFlow::float_from_node_and_fragment(node, main_fragment, flotation)
             } else {
-                BlockFlow::from_node(constructor, node)
+                BlockFlow::from_node_and_fragment(node, main_fragment)
             },
             marker: marker_fragment,
+        };
+
+        if let Some(ref marker) = this.marker {
+            match marker.style().get_list().list_style_type {
+                list_style_type::T::disc |
+                list_style_type::T::none |
+                list_style_type::T::circle |
+                list_style_type::T::square |
+                list_style_type::T::disclosure_open |
+                list_style_type::T::disclosure_closed => {}
+                _ => this.block_flow.base.restyle_damage.insert(RESOLVE_GENERATED_CONTENT),
+            }
         }
+
+        this
     }
 }
 
@@ -134,24 +150,55 @@ impl Flow for ListItemFlow {
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>) {
-        self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
+        self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position);
+
+        if let Some(ref marker) = self.marker {
+            if iterator.should_process(marker) {
+                iterator.process(
+                    marker,
+                    &marker.stacking_relative_border_box(&self.block_flow
+                                                              .base
+                                                              .stacking_relative_position,
+                                                         &self.block_flow
+                                                              .base
+                                                              .absolute_position_info
+                                                              .relative_containing_block_size,
+                                                         CoordinateSystem::Parent)
+                           .translate(stacking_context_position));
+            }
+        }
+    }
+
+    fn mutate_fragments(&mut self, mutator: &mut FragmentMutator) {
+        self.block_flow.mutate_fragments(mutator);
+
+        if let Some(ref mut marker) = self.marker {
+            mutator.process(marker)
+        }
     }
 }
 
-/// Returns the static text to be used for the given value of the `list-style-type` property.
-///
-/// TODO(pcwalton): Return either a string or a counter descriptor, once we support counters.
-pub fn static_text_for_list_style_type(list_style_type: list_style_type::T)
-                                       -> Option<&'static str> {
-    // Just to keep things simple, use a nonbreaking space (Unicode 0xa0) to provide the marker
-    // separation.
-    match list_style_type {
-        list_style_type::T::none => None,
-        list_style_type::T::disc => Some("•\u{a0}"),
-        list_style_type::T::circle => Some("◦\u{a0}"),
-        list_style_type::T::square => Some("▪\u{a0}"),
-        list_style_type::T::disclosure_open => Some("▾\u{a0}"),
-        list_style_type::T::disclosure_closed => Some("‣\u{a0}"),
+/// The kind of content that `list-style-type` results in.
+pub enum ListStyleTypeContent {
+    None,
+    StaticText(&'static str),
+    GeneratedContent(Box<GeneratedContentInfo>),
+}
+
+impl ListStyleTypeContent {
+    /// Returns the content to be used for the given value of the `list-style-type` property.
+    pub fn from_list_style_type(list_style_type: list_style_type::T) -> ListStyleTypeContent {
+        // Just to keep things simple, use a nonbreaking space (Unicode 0xa0) to provide the marker
+        // separation.
+        match list_style_type {
+            list_style_type::T::none => ListStyleTypeContent::None,
+            list_style_type::T::disc | list_style_type::T::circle | list_style_type::T::square |
+            list_style_type::T::disclosure_open | list_style_type::T::disclosure_closed => {
+                let text = generated_content::static_representation(list_style_type).unwrap();
+                ListStyleTypeContent::StaticText(text)
+            }
+            _ => ListStyleTypeContent::GeneratedContent(box GeneratedContentInfo::ListItem),
+        }
     }
 }
 
