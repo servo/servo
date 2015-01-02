@@ -2,17 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::str::IntoMaybeOwned;
 use std::task;
 use std::comm::Sender;
 use std::task::TaskBuilder;
-use rtinstrument;
+// use rtinstrument;
 use task_state;
 
-pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
+pub fn spawn_named<S: IntoCow<'static, String, str>>(name: S, f: proc():Send) {
     let builder = task::TaskBuilder::new().named(name);
     builder.spawn(proc() {
-        rtinstrument::instrument(f);
+        // rtinstrument::instrument(f);
+        f();
     });
 }
 
@@ -24,13 +24,15 @@ pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
                                                  dest: Sender<T>) {
     let future_result = TaskBuilder::new().named(name).try_future(proc() {
         task_state::initialize(state);
-        rtinstrument::instrument(f);
+        // FIXME: Find replacement for this post-runtime removal
+        // rtinstrument::instrument(f);
+        f();
     });
 
     let watched_name = name.into_string();
     let watcher_name = format!("{}Watcher", watched_name);
     TaskBuilder::new().named(watcher_name).spawn(proc() {
-        rtinstrument::instrument(proc() {
+        //rtinstrument::instrument(proc() {
             match future_result.unwrap() {
                 Ok(()) => (),
                 Err(..) => {
@@ -38,6 +40,6 @@ pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
                     dest.send(msg);
                 }
             }
-        });
+        //});
     });
 }

@@ -105,9 +105,9 @@ impl FlowList {
     }
 }
 
-impl<'a> Iterator<&'a Flow + 'a> for FlowListIterator<'a> {
+impl<'a> Iterator<&'a (Flow + 'a)> for FlowListIterator<'a> {
     #[inline]
-    fn next(&mut self) -> Option<&'a Flow + 'a> {
+    fn next(&mut self) -> Option<&'a (Flow + 'a)> {
         self.it.next().map(|x| x.deref())
     }
 
@@ -117,9 +117,9 @@ impl<'a> Iterator<&'a Flow + 'a> for FlowListIterator<'a> {
     }
 }
 
-impl<'a> Iterator<&'a mut Flow + 'a> for MutFlowListIterator<'a> {
+impl<'a> Iterator<&'a mut (Flow + 'a)> for MutFlowListIterator<'a> {
     #[inline]
-    fn next(&mut self) -> Option<&'a mut Flow + 'a> {
+    fn next(&mut self) -> Option<&'a mut (Flow + 'a)> {
         self.it.next().map(|x| x.deref_mut())
     }
 

@@ -33,7 +33,6 @@ extern crate "util" as servo_util;
 extern crate style;
 extern crate stb_image;
 
-extern crate native;
 extern crate rustrt;
 extern crate libc;
 extern crate "url" as std_url;

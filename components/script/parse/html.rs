@@ -25,7 +25,7 @@ use servo_net::resource_task::{ProgressMsg, LoadResponse};
 use servo_util::task_state;
 use servo_util::task_state::IN_HTML_PARSER;
 use std::ascii::AsciiExt;
-use std::str::MaybeOwned;
+use std::str::CowString;
 use url::Url;
 use html5ever::Attribute;
 use html5ever::tree_builder::{TreeSink, QuirksMode, NodeOrText, AppendNode, AppendText};
@@ -110,7 +110,7 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
         Ok(())
     }
 
-    fn parse_error(&mut self, msg: MaybeOwned<'static>) {
+    fn parse_error(&mut self, msg: CowString<'static>) {
         debug!("Parse error: {}", msg);
     }
 

@@ -13,7 +13,7 @@ use servo::Browser;
 use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t};
 use window;
 
-use compositing::windowing::{Back, Forward, WindowEvent};
+use compositing::windowing::{WindowNavigateMsg, WindowEvent};
 use glfw_app;
 use libc::c_int;
 use servo_util::opts;
@@ -26,11 +26,11 @@ cef_class_impl! {
         }
 
         fn go_back(&_this) -> () {
-            core::send_window_event(WindowEvent::Navigation(Back));
+            core::send_window_event(WindowEvent::Navigation(WindowNavigateMsg::Back));
         }
 
         fn go_forward(&_this) -> () {
-            core::send_window_event(WindowEvent::Navigation(Forward));
+            core::send_window_event(WindowEvent::Navigation(WindowNavigateMsg::Forward));
         }
 
         // Returns the main (top-level) frame for the browser window.
@@ -56,9 +56,12 @@ impl ServoCefBrowser {
         let frame = ServoCefFrame::new().as_cef_interface();
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
         if window_info.windowless_rendering_enabled == 0 {
-            let glfw_window = glfw_app::create_window();
-            globals.replace(Some(ServoCefGlobals::OnScreenGlobals(RefCell::new(glfw_window.clone()),
-                                                                  RefCell::new(Browser::new(Some(glfw_window))))));
+            globals.with(|ref r| {
+                let glfw_window = glfw_app::create_window();
+                *r.borrow_mut() = Some(ServoCefGlobals::OnScreenGlobals(
+                    RefCell::new(glfw_window.clone()),
+                    RefCell::new(Browser::new(Some(glfw_window)))));
+            });
         }
 
         ServoCefBrowser {
@@ -77,18 +80,22 @@ trait ServoCefBrowserExtensions {
 impl ServoCefBrowserExtensions for CefBrowser {
     fn init(&self, window_info: &cef_window_info_t) {
         if window_info.windowless_rendering_enabled != 0 {
-            let window = window::Window::new();
-            let servo_browser = Browser::new(Some(window.clone()));
-            window.set_browser(self.clone());
-            globals.replace(Some(ServoCefGlobals::OffScreenGlobals(RefCell::new(window),
-                                                                   RefCell::new(servo_browser))));
+            globals.with(|ref r| {
+                let window = window::Window::new();
+                let servo_browser = Browser::new(Some(window.clone()));
+                window.set_browser(self.clone());
+
+                *r.borrow_mut() = Some(ServoCefGlobals::OffScreenGlobals(
+                    RefCell::new(window),
+                    RefCell::new(servo_browser)));
+            });
         }
 
         self.downcast().host.set_browser((*self).clone());
     }
 }
 
-local_data_key!(pub GLOBAL_BROWSERS: RefCell<Vec<CefBrowser>>)
+thread_local!(pub static GLOBAL_BROWSERS: RefCell<Vec<CefBrowser>> = RefCell::new(vec!()))
 
 pub fn browser_callback_after_created(browser: CefBrowser) {
     if browser.downcast().client.is_null_cef_object() {
@@ -115,16 +122,7 @@ fn browser_host_create(window_info: &cef_window_info_t,
     if callback_executed {
         browser_callback_after_created(browser.clone());
     }
-    match GLOBAL_BROWSERS.replace(None) {
-        Some(brs) => {
-            brs.borrow_mut().push(browser.clone());
-            GLOBAL_BROWSERS.replace(Some(brs));
-        },
-        None => {
-            let brs = RefCell::new(vec!(browser.clone()));
-            GLOBAL_BROWSERS.replace(Some(brs));
-        }
-    }
+    GLOBAL_BROWSERS.with(|ref r| r.borrow_mut().push(browser.clone()));
     browser
 }
 

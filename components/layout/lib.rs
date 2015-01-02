@@ -33,7 +33,6 @@ extern crate string_cache;
 extern crate collections;
 extern crate encoding;
 extern crate libc;
-extern crate sync;
 extern crate url;
 
 // Listed first because of macro definitions

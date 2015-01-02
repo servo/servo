@@ -86,7 +86,7 @@ impl ElementDerived for EventTarget {
     }
 }
 
-#[deriving(PartialEq, Show)]
+#[deriving(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum ElementTypeId {
     HTMLElement(HTMLElementTypeId),
@@ -591,7 +591,7 @@ pub trait AttributeHandlers {
 
 impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_attribute(self, namespace: Namespace, local_name: &Atom) -> Option<Temporary<Attr>> {
-        self.get_attributes(local_name).iter().map(|attr| attr.root())
+        self.get_attributes(local_name).into_iter().map(|attr| attr.root())
             .find(|attr| *attr.r().namespace() == namespace)
             .map(|x| Temporary::from_rooted(x.r()))
     }
@@ -841,9 +841,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             Some(ref prefix) => {
                 (format!("{}:{}",
                          prefix.as_slice(),
-                         self.local_name.as_slice())).into_maybe_owned()
+                         self.local_name.as_slice())).into_cow()
             },
-            None => self.local_name.as_slice().into_maybe_owned()
+            None => self.local_name.as_slice().into_cow()
         };
         if self.html_element_in_html_document() {
             qualified_name.as_slice().to_ascii_upper()
@@ -1290,7 +1290,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         })
     }
     fn get_attrs(self, attr: &Atom) -> Vec<&'a str> {
-        self.get_attributes(attr).iter().map(|attr| attr.root()).map(|attr| {
+        self.get_attributes(attr).into_iter().map(|attr| attr.root()).map(|attr| {
             // This transmute is used to cheat the lifetime restriction.
             unsafe { mem::transmute(attr.r().value().as_slice()) }
         }).collect()

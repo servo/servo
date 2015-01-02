@@ -19,7 +19,7 @@ use std::os;
 use std::ptr;
 use std::rt;
 
-#[deriving(Clone)]
+#[deriving(Clone, Copy)]
 pub enum RenderApi {
     OpenGL,
     Mesa,

@@ -14,7 +14,7 @@ use gfx::font::{ShapingOptions};
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
-use gfx::text::util::{mod, CompressWhitespaceNewline, CompressNone};
+use gfx::text::util::{mod, CompressionMode};
 use servo_util::dlist;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::{LogicalSize, WritingMode};
@@ -25,7 +25,7 @@ use std::mem;
 use style::ComputedValues;
 use style::computed_values::{line_height, text_orientation, text_transform, white_space};
 use style::style_structs::Font as FontStyle;
-use sync::Arc;
+use std::sync::Arc;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextFragment`s.
 pub struct TextRunScanner {
@@ -114,8 +114,8 @@ impl TextRunScanner {
                 let inherited_text_style = in_fragment.style().get_inheritedtext();
                 fontgroup = font_context.get_layout_font_group_for_style(font_style);
                 compression = match in_fragment.white_space() {
-                    white_space::normal | white_space::nowrap => CompressWhitespaceNewline,
-                    white_space::pre => CompressNone,
+                    white_space::T::normal | white_space::T::nowrap => CompressionMode::CompressWhitespaceNewline,
+                    white_space::T::pre => CompressionMode::CompressNone,
                 };
                 text_transform = inherited_text_style.text_transform;
                 letter_spacing = inherited_text_style.letter_spacing;
@@ -213,22 +213,22 @@ impl TextRunScanner {
                                           string: &mut String,
                                           text_transform: text_transform::T) {
         match text_transform {
-            text_transform::none => {}
-            text_transform::uppercase => {
+            text_transform::T::none => {}
+            text_transform::T::uppercase => {
                 let length = string.len();
                 let original = mem::replace(string, String::with_capacity(length));
                 for character in original.chars() {
                     string.push(character.to_uppercase())
                 }
             }
-            text_transform::lowercase => {
+            text_transform::T::lowercase => {
                 let length = string.len();
                 let original = mem::replace(string, String::with_capacity(length));
                 for character in original.chars() {
                     string.push(character.to_lowercase())
                 }
             }
-            text_transform::capitalize => {
+            text_transform::T::capitalize => {
                 let length = string.len();
                 let original = mem::replace(string, String::with_capacity(length));
                 let mut capitalize_next_letter = true;
@@ -266,9 +266,9 @@ fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
     // This will be a reminder to update the code below.
     let dummy: Option<text_orientation::T> = None;
     match dummy {
-        Some(text_orientation::sideways_right) |
-        Some(text_orientation::sideways_left) |
-        Some(text_orientation::sideways) |
+        Some(text_orientation::T::sideways_right) |
+        Some(text_orientation::T::sideways_left) |
+        Some(text_orientation::T::sideways) |
         None => {}
     }
 
@@ -296,8 +296,8 @@ pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: Arc<Fo
 pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> Au {
     let font_size = style.get_font().font_size;
     match style.get_inheritedbox().line_height {
-        line_height::Normal => metrics.line_gap,
-        line_height::Number(l) => font_size.scale_by(l),
-        line_height::Length(l) => l
+        line_height::T::Normal => metrics.line_gap,
+        line_height::T::Number(l) => font_size.scale_by(l),
+        line_height::T::Length(l) => l
     }
 }

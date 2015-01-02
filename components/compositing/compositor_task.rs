@@ -20,12 +20,12 @@ use layers::layers::LayerBufferSet;
 use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
 use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, LoadData, PipelineId};
-use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers, Pressed};
+use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use servo_util::cursor::Cursor;
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
-use std::fmt::{FormatError, Formatter, Show};
+use std::fmt::{Error, Formatter, Show};
 use std::rc::Rc;
 
 /// Sends messages to the compositor. This is a trait supplied by the port because the method used
@@ -89,13 +89,14 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
     }
 
     fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        if state == Pressed {
+        if state == KeyState::Pressed {
             self.send(Msg::KeyEvent(key, modifiers));
         }
     }
 }
 
 /// Information about each layer that the compositor keeps.
+#[deriving(Copy)]
 pub struct LayerProperties {
     pub pipeline_id: PipelineId,
     pub epoch: Epoch,
@@ -221,7 +222,7 @@ pub enum Msg {
 }
 
 impl Show for Msg {
-    fn fmt(&self, f: &mut Formatter) -> Result<(),FormatError> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(),Error> {
         match *self {
             Msg::Exit(..) => write!(f, "Exit"),
             Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),

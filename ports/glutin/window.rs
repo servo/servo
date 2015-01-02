@@ -5,21 +5,16 @@
 //! A windowing implementation using glutin.
 
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
-use compositing::windowing::{WindowEvent, WindowMethods, KeyEvent};
-use compositing::windowing::{Idle, Resize};
-use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass, Scroll};
-use compositing::windowing::{Zoom, PinchZoom, Navigation};
-use compositing::windowing::{Quit, MouseWindowEvent};
-use compositing::windowing::{Forward, Back};
+use compositing::windowing::WindowNavigateMsg;
+use compositing::windowing::{MouseWindowEvent, WindowEvent, WindowMethods};
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg;
-use msg::constellation_msg::{Key, CONTROL, SHIFT, ALT};
-use msg::compositor_msg::{PaintState, FinishedLoading, Blank, Loading};
-use msg::compositor_msg::{PerformingLayout, ReadyState};
+use msg::constellation_msg::{Key, KeyState, CONTROL, SHIFT, ALT};
+use msg::compositor_msg::{PaintState, ReadyState};
 use msg::constellation_msg::LoadData;
 use std::cell::{Cell, RefCell};
 use std::num::Float;
@@ -27,7 +22,7 @@ use std::rc::Rc;
 use time::{mod, Timespec};
 use util::geometry::ScreenPx;
 use util::opts;
-use util::opts::{RenderApi, Mesa, OpenGL};
+use util::opts::RenderApi;
 use gleam::gl;
 use glutin;
 use glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
@@ -47,21 +42,21 @@ enum WindowHandle {
     Headless(HeadlessContext),
 }
 
-static mut g_nested_event_loop_listener: Option<*mut NestedEventLoopListener + 'static> = None;
+static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
 fn nested_window_resize(width: uint, height: uint) {
     unsafe {
         match g_nested_event_loop_listener {
             None => {}
             Some(listener) => {
-                (*listener).handle_event_from_nested_event_loop(Resize(TypedSize2D(width, height)));
+                (*listener).handle_event_from_nested_event_loop(WindowEvent::Resize(TypedSize2D(width, height)));
             }
         }
     }
 }
 
 bitflags!(
-    #[deriving(Show)]
+    #[deriving(Show, Copy)]
     flags KeyModifiers: u8 {
         const LEFT_CONTROL = 1,
         const RIGHT_CONTROL = 2,
@@ -119,7 +114,7 @@ impl Window {
         let window_size = size.to_untyped();
 
         let glutin = match render_api {
-            OpenGL => {
+            RenderApi::OpenGL => {
                 let mut glutin_window = glutin::WindowBuilder::new()
                                     .with_title("Servo [glutin]".to_string())
                                     .with_dimensions(window_size.width, window_size.height)
@@ -132,7 +127,7 @@ impl Window {
                 glutin_window.set_window_resize_callback(Some(nested_window_resize));
                 WindowHandle::Windowed(glutin_window)
             }
-            Mesa => {
+            RenderApi::Mesa => {
                 let headless_builder = glutin::HeadlessRendererBuilder::new(window_size.width,
                                                                             window_size.height);
                 let headless_context = headless_builder.build().unwrap();
@@ -154,7 +149,7 @@ impl Window {
             mouse_down_point: Cell::new(Point2D(0, 0)),
 
             mouse_pos: Cell::new(Point2D(0, 0)),
-            ready_state: Cell::new(Blank),
+            ready_state: Cell::new(ReadyState::Blank),
             paint_state: Cell::new(PaintState::Idle),
             key_modifiers: Cell::new(KeyModifiers::empty()),
 
@@ -298,16 +293,16 @@ impl WindowMethods for Window {
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
         match key {
             Key::Equal if mods.contains(CONTROL) => { // Ctrl-+
-                self.event_queue.borrow_mut().push(Zoom(1.1));
+                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
             }
             Key::Minus if mods.contains(CONTROL) => { // Ctrl--
-                self.event_queue.borrow_mut().push(Zoom(1.0/1.1));
+                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0/1.1));
             }
             Key::Backspace if mods.contains(SHIFT) => { // Shift-Backspace
-                self.event_queue.borrow_mut().push(Navigation(Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
             Key::Backspace => { // Backspace
-                self.event_queue.borrow_mut().push(Navigation(Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
             Key::PageDown => {
                 self.scroll_window(0.0, -self.framebuffer_size().as_f32().to_untyped().height);
@@ -332,16 +327,16 @@ impl Window {
                 self.last_title_set_time.set(now);
 
                 match self.ready_state.get() {
-                    Blank => {
+                    ReadyState::Blank => {
                         window.set_title("blank - Servo [glutin]")
                     }
-                    Loading => {
+                    ReadyState::Loading => {
                         window.set_title("Loading - Servo [glutin]")
                     }
-                    PerformingLayout => {
+                    ReadyState::PerformingLayout => {
                         window.set_title("Performing Layout - Servo [glutin]")
                     }
-                    FinishedLoading => {
+                    ReadyState::FinishedLoading => {
                         match self.paint_state.get() {
                             PaintState::Painting => {
                                 window.set_title("Rendering - Servo [glutin]")
@@ -403,9 +398,9 @@ impl Window {
                         (ElementState::Pressed, key_code) => {
                             match glutin_key_to_script_key(key_code) {
                                 Ok(key) => {
-                                    let state = constellation_msg::Pressed;
+                                    let state = KeyState::Pressed;
                                     let modifiers = glutin_mods_to_script_mods(self.key_modifiers.get());
-                                    self.event_queue.borrow_mut().push(KeyEvent(key, state, modifiers));
+                                    self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
                                 }
                                 _ => {}
                             }
@@ -415,7 +410,7 @@ impl Window {
                 }
             }
             Event::Resized(width, height) => {
-                self.event_queue.borrow_mut().push(Resize(TypedSize2D(width, height)));
+                self.event_queue.borrow_mut().push(WindowEvent::Resize(TypedSize2D(width, height)));
             }
             Event::MouseInput(element_state, mouse_button) => {
                 if mouse_button == MouseButton::LeftMouseButton ||
@@ -427,15 +422,15 @@ impl Window {
             Event::MouseMoved((x, y)) => {
                 self.mouse_pos.set(Point2D(x, y));
                 self.event_queue.borrow_mut().push(
-                    MouseWindowMoveEventClass(TypedPoint2D(x as f32, y as f32)));
+                    WindowEvent::MouseWindowMoveEventClass(TypedPoint2D(x as f32, y as f32)));
             }
             Event::MouseWheel(delta) => {
                 if self.ctrl_pressed() {
                     // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
                     if delta < 0 {
-                        self.event_queue.borrow_mut().push(PinchZoom(1.0/1.1));
+                        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0/1.1));
                     } else if delta > 0 {
-                        self.event_queue.borrow_mut().push(PinchZoom(1.1));
+                        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
                     }
                 } else {
                     let dx = 0.0;
@@ -463,8 +458,8 @@ impl Window {
     /// Helper function to send a scroll event.
     fn scroll_window(&self, dx: f32, dy: f32) {
         let mouse_pos = self.mouse_pos.get();
-        let event = Scroll(TypedPoint2D(dx as f32, dy as f32),
-                           TypedPoint2D(mouse_pos.x as i32, mouse_pos.y as i32));
+        let event = WindowEvent::Scroll(TypedPoint2D(dx as f32, dy as f32),
+                                 TypedPoint2D(mouse_pos.x as i32, mouse_pos.y as i32));
         self.event_queue.borrow_mut().push(event);
     }
 
@@ -488,7 +483,7 @@ impl Window {
                         if pixel_dist < max_pixel_dist {
                             let click_event = MouseWindowEvent::Click(
                                 0, TypedPoint2D(x as f32, y as f32));
-                            self.event_queue.borrow_mut().push(MouseWindowEventClass(click_event));
+                            self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(click_event));
                         }
                     }
                     Some(_) => (),
@@ -496,12 +491,12 @@ impl Window {
                 MouseWindowEvent::MouseUp(0, TypedPoint2D(x as f32, y as f32))
             }
         };
-        self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
+        self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
     pub unsafe fn set_nested_event_loop_listener(
             &self,
-            listener: *mut NestedEventLoopListener + 'static) {
+            listener: *mut (NestedEventLoopListener + 'static)) {
         g_nested_event_loop_listener = Some(listener)
     }
 
@@ -541,13 +536,13 @@ impl Window {
                 }
 
                 if close_event || window.is_closed() {
-                    Quit
+                    WindowEvent::Quit
                 } else {
-                    self.event_queue.borrow_mut().remove(0).unwrap_or(Idle)
+                    self.event_queue.borrow_mut().remove(0).unwrap_or(WindowEvent::Idle)
                 }
             }
             WindowHandle::Headless(_) => {
-                self.event_queue.borrow_mut().remove(0).unwrap_or(Idle)
+                self.event_queue.borrow_mut().remove(0).unwrap_or(WindowEvent::Idle)
             }
         }
     }

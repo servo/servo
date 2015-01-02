@@ -503,7 +503,7 @@ impl Shaper {
         // space (U+00A0) left in the text after the white space processing rules have been
         // applied. The effect of the property on other word-separator characters is undefined."
         // We elect to only space the two required code points.
-        if character == ' ' || character == '\u00a0' {
+        if character == ' ' || character == '\u{a0}' {
             advance = advance + options.word_spacing
         }
 

@@ -45,7 +45,7 @@ use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::computed_values::{LengthOrPercentageOrNone};
 use style::computed_values::{clear, overflow_wrap, position, text_align};
 use style::computed_values::{text_decoration, vertical_align, white_space};
-use sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex};
 use url::Url;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
@@ -398,7 +398,7 @@ impl ScannedTextFragmentInfo {
 
 /// Describes how to split a fragment. This is used during line breaking as part of the return
 /// value of `find_split_info_for_inline_size()`.
-#[deriving(Show)]
+#[deriving(Show, Clone)]
 pub struct SplitInfo {
     // TODO(bjz): this should only need to be a single character index, but both values are
     // currently needed for splitting in the `inline::try_append_*` functions.
@@ -455,7 +455,7 @@ impl UnscannedTextFragmentInfo {
 }
 
 /// A fragment that represents a table column.
-#[deriving(Clone)]
+#[deriving(Copy, Clone)]
 pub struct TableColumnFragmentInfo {
     /// the number of columns a <col> element should span
     pub span: int,
@@ -877,7 +877,7 @@ impl Fragment {
         }
 
         // Go over the ancestor fragments and add all relative offsets (if any).
-        let mut rel_pos = if self.style().get_box().position == position::relative {
+        let mut rel_pos = if self.style().get_box().position == position::T::relative {
             from_style(self.style(), containing_block_size)
         } else {
             LogicalSize::zero(self.style.writing_mode)
@@ -887,7 +887,7 @@ impl Fragment {
             None => {}
             Some(ref inline_fragment_context) => {
                 for style in inline_fragment_context.styles.iter() {
-                    if style.get_box().position == position::relative {
+                    if style.get_box().position == position::T::relative {
                         rel_pos = rel_pos + from_style(&**style, containing_block_size);
                     }
                 }
@@ -903,10 +903,10 @@ impl Fragment {
     pub fn clear(&self) -> Option<ClearType> {
         let style = self.style();
         match style.get_box().clear {
-            clear::none => None,
-            clear::left => Some(ClearType::Left),
-            clear::right => Some(ClearType::Right),
-            clear::both => Some(ClearType::Both),
+            clear::T::none => None,
+            clear::T::left => Some(ClearType::Left),
+            clear::T::right => Some(ClearType::Right),
+            clear::T::both => Some(ClearType::Both),
         }
     }
 
@@ -1152,7 +1152,7 @@ impl Fragment {
         let mut flags = SplitOptions::empty();
         if starts_line {
             flags.insert(STARTS_LINE);
-            if self.style().get_inheritedtext().overflow_wrap == overflow_wrap::break_word {
+            if self.style().get_inheritedtext().overflow_wrap == overflow_wrap::T::break_word {
                 flags.insert(RETRY_AT_CHARACTER_BOUNDARIES)
             }
         }
@@ -1279,8 +1279,8 @@ impl Fragment {
     /// whitespace that should be stripped.
     pub fn is_ignorable_whitespace(&self) -> bool {
         match self.white_space() {
-            white_space::pre => return false,
-            white_space::normal | white_space::nowrap => {}
+            white_space::T::pre => return false,
+            white_space::T::normal | white_space::T::nowrap => {}
         }
         match self.specific {
             SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => {
@@ -1616,12 +1616,12 @@ impl Fragment {
             return true
         }
         match self.style().get_box().position {
-            position::absolute | position::fixed => {
+            position::T::absolute | position::T::fixed => {
                 // FIXME(pcwalton): This should only establish a new stacking context when
                 // `z-index` is not `auto`. But this matches what we did before.
                 true
             }
-            position::relative | position::static_ => {
+            position::T::relative | position::T::static_ => {
                 // FIXME(pcwalton): `position: relative` establishes a new stacking context if
                 // `z-index` is not `auto`. But this matches what we did before.
                 false

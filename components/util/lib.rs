@@ -21,7 +21,6 @@ extern crate libc;
 extern crate rand;
 extern crate rustrt;
 extern crate serialize;
-extern crate sync;
 #[cfg(target_os="macos")]
 extern crate task_info;
 extern crate "time" as std_time;
@@ -40,6 +39,7 @@ pub mod bloom;
 pub mod cache;
 pub mod cursor;
 pub mod debug_utils;
+pub mod deque;
 pub mod dlist;
 pub mod fnv;
 pub mod geometry;
@@ -50,7 +50,8 @@ pub mod opts;
 pub mod persistent_list;
 pub mod range;
 pub mod resource_files;
-pub mod rtinstrument;
+// FIXME: Find replacement for this post-runtime removal
+// pub mod rtinstrument;
 pub mod smallvec;
 pub mod sort;
 pub mod str;

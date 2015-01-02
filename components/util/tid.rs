@@ -3,20 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::sync::atomic::{AtomicUint, INIT_ATOMIC_UINT, SeqCst};
+use std::rc::Rc;
+use std::cell::RefCell;
 
 static mut next_tid: AtomicUint = INIT_ATOMIC_UINT;
 
-local_data_key!(task_local_tid: uint)
+thread_local!(static task_local_tid: Rc<RefCell<Option<uint>>> = Rc::new(RefCell::new(None)))
 
 /// Every task gets one, that's unique.
 pub fn tid() -> uint {
-    let ret =
-        match task_local_tid.replace(None) {
-            None => unsafe { next_tid.fetch_add(1, SeqCst) },
-            Some(x) => x,
-        };
+    task_local_tid.with(|ref k| {
+        let ret =
+            match *k.borrow() {
+                None => unsafe { next_tid.fetch_add(1, SeqCst) },
+                Some(x) => x,
+            };
 
-    task_local_tid.replace(Some(ret));
+        *k.borrow_mut() = Some(ret);
 
-    ret
+        ret
+    })
 }

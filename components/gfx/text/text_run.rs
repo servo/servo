@@ -9,7 +9,7 @@ use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::vec::{Comparator, FullBinarySearchMethods};
 use std::slice::Items;
-use sync::Arc;
+use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
 
 /// A single "paragraph" of text in one font size and style.

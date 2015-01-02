@@ -21,8 +21,6 @@
 extern crate syntax;
 #[phase(plugin, link)]
 extern crate rustc;
-#[cfg(test)]
-extern crate sync;
 
 use rustc::lint::LintPassObject;
 use rustc::plugin::Registry;

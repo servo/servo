@@ -11,6 +11,7 @@ use fetch::cors_cache::CORSCache;
 use fetch::response::Response;
 
 /// A [request context](http://fetch.spec.whatwg.org/#concept-request-context)
+#[deriving(Copy)]
 pub enum Context {
     Audio, Beacon, CSPreport, Download, Embed, Eventsource,
     Favicon, Fetch, Font, Form, Frame, Hyperlink, IFrame, Image,
@@ -20,6 +21,7 @@ pub enum Context {
 }
 
 /// A [request context frame type](http://fetch.spec.whatwg.org/#concept-request-context-frame-type)
+#[deriving(Copy)]
 pub enum ContextFrameType {
     Auxiliary,
     TopLevel,
@@ -35,6 +37,7 @@ pub enum Referer {
 }
 
 /// A [request mode](http://fetch.spec.whatwg.org/#concept-request-mode)
+#[deriving(Copy)]
 pub enum RequestMode {
     SameOrigin,
     NoCORS,
@@ -43,6 +46,7 @@ pub enum RequestMode {
 }
 
 /// Request [credentials mode](http://fetch.spec.whatwg.org/#concept-request-credentials-mode)
+#[deriving(Copy)]
 pub enum CredentialsMode {
     Omit,
     CredentialsSameOrigin,
@@ -50,6 +54,7 @@ pub enum CredentialsMode {
 }
 
 /// [Response tainting](http://fetch.spec.whatwg.org/#concept-request-response-tainting)
+#[deriving(Copy)]
 pub enum ResponseTainting {
     Basic,
     CORSTainting,

@@ -34,7 +34,6 @@ extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
 extern crate "util" as servo_util;
 extern crate style;
-extern crate sync;
 extern crate "msg" as servo_msg;
 extern crate url;
 extern crate uuid;

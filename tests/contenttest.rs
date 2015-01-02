@@ -15,6 +15,7 @@ extern crate regex;
 extern crate test;
 
 use test::{AutoColor, TestOpts, run_tests_console, TestDesc, TestDescAndFn, DynTestFn, DynTestName};
+use test::ShouldFail;
 use getopts::{getopts, reqopt};
 use std::{os, str};
 use std::io::fs;
@@ -66,7 +67,10 @@ fn test_options(config: Config) -> TestOpts {
         test_shard: None,
         logfile: None,
         nocapture: false,
-        color: AutoColor
+        color: AutoColor,
+        show_boxplot: false,
+        boxplot_width: 0,
+        show_all_stats: false,
     }
 }
 
@@ -85,14 +89,14 @@ fn make_test(file: String) -> TestDescAndFn {
         desc: TestDesc {
             name: DynTestName(file.clone()),
             ignore: false,
-            should_fail: false
+            should_fail: ShouldFail::No,
         },
         testfn: DynTestFn(proc() { run_test(file) })
     }
 }
 
 fn run_test(file: String) {
-    let path = os::make_absolute(&Path::new(file));
+    let path = os::make_absolute(&Path::new(file)).unwrap();
     // FIXME (#1094): not the right way to transform a path
     let infile = format!("file://{}", path.display());
     let stdout = CreatePipe(false, true);
@@ -100,7 +104,7 @@ fn run_test(file: String) {
     let args = ["-z", "-f", infile.as_slice()];
 
     let mut prc = match Command::new(os::self_exe_path().unwrap().join("servo"))
-        .args(args)
+        .args(args.as_slice())
         .stdin(Ignored)
         .stdout(stdout)
         .stderr(stderr)

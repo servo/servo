@@ -7,9 +7,9 @@
 pub use std::ascii::AsciiExt;
 use std::fmt;
 use std::fmt::Show;
+use std::sync::Arc;
 
 use servo_util::logical_geometry::{WritingMode, LogicalMargin};
-use sync::Arc;
 pub use url::Url;
 
 pub use cssparser::*;
@@ -279,7 +279,7 @@ pub mod longhands {
     % endfor
 
     <%self:longhand name="border-top-left-radius">
-        #[deriving(Clone, Show)]
+        #[deriving(Clone, Show, PartialEq, Copy)]
         pub struct SpecifiedValue {
             pub radius: specified::LengthOrPercentage,
         }
@@ -287,7 +287,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::computed;
 
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq, Copy, Show)]
             pub struct T {
                 pub radius: computed::LengthOrPercentage,
             }
@@ -451,7 +451,7 @@ pub mod longhands {
         pub mod computed_value {
             use std::fmt;
 
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Clone, Eq, Copy)]
             pub enum T {
                 Auto,
                 Number(i32),
@@ -543,7 +543,7 @@ pub mod longhands {
 
     <%self:single_component_value name="line-height">
         use std::fmt;
-        #[deriving(Clone)]
+        #[deriving(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             Normal,
             Length(specified::Length),
@@ -579,7 +579,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
             use std::fmt;
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Copy, Clone)]
             pub enum T {
                 Normal,
                 Length(Au),
@@ -616,7 +616,7 @@ pub mod longhands {
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
         #[allow(non_camel_case_types)]
-        #[deriving(Clone)]
+        #[deriving(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             % for keyword in vertical_align_keywords:
                 ${to_rust_ident(keyword)},
@@ -654,7 +654,7 @@ pub mod longhands {
             use super::super::{Au, CSSFloat};
             use std::fmt;
             #[allow(non_camel_case_types)]
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Copy, Clone)]
             pub enum T {
                 % for keyword in vertical_align_keywords:
                     ${to_rust_ident(keyword)},
@@ -710,7 +710,7 @@ pub mod longhands {
             pub use super::computed_as_specified as to_computed_value;
             pub mod computed_value {
             use std::fmt;
-                #[deriving(PartialEq, Clone)]
+                #[deriving(PartialEq, Eq, Clone)]
                 pub enum ContentItem {
                     StringContent(String),
                 }
@@ -722,7 +722,7 @@ pub mod longhands {
                     }
                 }
                 #[allow(non_camel_case_types)]
-                #[deriving(PartialEq, Clone)]
+                #[deriving(PartialEq, Eq, Clone)]
                 pub enum T {
                     normal,
                     none,
@@ -859,7 +859,7 @@ pub mod longhands {
                 use super::super::super::common_types::computed::LengthOrPercentage;
                 use std::fmt;
 
-                #[deriving(PartialEq, Clone)]
+                #[deriving(PartialEq, Copy, Clone)]
                 pub struct T {
                     pub horizontal: LengthOrPercentage,
                     pub vertical: LengthOrPercentage,
@@ -871,7 +871,7 @@ pub mod longhands {
                 }
             }
 
-            #[deriving(Clone)]
+            #[deriving(Clone, PartialEq, Copy)]
             pub struct SpecifiedValue {
                 pub horizontal: specified::LengthOrPercentage,
                 pub vertical: specified::LengthOrPercentage,
@@ -1023,7 +1023,7 @@ pub mod longhands {
         pub use super::computed_as_specified as to_computed_value;
         pub mod computed_value {
             use std::fmt;
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Eq, Clone)]
             pub enum FontFamily {
                 FamilyName(String),
                 // Generic
@@ -1110,7 +1110,7 @@ pub mod longhands {
 
     <%self:single_component_value name="font-weight">
         use std::fmt;
-        #[deriving(Clone)]
+        #[deriving(Clone, PartialEq, Eq, Copy)]
         pub enum SpecifiedValue {
             Bolder,
             Lighter,
@@ -1159,7 +1159,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use std::fmt;
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Eq, Copy, Clone)]
             pub enum T {
                 % for weight in range(100, 901, 100):
                     Weight${weight},
@@ -1327,7 +1327,7 @@ pub mod longhands {
     <%self:longhand name="text-decoration">
         pub use super::computed_as_specified as to_computed_value;
         use std::fmt;
-        #[deriving(PartialEq, Clone)]
+        #[deriving(PartialEq, Eq, Copy, Clone)]
         pub struct SpecifiedValue {
             pub underline: bool,
             pub overline: bool,
@@ -1404,7 +1404,7 @@ pub mod longhands {
                     derived_from="display text-decoration">
         pub use super::computed_as_specified as to_computed_value;
 
-        #[deriving(Clone, PartialEq)]
+        #[deriving(Clone, PartialEq, Copy)]
         pub struct SpecifiedValue {
             pub underline: Option<RGBA>,
             pub overline: Option<RGBA>,
@@ -1516,7 +1516,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use servo_util::cursor::Cursor;
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq, Eq, Copy, Show)]
             pub enum T {
                 AutoCursor,
                 SpecifiedCursor(Cursor),
@@ -1581,7 +1581,7 @@ pub mod longhands {
 
         pub type SpecifiedValue = Vec<SpecifiedBoxShadow>;
 
-        #[deriving(Clone)]
+        #[deriving(Clone, PartialEq)]
         pub struct SpecifiedBoxShadow {
             pub offset_x: specified::Length,
             pub offset_y: specified::Length,
@@ -1612,7 +1612,7 @@ pub mod longhands {
 
             pub type T = Vec<BoxShadow>;
 
-            #[deriving(Clone, PartialEq)]
+            #[deriving(Clone, PartialEq, Copy)]
             pub struct BoxShadow {
                 pub offset_x: Au,
                 pub offset_y: Au,
@@ -1750,7 +1750,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::Au;
 
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq, Eq, Copy, Show)]
             pub struct ClipRect {
                 pub top: Au,
                 pub right: Option<Au>,
@@ -1761,7 +1761,7 @@ pub mod longhands {
             pub type T = Option<ClipRect>;
         }
 
-        #[deriving(Clone, Show)]
+        #[deriving(Clone, Show, PartialEq, Copy)]
         pub struct SpecifiedClipRect {
             pub top: specified::Length,
             pub right: Option<specified::Length>,
@@ -2468,7 +2468,7 @@ impl CSSWideKeyword {
 }
 
 
-#[deriving(Clone)]
+#[deriving(Clone, PartialEq, Eq, Copy)]
 pub enum DeclaredValue<T> {
     SpecifiedValue(T),
     Initial,
@@ -2496,6 +2496,7 @@ pub enum PropertyDeclaration {
 }
 
 
+#[deriving(Eq, PartialEq, Copy)]
 pub enum PropertyDeclarationParseResult {
     UnknownProperty,
     ExperimentalProperty,
@@ -2645,6 +2646,7 @@ pub mod style_structs {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
+        #[allow(missing_copy_implementations)]
         #[deriving(PartialEq, Clone)]
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:

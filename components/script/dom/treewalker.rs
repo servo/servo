@@ -256,9 +256,9 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
                 // "5. If result is FILTER_REJECT or sibling is null,
                 //     then set sibling to node's next sibling if type is next,
                 //     and node's previous sibling if type is previous."
-                match (result, sibling_op) {
+                match (result, &sibling_op) {
                     (Ok(NodeFilterConstants::FILTER_REJECT), _)
-                    | (_, None) => sibling_op = next_sibling(node),
+                    | (_, &None) => sibling_op = next_sibling(node),
                     _ => {}
                 }
             }

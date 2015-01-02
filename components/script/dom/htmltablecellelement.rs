@@ -16,7 +16,7 @@ use cssparser::RGBA;
 use servo_util::str::{mod, DOMString, LengthOrPercentageOrAuto};
 use std::cell::Cell;
 
-#[deriving(PartialEq, Show)]
+#[deriving(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum HTMLTableCellElementTypeId {
     HTMLTableDataCellElement,

@@ -15,8 +15,7 @@ use servo_msg::constellation_msg::PipelineId;
 
 use collections::TreeMap;
 use core::cell::RefCell;
-use serialize::json;
-use serialize::json::ToJson;
+use serialize::json::{mod, Json, ToJson};
 use std::io::TcpStream;
 use std::num::Float;
 
@@ -76,7 +75,7 @@ enum ConsoleMessageType {
 #[deriving(Encodable)]
 struct GetCachedMessagesReply {
     from: String,
-    messages: Vec<json::JsonObject>,
+    messages: Vec<json::Object>,
 }
 
 #[deriving(Encodable)]
@@ -96,11 +95,11 @@ struct AutocompleteReply {
 struct EvaluateJSReply {
     from: String,
     input: String,
-    result: json::Json,
+    result: Json,
     timestamp: uint,
-    exception: json::Json,
+    exception: Json,
     exceptionMessage: String,
-    helperResult: json::Json,
+    helperResult: Json,
 }
 
 pub struct ConsoleActor {
@@ -118,11 +117,11 @@ impl Actor for ConsoleActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &String,
-                      msg: &json::JsonObject,
+                      msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
         Ok(match msg_type.as_slice() {
             "getCachedMessages" => {
-                let types = msg.get(&"messageTypes".to_string()).unwrap().as_list().unwrap();
+                let types = msg.get(&"messageTypes".to_string()).unwrap().as_array().unwrap();
                 let /*mut*/ messages = vec!();
                 for msg_type in types.iter() {
                     let msg_type = msg_type.as_string().unwrap();
@@ -196,7 +195,7 @@ impl Actor for ConsoleActor {
                     from: self.name(),
                     stoppedListeners: msg.get(&"listeners".to_string())
                                          .unwrap()
-                                         .as_list()
+                                         .as_array()
                                          .unwrap_or(&vec!())
                                          .iter()
                                          .map(|listener| listener.as_string().unwrap().to_string())
@@ -228,19 +227,19 @@ impl Actor for ConsoleActor {
                     VoidValue => {
                         let mut m = TreeMap::new();
                         m.insert("type".to_string(), "undefined".to_string().to_json());
-                        json::Object(m)
+                        Json::Object(m)
                     }
                     NullValue => {
                         let mut m = TreeMap::new();
                         m.insert("type".to_string(), "null".to_string().to_json());
-                        json::Object(m)
+                        Json::Object(m)
                     }
                     BooleanValue(val) => val.to_json(),
                     NumberValue(val) => {
                         if val.is_nan() {
                             let mut m = TreeMap::new();
                             m.insert("type".to_string(), "NaN".to_string().to_json());
-                            json::Object(m)
+                            Json::Object(m)
                         } else if val.is_infinite() {
                             let mut m = TreeMap::new();
                             if val < 0. {
@@ -248,11 +247,11 @@ impl Actor for ConsoleActor {
                             } else {
                                 m.insert("type".to_string(), "Infinity".to_string().to_json());
                             }
-                            json::Object(m)
+                            Json::Object(m)
                         } else if val == Float::neg_zero() {
                             let mut m = TreeMap::new();
                             m.insert("type".to_string(), "-0".to_string().to_json());
-                            json::Object(m)
+                            Json::Object(m)
                         } else {
                             val.to_json()
                         }
@@ -267,7 +266,7 @@ impl Actor for ConsoleActor {
                         m.insert("extensible".to_string(), true.to_json());
                         m.insert("frozen".to_string(), false.to_json());
                         m.insert("sealed".to_string(), false.to_json());
-                        json::Object(m)
+                        Json::Object(m)
                     }
                 };
 
@@ -277,9 +276,9 @@ impl Actor for ConsoleActor {
                     input: input,
                     result: result,
                     timestamp: 0,
-                    exception: json::Object(TreeMap::new()),
+                    exception: Json::Object(TreeMap::new()),
                     exceptionMessage: "".to_string(),
-                    helperResult: json::Object(TreeMap::new()),
+                    helperResult: Json::Object(TreeMap::new()),
                 };
                 stream.write_json_packet(&msg);
                 true

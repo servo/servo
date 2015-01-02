@@ -4,14 +4,14 @@
 
 use geom::{Point2D, Rect, Size2D};
 use std::mem;
-use std::string;
+use std::slice;
 use std::rc::Rc;
 use std::cell::RefCell;
 use servo_util::cache::{Cache, HashCache};
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use style::computed_values::{font_variant, font_weight};
 use style::style_structs::Font as FontStyle;
-use sync::Arc;
+use std::sync::Arc;
 
 use collections::hash::Hash;
 use platform::font_context::FontContextHandle;
@@ -56,11 +56,10 @@ pub trait FontTableTagConversions {
 impl FontTableTagConversions for FontTableTag {
     fn tag_to_str(&self) -> String {
         unsafe {
-            let reversed = string::raw::from_buf_len(mem::transmute(self), 4);
-            return String::from_chars([reversed.as_slice().char_at(3),
-                                       reversed.as_slice().char_at(2),
-                                       reversed.as_slice().char_at(1),
-                                       reversed.as_slice().char_at(0)]);
+            let pointer = mem::transmute::<&u32, *const u8>(self);
+            let mut bytes = slice::from_raw_buf(&pointer, 4).to_vec();
+            bytes.reverse();
+            String::from_utf8_unchecked(bytes)
         }
     }
 }
@@ -101,6 +100,7 @@ pub struct Font {
 }
 
 bitflags! {
+    #[deriving(Copy)]
     flags ShapingFlags: u8 {
         #[doc="Set if the text is entirely whitespace."]
         const IS_WHITESPACE_SHAPING_FLAG = 0x01,
@@ -110,7 +110,7 @@ bitflags! {
 }
 
 /// Various options that control text shaping.
-#[deriving(Clone, Eq, PartialEq, Hash)]
+#[deriving(Clone, Eq, PartialEq, Hash, Copy)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.

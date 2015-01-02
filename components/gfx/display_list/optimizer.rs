@@ -9,7 +9,7 @@ use display_list::{DisplayItem, DisplayList, StackingContext};
 use collections::dlist::DList;
 use geom::rect::Rect;
 use servo_util::geometry::{mod, Au};
-use sync::Arc;
+use std::sync::Arc;
 
 /// Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
 pub struct DisplayListOptimizer {

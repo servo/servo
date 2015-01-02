@@ -30,7 +30,7 @@ use std::num::Float;
 use std::ptr;
 use std::string;
 
-use sync::Arc;
+use std::sync::Arc;
 
 fn float_to_fixed_ft(f: f64) -> i32 {
     float_to_fixed(6, f)

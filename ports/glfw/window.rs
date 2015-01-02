@@ -7,14 +7,8 @@
 use NestedEventLoopListener;
 
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
-use compositing::windowing::{Forward, Back};
-use compositing::windowing::{Idle, Resize};
-use compositing::windowing::{KeyEvent, MouseWindowEvent};
-use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass};
-use compositing::windowing::Refresh;
-use compositing::windowing::{Navigation, Scroll, Zoom};
-use compositing::windowing::{PinchZoom, Quit};
-use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing::windowing::WindowNavigateMsg;
+use compositing::windowing::{MouseWindowEvent, WindowEvent, WindowMethods};
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
@@ -23,10 +17,10 @@ use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
-use msg::compositor_msg::{Blank, FinishedLoading, Loading, PaintState};
-use msg::compositor_msg::{PerformingLayout, ReadyState};
-use msg::constellation_msg::{mod, LoadData};
-use msg::constellation_msg::{Key, KeyModifiers, CONTROL, SHIFT};
+use msg::compositor_msg::{PaintState, ReadyState};
+use msg::constellation_msg::{KeyState, LoadData};
+use msg::constellation_msg::{Key, KeyModifiers};
+use msg::constellation_msg::{SHIFT, ALT, CONTROL, SUPER};
 use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
 use std::num::Float;
@@ -59,10 +53,11 @@ impl Window {
                -> Rc<Window> {
         // Create the GLFW window.
         let window_size = size.to_untyped();
-        glfw.window_hint(glfw::Visible(is_foreground));
+        glfw.window_hint(glfw::WindowHint::Visible(is_foreground));
         let (glfw_window, events) = glfw.create_window(window_size.width as u32,
                                                        window_size.height as u32,
-                                                       "Servo", glfw::Windowed)
+                                                       "Servo",
+                                                       glfw::WindowMode::Windowed)
             .expect("Failed to create GLFW window");
         glfw_window.make_current();
 
@@ -80,7 +75,7 @@ impl Window {
             mouse_down_button: Cell::new(None),
             mouse_down_point: Cell::new(Point2D(0 as c_int, 0)),
 
-            ready_state: Cell::new(Blank),
+            ready_state: Cell::new(ReadyState::Blank),
             paint_state: Cell::new(PaintState::Idle),
 
             last_title_set_time: Cell::new(Timespec::new(0, 0)),
@@ -94,7 +89,7 @@ impl Window {
         window.glfw_window.set_cursor_pos_polling(true);
         window.glfw_window.set_scroll_polling(true);
 
-        glfw.set_swap_interval(1);
+        window.glfw.set_swap_interval(1);
 
         Rc::new(window)
     }
@@ -122,15 +117,15 @@ impl Window {
         }
 
         if self.glfw_window.should_close() {
-            Quit
+            WindowEvent::Quit
         } else {
-            self.event_queue.borrow_mut().remove(0).unwrap_or(Idle)
+            self.event_queue.borrow_mut().remove(0).unwrap_or(WindowEvent::Idle)
         }
     }
 
     pub unsafe fn set_nested_event_loop_listener(
             &self,
-            listener: *mut NestedEventLoopListener + 'static) {
+            listener: *mut (NestedEventLoopListener + 'static)) {
         self.glfw_window.set_refresh_polling(false);
         glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.ptr, Some(on_refresh));
         glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.ptr, Some(on_framebuffer_size));
@@ -145,7 +140,7 @@ impl Window {
     }
 }
 
-static mut g_nested_event_loop_listener: Option<*mut NestedEventLoopListener + 'static> = None;
+static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
 impl WindowMethods for Window {
     /// Returns the size of the window in hardware pixels.
@@ -215,16 +210,16 @@ impl WindowMethods for Window {
         match key {
             Key::Escape => self.glfw_window.set_should_close(true),
             Key::Equal if mods.contains(CONTROL) => { // Ctrl-+
-                self.event_queue.borrow_mut().push(Zoom(1.1));
+                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
             }
             Key::Minus if mods.contains(CONTROL) => { // Ctrl--
-                self.event_queue.borrow_mut().push(Zoom(1.0/1.1));
+                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0/1.1));
             }
             Key::Backspace if mods.contains(SHIFT) => { // Shift-Backspace
-                self.event_queue.borrow_mut().push(Navigation(Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
             Key::Backspace => { // Backspace
-                self.event_queue.borrow_mut().push(Navigation(Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
             Key::PageDown => {
                 let (_, height) = self.glfw_window.get_size();
@@ -258,31 +253,31 @@ impl WindowMethods for Window {
 impl Window {
     fn handle_window_event(&self, window: &glfw::Window, event: glfw::WindowEvent) {
         match event {
-            glfw::KeyEvent(key, _, action, mods) => {
+            glfw::WindowEvent::Key(key, _, action, mods) => {
                 let key = glfw_key_to_script_key(key);
                 let state = match action {
-                    glfw::Press => constellation_msg::Pressed,
-                    glfw::Release => constellation_msg::Released,
-                    glfw::Repeat => constellation_msg::Repeated,
+                    glfw::Action::Press => KeyState::Pressed,
+                    glfw::Action::Release => KeyState::Released,
+                    glfw::Action::Repeat => KeyState::Repeated,
                 };
                 let modifiers = glfw_mods_to_script_mods(mods);
-                self.event_queue.borrow_mut().push(KeyEvent(key, state, modifiers));
+                self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
             },
-            glfw::FramebufferSizeEvent(width, height) => {
+            glfw::WindowEvent::FramebufferSize(width, height) => {
                 self.event_queue.borrow_mut().push(
-                    Resize(TypedSize2D(width as uint, height as uint)));
+                    WindowEvent::Resize(TypedSize2D(width as uint, height as uint)));
             },
-            glfw::RefreshEvent => {
-                self.event_queue.borrow_mut().push(Refresh);
+            glfw::WindowEvent::Refresh => {
+                self.event_queue.borrow_mut().push(WindowEvent::Refresh);
             },
-            glfw::MouseButtonEvent(button, action, _mods) => {
+            glfw::WindowEvent::MouseButton(button, action, _mods) => {
                 let cursor_position = self.cursor_position();
                 match button {
                     glfw::MouseButton::Button5 => { // Back button (might be different per platform)
-                        self.event_queue.borrow_mut().push(Navigation(Back));
+                        self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
                     },
                     glfw::MouseButton::Button6 => { // Forward
-                        self.event_queue.borrow_mut().push(Navigation(Forward));
+                        self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
                     },
                     glfw::MouseButtonLeft | glfw::MouseButtonRight => {
                         self.handle_mouse(button,
@@ -293,20 +288,20 @@ impl Window {
                     _ => {}
                 }
             },
-            glfw::CursorPosEvent(..) => {
+            glfw::WindowEvent::CursorPos(..) => {
                 self.event_queue
                     .borrow_mut()
-                    .push(MouseWindowMoveEventClass(self.cursor_position()));
+                    .push(WindowEvent::MouseWindowMoveEventClass(self.cursor_position()));
             },
-            glfw::ScrollEvent(xpos, ypos) => {
+            glfw::WindowEvent::Scroll(xpos, ypos) => {
                 match (window.get_key(glfw::Key::LeftControl),
                        window.get_key(glfw::Key::RightControl)) {
-                    (glfw::Press, _) | (_, glfw::Press) => {
+                    (glfw::Action::Press, _) | (_, glfw::Action::Press) => {
                         // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
                         if ypos < 0.0 {
-                            self.event_queue.borrow_mut().push(PinchZoom(1.0/1.1));
+                            self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0/1.1));
                         } else if ypos > 0.0 {
-                            self.event_queue.borrow_mut().push(PinchZoom(1.1));
+                            self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
                         }
                     },
                     _ => {
@@ -323,7 +318,7 @@ impl Window {
     /// Helper function to send a scroll event.
     fn scroll_window(&self, dx: f32, dy: f32) {
         let cursor_pos = self.cursor_position().cast().unwrap();
-        self.event_queue.borrow_mut().push(Scroll(TypedPoint2D(dx, dy), cursor_pos));
+        self.event_queue.borrow_mut().push(WindowEvent::Scroll(TypedPoint2D(dx, dy), cursor_pos));
     }
 
     /// Helper function to set the window title in accordance with the ready state.
@@ -335,16 +330,16 @@ impl Window {
         self.last_title_set_time.set(now);
 
         match self.ready_state.get() {
-            Blank => {
+            ReadyState::Blank => {
                 self.glfw_window.set_title("blank — Servo [GLFW]")
             }
-            Loading => {
+            ReadyState::Loading => {
                 self.glfw_window.set_title("Loading — Servo [GLFW]")
             }
-            PerformingLayout => {
+            ReadyState::PerformingLayout => {
                 self.glfw_window.set_title("Performing Layout — Servo [GLFW]")
             }
-            FinishedLoading => {
+            ReadyState::FinishedLoading => {
                 match self.paint_state.get() {
                     PaintState::Painting => {
                         self.glfw_window.set_title("Rendering — Servo [GLFW]")
@@ -362,12 +357,12 @@ impl Window {
         // FIXME(tkuehn): max pixel dist should be based on pixel density
         let max_pixel_dist = 10f64;
         let event = match action {
-            glfw::Press => {
+            glfw::Action::Press => {
                 self.mouse_down_point.set(Point2D(x, y));
                 self.mouse_down_button.set(Some(button));
                 MouseWindowEvent::MouseDown(button as uint, TypedPoint2D(x as f32, y as f32))
             }
-            glfw::Release => {
+            glfw::Action::Release => {
                 match self.mouse_down_button.get() {
                     None => (),
                     Some(but) if button == but => {
@@ -377,7 +372,7 @@ impl Window {
                         if pixel_dist < max_pixel_dist {
                             let click_event = MouseWindowEvent::Click(
                                 button as uint, TypedPoint2D(x as f32, y as f32));
-                            self.event_queue.borrow_mut().push(MouseWindowEventClass(click_event));
+                            self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(click_event));
                         }
                     }
                     Some(_) => (),
@@ -386,7 +381,7 @@ impl Window {
             }
             _ => panic!("I cannot recognize the type of mouse action that occured. :-(")
         };
-        self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
+        self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
     /// Returns the cursor position, properly accounting for HiDPI.
@@ -420,7 +415,7 @@ extern "C" fn on_refresh(_glfw_window: *mut glfw::ffi::GLFWwindow) {
         match g_nested_event_loop_listener {
             None => {}
             Some(listener) => {
-                (*listener).handle_event_from_nested_event_loop(Refresh);
+                (*listener).handle_event_from_nested_event_loop(WindowEvent::Refresh);
             }
         }
     }
@@ -434,25 +429,25 @@ extern "C" fn on_framebuffer_size(_glfw_window: *mut glfw::ffi::GLFWwindow,
             None => {}
             Some(listener) => {
                 let size = TypedSize2D(width as uint, height as uint);
-                (*listener).handle_event_from_nested_event_loop(Resize(size));
+                (*listener).handle_event_from_nested_event_loop(WindowEvent::Resize(size));
             }
         }
     }
 }
 
-fn glfw_mods_to_script_mods(mods: glfw::Modifiers) -> constellation_msg::KeyModifiers {
-    let mut result = constellation_msg::KeyModifiers::from_bits(0).unwrap();
+fn glfw_mods_to_script_mods(mods: glfw::Modifiers) -> KeyModifiers {
+    let mut result = KeyModifiers::from_bits(0).unwrap();
     if mods.contains(glfw::Shift) {
-        result.insert(constellation_msg::SHIFT);
+        result.insert(SHIFT);
     }
     if mods.contains(glfw::Alt) {
-        result.insert(constellation_msg::ALT);
+        result.insert(ALT);
     }
     if mods.contains(glfw::Control) {
-        result.insert(constellation_msg::CONTROL);
+        result.insert(CONTROL);
     }
     if mods.contains(glfw::Super) {
-        result.insert(constellation_msg::SUPER);
+        result.insert(SUPER);
     }
     result
 }
@@ -460,12 +455,12 @@ fn glfw_mods_to_script_mods(mods: glfw::Modifiers) -> constellation_msg::KeyModi
 macro_rules! glfw_keys_to_script_keys(
     ($key:expr, $($name:ident),+) => (
         match $key {
-            $(glfw::Key::$name => constellation_msg::Key::$name,)+
+            $(glfw::Key::$name => Key::$name,)+
         }
     );
 )
 
-fn glfw_key_to_script_key(key: glfw::Key) -> constellation_msg::Key {
+fn glfw_key_to_script_key(key: glfw::Key) -> Key {
     glfw_keys_to_script_keys!(key,
                               Space,
                               Apostrophe,

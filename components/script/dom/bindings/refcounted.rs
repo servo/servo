@@ -33,9 +33,11 @@ use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSContext};
 use libc;
 use std::cell::RefCell;
 use std::collections::hash_map::{HashMap, Vacant, Occupied};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-local_data_key!(pub LiveReferences: LiveDOMReferences)
+thread_local!(pub static LiveReferences: Rc<RefCell<Option<LiveDOMReferences>>> = Rc::new(RefCell::new(None)))
+
 
 /// A safe wrapper around a raw pointer to a DOM object that can be
 /// shared among tasks for use in asynchronous operations. The underlying
@@ -55,24 +57,28 @@ impl<T: Reflectable> Trusted<T> {
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
     pub fn new(cx: *mut JSContext, ptr: JSRef<T>, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
-        let live_references = LiveReferences.get().unwrap();
-        let refcount = live_references.addref(cx, &*ptr as *const T);
-        Trusted {
-            ptr: &*ptr as *const T as *const libc::c_void,
-            refcount: refcount,
-            script_chan: script_chan,
-            owner_thread: (&*live_references) as *const _ as *const libc::c_void,
-        }
+        LiveReferences.with(|ref r| {
+            let r = r.borrow();
+            let live_references = r.as_ref().unwrap();
+            let refcount = live_references.addref(cx, &*ptr as *const T);
+            Trusted {
+                ptr: &*ptr as *const T as *const libc::c_void,
+                refcount: refcount,
+                script_chan: script_chan.clone(),
+                owner_thread: (&*live_references) as *const _ as *const libc::c_void,
+            }
+        })
     }
 
     /// Obtain a usable DOM pointer from a pinned `Trusted<T>` value. Fails if used on
     /// a different thread than the original value from which this `Trusted<T>` was
     /// obtained.
     pub fn to_temporary(&self) -> Temporary<T> {
-        assert!({
-            let live_references = LiveReferences.get().unwrap();
+        assert!(LiveReferences.with(|ref r| {
+            let r = r.borrow();
+            let live_references = r.as_ref().unwrap();
             self.owner_thread == (&*live_references) as *const _ as *const libc::c_void
-        });
+        }));
         unsafe {
             Temporary::new(JS::from_raw(self.ptr as *const T))
         }
@@ -117,9 +123,11 @@ pub struct LiveDOMReferences {
 impl LiveDOMReferences {
     /// Set up the task-local data required for storing the outstanding DOM references.
     pub fn initialize() {
-        LiveReferences.replace(Some(LiveDOMReferences {
-            table: RefCell::new(HashMap::new()),
-        }));
+        LiveReferences.with(|ref r| {
+            *r.borrow_mut() = Some(LiveDOMReferences {
+                table: RefCell::new(HashMap::new()),
+            })
+        });
     }
 
     fn addref<T: Reflectable>(&self, cx: *mut JSContext, ptr: *const T) -> Arc<Mutex<uint>> {
@@ -144,30 +152,33 @@ impl LiveDOMReferences {
 
     /// Unpin the given DOM object if its refcount is 0.
     pub fn cleanup(cx: *mut JSContext, raw_reflectable: *const libc::c_void) {
-        let live_references = LiveReferences.get().unwrap();
-        let reflectable = raw_reflectable as *const Reflector;
-        let mut table = live_references.table.borrow_mut();
-        match table.entry(raw_reflectable) {
-            Occupied(entry) => {
-                if *entry.get().lock() != 0 {
-                    // there could have been a new reference taken since
-                    // this message was dispatched.
-                    return;
-                }
+        LiveReferences.with(|ref r| {
+            let r = r.borrow();
+            let live_references = r.as_ref().unwrap();
+            let reflectable = raw_reflectable as *const Reflector;
+            let mut table = live_references.table.borrow_mut();
+            match table.entry(raw_reflectable) {
+                Occupied(entry) => {
+                    if *entry.get().lock() != 0 {
+                        // there could have been a new reference taken since
+                        // this message was dispatched.
+                        return;
+                    }
 
-                unsafe {
-                    JS_RemoveObjectRoot(cx, (*reflectable).rootable());
+                    unsafe {
+                        JS_RemoveObjectRoot(cx, (*reflectable).rootable());
+                    }
+                    let _ = entry.take();
                 }
-                let _ = entry.take();
+                Vacant(_) => {
+                    // there could be a cleanup message dispatched, then a new
+                    // pinned reference obtained and released before the message
+                    // is processed, at which point there would be no matching
+                    // hashtable entry.
+                    info!("attempt to cleanup an unrecognized reflector");
+                }
             }
-            Vacant(_) => {
-                // there could be a cleanup message dispatched, then a new
-                // pinned reference obtained and released before the message
-                // is processed, at which point there would be no matching
-                // hashtable entry.
-                info!("attempt to cleanup an unrecognized reflector");
-            }
-        }
+        })
     }
 }
 

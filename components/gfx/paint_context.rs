@@ -33,7 +33,7 @@ use std::mem;
 use std::num::{Float, FloatMath};
 use std::ptr;
 use style::computed_values::border_style;
-use sync::Arc;
+use std::sync::Arc;
 use text::TextRun;
 use text::glyph::CharIndex;
 
@@ -52,6 +52,7 @@ pub struct PaintContext<'a> {
     pub transient_clip: Option<ClippingRegion>,
 }
 
+#[deriving(Copy)]
 enum Direction {
     Top,
     Left,
@@ -59,6 +60,7 @@ enum Direction {
     Bottom
 }
 
+#[deriving(Copy)]
 enum DashSize {
     DottedBorder = 1,
     DashedBorder = 3

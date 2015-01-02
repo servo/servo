@@ -45,7 +45,7 @@ const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
 
 #[jstraceable]
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Copy)]
 #[allow(dead_code)]
 enum InputType {
     InputSubmit,

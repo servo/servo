@@ -59,7 +59,7 @@ use std::default::Default;
 use std::iter::{FilterMap, Peekable};
 use std::mem;
 use style::{mod, ComputedValues};
-use sync::Arc;
+use std::sync::Arc;
 use uuid;
 use string_cache::QualName;
 
@@ -121,6 +121,7 @@ impl NodeDerived for EventTarget {
 bitflags! {
     #[doc = "Flags for node items."]
     #[jstraceable]
+    #[deriving(Copy)]
     flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
@@ -180,6 +181,7 @@ impl Drop for Node {
 /// suppress observers flag
 /// http://dom.spec.whatwg.org/#concept-node-insert
 /// http://dom.spec.whatwg.org/#concept-node-remove
+#[deriving(Copy)]
 enum SuppressObserver {
     Suppressed,
     Unsuppressed
@@ -252,7 +254,7 @@ impl LayoutDataRef {
 }
 
 /// The different types of nodes.
-#[deriving(PartialEq, Show)]
+#[deriving(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum NodeTypeId {
     DocumentType,
@@ -1146,7 +1148,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
 }
 
 /// Specifies whether children must be recursively cloned or not.
-#[deriving(PartialEq)]
+#[deriving(Copy, PartialEq)]
 pub enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren
@@ -2175,7 +2177,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 /// and are also used in the HTML parser interface.
 
 #[allow(raw_pointer_deriving)]
-#[deriving(Clone, PartialEq, Eq)]
+#[deriving(Clone, PartialEq, Eq, Copy)]
 pub struct TrustedNodeAddress(pub *const c_void);
 
 pub fn document_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Document> {
@@ -2284,7 +2286,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
                     .map_or(false, |attr| test(attr.r().value().as_slice()))
             },
             style::NamespaceConstraint::Any => {
-                self.as_element().get_attributes(name).iter()
+                self.as_element().get_attributes(name).into_iter()
                     .map(|attr| attr.root())
                     .any(|attr| test(attr.r().value().as_slice()))
             }
@@ -2357,7 +2359,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
 }
 
 /// A summary of the changes that happened to a node.
-#[deriving(Clone, PartialEq)]
+#[deriving(Copy, Clone, PartialEq)]
 pub enum NodeDamage {
     /// The node's `style` attribute changed.
     NodeStyleDamaged,

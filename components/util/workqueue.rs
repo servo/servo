@@ -15,7 +15,7 @@ use rand::{Rng, XorShiftRng};
 use std::mem;
 use std::rand::weak_rng;
 use std::sync::atomic::{AtomicUint, SeqCst};
-use std::sync::deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
+use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 
 /// A unit of work.
 ///

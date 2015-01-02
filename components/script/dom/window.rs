@@ -114,7 +114,7 @@ pub fn base64_btoa(btoa: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
     //  is greater than U+00FF."
-    if input.chars().any(|c: char| c > '\u00FF') {
+    if input.chars().any(|c: char| c > '\u{FF}') {
         Err(InvalidCharacter)
     } else {
         // "Otherwise, the user agent must convert that argument to a
