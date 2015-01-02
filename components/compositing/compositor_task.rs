@@ -216,6 +216,8 @@ pub enum Msg {
     KeyEvent(Key, KeyModifiers),
     /// Changes the cursor.
     SetCursor(Cursor),
+    /// Informs the compositor that the paint task for the given pipeline has exited.
+    PaintTaskExited(PipelineId),
 }
 
 impl Show for Msg {
@@ -240,6 +242,7 @@ impl Show for Msg {
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),
             Msg::SetCursor(..) => write!(f, "SetCursor"),
+            Msg::PaintTaskExited(..) => write!(f, "PaintTaskExited"),
         }
     }
 }

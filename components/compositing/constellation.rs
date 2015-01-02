@@ -11,11 +11,10 @@ use devtools_traits::DevtoolsControlChan;
 use geom::rect::{Rect, TypedRect};
 use geom::scale_factor::ScaleFactor;
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task;
 use layers::geometry::DevicePixel;
-use layout_traits::{LayoutControlChan, LayoutTaskFactory, ExitNowMsg};
+use layout_traits::LayoutTaskFactory;
 use libc;
-use script_traits::{mod, GetTitleMsg, ResizeMsg, ResizeInactiveMsg, ExitPipelineMsg, SendEventMsg};
+use script_traits::{mod, GetTitleMsg, ResizeMsg, ResizeInactiveMsg, SendEventMsg};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{mod, ConstellationChan, ExitMsg, FailureMsg, Failure};
@@ -23,7 +22,7 @@ use servo_msg::constellation_msg::{FrameRectMsg, GetPipelineTitleMsg};
 use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed, InitLoadUrlMsg};
 use servo_msg::constellation_msg::{KeyEvent, Key, KeyState, KeyModifiers, LoadCompleteMsg};
 use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, NavigateMsg, NavigationType};
-use servo_msg::constellation_msg::{PainterReadyMsg, PipelineId, ResizedWindowMsg};
+use servo_msg::constellation_msg::{PainterReadyMsg, PipelineExitType, PipelineId, ResizedWindowMsg};
 use servo_msg::constellation_msg::{ScriptLoadedURLInIFrameMsg, SetCursorMsg, SubpageId};
 use servo_msg::constellation_msg::{WindowSizeData};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
@@ -515,7 +514,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn handle_exit(&mut self) {
         for (_id, ref pipeline) in self.pipelines.iter() {
-            pipeline.exit();
+            pipeline.exit(PipelineExitType::Complete);
         }
         self.image_cache_task.exit();
         self.resource_task.send(resource_task::Exit);
@@ -547,14 +546,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             Some(pipeline) => pipeline.clone()
         };
 
-        fn force_pipeline_exit(old_pipeline: &Rc<Pipeline>) {
-            let ScriptControlChan(ref old_script) = old_pipeline.script_chan;
-            let _ = old_script.send_opt(ExitPipelineMsg(old_pipeline.id));
-            let _ = old_pipeline.paint_chan.send_opt(paint_task::ExitMsg(None));
-            let LayoutControlChan(ref old_layout) = old_pipeline.layout_chan;
-            let _ = old_layout.send_opt(ExitNowMsg);
-        }
-        force_pipeline_exit(&old_pipeline);
+        old_pipeline.force_exit();
+        self.compositor_proxy.send(CompositorMsg::PaintTaskExited(old_pipeline.id));
         self.pipelines.remove(&pipeline_id);
 
         loop {
@@ -564,7 +557,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             match idx {
                 Some(idx) => {
                     debug!("removing pending frame change for failed pipeline");
-                    force_pipeline_exit(&self.pending_frames[idx].after.pipeline);
+                    self.pending_frames[idx].after.pipeline.force_exit();
+                    self.compositor_proxy.send(CompositorMsg::PaintTaskExited(old_pipeline.id));
                     self.pending_frames.remove(idx);
                 },
                 None => break,
@@ -987,7 +981,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // TODO(tkuehn): should only exit once per unique script task,
         // and then that script task will handle sub-exits
         for frame_tree in frame_tree.iter() {
-            frame_tree.pipeline.exit();
+            frame_tree.pipeline.exit(PipelineExitType::PipelineOnly);
+            self.compositor_proxy.send(CompositorMsg::PaintTaskExited(frame_tree.pipeline.id));
             self.pipelines.remove(&frame_tree.pipeline.id);
         }
     }
