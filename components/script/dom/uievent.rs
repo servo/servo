@@ -53,8 +53,8 @@ impl UIEvent {
                view: Option<JSRef<Window>>,
                detail: i32) -> Temporary<UIEvent> {
         let ev = UIEvent::new_uninitialized(window).root();
-        ev.InitUIEvent(type_, can_bubble, cancelable, view, detail);
-        Temporary::from_rooted(*ev)
+        ev.r().InitUIEvent(type_, can_bubble, cancelable, view, detail);
+        Temporary::from_rooted(ev.r())
     }
 
     pub fn Constructor(global: &GlobalRef,
@@ -62,7 +62,7 @@ impl UIEvent {
                        init: &UIEventBinding::UIEventInit) -> Fallible<Temporary<UIEvent>> {
         let event = UIEvent::new(global.as_window(), type_,
                                  init.parent.bubbles, init.parent.cancelable,
-                                 init.view.root_ref(), init.detail);
+                                 init.view.r(), init.detail);
         Ok(event)
     }
 }

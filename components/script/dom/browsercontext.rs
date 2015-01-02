@@ -39,7 +39,7 @@ impl BrowserContext {
 
     pub fn active_window(&self) -> Temporary<Window> {
         let doc = self.active_document().root();
-        doc.window()
+        doc.r().window()
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
@@ -49,6 +49,7 @@ impl BrowserContext {
 
     fn create_window_proxy(&mut self) {
         let win = self.active_window().root();
+        let win = win.r();
         let page = win.page();
         let js_info = page.js_info();
 

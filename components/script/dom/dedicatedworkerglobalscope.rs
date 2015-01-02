@@ -158,20 +158,20 @@ impl DedicatedWorkerGlobalScope {
                 parent_sender, own_sender, receiver).root();
 
             {
-                let _ar = AutoWorkerReset::new(*global, worker);
+                let _ar = AutoWorkerReset::new(global.r(), worker);
 
                 match js_context.evaluate_script(
-                    global.reflector().get_jsobject(), source, url.serialize(), 1) {
+                    global.r().reflector().get_jsobject(), source, url.serialize(), 1) {
                     Ok(_) => (),
                     Err(_) => println!("evaluate_script failed")
                 }
             }
 
             loop {
-                match global.receiver.recv_opt() {
+                match global.r().receiver.recv_opt() {
                     Ok((linked_worker, msg)) => {
-                        let _ar = AutoWorkerReset::new(*global, linked_worker);
-                        global.handle_event(msg);
+                        let _ar = AutoWorkerReset::new(global.r(), linked_worker);
+                        global.r().handle_event(msg);
                     }
                     Err(_) => break,
                 }

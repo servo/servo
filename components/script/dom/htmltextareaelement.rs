@@ -193,7 +193,7 @@ impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
     fn force_relayout(self) {
         let doc = document_from_node(self).root();
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        doc.content_changed(node, NodeDamage::OtherNodeDamage)
+        doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 }
 
@@ -312,7 +312,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             //TODO: set the editing position for text inputs
 
             let doc = document_from_node(*self).root();
-            doc.request_focus(ElementCast::from_ref(*self));
+            doc.r().request_focus(ElementCast::from_ref(*self));
         } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() {
             let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
             keyevent.map(|event| {

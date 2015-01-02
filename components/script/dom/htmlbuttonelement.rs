@@ -49,7 +49,7 @@ impl HTMLButtonElement {
 impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     fn Validity(self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
-        ValidityState::new(*window)
+        ValidityState::new(window.r())
     }
 
     // http://www.whatwg.org/html/#dom-fe-disabled

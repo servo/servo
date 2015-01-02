@@ -121,13 +121,13 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
         let span: i64 = max(relativeEnd - relativeStart, 0);
         let global = self.global.root();
         match self.bytes {
-            None => Blob::new(&global.root_ref(), None, relativeContentType.as_slice()),
+            None => Blob::new(&global.r(), None, relativeContentType.as_slice()),
             Some(ref vec) => {
                 let start = relativeStart.to_uint().unwrap();
                 let end = (relativeStart + span).to_uint().unwrap();
                 let mut bytes: Vec<u8> = Vec::new();
                 bytes.push_all(vec.slice(start, end));
-                Blob::new(&global.root_ref(), Some(bytes), relativeContentType.as_slice())
+                Blob::new(&global.r(), Some(bytes), relativeContentType.as_slice())
             }
         }
     }

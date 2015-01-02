@@ -78,7 +78,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn Style(self) -> Temporary<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self).root();
-            CSSStyleDeclaration::new(*global, self, CSSModificationAccess::ReadWrite)
+            CSSStyleDeclaration::new(global.r(), self, CSSModificationAccess::ReadWrite)
         })
     }
 
@@ -102,7 +102,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn GetOnload(self) -> Option<EventHandlerNonNull> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();
-            win.GetOnload()
+            win.r().GetOnload()
         } else {
             let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
             target.get_event_handler_common("load")
@@ -112,7 +112,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn SetOnload(self, listener: Option<EventHandlerNonNull>) {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();
-            win.SetOnload(listener)
+            win.r().SetOnload(listener)
         } else {
             let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
             target.set_event_handler_common("load", listener)
@@ -167,7 +167,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(ns!(""), &Atom::from_slice(to_snake_case(name).as_slice())).map(|attr| {
             let attr = attr.root();
-            attr.value().as_slice().into_string()
+            attr.r().value().as_slice().into_string()
         })
     }
 
@@ -192,9 +192,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
         let name = attr.local_name().as_slice();
         if name.starts_with("on") {
             let window = window_from_node(*self).root();
-            let (cx, url, reflector) = (window.get_cx(),
-                                        window.get_url(),
-                                        window.reflector().get_jsobject());
+            let (cx, url, reflector) = (window.r().get_cx(),
+                                        window.r().get_url(),
+                                        window.r().reflector().get_jsobject());
             let evtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.slice_from(2),

@@ -85,13 +85,13 @@ trait PrivateCSSStyleDeclarationHelpers {
 impl<'a> PrivateCSSStyleDeclarationHelpers for JSRef<'a, CSSStyleDeclaration> {
     fn get_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
         let owner = self.owner.root();
-        let element: JSRef<Element> = ElementCast::from_ref(*owner);
+        let element: JSRef<Element> = ElementCast::from_ref(owner.r());
         element.get_inline_style_declaration(property).map(|decl| decl.clone())
     }
 
     fn get_important_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
         let owner = self.owner.root();
-        let element: JSRef<Element> = ElementCast::from_ref(*owner);
+        let element: JSRef<Element> = ElementCast::from_ref(owner.r());
         element.get_important_inline_style_declaration(property).map(|decl| decl.clone())
     }
 }
@@ -99,7 +99,7 @@ impl<'a> PrivateCSSStyleDeclarationHelpers for JSRef<'a, CSSStyleDeclaration> {
 impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
     fn Length(self) -> u32 {
         let owner = self.owner.root();
-        let elem: JSRef<Element> = ElementCast::from_ref(*owner);
+        let elem: JSRef<Element> = ElementCast::from_ref(owner.r());
         let len = match *elem.style_attribute().borrow() {
             Some(ref declarations) => declarations.normal.len() + declarations.important.len(),
             None => 0
@@ -109,7 +109,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
     fn Item(self, index: u32) -> DOMString {
         let owner = self.owner.root();
-        let elem: JSRef<Element> = ElementCast::from_ref(*owner);
+        let elem: JSRef<Element> = ElementCast::from_ref(owner.r());
         let style_attribute = elem.style_attribute().borrow();
         let result = style_attribute.as_ref().and_then(|declarations| {
             if index as uint > declarations.normal.len() {
@@ -218,7 +218,8 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         synthesized_declaration.push_str(value.as_slice());
 
         let owner = self.owner.root();
-        let window = window_from_node(*owner).root();
+        let window = window_from_node(owner.r()).root();
+        let window = window.r();
         let page = window.page();
         let decl_block = parse_style_attribute(synthesized_declaration.as_slice(),
                                                &page.get_url());
@@ -229,7 +230,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         let owner = self.owner.root();
-        let element: JSRef<Element> = ElementCast::from_ref(*owner);
+        let element: JSRef<Element> = ElementCast::from_ref(owner.r());
 
         // Step 8
         for decl in decl_block.normal.iter() {
@@ -240,7 +241,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
         let document = document_from_node(element).root();
         let node: JSRef<Node> = NodeCast::from_ref(element);
-        document.content_changed(node, NodeDamage::NodeStyleDamaged);
+        document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 
@@ -266,11 +267,12 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         let owner = self.owner.root();
-        let window = window_from_node(*owner).root();
+        let window = window_from_node(owner.r()).root();
+        let window = window.r();
         let page = window.page();
         let decl_block = parse_style_attribute(property.as_slice(),
                                                &page.get_url());
-        let element: JSRef<Element> = ElementCast::from_ref(*owner);
+        let element: JSRef<Element> = ElementCast::from_ref(owner.r());
 
         // Step 5
         for decl in decl_block.normal.iter() {
@@ -281,7 +283,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
         let document = document_from_node(element).root();
         let node: JSRef<Node> = NodeCast::from_ref(element);
-        document.content_changed(node, NodeDamage::NodeStyleDamaged);
+        document.r().content_changed(node, NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 
@@ -315,7 +317,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
             None => {
                 // Step 5
                 let owner = self.owner.root();
-                let elem: JSRef<Element> = ElementCast::from_ref(*owner);
+                let elem: JSRef<Element> = ElementCast::from_ref(owner.r());
                 elem.remove_inline_style_property(property)
             }
         }

@@ -58,9 +58,9 @@ impl MessageEvent {
                data: JSVal, origin: DOMString, lastEventId: DOMString)
                -> Temporary<MessageEvent> {
         let ev = MessageEvent::new_initialized(global, data, origin, lastEventId).root();
-        let event: JSRef<Event> = EventCast::from_ref(*ev);
+        let event: JSRef<Event> = EventCast::from_ref(ev.r());
         event.InitEvent(type_, bubbles, cancelable);
-        Temporary::from_rooted(*ev)
+        Temporary::from_rooted(ev.r())
     }
 
     pub fn Constructor(global: &GlobalRef,
@@ -80,7 +80,7 @@ impl MessageEvent {
         let messageevent = MessageEvent::new(
             scope, "message".into_string(), false, false, message,
             "".into_string(), "".into_string()).root();
-        let event: JSRef<Event> = EventCast::from_ref(*messageevent);
+        let event: JSRef<Event> = EventCast::from_ref(messageevent.r());
         target.dispatch_event(event);
     }
 }

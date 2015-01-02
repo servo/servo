@@ -74,7 +74,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         if is_in_doc {
             let document = node.owner_doc().root();
-            document.send_title_to_compositor()
+            document.r().send_title_to_compositor()
         }
     }
 }

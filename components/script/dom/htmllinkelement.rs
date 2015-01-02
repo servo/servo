@@ -53,7 +53,7 @@ impl HTMLLinkElement {
 
 fn get_attr(element: JSRef<Element>, name: &Atom) -> Option<String> {
     let elem = element.get_attribute(ns!(""), name).root();
-    elem.map(|e| e.value().as_slice().into_string())
+    elem.map(|e| e.r().value().as_slice().into_string())
 }
 
 fn is_stylesheet(value: &Option<String>) -> bool {
@@ -127,6 +127,7 @@ trait PrivateHTMLLinkElementHelpers {
 impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
     fn handle_stylesheet_url(self, href: &str) {
         let window = window_from_node(self).root();
+        let window = window.r();
         match UrlParser::new().base_url(&window.page().get_url()).parse(href) {
             Ok(url) => {
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;

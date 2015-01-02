@@ -100,8 +100,8 @@ impl Event {
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Temporary<Event> {
         let event = Event::new_uninitialized(global).root();
-        event.InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
-        Temporary::from_rooted(*event)
+        event.r().InitEvent(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+        Temporary::from_rooted(event.r())
     }
 
     pub fn Constructor(global: &GlobalRef,

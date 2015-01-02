@@ -156,7 +156,7 @@ class Descriptor(DescriptorProvider):
             self.needsRooting = True
             self.returnType = "Temporary<%s>" % ifaceName
             self.argumentType = "JSRef<%s>" % ifaceName
-            self.memberType = "Root<'a, 'b, %s>" % ifaceName
+            self.memberType = "Root<%s>" % ifaceName
             self.nativeType = "JS<%s>" % ifaceName
 
         self.concreteType = ifaceName

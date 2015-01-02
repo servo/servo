@@ -52,7 +52,7 @@ impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let filter = box HTMLDataListOptionsFilter;
         let window = window_from_node(node).root();
-        HTMLCollection::create(*window, node, filter)
+        HTMLCollection::create(window.r(), node, filter)
     }
 }
 

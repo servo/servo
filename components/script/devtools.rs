@@ -25,8 +25,8 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
     let page = get_page(&*page, pipeline);
     let frame = page.frame();
     let window = frame.as_ref().unwrap().window.root();
-    let cx = window.get_cx();
-    let rval = window.evaluate_js_with_result(eval.as_slice());
+    let cx = window.r().get_cx();
+    let rval = window.r().evaluate_js_with_result(eval.as_slice());
 
     reply.send(if rval.is_undefined() {
         devtools_traits::VoidValue
@@ -51,7 +51,7 @@ pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: Sender
     let frame = page.frame();
     let document = frame.as_ref().unwrap().document.root();
 
-    let node: JSRef<Node> = NodeCast::from_ref(*document);
+    let node: JSRef<Node> = NodeCast::from_ref(document.r());
     reply.send(node.summarize());
 }
 
@@ -59,9 +59,9 @@ pub fn handle_get_document_element(page: &Rc<Page>, pipeline: PipelineId, reply:
     let page = get_page(&*page, pipeline);
     let frame = page.frame();
     let document = frame.as_ref().unwrap().document.root();
-    let document_element = document.GetDocumentElement().root().unwrap();
+    let document_element = document.r().GetDocumentElement().root().unwrap();
 
-    let node: JSRef<Node> = NodeCast::from_ref(*document_element);
+    let node: JSRef<Node> = NodeCast::from_ref(document_element.r());
     reply.send(node.summarize());
 }
 
@@ -69,7 +69,7 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     let page = get_page(&*page, pipeline);
     let frame = page.frame();
     let document = frame.as_ref().unwrap().document.root();
-    let node: JSRef<Node> = NodeCast::from_ref(*document);
+    let node: JSRef<Node> = NodeCast::from_ref(document.r());
 
     for candidate in node.traverse_preorder() {
         if candidate.get_unique_id().as_slice() == node_id.as_slice() {
@@ -82,20 +82,20 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
 
 pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {
     let parent = find_node_by_unique_id(&*page, pipeline, node_id).root();
-    let children = parent.children().map(|child| child.summarize()).collect();
+    let children = parent.r().children().map(|child| child.summarize()).collect();
     reply.send(children);
 }
 
 pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<(f32, f32)>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id).root();
-    let elem: JSRef<Element> = ElementCast::to_ref(*node).expect("should be getting layout of element");
+    let elem: JSRef<Element> = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect().root();
-    reply.send((rect.Width(), rect.Height()));
+    reply.send((rect.r().Width(), rect.r().Height()));
 }
 
 pub fn handle_modify_attribute(page: &Rc<Page>, pipeline: PipelineId, node_id: String, modifications: Vec<Modification>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id).root();
-    let elem: JSRef<Element> = ElementCast::to_ref(*node).expect("should be getting layout of element");
+    let elem: JSRef<Element> = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
 
     for modification in modifications.iter(){
         match modification.newValue {

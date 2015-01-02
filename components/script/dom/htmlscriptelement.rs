@@ -170,16 +170,17 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // TODO: Add support for the `defer` and `async` attributes.  (For now, we fetch all
         // scripts synchronously and execute them immediately.)
         let window = window_from_node(self).root();
+        let window = window.r();
         let page = window.page();
         let base_url = page.get_url();
 
         let (source, url) = match element.get_attribute(ns!(""), &atom!("src")).root() {
             Some(src) => {
-                if src.deref().Value().is_empty() {
+                if src.r().Value().is_empty() {
                     // TODO: queue a task to fire a simple event named `error` at the element
                     return;
                 }
-                match UrlParser::new().base_url(&base_url).parse(src.deref().Value().as_slice()) {
+                match UrlParser::new().base_url(&base_url).parse(src.r().Value().as_slice()) {
                     Ok(url) => {
                         // TODO: Do a potentially CORS-enabled fetch with the mode being the current
                         // state of the element's `crossorigin` content attribute, the origin being
@@ -192,14 +193,14 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                                 (source, metadata.final_url)
                             }
                             Err(_) => {
-                                error!("error loading script {}", src.deref().Value());
+                                error!("error loading script {}", src.r().Value());
                                 return;
                             }
                         }
                     }
                     Err(_) => {
                         // TODO: queue a task to fire a simple event named `error` at the element
-                        error!("error parsing URL for script {}", src.deref().Value());
+                        error!("error parsing URL for script {}", src.r().Value());
                         return;
                     }
                 }
@@ -209,18 +210,18 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
 
         window.evaluate_script_with_result(source.as_slice(), url.serialize().as_slice());
 
-        let event = Event::new(GlobalRef::Window(*window),
+        let event = Event::new(GlobalRef::Window(window),
                                "load".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
-        event.set_trusted(true);
+        event.r().set_trusted(true);
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.dispatch_event(*event);
+        target.dispatch_event(event.r());
     }
 
     fn is_javascript(self) -> bool {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        match element.get_attribute(ns!(""), &atom!("type")).root().map(|s| s.Value()) {
+        match element.get_attribute(ns!(""), &atom!("type")).root().map(|s| s.r().Value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
                 debug!("script type empty, inferring js");
@@ -234,7 +235,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                 debug!("no script type");
                 match element.get_attribute(ns!(""), &atom!("language"))
                              .root()
-                             .map(|s| s.Value()) {
+                             .map(|s| s.r().Value()) {
                     Some(ref s) if s.is_empty() => {
                         debug!("script language empty, inferring js");
                         true
