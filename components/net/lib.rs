@@ -16,7 +16,6 @@ extern crate log;
 extern crate serialize;
 extern crate "util" as servo_util;
 extern crate stb_image;
-extern crate sync;
 extern crate time;
 extern crate url;
 
