@@ -514,7 +514,10 @@ impl<T: Reflectable> Root<T> {
     /// Obtain a safe reference to the wrapped JS owned-value that cannot outlive
     /// the lifetime of this root.
     pub fn r<'b>(&'b self) -> JSRef<'b, T> {
-        self.jsref.clone()
+        JSRef {
+            ptr: self.jsref.ptr,
+            chain: ContravariantLifetime,
+        }
     }
 }
 
