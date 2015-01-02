@@ -3,15 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorProxy;
-use layout_traits::{LayoutTaskFactory, LayoutControlChan};
+use layout_traits::{ExitNowMsg, LayoutTaskFactory, LayoutControlChan};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
 
 use devtools_traits::DevtoolsControlChan;
+use gfx::paint_task;
 use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::paint_task::{PaintChan, PaintTask};
-use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
-use servo_msg::constellation_msg::{LoadData, WindowSizeData};
+use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, Failure, PipelineId, SubpageId};
+use servo_msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use servo_net::image_cache_task::ImageCacheTask;
 use gfx::font_cache_task::FontCacheTask;
 use servo_net::resource_task::ResourceTask;
@@ -173,18 +174,27 @@ impl Pipeline {
         let _ = self.paint_chan.send_opt(PaintPermissionRevoked);
     }
 
-    pub fn exit(&self) {
+    pub fn exit(&self, exit_type: PipelineExitType) {
         debug!("pipeline {} exiting", self.id);
 
         // Script task handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script task has failed, we give up on clean shutdown.
         let ScriptControlChan(ref chan) = self.script_chan;
-        if chan.send_opt(ExitPipelineMsg(self.id)).is_ok() {
+        if chan.send_opt(ExitPipelineMsg(self.id, exit_type)).is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
             let _ = self.paint_shutdown_port.recv_opt();
             let _ = self.layout_shutdown_port.recv_opt();
         }
+
+    }
+
+    pub fn force_exit(&self) {
+        let ScriptControlChan(ref script_channel) = self.script_chan;
+        let _ = script_channel.send_opt( ExitPipelineMsg(self.id, PipelineExitType::PipelineOnly));
+        let _ = self.paint_chan.send_opt(paint_task::ExitMsg(None, PipelineExitType::PipelineOnly));
+        let LayoutControlChan(ref layout_channel) = self.layout_chan;
+        let _ = layout_channel.send_opt(ExitNowMsg(PipelineExitType::PipelineOnly));
     }
 
     pub fn to_sendable(&self) -> CompositionPipeline {

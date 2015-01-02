@@ -253,3 +253,10 @@ pub struct PipelineId(pub uint);
 
 #[deriving(Clone, PartialEq, Eq, Hash, Show)]
 pub struct SubpageId(pub uint);
+
+// The type of pipeline exit. During complete shutdowns, pipelines do not have to
+// release resources automatically released on process termination.
+pub enum PipelineExitType {
+    PipelineOnly,
+    Complete,
+}

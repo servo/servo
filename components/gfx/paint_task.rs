@@ -23,8 +23,8 @@ use layers;
 use native::task::NativeTaskBuilder;
 use servo_msg::compositor_msg::{Epoch, IdlePaintState, LayerId};
 use servo_msg::compositor_msg::{LayerMetadata, PaintListener, PaintingPaintState, ScrollPolicy};
-use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineId};
-use servo_msg::constellation_msg::{PainterReadyMsg};
+use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineExitType};
+use servo_msg::constellation_msg::{PipelineId, PainterReadyMsg};
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
 use servo_util::geometry::{Au, ZERO_POINT};
 use servo_util::opts;
@@ -73,7 +73,7 @@ pub enum Msg {
     UnusedBufferMsg(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
-    ExitMsg(Option<Sender<()>>),
+    ExitMsg(Option<Sender<()>>, PipelineExitType),
 }
 
 #[deriving(Clone)]
@@ -122,6 +122,10 @@ pub struct PaintTask<C> {
 
     /// Communication handles to each of the worker threads.
     worker_threads: Vec<WorkerThreadProxy>,
+
+    /// Tracks the number of buffers that the compositor currently owns. The
+    /// PaintTask waits to exit until all buffers are returned.
+    used_buffer_count: uint,
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing
@@ -201,6 +205,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     epoch: Epoch(0),
                     buffer_map: BufferMap::new(10000000),
                     worker_threads: worker_threads,
+                    used_buffer_count: 0,
                 };
 
                 paint_task.start();
@@ -223,8 +228,10 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
     }
 
     fn start(&mut self) {
-        debug!("paint_task: beginning painting loop");
+        debug!("PaintTask: beginning painting loop");
 
+        let mut exit_response_channel : Option<Sender<()>> = None;
+        let mut waiting_for_compositor_buffers_to_exit = false;
         loop {
             match self.port.recv() {
                 Msg::PaintInitMsg(stacking_context) => {
@@ -232,7 +239,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     self.root_stacking_context = Some(stacking_context.clone());
 
                     if !self.paint_permission {
-                        debug!("paint_task: paint ready msg");
+                        debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(PainterReadyMsg(self.id));
                         continue;
@@ -245,7 +252,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                 }
                 Msg::PaintMsg(requests) => {
                     if !self.paint_permission {
-                        debug!("paint_task: paint ready msg");
+                        debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
                         c.send(PainterReadyMsg(self.id));
                         self.compositor.paint_msg_discarded();
@@ -265,12 +272,26 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
 
                     self.compositor.set_paint_state(self.id, IdlePaintState);
 
-                    debug!("paint_task: returning surfaces");
+                    for reply in replies.iter() {
+                        let &(_, ref buffer_set) = reply;
+                        self.used_buffer_count += (*buffer_set).buffers.len();
+                    }
+
+                    debug!("PaintTask: returning surfaces");
                     self.compositor.paint(self.id, self.epoch, replies);
                 }
                 Msg::UnusedBufferMsg(unused_buffers) => {
+                    debug!("PaintTask: Received {} unused buffers", unused_buffers.len());
+                    self.used_buffer_count -= unused_buffers.len();
+
                     for buffer in unused_buffers.into_iter().rev() {
                         self.buffer_map.insert(native_graphics_context!(self), buffer);
+                    }
+
+                    if waiting_for_compositor_buffers_to_exit && self.used_buffer_count == 0 {
+                        debug!("PaintTask: Received all loaned buffers, exiting.");
+                        exit_response_channel.map(|channel| channel.send(()));
+                        break;
                     }
                 }
                 Msg::PaintPermissionGranted => {
@@ -290,10 +311,24 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                 Msg::PaintPermissionRevoked => {
                     self.paint_permission = false;
                 }
-                Msg::ExitMsg(response_ch) => {
-                    debug!("paint_task: exitmsg response send");
-                    response_ch.map(|ch| ch.send(()));
-                    break;
+                Msg::ExitMsg(response_channel, exit_type) => {
+                    let should_wait_for_compositor_buffers = match exit_type {
+                        PipelineExitType::Complete => false,
+                        PipelineExitType::PipelineOnly => self.used_buffer_count != 0
+                    };
+
+                    if !should_wait_for_compositor_buffers {
+                        debug!("PaintTask: Exiting without waiting for compositor buffers.");
+                        response_channel.map(|channel| channel.send(()));
+                        break;
+                    }
+
+                    // If we own buffers in the compositor and we are not exiting completely, wait
+                    // for the compositor to return buffers, so that we can release them properly.
+                    // When doing a complete exit, the compositor lets all buffers leak.
+                    println!("PaintTask: Saw ExitMsg, {} buffers in use", self.used_buffer_count);
+                    waiting_for_compositor_buffers_to_exit = true;
+                    exit_response_channel = response_channel;
                 }
             }
         }
