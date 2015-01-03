@@ -112,6 +112,11 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-javascript",
 ];
 
+enum ScriptOrigin {
+    Internal,
+    External,
+}
+
 impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
     fn prepare(self) {
         // https://html.spec.whatwg.org/multipage/scripting.html#prepare-a-script
@@ -175,7 +180,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         let page = window.page();
         let base_url = page.get_url();
 
-        let (source, url) = match element.get_attribute(ns!(""), &atom!("src")).root() {
+        let (origin, source, url) = match element.get_attribute(ns!(""), &atom!("src")).root() {
             Some(src) => {
                 if src.r().Value().is_empty() {
                     // TODO: queue a task to fire a simple event named `error` at the element
@@ -191,7 +196,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                             Ok((metadata, bytes)) => {
                                 // TODO: use the charset from step 13.
                                 let source = UTF_8.decode(bytes.as_slice(), DecoderTrap::Replace).unwrap();
-                                (source, metadata.final_url)
+                                (ScriptOrigin::External, source, metadata.final_url)
                             }
                             Err(_) => {
                                 error!("error loading script {}", src.r().Value());
@@ -206,7 +211,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                     }
                 }
             }
-            None => (text, base_url)
+            None => (ScriptOrigin::Internal, text, base_url)
         };
 
         window.evaluate_script_on_global_with_result(source.as_slice(), url.serialize().as_slice());
