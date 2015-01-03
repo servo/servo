@@ -5,9 +5,6 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
 #![allow(non_snake_case)]
 
 #![feature(phase)]
