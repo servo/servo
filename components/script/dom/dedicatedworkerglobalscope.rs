@@ -5,6 +5,7 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
+use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
@@ -14,12 +15,15 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::utils::Reflectable;
+use dom::errorevent::ErrorEvent;
+use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use dom::worker::{Worker, TrustedWorkerAddress};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
+use script_task::ScriptMsg::WorkerDispatchErrorEvent;
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
@@ -35,12 +39,15 @@ use js::rust::Cx;
 use std::rc::Rc;
 use std::ptr;
 use url::Url;
+use servo_util::str::DOMString;
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// every message. While this SendableWorkerScriptChan is alive, the associated Worker object
 /// will remain alive.
 #[deriving(Clone)]
 #[jstraceable]
+#[must_root]
+#[privatize]
 pub struct SendableWorkerScriptChan {
     sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
     worker: TrustedWorkerAddress,
@@ -163,7 +170,7 @@ impl DedicatedWorkerGlobalScope {
                 match js_context.evaluate_script(
                     global.reflector().get_jsobject(), source, url.serialize(), 1) {
                     Ok(_) => (),
-                    Err(_) => println!("evaluate_script failed")
+    		    Err(_) => println!("evaluate_script failed")
                 }
             }
 
@@ -172,7 +179,7 @@ impl DedicatedWorkerGlobalScope {
                     Ok((linked_worker, msg)) => {
                         let _ar = AutoWorkerReset::new(*global, linked_worker);
                         global.handle_event(msg);
-                    }
+                    },
                     Err(_) => break,
                 }
             }
@@ -195,6 +202,7 @@ impl<'a> DedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalSc
 
 trait PrivateDedicatedWorkerGlobalScopeHelpers {
     fn handle_event(self, msg: ScriptMsg);
+    fn dispatch_error_to_worker(self, type_: DOMString, JSRef<ErrorEvent>);
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
@@ -219,6 +227,9 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
             ScriptMsg::WorkerPostMessage(addr, data, nbytes) => {
                 Worker::handle_message(addr, data, nbytes);
             },
+            ScriptMsg::WorkerDispatchErrorEvent(addr, type_, bubbles, cancelable, msg, file_name, line_num, col_num) => {
+                        Worker::handle_error_message(addr, type_,bubbles, cancelable, msg, file_name, line_num, col_num);
+            },
             ScriptMsg::RefcountCleanup(addr) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 LiveDOMReferences::cleanup(scope.get_cx(), addr);
@@ -229,6 +240,14 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
             }
             _ => panic!("Unexpected message"),
         }
+    }
+    fn dispatch_error_to_worker(self, type_: DOMString, errorevent: JSRef<ErrorEvent>) {
+        let msg = errorevent.Message();
+        let file_name = errorevent.Filename();
+        let line_num = errorevent.Lineno();
+        let col_num = errorevent.Colno();
+        let worker = self.worker.borrow().as_ref().unwrap().clone();
+        self.parent_sender.send(ScriptMsg::WorkerDispatchErrorEvent(worker, type_,EventBubbles::Bubbles, EventCancelable::Cancelable, msg, file_name, line_num, col_num));
     }
 }
 

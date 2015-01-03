@@ -55,6 +55,7 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{ResourceTask, Load};
 use servo_net::resource_task::LoadData as NetLoadData;
 use servo_net::storage_task::StorageTask;
+use servo_util::str::DOMString;
 use servo_util::geometry::to_frac_px;
 use servo_util::smallvec::SmallVec;
 use servo_util::task::spawn_named_with_send_on_failure;
@@ -116,6 +117,8 @@ pub enum ScriptMsg {
     DOMMessage(*mut u64, size_t),
     /// Posts a message to the Worker object (dispatched to all tasks).
     WorkerPostMessage(TrustedWorkerAddress, *mut u64, size_t),
+    /// Sends a message to the Worker object (dispatched to all tasks) regarding error.
+    WorkerDispatchErrorEvent(TrustedWorkerAddress, DOMString, EventBubbles, EventCancelable, DOMString, DOMString, u32, u32),
     /// Generic message that encapsulates event handling.
     RunnableMsg(Box<Runnable+Send>),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
@@ -470,6 +473,7 @@ impl ScriptTask {
             FromConstellation(ConstellationControlMsg),
             FromScript(ScriptMsg),
             FromDevtools(DevtoolScriptControlMsg),
+                
         }
 
         // Store new resizes, and gather all other events.
@@ -550,6 +554,8 @@ impl ScriptTask {
                 MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                 MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                 MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
+                //MixedMessage::FromScript(inner_msg) => Worker::handle_msg_from_script(inner_msg),
+                
             }
         }
 
@@ -596,6 +602,8 @@ impl ScriptTask {
                 self.handle_exit_window_msg(id),
             ScriptMsg::DOMMessage(..) =>
                 panic!("unexpected message"),
+	    ScriptMsg::WorkerDispatchErrorEvent(addr, type_, bubbles, cancelable, msg, file_name,line_num, col_num) =>
+                    Worker::handle_error_message(addr, type_,bubbles, cancelable, msg, file_name, line_num, col_num),
             ScriptMsg::WorkerPostMessage(addr, data, nbytes) =>
                 Worker::handle_message(addr, data, nbytes),
             ScriptMsg::RunnableMsg(runnable) =>
@@ -850,7 +858,7 @@ impl ScriptTask {
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {}", final_url);
         document.content_changed(NodeCast::from_ref(*document),
-                                 NodeDamage::OtherNodeDamage);
+                                     NodeDamage::OtherNodeDamage);
         window.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
 
         {
@@ -945,7 +953,8 @@ impl ScriptTask {
                     let page = get_page(&*self.page.borrow(), pipeline_id);
                     let frame = page.frame();
                     let document = frame.as_ref().unwrap().document.root();
-                    document.content_changed(*node_to_dirty, NodeDamage::OtherNodeDamage);
+                    document.content_changed(*node_to_dirty,
+                                                 NodeDamage::OtherNodeDamage);
                 }
 
                 self.handle_reflow_event(pipeline_id);
@@ -999,7 +1008,8 @@ impl ScriptTask {
 
         let props = KeyboardEvent::key_properties(key, modifiers);
 
-        let keyevent = KeyboardEvent::new(*window, ev_type, true, true, Some(*window), 0,
+        let keyevent = KeyboardEvent::new(*window, ev_type, true, true,
+                                          Some(*window), 0,
                                           props.key.into_string(), props.code.into_string(),
                                           props.location, is_repeating, is_composing,
                                           ctrl, alt, shift, meta,
@@ -1011,7 +1021,8 @@ impl ScriptTask {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
         if state != KeyState::Released && props.is_printable() && !prevented {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
-            let event = KeyboardEvent::new(*window, "keypress".into_string(), true, true, Some(*window),
+            let event = KeyboardEvent::new(*window, "keypress".into_string(),
+                                           true, true, Some(*window),
                                            0, props.key.into_string(), props.code.into_string(),
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,

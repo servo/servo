@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::errorevent::ErrorEvent;
+use dom::bindings::codegen::InheritTypes::EventCast;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
@@ -96,6 +99,17 @@ impl Worker {
 
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
         MessageEvent::dispatch_jsval(target, global.root_ref(), message);
+    }
+    pub fn handle_error_message(address: TrustedWorkerAddress, type_: DOMString, can_bubble: EventBubbles, cancelable: EventCancelable,
+                               message: DOMString,filename: DOMString, lineno: u32, colno: u32) {
+        let worker = address.to_temporary().root();
+        let global = worker.global.root();
+        let global_ref = global.root_ref();
+        let error = UndefinedValue();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(*worker);
+        let errorevent = ErrorEvent::new(&global_ref, type_, can_bubble, cancelable, message, filename, lineno, colno, error).root();
+        let event: JSRef<Event> = EventCast::from_ref(*errorevent);
+        target.dispatch_event_with_target(target, event);
     }
 }
 
