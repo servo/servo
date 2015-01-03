@@ -111,6 +111,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::ChangePageLoadData(..) |
             Msg::KeyEvent(..) |
             Msg::SetCursor(..) => {}
+            Msg::PaintTaskExited(..) => {}
         }
         true
     }

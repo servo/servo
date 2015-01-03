@@ -50,6 +50,7 @@ use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, NavigationDirection, Pi
 use servo_msg::constellation_msg::{Failure, FailureMsg, WindowSizeData, Key, KeyState};
 use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed};
 use servo_msg::constellation_msg::{Released};
+use servo_msg::constellation_msg::{PipelineExitType};
 use servo_msg::constellation_msg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{ResourceTask, Load};
@@ -545,8 +546,11 @@ impl ScriptTask {
         // Process the gathered events.
         for msg in sequential.into_iter() {
             match msg {
-                MixedMessage::FromConstellation(ExitPipelineMsg(id)) =>
-                    if self.handle_exit_pipeline_msg(id) { return false },
+                MixedMessage::FromConstellation(ExitPipelineMsg(id, exit_type)) => {
+                    if self.handle_exit_pipeline_msg(id, exit_type) {
+                        return false
+                    }
+                },
                 MixedMessage::FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                 MixedMessage::FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                 MixedMessage::FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
@@ -713,20 +717,20 @@ impl ScriptTask {
 
     /// Handles a request to exit the script task and shut down layout.
     /// Returns true if the script task should shut down and false otherwise.
-    fn handle_exit_pipeline_msg(&self, id: PipelineId) -> bool {
+    fn handle_exit_pipeline_msg(&self, id: PipelineId, exit_type: PipelineExitType) -> bool {
         // If root is being exited, shut down all pages
         let page = self.page.borrow_mut();
         if page.id == id {
             debug!("shutting down layout for root page {}", id);
             *self.js_context.borrow_mut() = None;
-            shut_down_layout(&*page, (*self.js_runtime).ptr);
+            shut_down_layout(&*page, (*self.js_runtime).ptr, exit_type);
             return true
         }
 
         // otherwise find just the matching page and exit all sub-pages
         match page.remove(id) {
             Some(ref mut page) => {
-                shut_down_layout(&*page, (*self.js_runtime).ptr);
+                shut_down_layout(&*page, (*self.js_runtime).ptr, exit_type);
                 false
             }
             // TODO(tkuehn): pipeline closing is currently duplicated across
@@ -1261,7 +1265,7 @@ impl ScriptTask {
 }
 
 /// Shuts down layout for the given page tree.
-fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime) {
+fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime, exit_type: PipelineExitType) {
     for page in page_tree.iter() {
         // Tell the layout task to begin shutting down, and wait until it
         // processed this message.
@@ -1290,7 +1294,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime) {
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
     for page in page_tree.iter() {
         let LayoutChan(ref chan) = page.layout_chan;
-        chan.send(layout_interface::Msg::ExitNow);
+        chan.send(layout_interface::Msg::ExitNow(exit_type));
     }
 }
 

@@ -129,6 +129,9 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// Pending scroll events.
     pending_scroll_events: Vec<ScrollEvent>,
+
+    /// PaintTask channels that we know about, used to return unused buffers.
+    paint_channels: HashMap<PipelineId, PaintChan>,
 }
 
 pub struct ScrollEvent {
@@ -198,6 +201,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             fragment_point: None,
             outstanding_paint_msgs: 0,
             last_composite_time: 0,
+            paint_channels: HashMap::new(),
         }
     }
 
@@ -341,6 +345,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.set_cursor(cursor)
             }
 
+            (Msg::PaintTaskExited(pipeline_id), ShutdownState::NotShuttingDown) => {
+                if self.paint_channels.remove(&pipeline_id).is_none() {
+                    panic!("Saw PaintTaskExited message from an unknown pipeline!");
+                }
+            }
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
@@ -456,6 +466,38 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.composite_if_necessary();
     }
 
+    fn create_root_layer_for_pipeline_and_rect(&mut self,
+                                               pipeline: &CompositionPipeline,
+                                               frame_rect: Option<TypedRect<PagePx, f32>>)
+                                               -> Rc<Layer<CompositorData>> {
+        let layer_properties = LayerProperties {
+            pipeline_id: pipeline.id,
+            epoch: Epoch(0),
+            id: LayerId::null(),
+            rect: Rect::zero(),
+            background_color: azure_hl::Color::new(0., 0., 0., 0.),
+            scroll_policy: Scrollable,
+        };
+
+        let root_layer = CompositorData::new_layer(pipeline.clone(),
+                                                   layer_properties,
+                                                   WantsScrollEventsFlag::WantsScrollEvents,
+                                                   opts::get().tile_size);
+        if !self.paint_channels.contains_key(&pipeline.id) {
+            self.paint_channels.insert(pipeline.id, pipeline.paint_chan.clone());
+        }
+
+        // All root layers mask to bounds.
+        *root_layer.masks_to_bounds.borrow_mut() = true;
+
+        if let Some(ref frame_rect) = frame_rect {
+            let frame_rect = frame_rect.to_untyped();
+            *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
+        }
+
+        return root_layer;
+    }
+
     fn create_frame_tree_root_layers(&mut self,
                                      frame_tree: &SendableFrameTree,
                                      frame_rect: Option<TypedRect<PagePx, f32>>)
@@ -464,7 +506,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.ready_states.insert(frame_tree.pipeline.id, Blank);
         self.paint_states.insert(frame_tree.pipeline.id, PaintingPaintState);
 
-        let root_layer = create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline, frame_rect);
+        let root_layer = self.create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline,
+                                                                      frame_rect);
         for kid in frame_tree.children.iter() {
             root_layer.add_child(self.create_frame_tree_root_layers(&kid.frame_tree, kid.rect));
         }
@@ -474,8 +517,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn update_frame_tree(&mut self, frame_tree_diff: &FrameTreeDiff) {
         let parent_layer = self.find_pipeline_root_layer(frame_tree_diff.parent_pipeline.id);
         parent_layer.add_child(
-            create_root_layer_for_pipeline_and_rect(&frame_tree_diff.pipeline,
-                                                    frame_tree_diff.rect));
+            self.create_root_layer_for_pipeline_and_rect(&frame_tree_diff.pipeline,
+                                                         frame_tree_diff.rect));
     }
 
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Rc<Layer<CompositorData>> {
@@ -614,6 +657,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
              layer_id: LayerId,
              new_layer_buffer_set: Box<LayerBufferSet>,
              epoch: Epoch) {
+        match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
+            Some(layer) => self.paint_to_layer(layer, new_layer_buffer_set, epoch),
+            None => {
+                match self.paint_channels.entry(pipeline_id) {
+                    Occupied(entry) => {
+                        let message = UnusedBufferMsg(new_layer_buffer_set.buffers);
+                        let _ = entry.get().send_opt(message);
+                    },
+                    Vacant(_) => panic!("Received a buffer from an unknown pipeline!"),
+                }
+            }
+        }
+    }
+
+    fn paint_to_layer(&mut self,
+                      layer: Rc<Layer<CompositorData>>,
+                      new_layer_buffer_set: Box<LayerBufferSet>,
+                      epoch: Epoch) {
         debug!("compositor received new frame at size {}x{}",
                self.window_size.width.get(),
                self.window_size.height.get());
@@ -622,20 +683,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut new_layer_buffer_set = new_layer_buffer_set;
         new_layer_buffer_set.mark_will_leak();
 
-        match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
-            Some(ref layer) => {
-                // FIXME(pcwalton): This is going to cause problems with inconsistent frames since
-                // we only composite one layer at a time.
-                assert!(layer.add_buffers(new_layer_buffer_set, epoch));
-                self.composite_if_necessary();
-            }
-            None => {
-                // FIXME: This may potentially be triggered by a race condition where a
-                // buffers are being painted but the layer is removed before painting
-                // completes.
-                panic!("compositor given paint command for non-existent layer");
-            }
-        }
+        // FIXME(pcwalton): This is going to cause problems with inconsistent frames since
+        // we only composite one layer at a time.
+        assert!(layer.add_buffers(new_layer_buffer_set, epoch));
+        self.composite_if_necessary();
     }
 
     fn scroll_fragment_to_point(&mut self,
@@ -1194,37 +1245,6 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
     }
 
     return None;
-}
-
-fn create_root_layer_for_pipeline_and_rect(pipeline: &CompositionPipeline,
-                                           frame_rect: Option<TypedRect<PagePx, f32>>)
-                                           -> Rc<Layer<CompositorData>> {
-    let layer_properties = LayerProperties {
-        pipeline_id: pipeline.id,
-        epoch: Epoch(0),
-        id: LayerId::null(),
-        rect: Rect::zero(),
-        background_color: azure_hl::Color::new(0., 0., 0., 0.),
-        scroll_policy: Scrollable,
-    };
-
-    let root_layer = CompositorData::new_layer(pipeline.clone(),
-                                               layer_properties,
-                                               WantsScrollEventsFlag::WantsScrollEvents,
-                                               opts::get().tile_size);
-
-    // All root layers mask to bounds.
-    *root_layer.masks_to_bounds.borrow_mut() = true;
-
-    match frame_rect {
-        Some(ref frame_rect) => {
-            let frame_rect = frame_rect.to_untyped();
-            *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
-        }
-        None => {}
-    }
-
-    return root_layer;
 }
 
 impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {

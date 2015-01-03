@@ -26,6 +26,7 @@ use devtools_traits::DevtoolsControlChan;
 use libc::c_void;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
 use servo_msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
+use servo_msg::constellation_msg::PipelineExitType;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
@@ -60,7 +61,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactiveMsg(PipelineId, WindowSizeData),
     /// Notifies the script that a pipeline should be closed.
-    ExitPipelineMsg(PipelineId),
+    ExitPipelineMsg(PipelineId, PipelineExitType),
     /// Sends a DOM event.
     SendEventMsg(PipelineId, CompositorEvent),
     /// Notifies script that reflow is finished.

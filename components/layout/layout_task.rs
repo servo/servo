@@ -42,8 +42,8 @@ use script::layout_interface::{Reflow, ReflowGoal, ScriptLayoutChan, TrustedNode
 use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
-use servo_msg::constellation_msg::{SetCursorMsg};
+use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineExitType};
+use servo_msg::constellation_msg::{PipelineId, SetCursorMsg};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_net::resource_task::{ResourceTask, load_bytes_iter};
@@ -343,8 +343,8 @@ impl LayoutTask {
         match port_to_read {
             PortToRead::Pipeline => {
                 match self.pipeline_port.recv() {
-                    layout_traits::ExitNowMsg => {
-                        self.handle_script_request(Msg::ExitNow, possibly_locked_rw_data)
+                    layout_traits::ExitNowMsg(exit_type) => {
+                        self.handle_script_request(Msg::ExitNow(exit_type), possibly_locked_rw_data)
                     }
                 }
             },
@@ -411,9 +411,9 @@ impl LayoutTask {
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
             },
-            Msg::ExitNow => {
+            Msg::ExitNow(exit_type) => {
                 debug!("layout: ExitNowMsg received");
-                self.exit_now(possibly_locked_rw_data);
+                self.exit_now(possibly_locked_rw_data, exit_type);
                 return false
             }
         }
@@ -435,9 +435,9 @@ impl LayoutTask {
                         LayoutTask::handle_reap_layout_data(dead_layout_data)
                     }
                 }
-                Msg::ExitNow => {
+                Msg::ExitNow(exit_type) => {
                     debug!("layout task is exiting...");
-                    self.exit_now(possibly_locked_rw_data);
+                    self.exit_now(possibly_locked_rw_data, exit_type);
                     break
                 }
                 _ => {
@@ -450,7 +450,9 @@ impl LayoutTask {
 
     /// Shuts down the layout task now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
-    fn exit_now<'a>(&'a self, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn exit_now<'a>(&'a self,
+                    possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>,
+                    exit_type: PipelineExitType) {
         let (response_chan, response_port) = channel();
 
         {
@@ -462,7 +464,7 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
-        self.paint_chan.send(paint_task::ExitMsg(Some(response_chan)));
+        self.paint_chan.send(paint_task::ExitMsg(Some(response_chan), exit_type));
         response_port.recv()
     }
 
