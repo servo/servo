@@ -84,5 +84,8 @@ partial interface Document {
 
   // special event handler IDL attributes that only apply to Document objects
   [LenientThis] attribute EventHandler onreadystatechange;
+
+  // user interaction
+  readonly attribute Window defaultView;
 };
 Document implements GlobalEventHandlers;
