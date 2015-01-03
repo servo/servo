@@ -787,11 +787,9 @@ pub mod longhands {
 
     <%self:single_component_value name="list-style-image">
         pub use super::computed_as_specified as to_computed_value;
-        #[deriving(Clone)]
         pub type SpecifiedValue = Option<Url>;
         pub mod computed_value {
             use url::Url;
-            #[deriving(Clone, PartialEq)]
             pub type T = Option<Url>;
         }
         pub fn from_component_value(input: &ComponentValue, base_url: &Url)
@@ -823,7 +821,6 @@ pub mod longhands {
             use super::super::super::common_types::computed;
             pub type T = Option<computed::Image>;
         }
-        #[deriving(Clone)]
         pub type SpecifiedValue = common_specified::CSSImage;
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
@@ -2420,7 +2417,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
     for item in items.into_iter().rev() {
         match item {
             DeclarationListItem::AtRule(rule) => log_css_error(
-                rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
+                rule.location, format!("Unsupported at-rule in declaration list: @{}", rule.name).as_slice()),
             DeclarationListItem::Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
                 let (list, seen) = if i {

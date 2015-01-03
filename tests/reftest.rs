@@ -179,13 +179,13 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
                 file_left: parts[2],
                 file_right: parts[3],
             },
-            _ => panic!("reftest line: '{:s}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line),
+            _ => panic!("reftest line: '{}' doesn't match '[CONDITIONS] KIND LEFT RIGHT'", line),
         };
 
         let kind = match test_line.kind {
             "==" => ReftestKind::Same,
             "!=" => ReftestKind::Different,
-            part => panic!("reftest line: '{:s}' has invalid kind '{:s}'", line, part)
+            part => panic!("reftest line: '{}' has invalid kind '{}'", line, part)
         };
 
         // If we're running this directly, file.dir_path() might be relative.
@@ -248,7 +248,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
 }
 
 fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
-    let png_filename = format!("/tmp/servo-reftest-{:06u}-{:u}.png", reftest.id, side);
+    let png_filename = format!("/tmp/servo-reftest-{:06}-{}.png", reftest.id, side);
     let mut command = Command::new(os::self_exe_path().unwrap().join("servo"));
     command
         .args(reftest.servo_args.as_slice())
@@ -314,7 +314,7 @@ fn check_reftest(reftest: Reftest) {
     }).collect::<Vec<u8>>();
 
     if pixels.iter().any(|&a| a < 255) {
-        let output_str = format!("/tmp/servo-reftest-{:06u}-diff.png", reftest.id);
+        let output_str = format!("/tmp/servo-reftest-{:06}-diff.png", reftest.id);
         let output = from_str::<Path>(output_str.as_slice()).unwrap();
 
         let mut img = png::Image {

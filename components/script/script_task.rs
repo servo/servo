@@ -1143,7 +1143,7 @@ impl ScriptTask {
                 match maybe_node {
                     Some(el) => {
                         let node = NodeCast::from_ref(el);
-                        debug!("clicked on {:s}", node.debug_str());
+                        debug!("clicked on {}", node.debug_str());
                         // Prevent click event if form control element is disabled.
                         if node.click_event_filter_by_disabled_state() { return; }
                         match *page.frame() {

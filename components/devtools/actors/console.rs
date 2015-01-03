@@ -163,7 +163,7 @@ impl Actor for ConsoleActor {
                             messages.push(json::from_str(json::encode(&message).as_slice()).unwrap().as_object().unwrap().clone());*/
                         }
 
-                        s => println!("unrecognized message type requested: \"{:s}\"", s),
+                        s => println!("unrecognized message type requested: \"{}\"", s),
                     }
                 }
 

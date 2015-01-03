@@ -62,13 +62,13 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         match url.scheme.as_slice() {
             "http" | "https" => {}
             _ => {
-                let s = format!("{:s} request, but we don't support that scheme", url.scheme);
+                let s = format!("{} request, but we don't support that scheme", url.scheme);
                 send_error(url, s, senders);
                 return;
             }
         }
 
-        info!("requesting {:s}", url.serialize());
+        info!("requesting {}", url.serialize());
 
         let mut req = match Request::new(load_data.method.clone(), url.clone()) {
             Ok(req) => req,

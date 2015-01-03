@@ -234,13 +234,13 @@ impl ResourceManager {
             "data" => data_loader::factory,
             "about" => about_loader::factory,
             _ => {
-                debug!("resource_task: no loader for scheme {:s}", load_data.url.scheme);
+                debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
                 start_sending(senders, Metadata::default(load_data.url))
                     .send(ProgressMsg::Done(Err("no loader for scheme".to_string())));
                 return
             }
         };
-        debug!("resource_task: loading url: {:s}", load_data.url.serialize());
+        debug!("resource_task: loading url: {}", load_data.url.serialize());
 
         loader(load_data, self.sniffer_task.clone());
     }
