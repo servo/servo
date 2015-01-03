@@ -4,7 +4,6 @@
 
 //! A simple application that uses GLFW to open a window for Servo to display in.
 
-#![license = "MPL"]
 #![feature(macro_rules)]
 #![deny(unused_imports, unused_variables)]
 
