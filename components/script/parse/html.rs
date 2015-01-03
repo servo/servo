@@ -111,7 +111,7 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
     }
 
     fn parse_error(&mut self, msg: MaybeOwned<'static>) {
-        debug!("Parse error: {:s}", msg);
+        debug!("Parse error: {}", msg);
     }
 
     fn set_quirks_mode(&mut self, mode: QuirksMode) {
@@ -180,7 +180,7 @@ pub fn parse_html(document: JSRef<Document>,
         HTMLInput::InputUrl(load_response) => {
             match load_response.metadata.content_type {
                 Some((ref t, _)) if t.as_slice().eq_ignore_ascii_case("image") => {
-                    let page = format!("<html><body><img src='{:s}' /></body></html>", url.serialize());
+                    let page = format!("<html><body><img src='{}' /></body></html>", url.serialize());
                     parser.parse_chunk(page);
                 },
                 _ => {
@@ -192,7 +192,7 @@ pub fn parse_html(document: JSRef<Document>,
                                 parser.parse_chunk(data);
                             }
                             Done(Err(err)) => {
-                                panic!("Failed to load page URL {:s}, error: {:s}", url.serialize(), err);
+                                panic!("Failed to load page URL {}, error: {}", url.serialize(), err);
                             }
                             Done(Ok(())) => break,
                         }

@@ -185,7 +185,7 @@ pub fn base64_atob(atob: DOMString) -> Fallible<DOMString> {
 impl<'a> WindowMethods for JSRef<'a, Window> {
     fn Alert(self, s: DOMString) {
         // Right now, just print to the console
-        println!("ALERT: {:s}", s);
+        println!("ALERT: {}", s);
     }
 
     fn Close(self) {
@@ -273,7 +273,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Debug(self, message: DOMString) {
-        debug!("{:s}", message);
+        debug!("{}", message);
     }
 
     fn Gc(self) {

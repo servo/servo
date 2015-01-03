@@ -685,7 +685,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let name = match prefix {
             None => qname.local.clone(),
             Some(ref prefix) => {
-                let name = format!("{:s}:{:s}", *prefix, qname.local.as_slice());
+                let name = format!("{}:{}", *prefix, qname.local.as_slice());
                 Atom::from_slice(name.as_slice())
             },
         };
@@ -905,7 +905,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn TagName(self) -> DOMString {
         let qualified_name = match self.prefix {
             Some(ref prefix) => {
-                (format!("{:s}:{:s}",
+                (format!("{}:{}",
                          prefix.as_slice(),
                          self.local_name.as_slice())).into_maybe_owned()
             },

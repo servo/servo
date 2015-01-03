@@ -16,7 +16,7 @@ pub trait JsonPacketStream {
 impl JsonPacketStream for TcpStream {
     fn write_json_packet<'a, T: Encodable<json::Encoder<'a>,IoError>>(&mut self, obj: &T) {
         let s = json::encode(obj).replace("__type__", "type");
-        println!("<- {:s}", s);
+        println!("<- {}", s);
         self.write_str(s.len().to_string().as_slice()).unwrap();
         self.write_u8(':' as u8).unwrap();
         self.write_str(s.as_slice()).unwrap();
@@ -35,7 +35,7 @@ impl JsonPacketStream for TcpStream {
                     let packet_len = num::from_str_radix(packet_len_str.as_slice(), 10).unwrap();
                     let packet_buf = self.read_exact(packet_len).unwrap();
                     let packet = String::from_utf8(packet_buf).unwrap();
-                    println!("{:s}", packet);
+                    println!("{}", packet);
                     return Ok(json::from_str(packet.as_slice()).unwrap())
                 },
                 Err(ref e) if e.kind == EndOfFile =>

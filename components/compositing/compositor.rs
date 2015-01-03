@@ -780,7 +780,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_load_url_window_event(&mut self, url_string: String) {
-        debug!("osmain: loading URL `{:s}`", url_string);
+        debug!("osmain: loading URL `{}`", url_string);
         self.got_load_complete_message = false;
         let root_pipeline_id = match self.scene.root {
             Some(ref layer) => layer.extra_data.borrow().pipeline.id.clone(),
