@@ -10,7 +10,7 @@ use font_cache_task::FontCacheTask;
 use font_context::FontContext;
 use paint_context::PaintContext;
 
-use azure::azure_hl::{B8G8R8A8, Color, DrawTarget, SkiaBackend, StolenGLResources};
+use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType, StolenGLResources};
 use azure::AzFloat;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -525,14 +525,14 @@ impl WorkerThread {
                                -> DrawTarget {
         let size = Size2D(tile.screen_rect.size.width as i32, tile.screen_rect.size.height as i32);
         let draw_target = if !opts::get().gpu_painting {
-            DrawTarget::new(SkiaBackend, size, B8G8R8A8)
+            DrawTarget::new(BackendType::SkiaBackend, size, SurfaceFormat::B8G8R8A8)
         } else {
             // FIXME(pcwalton): Cache the components of draw targets (texture color buffer,
             // paintbuffers) instead of recreating them.
-            let draw_target = DrawTarget::new_with_fbo(SkiaBackend,
+            let draw_target = DrawTarget::new_with_fbo(BackendType::SkiaBackend,
                                                        native_graphics_context!(self),
                                                        size,
-                                                       B8G8R8A8);
+                                                       SurfaceFormat::B8G8R8A8);
             draw_target.make_current();
             draw_target
         };

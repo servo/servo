@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use azure::azure_hl::{DrawTarget, Color, B8G8R8A8, SkiaBackend, StrokeOptions, DrawOptions};
-use azure::azure_hl::{ColorPattern, ColorPatternRef};
+use azure::azure_hl::{DrawTarget, Color, SurfaceFormat, BackendType, StrokeOptions, DrawOptions};
+use azure::azure_hl::{ColorPattern, PatternRef};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use servo_util::task::spawn_named;
@@ -55,7 +55,8 @@ impl CanvasPaintTask {
 
     fn fill_rect(&self, rect: &Rect<f32>) {
         let drawopts = DrawOptions::new(1.0, 0);
-        self.drawtarget.fill_rect(rect, ColorPatternRef(&self.fill_color), Some(&drawopts));
+        self.drawtarget.fill_rect(rect, PatternRef::ColorPatternRef(&self.fill_color),
+                                  Some(&drawopts));
     }
 
     fn clear_rect(&self, rect: &Rect<f32>) {
@@ -68,7 +69,7 @@ impl CanvasPaintTask {
     }
 
     fn create(size: Size2D<i32>) -> DrawTarget {
-        DrawTarget::new(SkiaBackend, size, B8G8R8A8)
+        DrawTarget::new(BackendType::SkiaBackend, size, SurfaceFormat::B8G8R8A8)
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {

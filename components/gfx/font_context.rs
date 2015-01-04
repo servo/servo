@@ -22,21 +22,22 @@ use std::cell::RefCell;
 use sync::Arc;
 
 use azure::AzFloat;
-use azure::azure_hl::SkiaBackend;
+use azure::azure_hl::BackendType;
 use azure::scaled_font::ScaledFont;
 
 #[cfg(any(target_os="linux", target_os = "android"))]
-use azure::scaled_font::FontData;
+use azure::scaled_font::FontInfo;
 
 #[cfg(any(target_os="linux", target_os = "android"))]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
-    ScaledFont::new(SkiaBackend, FontData(&template.bytes), pt_size.to_subpx() as AzFloat)
+    ScaledFont::new(BackendType::SkiaBackend, FontInfo::FontData(&template.bytes),
+                    pt_size.to_subpx() as AzFloat)
 }
 
 #[cfg(target_os="macos")]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
     let cgfont = template.ctfont.as_ref().unwrap().copy_to_CGFont();
-    ScaledFont::new(SkiaBackend, &cgfont, pt_size.to_subpx() as AzFloat)
+    ScaledFont::new(BackendType::SkiaBackend, &cgfont, pt_size.to_subpx() as AzFloat)
 }
 
 static SMALL_CAPS_SCALE_FACTOR: f64 = 0.8;      // Matches FireFox (see gfxFont.h)
