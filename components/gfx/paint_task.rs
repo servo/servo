@@ -32,8 +32,7 @@ use servo_util::opts;
 use servo_util::smallvec::SmallVec;
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
-use servo_util::time::{TimeProfilerChan, profile};
-use servo_util::time;
+use servo_util::time::{TimeProfilerChan, TimeProfilerCategory, profile};
 use std::comm::{Receiver, Sender, channel};
 use std::mem;
 use std::task::TaskBuilder;
@@ -384,7 +383,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
               mut tiles: Vec<BufferRequest>,
               scale: f32,
               layer_id: LayerId) {
-        time::profile(time::PaintingCategory, None, self.time_profiler_chan.clone(), || {
+        profile(TimeProfilerCategory::Painting, None, self.time_profiler_chan.clone(), || {
             // Bail out if there is no appropriate stacking context.
             let stacking_context = match self.root_stacking_context {
                 Some(ref stacking_context) => {
@@ -560,7 +559,8 @@ impl WorkerThread {
             paint_context.clear();
 
             // Draw the display list.
-            profile(time::PaintingPerTileCategory, None, self.time_profiler_sender.clone(), || {
+            profile(TimeProfilerCategory::PaintingPerTile, None,
+                    self.time_profiler_sender.clone(), || {
                 stacking_context.optimize_and_draw_into_context(&mut paint_context,
                                                                 &tile.page_rect,
                                                                 &matrix,

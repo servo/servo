@@ -38,7 +38,7 @@ use servo_msg::constellation_msg::{PipelineId, WindowSizeData};
 use servo_util::geometry::{PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts;
-use servo_util::time::{profile, TimeProfilerChan};
+use servo_util::time::{TimeProfilerCategory, profile, TimeProfilerChan};
 use servo_util::{memory, time};
 use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
@@ -1074,7 +1074,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             gl::bind_texture(gl::TEXTURE_2D, 0);
         }
 
-        profile(time::CompositingCategory, None, self.time_profiler_chan.clone(), || {
+        profile(TimeProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             self.scene.viewport = Rect {

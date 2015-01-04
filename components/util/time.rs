@@ -71,21 +71,21 @@ pub enum TimeProfilerMsg {
 #[repr(u32)]
 #[deriving(PartialEq, Clone, PartialOrd, Eq, Ord)]
 pub enum TimeProfilerCategory {
-    CompositingCategory,
-    LayoutPerformCategory,
-    LayoutStyleRecalcCategory,
+    Compositing,
+    LayoutPerform,
+    LayoutStyleRecalc,
     LayoutRestyleDamagePropagation,
     LayoutNonIncrementalReset,
-    LayoutSelectorMatchCategory,
-    LayoutTreeBuilderCategory,
-    LayoutDamagePropagateCategory,
-    LayoutMainCategory,
-    LayoutParallelWarmupCategory,
-    LayoutShapingCategory,
-    LayoutDispListBuildCategory,
-    PaintingPerTileCategory,
-    PaintingPrepBuffCategory,
-    PaintingCategory,
+    LayoutSelectorMatch,
+    LayoutTreeBuilder,
+    LayoutDamagePropagate,
+    LayoutMain,
+    LayoutParallelWarmup,
+    LayoutShaping,
+    LayoutDispListBuild,
+    PaintingPerTile,
+    PaintingPrepBuff,
+    Painting,
 }
 
 impl Formatable for TimeProfilerCategory {
@@ -93,36 +93,36 @@ impl Formatable for TimeProfilerCategory {
     // and should be printed to indicate this
     fn format(&self) -> String {
         let padding = match *self {
-            TimeProfilerCategory::LayoutStyleRecalcCategory |
+            TimeProfilerCategory::LayoutStyleRecalc |
             TimeProfilerCategory::LayoutRestyleDamagePropagation |
             TimeProfilerCategory::LayoutNonIncrementalReset |
-            TimeProfilerCategory::LayoutMainCategory |
-            TimeProfilerCategory::LayoutDispListBuildCategory |
-            TimeProfilerCategory::LayoutShapingCategory |
-            TimeProfilerCategory::LayoutDamagePropagateCategory |
-            TimeProfilerCategory::PaintingPerTileCategory |
-            TimeProfilerCategory::PaintingPrepBuffCategory => "+ ",
-            TimeProfilerCategory::LayoutParallelWarmupCategory |
-            TimeProfilerCategory::LayoutSelectorMatchCategory |
-            TimeProfilerCategory::LayoutTreeBuilderCategory => "| + ",
+            TimeProfilerCategory::LayoutMain |
+            TimeProfilerCategory::LayoutDispListBuild |
+            TimeProfilerCategory::LayoutShaping |
+            TimeProfilerCategory::LayoutDamagePropagate |
+            TimeProfilerCategory::PaintingPerTile |
+            TimeProfilerCategory::PaintingPrepBuff => "+ ",
+            TimeProfilerCategory::LayoutParallelWarmup |
+            TimeProfilerCategory::LayoutSelectorMatch |
+            TimeProfilerCategory::LayoutTreeBuilder => "| + ",
             _ => ""
         };
         let name = match *self {
-            TimeProfilerCategory::CompositingCategory => "Compositing",
-            TimeProfilerCategory::LayoutPerformCategory => "Layout",
-            TimeProfilerCategory::LayoutStyleRecalcCategory => "Style Recalc",
+            TimeProfilerCategory::Compositing => "Compositing",
+            TimeProfilerCategory::LayoutPerform => "Layout",
+            TimeProfilerCategory::LayoutStyleRecalc => "Style Recalc",
             TimeProfilerCategory::LayoutRestyleDamagePropagation => "Restyle Damage Propagation",
             TimeProfilerCategory::LayoutNonIncrementalReset => "Non-incremental reset (temporary)",
-            TimeProfilerCategory::LayoutSelectorMatchCategory => "Selector Matching",
-            TimeProfilerCategory::LayoutTreeBuilderCategory => "Tree Building",
-            TimeProfilerCategory::LayoutDamagePropagateCategory => "Damage Propagation",
-            TimeProfilerCategory::LayoutMainCategory => "Primary Layout Pass",
-            TimeProfilerCategory::LayoutParallelWarmupCategory => "Parallel Warmup",
-            TimeProfilerCategory::LayoutShapingCategory => "Shaping",
-            TimeProfilerCategory::LayoutDispListBuildCategory => "Display List Construction",
-            TimeProfilerCategory::PaintingPerTileCategory => "Painting Per Tile",
-            TimeProfilerCategory::PaintingPrepBuffCategory => "Buffer Prep",
-            TimeProfilerCategory::PaintingCategory => "Painting",
+            TimeProfilerCategory::LayoutSelectorMatch => "Selector Matching",
+            TimeProfilerCategory::LayoutTreeBuilder => "Tree Building",
+            TimeProfilerCategory::LayoutDamagePropagate => "Damage Propagation",
+            TimeProfilerCategory::LayoutMain => "Primary Layout Pass",
+            TimeProfilerCategory::LayoutParallelWarmup => "Parallel Warmup",
+            TimeProfilerCategory::LayoutShaping => "Shaping",
+            TimeProfilerCategory::LayoutDispListBuild => "Display List Construction",
+            TimeProfilerCategory::PaintingPerTile => "Painting Per Tile",
+            TimeProfilerCategory::PaintingPrepBuff => "Buffer Prep",
+            TimeProfilerCategory::Painting => "Painting",
         };
         format!("{}{}", padding, name)
     }

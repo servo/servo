@@ -56,7 +56,7 @@ use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
-use servo_util::time::{mod, ProfilerMetadata, TimeProfilerChan, TimerMetadataFrameType};
+use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, TimerMetadataFrameType};
 use servo_util::time::{TimerMetadataReflowType, profile};
 use servo_util::workqueue::WorkQueue;
 use std::cell::Cell;
@@ -398,7 +398,7 @@ impl LayoutTask {
                                    Box<LayoutRPC + Send>);
             },
             Msg::Reflow(data) => {
-                profile(time::LayoutPerformCategory,
+                profile(TimeProfilerCategory::LayoutPerform,
                         self.profiler_metadata(&*data),
                         self.time_profiler_chan.clone(),
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
@@ -627,7 +627,7 @@ impl LayoutTask {
                                          shared_layout_context: &mut SharedLayoutContext,
                                          rw_data: &mut RWGuard<'a>) {
         let writing_mode = flow::base(&**layout_root).writing_mode;
-        profile(time::LayoutDispListBuildCategory,
+        profile(TimeProfilerCategory::LayoutDispListBuild,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -771,7 +771,7 @@ impl LayoutTask {
                 |mut flow| LayoutTask::reflow_all_nodes(flow.deref_mut()));
         }
 
-        let mut layout_root = profile(time::LayoutStyleRecalcCategory,
+        let mut layout_root = profile(TimeProfilerCategory::LayoutStyleRecalc,
                                       self.profiler_metadata(data),
                                       self.time_profiler_chan.clone(),
                                       || {
@@ -789,7 +789,7 @@ impl LayoutTask {
             self.get_layout_root((*node).clone())
         });
 
-        profile(time::LayoutRestyleDamagePropagation,
+        profile(TimeProfilerCategory::LayoutRestyleDamagePropagation,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -811,7 +811,7 @@ impl LayoutTask {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        profile(time::LayoutMainCategory,
+        profile(TimeProfilerCategory::LayoutMain,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
