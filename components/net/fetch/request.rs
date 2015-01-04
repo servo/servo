@@ -4,7 +4,7 @@
 
 use url::Url;
 use hyper::method::Method;
-use hyper::mime::{mod, Mime};
+use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use hyper::header::Headers;
 use hyper::header::common::ContentType;
 use fetch::cors_cache::CORSCache;
@@ -119,8 +119,8 @@ impl Request {
                 Some(s) if s.as_slice() == "blank" => {
                     let mut response = Response::new();
                     response.headers.set(ContentType(Mime(
-                        mime::TopLevel::Text, mime::SubLevel::Html,
-                        vec![(mime::Attr::Charset, mime::Value::Utf8)])));
+                        TopLevel::Text, SubLevel::Html,
+                        vec![(Attr::Charset, Value::Utf8)])));
                     response
                 },
                 _ => Response::network_error()
