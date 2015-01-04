@@ -21,7 +21,7 @@ use parse::Parser;
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
 
-use servo_net::resource_task::{Payload, Done, LoadResponse};
+use servo_net::resource_task::{ProgressMsg, LoadResponse};
 use servo_util::task_state;
 use servo_util::task_state::IN_HTML_PARSER;
 use std::ascii::AsciiExt;
@@ -186,15 +186,15 @@ pub fn parse_html(document: JSRef<Document>,
                 _ => {
                     for msg in load_response.progress_port.iter() {
                         match msg {
-                            Payload(data) => {
+                            ProgressMsg::Payload(data) => {
                                 // FIXME: use Vec<u8> (html5ever #34)
                                 let data = UTF_8.decode(data.as_slice(), DecoderTrap::Replace).unwrap();
                                 parser.parse_chunk(data);
                             }
-                            Done(Err(err)) => {
+                            ProgressMsg::Done(Err(err)) => {
                                 panic!("Failed to load page URL {}, error: {}", url.serialize(), err);
                             }
-                            Done(Ok(())) => break,
+                            ProgressMsg::Done(Ok(())) => break,
                         }
                     }
                 }

@@ -52,7 +52,7 @@ use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT};
 use servo_msg::constellation_msg::{PipelineExitType};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_net::resource_task::{ResourceTask, Load};
+use servo_net::resource_task::{ResourceTask, ControlMsg};
 use servo_net::resource_task::LoadData as NetLoadData;
 use servo_net::storage_task::StorageTask;
 use servo_util::geometry::to_frac_px;
@@ -810,7 +810,7 @@ impl ScriptTask {
         let (parser_input, final_url) = if !is_javascript {
             // Wait for the LoadResponse so that the parser knows the final URL.
             let (input_chan, input_port) = channel();
-            self.resource_task.send(Load(NetLoadData {
+            self.resource_task.send(ControlMsg::Load(NetLoadData {
                 url: url,
                 method: load_data.method,
                 headers: load_data.headers,
