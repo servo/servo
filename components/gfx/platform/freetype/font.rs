@@ -255,7 +255,7 @@ impl FontHandleMethods for FontHandle {
             line_gap:         height,
         };
 
-        debug!("Font metrics (@{:f} pt): {}", geometry::to_pt(em_size), metrics);
+        debug!("Font metrics (@{} pt): {}", geometry::to_pt(em_size), metrics);
         return metrics;
     }
 

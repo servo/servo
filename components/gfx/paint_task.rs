@@ -587,8 +587,8 @@ impl WorkerThread {
             let mut buffer = layer_buffer.unwrap();
             draw_target.snapshot().get_data_surface().with_data(|data| {
                 buffer.native_surface.upload(native_graphics_context!(self), data);
-                debug!("painting worker thread uploading to native surface {:d}",
-                       buffer.native_surface.get_id() as int);
+                debug!("painting worker thread uploading to native surface {}",
+                       buffer.native_surface.get_id());
             });
             return buffer
         }
