@@ -25,7 +25,6 @@ extern crate "util" as servo_util;
 extern crate gleam;
 
 extern crate libc;
-extern crate native;
 extern crate time;
 extern crate url;
 

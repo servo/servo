@@ -16,7 +16,6 @@ extern crate collections;
 extern crate geom;
 extern crate layers;
 extern crate libc;
-extern crate native;
 extern crate rustrt;
 extern crate stb_image;
 extern crate png;

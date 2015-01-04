@@ -23,7 +23,6 @@ extern crate hyper;
 extern crate js;
 extern crate libc;
 extern crate msg;
-extern crate native;
 extern crate net;
 extern crate rustrt;
 extern crate serialize;

@@ -20,7 +20,6 @@ use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsCo
 use layers::platform::surface::{NativeSurface, NativeSurfaceMethods};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
-use native::task::NativeTaskBuilder;
 use servo_msg::compositor_msg::{Epoch, PaintState, LayerId};
 use servo_msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
@@ -442,7 +441,7 @@ impl WorkerThreadProxy {
             let native_graphics_metadata = native_graphics_metadata.clone();
             let font_cache_task = font_cache_task.clone();
             let time_profiler_chan = time_profiler_chan.clone();
-            TaskBuilder::new().native().spawn(proc() {
+            TaskBuilder::new().spawn(proc() {
                 let mut worker_thread = WorkerThread::new(from_worker_sender,
                                                           to_worker_receiver,
                                                           native_graphics_metadata,

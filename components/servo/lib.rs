@@ -20,7 +20,6 @@ extern crate script;
 extern crate layout;
 extern crate gfx;
 extern crate libc;
-extern crate native;
 extern crate rustrt;
 extern crate url;
 
