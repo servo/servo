@@ -1462,7 +1462,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
 }
 
 pub trait ActivationElementHelpers<'a> {
-    fn as_maybe_activatable(&'a self) -> Option<&'a Activatable + 'a>;
+    fn as_maybe_activatable(&'a self) -> Option<&'a (Activatable + 'a)>;
     fn click_in_progress(self) -> bool;
     fn set_click_in_progress(self, click: bool);
     fn nearest_activable_element(self) -> Option<Temporary<Element>>;
@@ -1470,12 +1470,12 @@ pub trait ActivationElementHelpers<'a> {
 }
 
 impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
-    fn as_maybe_activatable(&'a self) -> Option<&'a Activatable + 'a> {
+    fn as_maybe_activatable(&'a self) -> Option<&'a (Activatable + 'a)> {
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
                 let element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
-                Some(element as &'a Activatable + 'a)
+                Some(element as &'a (Activatable + 'a))
             },
             _ => {
                 None
