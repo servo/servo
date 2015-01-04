@@ -11,7 +11,7 @@ use devtools_traits::DevtoolsControlChan;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::paint_task::{PaintChan, PaintTask};
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, Failure, PipelineId, SubpageId};
+use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use servo_net::image_cache_task::ImageCacheTask;
 use gfx::font_cache_task::FontCacheTask;

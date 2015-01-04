@@ -23,8 +23,9 @@ use layers;
 use native::task::NativeTaskBuilder;
 use servo_msg::compositor_msg::{Epoch, IdlePaintState, LayerId};
 use servo_msg::compositor_msg::{LayerMetadata, PaintListener, PaintingPaintState, ScrollPolicy};
-use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineExitType};
-use servo_msg::constellation_msg::{PipelineId, PainterReadyMsg};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
+use servo_msg::constellation_msg::PipelineExitType;
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
 use servo_util::geometry::{Au, ZERO_POINT};
 use servo_util::opts;
@@ -224,7 +225,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
 
             debug!("paint_task: shutdown_chan send");
             shutdown_chan.send(());
-        }, FailureMsg(failure_msg), c, true);
+        }, ConstellationMsg::Failure(failure_msg), c, true);
     }
 
     fn start(&mut self) {
@@ -241,7 +242,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(PainterReadyMsg(self.id));
+                        c.send(ConstellationMsg::PainterReady(self.id));
                         continue;
                     }
 
@@ -254,7 +255,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(PainterReadyMsg(self.id));
+                        c.send(ConstellationMsg::PainterReady(self.id));
                         self.compositor.paint_msg_discarded();
                         continue;
                     }

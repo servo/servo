@@ -43,8 +43,9 @@ use script::layout_interface::{Reflow, ReflowGoal, ScriptLayoutChan, TrustedNode
 use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
-use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineExitType};
-use servo_msg::constellation_msg::{PipelineId, SetCursorMsg};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType};
+use servo_msg::constellation_msg::PipelineId;
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_net::resource_task::{ResourceTask, load_bytes_iter};
@@ -200,7 +201,7 @@ impl LayoutTaskFactory for LayoutTask {
                 layout.start();
             }
             shutdown_chan.send(());
-        }, FailureMsg(failure_msg), con_chan, false);
+        }, ConstellationMsg::Failure(failure_msg), con_chan, false);
     }
 }
 
@@ -999,7 +1000,7 @@ impl LayoutRPC for LayoutRPCImpl {
                 DefaultCursor
             };
             let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-            constellation_chan.send(SetCursorMsg(cursor));
+            constellation_chan.send(ConstellationMsg::SetCursor(cursor));
         }
 
         if mouse_over_list.is_empty() {

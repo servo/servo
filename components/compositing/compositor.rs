@@ -31,10 +31,10 @@ use gleam::gl;
 use script_traits::{ViewportMsg, ScriptControlChan};
 use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdlePaintState, LayerId};
 use servo_msg::compositor_msg::{ReadyState, PaintState, PaintingPaintState, Scrollable};
-use servo_msg::constellation_msg::{mod, ConstellationChan, ExitMsg};
-use servo_msg::constellation_msg::{GetPipelineTitleMsg, Key, KeyModifiers, KeyState, LoadData};
-use servo_msg::constellation_msg::{LoadUrlMsg, NavigateMsg, PipelineId, ResizedWindowMsg};
-use servo_msg::constellation_msg::{WindowSizeData};
+use servo_msg::constellation_msg::{mod, ConstellationChan};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use servo_msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
+use servo_msg::constellation_msg::{PipelineId, WindowSizeData};
 use servo_util::geometry::{PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts;
@@ -237,7 +237,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::Exit(chan), _) => {
                 debug!("shutting down the constellation");
                 let ConstellationChan(ref con_chan) = self.constellation_chan;
-                con_chan.send(ExitMsg);
+                con_chan.send(ConstellationMsg::Exit);
                 chan.send(());
                 self.shutdown_state = ShutdownState::ShuttingDown;
             }
@@ -589,7 +589,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let visible_viewport = initial_viewport / self.viewport_zoom;
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ResizedWindowMsg(WindowSizeData {
+        chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
             visible_viewport: visible_viewport,
@@ -754,7 +754,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             WindowEvent::Quit => {
                 debug!("shutting down the constellation for WindowEvent::Quit");
                 let ConstellationChan(ref chan) = self.constellation_chan;
-                chan.send(ExitMsg);
+                chan.send(ConstellationMsg::Exit);
                 self.shutdown_state = ShutdownState::ShuttingDown;
             }
         }
@@ -789,8 +789,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                            layers"),
         };
 
-        let msg = LoadUrlMsg(root_pipeline_id,
-                             LoadData::new(Url::parse(url_string.as_slice()).unwrap()));
+        let msg = ConstellationMsg::LoadUrl(root_pipeline_id,
+            LoadData::new(Url::parse(url_string.as_slice()).unwrap()));
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(msg);
     }
@@ -911,7 +911,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Back => constellation_msg::Back,
         };
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(NavigateMsg(direction))
+        chan.send(ConstellationMsg::Navigate(direction))
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
@@ -1130,7 +1130,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             debug!("shutting down the constellation after generating an output file");
             let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ExitMsg);
+            chan.send(ConstellationMsg::Exit);
             self.shutdown_state = ShutdownState::ShuttingDown;
         }
 
@@ -1340,6 +1340,6 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             Some(ref root_pipeline) => root_pipeline.id,
         };
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(GetPipelineTitleMsg(root_pipeline_id));
+        chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id));
     }
 }

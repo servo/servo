@@ -195,26 +195,26 @@ bitflags! {
 
 /// Messages from the compositor and script to the constellation.
 pub enum Msg {
-    ExitMsg,
-    FailureMsg(Failure),
-    InitLoadUrlMsg(Url),
-    LoadCompleteMsg,
-    FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
-    LoadUrlMsg(PipelineId, LoadData),
-    ScriptLoadedURLInIFrameMsg(Url, PipelineId, SubpageId, IFrameSandboxState),
-    NavigateMsg(NavigationDirection),
-    PainterReadyMsg(PipelineId),
-    ResizedWindowMsg(WindowSizeData),
+    Exit,
+    Failure(Failure),
+    InitLoadUrl(Url),
+    LoadComplete,
+    FrameRect(PipelineId, SubpageId, Rect<f32>),
+    LoadUrl(PipelineId, LoadData),
+    ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, IFrameSandboxState),
+    Navigate(NavigationDirection),
+    PainterReady(PipelineId),
+    ResizedWindow(WindowSizeData),
     KeyEvent(Key, KeyState, KeyModifiers),
     /// Requests that the constellation inform the compositor of the title of the pipeline
     /// immediately.
-    GetPipelineTitleMsg(PipelineId),
+    GetPipelineTitle(PipelineId),
     /// Requests that the constellation inform the compositor of the a cursor change.
-    SetCursorMsg(Cursor),
+    SetCursor(Cursor),
 }
 
 /// Similar to net::resource_task::LoadData
-/// can be passed to LoadUrlMsg to load a page with GET/POST
+/// can be passed to LoadUrl to load a page with GET/POST
 /// parameters or headers
 #[deriving(Clone)]
 pub struct LoadData {

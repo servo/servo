@@ -45,13 +45,12 @@ use script_traits::{ResizeInactiveMsg, ExitPipelineMsg, NewLayoutInfo, OpaqueScr
 use script_traits::{ScriptControlChan, ReflowCompleteMsg, SendEventMsg};
 use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
 use servo_msg::compositor_msg::{ScriptListener};
-use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg};
-use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, NavigationDirection, PipelineId};
-use servo_msg::constellation_msg::{Failure, FailureMsg, WindowSizeData, Key, KeyState};
-use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed};
-use servo_msg::constellation_msg::{Released};
+use servo_msg::constellation_msg::{ConstellationChan};
+use servo_msg::constellation_msg::{LoadData, NavigationDirection, PipelineId};
+use servo_msg::constellation_msg::{Failure, Msg, WindowSizeData, Key, KeyState};
+use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT};
 use servo_msg::constellation_msg::{PipelineExitType};
-use servo_msg::constellation_msg;
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{ResourceTask, Load};
 use servo_net::resource_task::LoadData as NetLoadData;
@@ -315,7 +314,7 @@ impl ScriptTaskFactory for ScriptTask {
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
-        }, FailureMsg(failure_msg), const_chan, false);
+        }, ConstellationMsg::Failure(failure_msg), const_chan, false);
     }
 }
 
@@ -681,7 +680,7 @@ impl ScriptTask {
     /// TODO(tkuehn): is it ever possible to navigate only on a subframe?
     fn handle_navigate_msg(&self, direction: NavigationDirection) {
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(constellation_msg::NavigateMsg(direction));
+        chan.send(ConstellationMsg::Navigate(direction));
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
@@ -886,7 +885,7 @@ impl ScriptTask {
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(LoadCompleteMsg);
+        chan.send(ConstellationMsg::LoadComplete);
 
         // Notify devtools that a new script global exists.
         match self.devtools_chan {
@@ -1058,7 +1057,7 @@ impl ScriptTask {
     /// for the given pipeline.
     fn trigger_load(&self, pipeline_id: PipelineId, load_data: LoadData) {
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(LoadUrlMsg(pipeline_id, load_data));
+        const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data));
     }
 
     /// The entry point for content to notify that a fragment url has been requested
