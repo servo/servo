@@ -16,7 +16,7 @@ use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::utils::Reflectable;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
-use dom::worker::{Worker, TrustedWorkerAddress};
+use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
 use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
@@ -216,9 +216,6 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
             ScriptMsg::RunnableMsg(runnable) => {
                 runnable.handler()
             },
-            ScriptMsg::WorkerPostMessage(addr, data, nbytes) => {
-                Worker::handle_message(addr, data, nbytes);
-            },
             ScriptMsg::RefcountCleanup(addr) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 LiveDOMReferences::cleanup(scope.get_cx(), addr);
@@ -246,7 +243,7 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
         }
 
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(ScriptMsg::WorkerPostMessage(worker, data, nbytes));
+        self.parent_sender.send(ScriptMsg::RunnableMsg(box WorkerMessageHandler::new(worker, data, nbytes)));
         Ok(())
     }
 
