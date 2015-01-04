@@ -9,7 +9,7 @@ use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use hyper::header::Headers;
-use hyper::method::{Method, Get};
+use hyper::method::Method;
 use layers::geometry::DevicePixel;
 use servo_util::cursor::Cursor;
 use servo_util::geometry::{PagePx, ViewportPx};
@@ -228,7 +228,7 @@ impl LoadData {
     pub fn new(url: Url) -> LoadData {
         LoadData {
             url: url,
-            method: Get,
+            method: Method::Get,
             headers: Headers::new(),
             data: None,
         }

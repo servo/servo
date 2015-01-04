@@ -4,7 +4,6 @@
 
 use url::Url;
 use hyper::status::StatusCode;
-use hyper::status::Ok as StatusOk;
 use hyper::header::Headers;
 use std::ascii::AsciiExt;
 use std::comm::Receiver;
@@ -70,7 +69,7 @@ impl Response {
             response_type: ResponseType::Default,
             termination_reason: None,
             url: None,
-            status: Some(StatusOk),
+            status: Some(StatusCode::Ok),
             headers: Headers::new(),
             body: ResponseBody::Empty,
             internal_response: None

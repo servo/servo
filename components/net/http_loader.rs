@@ -9,8 +9,8 @@ use log;
 use std::collections::HashSet;
 use hyper::client::Request;
 use hyper::header::common::{ContentLength, ContentType, Host, Location};
-use hyper::method::{Get, Head};
-use hyper::status::Redirection;
+use hyper::method::Method;
+use hyper::status::StatusClass;
 use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::{Url, UrlParser};
@@ -108,7 +108,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
             },
             None => {
                 match load_data.method {
-                    Get | Head => (),
+                    Method::Get | Method::Head => (),
                     _ => req.headers_mut().set(ContentLength(0))
                 }
                 match req.start() {
@@ -136,7 +136,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
             }
         }
 
-        if response.status.class() == Redirection {
+        if response.status.class() == StatusClass::Redirection {
             match response.headers.get::<Location>() {
                 Some(&Location(ref new_url)) => {
                     // CORS (http://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
