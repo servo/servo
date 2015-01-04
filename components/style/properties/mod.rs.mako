@@ -14,6 +14,7 @@ pub use url::Url;
 
 pub use cssparser::*;
 pub use cssparser::ast::*;
+pub use cssparser::ast::ComponentValue::*;
 pub use geom::SideOffsets2D;
 pub use self::common_types::specified::{Angle, AngleOrCorner};
 pub use self::common_types::specified::{HorizontalDirection, VerticalDirection};
@@ -480,7 +481,7 @@ pub mod longhands {
         fn from_component_value(input: &ComponentValue, _: &Url) -> Result<SpecifiedValue,()> {
             match *input {
                 Ident(ref keyword) if keyword.as_slice().eq_ignore_ascii_case("auto") => Ok(T::Auto),
-                ast::Number(ast::NumericValue {
+                Number(NumericValue {
                     int_value: Some(value),
                     ..
                 }) => Ok(T::Number(value as i32)),
@@ -563,9 +564,9 @@ pub mod longhands {
         pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
                                     -> Result<SpecifiedValue, ()> {
             match input {
-                &ast::Number(ref value) if value.value >= 0. =>
+                &Number(ref value) if value.value >= 0. =>
                     Ok(SpecifiedValue::Number(value.value)),
-                &ast::Percentage(ref value) if value.value >= 0. =>
+                &Percentage(ref value) if value.value >= 0. =>
                     Ok(SpecifiedValue::Percentage(value.value / 100.)),
                 &Dimension(ref value, ref unit) if value.value >= 0. =>
                     specified::Length::parse_dimension(value.value, unit.as_slice())
@@ -829,7 +830,8 @@ pub mod longhands {
         pub fn from_component_value(component_value: &ComponentValue, base_url: &Url)
                                     -> Result<SpecifiedValue, ()> {
             match component_value {
-                &ast::Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => {
+                &Ident(ref value)
+                if value.as_slice().eq_ignore_ascii_case("none") => {
                     Ok(CSSImage(None))
                 }
                 _ => {

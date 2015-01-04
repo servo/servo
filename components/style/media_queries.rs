@@ -5,6 +5,7 @@
 use std::ascii::AsciiExt;
 use cssparser::parse_rule_list;
 use cssparser::ast::*;
+use cssparser::ast::ComponentValue::*;
 
 use errors::{ErrorLoggerIterator, log_css_error};
 use geom::size::TypedSize2D;
