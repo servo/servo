@@ -299,7 +299,7 @@ impl Stylist {
         //        (Does it make a difference?)
         for &filename in ["user-agent.css", "servo.css", "presentational-hints.css"].iter() {
             let ua_stylesheet = Stylesheet::from_bytes(
-                read_resource_file([filename]).unwrap().as_slice(),
+                read_resource_file(&[filename]).unwrap().as_slice(),
                 Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
                 None,
                 None,
@@ -391,7 +391,7 @@ impl Stylist {
 
     pub fn add_quirks_mode_stylesheet(&mut self) {
         self.add_stylesheet(Stylesheet::from_bytes(
-            read_resource_file(["quirks-mode.css"]).unwrap().as_slice(),
+            read_resource_file(&["quirks-mode.css"]).unwrap().as_slice(),
             Url::parse("chrome:///quirks-mode.css").unwrap(),
             None,
             None,

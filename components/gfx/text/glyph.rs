@@ -557,7 +557,7 @@ impl<'a> GlyphStore {
             (true, _) => GlyphEntry::missing(1),
             (false, true) => GlyphEntry::simple(data.id, data.advance),
             (false, false) => {
-                let glyph = [DetailedGlyph::new(data.id, data.advance, data.offset)];
+                let glyph = &[DetailedGlyph::new(data.id, data.advance, data.offset)];
                 self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
                 GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
             }
