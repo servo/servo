@@ -6,7 +6,6 @@
 #![deny(unused_variables)]
 
 extern crate servo;
-extern crate native;
 extern crate time;
 extern crate "util" as servo_util;
 

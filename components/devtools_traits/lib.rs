@@ -6,6 +6,7 @@
 #![crate_type = "rlib"]
 
 #![allow(non_snake_case)]
+#![feature(globs)]
 
 extern crate "msg" as servo_msg;
 extern crate serialize;
@@ -15,6 +16,10 @@ extern crate "util" as servo_util;
 /// This module contains shared types and messages for use by devtools/script.
 /// The traits are here instead of in script so that the devtools crate can be
 /// modified independently of the rest of Servo.
+
+pub use self::DevtoolsControlMsg::*;
+pub use self::DevtoolScriptControlMsg::*;
+pub use self::EvaluateJSReply::*;
 
 use serialize::{Decodable, Decoder};
 use servo_msg::constellation_msg::PipelineId;

@@ -7,6 +7,7 @@ use std::ascii::{AsciiExt, OwnedAsciiExt};
 use sync::Arc;
 
 use cssparser::ast::*;
+use cssparser::ast::ComponentValue::*;
 use cssparser::{tokenize, parse_nth};
 
 use selector_matching::StylesheetOrigin;

@@ -194,8 +194,8 @@ impl Font {
 
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         let codepoint = match self.variant {
-            font_variant::small_caps => codepoint.to_uppercase(),
-            font_variant::normal => codepoint,
+            font_variant::T::small_caps => codepoint.to_uppercase(),
+            font_variant::T::normal => codepoint,
         };
         self.handle.glyph_index(codepoint)
     }

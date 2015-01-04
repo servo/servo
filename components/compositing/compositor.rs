@@ -18,7 +18,8 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
-use gfx::paint_task::{PaintChan, PaintMsg, PaintRequest, UnusedBufferMsg};
+use gfx::paint_task::Msg as PaintMsg;
+use gfx::paint_task::{PaintChan, PaintRequest};
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
@@ -27,17 +28,17 @@ use layers::scene::Scene;
 use png;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
-use script_traits::{ViewportMsg, ScriptControlChan};
-use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdlePaintState, LayerId};
-use servo_msg::compositor_msg::{ReadyState, PaintState, PaintingPaintState, Scrollable};
-use servo_msg::constellation_msg::{mod, ConstellationChan, ExitMsg};
-use servo_msg::constellation_msg::{GetPipelineTitleMsg, Key, KeyModifiers, KeyState, LoadData};
-use servo_msg::constellation_msg::{LoadUrlMsg, NavigateMsg, PipelineId, ResizedWindowMsg};
-use servo_msg::constellation_msg::{WindowSizeData};
+use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, LayerId};
+use servo_msg::compositor_msg::{ReadyState, PaintState, Scrollable};
+use servo_msg::constellation_msg::{mod, ConstellationChan};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use servo_msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
+use servo_msg::constellation_msg::{PipelineId, WindowSizeData};
 use servo_util::geometry::{PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts;
-use servo_util::time::{profile, TimeProfilerChan};
+use servo_util::time::{TimeProfilerCategory, profile, TimeProfilerChan};
 use servo_util::{memory, time};
 use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
@@ -236,7 +237,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::Exit(chan), _) => {
                 debug!("shutting down the constellation");
                 let ConstellationChan(ref con_chan) = self.constellation_chan;
-                con_chan.send(ExitMsg);
+                con_chan.send(ConstellationMsg::Exit);
                 chan.send(());
                 self.shutdown_state = ShutdownState::ShuttingDown;
             }
@@ -410,7 +411,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if self.ready_states.len() == 0 {
             return false;
         }
-        return self.paint_states.values().all(|&value| value == IdlePaintState);
+        return self.paint_states.values().all(|&value| value == PaintState::Idle);
     }
 
     fn has_paint_msg_tracking(&self) -> bool {
@@ -504,7 +505,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                      -> Rc<Layer<CompositorData>> {
         // Initialize the ReadyState and PaintState for this pipeline.
         self.ready_states.insert(frame_tree.pipeline.id, Blank);
-        self.paint_states.insert(frame_tree.pipeline.id, PaintingPaintState);
+        self.paint_states.insert(frame_tree.pipeline.id, PaintState::Painting);
 
         let root_layer = self.create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline,
                                                                       frame_rect);
@@ -588,7 +589,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let visible_viewport = initial_viewport / self.viewport_zoom;
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ResizedWindowMsg(WindowSizeData {
+        chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
             visible_viewport: visible_viewport,
@@ -662,7 +663,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => {
                 match self.paint_channels.entry(pipeline_id) {
                     Occupied(entry) => {
-                        let message = UnusedBufferMsg(new_layer_buffer_set.buffers);
+                        let message = PaintMsg::UnusedBuffer(new_layer_buffer_set.buffers);
                         let _ = entry.get().send_opt(message);
                     },
                     Vacant(_) => panic!("Received a buffer from an unknown pipeline!"),
@@ -753,7 +754,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             WindowEvent::Quit => {
                 debug!("shutting down the constellation for WindowEvent::Quit");
                 let ConstellationChan(ref chan) = self.constellation_chan;
-                chan.send(ExitMsg);
+                chan.send(ConstellationMsg::Exit);
                 self.shutdown_state = ShutdownState::ShuttingDown;
             }
         }
@@ -788,8 +789,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                            layers"),
         };
 
-        let msg = LoadUrlMsg(root_pipeline_id,
-                             LoadData::new(Url::parse(url_string.as_slice()).unwrap()));
+        let msg = ConstellationMsg::LoadUrl(root_pipeline_id,
+            LoadData::new(Url::parse(url_string.as_slice()).unwrap()));
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(msg);
     }
@@ -910,7 +911,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Back => constellation_msg::Back,
         };
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(NavigateMsg(direction))
+        chan.send(ConstellationMsg::Navigate(direction))
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
@@ -962,7 +963,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(ref pipeline) => {
                 let unused_buffers = self.scene.collect_unused_buffers();
                 if unused_buffers.len() != 0 {
-                    let message = UnusedBufferMsg(unused_buffers);
+                    let message = PaintMsg::UnusedBuffer(unused_buffers);
                     let _ = pipeline.paint_chan.send_opt(message);
                 }
             },
@@ -976,7 +977,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                   layer.bounds.borrow().size.to_untyped());
             let pipeline = &layer.extra_data.borrow().pipeline;
             let ScriptControlChan(ref chan) = pipeline.script_chan;
-            chan.send(ViewportMsg(pipeline.id.clone(), layer_rect));
+            chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect));
         }
 
         for kid in layer.children().iter() {
@@ -1012,7 +1013,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut num_paint_msgs_sent = 0;
         for (_pipeline_id, (chan, requests)) in pipeline_requests.into_iter() {
             num_paint_msgs_sent += 1;
-            let _ = chan.send_opt(PaintMsg(requests));
+            let _ = chan.send_opt(PaintMsg::Paint(requests));
         }
 
         self.add_outstanding_paint_msg(num_paint_msgs_sent);
@@ -1073,7 +1074,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             gl::bind_texture(gl::TEXTURE_2D, 0);
         }
 
-        profile(time::CompositingCategory, None, self.time_profiler_chan.clone(), || {
+        profile(TimeProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             self.scene.viewport = Rect {
@@ -1129,7 +1130,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             debug!("shutting down the constellation after generating an output file");
             let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ExitMsg);
+            chan.send(ConstellationMsg::Exit);
             self.shutdown_state = ShutdownState::ShuttingDown;
         }
 
@@ -1339,6 +1340,6 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             Some(ref root_pipeline) => root_pipeline.id,
         };
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(GetPipelineTitleMsg(root_pipeline_id));
+        chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id));
     }
 }

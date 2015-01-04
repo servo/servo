@@ -38,22 +38,23 @@ use devtools;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, GetRootNode, DevtoolsPageInfo};
 use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, GetDocumentElement};
 use devtools_traits::{GetChildren, GetLayout, ModifyAttribute};
-use script_traits::{CompositorEvent, ResizeEvent, ReflowEvent, ClickEvent, MouseDownEvent};
-use script_traits::{MouseMoveEvent, MouseUpEvent, ConstellationControlMsg, ScriptTaskFactory};
-use script_traits::{ResizeMsg, AttachLayoutMsg, GetTitleMsg, KeyEvent, LoadMsg, ViewportMsg};
-use script_traits::{ResizeInactiveMsg, ExitPipelineMsg, NewLayoutInfo, OpaqueScriptLayoutChannel};
-use script_traits::{ScriptControlChan, ReflowCompleteMsg, SendEventMsg};
-use servo_msg::compositor_msg::{FinishedLoading, LayerId, Loading, PerformingLayout};
-use servo_msg::compositor_msg::{ScriptListener};
-use servo_msg::constellation_msg::{ConstellationChan, LoadCompleteMsg};
-use servo_msg::constellation_msg::{LoadData, LoadUrlMsg, NavigationDirection, PipelineId};
-use servo_msg::constellation_msg::{Failure, FailureMsg, WindowSizeData, Key, KeyState};
-use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT, Repeated, Pressed};
-use servo_msg::constellation_msg::{Released};
+use script_traits::CompositorEvent;
+use script_traits::CompositorEvent::{ResizeEvent, ReflowEvent, ClickEvent};
+use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
+use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
+use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
+use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use script_traits::ScriptTaskFactory;
+use servo_msg::compositor_msg::ReadyState::{FinishedLoading, Loading, PerformingLayout};
+use servo_msg::compositor_msg::{LayerId, ScriptListener};
+use servo_msg::constellation_msg::{ConstellationChan};
+use servo_msg::constellation_msg::{LoadData, NavigationDirection, PipelineId};
+use servo_msg::constellation_msg::{Failure, Msg, WindowSizeData, Key, KeyState};
+use servo_msg::constellation_msg::{KeyModifiers, SUPER, SHIFT, CONTROL, ALT};
 use servo_msg::constellation_msg::{PipelineExitType};
-use servo_msg::constellation_msg;
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_net::image_cache_task::ImageCacheTask;
-use servo_net::resource_task::{ResourceTask, Load};
+use servo_net::resource_task::{ResourceTask, ControlMsg};
 use servo_net::resource_task::LoadData as NetLoadData;
 use servo_net::storage_task::StorageTask;
 use servo_util::geometry::to_frac_px;
@@ -313,7 +314,7 @@ impl ScriptTaskFactory for ScriptTask {
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
-        }, FailureMsg(failure_msg), const_chan, false);
+        }, ConstellationMsg::Failure(failure_msg), const_chan, false);
     }
 }
 
@@ -505,15 +506,15 @@ impl ScriptTask {
                 // This has to be handled before the ResizeMsg below,
                 // otherwise the page may not have been added to the
                 // child list yet, causing the find() to fail.
-                MixedMessage::FromConstellation(AttachLayoutMsg(new_layout_info)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::AttachLayout(new_layout_info)) => {
                     self.handle_new_layout(new_layout_info);
                 }
-                MixedMessage::FromConstellation(ResizeMsg(id, size)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::Resize(id, size)) => {
                     let page = self.page.borrow_mut();
                     let page = page.find(id).expect("resize sent to nonexistent pipeline");
                     page.resize_event.set(Some(size));
                 }
-                MixedMessage::FromConstellation(ViewportMsg(id, rect)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
                     let page = self.page.borrow_mut();
                     let inner_page = page.find(id).expect("Page rect message sent to nonexistent pipeline");
                     if inner_page.set_page_clip_rect_with_new_viewport(rect) {
@@ -544,7 +545,7 @@ impl ScriptTask {
         // Process the gathered events.
         for msg in sequential.into_iter() {
             match msg {
-                MixedMessage::FromConstellation(ExitPipelineMsg(id, exit_type)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, exit_type)) => {
                     if self.handle_exit_pipeline_msg(id, exit_type) {
                         return false
                     }
@@ -560,24 +561,23 @@ impl ScriptTask {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
-            // TODO(tkuehn) need to handle auxiliary layouts for iframes
-            AttachLayoutMsg(_) =>
-                panic!("should have handled AttachLayoutMsg already"),
-            LoadMsg(id, load_data) =>
+            ConstellationControlMsg::AttachLayout(_) =>
+                panic!("should have handled AttachLayout already"),
+            ConstellationControlMsg::Load(id, load_data) =>
                 self.load(id, load_data),
-            SendEventMsg(id, event) =>
+            ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
-            ReflowCompleteMsg(id, reflow_id) =>
+            ConstellationControlMsg::ReflowComplete(id, reflow_id) =>
                 self.handle_reflow_complete_msg(id, reflow_id),
-            ResizeInactiveMsg(id, new_size) =>
+            ConstellationControlMsg::ResizeInactive(id, new_size) =>
                 self.handle_resize_inactive_msg(id, new_size),
-            ViewportMsg(..) =>
-                panic!("should have handled ViewportMsg already"),
-            ResizeMsg(..) =>
-                panic!("should have handled ResizeMsg already"),
-            ExitPipelineMsg(..) =>
-                panic!("should have handled ExitPipelineMsg already"),
-            GetTitleMsg(pipeline_id) =>
+            ConstellationControlMsg::Viewport(..) =>
+                panic!("should have handled Viewport already"),
+            ConstellationControlMsg::Resize(..) =>
+                panic!("should have handled Resize already"),
+            ConstellationControlMsg::ExitPipeline(..) =>
+                panic!("should have handled ExitPipeline already"),
+            ConstellationControlMsg::GetTitle(pipeline_id) =>
                 self.handle_get_title_msg(pipeline_id),
         }
     }
@@ -677,7 +677,7 @@ impl ScriptTask {
     /// TODO(tkuehn): is it ever possible to navigate only on a subframe?
     fn handle_navigate_msg(&self, direction: NavigationDirection) {
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(constellation_msg::NavigateMsg(direction));
+        chan.send(ConstellationMsg::Navigate(direction));
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
@@ -807,7 +807,7 @@ impl ScriptTask {
         let (parser_input, final_url) = if !is_javascript {
             // Wait for the LoadResponse so that the parser knows the final URL.
             let (input_chan, input_port) = channel();
-            self.resource_task.send(Load(NetLoadData {
+            self.resource_task.send(ControlMsg::Load(NetLoadData {
                 url: url,
                 method: load_data.method,
                 headers: load_data.headers,
@@ -882,7 +882,7 @@ impl ScriptTask {
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(LoadCompleteMsg);
+        chan.send(ConstellationMsg::LoadComplete);
 
         // Notify devtools that a new script global exists.
         match self.devtools_chan {
@@ -1054,7 +1054,7 @@ impl ScriptTask {
     /// for the given pipeline.
     fn trigger_load(&self, pipeline_id: PipelineId, load_data: LoadData) {
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(LoadUrlMsg(pipeline_id, load_data));
+        const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data));
     }
 
     /// The entry point for content to notify that a fragment url has been requested

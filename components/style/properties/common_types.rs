@@ -24,7 +24,7 @@ macro_rules! define_css_keyword_enum {
         impl $name {
             pub fn parse(component_value: &::cssparser::ast::ComponentValue) -> Result<$name, ()> {
                 match component_value {
-                    &::cssparser::ast::Ident(ref value) => {
+                    &::cssparser::ast::ComponentValue::Ident(ref value) => {
                         match_ignore_ascii_case! { value:
                             $( $css => Ok($name::$variant) ),+
                             _ => Err(())
@@ -63,8 +63,9 @@ pub mod specified {
     use std::fmt;
     use std::fmt::{Formatter, Show};
     use url::Url;
-    use cssparser::{mod, ast, ToCss, CssStringWriter};
+    use cssparser::{mod, ToCss, CssStringWriter};
     use cssparser::ast::*;
+    use cssparser::ast::ComponentValue::*;
     use text_writer::{mod, TextWriter};
     use parsing_utils::{mod, BufferedIter, ParserIter};
     use super::{Au, CSSFloat};
@@ -244,7 +245,7 @@ pub mod specified {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0. =>
                     Length::parse_dimension(value.value, unit.as_slice())
                         .map(LengthOrPercentage::Length),
-                &ast::Percentage(ref value) if negative_ok || value.value >= 0. =>
+                &Percentage(ref value) if negative_ok || value.value >= 0. =>
                     Ok(LengthOrPercentage::Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentage::Length(Length::Au(Au(0)))),
@@ -289,7 +290,7 @@ pub mod specified {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0. =>
                     Length::parse_dimension(value.value, unit.as_slice()).map(LengthOrPercentageOrAuto::Length),
-                &ast::Percentage(ref value) if negative_ok || value.value >= 0. =>
+                &Percentage(ref value) if negative_ok || value.value >= 0. =>
                     Ok(LengthOrPercentageOrAuto::Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentageOrAuto::Length(Length::Au(Au(0)))),
@@ -335,7 +336,7 @@ pub mod specified {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
                 => Length::parse_dimension(value.value, unit.as_slice()).map(LengthOrPercentageOrNone::Length),
-                &ast::Percentage(ref value) if negative_ok || value.value >= 0.
+                &Percentage(ref value) if negative_ok || value.value >= 0.
                 => Ok(LengthOrPercentageOrNone::Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. => Ok(LengthOrPercentageOrNone::Length(Length::Au(Au(0)))),
                 &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => Ok(LengthOrPercentageOrNone::None),
@@ -369,7 +370,7 @@ pub mod specified {
             match input {
                 &Dimension(ref value, ref unit) =>
                     Length::parse_dimension(value.value, unit.as_slice()).map(PositionComponent::Length),
-                &ast::Percentage(ref value) => Ok(PositionComponent::Percentage(value.value / 100.)),
+                &Percentage(ref value) => Ok(PositionComponent::Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. => Ok(PositionComponent::Length(Length::Au(Au(0)))),
                 &Ident(ref value) => {
                     if value.as_slice().eq_ignore_ascii_case("center") { Ok(PositionComponent::Center) }
@@ -464,11 +465,11 @@ pub mod specified {
         pub fn from_component_value(component_value: &ComponentValue, base_url: &Url)
                                     -> Result<Image,()> {
             match component_value {
-                &ast::URL(ref url) => {
+                &URL(ref url) => {
                     let image_url = super::parse_url(url.as_slice(), base_url);
                     Ok(Image::Url(image_url))
                 },
-                &ast::Function(ref name, ref args) => {
+                &Function(ref name, ref args) => {
                     if name.as_slice().eq_ignore_ascii_case("linear-gradient") {
                         Ok(Image::LinearGradient(try!(
                                     super::specified::LinearGradient::parse_function(

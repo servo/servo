@@ -69,7 +69,7 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
                 if is_image_data(uri.as_slice()) {
                     let data_url = Url::parse(uri.as_slice()).unwrap();
                     // Issue #84
-                    image_cache.send(image_cache_task::Prefetch(data_url));
+                    image_cache.send(image_cache_task::Msg::Prefetch(data_url));
                 }
             }
             _ => { }

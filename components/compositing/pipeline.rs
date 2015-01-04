@@ -5,13 +5,13 @@
 use CompositorProxy;
 use layout_traits::{ExitNowMsg, LayoutTaskFactory, LayoutControlChan};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
-use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
+use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use devtools_traits::DevtoolsControlChan;
-use gfx::paint_task;
+use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::paint_task::{PaintChan, PaintTask};
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, Failure, PipelineId, SubpageId};
+use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use servo_net::image_cache_task::ImageCacheTask;
 use gfx::font_cache_task::FontCacheTask;
@@ -100,7 +100,7 @@ impl Pipeline {
                 };
 
                 let ScriptControlChan(ref chan) = spipe.script_chan;
-                chan.send(AttachLayoutMsg(new_layout_info));
+                chan.send(ConstellationControlMsg::AttachLayout(new_layout_info));
                 spipe.script_chan.clone()
             }
         };
@@ -162,7 +162,7 @@ impl Pipeline {
 
     pub fn load(&self) {
         let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(LoadMsg(self.id, self.load_data.clone()));
+        chan.send(ConstellationControlMsg::Load(self.id, self.load_data.clone()));
     }
 
     pub fn grant_paint_permission(&self) {
@@ -180,7 +180,7 @@ impl Pipeline {
         // Script task handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script task has failed, we give up on clean shutdown.
         let ScriptControlChan(ref chan) = self.script_chan;
-        if chan.send_opt(ExitPipelineMsg(self.id, exit_type)).is_ok() {
+        if chan.send_opt(ConstellationControlMsg::ExitPipeline(self.id, exit_type)).is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
             let _ = self.paint_shutdown_port.recv_opt();
@@ -191,8 +191,10 @@ impl Pipeline {
 
     pub fn force_exit(&self) {
         let ScriptControlChan(ref script_channel) = self.script_chan;
-        let _ = script_channel.send_opt( ExitPipelineMsg(self.id, PipelineExitType::PipelineOnly));
-        let _ = self.paint_chan.send_opt(paint_task::ExitMsg(None, PipelineExitType::PipelineOnly));
+        let _ = script_channel.send_opt(
+            ConstellationControlMsg::ExitPipeline(self.id,
+                                                  PipelineExitType::PipelineOnly));
+        let _ = self.paint_chan.send_opt(PaintMsg::Exit(None, PipelineExitType::PipelineOnly));
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
         let _ = layout_channel.send_opt(ExitNowMsg(PipelineExitType::PipelineOnly));
     }

@@ -21,7 +21,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
-use hyper::method::Post;
+use hyper::method::Method;
 use servo_msg::constellation_msg::LoadData;
 use servo_util::str::DOMString;
 use script_task::{ScriptChan, ScriptMsg};
@@ -196,7 +196,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                 load_data.url.query = Some(parsed_data);
             },
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
-                load_data.method = Post;
+                load_data.method = Method::Post;
                 load_data.data = Some(parsed_data.into_bytes());
             },
             // https://html.spec.whatwg.org/multipage/forms.html#submit-get-action

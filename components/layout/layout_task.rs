@@ -28,7 +28,8 @@ use gfx::color;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
 use gfx::display_list::{StackingContext};
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::{mod, PaintInitMsg, PaintChan, PaintLayer};
+use gfx::paint_task::{PaintChan, PaintLayer};
+use gfx::paint_task::Msg as PaintMsg;
 use layout_traits::{mod, LayoutControlMsg, LayoutTaskFactory};
 use log;
 use script::dom::bindings::js::JS;
@@ -40,11 +41,12 @@ use script::layout_interface::{ContentBoxesQuery, ContentBoxQuery};
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
 use script::layout_interface::{MouseOverResponse, Msg, NoQuery};
 use script::layout_interface::{Reflow, ReflowGoal, ScriptLayoutChan, TrustedNodeAddress};
-use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
+use script_traits::{ConstellationControlMsg, ReflowEvent, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
-use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineExitType};
-use servo_msg::constellation_msg::{PipelineId, SetCursorMsg};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType};
+use servo_msg::constellation_msg::PipelineId;
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_net::resource_task::{ResourceTask, load_bytes_iter};
@@ -55,7 +57,7 @@ use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
-use servo_util::time::{mod, ProfilerMetadata, TimeProfilerChan, TimerMetadataFrameType};
+use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, TimerMetadataFrameType};
 use servo_util::time::{TimerMetadataReflowType, profile};
 use servo_util::workqueue::WorkQueue;
 use std::cell::Cell;
@@ -159,7 +161,7 @@ impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
                 debug!("Dirtying {:x}", node_address as uint);
                 let mut nodes = SmallVec1::new();
                 nodes.vec_push(node_address);
-                drop(chan.send_opt(SendEventMsg(id.clone(), ReflowEvent(nodes))))
+                drop(chan.send_opt(ConstellationControlMsg::SendEvent(id.clone(), ReflowEvent(nodes))))
             };
         f
     }
@@ -200,7 +202,7 @@ impl LayoutTaskFactory for LayoutTask {
                 layout.start();
             }
             shutdown_chan.send(());
-        }, FailureMsg(failure_msg), con_chan, false);
+        }, ConstellationMsg::Failure(failure_msg), con_chan, false);
     }
 }
 
@@ -397,7 +399,7 @@ impl LayoutTask {
                                    Box<LayoutRPC + Send>);
             },
             Msg::Reflow(data) => {
-                profile(time::LayoutPerformCategory,
+                profile(TimeProfilerCategory::LayoutPerform,
                         self.profiler_metadata(&*data),
                         self.time_profiler_chan.clone(),
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
@@ -465,7 +467,7 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
-        self.paint_chan.send(paint_task::ExitMsg(Some(response_chan), exit_type));
+        self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
         response_port.recv()
     }
 
@@ -626,7 +628,7 @@ impl LayoutTask {
                                          shared_layout_context: &mut SharedLayoutContext,
                                          rw_data: &mut RWGuard<'a>) {
         let writing_mode = flow::base(&**layout_root).writing_mode;
-        profile(time::LayoutDispListBuildCategory,
+        profile(TimeProfilerCategory::LayoutDispListBuild,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -700,7 +702,7 @@ impl LayoutTask {
 
             debug!("Layout done!");
 
-            self.paint_chan.send(PaintInitMsg(stacking_context));
+            self.paint_chan.send(PaintMsg::PaintInit(stacking_context));
         });
     }
 
@@ -770,7 +772,7 @@ impl LayoutTask {
                 |mut flow| LayoutTask::reflow_all_nodes(flow.deref_mut()));
         }
 
-        let mut layout_root = profile(time::LayoutStyleRecalcCategory,
+        let mut layout_root = profile(TimeProfilerCategory::LayoutStyleRecalc,
                                       self.profiler_metadata(data),
                                       self.time_profiler_chan.clone(),
                                       || {
@@ -788,7 +790,7 @@ impl LayoutTask {
             self.get_layout_root((*node).clone())
         });
 
-        profile(time::LayoutRestyleDamagePropagation,
+        profile(TimeProfilerCategory::LayoutRestyleDamagePropagation,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -810,7 +812,7 @@ impl LayoutTask {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        profile(time::LayoutMainCategory,
+        profile(TimeProfilerCategory::LayoutMain,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -870,7 +872,7 @@ impl LayoutTask {
         // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(());
         let ScriptControlChan(ref chan) = data.script_chan;
-        chan.send(ReflowCompleteMsg(self.id, data.id));
+        chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id));
     }
 
     unsafe fn dirty_all_nodes(node: &mut LayoutNode) {
@@ -999,7 +1001,7 @@ impl LayoutRPC for LayoutRPCImpl {
                 DefaultCursor
             };
             let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-            constellation_chan.send(SetCursorMsg(cursor));
+            constellation_chan.send(ConstellationMsg::SetCursor(cursor));
         }
 
         if mouse_over_list.is_empty() {

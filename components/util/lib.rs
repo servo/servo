@@ -18,7 +18,6 @@ extern crate geom;
 extern crate getopts;
 extern crate layers;
 extern crate libc;
-extern crate native;
 extern crate rand;
 extern crate rustrt;
 extern crate serialize;

@@ -50,23 +50,23 @@ pub struct NewLayoutInfo {
 /// Messages sent from the constellation to the script task
 pub enum ConstellationControlMsg {
     /// Loads a new URL on the specified pipeline.
-    LoadMsg(PipelineId, LoadData),
+    Load(PipelineId, LoadData),
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
-    AttachLayoutMsg(NewLayoutInfo),
+    AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
-    ResizeMsg(PipelineId, WindowSizeData),
+    Resize(PipelineId, WindowSizeData),
     /// Notifies script that window has been resized but to not take immediate action.
-    ResizeInactiveMsg(PipelineId, WindowSizeData),
+    ResizeInactive(PipelineId, WindowSizeData),
     /// Notifies the script that a pipeline should be closed.
-    ExitPipelineMsg(PipelineId, PipelineExitType),
+    ExitPipeline(PipelineId, PipelineExitType),
     /// Sends a DOM event.
-    SendEventMsg(PipelineId, CompositorEvent),
+    SendEvent(PipelineId, CompositorEvent),
     /// Notifies script that reflow is finished.
-    ReflowCompleteMsg(PipelineId, uint),
+    ReflowComplete(PipelineId, uint),
     /// Notifies script of the viewport.
-    ViewportMsg(PipelineId, Rect<f32>),
+    Viewport(PipelineId, Rect<f32>),
     /// Requests that the script task immediately send the constellation the title of a pipeline.
-    GetTitleMsg(PipelineId),
+    GetTitle(PipelineId),
 }
 
 /// Events from the compositor that the script task needs to know about

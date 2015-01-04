@@ -19,8 +19,8 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg;
 use msg::constellation_msg::{Key, CONTROL, SHIFT, ALT};
-use msg::compositor_msg::{IdlePaintState, PaintState, PaintingPaintState};
-use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
+use msg::compositor_msg::{PaintState, FinishedLoading, Blank, Loading};
+use msg::compositor_msg::{PerformingLayout, ReadyState};
 use msg::constellation_msg::LoadData;
 use std::cell::{Cell, RefCell};
 use std::num::Float;
@@ -156,7 +156,7 @@ impl Window {
 
             mouse_pos: Cell::new(Point2D(0, 0)),
             ready_state: Cell::new(Blank),
-            paint_state: Cell::new(IdlePaintState),
+            paint_state: Cell::new(PaintState::Idle),
             key_modifiers: Cell::new(KeyModifiers::empty()),
 
             last_title_set_time: Cell::new(Timespec::new(0, 0)),
@@ -344,10 +344,10 @@ impl Window {
                     }
                     FinishedLoading => {
                         match self.paint_state.get() {
-                            PaintingPaintState => {
+                            PaintState::Painting => {
                                 window.set_title("Rendering - Servo [glutin]")
                             }
-                            IdlePaintState => {
+                            PaintState::Idle => {
                                 window.set_title("Servo [glutin]")
                             }
                         }
