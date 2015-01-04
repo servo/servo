@@ -5,7 +5,6 @@
 use std::ascii::AsciiExt;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::num::div_rem;
 use sync::Arc;
 
 use url::Url;
@@ -1083,15 +1082,14 @@ fn matches_generic_nth_child<'a,E,N>(element: &N,
               index += 1;
             }
         }
-
     }
 
     if a == 0 {
-        return b == index;
+        b == index
+    } else {
+        (index - b) / a >= 0 &&
+        (index - b) % a == 0
     }
-
-    let (n, r) = div_rem(index - b, a);
-    n >= 0 && r == 0
 }
 
 #[inline]
