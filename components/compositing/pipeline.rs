@@ -8,7 +8,7 @@ use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
 
 use devtools_traits::DevtoolsControlChan;
-use gfx::paint_task;
+use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::paint_task::{PaintChan, PaintTask};
 use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, Failure, PipelineId, SubpageId};
@@ -192,7 +192,7 @@ impl Pipeline {
     pub fn force_exit(&self) {
         let ScriptControlChan(ref script_channel) = self.script_chan;
         let _ = script_channel.send_opt( ExitPipelineMsg(self.id, PipelineExitType::PipelineOnly));
-        let _ = self.paint_chan.send_opt(paint_task::ExitMsg(None, PipelineExitType::PipelineOnly));
+        let _ = self.paint_chan.send_opt(PaintMsg::Exit(None, PipelineExitType::PipelineOnly));
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
         let _ = layout_channel.send_opt(ExitNowMsg(PipelineExitType::PipelineOnly));
     }

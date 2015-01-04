@@ -18,7 +18,8 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
-use gfx::paint_task::{PaintChan, PaintMsg, PaintRequest, UnusedBufferMsg};
+use gfx::paint_task::Msg as PaintMsg;
+use gfx::paint_task::{PaintChan, PaintRequest};
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
@@ -662,7 +663,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => {
                 match self.paint_channels.entry(pipeline_id) {
                     Occupied(entry) => {
-                        let message = UnusedBufferMsg(new_layer_buffer_set.buffers);
+                        let message = PaintMsg::UnusedBuffer(new_layer_buffer_set.buffers);
                         let _ = entry.get().send_opt(message);
                     },
                     Vacant(_) => panic!("Received a buffer from an unknown pipeline!"),
@@ -962,7 +963,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(ref pipeline) => {
                 let unused_buffers = self.scene.collect_unused_buffers();
                 if unused_buffers.len() != 0 {
-                    let message = UnusedBufferMsg(unused_buffers);
+                    let message = PaintMsg::UnusedBuffer(unused_buffers);
                     let _ = pipeline.paint_chan.send_opt(message);
                 }
             },
@@ -1012,7 +1013,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut num_paint_msgs_sent = 0;
         for (_pipeline_id, (chan, requests)) in pipeline_requests.into_iter() {
             num_paint_msgs_sent += 1;
-            let _ = chan.send_opt(PaintMsg(requests));
+            let _ = chan.send_opt(PaintMsg::Paint(requests));
         }
 
         self.add_outstanding_paint_msg(num_paint_msgs_sent);

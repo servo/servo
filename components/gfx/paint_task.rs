@@ -68,12 +68,12 @@ pub struct PaintRequest {
 }
 
 pub enum Msg {
-    PaintInitMsg(Arc<StackingContext>),
-    PaintMsg(Vec<PaintRequest>),
-    UnusedBufferMsg(Vec<Box<LayerBuffer>>),
+    PaintInit(Arc<StackingContext>),
+    Paint(Vec<PaintRequest>),
+    UnusedBuffer(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
-    ExitMsg(Option<Sender<()>>, PipelineExitType),
+    Exit(Option<Sender<()>>, PipelineExitType),
 }
 
 #[deriving(Clone)]
@@ -234,7 +234,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
         let mut waiting_for_compositor_buffers_to_exit = false;
         loop {
             match self.port.recv() {
-                Msg::PaintInitMsg(stacking_context) => {
+                Msg::PaintInit(stacking_context) => {
                     self.epoch.next();
                     self.root_stacking_context = Some(stacking_context.clone());
 
@@ -250,7 +250,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                                       self.epoch,
                                       &*stacking_context);
                 }
-                Msg::PaintMsg(requests) => {
+                Msg::Paint(requests) => {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
@@ -280,7 +280,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     debug!("PaintTask: returning surfaces");
                     self.compositor.paint(self.id, self.epoch, replies);
                 }
-                Msg::UnusedBufferMsg(unused_buffers) => {
+                Msg::UnusedBuffer(unused_buffers) => {
                     debug!("PaintTask: Received {} unused buffers", unused_buffers.len());
                     self.used_buffer_count -= unused_buffers.len();
 
@@ -311,7 +311,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                 Msg::PaintPermissionRevoked => {
                     self.paint_permission = false;
                 }
-                Msg::ExitMsg(response_channel, exit_type) => {
+                Msg::Exit(response_channel, exit_type) => {
                     let should_wait_for_compositor_buffers = match exit_type {
                         PipelineExitType::Complete => false,
                         PipelineExitType::PipelineOnly => self.used_buffer_count != 0

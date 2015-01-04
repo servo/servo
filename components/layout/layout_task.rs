@@ -28,7 +28,8 @@ use gfx::color;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
 use gfx::display_list::{StackingContext};
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::{mod, PaintInitMsg, PaintChan, PaintLayer};
+use gfx::paint_task::{PaintChan, PaintLayer};
+use gfx::paint_task::Msg as PaintMsg;
 use layout_traits::{mod, LayoutControlMsg, LayoutTaskFactory};
 use log;
 use script::dom::bindings::js::JS;
@@ -464,7 +465,7 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
-        self.paint_chan.send(paint_task::ExitMsg(Some(response_chan), exit_type));
+        self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
         response_port.recv()
     }
 
@@ -699,7 +700,7 @@ impl LayoutTask {
 
             debug!("Layout done!");
 
-            self.paint_chan.send(PaintInitMsg(stacking_context));
+            self.paint_chan.send(PaintMsg::PaintInit(stacking_context));
         });
     }
 
