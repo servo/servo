@@ -36,6 +36,7 @@ use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementHelpers};
 use dom::htmlcollection::HTMLCollection;
+use dom::htmlelement::HTMLElementTypeId;
 use dom::htmlinputelement::{HTMLInputElement, RawLayoutHTMLInputElementHelpers, HTMLInputElementHelpers};
 use dom::htmlserializer::serialize;
 use dom::htmltableelement::{HTMLTableElement, HTMLTableElementHelpers};
@@ -88,74 +89,7 @@ impl ElementDerived for EventTarget {
 #[deriving(PartialEq, Show)]
 #[jstraceable]
 pub enum ElementTypeId {
-    HTMLElement,
-    HTMLAnchorElement,
-    HTMLAppletElement,
-    HTMLAreaElement,
-    HTMLAudioElement,
-    HTMLBaseElement,
-    HTMLBRElement,
-    HTMLBodyElement,
-    HTMLButtonElement,
-    HTMLCanvasElement,
-    HTMLDataElement,
-    HTMLDataListElement,
-    HTMLDirectoryElement,
-    HTMLDListElement,
-    HTMLDivElement,
-    HTMLEmbedElement,
-    HTMLFieldSetElement,
-    HTMLFontElement,
-    HTMLFormElement,
-    HTMLFrameElement,
-    HTMLFrameSetElement,
-    HTMLHRElement,
-    HTMLHeadElement,
-    HTMLHeadingElement,
-    HTMLHtmlElement,
-    HTMLIFrameElement,
-    HTMLImageElement,
-    HTMLInputElement,
-    HTMLLabelElement,
-    HTMLLegendElement,
-    HTMLLinkElement,
-    HTMLLIElement,
-    HTMLMapElement,
-    HTMLMediaElement,
-    HTMLMetaElement,
-    HTMLMeterElement,
-    HTMLModElement,
-    HTMLObjectElement,
-    HTMLOListElement,
-    HTMLOptGroupElement,
-    HTMLOptionElement,
-    HTMLOutputElement,
-    HTMLParagraphElement,
-    HTMLParamElement,
-    HTMLPreElement,
-    HTMLProgressElement,
-    HTMLQuoteElement,
-    HTMLScriptElement,
-    HTMLSelectElement,
-    HTMLSourceElement,
-    HTMLSpanElement,
-    HTMLStyleElement,
-    HTMLTableElement,
-    HTMLTableCaptionElement,
-    HTMLTableDataCellElement,
-    HTMLTableHeaderCellElement,
-    HTMLTableColElement,
-    HTMLTableRowElement,
-    HTMLTableSectionElement,
-    HTMLTemplateElement,
-    HTMLTextAreaElement,
-    HTMLTimeElement,
-    HTMLTitleElement,
-    HTMLTrackElement,
-    HTMLUListElement,
-    HTMLVideoElement,
-    HTMLUnknownElement,
-
+    HTMLElement(HTMLElementTypeId),
     Element,
 }
 
@@ -1367,9 +1301,9 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         match node.type_id() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
-            NodeTypeId::Element(ElementTypeId::HTMLAnchorElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLAreaElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLLinkElement) => self.get_attr(&ns!(""), &atom!("href")),
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => self.get_attr(&ns!(""), &atom!("href")),
             _ => None,
          }
     }
@@ -1473,7 +1407,7 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
     fn as_maybe_activatable(&'a self) -> Option<&'a Activatable + 'a> {
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         match node.type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(self).unwrap();
                 Some(element as &'a Activatable + 'a)
             },

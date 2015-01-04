@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLTimeElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTimeElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLTimeElement {
 
 impl HTMLTimeElementDerived for EventTarget {
     fn is_htmltimeelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTimeElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTimeElement)))
     }
 }
 
 impl HTMLTimeElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTimeElement {
         HTMLTimeElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTimeElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTimeElement, localName, prefix, document)
         }
     }
 

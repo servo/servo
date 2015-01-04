@@ -8,7 +8,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLUnknownElement {
 
 impl HTMLUnknownElementDerived for EventTarget {
     fn is_htmlunknownelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLUnknownElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLUnknownElement)))
     }
 }
 
 impl HTMLUnknownElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLUnknownElement {
         HTMLUnknownElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLUnknownElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLUnknownElement, localName, prefix, document)
         }
     }
 

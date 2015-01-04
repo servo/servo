@@ -18,11 +18,12 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Comparable, JS, JSRef, Root, Temporary, OptionalRootable};
 use dom::bindings::js::{ResultRootable, RootedReference, MutNullableJS};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::element::{AttributeHandlers, Element};
 use dom::element::{RawLayoutElementHelpers, ActivationElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::keyboardevent::KeyboardEvent;
 use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElement, HTMLFormElementHelpers};
 use dom::htmlformelement::{SubmittedFrom, ResetFrom};
@@ -99,7 +100,7 @@ impl InputActivationState {
 
 impl HTMLInputElementDerived for EventTarget {
     fn is_htmlinputelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLInputElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)))
     }
 }
 
@@ -108,7 +109,7 @@ static DEFAULT_INPUT_SIZE: u32 = 20;
 impl HTMLInputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLInputElement {
         HTMLInputElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLInputElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLInputElement, localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
             checked: Cell::new(false),
             indeterminate: Cell::new(false),

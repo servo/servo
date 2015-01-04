@@ -23,6 +23,7 @@ use dom::element::{Element, ElementTypeId, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::uievent::UIEvent;
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
+use dom::htmlelement::HTMLElementTypeId;
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{mod, Node, NodeHelpers, NodeDamage, NodeTypeId};
@@ -255,12 +256,12 @@ trait PrivateScriptTaskHelpers {
 impl<'a> PrivateScriptTaskHelpers for JSRef<'a, Node> {
     fn click_event_filter_by_disabled_state(&self) -> bool {
         match self.type_id() {
-            NodeTypeId::Element(ElementTypeId::HTMLButtonElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLInputElement) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
             // NodeTypeId::Element(ElementTypeId::HTMLKeygenElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLOptionElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLSelectElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) if self.get_disabled_state() => true,
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) if self.get_disabled_state() => true,
             _ => false
         }
     }

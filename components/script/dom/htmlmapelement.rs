@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLMapElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLMapElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLMapElement {
 
 impl HTMLMapElementDerived for EventTarget {
     fn is_htmlmapelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLMapElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMapElement)))
     }
 }
 
 impl HTMLMapElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMapElement {
         HTMLMapElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLMapElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMapElement, localName, prefix, document)
         }
     }
 

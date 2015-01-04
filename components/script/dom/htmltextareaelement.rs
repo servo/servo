@@ -14,10 +14,11 @@ use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLField
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, AttributeHandlers, ElementTypeId};
+use dom::element::{Element, AttributeHandlers};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::FormControl;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
@@ -43,7 +44,7 @@ pub struct HTMLTextAreaElement {
 
 impl HTMLTextAreaElementDerived for EventTarget {
     fn is_htmltextareaelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)))
     }
 }
 
@@ -81,7 +82,7 @@ static DEFAULT_ROWS: u32 = 2;
 impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTextAreaElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".into_string())),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),

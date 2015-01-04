@@ -13,7 +13,7 @@ use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
-use dom::htmlelement::HTMLElement;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -29,7 +29,7 @@ pub struct HTMLBodyElement {
 
 impl HTMLBodyElementDerived for EventTarget {
     fn is_htmlbodyelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLBodyElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)))
     }
 }
 
@@ -37,7 +37,7 @@ impl HTMLBodyElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
                      -> HTMLBodyElement {
         HTMLBodyElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLBodyElement,
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBodyElement,
                                                     localName,
                                                     prefix,
                                                     document),

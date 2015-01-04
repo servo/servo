@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLBRElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLBRElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLBRElement {
 
 impl HTMLBRElementDerived for EventTarget {
     fn is_htmlbrelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLBRElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBRElement)))
     }
 }
 
 impl HTMLBRElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLBRElement {
         HTMLBRElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLBRElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBRElement, localName, prefix, document)
         }
     }
 

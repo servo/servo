@@ -12,9 +12,10 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId, AttributeHandlers};
+use dom::element::{Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -38,14 +39,14 @@ pub struct HTMLCanvasElement {
 
 impl HTMLCanvasElementDerived for EventTarget {
     fn is_htmlcanvaselement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLCanvasElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement)))
     }
 }
 
 impl HTMLCanvasElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLCanvasElement {
         HTMLCanvasElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLCanvasElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLCanvasElement, localName, prefix, document),
             context: Default::default(),
             width: Cell::new(DEFAULT_WIDTH),
             height: Cell::new(DEFAULT_HEIGHT),

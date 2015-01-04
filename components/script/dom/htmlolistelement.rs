@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLOListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLOListElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLOListElement {
 
 impl HTMLOListElementDerived for EventTarget {
     fn is_htmlolistelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLOListElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOListElement)))
     }
 }
 
 impl HTMLOListElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLOListElement {
         HTMLOListElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLOListElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLOListElement, localName, prefix, document)
         }
     }
 

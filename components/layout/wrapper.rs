@@ -44,6 +44,7 @@ use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, Node
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
+use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
@@ -516,9 +517,9 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         match NodeCast::from_actual(self.element).type_id_for_layout() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
-            NodeTypeId::Element(ElementTypeId::HTMLAnchorElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLAreaElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLLinkElement) => {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
                 unsafe {
                     self.element.get_attr_val_for_layout(&ns!(""), &atom!("href"))
                 }

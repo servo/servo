@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLHeadingElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHeadingElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -30,14 +30,14 @@ pub struct HTMLHeadingElement {
 
 impl HTMLHeadingElementDerived for EventTarget {
     fn is_htmlheadingelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLHeadingElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadingElement)))
     }
 }
 
 impl HTMLHeadingElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>, level: HeadingLevel) -> HTMLHeadingElement {
         HTMLHeadingElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLHeadingElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLHeadingElement, localName, prefix, document),
             level: level,
         }
     }

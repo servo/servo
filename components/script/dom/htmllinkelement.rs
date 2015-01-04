@@ -11,9 +11,10 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::element::{AttributeHandlers, Element};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
@@ -32,14 +33,14 @@ pub struct HTMLLinkElement {
 
 impl HTMLLinkElementDerived for EventTarget {
     fn is_htmllinkelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLLinkElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)))
     }
 }
 
 impl HTMLLinkElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLinkElement {
         HTMLLinkElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLLinkElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLLinkElement, localName, prefix, document),
             rel_list: Default::default(),
         }
     }

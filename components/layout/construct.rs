@@ -45,8 +45,9 @@ use wrapper::{PostorderNodeMutTraversal, PseudoElementType, TLayoutNode, ThreadS
 
 use gfx::display_list::OpaqueNode;
 use script::dom::element::ElementTypeId;
-use script::dom::node::NodeTypeId;
+use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlobjectelement::is_image_data;
+use script::dom::node::NodeTypeId;
 use servo_util::opts;
 use std::collections::DList;
 use std::mem;
@@ -253,24 +254,23 @@ impl<'a> FlowConstructor<'a> {
     pub fn build_specific_fragment_info_for_node(&mut self, node: &ThreadSafeLayoutNode)
                                                  -> SpecificFragmentInfo {
         match node.type_id() {
-            Some(NodeTypeId::Element(ElementTypeId::HTMLIFrameElement)) => {
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement))) => {
                 SpecificFragmentInfo::Iframe(box IframeFragmentInfo::new(node))
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLImageElement)) => {
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement))) => {
                 self.build_fragment_info_for_image(node, node.image_url())
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLObjectElement)) => {
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement))) => {
                 let data = node.get_object_data();
                 self.build_fragment_info_for_image(node, data)
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLTableElement)) => SpecificFragmentInfo::TableWrapper,
-            Some(NodeTypeId::Element(ElementTypeId::HTMLTableColElement)) => {
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement))) => SpecificFragmentInfo::TableWrapper,
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableColElement))) => {
                 SpecificFragmentInfo::TableColumn(TableColumnFragmentInfo::new(node))
             }
-            Some(NodeTypeId::Element(ElementTypeId::HTMLTableDataCellElement)) |
-            Some(NodeTypeId::Element(ElementTypeId::HTMLTableHeaderCellElement)) => SpecificFragmentInfo::TableCell,
-            Some(NodeTypeId::Element(ElementTypeId::HTMLTableRowElement)) |
-            Some(NodeTypeId::Element(ElementTypeId::HTMLTableSectionElement)) => SpecificFragmentInfo::TableRow,
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)))) => SpecificFragmentInfo::TableCell,
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement))) |
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement))) => SpecificFragmentInfo::TableRow,
             Some(NodeTypeId::Text) => SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new(node)),
             _ => {
                 // This includes pseudo-elements.
@@ -547,11 +547,11 @@ impl<'a> FlowConstructor<'a> {
     fn build_flow_for_block(&mut self, flow: FlowRef, node: &ThreadSafeLayoutNode)
                             -> ConstructionResult {
         let initial_fragment = if node.get_pseudo_element_type() != PseudoElementType::Normal ||
-           node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLInputElement)) ||
-           node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement)) {
+           node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement))) ||
+           node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement))) {
             // A TextArea's text contents are displayed through the input text
             // box, so don't construct them.
-            if node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement)) {
+            if node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement))) {
                 for kid in node.children() {
                     kid.set_flow_construction_result(ConstructionResult::None)
                 }
@@ -1261,8 +1261,8 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             Some(NodeTypeId::DocumentFragment) |
             Some(NodeTypeId::Document) |
             None |
-            Some(NodeTypeId::Element(ElementTypeId::HTMLImageElement)) => true,
-            Some(NodeTypeId::Element(ElementTypeId::HTMLObjectElement)) => self.has_object_data(),
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement))) => true,
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement))) => self.has_object_data(),
             Some(NodeTypeId::Element(_)) => false,
         }
     }
