@@ -27,7 +27,6 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{mod, Node, NodeHelpers, NodeDamage, NodeTypeId};
 use dom::window::{Window, WindowHelpers};
-use dom::worker::{Worker, TrustedWorkerAddress};
 use parse::html::{HTMLInput, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use layout_interface;
@@ -115,8 +114,6 @@ pub enum ScriptMsg {
     /// Message sent through Worker.postMessage (only dispatched to
     /// DedicatedWorkerGlobalScope).
     DOMMessage(*mut u64, size_t),
-    /// Posts a message to the Worker object (dispatched to all tasks).
-    WorkerPostMessage(TrustedWorkerAddress, *mut u64, size_t),
     /// Generic message that encapsulates event handling.
     RunnableMsg(Box<Runnable+Send>),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
@@ -600,8 +597,6 @@ impl ScriptTask {
                 self.handle_exit_window_msg(id),
             ScriptMsg::DOMMessage(..) =>
                 panic!("unexpected message"),
-            ScriptMsg::WorkerPostMessage(addr, data, nbytes) =>
-                Worker::handle_message(addr, data, nbytes),
             ScriptMsg::RunnableMsg(runnable) =>
                 runnable.handler(),
             ScriptMsg::RefcountCleanup(addr) =>
