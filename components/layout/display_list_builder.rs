@@ -32,7 +32,8 @@ use gfx::display_list::{SidewaysRight, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem, Upright};
 use gfx::paint_task::PaintLayer;
 use servo_msg::compositor_msg::{FixedPosition, Scrollable};
-use servo_msg::constellation_msg::{ConstellationChan, FrameRectMsg};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::image::holder::ImageHolder;
 use servo_util::cursor::{DefaultCursor, TextCursor, VerticalTextCursor};
 use servo_util::geometry::{mod, Au, ZERO_POINT};
@@ -904,9 +905,9 @@ impl FragmentDisplayListBuilding for Fragment {
                iframe_fragment.pipeline_id,
                iframe_fragment.subpage_id);
         let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
-        chan.send(FrameRectMsg(iframe_fragment.pipeline_id,
-                               iframe_fragment.subpage_id,
-                               iframe_rect));
+        chan.send(ConstellationMsg::FrameRect(iframe_fragment.pipeline_id,
+                                              iframe_fragment.subpage_id,
+                                              iframe_rect));
     }
 
     fn clipping_region_for_children(&self, current_clip: &ClippingRegion, flow_origin: &Point2D<Au>)

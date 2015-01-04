@@ -18,10 +18,10 @@ use time::{now, Timespec};
 use hyper::header::{Headers, Header, HeaderFormat, HeaderView};
 use hyper::header::common::util as header_util;
 use hyper::client::Request;
-use hyper::mime::{mod, Mime};
+use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::header::common::{ContentType, Host};
-use hyper::method::{Method, Get, Head, Post, Options};
-use hyper::status::Success;
+use hyper::method::Method;
+use hyper::status::StatusClass::Success;
 
 use url::{SchemeData, Url};
 
@@ -118,7 +118,7 @@ impl CORSRequest {
         let mut cors_response = CORSResponse::new();
 
         let mut preflight = self.clone(); // Step 1
-        preflight.method = Options; // Step 2
+        preflight.method = Method::Options; // Step 2
         preflight.headers = Headers::new(); // Step 3
         // Step 4
         preflight.headers.set(AccessControlRequestMethod(self.method.clone()));
@@ -364,9 +364,9 @@ fn is_simple_header(h: &HeaderView) -> bool {
     match h.name().to_ascii_lower().as_slice() {
         "accept" | "accept-language" | "content-language" => true,
         "content-type" => match h.value() {
-            Some(&ContentType(Mime(mime::Text, mime::Plain, _))) |
-            Some(&ContentType(Mime(mime::Application, mime::WwwFormUrlEncoded, _))) |
-            Some(&ContentType(Mime(mime::Multipart, mime::FormData, _))) => true,
+            Some(&ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) |
+            Some(&ContentType(Mime(TopLevel::Application, SubLevel::WwwFormUrlEncoded, _))) |
+            Some(&ContentType(Mime(TopLevel::Multipart, SubLevel::FormData, _))) => true,
 
             _ => false
 
@@ -377,7 +377,7 @@ fn is_simple_header(h: &HeaderView) -> bool {
 
 fn is_simple_method(m: &Method) -> bool {
     match *m {
-        Get | Head | Post => true,
+        Method::Get | Method::Head | Method::Post => true,
         _ => false
     }
 }

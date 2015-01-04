@@ -22,21 +22,22 @@ use std::cell::RefCell;
 use sync::Arc;
 
 use azure::AzFloat;
-use azure::azure_hl::SkiaBackend;
+use azure::azure_hl::BackendType;
 use azure::scaled_font::ScaledFont;
 
 #[cfg(any(target_os="linux", target_os = "android"))]
-use azure::scaled_font::FontData;
+use azure::scaled_font::FontInfo;
 
 #[cfg(any(target_os="linux", target_os = "android"))]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
-    ScaledFont::new(SkiaBackend, FontData(&template.bytes), pt_size.to_subpx() as AzFloat)
+    ScaledFont::new(BackendType::SkiaBackend, FontInfo::FontData(&template.bytes),
+                    pt_size.to_subpx() as AzFloat)
 }
 
 #[cfg(target_os="macos")]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
     let cgfont = template.ctfont.as_ref().unwrap().copy_to_CGFont();
-    ScaledFont::new(SkiaBackend, &cgfont, pt_size.to_subpx() as AzFloat)
+    ScaledFont::new(BackendType::SkiaBackend, &cgfont, pt_size.to_subpx() as AzFloat)
 }
 
 static SMALL_CAPS_SCALE_FACTOR: f64 = 0.8;      // Matches FireFox (see gfxFont.h)
@@ -100,8 +101,8 @@ impl FontContext {
         // painting. We should also support true small-caps (where the
         // font supports it) in the future.
         let actual_pt_size = match variant {
-            font_variant::small_caps => pt_size.scale_by(SMALL_CAPS_SCALE_FACTOR),
-            font_variant::normal => pt_size,
+            font_variant::T::small_caps => pt_size.scale_by(SMALL_CAPS_SCALE_FACTOR),
+            font_variant::T::normal => pt_size,
         };
 
         let handle: FontHandle = FontHandleMethods::new_from_template(&self.platform_handle,
@@ -138,7 +139,7 @@ impl FontContext {
         // so they will never be released. Find out a good time to drop them.
 
         let desc = FontTemplateDescriptor::new(style.font_weight,
-                                               style.font_style == font_style::italic);
+                                               style.font_style == font_style::T::italic);
         let mut fonts = SmallVec8::new();
 
         for family in style.font_family.iter() {

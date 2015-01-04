@@ -10,7 +10,7 @@ use font_cache_task::FontCacheTask;
 use font_context::FontContext;
 use paint_context::PaintContext;
 
-use azure::azure_hl::{B8G8R8A8, Color, DrawTarget, SkiaBackend, StolenGLResources};
+use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType, StolenGLResources};
 use azure::AzFloat;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
@@ -20,19 +20,18 @@ use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsCo
 use layers::platform::surface::{NativeSurface, NativeSurfaceMethods};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
-use native::task::NativeTaskBuilder;
-use servo_msg::compositor_msg::{Epoch, IdlePaintState, LayerId};
-use servo_msg::compositor_msg::{LayerMetadata, PaintListener, PaintingPaintState, ScrollPolicy};
-use servo_msg::constellation_msg::{ConstellationChan, Failure, FailureMsg, PipelineExitType};
-use servo_msg::constellation_msg::{PipelineId, PainterReadyMsg};
+use servo_msg::compositor_msg::{Epoch, PaintState, LayerId};
+use servo_msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
+use servo_msg::constellation_msg::PipelineExitType;
 use servo_msg::platform::surface::NativeSurfaceAzureMethods;
 use servo_util::geometry::{Au, ZERO_POINT};
 use servo_util::opts;
 use servo_util::smallvec::SmallVec;
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
-use servo_util::time::{TimeProfilerChan, profile};
-use servo_util::time;
+use servo_util::time::{TimeProfilerChan, TimeProfilerCategory, profile};
 use std::comm::{Receiver, Sender, channel};
 use std::mem;
 use std::task::TaskBuilder;
@@ -68,12 +67,12 @@ pub struct PaintRequest {
 }
 
 pub enum Msg {
-    PaintInitMsg(Arc<StackingContext>),
-    PaintMsg(Vec<PaintRequest>),
-    UnusedBufferMsg(Vec<Box<LayerBuffer>>),
+    PaintInit(Arc<StackingContext>),
+    Paint(Vec<PaintRequest>),
+    UnusedBuffer(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
-    ExitMsg(Option<Sender<()>>, PipelineExitType),
+    Exit(Option<Sender<()>>, PipelineExitType),
 }
 
 #[deriving(Clone)]
@@ -224,7 +223,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
 
             debug!("paint_task: shutdown_chan send");
             shutdown_chan.send(());
-        }, FailureMsg(failure_msg), c, true);
+        }, ConstellationMsg::Failure(failure_msg), c, true);
     }
 
     fn start(&mut self) {
@@ -234,14 +233,14 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
         let mut waiting_for_compositor_buffers_to_exit = false;
         loop {
             match self.port.recv() {
-                Msg::PaintInitMsg(stacking_context) => {
+                Msg::PaintInit(stacking_context) => {
                     self.epoch.next();
                     self.root_stacking_context = Some(stacking_context.clone());
 
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(PainterReadyMsg(self.id));
+                        c.send(ConstellationMsg::PainterReady(self.id));
                         continue;
                     }
 
@@ -250,17 +249,17 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                                       self.epoch,
                                       &*stacking_context);
                 }
-                Msg::PaintMsg(requests) => {
+                Msg::Paint(requests) => {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(PainterReadyMsg(self.id));
+                        c.send(ConstellationMsg::PainterReady(self.id));
                         self.compositor.paint_msg_discarded();
                         continue;
                     }
 
                     let mut replies = Vec::new();
-                    self.compositor.set_paint_state(self.id, PaintingPaintState);
+                    self.compositor.set_paint_state(self.id, PaintState::Painting);
                     for PaintRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.into_iter() {
                         if self.epoch == epoch {
@@ -270,7 +269,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                         }
                     }
 
-                    self.compositor.set_paint_state(self.id, IdlePaintState);
+                    self.compositor.set_paint_state(self.id, PaintState::Idle);
 
                     for reply in replies.iter() {
                         let &(_, ref buffer_set) = reply;
@@ -280,7 +279,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     debug!("PaintTask: returning surfaces");
                     self.compositor.paint(self.id, self.epoch, replies);
                 }
-                Msg::UnusedBufferMsg(unused_buffers) => {
+                Msg::UnusedBuffer(unused_buffers) => {
                     debug!("PaintTask: Received {} unused buffers", unused_buffers.len());
                     self.used_buffer_count -= unused_buffers.len();
 
@@ -311,7 +310,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                 Msg::PaintPermissionRevoked => {
                     self.paint_permission = false;
                 }
-                Msg::ExitMsg(response_channel, exit_type) => {
+                Msg::Exit(response_channel, exit_type) => {
                     let should_wait_for_compositor_buffers = match exit_type {
                         PipelineExitType::Complete => false,
                         PipelineExitType::PipelineOnly => self.used_buffer_count != 0
@@ -383,7 +382,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
               mut tiles: Vec<BufferRequest>,
               scale: f32,
               layer_id: LayerId) {
-        time::profile(time::PaintingCategory, None, self.time_profiler_chan.clone(), || {
+        profile(TimeProfilerCategory::Painting, None, self.time_profiler_chan.clone(), || {
             // Bail out if there is no appropriate stacking context.
             let stacking_context = match self.root_stacking_context {
                 Some(ref stacking_context) => {
@@ -442,7 +441,7 @@ impl WorkerThreadProxy {
             let native_graphics_metadata = native_graphics_metadata.clone();
             let font_cache_task = font_cache_task.clone();
             let time_profiler_chan = time_profiler_chan.clone();
-            TaskBuilder::new().native().spawn(proc() {
+            TaskBuilder::new().spawn(proc() {
                 let mut worker_thread = WorkerThread::new(from_worker_sender,
                                                           to_worker_receiver,
                                                           native_graphics_metadata,
@@ -525,14 +524,14 @@ impl WorkerThread {
                                -> DrawTarget {
         let size = Size2D(tile.screen_rect.size.width as i32, tile.screen_rect.size.height as i32);
         let draw_target = if !opts::get().gpu_painting {
-            DrawTarget::new(SkiaBackend, size, B8G8R8A8)
+            DrawTarget::new(BackendType::SkiaBackend, size, SurfaceFormat::B8G8R8A8)
         } else {
             // FIXME(pcwalton): Cache the components of draw targets (texture color buffer,
             // paintbuffers) instead of recreating them.
-            let draw_target = DrawTarget::new_with_fbo(SkiaBackend,
+            let draw_target = DrawTarget::new_with_fbo(BackendType::SkiaBackend,
                                                        native_graphics_context!(self),
                                                        size,
-                                                       B8G8R8A8);
+                                                       SurfaceFormat::B8G8R8A8);
             draw_target.make_current();
             draw_target
         };
@@ -559,7 +558,8 @@ impl WorkerThread {
             paint_context.clear();
 
             // Draw the display list.
-            profile(time::PaintingPerTileCategory, None, self.time_profiler_sender.clone(), || {
+            profile(TimeProfilerCategory::PaintingPerTile, None,
+                    self.time_profiler_sender.clone(), || {
                 stacking_context.optimize_and_draw_into_context(&mut paint_context,
                                                                 &tile.page_rect,
                                                                 &matrix,
@@ -586,8 +586,8 @@ impl WorkerThread {
             let mut buffer = layer_buffer.unwrap();
             draw_target.snapshot().get_data_surface().with_data(|data| {
                 buffer.native_surface.upload(native_graphics_context!(self), data);
-                debug!("painting worker thread uploading to native surface {:d}",
-                       buffer.native_surface.get_id() as int);
+                debug!("painting worker thread uploading to native surface {}",
+                       buffer.native_surface.get_id());
             });
             return buffer
         }

@@ -36,13 +36,15 @@ use hyper::header::Headers;
 use hyper::header::common::{Accept, ContentLength, ContentType};
 use hyper::http::RawStatus;
 use hyper::mime::{mod, Mime};
-use hyper::method::{Method, Get, Head, Connect, Trace, Extension};
+use hyper::method::Method;
 
 use js::jsapi::{JS_ParseJSON, JSContext};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
-use net::resource_task::{ResourceTask, ResourceCORSData, Load, LoadData, LoadResponse, Payload, Done};
+use net::resource_task::{ResourceTask, ResourceCORSData, LoadData, LoadResponse};
+use net::resource_task::ControlMsg::Load;
+use net::resource_task::ProgressMsg::{Payload, Done};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode};
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
@@ -173,7 +175,7 @@ impl XMLHttpRequest {
             response_xml: Default::default(),
             response_headers: DOMRefCell::new(Headers::new()),
 
-            request_method: DOMRefCell::new(Get),
+            request_method: DOMRefCell::new(Method::Get),
             request_url: DOMRefCell::new(None),
             request_headers: DOMRefCell::new(Headers::new()),
             request_body_len: Cell::new(0),
@@ -360,8 +362,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         // Step 2
         match maybe_method {
             // Step 4
-            Some(Connect) | Some(Trace) => Err(Security),
-            Some(Extension(ref t)) if t.as_slice() == "TRACK" => Err(Security),
+            Some(Method::Connect) | Some(Method::Trace) => Err(Security),
+            Some(Method::Extension(ref t)) if t.as_slice() == "TRACK" => Err(Security),
             Some(_) if method.is_token() => {
 
                 *self.request_method.borrow_mut() = maybe_method.unwrap();
@@ -493,7 +495,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
 
         let data = match *self.request_method.borrow() {
-            Get | Head => None, // Step 3
+            Method::Get | Method::Head => None, // Step 3
             _ => data
         };
         let extracted = data.as_ref().map(|d| d.extract());
@@ -955,7 +957,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         match self.response_headers.borrow().get() {
             Some(&ContentType(mime::Mime(_, _, ref params))) => {
                 for &(ref name, ref value) in params.iter() {
-                    if name == &mime::Charset {
+                    if name == &mime::Attr::Charset {
                         encoding = encoding_from_whatwg_label(value.to_string().as_slice()).unwrap_or(encoding);
                     }
                 }

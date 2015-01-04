@@ -12,13 +12,13 @@ use geom::matrix::identity;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::size::TypedSize2D;
 use geom::rect::Rect;
-use gfx::paint_task::UnusedBufferMsg;
+use gfx::paint_task::Msg as PaintMsg;
 use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use layers::platform::surface::NativeSurfaceMethods;
-use script_traits::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent, SendEventMsg};
-use script_traits::{ScriptControlChan};
+use script_traits::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
+use script_traits::{ScriptControlChan, ConstellationControlMsg};
 use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId, ScrollPolicy};
 use std::num::Float;
 use std::num::FloatMath;
@@ -196,7 +196,7 @@ impl CompositorLayer for Layer<CompositorData> {
                    self.extra_data.borrow().epoch,
                    epoch,
                    self.extra_data.borrow().pipeline.id);
-            let msg = UnusedBufferMsg(new_buffers.buffers);
+            let msg = PaintMsg::UnusedBuffer(new_buffers.buffers);
             let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(msg);
             return false;
         }
@@ -208,7 +208,7 @@ impl CompositorLayer for Layer<CompositorData> {
 
             let unused_buffers = self.collect_unused_buffers();
             if !unused_buffers.is_empty() { // send back unused buffers
-                let msg = UnusedBufferMsg(unused_buffers);
+                let msg = PaintMsg::UnusedBuffer(unused_buffers);
                 let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(msg);
             }
         }
@@ -227,7 +227,7 @@ impl CompositorLayer for Layer<CompositorData> {
                 buffer.mark_wont_leak()
             }
 
-            let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(UnusedBufferMsg(buffers));
+            let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(buffers));
         }
     }
 
@@ -328,7 +328,7 @@ impl CompositorLayer for Layer<CompositorData> {
         };
         let pipeline = &self.extra_data.borrow().pipeline;
         let ScriptControlChan(ref chan) = pipeline.script_chan;
-        let _ = chan.send_opt(SendEventMsg(pipeline.id.clone(), message));
+        let _ = chan.send_opt(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn send_mouse_move_event(&self,
@@ -336,7 +336,7 @@ impl CompositorLayer for Layer<CompositorData> {
         let message = MouseMoveEvent(cursor.to_untyped());
         let pipeline = &self.extra_data.borrow().pipeline;
         let ScriptControlChan(ref chan) = pipeline.script_chan;
-        let _ = chan.send_opt(SendEventMsg(pipeline.id.clone(), message));
+        let _ = chan.send_opt(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn scroll_layer_and_all_child_layers(&self,

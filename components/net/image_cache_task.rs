@@ -13,7 +13,6 @@ use std::comm::{channel, Receiver, Sender};
 use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
 use std::mem::replace;
-use std::result;
 use sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
 use url::Url;
@@ -456,10 +455,10 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()>
             Payload(data) => {
                 image_data.push_all(data.as_slice());
             }
-            Done(result::Ok(..)) => {
+            Done(Ok(..)) => {
                 return Ok(image_data);
             }
-            Done(result::Err(..)) => {
+            Done(Err(..)) => {
                 return Err(());
             }
         }

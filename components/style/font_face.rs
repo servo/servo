@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::ast::*;
+use cssparser::ast::ComponentValue::*;
 use cssparser::parse_declaration_list;
 use errors::{ErrorLoggerIterator, log_css_error};
 use std::ascii::AsciiExt;

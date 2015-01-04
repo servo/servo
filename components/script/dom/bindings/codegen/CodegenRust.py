@@ -674,7 +674,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             default = "None"
         else:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
-            value = "str::from_utf8(data).unwrap().into_string()"
+            value = "str::from_utf8(&data).unwrap().into_string()"
             if type.nullable():
                 value = "Some(%s)" % value
 

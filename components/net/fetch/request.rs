@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use url::Url;
-use hyper::method::{Get, Method};
-use hyper::mime::{Mime, Text, Html, Charset, Utf8};
+use hyper::method::Method;
+use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use hyper::header::Headers;
 use hyper::header::common::ContentType;
 use fetch::cors_cache::CORSCache;
@@ -87,7 +87,7 @@ pub struct Request {
 impl Request {
     pub fn new(url: Url, context: Context) -> Request {
          Request {
-            method: Get,
+            method: Method::Get,
             url: url,
             headers: Headers::new(),
             unsafe_request: false,
@@ -118,7 +118,9 @@ impl Request {
             "about" => match self.url.non_relative_scheme_data() {
                 Some(s) if s.as_slice() == "blank" => {
                     let mut response = Response::new();
-                    response.headers.set(ContentType(Mime(Text, Html, vec![(Charset, Utf8)])));
+                    response.headers.set(ContentType(Mime(
+                        TopLevel::Text, SubLevel::Html,
+                        vec![(Attr::Charset, Value::Utf8)])));
                     response
                 },
                 _ => Response::network_error()

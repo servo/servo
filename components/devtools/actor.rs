@@ -25,7 +25,7 @@ pub trait Actor : Any {
     fn name(&self) -> String;
 }
 
-impl<'a> AnyMutRefExt<'a> for &'a mut Actor + 'a {
+impl<'a> AnyMutRefExt<'a> for &'a mut (Actor + 'a) {
     fn downcast_mut<T: 'static>(self) -> Option<&'a mut T> {
         if self.is::<T>() {
             unsafe {
@@ -41,7 +41,7 @@ impl<'a> AnyMutRefExt<'a> for &'a mut Actor + 'a {
     }
 }
 
-impl<'a> AnyRefExt<'a> for &'a Actor + 'a {
+impl<'a> AnyRefExt<'a> for &'a (Actor + 'a) {
     fn is<T: 'static>(self) -> bool {
         // This implementation is only needed so long as there's a Rust bug that
         // prevents downcast_ref from giving realistic return values.

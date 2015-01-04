@@ -5,11 +5,11 @@
 //! Painting of display lists using Moz2D/Azure.
 
 use azure::azure::AzIntSize;
-use azure::azure_hl::{A8, B8G8R8A8, Color, ColorPattern, ColorPatternRef, DrawOptions};
-use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendClamp, GaussianBlurFilterType};
-use azure::azure_hl::{GaussianBlurInput, GradientStop, Linear, LinearGradientPattern};
-use azure::azure_hl::{LinearGradientPatternRef, Path, PathBuilder, SourceOp};
-use azure::azure_hl::{StdDeviationGaussianBlurAttribute, StrokeOptions};
+use azure::azure_hl::{SurfaceFormat, Color, ColorPattern, DrawOptions};
+use azure::azure_hl::{DrawSurfaceOptions, DrawTarget, ExtendMode, FilterType};
+use azure::azure_hl::{GaussianBlurInput, GradientStop, Filter, LinearGradientPattern};
+use azure::azure_hl::{PatternRef, Path, PathBuilder, CompositionOp};
+use azure::azure_hl::{GaussianBlurAttribute, StrokeOptions};
 use azure::scaled_font::ScaledFont;
 use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
@@ -23,7 +23,7 @@ use geom::side_offsets::SideOffsets2D;
 use geom::size::Size2D;
 use libc::size_t;
 use libc::types::common::c99::{uint16_t, uint32_t};
-use png::{RGB8, RGBA8, K8, KA8};
+use png::PixelsByColorType;
 use servo_net::image::base::Image;
 use servo_util::geometry::{Au, MAX_RECT};
 use servo_util::opts;
@@ -72,7 +72,7 @@ impl<'a> PaintContext<'a> {
     pub fn draw_solid_color(&self, bounds: &Rect<Au>, color: Color) {
         self.draw_target.make_current();
         self.draw_target.fill_rect(&bounds.to_azure_rect(),
-                                   ColorPatternRef(&ColorPattern::new(color)),
+                                   PatternRef::ColorPatternRef(&ColorPattern::new(color)),
                                    None);
     }
 
@@ -123,10 +123,10 @@ impl<'a> PaintContext<'a> {
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<Image>>) {
         let size = Size2D(image.width as i32, image.height as i32);
         let (pixel_width, pixels, source_format) = match image.pixels {
-            RGBA8(ref pixels) => (4, pixels.as_slice(), B8G8R8A8),
-            K8(ref pixels) => (1, pixels.as_slice(), A8),
-            RGB8(_) => panic!("RGB8 color type not supported"),
-            KA8(_) => panic!("KA8 color type not supported"),
+            PixelsByColorType::RGBA8(ref pixels) => (4, pixels.as_slice(), SurfaceFormat::B8G8R8A8),
+            PixelsByColorType::K8(ref pixels) => (1, pixels.as_slice(), SurfaceFormat::A8),
+            PixelsByColorType::RGB8(_) => panic!("RGB8 color type not supported"),
+            PixelsByColorType::KA8(_) => panic!("KA8 color type not supported"),
         };
         let stride = image.width * pixel_width;
 
@@ -139,7 +139,7 @@ impl<'a> PaintContext<'a> {
         let source_rect = Rect(Point2D(0.0, 0.0),
                                Size2D(image.width as AzFloat, image.height as AzFloat));
         let dest_rect = bounds.to_azure_rect();
-        let draw_surface_options = DrawSurfaceOptions::new(Linear, true);
+        let draw_surface_options = DrawSurfaceOptions::new(Filter::Linear, true);
         let draw_options = DrawOptions::new(1.0, 0);
         draw_target_ref.draw_surface(azure_surface,
                                      dest_rect,
@@ -155,9 +155,10 @@ impl<'a> PaintContext<'a> {
                         Size2D(self.screen_rect.size.width as AzFloat,
                                self.screen_rect.size.height as AzFloat));
         let mut draw_options = DrawOptions::new(1.0, 0);
-        draw_options.set_composition_op(SourceOp);
+        draw_options.set_composition_op(CompositionOp::SourceOp);
         self.draw_target.make_current();
-        self.draw_target.fill_rect(&rect, ColorPatternRef(&pattern), Some(&draw_options));
+        self.draw_target.fill_rect(&rect, PatternRef::ColorPatternRef(&pattern),
+                                   Some(&draw_options));
     }
 
     fn draw_border_segment(&self,
@@ -175,8 +176,8 @@ impl<'a> PaintContext<'a> {
         };
 
         match style_select {
-            border_style::none | border_style::hidden => {}
-            border_style::dotted => {
+            border_style::T::none | border_style::T::hidden => {}
+            border_style::T::dotted => {
                 // FIXME(sammykim): This doesn't work well with dash_pattern and cap_style.
                 self.draw_dashed_border_segment(direction,
                                                 bounds,
@@ -184,20 +185,20 @@ impl<'a> PaintContext<'a> {
                                                 color_select,
                                                 DashSize::DottedBorder);
             }
-            border_style::dashed => {
+            border_style::T::dashed => {
                 self.draw_dashed_border_segment(direction,
                                                 bounds,
                                                 border,
                                                 color_select,
                                                 DashSize::DashedBorder);
             }
-            border_style::solid => {
+            border_style::T::solid => {
                 self.draw_solid_border_segment(direction, bounds, border, radius, color_select);
             }
-            border_style::double => {
+            border_style::T::double => {
                 self.draw_double_border_segment(direction, bounds, border, radius, color_select);
             }
-            border_style::groove | border_style::ridge => {
+            border_style::T::groove | border_style::T::ridge => {
                 self.draw_groove_ridge_border_segment(direction,
                                                       bounds,
                                                       border,
@@ -205,7 +206,7 @@ impl<'a> PaintContext<'a> {
                                                       color_select,
                                                       style_select);
             }
-            border_style::inset | border_style::outset => {
+            border_style::T::inset | border_style::T::outset => {
                 self.draw_inset_outset_border_segment(direction,
                                                       bounds,
                                                       border,
@@ -223,28 +224,28 @@ impl<'a> PaintContext<'a> {
                          style: border_style::T) {
         let border = SideOffsets2D::new_all_same(bounds.size.width).to_float_px();
         match style {
-            border_style::none | border_style::hidden => {}
-            border_style::dotted => {
+            border_style::T::none | border_style::T::hidden => {}
+            border_style::T::dotted => {
                 self.draw_dashed_border_segment(Direction::Right,
                                                 bounds,
                                                 &border,
                                                 color,
                                                 DashSize::DottedBorder);
             }
-            border_style::dashed => {
+            border_style::T::dashed => {
                 self.draw_dashed_border_segment(Direction::Right,
                                                 bounds,
                                                 &border,
                                                 color,
                                                 DashSize::DashedBorder);
             }
-            border_style::solid => {
+            border_style::T::solid => {
                 self.draw_solid_border_segment(Direction::Right, bounds, &border, radius, color)
             }
-            border_style::double => {
+            border_style::T::double => {
                 self.draw_double_border_segment(Direction::Right, bounds, &border, radius, color)
             }
-            border_style::groove | border_style::ridge => {
+            border_style::T::groove | border_style::T::ridge => {
                 self.draw_groove_ridge_border_segment(Direction::Right,
                                                       bounds,
                                                       &border,
@@ -252,7 +253,7 @@ impl<'a> PaintContext<'a> {
                                                       color,
                                                       style);
             }
-            border_style::inset | border_style::outset => {
+            border_style::T::inset | border_style::T::outset => {
                 self.draw_inset_outset_border_segment(Direction::Right,
                                                       bounds,
                                                       &border,
@@ -718,9 +719,9 @@ impl<'a> PaintContext<'a> {
                                                             0.5 * border.bottom,
                                                             0.5 * border.left);
         let is_groove = match style {
-                border_style::groove =>  true,
-                border_style::ridge  =>  false,
-                _                    =>  panic!("invalid border style")
+                border_style::T::groove =>  true,
+                border_style::T::ridge  =>  false,
+                _ =>  panic!("invalid border style")
         };
 
         let mut lighter_color;
@@ -761,9 +762,9 @@ impl<'a> PaintContext<'a> {
                                         color: Color,
                                         style: border_style::T) {
         let is_inset = match style {
-            border_style::inset  => true,
-            border_style::outset => false,
-            _                    => panic!("invalid border style")
+            border_style::T::inset  => true,
+            border_style::T::outset => false,
+            _ => panic!("invalid border style")
         };
         // original bounds as a Rect<f32>
         let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);
@@ -855,14 +856,14 @@ impl<'a> PaintContext<'a> {
                                 stops: &[GradientStop]) {
         self.draw_target.make_current();
 
-        let stops = self.draw_target.create_gradient_stops(stops, ExtendClamp);
+        let stops = self.draw_target.create_gradient_stops(stops, ExtendMode::ExtendClamp);
         let pattern = LinearGradientPattern::new(&start_point.to_azure_point(),
                                                  &end_point.to_azure_point(),
                                                  stops,
                                                  &Matrix2D::identity());
 
         self.draw_target.fill_rect(&bounds.to_azure_rect(),
-                                   LinearGradientPatternRef(&pattern),
+                                   PatternRef::LinearGradientPatternRef(&pattern),
                                    None);
     }
 
@@ -905,7 +906,7 @@ impl<'a> PaintContext<'a> {
         temporary_draw_target.set_transform(&Matrix2D::identity());
         let rect = Rect(Point2D(0.0, 0.0), self.draw_target.get_size().to_azure_size());
         let source_surface = temporary_draw_target.snapshot();
-        let draw_surface_options = DrawSurfaceOptions::new(Linear, true);
+        let draw_surface_options = DrawSurfaceOptions::new(Filter::Linear, true);
         let draw_options = DrawOptions::new(opacity, 0);
         self.draw_target.draw_surface(source_surface,
                                       rect,
@@ -970,9 +971,9 @@ impl<'a> PaintContext<'a> {
         if blur_radius > Au(0) {
             // Go ahead and create the blur now. Despite the name, Azure's notion of `StdDeviation`
             // describes the blur radius, not the sigma for the Gaussian blur.
-            let blur_filter = self.draw_target.create_filter(GaussianBlurFilterType);
-            blur_filter.set_attribute(StdDeviationGaussianBlurAttribute(blur_radius.to_subpx() as
-                                                                        AzFloat));
+            let blur_filter = self.draw_target.create_filter(FilterType::GaussianBlurFilterType);
+            blur_filter.set_attribute(GaussianBlurAttribute::StdDeviationGaussianBlurAttribute(
+                blur_radius.to_subpx() as AzFloat));
             blur_filter.set_input(GaussianBlurInput, &temporary_draw_target.snapshot());
 
             // Blit the blur onto the tile. We undo the transforms here because we want to directly

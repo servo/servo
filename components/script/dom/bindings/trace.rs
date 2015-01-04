@@ -39,7 +39,7 @@ use geom::rect::Rect;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
-use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
+use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSGCTraceKind};
 use js::jsval::JSVal;
 use js::rust::Cx;
 use layout_interface::{LayoutRPC, LayoutChan};
@@ -106,7 +106,7 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject
         (*tracer).debugPrintIndex = -1;
         (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
         debug!("tracing {}", description);
-        JS_CallTracer(tracer, obj as *mut libc::c_void, JSTRACE_OBJECT);
+        JS_CallTracer(tracer, obj as *mut libc::c_void, JSGCTraceKind::JSTRACE_OBJECT);
     }
 }
 

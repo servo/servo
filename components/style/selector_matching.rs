@@ -5,7 +5,6 @@
 use std::ascii::AsciiExt;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::num::div_rem;
 use sync::Arc;
 
 use url::Url;
@@ -300,7 +299,7 @@ impl Stylist {
         //        (Does it make a difference?)
         for &filename in ["user-agent.css", "servo.css", "presentational-hints.css"].iter() {
             let ua_stylesheet = Stylesheet::from_bytes(
-                read_resource_file([filename]).unwrap().as_slice(),
+                read_resource_file(&[filename]).unwrap().as_slice(),
                 Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
                 None,
                 None,
@@ -392,7 +391,7 @@ impl Stylist {
 
     pub fn add_quirks_mode_stylesheet(&mut self) {
         self.add_stylesheet(Stylesheet::from_bytes(
-            read_resource_file(["quirks-mode.css"]).unwrap().as_slice(),
+            read_resource_file(&["quirks-mode.css"]).unwrap().as_slice(),
             Url::parse("chrome:///quirks-mode.css").unwrap(),
             None,
             None,
@@ -1083,15 +1082,14 @@ fn matches_generic_nth_child<'a,E,N>(element: &N,
               index += 1;
             }
         }
-
     }
 
     if a == 0 {
-        return b == index;
+        b == index
+    } else {
+        (index - b) / a >= 0 &&
+        (index - b) % a == 0
     }
-
-    let (n, r) = div_rem(index - b, a);
-    n >= 0 && r == 0
 }
 
 #[inline]

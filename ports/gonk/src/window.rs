@@ -11,8 +11,7 @@ use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
-use msg::compositor_msg::{Blank, IdlePaintState};
-use msg::compositor_msg::{ReadyState, PaintState};
+use msg::compositor_msg::{Blank, ReadyState, PaintState};
 use msg::constellation_msg::{Key, KeyModifiers};
 use msg::constellation_msg::LoadData;
 use std::cell::Cell;
@@ -748,7 +747,7 @@ impl Window {
             surf: eglwindow,
 
             ready_state: Cell::new(Blank),
-            paint_state: Cell::new(IdlePaintState),
+            paint_state: Cell::new(PaintState::Idle),
         };
 
         Rc::new(window)
