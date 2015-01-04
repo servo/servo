@@ -29,8 +29,8 @@ use png;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
 use script_traits::{ViewportMsg, ScriptControlChan};
-use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdlePaintState, LayerId};
-use servo_msg::compositor_msg::{ReadyState, PaintState, PaintingPaintState, Scrollable};
+use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, LayerId};
+use servo_msg::compositor_msg::{ReadyState, PaintState, Scrollable};
 use servo_msg::constellation_msg::{mod, ConstellationChan};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
@@ -411,7 +411,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if self.ready_states.len() == 0 {
             return false;
         }
-        return self.paint_states.values().all(|&value| value == IdlePaintState);
+        return self.paint_states.values().all(|&value| value == PaintState::Idle);
     }
 
     fn has_paint_msg_tracking(&self) -> bool {
@@ -505,7 +505,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                      -> Rc<Layer<CompositorData>> {
         // Initialize the ReadyState and PaintState for this pipeline.
         self.ready_states.insert(frame_tree.pipeline.id, Blank);
-        self.paint_states.insert(frame_tree.pipeline.id, PaintingPaintState);
+        self.paint_states.insert(frame_tree.pipeline.id, PaintState::Painting);
 
         let root_layer = self.create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline,
                                                                       frame_rect);

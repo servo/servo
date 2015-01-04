@@ -23,8 +23,8 @@ use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
-use msg::compositor_msg::{Blank, FinishedLoading, IdlePaintState, Loading, PaintState};
-use msg::compositor_msg::{PaintingPaintState, PerformingLayout, ReadyState};
+use msg::compositor_msg::{Blank, FinishedLoading, Loading, PaintState};
+use msg::compositor_msg::{PerformingLayout, ReadyState};
 use msg::constellation_msg::{mod, LoadData};
 use msg::constellation_msg::{Key, KeyModifiers, CONTROL, SHIFT};
 use std::cell::{Cell, RefCell};
@@ -81,7 +81,7 @@ impl Window {
             mouse_down_point: Cell::new(Point2D(0 as c_int, 0)),
 
             ready_state: Cell::new(Blank),
-            paint_state: Cell::new(IdlePaintState),
+            paint_state: Cell::new(PaintState::Idle),
 
             last_title_set_time: Cell::new(Timespec::new(0, 0)),
         };
@@ -354,10 +354,10 @@ impl Window {
             }
             FinishedLoading => {
                 match self.paint_state.get() {
-                    PaintingPaintState => {
+                    PaintState::Painting => {
                         self.glfw_window.set_title("Rendering — Servo [GLFW]")
                     }
-                    IdlePaintState => {
+                    PaintState::Idle => {
                         self.glfw_window.set_title("Servo [GLFW]")
                     }
                 }

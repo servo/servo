@@ -21,8 +21,8 @@ use layers::platform::surface::{NativeSurface, NativeSurfaceMethods};
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
 use native::task::NativeTaskBuilder;
-use servo_msg::compositor_msg::{Epoch, IdlePaintState, LayerId};
-use servo_msg::compositor_msg::{LayerMetadata, PaintListener, PaintingPaintState, ScrollPolicy};
+use servo_msg::compositor_msg::{Epoch, PaintState, LayerId};
+use servo_msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use servo_msg::constellation_msg::PipelineExitType;
@@ -260,7 +260,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     }
 
                     let mut replies = Vec::new();
-                    self.compositor.set_paint_state(self.id, PaintingPaintState);
+                    self.compositor.set_paint_state(self.id, PaintState::Painting);
                     for PaintRequest { buffer_requests, scale, layer_id, epoch }
                           in requests.into_iter() {
                         if self.epoch == epoch {
@@ -270,7 +270,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                         }
                     }
 
-                    self.compositor.set_paint_state(self.id, IdlePaintState);
+                    self.compositor.set_paint_state(self.id, PaintState::Idle);
 
                     for reply in replies.iter() {
                         let &(_, ref buffer_set) = reply;
