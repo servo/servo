@@ -40,7 +40,7 @@ use script::layout_interface::{ContentBoxesQuery, ContentBoxQuery};
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
 use script::layout_interface::{MouseOverResponse, Msg, NoQuery};
 use script::layout_interface::{Reflow, ReflowGoal, ScriptLayoutChan, TrustedNodeAddress};
-use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
+use script_traits::{ConstellationControlMsg, ReflowEvent, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::Scrollable;
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
@@ -160,7 +160,7 @@ impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
                 debug!("Dirtying {:x}", node_address as uint);
                 let mut nodes = SmallVec1::new();
                 nodes.vec_push(node_address);
-                drop(chan.send_opt(SendEventMsg(id.clone(), ReflowEvent(nodes))))
+                drop(chan.send_opt(ConstellationControlMsg::SendEvent(id.clone(), ReflowEvent(nodes))))
             };
         f
     }
@@ -871,7 +871,7 @@ impl LayoutTask {
         // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(());
         let ScriptControlChan(ref chan) = data.script_chan;
-        chan.send(ReflowCompleteMsg(self.id, data.id));
+        chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id));
     }
 
     unsafe fn dirty_all_nodes(node: &mut LayoutNode) {

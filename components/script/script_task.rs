@@ -42,11 +42,6 @@ use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{ResizeEvent, ReflowEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
 use script_traits::CompositorEvent::{MouseMoveEvent, KeyEvent};
-use script_traits::ConstellationControlMsg::{LoadMsg, AttachLayoutMsg};
-use script_traits::ConstellationControlMsg::{ResizeMsg, ResizeInactiveMsg};
-use script_traits::ConstellationControlMsg::{ExitPipelineMsg, SendEventMsg};
-use script_traits::ConstellationControlMsg::{ReflowCompleteMsg, ViewportMsg};
-use script_traits::ConstellationControlMsg::GetTitleMsg;
 use script_traits::{NewLayoutInfo, OpaqueScriptLayoutChannel};
 use script_traits::{ConstellationControlMsg, ScriptControlChan};
 use script_traits::ScriptTaskFactory;
@@ -513,15 +508,15 @@ impl ScriptTask {
                 // This has to be handled before the ResizeMsg below,
                 // otherwise the page may not have been added to the
                 // child list yet, causing the find() to fail.
-                MixedMessage::FromConstellation(AttachLayoutMsg(new_layout_info)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::AttachLayout(new_layout_info)) => {
                     self.handle_new_layout(new_layout_info);
                 }
-                MixedMessage::FromConstellation(ResizeMsg(id, size)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::Resize(id, size)) => {
                     let page = self.page.borrow_mut();
                     let page = page.find(id).expect("resize sent to nonexistent pipeline");
                     page.resize_event.set(Some(size));
                 }
-                MixedMessage::FromConstellation(ViewportMsg(id, rect)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
                     let page = self.page.borrow_mut();
                     let inner_page = page.find(id).expect("Page rect message sent to nonexistent pipeline");
                     if inner_page.set_page_clip_rect_with_new_viewport(rect) {
@@ -552,7 +547,7 @@ impl ScriptTask {
         // Process the gathered events.
         for msg in sequential.into_iter() {
             match msg {
-                MixedMessage::FromConstellation(ExitPipelineMsg(id, exit_type)) => {
+                MixedMessage::FromConstellation(ConstellationControlMsg::ExitPipeline(id, exit_type)) => {
                     if self.handle_exit_pipeline_msg(id, exit_type) {
                         return false
                     }
@@ -568,24 +563,23 @@ impl ScriptTask {
 
     fn handle_msg_from_constellation(&self, msg: ConstellationControlMsg) {
         match msg {
-            // TODO(tkuehn) need to handle auxiliary layouts for iframes
-            AttachLayoutMsg(_) =>
-                panic!("should have handled AttachLayoutMsg already"),
-            LoadMsg(id, load_data) =>
+            ConstellationControlMsg::AttachLayout(_) =>
+                panic!("should have handled AttachLayout already"),
+            ConstellationControlMsg::Load(id, load_data) =>
                 self.load(id, load_data),
-            SendEventMsg(id, event) =>
+            ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
-            ReflowCompleteMsg(id, reflow_id) =>
+            ConstellationControlMsg::ReflowComplete(id, reflow_id) =>
                 self.handle_reflow_complete_msg(id, reflow_id),
-            ResizeInactiveMsg(id, new_size) =>
+            ConstellationControlMsg::ResizeInactive(id, new_size) =>
                 self.handle_resize_inactive_msg(id, new_size),
-            ViewportMsg(..) =>
-                panic!("should have handled ViewportMsg already"),
-            ResizeMsg(..) =>
-                panic!("should have handled ResizeMsg already"),
-            ExitPipelineMsg(..) =>
-                panic!("should have handled ExitPipelineMsg already"),
-            GetTitleMsg(pipeline_id) =>
+            ConstellationControlMsg::Viewport(..) =>
+                panic!("should have handled Viewport already"),
+            ConstellationControlMsg::Resize(..) =>
+                panic!("should have handled Resize already"),
+            ConstellationControlMsg::ExitPipeline(..) =>
+                panic!("should have handled ExitPipeline already"),
+            ConstellationControlMsg::GetTitle(pipeline_id) =>
                 self.handle_get_title_msg(pipeline_id),
         }
     }

@@ -17,8 +17,8 @@ use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use layers::platform::surface::NativeSurfaceMethods;
-use script_traits::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent, SendEventMsg};
-use script_traits::{ScriptControlChan};
+use script_traits::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
+use script_traits::{ScriptControlChan, ConstellationControlMsg};
 use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId, ScrollPolicy};
 use std::num::Float;
 use std::num::FloatMath;
@@ -328,7 +328,7 @@ impl CompositorLayer for Layer<CompositorData> {
         };
         let pipeline = &self.extra_data.borrow().pipeline;
         let ScriptControlChan(ref chan) = pipeline.script_chan;
-        let _ = chan.send_opt(SendEventMsg(pipeline.id.clone(), message));
+        let _ = chan.send_opt(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn send_mouse_move_event(&self,
@@ -336,7 +336,7 @@ impl CompositorLayer for Layer<CompositorData> {
         let message = MouseMoveEvent(cursor.to_untyped());
         let pipeline = &self.extra_data.borrow().pipeline;
         let ScriptControlChan(ref chan) = pipeline.script_chan;
-        let _ = chan.send_opt(SendEventMsg(pipeline.id.clone(), message));
+        let _ = chan.send_opt(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn scroll_layer_and_all_child_layers(&self,

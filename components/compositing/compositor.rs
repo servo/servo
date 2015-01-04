@@ -28,7 +28,7 @@ use layers::scene::Scene;
 use png;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
-use script_traits::{ViewportMsg, ScriptControlChan};
+use script_traits::{ConstellationControlMsg, ScriptControlChan};
 use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, LayerId};
 use servo_msg::compositor_msg::{ReadyState, PaintState, Scrollable};
 use servo_msg::constellation_msg::{mod, ConstellationChan};
@@ -977,7 +977,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                   layer.bounds.borrow().size.to_untyped());
             let pipeline = &layer.extra_data.borrow().pipeline;
             let ScriptControlChan(ref chan) = pipeline.script_chan;
-            chan.send(ViewportMsg(pipeline.id.clone(), layer_rect));
+            chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect));
         }
 
         for kid in layer.children().iter() {

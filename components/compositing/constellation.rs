@@ -14,7 +14,7 @@ use gfx::font_cache_task::FontCacheTask;
 use layers::geometry::DevicePixel;
 use layout_traits::LayoutTaskFactory;
 use libc;
-use script_traits::{mod, GetTitleMsg, ResizeMsg, ResizeInactiveMsg, SendEventMsg};
+use script_traits::{mod, ConstellationControlMsg};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{mod, ConstellationChan, Failure};
@@ -672,7 +672,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             if !already_sent.contains(&pipeline.id) {
                 if is_active {
                     let ScriptControlChan(ref script_chan) = pipeline.script_chan;
-                    script_chan.send(ResizeMsg(pipeline.id, WindowSizeData {
+                    script_chan.send(ConstellationControlMsg::Resize(pipeline.id, WindowSizeData {
                         visible_viewport: rect.size,
                         initial_viewport: rect.size * ScaleFactor(1.0),
                         device_pixel_ratio: device_pixel_ratio,
@@ -838,7 +838,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_key_msg(&self, key: Key, state: KeyState, mods: KeyModifiers) {
         self.current_frame().as_ref().map(|frame| {
             let ScriptControlChan(ref chan) = frame.pipeline.script_chan;
-            chan.send(SendEventMsg(frame.pipeline.id, script_traits::KeyEvent(key, state, mods)));
+            chan.send(ConstellationControlMsg::SendEvent(frame.pipeline.id, script_traits::KeyEvent(key, state, mods)));
         });
     }
 
@@ -847,7 +847,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             None => self.compositor_proxy.send(CompositorMsg::ChangePageTitle(pipeline_id, None)),
             Some(pipeline) => {
                 let ScriptControlChan(ref script_channel) = pipeline.script_chan;
-                script_channel.send(GetTitleMsg(pipeline_id));
+                script_channel.send(ConstellationControlMsg::GetTitle(pipeline_id));
             }
         }
     }
@@ -945,7 +945,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             debug!("constellation sending resize message to active frame");
             let pipeline = &frame_tree.pipeline;
             let ScriptControlChan(ref chan) = pipeline.script_chan;
-            let _ = chan.send_opt(ResizeMsg(pipeline.id, new_size));
+            let _ = chan.send_opt(ConstellationControlMsg::Resize(pipeline.id, new_size));
             already_seen.insert(pipeline.id);
         }
         for frame_tree in self.navigation_context.previous.iter()
@@ -954,7 +954,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             if !already_seen.contains(&pipeline.id) {
                 debug!("constellation sending resize message to inactive frame");
                 let ScriptControlChan(ref chan) = pipeline.script_chan;
-                let _ = chan.send_opt(ResizeInactiveMsg(pipeline.id, new_size));
+                let _ = chan.send_opt(ConstellationControlMsg::ResizeInactive(pipeline.id, new_size));
                 already_seen.insert(pipeline.id);
             }
         }
@@ -967,7 +967,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation sending resize message to pending outer frame ({})",
                        frame_tree.pipeline.id);
                 let ScriptControlChan(ref chan) = frame_tree.pipeline.script_chan;
-                let _ = chan.send_opt(ResizeMsg(frame_tree.pipeline.id, new_size));
+                let _ = chan.send_opt(ConstellationControlMsg::Resize(frame_tree.pipeline.id, new_size));
             }
         }
 
