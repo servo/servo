@@ -66,7 +66,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
         static FORCE_DEPTH: uint = 4;
 
         match stb_image::load_from_memory_with_depth(buffer, FORCE_DEPTH, true) {
-            stb_image::ImageU8(mut image) => {
+            stb_image::LoadResult::ImageU8(mut image) => {
                 assert!(image.depth == 4);
                 byte_swap(image.data.as_mut_slice());
                 Some(png::Image {
@@ -75,11 +75,11 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                     pixels: png::PixelsByColorType::RGBA8(image.data)
                 })
             }
-            stb_image::ImageF32(_image) => {
+            stb_image::LoadResult::ImageF32(_image) => {
                 error!("HDR images not implemented");
                 None
             }
-            stb_image::Error(e) => {
+            stb_image::LoadResult::Error(e) => {
                 error!("stb_image failed: {}", e);
                 None
             }
