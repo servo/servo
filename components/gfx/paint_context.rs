@@ -176,8 +176,8 @@ impl<'a> PaintContext<'a> {
         };
 
         match style_select {
-            border_style::none | border_style::hidden => {}
-            border_style::dotted => {
+            border_style::T::none | border_style::T::hidden => {}
+            border_style::T::dotted => {
                 // FIXME(sammykim): This doesn't work well with dash_pattern and cap_style.
                 self.draw_dashed_border_segment(direction,
                                                 bounds,
@@ -185,20 +185,20 @@ impl<'a> PaintContext<'a> {
                                                 color_select,
                                                 DashSize::DottedBorder);
             }
-            border_style::dashed => {
+            border_style::T::dashed => {
                 self.draw_dashed_border_segment(direction,
                                                 bounds,
                                                 border,
                                                 color_select,
                                                 DashSize::DashedBorder);
             }
-            border_style::solid => {
+            border_style::T::solid => {
                 self.draw_solid_border_segment(direction, bounds, border, radius, color_select);
             }
-            border_style::double => {
+            border_style::T::double => {
                 self.draw_double_border_segment(direction, bounds, border, radius, color_select);
             }
-            border_style::groove | border_style::ridge => {
+            border_style::T::groove | border_style::T::ridge => {
                 self.draw_groove_ridge_border_segment(direction,
                                                       bounds,
                                                       border,
@@ -206,7 +206,7 @@ impl<'a> PaintContext<'a> {
                                                       color_select,
                                                       style_select);
             }
-            border_style::inset | border_style::outset => {
+            border_style::T::inset | border_style::T::outset => {
                 self.draw_inset_outset_border_segment(direction,
                                                       bounds,
                                                       border,
@@ -224,28 +224,28 @@ impl<'a> PaintContext<'a> {
                          style: border_style::T) {
         let border = SideOffsets2D::new_all_same(bounds.size.width).to_float_px();
         match style {
-            border_style::none | border_style::hidden => {}
-            border_style::dotted => {
+            border_style::T::none | border_style::T::hidden => {}
+            border_style::T::dotted => {
                 self.draw_dashed_border_segment(Direction::Right,
                                                 bounds,
                                                 &border,
                                                 color,
                                                 DashSize::DottedBorder);
             }
-            border_style::dashed => {
+            border_style::T::dashed => {
                 self.draw_dashed_border_segment(Direction::Right,
                                                 bounds,
                                                 &border,
                                                 color,
                                                 DashSize::DashedBorder);
             }
-            border_style::solid => {
+            border_style::T::solid => {
                 self.draw_solid_border_segment(Direction::Right, bounds, &border, radius, color)
             }
-            border_style::double => {
+            border_style::T::double => {
                 self.draw_double_border_segment(Direction::Right, bounds, &border, radius, color)
             }
-            border_style::groove | border_style::ridge => {
+            border_style::T::groove | border_style::T::ridge => {
                 self.draw_groove_ridge_border_segment(Direction::Right,
                                                       bounds,
                                                       &border,
@@ -253,7 +253,7 @@ impl<'a> PaintContext<'a> {
                                                       color,
                                                       style);
             }
-            border_style::inset | border_style::outset => {
+            border_style::T::inset | border_style::T::outset => {
                 self.draw_inset_outset_border_segment(Direction::Right,
                                                       bounds,
                                                       &border,
@@ -719,9 +719,9 @@ impl<'a> PaintContext<'a> {
                                                             0.5 * border.bottom,
                                                             0.5 * border.left);
         let is_groove = match style {
-                border_style::groove =>  true,
-                border_style::ridge  =>  false,
-                _                    =>  panic!("invalid border style")
+                border_style::T::groove =>  true,
+                border_style::T::ridge  =>  false,
+                _ =>  panic!("invalid border style")
         };
 
         let mut lighter_color;
@@ -762,9 +762,9 @@ impl<'a> PaintContext<'a> {
                                         color: Color,
                                         style: border_style::T) {
         let is_inset = match style {
-            border_style::inset  => true,
-            border_style::outset => false,
-            _                    => panic!("invalid border style")
+            border_style::T::inset  => true,
+            border_style::T::outset => false,
+            _ => panic!("invalid border style")
         };
         // original bounds as a Rect<f32>
         let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);

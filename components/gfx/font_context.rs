@@ -101,8 +101,8 @@ impl FontContext {
         // painting. We should also support true small-caps (where the
         // font supports it) in the future.
         let actual_pt_size = match variant {
-            font_variant::small_caps => pt_size.scale_by(SMALL_CAPS_SCALE_FACTOR),
-            font_variant::normal => pt_size,
+            font_variant::T::small_caps => pt_size.scale_by(SMALL_CAPS_SCALE_FACTOR),
+            font_variant::T::normal => pt_size,
         };
 
         let handle: FontHandle = FontHandleMethods::new_from_template(&self.platform_handle,
@@ -139,7 +139,7 @@ impl FontContext {
         // so they will never be released. Find out a good time to drop them.
 
         let desc = FontTemplateDescriptor::new(style.font_weight,
-                                               style.font_style == font_style::italic);
+                                               style.font_style == font_style::T::italic);
         let mut fonts = SmallVec8::new();
 
         for family in style.font_family.iter() {

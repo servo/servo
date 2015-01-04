@@ -41,7 +41,7 @@ use std::fmt;
 use std::slice::Items;
 use style::ComputedValues;
 use style::computed_values::border_style;
-use style::computed_values::cursor::{AutoCursor, SpecifiedCursor};
+use style::computed_values::cursor;
 use sync::Arc;
 
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
@@ -629,8 +629,8 @@ impl DisplayItemMetadata {
         DisplayItemMetadata {
             node: node,
             cursor: match style.get_pointing().cursor {
-                AutoCursor => default_cursor,
-                SpecifiedCursor(cursor) => cursor,
+                cursor::T::AutoCursor => default_cursor,
+                cursor::T::SpecifiedCursor(cursor) => cursor,
             },
         }
     }
