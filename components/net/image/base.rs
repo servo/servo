@@ -50,8 +50,8 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
         match png::load_png_from_memory(buffer) {
             Ok(mut png_image) => {
                 match png_image.pixels {
-                    png::RGB8(ref mut data) => byte_swap(data.as_mut_slice()),
-                    png::RGBA8(ref mut data) => {
+                    png::PixelsByColorType::RGB8(ref mut data) => byte_swap(data.as_mut_slice()),
+                    png::PixelsByColorType::RGBA8(ref mut data) => {
                         byte_swap_and_premultiply(data.as_mut_slice())
                     }
                     _ => {}
@@ -72,7 +72,7 @@ pub fn load_from_memory(buffer: &[u8]) -> Option<Image> {
                 Some(png::Image {
                     width: image.width as u32,
                     height: image.height as u32,
-                    pixels: png::RGBA8(image.data)
+                    pixels: png::PixelsByColorType::RGBA8(image.data)
                 })
             }
             stb_image::ImageF32(_image) => {

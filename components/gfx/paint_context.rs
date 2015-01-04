@@ -23,7 +23,7 @@ use geom::side_offsets::SideOffsets2D;
 use geom::size::Size2D;
 use libc::size_t;
 use libc::types::common::c99::{uint16_t, uint32_t};
-use png::{RGB8, RGBA8, K8, KA8};
+use png::PixelsByColorType;
 use servo_net::image::base::Image;
 use servo_util::geometry::{Au, MAX_RECT};
 use servo_util::opts;
@@ -123,10 +123,10 @@ impl<'a> PaintContext<'a> {
     pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<Image>>) {
         let size = Size2D(image.width as i32, image.height as i32);
         let (pixel_width, pixels, source_format) = match image.pixels {
-            RGBA8(ref pixels) => (4, pixels.as_slice(), SurfaceFormat::B8G8R8A8),
-            K8(ref pixels) => (1, pixels.as_slice(), SurfaceFormat::A8),
-            RGB8(_) => panic!("RGB8 color type not supported"),
-            KA8(_) => panic!("KA8 color type not supported"),
+            PixelsByColorType::RGBA8(ref pixels) => (4, pixels.as_slice(), SurfaceFormat::B8G8R8A8),
+            PixelsByColorType::K8(ref pixels) => (1, pixels.as_slice(), SurfaceFormat::A8),
+            PixelsByColorType::RGB8(_) => panic!("RGB8 color type not supported"),
+            PixelsByColorType::KA8(_) => panic!("KA8 color type not supported"),
         };
         let stride = image.width * pixel_width;
 
