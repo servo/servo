@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLSourceElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLSourceElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLSourceElement {
 
 impl HTMLSourceElementDerived for EventTarget {
     fn is_htmlsourceelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLSourceElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSourceElement)))
     }
 }
 
 impl HTMLSourceElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLSourceElement {
         HTMLSourceElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLSourceElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLSourceElement, localName, prefix, document)
         }
     }
 

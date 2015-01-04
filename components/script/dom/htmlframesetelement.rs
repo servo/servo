@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLFrameSetElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLFrameSetElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLFrameSetElement {
 
 impl HTMLFrameSetElementDerived for EventTarget {
     fn is_htmlframesetelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLFrameSetElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)))
     }
 }
 
 impl HTMLFrameSetElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFrameSetElement {
         HTMLFrameSetElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLFrameSetElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFrameSetElement, localName, prefix, document)
         }
     }
 

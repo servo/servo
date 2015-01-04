@@ -37,7 +37,7 @@ use dom::htmlareaelement::HTMLAreaElement;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcanvaselement::HTMLCanvasElement;
-use dom::htmlelement::HTMLElement;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
@@ -50,7 +50,7 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltableelement::HTMLTableElement;
-use dom::htmltablecellelement::HTMLTableCellElement;
+use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementTypeId};
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
@@ -147,96 +147,100 @@ pub trait VirtualMethods {
 /// interrupted.
 pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a VirtualMethods + 'a {
     match node.type_id() {
-        NodeTypeId::Element(ElementTypeId::HTMLAnchorElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
             let element: &'a JSRef<'a, HTMLAnchorElement> = HTMLAnchorElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLAreaElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) => {
             let element: &'a JSRef<'a, HTMLAreaElement> = HTMLAreaElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLBodyElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) => {
             let element: &'a JSRef<'a, HTMLBodyElement> = HTMLBodyElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLButtonElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
             let element: &'a JSRef<'a, HTMLButtonElement> = HTMLButtonElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLCanvasElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement)) => {
             let element: &'a JSRef<'a, HTMLCanvasElement> = HTMLCanvasElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLFieldSetElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)) => {
             let element: &'a JSRef<'a, HTMLFieldSetElement> = HTMLFieldSetElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLImageElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)) => {
             let element: &'a JSRef<'a, HTMLImageElement> = HTMLImageElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLIFrameElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)) => {
             let element: &'a JSRef<'a, HTMLIFrameElement> = HTMLIFrameElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
             let element: &'a JSRef<'a, HTMLInputElement> = HTMLInputElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLLinkElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
             let element: &'a JSRef<'a, HTMLLinkElement> = HTMLLinkElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLObjectElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
             let element: &'a JSRef<'a, HTMLObjectElement> = HTMLObjectElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLOptGroupElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptGroupElement)) => {
             let element: &'a JSRef<'a, HTMLOptGroupElement> = HTMLOptGroupElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLOptionElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) => {
             let element: &'a JSRef<'a, HTMLOptionElement> = HTMLOptionElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLScriptElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)) => {
             let element: &'a JSRef<'a, HTMLScriptElement> = HTMLScriptElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLSelectElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
             let element: &'a JSRef<'a, HTMLSelectElement> = HTMLSelectElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLStyleElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLStyleElement)) => {
             let element: &'a JSRef<'a, HTMLStyleElement> = HTMLStyleElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLTableElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement)) => {
             let element: &'a JSRef<'a, HTMLTableElement> =
                 HTMLTableElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLTableDataCellElement) |
-        NodeTypeId::Element(ElementTypeId::HTMLTableHeaderCellElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(
+                            HTMLElementTypeId::HTMLTableCellElement(
+                            HTMLTableCellElementTypeId::HTMLTableDataCellElement))) |
+        NodeTypeId::Element(ElementTypeId::HTMLElement(
+                            HTMLElementTypeId::HTMLTableCellElement(
+                            HTMLTableCellElementTypeId::HTMLTableHeaderCellElement))) => {
             let element: &'a JSRef<'a, HTMLTableCellElement> =
                 HTMLTableCellElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLTableRowElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableRowElement)) => {
             let element: &'a JSRef<'a, HTMLTableRowElement> =
                 HTMLTableRowElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLTableSectionElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableSectionElement)) => {
             let element: &'a JSRef<'a, HTMLTableSectionElement> =
                 HTMLTableSectionElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
             let element: &'a JSRef<'a, HTMLTextAreaElement> = HTMLTextAreaElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a
         }
-        NodeTypeId::Element(ElementTypeId::HTMLTitleElement) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)) => {
             let element: &'a JSRef<'a, HTMLTitleElement> =
                 HTMLTitleElementCast::to_borrowed_ref(node).unwrap();
             element as &'a VirtualMethods + 'a

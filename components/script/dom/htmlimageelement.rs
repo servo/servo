@@ -10,10 +10,11 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementM
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, ElementTypeId};
+use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use servo_net::image_cache_task;
@@ -31,7 +32,7 @@ pub struct HTMLImageElement {
 
 impl HTMLImageElementDerived for EventTarget {
     fn is_htmlimageelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLImageElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)))
     }
 }
 
@@ -69,7 +70,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
 impl HTMLImageElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLImageElement {
         HTMLImageElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLImageElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLImageElement, localName, prefix, document),
             image: DOMRefCell::new(None),
         }
     }

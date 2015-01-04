@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLParamElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLParamElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLParamElement {
 
 impl HTMLParamElementDerived for EventTarget {
     fn is_htmlparamelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLParamElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParamElement)))
     }
 }
 
 impl HTMLParamElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLParamElement {
         HTMLParamElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLParamElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLParamElement, localName, prefix, document)
         }
     }
 

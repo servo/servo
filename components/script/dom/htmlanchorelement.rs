@@ -16,7 +16,7 @@ use dom::domtokenlist::DOMTokenList;
 use dom::element::{Element, AttributeHandlers, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
@@ -32,14 +32,14 @@ pub struct HTMLAnchorElement {
 
 impl HTMLAnchorElementDerived for EventTarget {
     fn is_htmlanchorelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLAnchorElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)))
     }
 }
 
 impl HTMLAnchorElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAnchorElement {
         HTMLAnchorElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLAnchorElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLAnchorElement, localName, prefix, document),
             rel_list: Default::default(),
         }
     }

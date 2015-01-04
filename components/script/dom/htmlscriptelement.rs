@@ -16,10 +16,11 @@ use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::document::Document;
-use dom::element::{ElementTypeId, Element, AttributeHandlers, ElementCreator};
+use dom::element::{Element, AttributeHandlers, ElementCreator};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::WindowHelpers;
@@ -55,7 +56,7 @@ pub struct HTMLScriptElement {
 
 impl HTMLScriptElementDerived for EventTarget {
     fn is_htmlscriptelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLScriptElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)))
     }
 }
 
@@ -63,7 +64,7 @@ impl HTMLScriptElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLScriptElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLScriptElement, localName, prefix, document),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),

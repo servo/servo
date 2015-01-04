@@ -11,10 +11,11 @@ use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLIFrameElementDerived};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::document::Document;
-use dom::element::{ElementTypeId, Element};
+use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
@@ -49,7 +50,7 @@ pub struct HTMLIFrameElement {
 
 impl HTMLIFrameElementDerived for EventTarget {
     fn is_htmliframeelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLIFrameElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)))
     }
 }
 
@@ -129,7 +130,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 impl HTMLIFrameElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLIFrameElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
             size: Cell::new(None),
             sandbox: Cell::new(None),
         }

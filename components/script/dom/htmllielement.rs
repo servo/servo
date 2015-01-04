@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLLIElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLLIElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLLIElement {
 
 impl HTMLLIElementDerived for EventTarget {
     fn is_htmllielement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLLIElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLIElement)))
     }
 }
 
 impl HTMLLIElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLIElement {
         HTMLLIElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLLIElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLLIElement, localName, prefix, document)
         }
     }
 

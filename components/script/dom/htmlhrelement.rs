@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLHRElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLHRElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLHRElement {
 
 impl HTMLHRElementDerived for EventTarget {
     fn is_htmlhrelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLHRElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHRElement)))
     }
 }
 
 impl HTMLHRElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLHRElement {
         HTMLHRElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLHRElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLHRElement, localName, prefix, document)
         }
     }
 

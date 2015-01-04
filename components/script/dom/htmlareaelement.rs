@@ -13,7 +13,7 @@ use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
@@ -31,14 +31,14 @@ pub struct HTMLAreaElement {
 
 impl HTMLAreaElementDerived for EventTarget {
     fn is_htmlareaelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLAreaElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)))
     }
 }
 
 impl HTMLAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAreaElement {
         HTMLAreaElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLAreaElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLAreaElement, localName, prefix, document),
             rel_list: Default::default(),
         }
     }

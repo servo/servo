@@ -21,6 +21,8 @@ use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers, AttributeHandlers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::htmlmediaelement::HTMLMediaElementTypeId;
+use dom::htmltablecellelement::HTMLTableCellElementTypeId;
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -40,17 +42,16 @@ pub struct HTMLElement {
 impl HTMLElementDerived for EventTarget {
     fn is_htmlelement(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::Element)) => false,
-            EventTargetTypeId::Node(NodeTypeId::Element(_)) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(_))) => true,
             _ => false
         }
     }
 }
 
 impl HTMLElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLElement {
+    pub fn new_inherited(type_id: HTMLElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLElement {
         HTMLElement {
-            element: Element::new_inherited(type_id, tag_name, ns!(HTML), prefix, document),
+            element: Element::new_inherited(ElementTypeId::HTMLElement(type_id), tag_name, ns!(HTML), prefix, document),
             style_decl: Default::default(),
             dataset: Default::default(),
         }
@@ -58,7 +59,7 @@ impl HTMLElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLElement> {
-        let element = HTMLElement::new_inherited(ElementTypeId::HTMLElement, localName, prefix, document);
+        let element = HTMLElement::new_inherited(HTMLElementTypeId::HTMLElement, localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
 }
@@ -201,5 +202,75 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
                                                   attr.value().as_slice().into_string());
         }
     }
+}
+
+#[deriving(PartialEq, Show)]
+#[jstraceable]
+pub enum HTMLElementTypeId {
+    HTMLElement,
+
+    HTMLAnchorElement,
+    HTMLAppletElement,
+    HTMLAreaElement,
+    HTMLBaseElement,
+    HTMLBRElement,
+    HTMLBodyElement,
+    HTMLButtonElement,
+    HTMLCanvasElement,
+    HTMLDataElement,
+    HTMLDataListElement,
+    HTMLDirectoryElement,
+    HTMLDListElement,
+    HTMLDivElement,
+    HTMLEmbedElement,
+    HTMLFieldSetElement,
+    HTMLFontElement,
+    HTMLFormElement,
+    HTMLFrameElement,
+    HTMLFrameSetElement,
+    HTMLHRElement,
+    HTMLHeadElement,
+    HTMLHeadingElement,
+    HTMLHtmlElement,
+    HTMLIFrameElement,
+    HTMLImageElement,
+    HTMLInputElement,
+    HTMLLabelElement,
+    HTMLLegendElement,
+    HTMLLinkElement,
+    HTMLLIElement,
+    HTMLMapElement,
+    HTMLMediaElement(HTMLMediaElementTypeId),
+    HTMLMetaElement,
+    HTMLMeterElement,
+    HTMLModElement,
+    HTMLObjectElement,
+    HTMLOListElement,
+    HTMLOptGroupElement,
+    HTMLOptionElement,
+    HTMLOutputElement,
+    HTMLParagraphElement,
+    HTMLParamElement,
+    HTMLPreElement,
+    HTMLProgressElement,
+    HTMLQuoteElement,
+    HTMLScriptElement,
+    HTMLSelectElement,
+    HTMLSourceElement,
+    HTMLSpanElement,
+    HTMLStyleElement,
+    HTMLTableElement,
+    HTMLTableCaptionElement,
+    HTMLTableCellElement(HTMLTableCellElementTypeId),
+    HTMLTableColElement,
+    HTMLTableRowElement,
+    HTMLTableSectionElement,
+    HTMLTemplateElement,
+    HTMLTextAreaElement,
+    HTMLTimeElement,
+    HTMLTitleElement,
+    HTMLTrackElement,
+    HTMLUListElement,
+    HTMLUnknownElement,
 }
 

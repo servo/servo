@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLProgressElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLProgressElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLProgressElement {
 
 impl HTMLProgressElementDerived for EventTarget {
     fn is_htmlprogresselement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLProgressElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLProgressElement)))
     }
 }
 
 impl HTMLProgressElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLProgressElement {
         HTMLProgressElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLProgressElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLProgressElement, localName, prefix, document)
         }
     }
 

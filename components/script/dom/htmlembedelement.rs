@@ -8,7 +8,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLEmbedElement {
 
 impl HTMLEmbedElementDerived for EventTarget {
     fn is_htmlembedelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLEmbedElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLEmbedElement)))
     }
 }
 
 impl HTMLEmbedElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLEmbedElement {
         HTMLEmbedElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLEmbedElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLEmbedElement, localName, prefix, document)
         }
     }
 

@@ -6,9 +6,9 @@ use dom::bindings::codegen::Bindings::HTMLParagraphElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLParagraphElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -19,14 +19,14 @@ pub struct HTMLParagraphElement {
 
 impl HTMLParagraphElementDerived for EventTarget {
     fn is_htmlparagraphelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLParagraphElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLParagraphElement)))
     }
 }
 
 impl HTMLParagraphElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLParagraphElement {
         HTMLParagraphElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLParagraphElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLParagraphElement, localName, prefix, document)
         }
     }
 
