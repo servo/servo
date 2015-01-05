@@ -202,7 +202,7 @@ impl LayoutTaskFactory for LayoutTask {
                 layout.start();
             }
             shutdown_chan.send(());
-        }, ConstellationMsg::Failure(failure_msg), con_chan, false);
+        }, ConstellationMsg::Failure(failure_msg), con_chan);
     }
 }
 

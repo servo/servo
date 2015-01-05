@@ -314,7 +314,7 @@ impl ScriptTaskFactory for ScriptTask {
 
             // This must always be the very last operation performed before the task completes
             failsafe.neuter();
-        }, ConstellationMsg::Failure(failure_msg), const_chan, false);
+        }, ConstellationMsg::Failure(failure_msg), const_chan);
     }
 }
 

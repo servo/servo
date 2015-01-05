@@ -50,7 +50,7 @@ use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlstyleelement::HTMLStyleElement;
 use dom::htmltableelement::HTMLTableElement;
-use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementTypeId};
+use dom::htmltablecellelement::HTMLTableCellElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
@@ -216,12 +216,7 @@ pub fn vtable_for<'a>(node: &'a JSRef<'a, Node>) -> &'a (VirtualMethods + 'a) {
                 HTMLTableElementCast::to_borrowed_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)
         }
-        NodeTypeId::Element(ElementTypeId::HTMLElement(
-                            HTMLElementTypeId::HTMLTableCellElement(
-                            HTMLTableCellElementTypeId::HTMLTableDataCellElement))) |
-        NodeTypeId::Element(ElementTypeId::HTMLElement(
-                            HTMLElementTypeId::HTMLTableCellElement(
-                            HTMLTableCellElementTypeId::HTMLTableHeaderCellElement))) => {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_))) => {
             let element: &'a JSRef<'a, HTMLTableCellElement> =
                 HTMLTableCellElementCast::to_borrowed_ref(node).unwrap();
             element as &'a (VirtualMethods + 'a)

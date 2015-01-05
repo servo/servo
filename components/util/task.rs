@@ -16,17 +16,12 @@ pub fn spawn_named<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
     });
 }
 
-pub fn spawn_named_native<S: IntoMaybeOwned<'static>>(name: S, f: proc():Send) {
-    spawn_named(name, f)
-}
-
 /// Arrange to send a particular message to a channel if the task fails.
 pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
                                                  state: task_state::TaskState,
                                                  f: proc(): Send,
                                                  msg: T,
-                                                 dest: Sender<T>,
-                                                 _native: bool) {
+                                                 dest: Sender<T>) {
     let future_result = TaskBuilder::new().named(name).try_future(proc() {
         task_state::initialize(state);
         rtinstrument::instrument(f);
