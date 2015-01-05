@@ -23,7 +23,7 @@ use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
-use servo_util::task::spawn_named_native;
+use servo_util::task::spawn_named;
 use servo_util::task_state;
 use servo_util::task_state::{SCRIPT, IN_WORKER};
 
@@ -135,8 +135,7 @@ impl DedicatedWorkerGlobalScope {
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
-        spawn_named_native(format!("WebWorker for {}", worker_url.serialize()), proc() {
-
+        spawn_named(format!("WebWorker for {}", worker_url.serialize()), proc() {
             task_state::initialize(SCRIPT | IN_WORKER);
 
             let roots = RootCollection::new();
