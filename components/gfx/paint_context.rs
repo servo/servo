@@ -75,7 +75,7 @@ impl<'a> PaintContext<'a> {
     pub fn draw_solid_color(&self, bounds: &Rect<Au>, color: Color) {
         self.draw_target.make_current();
         self.draw_target.fill_rect(&bounds.to_azure_rect(),
-                                   PatternRef::ColorPatternRef(&ColorPattern::new(color)),
+                                   PatternRef::Color(&ColorPattern::new(color)),
                                    None);
     }
 
@@ -158,10 +158,9 @@ impl<'a> PaintContext<'a> {
                         Size2D(self.screen_rect.size.width as AzFloat,
                                self.screen_rect.size.height as AzFloat));
         let mut draw_options = DrawOptions::new(1.0, 0);
-        draw_options.set_composition_op(CompositionOp::SourceOp);
+        draw_options.set_composition_op(CompositionOp::Source);
         self.draw_target.make_current();
-        self.draw_target.fill_rect(&rect, PatternRef::ColorPatternRef(&pattern),
-                                   Some(&draw_options));
+        self.draw_target.fill_rect(&rect, PatternRef::Color(&pattern), Some(&draw_options));
     }
 
     fn draw_border_segment(&self,
@@ -859,14 +858,14 @@ impl<'a> PaintContext<'a> {
                                 stops: &[GradientStop]) {
         self.draw_target.make_current();
 
-        let stops = self.draw_target.create_gradient_stops(stops, ExtendMode::ExtendClamp);
+        let stops = self.draw_target.create_gradient_stops(stops, ExtendMode::Clamp);
         let pattern = LinearGradientPattern::new(&start_point.to_azure_point(),
                                                  &end_point.to_azure_point(),
                                                  stops,
                                                  &Matrix2D::identity());
 
         self.draw_target.fill_rect(&bounds.to_azure_rect(),
-                                   PatternRef::LinearGradientPatternRef(&pattern),
+                                   PatternRef::LinearGradient(&pattern),
                                    None);
     }
 
@@ -974,8 +973,8 @@ impl<'a> PaintContext<'a> {
         if blur_radius > Au(0) {
             // Go ahead and create the blur now. Despite the name, Azure's notion of `StdDeviation`
             // describes the blur radius, not the sigma for the Gaussian blur.
-            let blur_filter = self.draw_target.create_filter(FilterType::GaussianBlurFilterType);
-            blur_filter.set_attribute(GaussianBlurAttribute::StdDeviationGaussianBlurAttribute(
+            let blur_filter = self.draw_target.create_filter(FilterType::GaussianBlur);
+            blur_filter.set_attribute(GaussianBlurAttribute::StdDeviation(
                 blur_radius.to_subpx() as AzFloat));
             blur_filter.set_input(GaussianBlurInput, &temporary_draw_target.snapshot());
 
@@ -985,7 +984,7 @@ impl<'a> PaintContext<'a> {
             self.draw_target.set_transform(&Matrix2D::identity());
             let temporary_draw_target_size = temporary_draw_target.get_size();
             self.draw_target
-                .draw_filter(blur_filter,
+                .draw_filter(&blur_filter,
                              &Rect(Point2D(0.0, 0.0),
                                    Size2D(temporary_draw_target_size.width as AzFloat,
                                           temporary_draw_target_size.height as AzFloat)),

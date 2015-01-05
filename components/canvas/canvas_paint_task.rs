@@ -56,8 +56,7 @@ impl CanvasPaintTask {
 
     fn fill_rect(&self, rect: &Rect<f32>) {
         let drawopts = DrawOptions::new(1.0, 0);
-        self.drawtarget.fill_rect(rect, PatternRef::ColorPatternRef(&self.fill_color),
-                                  Some(&drawopts));
+        self.drawtarget.fill_rect(rect, PatternRef::Color(&self.fill_color), Some(&drawopts));
     }
 
     fn clear_rect(&self, rect: &Rect<f32>) {
@@ -70,7 +69,7 @@ impl CanvasPaintTask {
     }
 
     fn create(size: Size2D<i32>) -> DrawTarget {
-        DrawTarget::new(BackendType::SkiaBackend, size, SurfaceFormat::B8G8R8A8)
+        DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
