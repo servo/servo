@@ -28,6 +28,8 @@ def read_file(filename, if_exists=False):
 
 @CommandProvider
 class MachCommands(CommandBase):
+    SERVO_BINARY_PATH = path.join("components", "servo", "target", "servo")
+
     @Command('run',
              description='Run Servo',
              category='post-build')
@@ -45,7 +47,7 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        args = [path.join("components", "servo", "target", "servo")]
+        args = [self.SERVO_BINARY_PATH]
 
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
@@ -80,7 +82,7 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        servo_cmd = [path.join('target', 'servo')] + params
+        servo_cmd = [self.SERVO_BINARY_PATH] + params
         rr_cmd = ['rr', '--fatal-errors', 'record']
         subprocess.check_call(rr_cmd + servo_cmd)
 
