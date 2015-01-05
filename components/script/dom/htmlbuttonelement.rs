@@ -21,11 +21,23 @@ use dom::virtualmethods::VirtualMethods;
 use std::ascii::OwnedAsciiExt;
 use std::borrow::ToOwned;
 use util::str::DOMString;
+use std::cell::Cell;
 use string_cache::Atom;
+
+#[jstraceable]
+#[derive(PartialEq, Copy)]
+#[allow(dead_code)]
+enum ButtonType {
+    ButtonSubmit,
+    ButtonReset,
+    ButtonButton,
+    ButtonMenu
+}
 
 #[dom_struct]
 pub struct HTMLButtonElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
+    button_type: Cell<ButtonType>
 }
 
 impl HTMLButtonElementDerived for EventTarget {
@@ -37,7 +49,8 @@ impl HTMLButtonElementDerived for EventTarget {
 impl HTMLButtonElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLButtonElement {
         HTMLButtonElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document),
+            button_type: Cell::new(ButtonType::ButtonSubmit)
         }
     }
 
