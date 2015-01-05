@@ -12,9 +12,10 @@ use construct::FlowConstructor;
 use context::LayoutContext;
 use display_list_builder::ListItemFlowDisplayListBuilding;
 use flow::{Flow, FlowClass};
-use fragment::{Fragment, FragmentBoundsIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use wrapper::ThreadSafeLayoutNode;
 
+use geom::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
 use servo_util::opts;
@@ -111,8 +112,14 @@ impl Flow for ListItemFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
-        self.block_flow.iterate_through_fragment_bounds(iterator);
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.block_flow.compute_overflow()
+    }
+
+    fn iterate_through_fragment_border_boxes(&self,
+                                             iterator: &mut FragmentBorderBoxIterator,
+                                             stacking_context_position: &Point2D<Au>) {
+        self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
 }
 

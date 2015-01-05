@@ -6,13 +6,13 @@
 
 use css::node_style::StyledNode;
 use context::LayoutContext;
-use display_list_builder::{BackgroundAndBorderLevel, DisplayListBuildingResult, FragmentDisplayListBuilding};
+use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use floats::{FloatKind, Floats, PlacementInfo};
 use flow::{BaseFlow, FlowClass, Flow, MutableFlowUtils, ForceNonfloatedFlag};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow;
-use fragment::{Fragment, SpecificFragmentInfo};
-use fragment::{FragmentBoundsIterator, ScannedTextFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, ScannedTextFragmentInfo};
+use fragment::{SpecificFragmentInfo};
 use fragment::SplitInfo;
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
@@ -20,16 +20,14 @@ use model::IntrinsicISizesContribution;
 use text;
 
 use collections::{RingBuf};
-use geom::Size2D;
-use gfx::display_list::DisplayList;
+use geom::{Point2D, Rect};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
-use servo_util::geometry::Au;
-use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use servo_util::opts;
-use servo_util::range::{Range, RangeIndex};
 use servo_util::arc_ptr_eq;
+use servo_util::geometry::{Au, ZERO_RECT};
+use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
+use servo_util::range::{Range, RangeIndex};
 use std::cmp::max;
 use std::fmt;
 use std::mem;
@@ -1186,44 +1184,29 @@ impl Flow for InlineFlow {
 
     fn compute_absolute_position(&mut self) {
         for fragment in self.fragments.fragments.iter_mut() {
-            let stacking_relative_position = match fragment.specific {
-                SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                    let block_flow = info.flow_ref.as_block();
-                    block_flow.base.absolute_position_info = self.base.absolute_position_info;
-
-                    // FIXME(#2795): Get the real container size
-                    let container_size = Size2D::zero();
-                    block_flow.base.stacking_relative_position =
-                        self.base.stacking_relative_position +
-                        fragment.border_box.start.to_physical(self.base.writing_mode,
-                                                              container_size);
-                    block_flow.base.stacking_relative_position
-                }
-                SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                    let block_flow = info.flow_ref.as_block();
-                    block_flow.base.absolute_position_info = self.base.absolute_position_info;
-
-                    // FIXME(#2795): Get the real container size
-                    let container_size = Size2D::zero();
-                    block_flow.base.stacking_relative_position =
-                        self.base.stacking_relative_position +
-                        fragment.border_box.start.to_physical(self.base.writing_mode,
-                                                              container_size);
-                    block_flow.base.stacking_relative_position
-
-                }
-                _ => continue,
-            };
-
+            let stacking_relative_border_box =
+                fragment.stacking_relative_border_box(&self.base.stacking_relative_position,
+                                                      &self.base
+                                                           .absolute_position_info
+                                                           .relative_containing_block_size,
+                                                      CoordinateSystem::Self);
             let clip = fragment.clipping_region_for_children(&self.base.clip,
-                                                             &stacking_relative_position);
-
+                                                             &stacking_relative_border_box);
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {
-                    flow::mut_base(info.flow_ref.deref_mut()).clip = clip
+                    flow::mut_base(info.flow_ref.deref_mut()).clip = clip;
+                    let block_flow = info.flow_ref.as_block();
+                    block_flow.base.absolute_position_info = self.base.absolute_position_info;
+                    block_flow.base.stacking_relative_position =
+                        stacking_relative_border_box.origin;
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut info) => {
-                    flow::mut_base(info.flow_ref.deref_mut()).clip = clip
+                    flow::mut_base(info.flow_ref.deref_mut()).clip = clip;
+                    let block_flow = info.flow_ref.as_block();
+                    block_flow.base.absolute_position_info = self.base.absolute_position_info;
+                    block_flow.base.stacking_relative_position =
+                        stacking_relative_border_box.origin
+
                 }
                 _ => {}
             }
@@ -1235,49 +1218,36 @@ impl Flow for InlineFlow {
     fn update_late_computed_block_position_if_necessary(&mut self, _: Au) {}
 
     fn build_display_list(&mut self, layout_context: &LayoutContext) {
-        // TODO(#228): Once we form lines and have their cached bounds, we can be smarter and
-        // not recurse on a line if nothing in it can intersect the dirty region.
-        debug!("Flow: building display list for {} inline fragments", self.fragments.len());
-
-        let mut display_list = box DisplayList::new();
-        for fragment in self.fragments.fragments.iter_mut() {
-            let fragment_origin = self.base.stacking_relative_position_of_child_fragment(fragment);
-            fragment.build_display_list(&mut *display_list,
-                                        layout_context,
-                                        fragment_origin,
-                                        BackgroundAndBorderLevel::Content,
-                                        &self.base.clip);
-            match fragment.specific {
-                SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
-                    let block_flow = block_flow.flow_ref.deref_mut();
-                    flow::mut_base(block_flow).display_list_building_result
-                                              .add_to(&mut *display_list)
-                }
-                SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
-                    let block_flow = block_flow.flow_ref.deref_mut();
-                    flow::mut_base(block_flow).display_list_building_result
-                                              .add_to(&mut *display_list)
-                }
-                _ => {}
-            }
-        }
-
-        self.base.display_list_building_result = DisplayListBuildingResult::Normal(display_list);
-
-        if opts::get().validate_display_list_geometry {
-            self.base.validate_display_list_geometry();
-        }
+        self.build_display_list_for_inline(layout_context)
     }
 
     fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
+    fn compute_overflow(&self) -> Rect<Au> {
+        let mut overflow = ZERO_RECT;
         for fragment in self.fragments.fragments.iter() {
-            if iterator.should_process(fragment) {
-                let fragment_origin =
-                    self.base.stacking_relative_position_of_child_fragment(fragment);
-                iterator.process(fragment, fragment.stacking_relative_bounds(&fragment_origin));
+            overflow = overflow.union(&fragment.compute_overflow())
+        }
+        overflow
+    }
+
+    fn iterate_through_fragment_border_boxes(&self,
+                                             iterator: &mut FragmentBorderBoxIterator,
+                                             stacking_context_position: &Point2D<Au>) {
+        // FIXME(#2795): Get the real container size.
+        for fragment in self.fragments.fragments.iter() {
+            if !iterator.should_process(fragment) {
+                continue
             }
+
+            let stacking_relative_position = &self.base.stacking_relative_position;
+            let relative_containing_block_size =
+                &self.base.absolute_position_info.relative_containing_block_size;
+            iterator.process(fragment,
+                             &fragment.stacking_relative_border_box(stacking_relative_position,
+                                                                    relative_containing_block_size,
+                                                                    CoordinateSystem::Parent)
+                                      .translate(stacking_context_position))
         }
     }
 }

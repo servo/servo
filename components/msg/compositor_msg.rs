@@ -75,7 +75,7 @@ pub struct LayerMetadata {
     /// An opaque ID. This is usually the address of the flow and index of the box within it.
     pub id: LayerId,
     /// The position and size of the layer in pixels.
-    pub position: Rect<uint>,
+    pub position: Rect<i32>,
     /// The background color of the layer.
     pub background_color: Color,
     /// The scrolling policy of this layer.

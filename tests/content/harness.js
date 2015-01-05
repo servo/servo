@@ -22,7 +22,7 @@ function _pass(s, m) {
 
 function _printer(opstr, op) {
   return function (a, b, msg) {
-    let f = op(a,b) ? _pass : _fail;
+    var f = op(a,b) ? _pass : _fail;
     if (!msg) msg = "";
     f(a + " " + opstr + " " + b, msg);
   };
