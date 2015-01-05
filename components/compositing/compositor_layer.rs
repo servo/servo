@@ -283,8 +283,7 @@ impl CompositorLayer for Layer<CompositorData> {
         self.clamp_scroll_offset_and_scroll_layer(scroll_offset + delta)
     }
 
-    fn clamp_scroll_offset_and_scroll_layer(&self,
-                                            new_offset: TypedPoint2D<LayerPixel, f32>)
+    fn clamp_scroll_offset_and_scroll_layer(&self, new_offset: TypedPoint2D<LayerPixel, f32>)
                                             -> ScrollEventResult {
         let layer_size = self.bounds.borrow().size;
         let content_size = calculate_content_size_for_layer(self);
@@ -339,17 +338,14 @@ impl CompositorLayer for Layer<CompositorData> {
         let _ = chan.send_opt(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
-    fn scroll_layer_and_all_child_layers(&self,
-                                         new_offset: TypedPoint2D<LayerPixel, f32>)
+    fn scroll_layer_and_all_child_layers(&self, new_offset: TypedPoint2D<LayerPixel, f32>)
                                          -> bool {
         let mut result = false;
 
         // Only scroll this layer if it's not fixed-positioned.
         if self.extra_data.borrow().scroll_policy != FixedPosition {
             let new_offset = new_offset.to_untyped();
-            *self.transform.borrow_mut() = identity().translate(new_offset.x,
-                                                                 new_offset.y,
-                                                                 0.0);
+            *self.transform.borrow_mut() = identity().translate(new_offset.x, new_offset.y, 0.0);
             *self.content_offset.borrow_mut() = Point2D::from_untyped(&new_offset);
             result = true
         }

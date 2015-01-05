@@ -52,9 +52,9 @@ use servo_util::opts;
 use std::collections::DList;
 use std::mem;
 use std::sync::atomic::Relaxed;
-use style::ComputedValues;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
+use style::{mod, ComputedValues};
 use sync::Arc;
 use url::Url;
 
@@ -681,7 +681,7 @@ impl<'a> FlowConstructor<'a> {
     /// doesn't render its children, so this just nukes a child's fragments and creates a
     /// `Fragment`.
     fn build_fragments_for_replaced_inline_content(&mut self, node: &ThreadSafeLayoutNode)
-                                               -> ConstructionResult {
+                                                   -> ConstructionResult {
         for kid in node.children() {
             kid.set_flow_construction_result(ConstructionResult::None)
         }
@@ -697,24 +697,42 @@ impl<'a> FlowConstructor<'a> {
                 node.restyle_damage()))
         }
 
+        // If the value of `display` property is not `inline`, then we have a situation like
+        // `<div style="position:absolute">foo bar baz</div>`. The fragments for `foo`, `bar`, and
+        // `baz` had better not be absolutely positioned!
+        let mut style = (*node.style()).clone();
+        if style.get_box().display != display::inline {
+            style = Arc::new(style::make_inline(&*style))
+        }
+
         // If this is generated content, then we need to initialize the accumulator with the
         // fragment corresponding to that content. Otherwise, just initialize with the ordinary
         // fragment that needs to be generated for this inline node.
         let fragment = if node.get_pseudo_element_type() != PseudoElementType::Normal {
-            let fragment_info = SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new(node));
-            Fragment::new_from_specific_info(node, fragment_info)
+            let fragment_info =
+                SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new(node));
+            Fragment::from_opaque_node_and_style(
+                OpaqueNodeMethods::from_thread_safe_layout_node(node),
+                style,
+                node.restyle_damage(),
+                fragment_info)
         } else {
-            Fragment::new(self, node)
+            Fragment::from_opaque_node_and_style(
+                OpaqueNodeMethods::from_thread_safe_layout_node(node),
+                style,
+                node.restyle_damage(),
+                self.build_specific_fragment_info_for_node(node))
         };
 
         let mut fragments = DList::new();
         fragments.push_back(fragment);
 
-        let construction_item = ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
-            splits: DList::new(),
-            fragments: fragments,
-            abs_descendants: Descendants::new(),
-        });
+        let construction_item =
+            ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
+                splits: DList::new(),
+                fragments: fragments,
+                abs_descendants: Descendants::new(),
+            });
         ConstructionResult::ConstructionItem(construction_item)
     }
 
@@ -726,17 +744,19 @@ impl<'a> FlowConstructor<'a> {
             _ => unreachable!()
         };
 
-        let fragment_info = SpecificFragmentInfo::InlineBlock(InlineBlockFragmentInfo::new(block_flow));
+        let fragment_info = SpecificFragmentInfo::InlineBlock(InlineBlockFragmentInfo::new(
+                block_flow));
         let fragment = Fragment::new_from_specific_info(node, fragment_info);
 
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         fragment_accumulator.fragments.push_back(fragment);
 
-        let construction_item = ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
-            splits: DList::new(),
-            fragments: fragment_accumulator.to_dlist(),
-            abs_descendants: abs_descendants,
-        });
+        let construction_item =
+            ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
+                splits: DList::new(),
+                fragments: fragment_accumulator.to_dlist(),
+                abs_descendants: abs_descendants,
+            });
         ConstructionResult::ConstructionItem(construction_item)
     }
 
@@ -757,11 +777,12 @@ impl<'a> FlowConstructor<'a> {
         let mut fragment_accumulator = InlineFragmentsAccumulator::from_inline_node(node);
         fragment_accumulator.fragments.push_back(fragment);
 
-        let construction_item = ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
-            splits: DList::new(),
-            fragments: fragment_accumulator.to_dlist(),
-            abs_descendants: abs_descendants,
-        });
+        let construction_item =
+            ConstructionItem::InlineFragments(InlineFragmentsConstructionResult {
+                splits: DList::new(),
+                fragments: fragment_accumulator.to_dlist(),
+                abs_descendants: abs_descendants,
+            });
         ConstructionResult::ConstructionItem(construction_item)
     }
 

@@ -3183,6 +3183,15 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
     result
 }
 
+/// Sets `display` to `inline` and `position` to `static`.
+#[inline]
+pub fn make_inline(style: &ComputedValues) -> ComputedValues {
+    let mut style = (*style).clone();
+    style.box_.make_unique().display = longhands::display::computed_value::T::inline;
+    style.box_.make_unique().position = longhands::position::computed_value::T::static_;
+    style
+}
+
 pub fn is_supported_property(property: &str) -> bool {
     match property {
         % for property in SHORTHANDS:

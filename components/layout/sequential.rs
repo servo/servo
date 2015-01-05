@@ -5,17 +5,20 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use context::{LayoutContext, SharedLayoutContext};
-use flow::{Flow, MutableFlowUtils, PreorderFlowTraversal, PostorderFlowTraversal};
-use flow;
+use flow::{mod, Flow, ImmutableFlowUtils, MutableFlowUtils, PostorderFlowTraversal};
+use flow::{PreorderFlowTraversal};
 use flow_ref::FlowRef;
-use fragment::FragmentBoundsIterator;
-use servo_util::opts;
+use fragment::FragmentBorderBoxIterator;
 use traversal::{BubbleISizes, RecalcStyleForNode, ConstructFlows};
 use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
 use traversal::{ComputeAbsolutePositions, BuildDisplayList};
 use wrapper::LayoutNode;
 use wrapper::{PostorderNodeMutTraversal};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
+
+use geom::point::Point2D;
+use servo_util::geometry::{Au, ZERO_POINT};
+use servo_util::opts;
 
 pub fn traverse_dom_preorder(root: LayoutNode,
                              shared_layout_context: &SharedLayoutContext) {
@@ -94,15 +97,25 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
     doit(root.deref_mut(), compute_absolute_positions, build_display_list);
 }
 
-pub fn iterate_through_flow_tree_fragment_bounds(root: &mut FlowRef,
-                                                 iterator: &mut FragmentBoundsIterator) {
-    fn doit(flow: &mut Flow, iterator: &mut FragmentBoundsIterator) {
-        flow.iterate_through_fragment_bounds(iterator);
+pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
+                                                       iterator: &mut FragmentBorderBoxIterator) {
+    fn doit(flow: &mut Flow,
+            iterator: &mut FragmentBorderBoxIterator,
+            stacking_context_position: &Point2D<Au>) {
+        flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position);
 
         for kid in flow::mut_base(flow).child_iter() {
-            doit(kid, iterator);
+            let stacking_context_position =
+                if kid.is_block_flow() && kid.as_block().fragment.establishes_stacking_context() {
+                    *stacking_context_position + flow::base(kid).stacking_relative_position
+                } else {
+                    *stacking_context_position
+                };
+
+            // FIXME(#2795): Get the real container size.
+            doit(kid, iterator, &stacking_context_position);
         }
     }
 
-    doit(root.deref_mut(), iterator);
+    doit(root.deref_mut(), iterator, &ZERO_POINT);
 }

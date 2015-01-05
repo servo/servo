@@ -19,10 +19,11 @@ use context::LayoutContext;
 use floats::FloatKind;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
-use fragment::{Fragment, FragmentBoundsIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use wrapper::ThreadSafeLayoutNode;
 
+use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
 use std::cmp::{max, min};
 use std::fmt;
@@ -358,8 +359,14 @@ impl Flow for TableWrapperFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
-        self.block_flow.iterate_through_fragment_bounds(iterator);
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.block_flow.compute_overflow()
+    }
+
+    fn iterate_through_fragment_border_boxes(&self,
+                                             iterator: &mut FragmentBorderBoxIterator,
+                                             stacking_context_position: &Point2D<Au>) {
+        self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
 }
 

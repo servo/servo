@@ -34,7 +34,7 @@ use servo_msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
 use servo_util::cursor::Cursor;
 use servo_util::dlist as servo_dlist;
-use servo_util::geometry::{mod, Au, MAX_RECT, ZERO_POINT, ZERO_RECT};
+use servo_util::geometry::{mod, Au, MAX_RECT, ZERO_RECT};
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
@@ -160,9 +160,8 @@ pub struct StackingContext {
     pub layer: Option<Arc<PaintLayer>>,
     /// The position and size of this stacking context.
     pub bounds: Rect<Au>,
-    /// The clipping rect for this stacking context, in the coordinate system of the *parent*
-    /// stacking context.
-    pub clip_rect: Rect<Au>,
+    /// The overflow rect for this stacking context in its coordinate system.
+    pub overflow: Rect<Au>,
     /// The `z-index` for this stacking context.
     pub z_index: i32,
     /// The opacity of this stacking context.
@@ -171,12 +170,10 @@ pub struct StackingContext {
 
 impl StackingContext {
     /// Creates a new stacking context.
-    ///
-    /// TODO(pcwalton): Stacking contexts should not always be clipped to their bounds, to handle
-    /// overflow properly.
     #[inline]
     pub fn new(display_list: Box<DisplayList>,
-               bounds: Rect<Au>,
+               bounds: &Rect<Au>,
+               overflow: &Rect<Au>,
                z_index: i32,
                opacity: AzFloat,
                layer: Option<Arc<PaintLayer>>)
@@ -184,8 +181,8 @@ impl StackingContext {
         StackingContext {
             display_list: display_list,
             layer: layer,
-            bounds: bounds,
-            clip_rect: Rect(ZERO_POINT, bounds.size),
+            bounds: *bounds,
+            overflow: *overflow,
             z_index: z_index,
             opacity: opacity,
         }
@@ -196,7 +193,7 @@ impl StackingContext {
                                           paint_context: &mut PaintContext,
                                           tile_bounds: &Rect<AzFloat>,
                                           transform: &Matrix2D<AzFloat>,
-                                          clip_rect: Option<Rect<Au>>) {
+                                          clip_rect: Option<&Rect<Au>>) {
         let temporary_draw_target =
             paint_context.get_or_create_temporary_draw_target(self.opacity);
         {
@@ -205,7 +202,7 @@ impl StackingContext {
                 font_ctx: &mut *paint_context.font_ctx,
                 page_rect: paint_context.page_rect,
                 screen_rect: paint_context.screen_rect,
-                clip_rect: clip_rect,
+                clip_rect: clip_rect.map(|clip_rect| *clip_rect),
                 transient_clip: None,
             };
 
@@ -252,7 +249,7 @@ impl StackingContext {
                     positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
-                                                                  Some(positioned_kid.clip_rect))
+                                                                  Some(&positioned_kid.overflow))
                 }
             }
 
@@ -295,7 +292,7 @@ impl StackingContext {
                     positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
-                                                                  Some(positioned_kid.clip_rect))
+                                                                  Some(&positioned_kid.overflow))
                 }
             }
 
@@ -329,11 +326,18 @@ impl StackingContext {
             }
         };
 
-        let child_stacking_context_bounds = child_stacking_context.bounds.to_azure_rect();
-        let tile_subrect = tile_bounds.intersection(&child_stacking_context_bounds)
+        // Translate the child's overflow region into our coordinate system.
+        let child_stacking_context_overflow =
+            child_stacking_context.overflow.translate(&child_stacking_context.bounds.origin)
+                                           .to_azure_rect();
+
+        // Intersect that with the current tile boundaries to find the tile boundaries that the
+        // child covers.
+        let tile_subrect = tile_bounds.intersection(&child_stacking_context_overflow)
                                       .unwrap_or(ZERO_AZURE_RECT);
-        let offset = tile_subrect.origin - child_stacking_context_bounds.origin;
-        Rect(offset, tile_subrect.size)
+
+        // Translate the resulting rect into the child's coordinate system.
+        tile_subrect.translate(&-child_stacking_context.bounds.to_azure_rect().origin)
     }
 
     /// Places all nodes containing the point of interest into `result`, topmost first. If
@@ -604,6 +608,20 @@ impl ClippingRegion {
             radii: *radii,
         });
         self
+    }
+
+    /// Translates this clipping region by the given vector.
+    #[inline]
+    pub fn translate(&self, delta: &Point2D<Au>) -> ClippingRegion {
+        ClippingRegion {
+            main: self.main.translate(delta),
+            complex: self.complex.iter().map(|complex| {
+                ComplexClippingRegion {
+                    rect: complex.rect.translate(delta),
+                    radii: complex.radii,
+                }
+            }).collect(),
+        }
     }
 }
 
