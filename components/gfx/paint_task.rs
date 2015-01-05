@@ -224,7 +224,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
 
             debug!("paint_task: shutdown_chan send");
             shutdown_chan.send(());
-        }, ConstellationMsg::Failure(failure_msg), c, true);
+        }, ConstellationMsg::Failure(failure_msg), c);
     }
 
     fn start(&mut self) {
