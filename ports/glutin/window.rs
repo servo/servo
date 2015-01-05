@@ -9,8 +9,7 @@ use compositing::windowing::{WindowEvent, WindowMethods, KeyEvent};
 use compositing::windowing::{Idle, Resize};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass, Scroll};
 use compositing::windowing::{Zoom, PinchZoom, Navigation};
-use compositing::windowing::{Quit, MouseWindowClickEvent};
-use compositing::windowing::{MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
+use compositing::windowing::{Quit, MouseWindowEvent};
 use compositing::windowing::{Forward, Back};
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
@@ -477,7 +476,7 @@ impl Window {
             ElementState::Pressed => {
                 self.mouse_down_point.set(Point2D(x, y));
                 self.mouse_down_button.set(Some(button));
-                MouseWindowMouseDownEvent(0, TypedPoint2D(x as f32, y as f32))
+                MouseWindowEvent::MouseDown(0, TypedPoint2D(x as f32, y as f32))
             }
             ElementState::Released => {
                 match self.mouse_down_button.get() {
@@ -487,15 +486,14 @@ impl Window {
                         let pixel_dist = ((pixel_dist.x * pixel_dist.x +
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
-                            let click_event = MouseWindowClickEvent(0,
-                                                                    TypedPoint2D(x as f32,
-                                                                                 y as f32));
+                            let click_event = MouseWindowEvent::Click(
+                                0, TypedPoint2D(x as f32, y as f32));
                             self.event_queue.borrow_mut().push(MouseWindowEventClass(click_event));
                         }
                     }
                     Some(_) => (),
                 }
-                MouseWindowMouseUpEvent(0, TypedPoint2D(x as f32, y as f32))
+                MouseWindowEvent::MouseUp(0, TypedPoint2D(x as f32, y as f32))
             }
         };
         self.event_queue.borrow_mut().push(MouseWindowEventClass(event));

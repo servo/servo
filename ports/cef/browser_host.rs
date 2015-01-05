@@ -102,10 +102,10 @@ cef_class_impl! {
             let point = TypedPoint2D((*event).x as f32, (*event).y as f32);
             if mouse_up != 0 {
                 core::send_window_event(WindowEvent::MouseWindowEventClass(
-                    MouseWindowEvent::MouseWindowClickEvent(button_type, point)))
+                    MouseWindowEvent::Click(button_type, point)))
             } else {
                 core::send_window_event(WindowEvent::MouseWindowEventClass(
-                    MouseWindowEvent::MouseWindowMouseUpEvent(button_type, point)))
+                    MouseWindowEvent::MouseUp(button_type, point)))
             }
         }
 
