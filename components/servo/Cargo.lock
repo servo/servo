@@ -59,7 +59,7 @@ dependencies = [
 [[package]]
 name = "cocoa"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-cocoa#8f47f126fe534d4dad86aa1f5b2da46a0581a232"
+source = "git+https://github.com/servo/rust-cocoa#bf53a53ce306279fc1cae0d56fdd5e7216696420"
 
 [[package]]
 name = "compile_msg"
@@ -330,7 +330,7 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.2"
-source = "git+https://github.com/servo/glutin?ref=servo#4b1039622fab13fed23e111a35e65e5186540808"
+source = "git+https://github.com/servo/glutin?ref=servo#447b6e4132b09018bbfabe5035e4ab932a5c24be"
 dependencies = [
  "android_glue 0.0.1 (git+https://github.com/servo/android-rs-glue?ref=servo)",
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
