@@ -797,9 +797,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
         let point = match mouse_window_event {
-            MouseWindowEvent::MouseWindowClickEvent(_, p) => p,
-            MouseWindowEvent::MouseWindowMouseDownEvent(_, p) => p,
-            MouseWindowEvent::MouseWindowMouseUpEvent(_, p) => p,
+            MouseWindowEvent::Click(_, p) => p,
+            MouseWindowEvent::MouseDown(_, p) => p,
+            MouseWindowEvent::MouseUp(_, p) => p,
         };
         match self.find_topmost_layer_at_point(point / self.scene.scale) {
             Some(result) => result.layer.send_mouse_event(mouse_window_event, result.point),

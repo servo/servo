@@ -160,9 +160,9 @@ fn read_input_device(device_path: &Path,
                             if dist < 16 {
                                 let click_pt = TypedPoint2D(slotA.x as f32, slotA.y as f32);
                                 println!("Dispatching click!");
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseWindowMouseDownEvent(0, click_pt)));
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseWindowMouseUpEvent(0, click_pt)));
-                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseWindowClickEvent(0, click_pt)));
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseDown(0, click_pt)));
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::MouseUp(0, click_pt)));
+                                sender.send(WindowEvent::MouseWindowEventClass(MouseWindowEvent::Click(0, click_pt)));
                             }
                         } else {
                             println!("Touch down");

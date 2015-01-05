@@ -318,11 +318,11 @@ impl CompositorLayer for Layer<CompositorData> {
                         cursor: TypedPoint2D<LayerPixel, f32>) {
         let event_point = cursor.to_untyped();
         let message = match event {
-            MouseWindowEvent::MouseWindowClickEvent(button, _) =>
+            MouseWindowEvent::Click(button, _) =>
                 ClickEvent(button, event_point),
-            MouseWindowEvent::MouseWindowMouseDownEvent(button, _) =>
+            MouseWindowEvent::MouseDown(button, _) =>
                 MouseDownEvent(button, event_point),
-            MouseWindowEvent::MouseWindowMouseUpEvent(button, _) =>
+            MouseWindowEvent::MouseUp(button, _) =>
                 MouseUpEvent(button, event_point),
         };
         let pipeline = &self.extra_data.borrow().pipeline;
