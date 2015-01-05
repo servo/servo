@@ -322,16 +322,8 @@ impl Window {
 
     /// Helper function to send a scroll event.
     fn scroll_window(&self, dx: f32, dy: f32) {
-        let (x, y) = self.glfw_window.get_cursor_pos();
-        //handle hidpi displays, since GLFW returns non-hi-def coordinates.
-        let (backing_size, _) = self.glfw_window.get_framebuffer_size();
-        let (window_size, _) = self.glfw_window.get_size();
-        let hidpi = (backing_size as f32) / (window_size as f32);
-        let x = x as f32 * hidpi;
-        let y = y as f32 * hidpi;
-
-        self.event_queue.borrow_mut().push(Scroll(TypedPoint2D(dx, dy),
-        TypedPoint2D(x as i32, y as i32)));
+        let cursor_pos = self.cursor_position().cast().unwrap();
+        self.event_queue.borrow_mut().push(Scroll(TypedPoint2D(dx, dy), cursor_pos));
     }
 
     /// Helper function to set the window title in accordance with the ready state.
