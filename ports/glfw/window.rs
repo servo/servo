@@ -9,9 +9,9 @@ use NestedEventLoopListener;
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{Forward, Back};
 use compositing::windowing::{Idle, Resize};
-use compositing::windowing::{KeyEvent, MouseWindowClickEvent, MouseWindowMouseDownEvent};
+use compositing::windowing::{KeyEvent, MouseWindowEvent};
 use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass};
-use compositing::windowing::{MouseWindowMouseUpEvent, Refresh};
+use compositing::windowing::Refresh;
 use compositing::windowing::{Navigation, Scroll, Zoom};
 use compositing::windowing::{PinchZoom, Quit};
 use compositing::windowing::{WindowEvent, WindowMethods};
@@ -373,7 +373,7 @@ impl Window {
             glfw::Press => {
                 self.mouse_down_point.set(Point2D(x, y));
                 self.mouse_down_button.set(Some(button));
-                MouseWindowMouseDownEvent(button as uint, TypedPoint2D(x as f32, y as f32))
+                MouseWindowEvent::MouseDown(button as uint, TypedPoint2D(x as f32, y as f32))
             }
             glfw::Release => {
                 match self.mouse_down_button.get() {
@@ -383,15 +383,14 @@ impl Window {
                         let pixel_dist = ((pixel_dist.x * pixel_dist.x +
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
-                            let click_event = MouseWindowClickEvent(button as uint,
-                                                                    TypedPoint2D(x as f32,
-                                                                                 y as f32));
+                            let click_event = MouseWindowEvent::Click(
+                                button as uint, TypedPoint2D(x as f32, y as f32));
                             self.event_queue.borrow_mut().push(MouseWindowEventClass(click_event));
                         }
                     }
                     Some(_) => (),
                 }
-                MouseWindowMouseUpEvent(button as uint, TypedPoint2D(x as f32, y as f32))
+                MouseWindowEvent::MouseUp(button as uint, TypedPoint2D(x as f32, y as f32))
             }
             _ => panic!("I cannot recognize the type of mouse action that occured. :-(")
         };

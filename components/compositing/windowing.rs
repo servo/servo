@@ -19,9 +19,9 @@ use std::fmt::{FormatError, Formatter, Show};
 use std::rc::Rc;
 
 pub enum MouseWindowEvent {
-    MouseWindowClickEvent(uint, TypedPoint2D<DevicePixel, f32>),
-    MouseWindowMouseDownEvent(uint, TypedPoint2D<DevicePixel, f32>),
-    MouseWindowMouseUpEvent(uint, TypedPoint2D<DevicePixel, f32>),
+    Click(uint, TypedPoint2D<DevicePixel, f32>),
+    MouseDown(uint, TypedPoint2D<DevicePixel, f32>),
+    MouseUp(uint, TypedPoint2D<DevicePixel, f32>),
 }
 
 pub enum WindowNavigateMsg {
