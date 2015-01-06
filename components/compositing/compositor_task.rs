@@ -129,11 +129,11 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
         port.recv()
     }
 
-    fn paint(&mut self,
-             pipeline_id: PipelineId,
-             epoch: Epoch,
-             replies: Vec<(LayerId, Box<LayerBufferSet>)>) {
-        self.send(Msg::Paint(pipeline_id, epoch, replies));
+    fn assign_painted_buffers(&mut self,
+                              pipeline_id: PipelineId,
+                              epoch: Epoch,
+                              replies: Vec<(LayerId, Box<LayerBufferSet>)>) {
+        self.send(Msg::AssignPaintedBuffers(pipeline_id, epoch, replies));
     }
 
     fn initialize_layers_for_pipeline(&mut self,
@@ -170,8 +170,8 @@ pub enum Msg {
     Exit(Sender<()>),
 
     /// Informs the compositor that the constellation has completed shutdown.
-    /// Required because the constellation can have pending calls to make (e.g. SetIds)
-    /// at the time that we send it an ExitMsg.
+    /// Required because the constellation can have pending calls to make
+    /// (e.g. SetFrameTree) at the time that we send it an ExitMsg.
     ShutdownComplete,
 
     /// Requests the compositor's graphics metadata. Graphics metadata is what the painter needs
@@ -191,8 +191,8 @@ pub enum Msg {
     SetLayerOrigin(PipelineId, LayerId, Point2D<f32>),
     /// Scroll a page in a window
     ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
-    /// Requests that the compositor paint the given layer buffer set for the given page size.
-    Paint(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>),
+    /// Requests that the compositor assign the painted buffers to the given layers.
+    AssignPaintedBuffers(PipelineId, Epoch, Vec<(LayerId, Box<LayerBufferSet>)>),
     /// Alerts the compositor to the current status of page loading.
     ChangeReadyState(PipelineId, ReadyState),
     /// Alerts the compositor to the current status of painting.
@@ -203,8 +203,8 @@ pub enum Msg {
     ChangePageLoadData(FrameId, LoadData),
     /// Alerts the compositor that a `PaintMsg` has been discarded.
     PaintMsgDiscarded,
-    /// Sets the channel to the current layout and paint tasks, along with their ID.
-    SetIds(SendableFrameTree, Sender<()>, ConstellationChan),
+    /// Replaces the current frame tree, typically called during main frame navigation.
+    SetFrameTree(SendableFrameTree, Sender<()>, ConstellationChan),
     /// Sends an updated version of the frame tree.
     FrameTreeUpdate(FrameTreeDiff, Sender<()>),
     /// The load of a page has completed.
@@ -230,14 +230,14 @@ impl Show for Msg {
             Msg::CreateOrUpdateDescendantLayer(..) => write!(f, "CreateOrUpdateDescendantLayer"),
             Msg::SetLayerOrigin(..) => write!(f, "SetLayerOrigin"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),
-            Msg::Paint(..) => write!(f, "Paint"),
+            Msg::AssignPaintedBuffers(..) => write!(f, "AssignPaintedBuffers"),
             Msg::ChangeReadyState(..) => write!(f, "ChangeReadyState"),
             Msg::ChangePaintState(..) => write!(f, "ChangePaintState"),
             Msg::ChangePageTitle(..) => write!(f, "ChangePageTitle"),
             Msg::ChangePageLoadData(..) => write!(f, "ChangePageLoadData"),
             Msg::PaintMsgDiscarded(..) => write!(f, "PaintMsgDiscarded"),
             Msg::FrameTreeUpdate(..) => write!(f, "FrameTreeUpdate"),
-            Msg::SetIds(..) => write!(f, "SetIds"),
+            Msg::SetFrameTree(..) => write!(f, "SetFrameTree"),
             Msg::LoadComplete => write!(f, "LoadComplete"),
             Msg::ScrollTimeout(..) => write!(f, "ScrollTimeout"),
             Msg::KeyEvent(..) => write!(f, "KeyEvent"),

@@ -278,7 +278,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     }
 
                     debug!("PaintTask: returning surfaces");
-                    self.compositor.paint(self.id, self.epoch, replies);
+                    self.compositor.assign_painted_buffers(self.id, self.epoch, replies);
                 }
                 Msg::UnusedBuffer(unused_buffers) => {
                     debug!("PaintTask: Received {} unused buffers", unused_buffers.len());
