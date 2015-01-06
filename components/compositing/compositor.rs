@@ -523,17 +523,25 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn update_frame_tree(&mut self, frame_tree_diff: &FrameTreeDiff) {
-        let parent_layer = self.find_pipeline_root_layer(frame_tree_diff.parent_pipeline.id);
+        let pipeline_id = frame_tree_diff.parent_pipeline.id;
+        let parent_layer = match self.find_pipeline_root_layer(pipeline_id) {
+            Some(root_layer) => root_layer,
+            None => {
+                debug!("Ignoring FrameTreeUpdate message for pipeline ({}) shutting down.",
+                       pipeline_id);
+                return;
+            }
+        };
         parent_layer.add_child(
             self.create_root_layer_for_pipeline_and_rect(&frame_tree_diff.pipeline,
                                                          frame_tree_diff.rect));
     }
 
-    fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Rc<Layer<CompositorData>> {
-        match self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null()) {
-            Some(ref layer) => layer.clone(),
-            None => panic!("Tried to create or update layer for unknown pipeline"),
+    fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Option<Rc<Layer<CompositorData>>> {
+        if !self.pipeline_details.contains_key(&pipeline_id) {
+            panic!("Tried to create or update layer for unknown pipeline")
         }
+        self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null())
     }
 
     fn update_layer_if_exists(&mut self, properties: LayerProperties) -> bool {
@@ -547,9 +555,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn create_or_update_base_layer(&mut self, layer_properties: LayerProperties) {
+        let pipeline_id = layer_properties.pipeline_id;
+        let root_layer = match self.find_pipeline_root_layer(pipeline_id) {
+            Some(root_layer) => root_layer,
+            None => {
+                debug!("Ignoring CreateOrUpdateBaseLayer message for pipeline ({}) shutting down.",
+                       pipeline_id);
+                return;
+            }
+        };
+
         let need_new_base_layer = !self.update_layer_if_exists(layer_properties);
         if need_new_base_layer {
-            let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
             root_layer.update_layer_except_bounds(layer_properties);
 
             let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
@@ -581,7 +598,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn create_descendant_layer(&self, layer_properties: LayerProperties) {
-        let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
+        let root_layer = match self.find_pipeline_root_layer(layer_properties.pipeline_id) {
+            Some(root_layer) => root_layer,
+            None => return, // This pipeline is in the process of shutting down.
+        };
+
         let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
         let new_layer = CompositorData::new_layer(root_layer_pipeline,
                                                   layer_properties,
