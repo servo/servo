@@ -9,7 +9,6 @@ use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use devtools_traits::DevtoolsControlChan;
 use gfx::paint_task::Msg as PaintMsg;
-use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::paint_task::{PaintChan, PaintTask};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
@@ -166,12 +165,12 @@ impl Pipeline {
     }
 
     pub fn grant_paint_permission(&self) {
-        let _ = self.paint_chan.send_opt(PaintPermissionGranted);
+        let _ = self.paint_chan.send_opt(PaintMsg::PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking paint channel paint permission");
-        let _ = self.paint_chan.send_opt(PaintPermissionRevoked);
+        let _ = self.paint_chan.send_opt(PaintMsg::PaintPermissionRevoked);
     }
 
     pub fn exit(&self, exit_type: PipelineExitType) {
