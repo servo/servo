@@ -282,8 +282,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 response_channel.send(());
             }
 
-            (Msg::CreateOrUpdateRootLayer(layer_properties), ShutdownState::NotShuttingDown) => {
-                self.create_or_update_root_layer(layer_properties);
+            (Msg::CreateOrUpdateBaseLayer(layer_properties), ShutdownState::NotShuttingDown) => {
+                self.create_or_update_base_layer(layer_properties);
             }
 
             (Msg::CreateOrUpdateDescendantLayer(layer_properties),
@@ -539,24 +539,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn create_or_update_root_layer(&mut self, layer_properties: LayerProperties) {
-        let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
-        if need_new_root_layer {
+    fn create_or_update_base_layer(&mut self, layer_properties: LayerProperties) {
+        let need_new_base_layer = !self.update_layer_if_exists(layer_properties);
+        if need_new_base_layer {
             let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
             root_layer.update_layer_except_bounds(layer_properties);
 
             let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
-            let first_child = CompositorData::new_layer(
+            let base_layer = CompositorData::new_layer(
                 root_layer_pipeline.clone(),
                 layer_properties,
                 WantsScrollEventsFlag::DoesntWantScrollEvents,
                 opts::get().tile_size);
 
-            // Add the first child / base layer to the front of the child list, so that
-            // child iframe layers are painted on top of the base layer. These iframe
-            // layers were added previously when creating the layer tree skeleton in
-            // create_frame_tree_root_layers.
-            root_layer.children().insert(0, first_child);
+            // Add the base layer to the front of the child list, so that child
+            // iframe layers are painted on top of the base layer. These iframe
+            // layers were added previously when creating the layer tree
+            // skeleton in create_frame_tree_root_layers.
+            root_layer.children().insert(0, base_layer);
         }
 
         self.scroll_layer_to_fragment_point_if_necessary(layer_properties.pipeline_id,

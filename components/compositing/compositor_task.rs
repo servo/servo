@@ -147,7 +147,7 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
         for metadata in metadata.iter() {
             let layer_properties = LayerProperties::new(pipeline_id, epoch, metadata);
             if first {
-                self.send(Msg::CreateOrUpdateRootLayer(layer_properties));
+                self.send(Msg::CreateOrUpdateBaseLayer(layer_properties));
                 first = false
             } else {
                 self.send(Msg::CreateOrUpdateDescendantLayer(layer_properties));
@@ -183,7 +183,7 @@ pub enum Msg {
 
     /// Tells the compositor to create the root layer for a pipeline if necessary (i.e. if no layer
     /// with that ID exists).
-    CreateOrUpdateRootLayer(LayerProperties),
+    CreateOrUpdateBaseLayer(LayerProperties),
     /// Tells the compositor to create a descendant layer for a pipeline if necessary (i.e. if no
     /// layer with that ID exists).
     CreateOrUpdateDescendantLayer(LayerProperties),
@@ -226,7 +226,7 @@ impl Show for Msg {
             Msg::Exit(..) => write!(f, "Exit"),
             Msg::ShutdownComplete(..) => write!(f, "ShutdownComplete"),
             Msg::GetGraphicsMetadata(..) => write!(f, "GetGraphicsMetadata"),
-            Msg::CreateOrUpdateRootLayer(..) => write!(f, "CreateOrUpdateRootLayer"),
+            Msg::CreateOrUpdateBaseLayer(..) => write!(f, "CreateOrUpdateBaseLayer"),
             Msg::CreateOrUpdateDescendantLayer(..) => write!(f, "CreateOrUpdateDescendantLayer"),
             Msg::SetLayerOrigin(..) => write!(f, "SetLayerOrigin"),
             Msg::ScrollFragmentPoint(..) => write!(f, "ScrollFragmentPoint"),

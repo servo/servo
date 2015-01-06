@@ -98,7 +98,7 @@ impl CompositorEventListener for NullCompositor {
             // we'll notice and think about whether it needs a response, like
             // SetFrameTree.
 
-            Msg::CreateOrUpdateRootLayer(..) |
+            Msg::CreateOrUpdateBaseLayer(..) |
             Msg::CreateOrUpdateDescendantLayer(..) |
             Msg::SetLayerOrigin(..) |
             Msg::AssignPaintedBuffers(..) |
