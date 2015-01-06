@@ -434,6 +434,15 @@ pub mod specified {
                 Err(())
             }
         }
+        /// Parses an angle from a token according to CSS-VALUES § 6.1.
+        pub fn parse(value: &ComponentValue) -> Result<Angle,()> {
+            match *value {
+                Dimension(ref value, ref unit) => {
+                    Angle::parse_dimension(value.value, unit.as_slice())
+                }
+                _ => Err(())
+            }
+        }
     }
 
     /// Specified values for an image according to CSS-IMAGES.

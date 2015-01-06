@@ -45,8 +45,7 @@ use script_traits::{ConstellationControlMsg, CompositorEvent, OpaqueScriptLayout
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
-use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType};
-use servo_msg::constellation_msg::PipelineId;
+use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_net::resource_task::{ResourceTask, load_bytes_iter};
@@ -57,13 +56,14 @@ use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
-use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, TimerMetadataFrameType};
-use servo_util::time::{TimerMetadataReflowType, profile};
+use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan};
+use servo_util::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile};
 use servo_util::workqueue::WorkQueue;
 use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
+use style::computed_values::filter;
 use style::{StylesheetOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
 use style::{MediaType, Device};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -697,7 +697,7 @@ impl LayoutTask {
                                                                  &origin,
                                                                  &origin,
                                                                  0,
-                                                                 1.0,
+                                                                 filter::T::new(Vec::new()),
                                                                  Some(paint_layer)));
 
             rw_data.stacking_context = Some(stacking_context.clone());

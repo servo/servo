@@ -226,3 +226,5 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html
 == word_break_a.html word_break_ref.html
 == outline_offset_a.html outline_offset_ref.html
+== filter_opacity_a.html filter_opacity_ref.html
+== filter_sepia_a.html filter_sepia_ref.html

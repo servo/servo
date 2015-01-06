@@ -44,6 +44,7 @@ use std::default::Default;
 use std::num::FloatMath;
 use style::computed::{AngleOrCorner, LengthOrPercentage, HorizontalDirection, VerticalDirection};
 use style::computed::{Image, LinearGradient};
+use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_repeat, border_style, overflow};
 use style::computed_values::{position, visibility};
 use style::style_structs::Border;
@@ -1147,11 +1148,18 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         let margin = self.fragment.margin.to_physical(self.base.writing_mode);
         let overflow = self.base.overflow.translate(&-Point2D(margin.left, Au(0)));
 
+        // Create the filter pipeline.
+        let effects = self.fragment.style().get_effects();
+        let mut filters = effects.filter.clone();
+        if effects.opacity != 1.0 {
+            filters.push(Filter::Opacity(effects.opacity))
+        }
+
         Arc::new(StackingContext::new(display_list,
                                       &border_box,
                                       &overflow,
                                       self.fragment.style().get_box().z_index.number_or_zero(),
-                                      self.fragment.style().get_effects().opacity as f32,
+                                      filters,
                                       layer))
     }
 }
