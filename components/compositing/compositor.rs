@@ -64,6 +64,9 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The root pipeline.
     root_pipeline: Option<CompositionPipeline>,
 
+    /// Tracks details about each active pipeline that the compositor knows about.
+    pipeline_details: HashMap<PipelineId, PipelineDetails>,
+
     /// The canvas to paint a page.
     scene: Scene<CompositorData>,
 
@@ -102,12 +105,6 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The time of the last zoom action has started.
     zoom_time: f64,
 
-    /// Current display/reflow status of each pipeline.
-    ready_states: HashMap<PipelineId, ReadyState>,
-
-    /// Current paint status of each pipeline.
-    paint_states: HashMap<PipelineId, PaintState>,
-
     /// Whether the page being rendered has loaded completely.
     /// Differs from ReadyState because we can finish loading (ready)
     /// many times for a single page.
@@ -130,9 +127,6 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// Pending scroll events.
     pending_scroll_events: Vec<ScrollEvent>,
-
-    /// PaintTask channels that we know about, used to return unused buffers.
-    paint_channels: HashMap<PipelineId, PaintChan>,
 }
 
 pub struct ScrollEvent {
@@ -159,6 +153,27 @@ struct HitTestResult {
     point: TypedPoint2D<LayerPixel, f32>,
 }
 
+struct PipelineDetails {
+    /// The status of this pipeline's ScriptTask.
+    ready_state: ReadyState,
+
+    /// The status of this pipeline's PaintTask.
+    paint_state: PaintState,
+
+    /// The channel to this pipeline's PaintTask,
+    paint_task_channel: Option<PaintChan>,
+}
+
+impl PipelineDetails {
+    fn new() -> PipelineDetails {
+        PipelineDetails {
+            ready_state: ReadyState::Blank,
+            paint_state: PaintState::Painting,
+            paint_task_channel: None,
+        }
+    }
+}
+
 impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>,
            sender: Box<CompositorProxy+Send>,
@@ -178,6 +193,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             port: receiver,
             context: None,
             root_pipeline: None,
+            pipeline_details: HashMap::new(),
             scene: Scene::new(Rect {
                 origin: Point2D::zero(),
                 size: window_size.as_f32(),
@@ -192,8 +208,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             viewport_zoom: ScaleFactor(1.0),
             zoom_action: false,
             zoom_time: 0f64,
-            ready_states: HashMap::new(),
-            paint_states: HashMap::new(),
             got_load_complete_message: false,
             got_set_frame_tree_message: false,
             constellation_chan: constellation_chan,
@@ -202,7 +216,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             fragment_point: None,
             outstanding_paint_msgs: 0,
             last_composite_time: 0,
-            paint_channels: HashMap::new(),
         }
     }
 
@@ -347,7 +360,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::PaintTaskExited(pipeline_id), ShutdownState::NotShuttingDown) => {
-                if self.paint_channels.remove(&pipeline_id).is_none() {
+                if self.pipeline_details.remove(&pipeline_id).is_none() {
                     panic!("Saw PaintTaskExited message from an unknown pipeline!");
                 }
             }
@@ -362,14 +375,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn change_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
-        match self.ready_states.entry(pipeline_id) {
-            Occupied(entry) => {
-                *entry.into_mut() = ready_state;
-            }
-            Vacant(entry) => {
-                entry.set(ready_state);
-            }
-        }
+        self.get_or_create_pipeline_details(pipeline_id).ready_state = ready_state;
         self.window.set_ready_state(self.get_earliest_pipeline_ready_state());
 
         // If we're painting in headless mode, schedule a recomposite.
@@ -379,25 +385,27 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn get_earliest_pipeline_ready_state(&self) -> ReadyState {
-        if self.ready_states.len() == 0 {
+        if self.pipeline_details.len() == 0 {
             return ReadyState::Blank;
         }
-        return self.ready_states.values().fold(ReadyState::FinishedLoading,
-                                               |a, &b| cmp::min(a, b));
-
+        return self.pipeline_details.values().fold(ReadyState::FinishedLoading,
+                                                   |v, ref details| {
+                                                       cmp::min(v, details.ready_state)
+                                                   });
     }
 
     fn change_paint_state(&mut self, pipeline_id: PipelineId, paint_state: PaintState) {
-        match self.paint_states.entry(pipeline_id) {
-            Occupied(entry) => {
-                *entry.into_mut() = paint_state;
-            }
-            Vacant(entry) => {
-                entry.set(paint_state);
-            }
-        }
-
+        self.get_or_create_pipeline_details(pipeline_id).paint_state = paint_state;
         self.window.set_paint_state(paint_state);
+    }
+
+    pub fn get_or_create_pipeline_details<'a>(&'a mut self,
+                                              pipeline_id: PipelineId)
+                                              -> &'a mut PipelineDetails {
+        if !self.pipeline_details.contains_key(&pipeline_id) {
+            self.pipeline_details.insert(pipeline_id, PipelineDetails::new());
+        }
+        return self.pipeline_details.get_mut(&pipeline_id).unwrap();
     }
 
     fn change_page_title(&mut self, _: PipelineId, title: Option<String>) {
@@ -409,10 +417,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn all_pipelines_in_idle_paint_state(&self) -> bool {
-        if self.ready_states.len() == 0 {
+        if self.pipeline_details.len() == 0 {
             return false;
         }
-        return self.paint_states.values().all(|&value| value == PaintState::Idle);
+        return self.pipeline_details.values().all(|ref details| {
+                                                     details.paint_state == PaintState::Idle
+                                                  });
     }
 
     fn has_paint_msg_tracking(&self) -> bool {
@@ -485,9 +495,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                    layer_properties,
                                                    WantsScrollEventsFlag::WantsScrollEvents,
                                                    opts::get().tile_size);
-        if !self.paint_channels.contains_key(&pipeline.id) {
-            self.paint_channels.insert(pipeline.id, pipeline.paint_chan.clone());
-        }
+
+        self.get_or_create_pipeline_details(pipeline.id).paint_task_channel =
+            Some(pipeline.paint_chan.clone());
 
         // All root layers mask to bounds.
         *root_layer.masks_to_bounds.borrow_mut() = true;
@@ -504,10 +514,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                      frame_tree: &SendableFrameTree,
                                      frame_rect: Option<TypedRect<PagePx, f32>>)
                                      -> Rc<Layer<CompositorData>> {
-        // Initialize the ReadyState and PaintState for this pipeline.
-        self.ready_states.insert(frame_tree.pipeline.id, ReadyState::Blank);
-        self.paint_states.insert(frame_tree.pipeline.id, PaintState::Painting);
-
         let root_layer = self.create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline,
                                                                       frame_rect);
         for kid in frame_tree.children.iter() {
@@ -660,16 +666,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                               new_layer_buffer_set: Box<LayerBufferSet>,
                               epoch: Epoch) {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
-            Some(layer) => self.assign_painted_buffers_to_layer(layer, new_layer_buffer_set, epoch),
-            None => {
-                match self.paint_channels.entry(pipeline_id) {
-                    Occupied(entry) => {
+            Some(layer) => {
+                self.assign_painted_buffers_to_layer(layer, new_layer_buffer_set, epoch);
+                return;
+            }
+            None => {}
+        }
+
+        match self.pipeline_details.entry(pipeline_id) {
+            Occupied(entry) => {
+                match entry.get().paint_task_channel {
+                    Some(ref channel) => {
                         let message = PaintMsg::UnusedBuffer(new_layer_buffer_set.buffers);
-                        let _ = entry.get().send_opt(message);
-                    },
-                    Vacant(_) => panic!("Received a buffer from an unknown pipeline!"),
+                        let _ = channel.send_opt(message);
+                    }
+                    None => panic!("Received buffers for an uninitialized pipeline!"),
                 }
             }
+            Vacant(_) => panic!("Received buffers for an unknown pipeline!"),
         }
     }
 
