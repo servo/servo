@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use compositor_task::LayerProperties;
-use pipeline::CompositionPipeline;
+use compositor::IOCompositor;
 use windowing::{MouseWindowEvent, WindowMethods};
 
 use azure::azure_hl;
@@ -20,13 +20,15 @@ use layers::platform::surface::NativeSurfaceMethods;
 use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use script_traits::{ScriptControlChan, ConstellationControlMsg};
 use servo_msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
+use servo_msg::constellation_msg::PipelineId;
 use std::num::Float;
 use std::num::FloatMath;
 use std::rc::Rc;
 
 pub struct CompositorData {
-    /// This layer's pipeline. BufferRequests and mouse events will be sent through this.
-    pub pipeline: CompositionPipeline,
+    /// This layer's pipeline id. The compositor can associate this id with an
+    /// actual CompositionPipeline.
+    pub pipeline_id: PipelineId,
 
     /// The ID of this layer within the pipeline.
     pub id: LayerId,
@@ -47,13 +49,12 @@ pub struct CompositorData {
 }
 
 impl CompositorData {
-    pub fn new_layer(pipeline: CompositionPipeline,
-                     layer_properties: LayerProperties,
+    pub fn new_layer(layer_properties: LayerProperties,
                      wants_scroll_events: WantsScrollEventsFlag,
                      tile_size: uint)
                      -> Rc<Layer<CompositorData>> {
         let new_compositor_data = CompositorData {
-            pipeline: pipeline,
+            pipeline_id: layer_properties.pipeline_id,
             id: layer_properties.id,
             wants_scroll_events: wants_scroll_events,
             scroll_policy: layer_properties.scroll_policy,
@@ -68,20 +69,24 @@ impl CompositorData {
     }
 }
 
-pub trait CompositorLayer {
+pub trait CompositorLayer<Window: WindowMethods> {
     fn update_layer_except_bounds(&self, layer_properties: LayerProperties);
 
     fn update_layer(&self, layer_properties: LayerProperties);
 
-    fn add_buffers(&self, new_buffers: Box<LayerBufferSet>, epoch: Epoch) -> bool;
+    fn add_buffers(&self,
+                   compositor: &IOCompositor<Window>,
+                   new_buffers: Box<LayerBufferSet>,
+                   epoch: Epoch)
+                   -> bool;
 
     /// Destroys all layer tiles, sending the buffers back to the painter to be destroyed or
     /// reused.
-    fn clear(&self);
+    fn clear(&self, compositor: &IOCompositor<Window>);
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
     /// painter to be destroyed or reused.
-    fn clear_all_tiles(&self);
+    fn clear_all_tiles(&self, compositor: &IOCompositor<Window>);
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
     /// painter. You must call this only when the paint task is destined to be going down;
@@ -104,10 +109,12 @@ pub trait CompositorLayer {
     // sends the event off to the appropriate pipeline. NB: the cursor position is in
     // page coordinates.
     fn send_mouse_event(&self,
+                        compositor: &IOCompositor<Window>,
                         event: MouseWindowEvent,
                         cursor: TypedPoint2D<LayerPixel, f32>);
 
     fn send_mouse_move_event(&self,
+                             compositor: &IOCompositor<Window>,
                              cursor: TypedPoint2D<LayerPixel, f32>);
 
     fn clamp_scroll_offset_and_scroll_layer(&self,
@@ -120,6 +127,9 @@ pub trait CompositorLayer {
 
     /// Return a flag describing how this layer deals with scroll events.
     fn wants_scroll_events(&self) -> WantsScrollEventsFlag;
+
+    /// Return the pipeline id associated with this layer.
+    fn get_pipeline_id(&self) -> PipelineId;
 }
 
 #[deriving(Copy, PartialEq, Clone)]
@@ -165,7 +175,7 @@ pub enum ScrollEventResult {
     ScrollPositionUnchanged,
 }
 
-impl CompositorLayer for Layer<CompositorData> {
+impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
     fn update_layer_except_bounds(&self, layer_properties: LayerProperties) {
         self.extra_data.borrow_mut().epoch = layer_properties.epoch;
         self.extra_data.borrow_mut().scroll_policy = layer_properties.scroll_policy;
@@ -190,33 +200,35 @@ impl CompositorLayer for Layer<CompositorData> {
     //
     // If the epoch of the message does not match the layer's epoch, the message is ignored, the
     // layer buffer set is consumed, and None is returned.
-    fn add_buffers(&self, new_buffers: Box<LayerBufferSet>, epoch: Epoch) -> bool {
+    fn add_buffers(&self,
+                   compositor: &IOCompositor<Window>,
+                   new_buffers: Box<LayerBufferSet>,
+                   epoch: Epoch)
+                   -> bool {
         if self.extra_data.borrow().epoch != epoch {
             debug!("add_buffers: compositor epoch mismatch: {} != {}, id: {}",
                    self.extra_data.borrow().epoch,
                    epoch,
-                   self.extra_data.borrow().pipeline.id);
-            let msg = PaintMsg::UnusedBuffer(new_buffers.buffers);
-            let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(msg);
+                   self.get_pipeline_id());
+            let pipeline = compositor.get_pipeline(self.get_pipeline_id());
+            let _ = pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(new_buffers.buffers));
             return false;
         }
 
-        {
-            for buffer in new_buffers.buffers.into_iter().rev() {
-                self.add_buffer(buffer);
-            }
+        for buffer in new_buffers.buffers.into_iter().rev() {
+            self.add_buffer(buffer);
+        }
 
-            let unused_buffers = self.collect_unused_buffers();
-            if !unused_buffers.is_empty() { // send back unused buffers
-                let msg = PaintMsg::UnusedBuffer(unused_buffers);
-                let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(msg);
-            }
+        let unused_buffers = self.collect_unused_buffers();
+        if !unused_buffers.is_empty() { // send back unused buffers
+            let pipeline = compositor.get_pipeline(self.get_pipeline_id());
+            let _ = pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(unused_buffers));
         }
 
         return true;
     }
 
-    fn clear(&self) {
+    fn clear(&self, compositor: &IOCompositor<Window>) {
         let mut buffers = self.collect_buffers();
 
         if !buffers.is_empty() {
@@ -227,16 +239,17 @@ impl CompositorLayer for Layer<CompositorData> {
                 buffer.mark_wont_leak()
             }
 
-            let _ = self.extra_data.borrow().pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(buffers));
+            let pipeline = compositor.get_pipeline(self.get_pipeline_id());
+            let _ = pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(buffers));
         }
     }
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
     /// painter to be destroyed or reused.
-    fn clear_all_tiles(&self) {
-        self.clear();
+    fn clear_all_tiles(&self, compositor: &IOCompositor<Window>) {
+        self.clear(compositor);
         for kid in self.children().iter() {
-            kid.clear_all_tiles();
+            kid.clear_all_tiles(compositor);
         }
     }
 
@@ -314,6 +327,7 @@ impl CompositorLayer for Layer<CompositorData> {
     }
 
     fn send_mouse_event(&self,
+                        compositor: &IOCompositor<Window>,
                         event: MouseWindowEvent,
                         cursor: TypedPoint2D<LayerPixel, f32>) {
         let event_point = cursor.to_untyped();
@@ -325,15 +339,17 @@ impl CompositorLayer for Layer<CompositorData> {
             MouseWindowEvent::MouseUp(button, _) =>
                 MouseUpEvent(button, event_point),
         };
-        let pipeline = &self.extra_data.borrow().pipeline;
+
+        let pipeline = compositor.get_pipeline(self.get_pipeline_id());
         let ScriptControlChan(ref chan) = pipeline.script_chan;
         let _ = chan.send_opt(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn send_mouse_move_event(&self,
+                             compositor: &IOCompositor<Window>,
                              cursor: TypedPoint2D<LayerPixel, f32>) {
         let message = MouseMoveEvent(cursor.to_untyped());
-        let pipeline = &self.extra_data.borrow().pipeline;
+        let pipeline = compositor.get_pipeline(self.get_pipeline_id());
         let ScriptControlChan(ref chan) = pipeline.script_chan;
         let _ = chan.send_opt(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
@@ -362,4 +378,7 @@ impl CompositorLayer for Layer<CompositorData> {
         self.extra_data.borrow().wants_scroll_events
     }
 
+    fn get_pipeline_id(&self) -> PipelineId {
+        self.extra_data.borrow().pipeline_id
+    }
 }
