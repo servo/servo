@@ -131,9 +131,10 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-cssparser#110bf3052d016bf6eda0689fb21cf971e2c23dc8"
+source = "git+https://github.com/servo/rust-cssparser#8d1b3e220e795f7baaa940919059d5f4ef4ec28c"
 dependencies = [
  "encoding 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "matches 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "text_writer 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -311,35 +312,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "glfw"
-version = "0.0.1"
-source = "git+https://github.com/servo/glfw-rs?ref=servo#b186cb444e349a36b992445dc5cb2c99d38f2a42"
-dependencies = [
- "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?ref=cargo-3.0.4)",
- "semver 0.1.4 (git+https://github.com/rust-lang/semver)",
-]
-
-[[package]]
-name = "glfw-sys"
-version = "3.0.4"
-source = "git+https://github.com/servo/glfw?ref=cargo-3.0.4#765dace7e4125b87c764f5ac0e7a80eae5c550b2"
-
-[[package]]
-name = "glfw_app"
-version = "0.0.1"
-dependencies = [
- "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
- "compositing 0.0.1",
- "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "gleam 0.0.1 (git+https://github.com/servo/gleam)",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
- "msg 0.0.1",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
- "util 0.0.1",
-]
-
-[[package]]
 name = "glutin"
 version = "0.0.2"
 source = "git+https://github.com/servo/glutin?ref=servo#db27370a1cbafcbfcaeee52a44076a61b3e0573c"
@@ -497,6 +469,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "matches"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "mime"
 version = "0.0.1"
 source = "git+https://github.com/hyperium/mime.rs#7898f1c29c7f5d35d0c3c7aed37ebcfc95a40873"
@@ -640,17 +617,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "semver"
-version = "0.1.4"
-source = "git+https://github.com/rust-lang/semver#58dc6b1999d345ca925a2f12a6a84676e823e179"
-
-[[package]]
 name = "servo"
 version = "0.0.1"
 dependencies = [
  "compositing 0.0.1",
  "gfx 0.0.1",
- "glfw_app 0.0.1",
+ "glutin_app 0.0.1",
  "layout 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
@@ -702,6 +674,7 @@ dependencies = [
  "encoding 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
+ "matches 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",

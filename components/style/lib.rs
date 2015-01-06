@@ -18,7 +18,12 @@ extern crate serialize;
 extern crate text_writer;
 extern crate url;
 
+#[phase(plugin, link)]
 extern crate cssparser;
+
+#[phase(plugin)]
+extern crate matches;
+
 extern crate encoding;
 extern crate string_cache;
 
@@ -34,39 +39,41 @@ extern crate lazy_static;
 extern crate "util" as servo_util;
 
 
-// Public API
 pub use media_queries::{Device, MediaType};
 pub use stylesheets::{Stylesheet, iter_font_face_rules};
-pub use selector_matching::{Stylist, StylesheetOrigin};
+pub use selector_matching::{Stylist};
 pub use selector_matching::{DeclarationBlock, CommonStyleAffectingAttributes};
 pub use selector_matching::{CommonStyleAffectingAttributeInfo, CommonStyleAffectingAttributeMode};
 pub use selector_matching::{matches, matches_simple_selector, common_style_affecting_attributes};
 pub use selector_matching::{rare_style_affecting_attributes};
 pub use selector_matching::{RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE, SELECTOR_WHITESPACE};
-pub use properties::{cascade, cascade_anonymous, computed, longhands_from_shorthand};
+pub use properties::{cascade, cascade_anonymous, longhands_from_shorthand};
 pub use properties::{is_supported_property, make_inline};
-pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style_structs};
+pub use properties::{PropertyDeclaration};
+pub use properties::{computed_values, ComputedValues, style_structs};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
-pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};
-pub use properties::{Angle, AngleOrCorner};
-pub use properties::{HorizontalDirection, VerticalDirection};
+pub use properties::{DeclaredValue, PropertyDeclarationParseResult};
+pub use values::CSSFloat;
+pub use values::specified::{Angle, AngleOrCorner, HorizontalDirection, VerticalDirection};
+pub use values::computed;
 pub use node::{TElement, TElementAttributes, TNode};
-pub use selectors::{PseudoElement, ParserContext, SelectorList};
+pub use selectors::{PseudoElement, SelectorList};
 pub use selectors::{AttrSelector, NamespaceConstraint};
-pub use selectors::{SimpleSelector, parse_selector_list_from_str};
+pub use selectors::{SimpleSelector, parse_author_origin_selector_list_from_str};
 pub use cssparser::{Color, RGBA};
 pub use legacy::{IntegerAttribute, LengthAttribute};
 pub use legacy::{SimpleColorAttribute, UnsignedIntegerAttribute};
 pub use font_face::Source;
+pub use stylesheets::Origin as StylesheetOrigin;
 
-mod stylesheets;
-mod errors;
-mod selectors;
-mod selector_matching;
-mod properties;
-mod namespaces;
-mod node;
-mod media_queries;
-mod parsing_utils;
-mod font_face;
-mod legacy;
+pub mod stylesheets;
+pub mod parser;
+pub mod selectors;
+pub mod selector_matching;
+pub mod values;
+pub mod properties;
+pub mod namespaces;
+pub mod node;
+pub mod media_queries;
+pub mod font_face;
+pub mod legacy;
