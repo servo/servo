@@ -5,35 +5,21 @@
 use command_line::command_line_init;
 use interfaces::cef_app_t;
 use types::{cef_main_args_t, cef_settings_t};
-use window;
 
-use compositing::windowing::WindowEvent;
 use geom::size::TypedSize2D;
-use glfw_app;
 use libc::{c_char, c_int, c_void};
-use servo::Browser;
+use rustrt::local::Local;
+use rustrt::task;
 use servo_util::opts;
 use servo_util::opts::RenderApi;
 use std::c_str::CString;
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::rt;
+use browser;
 
 const MAX_RENDERING_THREADS: uint = 128;
 
 // TODO(pcwalton): Get the home page via the CEF API.
 static HOME_URL: &'static str = "http://s27.postimg.org/vqbtrolyr/servo.jpg";
-
-// TODO(pcwalton): Support multiple windows.
-pub enum ServoCefGlobals {
-    OnScreenGlobals(RefCell<Rc<glfw_app::window::Window>>,
-                    RefCell<Browser<glfw_app::window::Window>>),
-    OffScreenGlobals(RefCell<Rc<window::Window>>, RefCell<Browser<window::Window>>),
-}
-
-thread_local!(pub static globals: Rc<RefCell<Option<ServoCefGlobals>>> = Rc::new(RefCell::new(None)))
-
-thread_local!(pub static message_queue: Rc<RefCell<Vec<WindowEvent>>> = Rc::new(RefCell::new(vec!())))
 
 static CEF_API_HASH_UNIVERSAL: &'static [u8] = b"8efd129f4afc344bd04b2feb7f73a149b6c4e27f\0";
 #[cfg(target_os="windows")]
@@ -51,6 +37,11 @@ fn resources_path() -> Option<String> {
 #[cfg(not(target_os="linux"))]
 fn resources_path() -> Option<String> {
     None
+}
+
+fn create_rust_task() {
+    let task = box task::Task::new(None, None);
+    Local::put(task);
 }
 
 #[no_mangle]
@@ -76,6 +67,8 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
             });
         }
     }
+
+    create_rust_task();
 
     let urls = vec![HOME_URL.into_string()];
     opts::set_opts(opts::Opts {
@@ -124,22 +117,17 @@ pub extern "C" fn cef_shutdown() {
 
 #[no_mangle]
 pub extern "C" fn cef_run_message_loop() {
-    globals.with(|ref r| {
-        let mut the_globals = r.borrow_mut();
-        match *the_globals.as_mut().unwrap() {
-            ServoCefGlobals::OnScreenGlobals(ref window, ref browser) => {
-                while browser.borrow_mut().handle_event(window.borrow_mut().wait_events()) {}
-            }
-            ServoCefGlobals::OffScreenGlobals(ref window, ref browser) => {
-                while browser.borrow_mut().handle_event(window.borrow_mut().wait_events()) {}
-            }
-        }
-    });
+    // GWTODO: Support blocking message loop
+    // again. Although, will it ever actually
+    // be used or will everything use the
+    // cef_do_message_loop_work function below
+    // as our current miniservo apps do?
+    unimplemented!()
 }
 
 #[no_mangle]
 pub extern "C" fn cef_do_message_loop_work() {
-    send_window_event(WindowEvent::Idle)
+    browser::update();
 }
 
 #[no_mangle]
@@ -152,79 +140,6 @@ pub extern "C" fn cef_execute_process(_args: *const cef_main_args_t,
                                       _windows_sandbox_info: *mut c_void)
                                       -> c_int {
    -1
-}
-
-pub fn send_window_event(event: WindowEvent) {
-    message_queue.with(|ref r| r.borrow_mut().push(event.clone()));
-
-    globals.with(|ref r| {
-        let mut the_globals = r.borrow_mut();
-        match &mut *the_globals {
-            &None => return,
-            &Some(ref mut the_globals) => loop {
-                match *the_globals {
-                    ServoCefGlobals::OnScreenGlobals(_, ref browser) => {
-                        match browser.try_borrow_mut() {
-                            None => {
-                                // We're trying to send an event while processing another one. This will
-                                // cause general badness, so queue up that event instead of immediately
-                                // processing it.
-                                break
-                            }
-                            Some(ref mut browser) => {
-                                let event = match message_queue.with(|ref r| r.borrow_mut().pop()) {
-                                    None => return,
-                                    Some(event) => event,
-                                };
-                                browser.handle_event(event);
-                            }
-                        }
-                    }
-                    ServoCefGlobals::OffScreenGlobals(_, ref browser) => {
-                        match browser.try_borrow_mut() {
-                            None => {
-                                // We're trying to send an event while processing another one. This will
-                                // cause general badness, so queue up that event instead of immediately
-                                // processing it.
-                                break
-                            }
-                            Some(ref mut browser) => {
-                                let event = match message_queue.with(|ref r| r.borrow_mut().pop()) {
-                                    None => return,
-                                    Some(event) => event,
-                                };
-                                browser.handle_event(event);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    });
-}
-
-macro_rules! browser_method_delegate(
-    ( $( fn $method:ident ( ) -> $return_type:ty ; )* ) => (
-        $(
-            pub fn $method() -> $return_type {
-                globals.with(|ref r| {
-                    match r.borrow_mut().as_mut() {
-                        None => panic!("{}: no globals created", stringify!($method)),
-                        Some(&ServoCefGlobals::OnScreenGlobals(_, ref browser)) =>
-                            browser.borrow_mut().$method(),
-                        Some(&ServoCefGlobals::OffScreenGlobals(_, ref browser)) =>
-                            browser.borrow_mut().$method(),
-                    }
-                })
-            }
-        )*
-    )
-)
-
-browser_method_delegate! {
-    fn repaint_synchronously() -> ();
-    fn pinch_zoom_level() -> f32;
-    fn get_title_for_main_frame() -> ();
 }
 
 #[no_mangle]
