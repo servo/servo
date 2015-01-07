@@ -18,8 +18,8 @@ use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlinputelement::HTMLInputElement;
-use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmlinputelement::{HTMLInputElement, HTMLInputElementHelpers};
+use dom::htmltextareaelement::{HTMLTextAreaElement, HTMLTextAreaElementHelpers};
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use hyper::method::Method;
 use servo_msg::constellation_msg::LoadData;
@@ -523,7 +523,4 @@ pub trait FormControl<'a> : Copy + Sized {
     }
 
     fn to_element(self) -> JSRef<'a, Element>;
-    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
-    fn mutable(self) -> bool;
-    fn reset(self);
 }
