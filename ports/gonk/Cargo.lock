@@ -645,6 +645,7 @@ dependencies = [
  "cssparser 0.1.0 (git+https://github.com/servo/rust-cssparser)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "plugins 0.0.1",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
  "task_info 0.0.1",
