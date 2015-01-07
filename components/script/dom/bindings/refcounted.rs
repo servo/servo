@@ -33,21 +33,24 @@ use js::jsapi::{JS_AddObjectRoot, JS_RemoveObjectRoot, JSContext};
 use libc;
 use std::cell::RefCell;
 use std::collections::hash_map::{HashMap, Vacant, Occupied};
-use std::sync::{Arc, Mutex};
+use std::mem::transmute;
+use std::sync::atomic::{AtomicUint, Acquire, Release, Relaxed};
+use std::sync::atomic::fence;
 
 local_data_key!(pub LiveReferences: LiveDOMReferences)
+
+struct TrustedData {
+    ptr: *const libc::c_void,
+    refcount: AtomicUint,
+    script_chan: Box<ScriptChan + Send>,
+}
 
 /// A safe wrapper around a raw pointer to a DOM object that can be
 /// shared among tasks for use in asynchronous operations. The underlying
 /// DOM object is guaranteed to live at least as long as the last outstanding
 /// `Trusted<T>` instance.
 pub struct Trusted<T> {
-    /// A pointer to the Rust DOM object of type T, but void to allow
-    /// sending `Trusted<T>` between tasks, regardless of T's sendability.
-    ptr: *const libc::c_void,
-    refcount: Arc<Mutex<uint>>,
-    script_chan: Box<ScriptChan + Send>,
-    owner_thread: *const libc::c_void,
+    _ptr: *mut TrustedData
 }
 
 impl<T: Reflectable> Trusted<T> {
@@ -56,41 +59,29 @@ impl<T: Reflectable> Trusted<T> {
     /// lifetime.
     pub fn new(cx: *mut JSContext, ptr: JSRef<T>, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
         let live_references = LiveReferences.get().unwrap();
-        let refcount = live_references.addref(cx, &*ptr as *const T);
-        Trusted {
-            ptr: &*ptr as *const T as *const libc::c_void,
-            refcount: refcount,
-            script_chan: script_chan,
-            owner_thread: (&*live_references) as *const _ as *const libc::c_void,
-        }
+        live_references.addref(cx, &*ptr as *const T, script_chan)
     }
 
     /// Obtain a usable DOM pointer from a pinned `Trusted<T>` value. Fails if used on
     /// a different thread than the original value from which this `Trusted<T>` was
     /// obtained.
     pub fn to_temporary(&self) -> Temporary<T> {
-        assert!({
-            let live_references = LiveReferences.get().unwrap();
-            self.owner_thread == (&*live_references) as *const _ as *const libc::c_void
-        });
+        assert!(LiveReferences.get().unwrap().exists(&self.inner().ptr))
         unsafe {
-            Temporary::new(JS::from_raw(self.ptr as *const T))
+            Temporary::new(JS::from_raw(self.inner().ptr as *const T))
         }
+    }
+
+    fn inner(&self) -> &TrustedData {
+        unsafe { &*self._ptr }
     }
 }
 
 impl<T: Reflectable> Clone for Trusted<T> {
     fn clone(&self) -> Trusted<T> {
-        {
-            let mut refcount = self.refcount.lock();
-            *refcount += 1;
-        }
-
+        self.inner().refcount.fetch_add(1, Relaxed);
         Trusted {
-            ptr: self.ptr,
-            refcount: self.refcount.clone(),
-            script_chan: self.script_chan.clone(),
-            owner_thread: self.owner_thread,
+            _ptr: self._ptr
         }
     }
 }
@@ -98,11 +89,31 @@ impl<T: Reflectable> Clone for Trusted<T> {
 #[unsafe_destructor]
 impl<T: Reflectable> Drop for Trusted<T> {
     fn drop(&mut self) {
-        let mut refcount = self.refcount.lock();
-        assert!(*refcount > 0);
-        *refcount -= 1;
-        if *refcount == 0 {
-            self.script_chan.send(ScriptMsg::RefcountCleanup(self.ptr));
+        // We need to consider the case where a RefcountCleanup message is
+        // concurrently being processed because a new Trusted reference was created
+        // and dropped earlier. In such cases, we cannot use the shared TrustedData
+        // members after we do a fetch_sub, since we could have brought the count
+        // down to zero, causing the shared data to be freed in the script task. So
+        // we clone the necessary data before decrementing the count, but this is
+        // done only when decrementing might bring the count down to zero.
+        let refcount = &self.inner().refcount;
+        loop {
+            let count = refcount.load(Relaxed);
+            // Optimistic check to avoid cloning
+            if count != 1 {
+                if refcount.compare_and_swap(count, count - 1, Release) == count {
+                    break;
+                }
+            } else {
+                let dom_ptr = self.inner().ptr;
+                let script_chan = self.inner().script_chan.clone();
+                let count = refcount.fetch_sub(1, Release);
+                // A new Trusted<T> could have been created
+                if count == 1 {
+                    script_chan.send(ScriptMsg::RefcountCleanup(dom_ptr));
+                }
+                break;
+            }
         }
     }
 }
@@ -111,7 +122,7 @@ impl<T: Reflectable> Drop for Trusted<T> {
 /// from being garbage collected due to outstanding references.
 pub struct LiveDOMReferences {
     // keyed on pointer to Rust DOM object
-    table: RefCell<HashMap<*const libc::c_void, Arc<Mutex<uint>>>>
+    table: RefCell<HashMap<*const libc::c_void, *mut TrustedData>>
 }
 
 impl LiveDOMReferences {
@@ -122,22 +133,28 @@ impl LiveDOMReferences {
         }));
     }
 
-    fn addref<T: Reflectable>(&self, cx: *mut JSContext, ptr: *const T) -> Arc<Mutex<uint>> {
+    fn addref<T: Reflectable>(&self, cx: *mut JSContext, ptr: *const T, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
         let mut table = self.table.borrow_mut();
         match table.entry(ptr as *const libc::c_void) {
-            Occupied(mut entry) => {
-                let refcount = entry.get_mut();
-                *refcount.lock() += 1;
-                refcount.clone()
+            Occupied(entry) => {
+                unsafe {
+                    (**entry.get()).refcount.fetch_add(1, Relaxed);
+                }
+                Trusted { _ptr: *entry.get() }
             }
             Vacant(entry) => {
                 unsafe {
                     let rootable = (*ptr).reflector().rootable();
                     JS_AddObjectRoot(cx, rootable);
                 }
-                let refcount = Arc::new(Mutex::new(1));
-                entry.set(refcount.clone());
-                refcount
+                let data = box TrustedData {
+                    ptr: ptr as *const libc::c_void,
+                    refcount: AtomicUint::new(1),
+                    script_chan: script_chan,
+                };
+                let data = unsafe { transmute(data) };
+                entry.set(data);
+                Trusted { _ptr: data }
             }
         }
     }
@@ -148,18 +165,17 @@ impl LiveDOMReferences {
         let reflectable = raw_reflectable as *const Reflector;
         let mut table = live_references.table.borrow_mut();
         match table.entry(raw_reflectable) {
-            Occupied(entry) => {
-                if *entry.get().lock() != 0 {
-                    // there could have been a new reference taken since
-                    // this message was dispatched.
-                    return;
+            Occupied(entry) => unsafe {
+                let refcount = (**entry.get()).refcount.load(Relaxed);
+                // there could have been a new reference taken since
+                // this message was dispatched.
+                if refcount == 0 {
+                    fence(Acquire);
+                    JS_RemoveObjectRoot(cx, (*reflectable).rootable());
+                    let _ : Box<TrustedData> = transmute(entry.take());
                 }
 
-                unsafe {
-                    JS_RemoveObjectRoot(cx, (*reflectable).rootable());
-                }
-                let _ = entry.take();
-            }
+            },
             Vacant(_) => {
                 // there could be a cleanup message dispatched, then a new
                 // pinned reference obtained and released before the message
@@ -168,6 +184,10 @@ impl LiveDOMReferences {
                 info!("attempt to cleanup an unrecognized reflector");
             }
         }
+    }
+
+    fn exists(&self, raw_reflectable: &*const libc::c_void) -> bool {
+        self.table.borrow().contains_key(raw_reflectable)
     }
 }
 
