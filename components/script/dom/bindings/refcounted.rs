@@ -34,7 +34,8 @@ use libc;
 use std::cell::RefCell;
 use std::collections::hash_map::{HashMap, Vacant, Occupied};
 use std::mem::transmute;
-use std::sync::atomic::{AtomicUint, Relaxed};
+use std::sync::atomic::{AtomicUint, Acquire, Release, Relaxed};
+use std::sync::atomic::fence;
 
 local_data_key!(pub LiveReferences: LiveDOMReferences)
 
@@ -88,11 +89,31 @@ impl<T: Reflectable> Clone for Trusted<T> {
 #[unsafe_destructor]
 impl<T: Reflectable> Drop for Trusted<T> {
     fn drop(&mut self) {
-        // Relaxed ordering is sufficient since no other shared data
-        // is accessible through Trusted<T>
-        let refcount = self.inner().refcount.fetch_sub(1, Relaxed);
-        if refcount == 1 {
-            self.inner().script_chan.send(ScriptMsg::RefcountCleanup(self.inner().ptr));
+        // We need to consider the case where a RefcountCleanup message is
+        // concurrently being processed because a new Trusted reference was created
+        // and dropped earlier. In such cases, we cannot use the shared TrustedData
+        // members after we do a fetch_sub, since we could have brought the count
+        // down to zero, causing the shared data to be freed in the script task. So
+        // we clone the necessary data before decrementing the count, but this is
+        // done only when decrementing might bring the count down to zero.
+        let refcount = &self.inner().refcount;
+        loop {
+            let count = refcount.load(Relaxed);
+            // Optimistic check to avoid cloning
+            if count != 1 {
+                if refcount.compare_and_swap(count, count - 1, Release) == count {
+                    break;
+                }
+            } else {
+                let dom_ptr = self.inner().ptr;
+                let script_chan = self.inner().script_chan.clone();
+                let count = refcount.fetch_sub(1, Release);
+                // A new Trusted<T> could have been created
+                if count == 1 {
+                    script_chan.send(ScriptMsg::RefcountCleanup(dom_ptr));
+                }
+                break;
+            }
         }
     }
 }
@@ -145,9 +166,11 @@ impl LiveDOMReferences {
         let mut table = live_references.table.borrow_mut();
         match table.entry(raw_reflectable) {
             Occupied(entry) => unsafe {
+                let refcount = (**entry.get()).refcount.load(Relaxed);
                 // there could have been a new reference taken since
                 // this message was dispatched.
-                if (**entry.get()).refcount.load(Relaxed) == 0 {
+                if refcount == 0 {
+                    fence(Acquire);
                     JS_RemoveObjectRoot(cx, (*reflectable).rootable());
                     let _ : Box<TrustedData> = transmute(entry.take());
                 }
