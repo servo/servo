@@ -40,8 +40,8 @@ impl URLSearchParams {
         reflect_dom_object(box URLSearchParams::new_inherited(), global, URLSearchParamsBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef, init: Option<StringOrURLSearchParams>) -> Fallible<Temporary<URLSearchParams>> {
-        let usp = URLSearchParams::new(*global).root();
+    pub fn Constructor(global: GlobalRef, init: Option<StringOrURLSearchParams>) -> Fallible<Temporary<URLSearchParams>> {
+        let usp = URLSearchParams::new(global).root();
         match init {
             Some(eString(_s)) => {
                 // XXXManishearth we need to parse the input here

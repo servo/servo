@@ -41,7 +41,7 @@ impl DocumentFragment {
                            document, DocumentFragmentBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<DocumentFragment>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<DocumentFragment>> {
         let document = global.as_window().Document();
         let document = document.root();
 

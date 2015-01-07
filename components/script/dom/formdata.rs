@@ -36,21 +36,21 @@ pub struct FormData {
 }
 
 impl FormData {
-    fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> FormData {
+    fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: GlobalRef) -> FormData {
         FormData {
             reflector_: Reflector::new(),
             data: DOMRefCell::new(HashMap::new()),
-            global: GlobalField::from_rooted(global),
+            global: GlobalField::from_rooted(&global),
             form: form.map(|f| JS::from_rooted(f)),
         }
     }
 
-    pub fn new(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> Temporary<FormData> {
+    pub fn new(form: Option<JSRef<HTMLFormElement>>, global: GlobalRef) -> Temporary<FormData> {
         reflect_dom_object(box FormData::new_inherited(form, global),
-                           *global, FormDataBinding::Wrap)
+                           global, FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
+    pub fn Constructor(global: GlobalRef, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
         Ok(FormData::new(form, global))
     }
 }

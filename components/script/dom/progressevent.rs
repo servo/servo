@@ -46,11 +46,11 @@ impl ProgressEvent {
         event.InitEvent(type_, can_bubble, cancelable);
         Temporary::from_rooted(ev.r())
     }
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Temporary<ProgressEvent>> {
-        let ev = ProgressEvent::new(*global, type_, init.parent.bubbles, init.parent.cancelable,
+        let ev = ProgressEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }

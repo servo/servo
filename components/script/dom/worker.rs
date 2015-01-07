@@ -43,23 +43,23 @@ pub struct Worker {
 }
 
 impl Worker {
-    fn new_inherited(global: &GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Worker {
+    fn new_inherited(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::Worker),
             refcount: Cell::new(0),
-            global: GlobalField::from_rooted(global),
+            global: GlobalField::from_rooted(&global),
             sender: sender,
         }
     }
 
-    pub fn new(global: &GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Temporary<Worker> {
+    pub fn new(global: GlobalRef, sender: Sender<(TrustedWorkerAddress, ScriptMsg)>) -> Temporary<Worker> {
         reflect_dom_object(box Worker::new_inherited(global, sender),
-                           *global,
+                           global,
                            WorkerBinding::Wrap)
     }
 
     // http://www.whatwg.org/html/#dom-worker
-    pub fn Constructor(global: &GlobalRef, scriptURL: DOMString) -> Fallible<Temporary<Worker>> {
+    pub fn Constructor(global: GlobalRef, scriptURL: DOMString) -> Fallible<Temporary<Worker>> {
         // Step 2-4.
         let worker_url = match UrlParser::new().base_url(&global.get_url())
                 .parse(scriptURL.as_slice()) {

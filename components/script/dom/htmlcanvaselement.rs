@@ -87,7 +87,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
         Some(self.context.or_init(|| {
             let window = window_from_node(self).root();
             let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-            CanvasRenderingContext2D::new(&GlobalRef::Window(window.r()), self, Size2D(w, h))
+            CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, Size2D(w, h))
         }))
      }
 }

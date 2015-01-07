@@ -38,7 +38,7 @@ impl Text {
                            document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef, text: DOMString) -> Fallible<Temporary<Text>> {
+    pub fn Constructor(global: GlobalRef, text: DOMString) -> Fallible<Temporary<Text>> {
         let document = global.as_window().Document().root();
         Ok(Text::new(text, document.r()))
     }

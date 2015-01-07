@@ -30,7 +30,7 @@ impl Range {
                            RangeBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Range>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Range>> {
         let document = global.as_window().Document().root();
         Ok(Range::new(document.r()))
     }
