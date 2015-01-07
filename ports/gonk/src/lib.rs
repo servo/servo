@@ -29,7 +29,9 @@ use compositing::windowing::{WindowEvent, WindowMethods};
 #[cfg(not(test))]
 use compositing::{CompositorProxy, CompositorTask, Constellation};
 #[cfg(not(test))]
-use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+#[cfg(not(test))]
+use servo_msg::constellation_msg::ConstellationChan;
 #[cfg(not(test))]
 use script::dom::bindings::codegen::RegisterBindings;
 
@@ -119,7 +121,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 };
 
                 let ConstellationChan(ref chan) = constellation_chan;
-                chan.send(InitLoadUrlMsg(url));
+                chan.send(ConstellationMsg::InitLoadUrl(url));
             }
 
             // Send the constallation Chan as the result
