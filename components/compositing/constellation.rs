@@ -1021,10 +1021,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
     fn set_ids(&mut self, frame_tree: &Rc<FrameTree>) {
         let (chan, port) = channel();
-        debug!("Constellation sending SetIds");
-        self.compositor_proxy.send(CompositorMsg::SetIds(frame_tree.to_sendable(),
-                                                         chan,
-                                                         self.chan.clone()));
+        debug!("Constellation sending SetFrameTree");
+        self.compositor_proxy.send(CompositorMsg::SetFrameTree(frame_tree.to_sendable(),
+                                                               chan,
+                                                               self.chan.clone()));
         match port.recv_opt() {
             Ok(()) => {
                 let mut iter = frame_tree.iter();

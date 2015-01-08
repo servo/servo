@@ -113,8 +113,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// many times for a single page.
     got_load_complete_message: bool,
 
-    /// Whether we have gotten a `SetIds` message.
-    got_set_ids_message: bool,
+    /// Whether we have received a `SetFrameTree` message.
+    got_set_frame_tree_message: bool,
 
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: ConstellationChan,
@@ -195,7 +195,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             ready_states: HashMap::new(),
             paint_states: HashMap::new(),
             got_load_complete_message: false,
-            got_set_ids_message: false,
+            got_set_frame_tree_message: false,
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
             memory_profiler_chan: memory_profiler_chan,
@@ -268,7 +268,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.remove_outstanding_paint_msg();
             }
 
-            (Msg::SetIds(frame_tree, response_chan, new_constellation_chan),
+            (Msg::SetFrameTree(frame_tree, response_chan, new_constellation_chan),
              ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree,
                                     response_chan,
@@ -282,8 +282,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 response_channel.send(());
             }
 
-            (Msg::CreateOrUpdateRootLayer(layer_properties), ShutdownState::NotShuttingDown) => {
-                self.create_or_update_root_layer(layer_properties);
+            (Msg::CreateOrUpdateBaseLayer(layer_properties), ShutdownState::NotShuttingDown) => {
+                self.create_or_update_base_layer(layer_properties);
             }
 
             (Msg::CreateOrUpdateDescendantLayer(layer_properties),
@@ -300,9 +300,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.set_layer_origin(pipeline_id, layer_id, origin);
             }
 
-            (Msg::Paint(pipeline_id, epoch, replies), ShutdownState::NotShuttingDown) => {
+            (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies), ShutdownState::NotShuttingDown) => {
                 for (layer_id, new_layer_buffer_set) in replies.into_iter() {
-                    self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
+                    self.assign_painted_buffers(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                 }
                 self.remove_outstanding_paint_msg();
             }
@@ -464,7 +464,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.constellation_chan = new_constellation_chan;
         self.send_window_size();
 
-        self.got_set_ids_message = true;
+        self.got_set_frame_tree_message = true;
         self.composite_if_necessary();
     }
 
@@ -540,24 +540,24 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn create_or_update_root_layer(&mut self, layer_properties: LayerProperties) {
-        let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
-        if need_new_root_layer {
+    fn create_or_update_base_layer(&mut self, layer_properties: LayerProperties) {
+        let need_new_base_layer = !self.update_layer_if_exists(layer_properties);
+        if need_new_base_layer {
             let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
             root_layer.update_layer_except_bounds(layer_properties);
 
             let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
-            let first_child = CompositorData::new_layer(
+            let base_layer = CompositorData::new_layer(
                 root_layer_pipeline.clone(),
                 layer_properties,
                 WantsScrollEventsFlag::DoesntWantScrollEvents,
                 opts::get().tile_size);
 
-            // Add the first child / base layer to the front of the child list, so that
-            // child iframe layers are painted on top of the base layer. These iframe
-            // layers were added previously when creating the layer tree skeleton in
-            // create_frame_tree_root_layers.
-            root_layer.children().insert(0, first_child);
+            // Add the base layer to the front of the child list, so that child
+            // iframe layers are painted on top of the base layer. These iframe
+            // layers were added previously when creating the layer tree
+            // skeleton in create_frame_tree_root_layers.
+            root_layer.children().insert(0, base_layer);
         }
 
         self.scroll_layer_to_fragment_point_if_necessary(layer_properties.pipeline_id,
@@ -654,13 +654,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.send_buffer_requests_for_all_layers();
     }
 
-    fn paint(&mut self,
-             pipeline_id: PipelineId,
-             layer_id: LayerId,
-             new_layer_buffer_set: Box<LayerBufferSet>,
-             epoch: Epoch) {
+    fn assign_painted_buffers(&mut self,
+                              pipeline_id: PipelineId,
+                              layer_id: LayerId,
+                              new_layer_buffer_set: Box<LayerBufferSet>,
+                              epoch: Epoch) {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
-            Some(layer) => self.paint_to_layer(layer, new_layer_buffer_set, epoch),
+            Some(layer) => self.assign_painted_buffers_to_layer(layer, new_layer_buffer_set, epoch),
             None => {
                 match self.paint_channels.entry(pipeline_id) {
                     Occupied(entry) => {
@@ -673,10 +673,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn paint_to_layer(&mut self,
-                      layer: Rc<Layer<CompositorData>>,
-                      new_layer_buffer_set: Box<LayerBufferSet>,
-                      epoch: Epoch) {
+    fn assign_painted_buffers_to_layer(&mut self,
+                                       layer: Rc<Layer<CompositorData>>,
+                                       new_layer_buffer_set: Box<LayerBufferSet>,
+                                       epoch: Epoch) {
         debug!("compositor received new frame at size {}x{}",
                self.window_size.width.get(),
                self.window_size.height.get());
@@ -1038,7 +1038,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return false;
         }
 
-        if !self.got_set_ids_message {
+        if !self.got_set_frame_tree_message {
             return false;
         }
 
@@ -1295,12 +1295,12 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
     fn repaint_synchronously(&mut self) {
         while self.shutdown_state != ShutdownState::ShuttingDown {
             let msg = self.port.recv_compositor_msg();
-            let is_paint = match msg {
-                Msg::Paint(..) => true,
+            let received_new_buffers = match msg {
+                Msg::AssignPaintedBuffers(..) => true,
                 _ => false,
             };
             let keep_going = self.handle_browser_message(msg);
-            if is_paint {
+            if received_new_buffers {
                 self.composite();
                 break
             }
@@ -1318,7 +1318,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         }
 
         // Drain compositor port, sometimes messages contain channels that are blocking
-        // another task from finishing (i.e. SetIds)
+        // another task from finishing (i.e. SetFrameTree).
         while self.port.try_recv_compositor_msg().is_some() {}
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
