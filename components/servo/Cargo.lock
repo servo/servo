@@ -335,7 +335,7 @@ dependencies = [
 [[package]]
 name = "glutin"
 version = "0.0.2"
-source = "git+https://github.com/servo/glutin?ref=servo#447b6e4132b09018bbfabe5035e4ab932a5c24be"
+source = "git+https://github.com/servo/glutin?ref=servo#47d4e815c063f1ebff534e759e02e887006ae74f"
 dependencies = [
  "android_glue 0.0.1 (git+https://github.com/servo/android-rs-glue?ref=servo)",
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
