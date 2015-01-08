@@ -34,7 +34,7 @@ use std::f32;
 use std::mem;
 use std::num::{Float, FloatMath};
 use std::ptr;
-use style::computed_values::{border_style, filter};
+use style::computed_values::{border_style, filter, mix_blend_mode};
 use std::sync::Arc;
 use text::TextRun;
 use text::glyph::CharIndex;
@@ -124,7 +124,7 @@ impl<'a> PaintContext<'a> {
         self.draw_target.pop_clip();
     }
 
-    pub fn draw_image(&self, bounds: Rect<Au>, image: Arc<Box<Image>>) {
+    pub fn draw_image(&self, bounds: &Rect<Au>, image: Arc<Box<Image>>) {
         let size = Size2D(image.width as i32, image.height as i32);
         let (pixel_width, pixels, source_format) = match image.pixels {
             PixelsByColorType::RGBA8(ref pixels) => (4, pixels.as_slice(), SurfaceFormat::B8G8R8A8),
@@ -864,15 +864,18 @@ impl<'a> PaintContext<'a> {
                                                  &end_point.to_azure_point(),
                                                  stops,
                                                  &Matrix2D::identity());
-
         self.draw_target.fill_rect(&bounds.to_azure_rect(),
                                    PatternRef::LinearGradient(&pattern),
                                    None);
     }
 
-    pub fn get_or_create_temporary_draw_target(&mut self, filters: &filter::T) -> DrawTarget {
+    pub fn get_or_create_temporary_draw_target(&mut self,
+                                               filters: &filter::T,
+                                               blend_mode: mix_blend_mode::T)
+                                               -> DrawTarget {
         // Determine if we need a temporary draw target.
-        if !filters::temporary_draw_target_needed_for_style_filters(filters) {
+        if !filters::temporary_draw_target_needed_for_style_filters(filters) &&
+                blend_mode == mix_blend_mode::T::normal {
             // Reuse the draw target, but remove the transient clip. If we don't do the latter,
             // we'll be in a state whereby the paint subcontext thinks it has no transient clip
             // (see `StackingContext::optimize_and_draw_into_context`) but it actually does,
@@ -896,7 +899,8 @@ impl<'a> PaintContext<'a> {
     /// after doing all the painting, and the temporary draw target must not be used afterward.
     pub fn draw_temporary_draw_target_if_necessary(&mut self,
                                                    temporary_draw_target: &DrawTarget,
-                                                   filters: &filter::T) {
+                                                   filters: &filter::T,
+                                                   blend_mode: mix_blend_mode::T) {
         if (*temporary_draw_target) == self.draw_target {
             // We're directly painting to the surface; nothing to do.
             return
@@ -914,11 +918,9 @@ impl<'a> PaintContext<'a> {
 
         // Perform the blit operation.
         let rect = Rect(Point2D(0.0, 0.0), self.draw_target.get_size().to_azure_size());
-        let draw_options = DrawOptions::new(opacity, 0);
-        self.draw_target.draw_filter(&filter_node,
-                                     &rect,
-                                     &rect.origin,
-                                     draw_options);
+        let mut draw_options = DrawOptions::new(opacity, 0);
+        draw_options.set_composition_op(blend_mode.to_azure_composition_op());
+        self.draw_target.draw_filter(&filter_node, &rect, &rect.origin, draw_options);
         self.draw_target.set_transform(&old_transform);
     }
 
@@ -1258,6 +1260,35 @@ impl DrawTargetExtensions for DrawTarget {
         path_builder.line_to(Point2D(rect.max_x(), rect.max_y()).to_azure_point());
         path_builder.line_to(Point2D(rect.origin.x, rect.max_y()).to_azure_point());
         path_builder.finish()
+    }
+}
+
+/// Converts a CSS blend mode (per CSS-COMPOSITING) to an Azure `CompositionOp`.
+trait ToAzureCompositionOp {
+    /// Converts a CSS blend mode (per CSS-COMPOSITING) to an Azure `CompositionOp`.
+    fn to_azure_composition_op(&self) -> CompositionOp;
+}
+
+impl ToAzureCompositionOp for mix_blend_mode::T {
+    fn to_azure_composition_op(&self) -> CompositionOp {
+        match *self {
+            mix_blend_mode::T::normal => CompositionOp::Over,
+            mix_blend_mode::T::multiply => CompositionOp::Multiply,
+            mix_blend_mode::T::screen => CompositionOp::Screen,
+            mix_blend_mode::T::overlay => CompositionOp::Overlay,
+            mix_blend_mode::T::darken => CompositionOp::Darken,
+            mix_blend_mode::T::lighten => CompositionOp::Lighten,
+            mix_blend_mode::T::color_dodge => CompositionOp::ColorDodge,
+            mix_blend_mode::T::color_burn => CompositionOp::ColorBurn,
+            mix_blend_mode::T::hard_light => CompositionOp::HardLight,
+            mix_blend_mode::T::soft_light => CompositionOp::SoftLight,
+            mix_blend_mode::T::difference => CompositionOp::Difference,
+            mix_blend_mode::T::exclusion => CompositionOp::Exclusion,
+            mix_blend_mode::T::hue => CompositionOp::Hue,
+            mix_blend_mode::T::saturation => CompositionOp::Saturation,
+            mix_blend_mode::T::color => CompositionOp::Color,
+            mix_blend_mode::T::luminosity => CompositionOp::Luminosity,
+        }
     }
 }
 

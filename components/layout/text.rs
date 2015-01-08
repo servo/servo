@@ -116,7 +116,9 @@ impl TextRunScanner {
                 let inherited_text_style = in_fragment.style().get_inheritedtext();
                 fontgroup = font_context.get_layout_font_group_for_style(font_style);
                 compression = match in_fragment.white_space() {
-                    white_space::T::normal | white_space::T::nowrap => CompressionMode::CompressWhitespaceNewline,
+                    white_space::T::normal | white_space::T::nowrap => {
+                        CompressionMode::CompressWhitespaceNewline
+                    }
                     white_space::T::pre => CompressionMode::CompressNone,
                 };
                 text_transform = inherited_text_style.text_transform;
@@ -129,7 +131,9 @@ impl TextRunScanner {
             let mut run_text = String::new();
             for in_fragment in self.clump.iter() {
                 let in_fragment = match in_fragment.specific {
-                    SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => &text_fragment_info.text,
+                    SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => {
+                        &text_fragment_info.text
+                    }
                     _ => panic!("Expected an unscanned text fragment!"),
                 };
 
