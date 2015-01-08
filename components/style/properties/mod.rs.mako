@@ -381,6 +381,8 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    ${predefined_type("outline-offset", "Length", "Au(0)")}
+
     ${new_style_struct("PositionOffsets", is_inherited=False)}
 
     % for side in ["top", "right", "bottom", "left"]:
