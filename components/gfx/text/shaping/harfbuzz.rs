@@ -4,8 +4,8 @@
 
 extern crate harfbuzz;
 
-use font::{Font, FontHandleMethods, FontTableMethods, FontTableTag, IGNORE_LIGATURES_SHAPING_FLAG};
-use font::{ShapingOptions};
+use font::{DISABLE_KERNING_SHAPING_FLAG, Font, FontHandleMethods, FontTableMethods, FontTableTag};
+use font::{IGNORE_LIGATURES_SHAPING_FLAG, ShapingOptions};
 use platform::font::FontTable;
 use text::glyph::{CharIndex, GlyphStore, GlyphId, GlyphData};
 use text::shaping::ShaperMethods;
@@ -50,6 +50,8 @@ use std::ptr;
 static NO_GLYPH: i32 = -1;
 static CONTINUATION_BYTE: i32 = -2;
 
+static KERN: u32 = ((b'k' as u32) << 24) | ((b'e' as u32) << 16) | ((b'r' as u32) << 8) |
+    (b'n' as u32);
 static LIGA: u32 = ((b'l' as u32) << 24) | ((b'i' as u32) << 16) | ((b'g' as u32) << 8) |
     (b'a' as u32);
 
@@ -237,6 +239,14 @@ impl ShaperMethods for Shaper {
             if options.flags.contains(IGNORE_LIGATURES_SHAPING_FLAG) {
                 features.push(hb_feature_t {
                     _tag: LIGA,
+                    _value: 0,
+                    _start: 0,
+                    _end: hb_buffer_get_length(hb_buffer),
+                })
+            }
+            if options.flags.contains(DISABLE_KERNING_SHAPING_FLAG) {
+                features.push(hb_feature_t {
+                    _tag: KERN,
                     _value: 0,
                     _start: 0,
                     _end: hb_buffer_get_length(hb_buffer),
