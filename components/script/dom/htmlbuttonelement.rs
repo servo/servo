@@ -14,6 +14,7 @@ use dom::element::{AttributeHandlers, Element};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
+use dom::htmlformelement::{FormControl};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -149,6 +150,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
         } else {
             node.check_disabled_attribute();
         }
+    }
+}
+
+impl<'a> FormControl<'a> for JSRef<'a, HTMLButtonElement> {
+    fn to_element(self) -> JSRef<'a, Element> {
+        ElementCast::from_ref(self)
     }
 }
 
