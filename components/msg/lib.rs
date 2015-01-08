@@ -4,6 +4,7 @@
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 extern crate azure;
 extern crate geom;
