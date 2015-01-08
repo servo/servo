@@ -51,7 +51,7 @@ use dom::node::Node;
 use js::jsapi::JSObject;
 use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
-use script_task::StackRoots;
+use script_task::STACK_ROOTS;
 
 use servo_util::smallvec::{SmallVec, SmallVec16};
 use std::cell::{Cell, UnsafeCell};
@@ -101,7 +101,7 @@ impl<T: Reflectable> Temporary<T> {
 
     /// Create a stack-bounded root for this value.
     pub fn root(self) -> Root<T> {
-        StackRoots.with(|ref collection| {
+        STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe {
                 Root::new(&*collection, &self.inner)
@@ -164,7 +164,7 @@ impl<T: Reflectable> JS<T> {
 
     /// Root this JS-owned value to prevent its collection as garbage.
     pub fn root(&self) -> Root<T> {
-        StackRoots.with(|ref collection| {
+        STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe {
                 Root::new(&*collection, self)

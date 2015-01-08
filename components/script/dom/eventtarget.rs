@@ -87,14 +87,14 @@ impl EventTarget {
     }
 
     pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListener>> {
-        self.handlers.borrow().find_equiv(type_).map(|listeners| {
+        self.handlers.borrow().get(type_).map(|listeners| {
             listeners.iter().map(|entry| entry.listener.get_listener()).collect()
         })
     }
 
     pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
         -> Option<Vec<EventListener>> {
-        self.handlers.borrow().find_equiv(type_).map(|listeners| {
+        self.handlers.borrow().get(type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener.get_listener()).collect()
         })

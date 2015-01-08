@@ -33,7 +33,7 @@ pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
     let watcher_name = format!("{}Watcher", watched_name);
     TaskBuilder::new().named(watcher_name).spawn(proc() {
         //rtinstrument::instrument(proc() {
-            match future_result.unwrap() {
+            match future_result.into_inner() {
                 Ok(()) => (),
                 Err(..) => {
                     debug!("{} failed, notifying constellation", name);

@@ -272,9 +272,8 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
     unsafe {
         let mut length = 0;
         let chars = JS_GetStringCharsAndLength(cx, s, &mut length);
-        slice::raw::buf_as_slice(chars, length as uint, |char_vec| {
-            String::from_utf16(char_vec).unwrap()
-        })
+        let char_vec = slice::from_raw_buf(&chars, length as uint);
+        String::from_utf16(char_vec).unwrap()
     }
 }
 
@@ -328,14 +327,14 @@ impl FromJSValConvertible<()> for ByteString {
 
             let mut length = 0;
             let chars = JS_GetStringCharsAndLength(cx, string, &mut length);
-            slice::raw::buf_as_slice(chars, length as uint, |char_vec| {
-                if char_vec.iter().any(|&c| c > 0xFF) {
-                    // XXX Throw
-                    Err(())
-                } else {
-                    Ok(ByteString::new(char_vec.iter().map(|&c| c as u8).collect()))
-                }
-            })
+            let char_vec = slice::from_raw_buf(&chars, length as uint);
+
+            if char_vec.iter().any(|&c| c > 0xFF) {
+                // XXX Throw
+                Err(())
+            } else {
+                Ok(ByteString::new(char_vec.iter().map(|&c| c as u8).collect()))
+            }
         }
     }
 }

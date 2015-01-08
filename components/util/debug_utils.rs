@@ -6,7 +6,7 @@ use std::io;
 use std::io::Writer;
 use std::mem;
 use std::mem::size_of;
-use std::slice::raw::buf_as_slice;
+use std::slice;
 
 fn hexdump_slice(buf: &[u8]) {
     let mut stderr = io::stderr();
@@ -28,6 +28,7 @@ pub fn hexdump<T>(obj: &T) {
     unsafe {
         let buf: *const u8 = mem::transmute(obj);
         debug!("dumping at {:p}", buf);
-        buf_as_slice(buf, size_of::<T>(), hexdump_slice);
+        let from_buf = slice::from_raw_buf(&buf, size_of::<T>());
+        hexdump_slice(from_buf);
     }
 }

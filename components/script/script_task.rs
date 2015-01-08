@@ -85,7 +85,7 @@ use std::rc::Rc;
 use std::u32;
 use time::{Tm, strptime};
 
-thread_local!(pub static StackRoots: Cell<Option<RootCollectionPtr>> = Cell::new(None))
+thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None))
 
 #[deriving(Copy)]
 pub enum TimerSource {
@@ -161,7 +161,7 @@ pub struct StackRootTLS;
 
 impl StackRootTLS {
     pub fn new(roots: &RootCollection) -> StackRootTLS {
-        StackRoots.with(|ref r| {
+        STACK_ROOTS.with(|ref r| {
             r.set(Some(RootCollectionPtr(roots as *const _)))
         });
         StackRootTLS
@@ -170,7 +170,7 @@ impl StackRootTLS {
 
 impl Drop for StackRootTLS {
     fn drop(&mut self) {
-        StackRoots.with(|ref r| r.set(None));
+        STACK_ROOTS.with(|ref r| r.set(None));
     }
 }
 

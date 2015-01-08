@@ -16,6 +16,7 @@
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 #[phase(plugin,link)]
 extern crate syntax;
