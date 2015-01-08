@@ -43,6 +43,16 @@ static CEF_API_HASH_PLATFORM: &'static [u8] = b"6813214accbf2ebfb6bdcf8d00654650
 #[cfg(target_os="linux")]
 static CEF_API_HASH_PLATFORM: &'static [u8] = b"2bc564c3871965ef3a2531b528bda3e17fa17a6d\0";
 
+#[cfg(target_os="linux")]
+fn resources_path() -> Option<String> {
+    Some("../../servo/resources".into_string())
+}
+
+#[cfg(not(target_os="linux"))]
+fn resources_path() -> Option<String> {
+    None
+}
+
 #[no_mangle]
 pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
                                  settings: *mut cef_settings_t,
@@ -102,6 +112,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
         dump_flow_tree: false,
         validate_display_list_geometry: false,
         render_api: RenderApi::OpenGL,
+        resources_path: resources_path(),
     });
 
     return 1
