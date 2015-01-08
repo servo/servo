@@ -34,7 +34,7 @@ use std::mem;
 use std::u16;
 use style::computed_values::{text_align, vertical_align, white_space};
 use style::ComputedValues;
-use sync::Arc;
+use std::sync::Arc;
 
 // From gfxFontConstants.h in Firefox
 static FONT_SUBSCRIPT_OFFSET_RATIO: f64 = 0.20;
@@ -65,7 +65,7 @@ static FONT_SUPERSCRIPT_OFFSET_RATIO: f64 = 0.34;
 /// with a float or a horizontal wall of the containing block. The block-start
 /// inline-start corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
-#[deriving(Encodable, Show)]
+#[deriving(Encodable, Show, Copy)]
 pub struct Line {
     /// A range of line indices that describe line breaks.
     ///
@@ -267,14 +267,14 @@ impl LineBreaker {
 
             // Set up our reflow flags.
             let flags = match fragment.style().get_inheritedtext().white_space {
-                white_space::normal => InlineReflowFlags::empty(),
-                white_space::pre | white_space::nowrap => NO_WRAP_INLINE_REFLOW_FLAG,
+                white_space::T::normal => InlineReflowFlags::empty(),
+                white_space::T::pre | white_space::T::nowrap => NO_WRAP_INLINE_REFLOW_FLAG,
             };
 
             // Try to append the fragment, and commit the line (so we can try again with the next
             // line) if we couldn't.
             match fragment.style().get_inheritedtext().white_space {
-                white_space::normal | white_space::nowrap => {
+                white_space::T::normal | white_space::T::nowrap => {
                     if !self.append_fragment_to_line_if_possible(fragment,
                                                                  flow,
                                                                  layout_context,
@@ -282,7 +282,7 @@ impl LineBreaker {
                         self.flush_current_line()
                     }
                 }
-                white_space::pre => {
+                white_space::T::pre => {
                     // FIXME(pcwalton): Surely we can unify
                     // `append_fragment_to_line_if_possible` and
                     // `try_append_to_line_by_new_line` by adding another bit in the reflow
@@ -602,8 +602,8 @@ impl LineBreaker {
                                                     fragment.border_box.size.block);
                         fragment.transform(size, info)
                     };
-                    (split_result.inline_start.map(|x| split_fragment(x)),
-                     split_result.inline_end.map(|x| split_fragment(x)))
+                    (split_result.inline_start.as_ref().map(|x| split_fragment(x.clone())),
+                     split_result.inline_end.as_ref().map(|x| split_fragment(x.clone())))
                 }
             };
 
@@ -769,53 +769,53 @@ impl InlineFlow {
                               layout_context: &LayoutContext)
                               -> (Au, bool) {
         match fragment.vertical_align() {
-            vertical_align::baseline => (-ascent, false),
-            vertical_align::middle => {
+            vertical_align::T::baseline => (-ascent, false),
+            vertical_align::T::middle => {
                 // TODO: x-height value should be used from font info.
                 // TODO: The code below passes our current reftests but doesn't work in all
                 // situations. Add vertical align reftests and fix this.
                 (-ascent, false)
             },
-            vertical_align::sub => {
+            vertical_align::T::sub => {
                 let sub_offset = (parent_text_block_start + parent_text_block_end)
                                     .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO);
                 (sub_offset - ascent, false)
             },
-            vertical_align::super_ => {
+            vertical_align::T::super_ => {
                 let super_offset = (parent_text_block_start + parent_text_block_end)
                                     .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO);
                 (-super_offset - ascent, false)
             },
-            vertical_align::text_top => {
+            vertical_align::T::text_top => {
                 let fragment_block_size = *block_size_above_baseline + *depth_below_baseline;
                 let prev_depth_below_baseline = *depth_below_baseline;
                 *block_size_above_baseline = parent_text_block_start;
                 *depth_below_baseline = fragment_block_size - *block_size_above_baseline;
                 (*depth_below_baseline - prev_depth_below_baseline - ascent, false)
             },
-            vertical_align::text_bottom => {
+            vertical_align::T::text_bottom => {
                 let fragment_block_size = *block_size_above_baseline + *depth_below_baseline;
                 let prev_depth_below_baseline = *depth_below_baseline;
                 *depth_below_baseline = parent_text_block_end;
                 *block_size_above_baseline = fragment_block_size - *depth_below_baseline;
                 (*depth_below_baseline - prev_depth_below_baseline - ascent, false)
             },
-            vertical_align::top => {
+            vertical_align::T::top => {
                 *largest_block_size_for_top_fragments =
                     max(*largest_block_size_for_top_fragments,
                         *block_size_above_baseline + *depth_below_baseline);
                 let offset_top = *block_size_above_baseline - ascent;
                 (offset_top, true)
             },
-            vertical_align::bottom => {
+            vertical_align::T::bottom => {
                 *largest_block_size_for_bottom_fragments =
                     max(*largest_block_size_for_bottom_fragments,
                         *block_size_above_baseline + *depth_below_baseline);
                 let offset_bottom = -(*depth_below_baseline + ascent);
                 (offset_bottom, true)
             },
-            vertical_align::Length(length) => (-(length + ascent), false),
-            vertical_align::Percentage(p) => {
+            vertical_align::T::Length(length) => (-(length + ascent), false),
+            vertical_align::T::Percentage(p) => {
                 let line_height = fragment.calculate_line_height(layout_context);
                 let percent_offset = line_height.scale_by(p);
                 (-(percent_offset + ascent), false)
@@ -838,9 +838,9 @@ impl InlineFlow {
                 // coordinates.
                 //
                 // TODO(burg, issue #213): Implement `text-align: justify`.
-                text_align::left | text_align::justify => Au(0),
-                text_align::center => slack_inline_size.scale_by(0.5),
-                text_align::right => slack_inline_size,
+                text_align::T::left | text_align::T::justify => Au(0),
+                text_align::T::center => slack_inline_size.scale_by(0.5),
+                text_align::T::right => slack_inline_size,
             };
 
         for fragment_index in range(line.range.begin(), line.range.end()) {
@@ -866,11 +866,11 @@ impl InlineFlow {
         for fragment_index in range(line.range.begin(), line.range.end()) {
             let fragment = fragments.get_mut(fragment_index.to_uint());
             match fragment.vertical_align() {
-                vertical_align::top => {
+                vertical_align::T::top => {
                     fragment.border_box.start.b = fragment.border_box.start.b +
                         line_distance_from_flow_block_start
                 }
-                vertical_align::bottom => {
+                vertical_align::T::bottom => {
                     fragment.border_box.start.b = fragment.border_box.start.b +
                         line_distance_from_flow_block_start + baseline_distance_from_block_start +
                         largest_depth_below_baseline

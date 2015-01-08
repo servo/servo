@@ -111,7 +111,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                           storage_task);
 
             // Send the URL command to the constellation.
-            let cwd = os::getcwd();
+            let cwd = os::getcwd().unwrap();
             for url in opts.urls.iter() {
                 let url = match url::Url::parse(url.as_slice()) {
                     Ok(url) => url,

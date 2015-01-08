@@ -12,7 +12,7 @@ use std::fmt;
 use style::computed_values::float;
 
 /// The kind of float: left or right.
-#[deriving(Clone, Encodable, Show)]
+#[deriving(Clone, Encodable, Show, Copy)]
 pub enum FloatKind {
     Left,
     Right
@@ -21,14 +21,15 @@ pub enum FloatKind {
 impl FloatKind {
     pub fn from_property(property: float::T) -> FloatKind {
         match property {
-            float::none => panic!("can't create a float type from an unfloated property"),
-            float::left => FloatKind::Left,
-            float::right => FloatKind::Right,
+            float::T::none => panic!("can't create a float type from an unfloated property"),
+            float::T::left => FloatKind::Left,
+            float::T::right => FloatKind::Right,
         }
     }
 }
 
 /// The kind of clearance: left, right, or both.
+#[deriving(Copy)]
 pub enum ClearType {
     Left,
     Right,
@@ -36,7 +37,7 @@ pub enum ClearType {
 }
 
 /// Information about a single float.
-#[deriving(Clone)]
+#[deriving(Clone, Copy)]
 struct Float {
     /// The boundaries of this float.
     bounds: LogicalRect<Au>,

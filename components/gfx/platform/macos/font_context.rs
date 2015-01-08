@@ -7,7 +7,6 @@ pub struct FontContextHandle {
     ctx: ()
 }
 
-#[deriving(Clone)]
 impl FontContextHandle {
     // this is a placeholder until NSFontManager or whatever is bound in here.
     pub fn new() -> FontContextHandle {

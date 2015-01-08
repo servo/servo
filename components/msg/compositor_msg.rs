@@ -14,13 +14,13 @@ use std::fmt;
 use constellation_msg::PipelineId;
 
 /// The status of the painter.
-#[deriving(PartialEq, Clone)]
+#[deriving(PartialEq, Eq, Clone, Copy)]
 pub enum PaintState {
     Idle,
     Painting,
 }
 
-#[deriving(Eq, Ord, PartialEq, PartialOrd, Clone, Show)]
+#[deriving(Eq, Ord, PartialEq, PartialOrd, Clone, Show, Copy)]
 pub enum ReadyState {
     /// Informs the compositor that nothing has been done yet. Used for setting status
     Blank,
@@ -33,7 +33,7 @@ pub enum ReadyState {
 }
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
-#[deriving(PartialEq, Show)]
+#[deriving(PartialEq, Eq, Show, Copy)]
 pub struct Epoch(pub uint);
 
 impl Epoch {
@@ -43,7 +43,7 @@ impl Epoch {
     }
 }
 
-#[deriving(Clone, PartialEq)]
+#[deriving(Clone, PartialEq, Eq, Copy)]
 pub struct LayerId(pub uint, pub uint);
 
 impl Show for LayerId {
@@ -61,7 +61,7 @@ impl LayerId {
 }
 
 /// The scrolling policy of a layer.
-#[deriving(Clone, PartialEq)]
+#[deriving(Clone, PartialEq, Eq, Copy)]
 pub enum ScrollPolicy {
     /// These layers scroll when the parent receives a scrolling message.
     Scrollable,
@@ -71,6 +71,7 @@ pub enum ScrollPolicy {
 
 /// All layer-specific information that the painting task sends to the compositor other than the
 /// buffer contents of the layer itself.
+#[deriving(Copy)]
 pub struct LayerMetadata {
     /// An opaque ID. This is usually the address of the flow and index of the box within it.
     pub id: LayerId,

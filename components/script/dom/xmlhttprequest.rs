@@ -63,7 +63,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 pub type SendParam = StringOrURLSearchParams;
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Copy)]
 #[jstraceable]
 enum XMLHttpRequestState {
     Unsent = 0,
@@ -90,7 +90,7 @@ impl Runnable for XHRProgressHandler {
     }
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(PartialEq, Clone, Copy)]
 #[jstraceable]
 pub struct GenerationId(uint);
 
@@ -560,10 +560,10 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 let n = "content-type";
                 match data {
                     Some(eString(_)) =>
-                        request_headers.set_raw(n, vec![join_raw("text/plain", params)]),
+                        request_headers.set_raw(n.into_string(), vec![join_raw("text/plain", params)]),
                     Some(eURLSearchParams(_)) =>
                         request_headers.set_raw(
-                            n, vec![join_raw("application/x-www-form-urlencoded", params)]),
+                            n.into_string(), vec![join_raw("application/x-www-form-urlencoded", params)]),
                     None => ()
                 }
             }
@@ -813,7 +813,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Substep 2
                 status.map(|RawStatus(code, reason)| {
                     self.status.set(code);
-                    *self.status_text.borrow_mut() = ByteString::new(format!("{}", reason).into_bytes());
+                    *self.status_text.borrow_mut() = ByteString::new(reason.into_bytes());
                 });
                 headers.as_ref().map(|h| *self.response_headers.borrow_mut() = h.clone());
 

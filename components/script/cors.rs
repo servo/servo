@@ -40,7 +40,7 @@ pub struct CORSRequest {
 /// http://fetch.spec.whatwg.org/#concept-request-mode
 /// This only covers some of the request modes. The
 /// `same-origin` and `no CORS` modes are unnecessary for XHR.
-#[deriving(PartialEq, Clone)]
+#[deriving(PartialEq, Copy, Clone)]
 pub enum RequestMode {
     CORS, // CORS
     ForcedPreflight // CORS-with-forced-preflight

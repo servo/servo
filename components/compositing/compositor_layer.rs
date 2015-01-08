@@ -17,9 +17,9 @@ use layers::color::Color;
 use layers::geometry::LayerPixel;
 use layers::layers::{Layer, LayerBufferSet};
 use layers::platform::surface::NativeSurfaceMethods;
-use script_traits::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
+use script_traits::CompositorEvent::{ClickEvent, MouseDownEvent, MouseMoveEvent, MouseUpEvent};
 use script_traits::{ScriptControlChan, ConstellationControlMsg};
-use servo_msg::compositor_msg::{Epoch, FixedPosition, LayerId, ScrollPolicy};
+use servo_msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use std::num::Float;
 use std::num::FloatMath;
 use std::rc::Rc;
@@ -122,7 +122,7 @@ pub trait CompositorLayer {
     fn wants_scroll_events(&self) -> WantsScrollEventsFlag;
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(Copy, PartialEq, Clone)]
 pub enum WantsScrollEventsFlag {
     WantsScrollEvents,
     DoesntWantScrollEvents,
@@ -343,7 +343,7 @@ impl CompositorLayer for Layer<CompositorData> {
         let mut result = false;
 
         // Only scroll this layer if it's not fixed-positioned.
-        if self.extra_data.borrow().scroll_policy != FixedPosition {
+        if self.extra_data.borrow().scroll_policy != ScrollPolicy::FixedPosition {
             let new_offset = new_offset.to_untyped();
             *self.transform.borrow_mut() = identity().translate(new_offset.x, new_offset.y, 0.0);
             *self.content_offset.borrow_mut() = Point2D::from_untyped(&new_offset);

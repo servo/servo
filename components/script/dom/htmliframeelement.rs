@@ -56,6 +56,7 @@ impl HTMLIFrameElementDerived for EventTarget {
 
 #[jstraceable]
 #[privatize]
+#[deriving(Copy)]
 pub struct IFrameSize {
     pipeline_id: PipelineId,
     subpage_id: SubpageId,

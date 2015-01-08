@@ -61,7 +61,7 @@ use style::ComputedValues;
 use style::computed_values::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::computed_values::{LengthOrPercentage, box_sizing, display, float};
 use style::computed_values::{overflow, position};
-use sync::Arc;
+use std::sync::Arc;
 
 /// Information specific to floated blocks.
 #[deriving(Clone, Encodable)]
@@ -92,6 +92,7 @@ impl FloatedBlockInfo {
 }
 
 /// The solutions for the block-size-and-margins constraint equation.
+#[deriving(Copy)]
 struct BSizeConstraintSolution {
     block_start: Au,
     _block_end: Au,
@@ -347,8 +348,8 @@ impl CandidateBSizeIterator {
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
         let adjustment_for_box_sizing = match fragment.style.get_box().box_sizing {
-            box_sizing::border_box => fragment.border_padding.block_start_end(),
-            box_sizing::content_box => Au(0),
+            box_sizing::T::border_box => fragment.border_padding.block_start_end(),
+            box_sizing::T::content_box => Au(0),
         };
 
         return CandidateBSizeIterator {
@@ -1323,12 +1324,12 @@ impl BlockFlow {
             }
 
             match flow::base(kid).flags.float_kind() {
-                float::none => {}
-                float::left => {
+                float::T::none => {}
+                float::T::left => {
                     inline_size_of_preceding_left_floats = inline_size_of_preceding_left_floats +
                         flow::base(kid).intrinsic_inline_sizes.preferred_inline_size;
                 }
-                float::right => {
+                float::T::right => {
                     inline_size_of_preceding_right_floats = inline_size_of_preceding_right_floats +
                         flow::base(kid).intrinsic_inline_sizes.preferred_inline_size;
                 }
@@ -1408,14 +1409,16 @@ impl BlockFlow {
     /// `FormattingContextType`.
     fn formatting_context_type(&self) -> FormattingContextType {
         let style = self.fragment.style();
-        if style.get_box().float != float::none {
+        if style.get_box().float != float::T::none {
             return FormattingContextType::Other
         }
         match style.get_box().display {
-            display::table_cell | display::table_caption | display::inline_block => {
+            display::T::table_cell |
+            display::T::table_caption |
+            display::T::inline_block => {
                 FormattingContextType::Other
             }
-            _ if style.get_box().overflow != overflow::visible => FormattingContextType::Block,
+            _ if style.get_box().overflow != overflow::T::visible => FormattingContextType::Block,
             _ => FormattingContextType::None,
         }
     }
@@ -1462,7 +1465,7 @@ impl BlockFlow {
     }
 
     fn is_inline_block(&self) -> bool {
-        self.fragment.style().get_box().display == display::inline_block
+        self.fragment.style().get_box().display == display::T::inline_block
     }
 
     /// Computes the content portion (only) of the intrinsic inline sizes of this flow. This is
@@ -1527,16 +1530,16 @@ impl Flow for BlockFlow {
                         child_base.intrinsic_inline_sizes.minimum_inline_size);
 
                 match float_kind {
-                    float::none => {
+                    float::T::none => {
                         computation.content_intrinsic_sizes.preferred_inline_size =
                             max(computation.content_intrinsic_sizes.preferred_inline_size,
                                 child_base.intrinsic_inline_sizes.preferred_inline_size);
                     }
-                    float::left => {
+                    float::T::left => {
                         left_float_width = left_float_width +
                             child_base.intrinsic_inline_sizes.preferred_inline_size;
                     }
-                    float::right => {
+                    float::T::right => {
                         right_float_width = right_float_width +
                             child_base.intrinsic_inline_sizes.preferred_inline_size;
                     }
@@ -1556,9 +1559,9 @@ impl Flow for BlockFlow {
         self.base.intrinsic_inline_sizes = computation.finish();
 
         match self.fragment.style().get_box().float {
-            float::none => {}
-            float::left => flags.insert(HAS_LEFT_FLOATED_DESCENDANTS),
-            float::right => flags.insert(HAS_RIGHT_FLOATED_DESCENDANTS),
+            float::T::none => {}
+            float::T::left => flags.insert(HAS_LEFT_FLOATED_DESCENDANTS),
+            float::T::right => flags.insert(HAS_RIGHT_FLOATED_DESCENDANTS),
         }
         self.base.flags = flags
     }
@@ -1911,7 +1914,7 @@ impl fmt::Show for BlockFlow {
 }
 
 /// The inputs for the inline-sizes-and-margins constraint equation.
-#[deriving(Show)]
+#[deriving(Show, Copy)]
 pub struct ISizeConstraintInput {
     pub computed_inline_size: MaybeAuto,
     pub inline_start_margin: MaybeAuto,
@@ -1944,7 +1947,7 @@ impl ISizeConstraintInput {
 }
 
 /// The solutions for the inline-size-and-margins constraint equation.
-#[deriving(Show)]
+#[deriving(Copy, Show)]
 pub struct ISizeConstraintSolution {
     pub inline_start: Au,
     pub inline_end: Au,
@@ -2006,11 +2009,12 @@ pub trait ISizeAndMarginsComputer {
 
         let style = block.fragment.style();
         match (computed_inline_size, style.get_box().box_sizing) {
-            (MaybeAuto::Specified(size), box_sizing::border_box) => {
+            (MaybeAuto::Specified(size), box_sizing::T::border_box) => {
                 computed_inline_size =
                     MaybeAuto::Specified(size - block.fragment.border_padding.inline_start_end())
             }
-            (MaybeAuto::Auto, box_sizing::border_box) | (_, box_sizing::content_box) => {}
+            (MaybeAuto::Auto, box_sizing::T::border_box) |
+            (_, box_sizing::T::content_box) => {}
         }
 
         // The text alignment of a block flow is the text alignment of its box's style.

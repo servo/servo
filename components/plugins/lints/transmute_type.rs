@@ -6,7 +6,6 @@ use syntax::ast;
 use syntax::attr::AttrMetaMethods;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
-use rustc::middle::typeck::astconv::AstConv;
 use rustc::util::ppaux::Repr;
 
 declare_lint!(TRANSMUTE_TYPE_LINT, Allow,
@@ -31,7 +30,7 @@ impl LintPass for TransmutePass {
                         if path.segments.last()
                                         .map_or(false, |ref segment| segment.identifier.name.as_str() == "transmute")
                            && args.len() == 1 {
-                            let tcx = cx.tcx();
+                            let tcx = cx.tcx;
                             cx.span_lint(TRANSMUTE_TYPE_LINT, ex.span,
                                          format!("Transmute to {} from {} detected",
                                                  expr_ty(tcx, ex).repr(tcx),

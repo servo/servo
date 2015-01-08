@@ -5,7 +5,7 @@
 use std::ascii::AsciiExt;
 use std::collections::HashMap;
 use std::hash::Hash;
-use sync::Arc;
+use std::sync::Arc;
 
 use url::Url;
 
@@ -24,7 +24,7 @@ use selectors::{PseudoElement, SelectorList, SimpleSelector};
 use selectors::{get_selector_list_selectors};
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
 
-#[deriving(Clone, PartialEq)]
+#[deriving(Clone, PartialEq, Eq, Copy)]
 pub enum StylesheetOrigin {
     UserAgent,
     Author,
@@ -624,6 +624,7 @@ fn matches_compound_selector<'a,E,N>(selector: &CompoundSelector,
 /// However since the selector "c1" raises
 /// NotMatchedAndRestartFromClosestDescendant. So the selector
 /// "b1 + c1 > b2 ~ " doesn't match and restart matching from "d1".
+#[deriving(PartialEq, Eq, Copy)]
 enum SelectorMatchingResult {
     Matched,
     NotMatchedAndRestartFromClosestLaterSibling,
@@ -763,6 +764,7 @@ fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
 }
 
 bitflags! {
+    #[deriving(Copy)]
     flags CommonStyleAffectingAttributes: u8 {
         const HIDDEN_ATTRIBUTE = 0x01,
         const NO_WRAP_ATTRIBUTE = 0x02,
@@ -777,6 +779,7 @@ pub struct CommonStyleAffectingAttributeInfo {
     pub mode: CommonStyleAffectingAttributeMode,
 }
 
+#[deriving(Copy)]
 pub enum CommonStyleAffectingAttributeMode {
     IsPresent(CommonStyleAffectingAttributes),
     IsEqual(&'static str, CommonStyleAffectingAttributes),
@@ -1164,7 +1167,7 @@ impl<K: Eq + Hash, V> FindPush<K, V> for HashMap<K, Vec<V>> {
 
 #[cfg(test)]
 mod tests {
-    use sync::Arc;
+    use std::sync::Arc;
     use super::{DeclarationBlock, Rule, SelectorMap};
     use selectors::LocalName;
     use string_cache::Atom;
@@ -1198,7 +1201,7 @@ mod tests {
 
     #[test]
     fn test_rule_ordering_same_specificity(){
-        let rules_list = get_mock_rules(["a.intro", "img.sidebar"]);
+        let rules_list = get_mock_rules(&["a.intro", "img.sidebar"]);
         let a = &rules_list[0][0].declarations;
         let b = &rules_list[1][0].declarations;
         assert!((a.specificity, a.source_order).cmp(&(b.specificity, b.source_order)) == Less,
@@ -1207,21 +1210,21 @@ mod tests {
 
     #[test]
     fn test_get_id_name(){
-        let rules_list = get_mock_rules([".intro", "#top"]);
+        let rules_list = get_mock_rules(&[".intro", "#top"]);
         assert_eq!(SelectorMap::get_id_name(&rules_list[0][0]), None);
         assert_eq!(SelectorMap::get_id_name(&rules_list[1][0]), Some(atom!("top")));
     }
 
     #[test]
     fn test_get_class_name(){
-        let rules_list = get_mock_rules([".intro.foo", "#top"]);
+        let rules_list = get_mock_rules(&[".intro.foo", "#top"]);
         assert_eq!(SelectorMap::get_class_name(&rules_list[0][0]), Some(Atom::from_slice("intro")));
         assert_eq!(SelectorMap::get_class_name(&rules_list[1][0]), None);
     }
 
     #[test]
     fn test_get_local_name(){
-        let rules_list = get_mock_rules(["img.foo", "#top", "IMG", "ImG"]);
+        let rules_list = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
         let check = |i, names: Option<(&str, &str)>| {
             assert!(SelectorMap::get_local_name(&rules_list[i][0])
                     == names.map(|(name, lower_name)| LocalName {
@@ -1236,7 +1239,7 @@ mod tests {
 
     #[test]
     fn test_insert(){
-        let rules_list = get_mock_rules([".intro.foo", "#top"]);
+        let rules_list = get_mock_rules(&[".intro.foo", "#top"]);
         let mut selector_map = SelectorMap::new();
         selector_map.insert(rules_list[1][0].clone());
         assert_eq!(1, selector_map.id_hash.get(&atom!("top")).unwrap()[0].declarations.source_order);

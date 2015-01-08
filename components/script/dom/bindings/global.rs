@@ -26,6 +26,7 @@ use url::Url;
 use std::ptr;
 
 /// A freely-copyable reference to a rooted global object.
+#[deriving(Copy)]
 pub enum GlobalRef<'a> {
     Window(JSRef<'a, window::Window>),
     Worker(JSRef<'a, WorkerGlobalScope>),

@@ -14,12 +14,12 @@ use gfx::font_cache_task::FontCacheTask;
 use layers::geometry::DevicePixel;
 use layout_traits::LayoutTaskFactory;
 use libc;
-use script_traits::{mod, ConstellationControlMsg};
+use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use servo_msg::compositor_msg::LayerId;
 use servo_msg::constellation_msg::{mod, ConstellationChan, Failure};
-use servo_msg::constellation_msg::{IFrameSandboxState, IFrameUnsandboxed};
-use servo_msg::constellation_msg::{KeyEvent, Key, KeyState, KeyModifiers};
+use servo_msg::constellation_msg::{IFrameSandboxState, NavigationDirection};
+use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use servo_msg::constellation_msg::{LoadData, NavigationType};
 use servo_msg::constellation_msg::{PipelineExitType, PipelineId};
 use servo_msg::constellation_msg::{SubpageId, WindowSizeData};
@@ -27,8 +27,7 @@ use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
 use servo_net::resource_task::ResourceTask;
 use servo_net::resource_task;
-use servo_net::storage_task::StorageTask;
-use servo_net::storage_task;
+use servo_net::storage_task::{StorageTask, StorageTaskMsg};
 use servo_util::cursor::Cursor;
 use servo_util::geometry::{PagePx, ViewportPx};
 use servo_util::opts;
@@ -91,6 +90,7 @@ pub struct Constellation<LTF, STF> {
 }
 
 /// A unique ID used to identify a frame.
+#[deriving(Copy)]
 pub struct FrameId(u32);
 
 /// One frame in the hierarchy.
@@ -515,11 +515,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             pipeline.exit(PipelineExitType::Complete);
         }
         self.image_cache_task.exit();
-        self.resource_task.send(resource_task::Exit);
+        self.resource_task.send(resource_task::ControlMsg::Exit);
         self.devtools_chan.as_ref().map(|chan| {
             chan.send(devtools_traits::ServerExitMsg);
         });
-        self.storage_task.send(storage_task::Exit);
+        self.storage_task.send(StorageTaskMsg::Exit);
         self.font_cache_task.exit();
         self.compositor_proxy.send(CompositorMsg::ShutdownComplete);
     }
@@ -571,7 +571,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         self.browse(Some(pipeline_id),
                     Rc::new(FrameTree::new(new_frame_id, pipeline.clone(), None)),
-                    constellation_msg::Load);
+                    NavigationType::Load);
 
         self.pipelines.insert(new_id, pipeline);
     }
@@ -596,7 +596,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let pipeline = self.new_pipeline(next_pipeline_id, None, None, LoadData::new(url));
         self.browse(None,
                     Rc::new(FrameTree::new(next_frame_id, pipeline.clone(), None)),
-                    constellation_msg::Load);
+                    NavigationType::Load);
         self.pipelines.insert(pipeline.id, pipeline);
     }
 
@@ -718,7 +718,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let source_url = source_pipeline.load_data.url.clone();
 
         let same_script = (source_url.host() == url.host() &&
-                           source_url.port() == url.port()) && sandbox == IFrameUnsandboxed;
+                           source_url.port() == url.port()) &&
+                           sandbox == IFrameSandboxState::IFrameUnsandboxed;
         // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
         // Reuse the script task if the URL is same-origin
         let script_pipeline = if same_script {
@@ -785,7 +786,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     Rc::new(FrameTree::new(next_frame_id,
                                            pipeline.clone(),
                                            parent.borrow().clone())),
-                    constellation_msg::Load);
+                    NavigationType::Load);
         self.pipelines.insert(pipeline.id, pipeline);
     }
 
@@ -797,7 +798,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // navigation always has navigation priority, and after that new page loading is
         // first come, first served.
         let destination_frame = match direction {
-            constellation_msg::Forward => {
+            NavigationDirection::Forward => {
                 if self.navigation_context.next.is_empty() {
                     debug!("no next page to navigate to");
                     return;
@@ -809,7 +810,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 }
                 self.navigation_context.forward(&mut *self.compositor_proxy)
             }
-            constellation_msg::Back => {
+            NavigationDirection::Back => {
                 if self.navigation_context.previous.is_empty() {
                     debug!("no previous page to navigate to");
                     return;
@@ -826,7 +827,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         for frame in destination_frame.iter() {
             frame.pipeline.load();
         }
-        self.grant_paint_permission(destination_frame, constellation_msg::Navigate);
+        self.grant_paint_permission(destination_frame, NavigationType::Navigate);
 
     }
 
@@ -838,7 +839,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_key_msg(&self, key: Key, state: KeyState, mods: KeyModifiers) {
         self.current_frame().as_ref().map(|frame| {
             let ScriptControlChan(ref chan) = frame.pipeline.script_chan;
-            chan.send(ConstellationControlMsg::SendEvent(frame.pipeline.id, script_traits::KeyEvent(key, state, mods)));
+            chan.send(ConstellationControlMsg::SendEvent(
+                frame.pipeline.id, CompositorEvent::KeyEvent(key, state, mods)));
         });
     }
 
@@ -1005,7 +1007,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         // Don't call navigation_context.load() on a Navigate type (or None, as in the case of
         // parsed iframes that finish loading)
         match navigation_type {
-            constellation_msg::Load => {
+            NavigationType::Load => {
                 debug!("evicting old frames due to load");
                 let evicted = self.navigation_context.load(frame_tree,
                                                            &mut *self.compositor_proxy);

@@ -119,7 +119,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         if recreate {
             let (w, h) = (self.width.get() as i32, self.height.get() as i32);
             match self.context.get() {
-                Some(ref context) => context.root().r().recreate(Size2D(w, h)),
+                Some(context) => context.root().r().recreate(Size2D(w, h)),
                 None => ()
             }
         }
@@ -147,7 +147,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         if recreate {
             let (w, h) = (self.width.get() as i32, self.height.get() as i32);
             match self.context.get() {
-                Some(ref context) => context.root().r().recreate(Size2D(w, h)),
+                Some(context) => context.root().r().recreate(Size2D(w, h)),
                 None => ()
             }
         }

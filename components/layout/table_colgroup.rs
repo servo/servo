@@ -19,7 +19,7 @@ use std::cmp::max;
 use std::fmt;
 use style::computed_values::LengthOrPercentageOrAuto;
 use style::ComputedValues;
-use sync::Arc;
+use std::sync::Arc;
 
 /// A table formatting context.
 pub struct TableColGroupFlow {

@@ -276,7 +276,7 @@ pub extern "C" fn cef_string_wide_to_utf8(src: *const wchar_t, src_len: size_t, 
     }
     unsafe {
        slice::raw::buf_as_slice(src, src_len as uint, |ustr| {
-            let conv = ustr.iter().map(|&c| char::from_u32(c as u32).unwrap_or('\uFFFD')).collect::<String>();
+            let conv = ustr.iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>();
             cef_string_utf8_set(conv.as_bytes().as_ptr(), conv.len() as size_t, output, 1)
        })
     }

@@ -69,14 +69,12 @@ impl<K,V> HashCache<K,V> where K: Clone + PartialEq + Eq + Hash, V: Clone {
 #[test]
 fn test_hashcache() {
     let mut cache: HashCache<uint, Cell<&str>> = HashCache::new();
-    let one = Cell::new("one");
-    let two = Cell::new("two");
 
-    cache.insert(1, one);
+    cache.insert(1, Cell::new("one"));
     assert!(cache.find(&1).is_some());
     assert!(cache.find(&2).is_none());
 
-    cache.find_or_create(&2, |_v| { two });
+    cache.find_or_create(&2, |_v| { Cell::new("two") });
     assert!(cache.find(&1).is_some());
     assert!(cache.find(&2).is_some());
 }
@@ -233,7 +231,7 @@ fn test_lru_cache() {
     assert!(cache.find(&4).is_some());  // (2, 4) (no change)
 
     // Test find_or_create.
-    cache.find_or_create(&1, |_| { one }); // (4, 1)
+    cache.find_or_create(&1, |_| { Cell::new("one") }); // (4, 1)
 
     assert!(cache.find(&1).is_some()); // (4, 1) (no change)
     assert!(cache.find(&2).is_none()); // (4, 1) (no change)

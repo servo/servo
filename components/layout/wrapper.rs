@@ -137,6 +137,7 @@ pub trait TLayoutNode {
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `JS`.
+#[deriving(Copy)]
 pub struct LayoutNode<'a> {
     /// The wrapped node.
     node: JS<Node>,
@@ -476,6 +477,7 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
 }
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
+#[deriving(Copy)]
 pub struct LayoutElement<'le> {
     element: &'le Element,
 }
@@ -631,10 +633,10 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
 
 fn get_content(content_list: &content::T) -> String {
     match *content_list {
-        content::Content(ref value) => {
+        content::T::Content(ref value) => {
             let iter = &mut value.clone().into_iter().peekable();
             match iter.next() {
-                Some(content::StringContent(content)) => content,
+                Some(content::ContentItem::StringContent(content)) => content,
                 _ => "".into_string(),
             }
         }
@@ -642,7 +644,7 @@ fn get_content(content_list: &content::T) -> String {
     }
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(Copy, PartialEq, Clone)]
 pub enum PseudoElementType {
     Normal,
     Before(display::T),
@@ -667,7 +669,7 @@ impl PseudoElementType {
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
-#[deriving(Clone)]
+#[deriving(Copy, Clone)]
 pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
     node: LayoutNode<'ln>,
@@ -716,9 +718,9 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
                     let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(self.get_before_display()));
                     return Some(pseudo_before_node)
                 }
-                PseudoElementType::Before(display::inline) => {}
+                PseudoElementType::Before(display::T::inline) => {}
                 PseudoElementType::Before(_) => {
-                    let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(display::inline));
+                    let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(display::T::inline));
                     return Some(pseudo_before_node)
                 }
                 _ => {}
@@ -922,7 +924,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             // If you implement other values for this property, you will almost certainly
             // want to update this check.
             match self.style().get_inheritedtext().white_space {
-                white_space::normal => true,
+                white_space::T::normal => true,
                 _ => false,
             }
         }

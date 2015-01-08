@@ -27,7 +27,7 @@ use std::cmp::max;
 use std::fmt;
 use style::{ComputedValues, CSSFloat};
 use style::computed_values::{LengthOrPercentageOrAuto, table_layout};
-use sync::Arc;
+use std::sync::Arc;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
@@ -54,7 +54,7 @@ impl TableFlow {
                                   -> TableFlow {
         let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::fixed {
+                              table_layout::T::fixed {
             TableLayout::Fixed
         } else {
             TableLayout::Auto
@@ -72,7 +72,7 @@ impl TableFlow {
                      -> TableFlow {
         let mut block_flow = BlockFlow::from_node(constructor, node);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::fixed {
+                              table_layout::T::fixed {
             TableLayout::Fixed
         } else {
             TableLayout::Auto
@@ -91,7 +91,7 @@ impl TableFlow {
                            -> TableFlow {
         let mut block_flow = BlockFlow::float_from_node(constructor, node, float_kind);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::fixed {
+                              table_layout::T::fixed {
             TableLayout::Fixed
         } else {
             TableLayout::Auto
@@ -441,7 +441,7 @@ impl ISizeAndMarginsComputer for InternalTable {
 /// maximum of 100 pixels and 20% of the table), the preceding constraint means that we must
 /// potentially store both a specified width *and* a specified percentage, so that the inline-size
 /// assignment phase of layout will know which one to pick.
-#[deriving(Clone, Encodable, Show)]
+#[deriving(Clone, Encodable, Show, Copy)]
 pub struct ColumnIntrinsicInlineSize {
     /// The preferred intrinsic inline size.
     pub preferred: Au,
@@ -485,7 +485,7 @@ impl ColumnIntrinsicInlineSize {
 ///
 /// TODO(pcwalton): There will probably be some `border-collapse`-related info in here too
 /// eventually.
-#[deriving(Encodable)]
+#[deriving(Encodable, Copy)]
 pub struct ColumnComputedInlineSize {
     /// The computed size of this inline column.
     pub size: Au,

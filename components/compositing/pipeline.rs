@@ -3,13 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorProxy;
-use layout_traits::{ExitNowMsg, LayoutTaskFactory, LayoutControlChan};
+use layout_traits::{LayoutControlMsg, LayoutTaskFactory, LayoutControlChan};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use devtools_traits::DevtoolsControlChan;
 use gfx::paint_task::Msg as PaintMsg;
-use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
 use gfx::paint_task::{PaintChan, PaintTask};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
@@ -166,12 +165,12 @@ impl Pipeline {
     }
 
     pub fn grant_paint_permission(&self) {
-        let _ = self.paint_chan.send_opt(PaintPermissionGranted);
+        let _ = self.paint_chan.send_opt(PaintMsg::PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking paint channel paint permission");
-        let _ = self.paint_chan.send_opt(PaintPermissionRevoked);
+        let _ = self.paint_chan.send_opt(PaintMsg::PaintPermissionRevoked);
     }
 
     pub fn exit(&self, exit_type: PipelineExitType) {
@@ -196,7 +195,7 @@ impl Pipeline {
                                                   PipelineExitType::PipelineOnly));
         let _ = self.paint_chan.send_opt(PaintMsg::Exit(None, PipelineExitType::PipelineOnly));
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
-        let _ = layout_channel.send_opt(ExitNowMsg(PipelineExitType::PipelineOnly));
+        let _ = layout_channel.send_opt(LayoutControlMsg::ExitNowMsg(PipelineExitType::PipelineOnly));
     }
 
     pub fn to_sendable(&self) -> CompositionPipeline {

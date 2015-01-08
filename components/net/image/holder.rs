@@ -7,7 +7,7 @@ use image_cache_task::ImageResponseMsg;
 use local_image_cache::LocalImageCache;
 
 use geom::size::Size2D;
-use sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex};
 use url::Url;
 
 // FIXME: Nasty coupling here This will be a problem if we want to factor out image handling from

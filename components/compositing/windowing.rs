@@ -15,21 +15,24 @@ use servo_msg::compositor_msg::{PaintState, ReadyState};
 use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
 use servo_util::cursor::Cursor;
 use servo_util::geometry::ScreenPx;
-use std::fmt::{FormatError, Formatter, Show};
+use std::fmt::{Error, Formatter, Show};
 use std::rc::Rc;
 
+#[deriving(Clone)]
 pub enum MouseWindowEvent {
     Click(uint, TypedPoint2D<DevicePixel, f32>),
     MouseDown(uint, TypedPoint2D<DevicePixel, f32>),
     MouseUp(uint, TypedPoint2D<DevicePixel, f32>),
 }
 
+#[deriving(Clone)]
 pub enum WindowNavigateMsg {
     Forward,
     Back,
 }
 
 /// Events that the windowing system sends to Servo.
+#[deriving(Clone)]
 pub enum WindowEvent {
     /// Sent when no message has arrived, but the event loop was kicked for some reason (perhaps
     /// by another Servo subsystem).
@@ -68,7 +71,7 @@ pub enum WindowEvent {
 }
 
 impl Show for WindowEvent {
-    fn fmt(&self, f: &mut Formatter) -> Result<(),FormatError> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(),Error> {
         match *self {
             WindowEvent::Idle => write!(f, "Idle"),
             WindowEvent::Refresh => write!(f, "Refresh"),

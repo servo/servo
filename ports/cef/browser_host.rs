@@ -8,11 +8,11 @@ use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_host_t, cef_
 use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event};
 use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
 
-use compositing::windowing::{WindowEvent, KeyEvent, MouseWindowEvent};
+use compositing::windowing::{WindowEvent, MouseWindowEvent};
 use geom::point::TypedPoint2D;
 use geom::size::TypedSize2D;
 use libc::{c_double, c_int};
-use servo_msg::constellation_msg::{mod, KeyModifiers, Pressed, Released, Repeated};
+use servo_msg::constellation_msg::{mod, KeyModifiers, KeyState};
 use std::cell::RefCell;
 
 pub struct ServoCefBrowserHost {
@@ -83,12 +83,12 @@ cef_class_impl! {
                 _ => constellation_msg::Key::Space,
             };
             let key_state = match (*event).t {
-                KEYEVENT_RAWKEYDOWN => Pressed,
-                KEYEVENT_KEYDOWN | KEYEVENT_CHAR => Repeated,
-                KEYEVENT_KEYUP => Released,
+                KEYEVENT_RAWKEYDOWN => KeyState::Pressed,
+                KEYEVENT_KEYDOWN | KEYEVENT_CHAR => KeyState::Repeated,
+                KEYEVENT_KEYUP => KeyState::Released,
             };
             let key_modifiers = KeyModifiers::empty();  // TODO(pcwalton)
-            core::send_window_event(KeyEvent(key, key_state, key_modifiers))
+            core::send_window_event(WindowEvent::KeyEvent(key, key_state, key_modifiers))
         }
 
         fn send_mouse_click_event(&_this,

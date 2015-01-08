@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::XMLHttpRequestEventTargetDerived;
 use dom::bindings::js::JSRef;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 
-#[deriving(PartialEq)]
+#[deriving(Copy, PartialEq)]
 #[jstraceable]
 pub enum XMLHttpRequestEventTargetTypeId {
     XMLHttpRequest,

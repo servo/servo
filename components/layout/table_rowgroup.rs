@@ -19,7 +19,7 @@ use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
 use std::fmt;
 use style::ComputedValues;
-use sync::Arc;
+use std::sync::Arc;
 
 /// A table formatting context.
 #[deriving(Encodable)]

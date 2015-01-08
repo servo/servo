@@ -5,7 +5,7 @@
 //! A persistent, thread-safe singly-linked list.
 
 use std::mem;
-use sync::Arc;
+use std::sync::Arc;
 
 pub struct PersistentList<T> {
     head: PersistentListLink<T>,

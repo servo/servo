@@ -25,6 +25,7 @@ use std::time::duration::Duration;
 
 #[deriving(PartialEq, Eq)]
 #[jstraceable]
+#[deriving(Copy)]
 pub struct TimerId(i32);
 
 #[jstraceable]
@@ -67,7 +68,7 @@ impl Drop for TimerManager {
 
 // Enum allowing more descriptive values for the is_interval field
 #[jstraceable]
-#[deriving(PartialEq, Clone)]
+#[deriving(PartialEq, Copy, Clone)]
 pub enum IsInterval {
     Interval,
     NonInterval,

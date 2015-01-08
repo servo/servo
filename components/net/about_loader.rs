@@ -11,7 +11,6 @@ use hyper::http::RawStatus;
 use servo_util::resource_files::resources_dir_path;
 
 use std::io::fs::PathExtensions;
-use std::str::Slice;
 
 pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     let senders = ResponseSenders {
@@ -25,7 +24,7 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>
                 content_type: Some(("text".to_string(), "html".to_string())),
                 charset: Some("utf-8".to_string()),
                 headers: None,
-                status: Some(RawStatus(200, Slice("OK")))
+                status: Some(RawStatus(200, "OK".into_string()))
             });
             chan.send(Done(Ok(())));
             return

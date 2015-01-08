@@ -6,7 +6,6 @@ use syntax::ast;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
 use rustc::middle::ty;
-use rustc::middle::typeck::astconv::AstConv;
 
 declare_lint!(STR_TO_STRING, Deny,
               "Warn when a String could use into_string() instead of to_string()")
@@ -33,13 +32,13 @@ impl LintPass for StrToStringPass {
         }
 
         fn is_str(cx: &Context, expr: &ast::Expr) -> bool {
-            fn walk_ty<'t>(ty: ty::t) -> ty::t {
-                match ty::get(ty).sty {
+            fn walk_ty<'t>(ty: ty::Ty<'t>) -> ty::Ty<'t> {
+                match ty.sty {
                     ty::ty_ptr(ref tm) | ty::ty_rptr(_, ref tm) => walk_ty(tm.ty),
                     _ => ty
                 }
             }
-            match ty::get(walk_ty(expr_ty(cx.tcx, expr))).sty {
+            match walk_ty(expr_ty(cx.tcx, expr)).sty {
                 ty::ty_str => true,
                 _ => false
             }

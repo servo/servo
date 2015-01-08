@@ -7,10 +7,10 @@
 use geom::{Size2D, Point2D, SideOffsets2D, Rect};
 use geom::num::Zero;
 use std::cmp::{min, max};
-use std::fmt::{Show, Formatter, FormatError};
+use std::fmt::{Show, Formatter, Error};
 
 bitflags!(
-    #[deriving(Encodable)]
+    #[deriving(Encodable, Copy)]
     flags WritingMode: u8 {
         const FLAG_RTL = 1 << 0,
         const FLAG_VERTICAL = 1 << 1,
@@ -49,7 +49,7 @@ impl WritingMode {
 }
 
 impl Show for WritingMode {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         if self.is_vertical() {
             try!(write!(formatter, "V"));
             if self.is_vertical_lr() {
@@ -79,11 +79,11 @@ impl Show for WritingMode {
 /// (in addition to taking it as a parameter to methods) and check it.
 /// In non-debug builds, make this storage zero-size and the checks no-ops.
 #[cfg(ndebug)]
-#[deriving(Encodable, PartialEq, Eq, Clone)]
+#[deriving(Encodable, PartialEq, Eq, Clone, Copy)]
 struct DebugWritingMode;
 
 #[cfg(not(ndebug))]
-#[deriving(Encodable, PartialEq, Eq, Clone)]
+#[deriving(Encodable, PartialEq, Eq, Clone, Copy)]
 struct DebugWritingMode {
     mode: WritingMode
 }
@@ -122,19 +122,19 @@ impl DebugWritingMode {
 
 impl Show for DebugWritingMode {
     #[cfg(ndebug)]
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter, "?")
     }
 
     #[cfg(not(ndebug))]
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         self.mode.fmt(formatter)
     }
 }
 
 
 /// A 2D size in flow-relative dimensions
-#[deriving(Encodable, PartialEq, Eq, Clone)]
+#[deriving(Encodable, PartialEq, Eq, Clone, Copy)]
 pub struct LogicalSize<T> {
     pub inline: T,  // inline-size, a.k.a. logical width, a.k.a. measure
     pub block: T,  // block-size, a.k.a. logical height, a.k.a. extent
@@ -142,7 +142,7 @@ pub struct LogicalSize<T> {
 }
 
 impl<T: Show> Show for LogicalSize<T> {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter, "LogicalSize({}, i{}×b{})",
                self.debug_writing_mode, self.inline, self.block)
     }
@@ -266,7 +266,7 @@ impl<T: Sub<T, T>> Sub<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
 
 
 /// A 2D point in flow-relative dimensions
-#[deriving(PartialEq, Encodable, Eq, Clone)]
+#[deriving(PartialEq, Encodable, Eq, Clone, Copy)]
 pub struct LogicalPoint<T> {
     pub i: T,  /// inline-axis coordinate
     pub b: T,  /// block-axis coordinate
@@ -274,7 +274,7 @@ pub struct LogicalPoint<T> {
 }
 
 impl<T: Show> Show for LogicalPoint<T> {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter, "LogicalPoint({} (i{}, b{}))",
                self.debug_writing_mode, self.i, self.b)
     }
@@ -434,7 +434,7 @@ impl<T: Sub<T,T>> Sub<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
 /// Represents the four sides of the margins, borders, or padding of a CSS box,
 /// or a combination of those.
 /// A positive "margin" can be added to a rectangle to obtain a bigger rectangle.
-#[deriving(Encodable, PartialEq, Eq, Clone)]
+#[deriving(Encodable, PartialEq, Eq, Clone, Copy)]
 pub struct LogicalMargin<T> {
     pub block_start: T,
     pub inline_end: T,
@@ -444,7 +444,7 @@ pub struct LogicalMargin<T> {
 }
 
 impl<T: Show> Show for LogicalMargin<T> {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter,
                "LogicalMargin({}, inline: {}..{} block: {}..{})",
                self.debug_writing_mode,
@@ -718,7 +718,7 @@ impl<T: Sub<T, T>> Sub<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> 
 
 
 /// A rectangle in flow-relative dimensions
-#[deriving(Encodable, PartialEq, Eq, Clone)]
+#[deriving(Encodable, PartialEq, Eq, Clone, Copy)]
 pub struct LogicalRect<T> {
     pub start: LogicalPoint<T>,
     pub size: LogicalSize<T>,
@@ -726,7 +726,7 @@ pub struct LogicalRect<T> {
 }
 
 impl<T: Show> Show for LogicalRect<T> {
-    fn fmt(&self, formatter: &mut Formatter) -> Result<(), FormatError> {
+    fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter,
                "LogicalRect({}, i{}×b{}, @ (i{},b{}))",
                self.debug_writing_mode,

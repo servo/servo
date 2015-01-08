@@ -19,7 +19,7 @@ use servo_util::arc_ptr_eq;
 
 use std::rc::Rc;
 use std::cell::RefCell;
-use sync::Arc;
+use std::sync::Arc;
 
 use azure::AzFloat;
 use azure::azure_hl::BackendType;

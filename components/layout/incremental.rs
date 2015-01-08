@@ -12,6 +12,7 @@ use style::ComputedValues;
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]
+    #[deriving(Copy)]
     flags RestyleDamage: u8 {
         #[doc = "Repaint the node itself."]
         #[doc = "Currently unused; need to decide how this propagates."]
@@ -87,7 +88,7 @@ impl RestyleDamage {
 }
 
 impl fmt::Show for RestyleDamage {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::FormatError> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         let mut first_elem = true;
 
         let to_iter =
@@ -181,7 +182,7 @@ pub trait LayoutDamageComputation {
     fn reflow_entire_document(self);
 }
 
-impl<'a> LayoutDamageComputation for &'a mut Flow+'a {
+impl<'a> LayoutDamageComputation for &'a mut (Flow + 'a) {
     fn compute_layout_damage(self) -> SpecialRestyleDamage {
         let mut special_damage = SpecialRestyleDamage::empty();
         let is_absolutely_positioned = flow::base(self).flags.contains(IS_ABSOLUTELY_POSITIONED);
@@ -203,7 +204,7 @@ impl<'a> LayoutDamageComputation for &'a mut Flow+'a {
         }
 
         let self_base = flow::base(self);
-        if self_base.flags.float_kind() != float::none &&
+        if self_base.flags.float_kind() != float::T::none &&
                 self_base.restyle_damage.intersects(REFLOW) {
             special_damage.insert(REFLOW_ENTIRE_DOCUMENT);
         }

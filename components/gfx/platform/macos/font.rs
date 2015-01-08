@@ -29,7 +29,7 @@ use core_text::font_descriptor::{kCTFontDefaultOrientation};
 
 use std::num::Float;
 use std::ptr;
-use sync::Arc;
+use std::sync::Arc;
 
 pub struct FontTable {
     data: CFData,
@@ -100,15 +100,15 @@ impl FontHandleMethods for FontHandle {
         let normalized = self.ctfont.all_traits().normalized_weight();
         // 0.0 to 9.0
         let normalized = (normalized + 1.0) / 2.0 * 9.0;
-        if normalized < 1.0 { return font_weight::Weight100; }
-        if normalized < 2.0 { return font_weight::Weight200; }
-        if normalized < 3.0 { return font_weight::Weight300; }
-        if normalized < 4.0 { return font_weight::Weight400; }
-        if normalized < 5.0 { return font_weight::Weight500; }
-        if normalized < 6.0 { return font_weight::Weight600; }
-        if normalized < 7.0 { return font_weight::Weight700; }
-        if normalized < 8.0 { return font_weight::Weight800; }
-        return font_weight::Weight900;
+        if normalized < 1.0 { return font_weight::T::Weight100; }
+        if normalized < 2.0 { return font_weight::T::Weight200; }
+        if normalized < 3.0 { return font_weight::T::Weight300; }
+        if normalized < 4.0 { return font_weight::T::Weight400; }
+        if normalized < 5.0 { return font_weight::T::Weight500; }
+        if normalized < 6.0 { return font_weight::T::Weight600; }
+        if normalized < 7.0 { return font_weight::T::Weight700; }
+        if normalized < 8.0 { return font_weight::T::Weight800; }
+        return font_weight::T::Weight900;
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
@@ -179,7 +179,7 @@ impl FontHandleMethods for FontHandle {
             average_advance:  average_advance,
             line_gap:         Au::from_frac_px(line_gap),
         };
-        debug!("Font metrics (@{:f} pt): {}", self.ctfont.pt_size() as f64, metrics);
+        debug!("Font metrics (@{} pt): {}", self.ctfont.pt_size() as f64, metrics);
         return metrics;
     }
 

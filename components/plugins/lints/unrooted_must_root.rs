@@ -7,7 +7,6 @@ use syntax::attr::AttrMetaMethods;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
 use rustc::middle::{ty, def};
-use rustc::middle::typeck::astconv::AstConv;
 use rustc::util::ppaux::Repr;
 use utils::unsafe_context;
 
@@ -24,6 +23,7 @@ declare_lint!(UNROOTED_MUST_ROOT, Deny,
 ///  - Not being bound locally in a `let` statement, assignment, `for` loop, or `match` statement.
 ///
 /// This helps catch most situations where pointers like `JS<T>` are used in a way that they can be invalidated by a GC pass.
+#[allow(missing_copy_implementations)]
 pub struct UnrootedPass;
 
 // Checks if a type has the #[must_root] annotation.
@@ -33,7 +33,7 @@ fn lint_unrooted_ty(cx: &Context, ty: &ast::Ty, warning: &str) {
     match ty.node {
         ast::TyVec(ref t) | ast::TyFixedLengthVec(ref t, _) |
         ast::TyPtr(ast::MutTy { ty: ref t, ..}) | ast::TyRptr(_, ast::MutTy { ty: ref t, ..}) => lint_unrooted_ty(cx, &**t, warning),
-        ast::TyPath(_, _, id) => {
+        ast::TyPath(_, id) => {
                 match cx.tcx.def_map.borrow()[id].clone() {
                     def::DefTy(def_id, _) => {
                         if ty::has_attr(cx.tcx, def_id, "must_root") {
@@ -146,7 +146,7 @@ impl LintPass for UnrootedPass {
         };
 
         let t = expr_ty(cx.tcx, &*expr);
-        match ty::get(t).sty {
+        match t.sty {
             ty::ty_struct(did, _) |
             ty::ty_enum(did, _) => {
                 if ty::has_attr(cx.tcx, did, "must_root") {

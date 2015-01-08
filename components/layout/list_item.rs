@@ -21,7 +21,7 @@ use servo_util::geometry::Au;
 use servo_util::opts;
 use style::ComputedValues;
 use style::computed_values::list_style_type;
-use sync::Arc;
+use std::sync::Arc;
 
 /// A block with the CSS `display` property equal to `list-item`.
 #[deriving(Show)]
@@ -131,12 +131,12 @@ pub fn static_text_for_list_style_type(list_style_type: list_style_type::T)
     // Just to keep things simple, use a nonbreaking space (Unicode 0xa0) to provide the marker
     // separation.
     match list_style_type {
-        list_style_type::none => None,
-        list_style_type::disc => Some("•\u00a0"),
-        list_style_type::circle => Some("◦\u00a0"),
-        list_style_type::square => Some("▪\u00a0"),
-        list_style_type::disclosure_open => Some("▾\u00a0"),
-        list_style_type::disclosure_closed => Some("‣\u00a0"),
+        list_style_type::T::none => None,
+        list_style_type::T::disc => Some("•\u{a0}"),
+        list_style_type::T::circle => Some("◦\u{a0}"),
+        list_style_type::T::square => Some("▪\u{a0}"),
+        list_style_type::T::disclosure_open => Some("▾\u{a0}"),
+        list_style_type::T::disclosure_closed => Some("‣\u{a0}"),
     }
 }
 
