@@ -17,7 +17,7 @@ use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, TimerSource};
-use timers::{IsInterval, TimerId, TimerManager};
+use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 use servo_util::str::DOMString;
@@ -143,7 +143,16 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
-        self.timers.set_timeout_or_interval(callback,
+        self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
+                                            args,
+                                            timeout,
+                                            IsInterval::NonInterval,
+                                            TimerSource::FromWorker,
+                                            self.script_chan())
+    }
+
+    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
@@ -156,7 +165,16 @@ impl<'a> WorkerGlobalScopeMethods for JSRef<'a, WorkerGlobalScope> {
     }
 
     fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
-        self.timers.set_timeout_or_interval(callback,
+        self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
+                                            args,
+                                            timeout,
+                                            IsInterval::Interval,
+                                            TimerSource::FromWorker,
+                                            self.script_chan())
+    }
+
+    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
                                             IsInterval::Interval,

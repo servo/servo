@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::{DOMRectMethods};
 use dom::bindings::codegen::Bindings::ElementBinding::{ElementMethods};
 use dom::node::{Node, NodeHelpers};
-use dom::window::{WindowHelpers};
+use dom::window::{ScriptHelpers};
 use dom::element::Element;
 use dom::document::DocumentHelpers;
 use page::Page;
@@ -26,7 +26,7 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
     let frame = page.frame();
     let window = frame.as_ref().unwrap().window.root();
     let cx = window.r().get_cx();
-    let rval = window.r().evaluate_js_with_result(eval.as_slice());
+    let rval = window.r().evaluate_js_on_global_with_result(eval.as_slice());
 
     reply.send(if rval.is_undefined() {
         devtools_traits::VoidValue

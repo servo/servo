@@ -8,7 +8,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::unwrap_jsmanaged;
+use dom::bindings::conversions::{unwrap_jsmanaged, is_dom_class};
 use dom::bindings::error::throw_type_error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, Root};
@@ -20,7 +20,8 @@ use libc::c_uint;
 use std::cell::Cell;
 use std::mem;
 use std::ptr;
-use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
+use js::glue::UnwrapObject;
+use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
@@ -463,6 +464,28 @@ pub fn FindEnumStringIndex(cx: *mut JSContext,
                 value.as_bytes()[j] as u16 == *chars.offset(j as int)
             })
         }))
+    }
+}
+
+/// Returns wether `obj` is a platform object
+/// http://heycam.github.io/webidl/#dfn-platform-object
+pub fn IsPlatformObject(obj: *mut JSObject) -> bool {
+    unsafe {
+        // Fast-path the common case
+        let mut clasp = JS_GetClass(obj);
+        if is_dom_class(&*clasp) {
+            return true;
+        }
+        // Now for simplicity check for security wrappers before anything else
+        if IsWrapper(obj) == 1 {
+            let unwrapped_obj = UnwrapObject(obj, /* stopAtOuter = */ 0, ptr::null_mut());
+            if unwrapped_obj.is_null() {
+                return false;
+            }
+            clasp = js::jsapi::JS_GetClass(obj);
+        }
+        // TODO also check if JS_IsArrayBufferObject
+        return is_dom_class(&*clasp);
     }
 }
 
