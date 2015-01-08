@@ -13,6 +13,12 @@ use std::cmp::{min, max};
 use std::default::Default;
 use std::num::SignedInt;
 
+#[deriving(Copy, PartialEq)]
+enum Selection {
+    Selected,
+    NotSelected
+}
+
 #[jstraceable]
 #[deriving(Copy)]
 struct TextPoint {
@@ -98,7 +104,7 @@ impl TextInput {
                 1
             } else {
                 -1
-            }, true);
+            }, Selection::Selected);
         }
         self.replace_selection("".into_string());
     }
@@ -165,12 +171,12 @@ impl TextInput {
 
     /// Adjust the editing point position by a given of lines. The resulting column is
     /// as close to the original column position as possible.
-    fn adjust_vertical(&mut self, adjust: int, select: bool) {
+    fn adjust_vertical(&mut self, adjust: int, select: Selection) {
         if !self.multiline {
             return;
         }
 
-        if select {
+        if select == Selection::Selected {
             if self.selection_begin.is_none() {
                 self.selection_begin = Some(self.edit_point);
             }
@@ -199,8 +205,8 @@ impl TextInput {
     /// Adjust the editing point position by a given number of columns. If the adjustment
     /// requested is larger than is available in the current line, the editing point is
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
-    fn adjust_horizontal(&mut self, adjust: int, select: bool) {
-        if select {
+    fn adjust_horizontal(&mut self, adjust: int, select: Selection) {
+        if select == Selection::Selected {
             if self.selection_begin.is_none() {
                 self.selection_begin = Some(self.edit_point);
             }
@@ -258,6 +264,13 @@ impl TextInput {
 
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
     pub fn handle_keydown(&mut self, event: JSRef<KeyboardEvent>) -> KeyReaction {
+        //A simple way to convert an event to a selection
+        fn maybe_select(event: JSRef<KeyboardEvent>) -> Selection {
+            if event.ShiftKey() {
+                return Selection::Selected
+            }
+            return Selection::NotSelected
+        }
         match event.Key().as_slice() {
            "a" if is_control_key(event) => {
                 self.select_all();
@@ -281,19 +294,19 @@ impl TextInput {
                 KeyReaction::DispatchInput
             }
             "ArrowLeft" => {
-                self.adjust_horizontal(-1, event.ShiftKey());
+                self.adjust_horizontal(-1, maybe_select(event));
                 KeyReaction::Nothing
             }
             "ArrowRight" => {
-                self.adjust_horizontal(1, event.ShiftKey());
+                self.adjust_horizontal(1, maybe_select(event));
                 KeyReaction::Nothing
             }
             "ArrowUp" => {
-                self.adjust_vertical(-1, event.ShiftKey());
+                self.adjust_vertical(-1, maybe_select(event));
                 KeyReaction::Nothing
             }
             "ArrowDown" => {
-                self.adjust_vertical(1, event.ShiftKey());
+                self.adjust_vertical(1, maybe_select(event));
                 KeyReaction::Nothing
             }
             "Enter" => self.handle_return(),
@@ -306,11 +319,11 @@ impl TextInput {
                 KeyReaction::Nothing
             }
             "PageUp" => {
-                self.adjust_vertical(-28, event.ShiftKey());
+                self.adjust_vertical(-28, maybe_select(event));
                 KeyReaction::Nothing
             }
             "PageDown" => {
-                self.adjust_vertical(28, event.ShiftKey());
+                self.adjust_vertical(28, maybe_select(event));
                 KeyReaction::Nothing
             }
             "Tab" => KeyReaction::TriggerDefaultAction,
