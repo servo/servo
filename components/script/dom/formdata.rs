@@ -81,7 +81,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
 
     fn Get(self, name: DOMString) -> Option<FileOrString> {
-        if self.data.borrow().contains_key_equiv(&name) {
+        if self.data.borrow().contains_key(&name) {
             match (*self.data.borrow())[name][0].clone() {
                 FormDatum::StringData(ref s) => Some(eString(s.clone())),
                 FormDatum::FileData(ref f) => {
@@ -94,7 +94,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
 
     fn Has(self, name: DOMString) -> bool {
-        self.data.borrow().contains_key_equiv(&name)
+        self.data.borrow().contains_key(&name)
     }
     #[allow(unrooted_must_root)]
     fn Set(self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
