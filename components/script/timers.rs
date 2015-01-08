@@ -8,9 +8,12 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
 
+use dom::window::ScriptHelpers;
+
 use script_task::{ScriptChan, ScriptMsg, TimerSource};
 
 use servo_util::task::spawn_named;
+use servo_util::str::DOMString;
 
 use js::jsval::JSVal;
 
@@ -34,6 +37,13 @@ struct TimerHandle {
     handle: TimerId,
     data: TimerData,
     cancel_chan: Option<Sender<()>>,
+}
+
+#[jstraceable]
+#[deriving(Clone)]
+pub enum TimerCallback {
+    StringTimerCallback(DOMString),
+    FunctionTimerCallback(Function)
 }
 
 impl Hash for TimerId {
@@ -83,7 +93,7 @@ pub enum IsInterval {
 #[deriving(Clone)]
 struct TimerData {
     is_interval: IsInterval,
-    funval: Function,
+    callback: TimerCallback,
     args: Vec<JSVal>
 }
 
@@ -96,7 +106,7 @@ impl TimerManager {
     }
 
     pub fn set_timeout_or_interval(&self,
-                                  callback: Function,
+                                  callback: TimerCallback,
                                   arguments: Vec<JSVal>,
                                   timeout: i32,
                                   is_interval: IsInterval,
@@ -152,7 +162,7 @@ impl TimerManager {
             cancel_chan: Some(cancel_chan),
             data: TimerData {
                 is_interval: is_interval,
-                funval: callback,
+                callback: callback,
                 args: arguments
             }
         };
@@ -164,7 +174,7 @@ impl TimerManager {
         let mut timer_handle = self.active_timers.borrow_mut().remove(&TimerId(handle));
         match timer_handle {
             Some(ref mut handle) => handle.cancel(),
-            None => { }
+            None => {}
         }
     }
 
@@ -176,7 +186,14 @@ impl TimerManager {
         };
 
         // TODO: Must handle rooting of funval and args when movable GC is turned on
-        let _ = data.funval.Call_(this, data.args, ReportExceptions);
+        match data.callback {
+            TimerCallback::FunctionTimerCallback(function) => {
+                let _ = function.Call_(this, data.args, ReportExceptions);
+            }
+            TimerCallback::StringTimerCallback(code_str) => {
+                this.evaluate_js_on_global_with_result(code_str.as_slice());
+            }
+        };
 
         if data.is_interval == IsInterval::NonInterval {
             self.active_timers.borrow_mut().remove(&timer_id);

@@ -28,7 +28,7 @@ use dom::htmlelement::HTMLElementTypeId;
 use dom::keyboardevent::KeyboardEvent;
 use dom::mouseevent::MouseEvent;
 use dom::node::{mod, Node, NodeHelpers, NodeDamage, NodeTypeId};
-use dom::window::{Window, WindowHelpers};
+use dom::window::{Window, WindowHelpers, ScriptHelpers};
 use parse::html::{HTMLInput, parse_html};
 use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType};
 use layout_interface;
@@ -841,7 +841,7 @@ impl ScriptTask {
             (HTMLInput::InputUrl(load_response), final_url)
         } else {
             let evalstr = load_data.url.non_relative_scheme_data().unwrap();
-            let jsval = window.r().evaluate_js_with_result(evalstr);
+            let jsval = window.r().evaluate_js_on_global_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
                                                           StringificationBehavior::Empty);
             (HTMLInput::InputString(strval.unwrap_or("".into_string())), doc_url)

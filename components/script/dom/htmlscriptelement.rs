@@ -23,7 +23,7 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
+use dom::window::ScriptHelpers;
 
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
@@ -209,7 +209,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             None => (text, base_url)
         };
 
-        window.evaluate_script_with_result(source.as_slice(), url.serialize().as_slice());
+        window.evaluate_script_on_global_with_result(source.as_slice(), url.serialize().as_slice());
 
         let event = Event::new(GlobalRef::Window(window),
                                "load".into_string(),
