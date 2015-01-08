@@ -12,7 +12,7 @@
 //!  - `#[dom_struct]` : Implies `#[privatize]`,`#[jstraceable]`, and `#[must_root]`.
 //!     Use this for structs that correspond to a DOM type
 
-#![feature(macro_rules, plugin_registrar, quote, phase, if_let)]
+#![feature(macro_rules, plugin_registrar, quote, phase)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
