@@ -52,6 +52,7 @@ version = "0.0.1"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gfx 0.0.1",
  "util 0.0.1",
 ]
 
@@ -80,7 +81,6 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
  "core_text 0.1.0 (git+https://github.com/servo/rust-core-text)",
- "devtools 0.0.1",
  "devtools_traits 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
@@ -145,6 +145,7 @@ version = "0.0.1"
 dependencies = [
  "devtools_traits 0.0.1",
  "msg 0.0.1",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -444,7 +445,7 @@ source = "git+https://github.com/bjz/gl-rs.git#230e6c9ed611cddfcb6682dee9686471d
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#253fd0eb7e49b356393e14abdf34c76152cba10f"
+source = "git+https://github.com/servo/rust-layers#8eec5bd428b57391329dbdb3656241a065b261d9"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
