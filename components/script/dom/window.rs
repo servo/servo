@@ -295,6 +295,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         debug!("{}", message);
     }
 
+    #[allow(unsafe_blocks)]
     fn Gc(self) {
         unsafe {
             JS_GC(JS_GetRuntime(self.get_cx()));
@@ -328,6 +329,7 @@ impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
         self.evaluate_script_on_global_with_result(code, "")
     }
 
+    #[allow(unsafe_blocks)]
     fn evaluate_script_on_global_with_result(self, code: &str, filename: &str) -> JSVal {
         let this = self.reflector().get_jsobject();
         let cx = global_object_for_js_object(this).root().r().get_cx();
