@@ -31,8 +31,8 @@ impl WebSocket {
                            WebSocketBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
-        Ok(WebSocket::new(*global, url))
+    pub fn Constructor(global: GlobalRef, url: DOMString) -> Fallible<Temporary<WebSocket>> {
+        Ok(WebSocket::new(global, url))
     }
 }
 

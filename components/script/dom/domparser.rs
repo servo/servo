@@ -36,7 +36,7 @@ impl DOMParser {
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<DOMParser>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<DOMParser>> {
         Ok(DOMParser::new(global.as_window()))
     }
 }

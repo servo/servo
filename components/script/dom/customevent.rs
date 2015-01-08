@@ -40,12 +40,12 @@ impl CustomEvent {
                            global,
                            CustomEventBinding::Wrap)
     }
-    pub fn new(global: &GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
-        let ev = CustomEvent::new_uninitialized(*global).root();
+    pub fn new(global: GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
+        let ev = CustomEvent::new_uninitialized(global).root();
         ev.r().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
         Temporary::from_rooted(ev.r())
     }
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit) -> Fallible<Temporary<CustomEvent>>{
         Ok(CustomEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable, init.detail))

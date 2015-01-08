@@ -48,13 +48,13 @@ impl ErrorEvent {
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalRef) -> Temporary<ErrorEvent> {
+    pub fn new_uninitialized(global: GlobalRef) -> Temporary<ErrorEvent> {
         reflect_dom_object(box ErrorEvent::new_inherited(EventTypeId::ErrorEvent),
-                           *global,
+                           global,
                            ErrorEventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalRef,
+    pub fn new(global: GlobalRef,
                type_: DOMString,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
@@ -75,7 +75,7 @@ impl ErrorEvent {
         Temporary::from_rooted(ev.r())
     }
 
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Temporary<ErrorEvent>>{
         let msg = match init.message.as_ref() {

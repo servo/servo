@@ -451,7 +451,7 @@ impl Document {
     }
 
     // http://dom.spec.whatwg.org/#dom-document
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Document>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Document>> {
         Ok(Document::new(global.as_window(), None,
                          IsHTMLDocument::NonHTMLDocument, None,
                          DocumentSource::NotFromParser))

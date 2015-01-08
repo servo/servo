@@ -63,11 +63,11 @@ impl MessageEvent {
         Temporary::from_rooted(ev.r())
     }
 
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Temporary<MessageEvent>> {
-        let ev = MessageEvent::new(*global, type_, init.parent.bubbles, init.parent.cancelable,
+        let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
                                    init.data, init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
     }

@@ -105,12 +105,12 @@ impl Event {
         Temporary::from_rooted(event.r())
     }
 
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Temporary<Event>> {
         let bubbles = if init.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
         let cancelable = if init.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
-        Ok(Event::new(*global, type_, bubbles, cancelable))
+        Ok(Event::new(global, type_, bubbles, cancelable))
     }
 
     #[inline]

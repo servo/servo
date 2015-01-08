@@ -25,18 +25,18 @@ pub struct CanvasRenderingContext2D {
 }
 
 impl CanvasRenderingContext2D {
-    fn new_inherited(global: &GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>) -> CanvasRenderingContext2D {
+    fn new_inherited(global: GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>) -> CanvasRenderingContext2D {
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
-            global: GlobalField::from_rooted(global),
+            global: GlobalField::from_rooted(&global),
             renderer: CanvasPaintTask::start(size),
             canvas: JS::from_rooted(canvas),
         }
     }
 
-    pub fn new(global: &GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>) -> Temporary<CanvasRenderingContext2D> {
+    pub fn new(global: GlobalRef, canvas: JSRef<HTMLCanvasElement>, size: Size2D<i32>) -> Temporary<CanvasRenderingContext2D> {
         reflect_dom_object(box CanvasRenderingContext2D::new_inherited(global, canvas, size),
-                           *global, CanvasRenderingContext2DBinding::Wrap)
+                           global, CanvasRenderingContext2DBinding::Wrap)
     }
 
     pub fn recreate(&self, size: Size2D<i32>) {

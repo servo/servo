@@ -160,13 +160,13 @@ pub struct XMLHttpRequest {
 }
 
 impl XMLHttpRequest {
-    fn new_inherited(global: &GlobalRef) -> XMLHttpRequest {
+    fn new_inherited(global: GlobalRef) -> XMLHttpRequest {
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestEventTargetTypeId::XMLHttpRequest),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
-            upload: JS::from_rooted(XMLHttpRequestUpload::new(*global)),
+            upload: JS::from_rooted(XMLHttpRequestUpload::new(global)),
             response_url: "".into_string(),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
@@ -185,19 +185,19 @@ impl XMLHttpRequest {
             upload_complete: Cell::new(false),
             upload_events: Cell::new(false),
 
-            global: GlobalField::from_rooted(global),
+            global: GlobalField::from_rooted(&global),
             timer: DOMRefCell::new(Timer::new().unwrap()),
             fetch_time: Cell::new(0),
             terminate_sender: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0))
         }
     }
-    pub fn new(global: &GlobalRef) -> Temporary<XMLHttpRequest> {
+    pub fn new(global: GlobalRef) -> Temporary<XMLHttpRequest> {
         reflect_dom_object(box XMLHttpRequest::new_inherited(global),
-                           *global,
+                           global,
                            XMLHttpRequestBinding::Wrap)
     }
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<XMLHttpRequest>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global))
     }
 

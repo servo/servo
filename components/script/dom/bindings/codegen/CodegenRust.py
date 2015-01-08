@@ -4014,7 +4014,7 @@ let global = global_object_for_js_object(JS_CALLEE(cx, vp).to_object());
 let global = global.root();
 """)
         nativeName = MakeNativeName(self._ctor.identifier.name)
-        callGenerator = CGMethodCall(["&global.r()"], nativeName, True,
+        callGenerator = CGMethodCall(["global.r()"], nativeName, True,
                                      self.descriptor, self._ctor)
         return CGList([preamble, callGenerator])
 

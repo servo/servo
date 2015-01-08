@@ -38,7 +38,7 @@ impl Comment {
                            document, CommentBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef, data: DOMString) -> Fallible<Temporary<Comment>> {
+    pub fn Constructor(global: GlobalRef, data: DOMString) -> Fallible<Temporary<Comment>> {
         let document = global.as_window().Document().root();
         Ok(Comment::new(data, document.r()))
     }
