@@ -39,13 +39,13 @@ use servo_util::str::is_whitespace;
 use std::cmp::{max, min};
 use std::fmt;
 use std::str::FromStr;
+use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::{ComputedValues, TElement, TNode, cascade_anonymous};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::computed_values::{LengthOrPercentageOrNone};
-use style::computed_values::{clear, overflow_wrap, position, text_align};
-use style::computed_values::{text_decoration, vertical_align, white_space};
-use std::sync::{Arc, Mutex};
+use style::computed_values::{clear, overflow_wrap, position, text_align, text_decoration};
+use style::computed_values::{vertical_align, white_space, word_break};
 use url::Url;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
@@ -1138,16 +1138,12 @@ impl Fragment {
     /// information are both optional due to the possibility of them being whitespace.
     pub fn calculate_split_position(&self, max_inline_size: Au, starts_line: bool)
                                     -> Option<SplitResult> {
-        let text_fragment_info = match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell | SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper | SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => return None,
-            SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not have inline_size"),
-            SpecificFragmentInfo::UnscannedText(_) => {
-                panic!("Unscanned text fragments should have been scanned by now!")
-            }
-            SpecificFragmentInfo::ScannedText(ref text_fragment_info) => text_fragment_info,
-        };
+        let text_fragment_info =
+            if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
+                text_fragment_info
+            } else {
+                return None
+            };
 
         let mut flags = SplitOptions::empty();
         if starts_line {
@@ -1157,11 +1153,27 @@ impl Fragment {
             }
         }
 
-        let natural_word_breaking_strategy =
-            text_fragment_info.run.natural_word_slices_in_range(&text_fragment_info.range);
-        self.calculate_split_position_using_breaking_strategy(natural_word_breaking_strategy,
-                                                              max_inline_size,
-                                                              flags)
+        match self.style().get_inheritedtext().word_break {
+            word_break::T::normal => {
+                // Break at normal word boundaries.
+                let natural_word_breaking_strategy =
+                    text_fragment_info.run.natural_word_slices_in_range(&text_fragment_info.range);
+                self.calculate_split_position_using_breaking_strategy(
+                    natural_word_breaking_strategy,
+                    max_inline_size,
+                    flags)
+            }
+            word_break::T::break_all => {
+                // Break at character boundaries.
+                let character_breaking_strategy =
+                    text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
+                flags.remove(RETRY_AT_CHARACTER_BOUNDARIES);
+                return self.calculate_split_position_using_breaking_strategy(
+                    character_breaking_strategy,
+                    max_inline_size,
+                    flags)
+            }
+        }
     }
 
     /// A helper method that uses the breaking strategy described by `slice_iterator` (at present,
@@ -1172,16 +1184,12 @@ impl Fragment {
                                                               flags: SplitOptions)
                                                               -> Option<SplitResult>
                                                               where I: Iterator<TextRunSlice<'a>> {
-        let text_fragment_info = match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell | SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper | SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => return None,
-            SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not have inline_size"),
-            SpecificFragmentInfo::UnscannedText(_) => {
-                panic!("Unscanned text fragments should have been scanned by now!")
-            }
-            SpecificFragmentInfo::ScannedText(ref text_fragment_info) => text_fragment_info,
-        };
+        let text_fragment_info =
+            if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
+                text_fragment_info
+            } else {
+                return None
+            };
 
         let mut pieces_processed_count: uint = 0;
         let mut remaining_inline_size = max_inline_size;

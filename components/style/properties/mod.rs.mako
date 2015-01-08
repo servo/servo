@@ -1322,6 +1322,9 @@ pub mod longhands {
     // name per CSS-TEXT 6.2.
     ${single_keyword("overflow-wrap", "normal break-word")}
 
+    // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
+    ${single_keyword("word-break", "normal break-all")}
+
     ${new_style_struct("Text", is_inherited=False)}
 
     <%self:longhand name="text-decoration">
