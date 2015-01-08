@@ -28,7 +28,7 @@ use freetype::tt_os2::TT_OS2;
 use std::mem;
 use std::num::Float;
 use std::ptr;
-use std::string;
+use std::string::String;
 
 use std::sync::Arc;
 
@@ -121,10 +121,10 @@ impl FontHandleMethods for FontHandle {
         self.font_data.clone()
     }
     fn family_name(&self) -> String {
-        unsafe { string::raw::from_buf(&*(*self.face).family_name as *const i8 as *const u8) }
+        unsafe { String::from_raw_buf(&*(*self.face).family_name as *const i8 as *const u8) }
     }
     fn face_name(&self) -> String {
-        unsafe { string::raw::from_buf(&*FT_Get_Postscript_Name(self.face) as *const i8 as *const u8) }
+        unsafe { String::from_raw_buf(&*FT_Get_Postscript_Name(self.face) as *const i8 as *const u8) }
     }
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }

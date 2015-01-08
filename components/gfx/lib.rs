@@ -6,6 +6,7 @@
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 #![feature(phase)]
 #[phase(plugin, link)]

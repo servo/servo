@@ -29,6 +29,7 @@ use servo_util::geometry::{Au, MAX_RECT};
 use servo_util::opts;
 use servo_util::range::Range;
 use std::default::Default;
+use std::f32;
 use std::mem;
 use std::num::{Float, FloatMath};
 use std::ptr;
@@ -383,13 +384,13 @@ impl<'a> PaintContext<'a> {
         let box_BR = box_TL + Point2D(bounds.size.width, bounds.size.height);
 
         let rad_R: AzFloat = 0.;
-        let rad_BR = rad_R  + Float::frac_pi_4();
-        let rad_B  = rad_BR + Float::frac_pi_4();
-        let rad_BL = rad_B  + Float::frac_pi_4();
-        let rad_L  = rad_BL + Float::frac_pi_4();
-        let rad_TL = rad_L  + Float::frac_pi_4();
-        let rad_T  = rad_TL + Float::frac_pi_4();
-        let rad_TR = rad_T  + Float::frac_pi_4();
+        let rad_BR = rad_R  + f32::consts::FRAC_PI_4;
+        let rad_B  = rad_BR + f32::consts::FRAC_PI_4;
+        let rad_BL = rad_B  + f32::consts::FRAC_PI_4;
+        let rad_L  = rad_BL + f32::consts::FRAC_PI_4;
+        let rad_TL = rad_L  + f32::consts::FRAC_PI_4;
+        let rad_T  = rad_TL + f32::consts::FRAC_PI_4;
+        let rad_TR = rad_T  + f32::consts::FRAC_PI_4;
 
         fn dx(x: AzFloat) -> Point2D<AzFloat> {
             Point2D(x, 0.)
@@ -572,29 +573,29 @@ impl<'a> PaintContext<'a> {
         path_builder.arc(Point2D(bounds.max_x() - radii.top_right,
                                  bounds.origin.y + radii.top_right),
                          radii.top_right,
-                         1.5f32 * Float::frac_pi_2(),
-                         Float::two_pi(),
+                         1.5f32 * f32::consts::FRAC_PI_2,
+                         f32::consts::PI_2,
                          false);                                                            // 3
         path_builder.line_to(Point2D(bounds.max_x(), bounds.max_y() - radii.bottom_right)); // 4
         path_builder.arc(Point2D(bounds.max_x() - radii.bottom_right,
                                  bounds.max_y() - radii.bottom_right),
                          radii.bottom_right,
                          0.0,
-                         Float::frac_pi_2(),
+                         f32::consts::FRAC_PI_2,
                          false);                                                            // 5
         path_builder.line_to(Point2D(bounds.origin.x + radii.bottom_left, bounds.max_y())); // 6
         path_builder.arc(Point2D(bounds.origin.x + radii.bottom_left,
                                  bounds.max_y() - radii.bottom_left),
                          radii.bottom_left,
-                         Float::frac_pi_2(),
-                         Float::pi(),
+                         f32::consts::FRAC_PI_2,
+                         f32::consts::PI,
                          false);                                                            // 7
         path_builder.line_to(Point2D(bounds.origin.x, bounds.origin.y + radii.top_left));   // 8
         path_builder.arc(Point2D(bounds.origin.x + radii.top_left,
                                  bounds.origin.y + radii.top_left),
                          radii.top_left,
-                         Float::pi(),
-                         1.5f32 * Float::frac_pi_2(),
+                         f32::consts::PI,
+                         1.5f32 * f32::consts::FRAC_PI_2,
                          false);                                                            // 1
     }
 

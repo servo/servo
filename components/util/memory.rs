@@ -155,7 +155,7 @@ fn get_jemalloc_stat(name: &'static str) -> Option<u64> {
     let mut oldlen = size_of::<size_t>() as size_t;
     let rv: c_int;
     unsafe {
-        rv = je_mallctl(c_name.unwrap(), oldp, &mut oldlen, null_mut(), 0);
+        rv = je_mallctl(c_name.into_inner(), oldp, &mut oldlen, null_mut(), 0);
     }
     if rv == 0 { Some(old as u64) } else { None }
 }

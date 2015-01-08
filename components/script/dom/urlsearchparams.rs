@@ -80,11 +80,11 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
     }
 
     fn Get(self, name: DOMString) -> Option<DOMString> {
-        self.data.borrow().find_equiv(&name).map(|v| v[0].clone())
+        self.data.borrow().get(&name).map(|v| v[0].clone())
     }
 
     fn Has(self, name: DOMString) -> bool {
-        self.data.borrow().contains_key_equiv(&name)
+        self.data.borrow().contains_key(&name)
     }
 
     fn Set(self, name: DOMString, value: DOMString) {

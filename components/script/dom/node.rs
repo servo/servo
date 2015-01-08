@@ -782,7 +782,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
         // Step 1.
         unsafe {
-            self.query_selector_iter(selectors).map(|mut iter| {
+            self.query_selector_iter(selectors).map(|iter| {
                 let window = window_from_node(self).root();
                 NodeList::new_simple_list(window.r(), iter.collect())
             })

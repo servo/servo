@@ -8,11 +8,11 @@ use std::cell::RefCell;
 
 static mut next_tid: AtomicUint = INIT_ATOMIC_UINT;
 
-thread_local!(static task_local_tid: Rc<RefCell<Option<uint>>> = Rc::new(RefCell::new(None)))
+thread_local!(static TASK_LOCAL_TID: Rc<RefCell<Option<uint>>> = Rc::new(RefCell::new(None)))
 
 /// Every task gets one, that's unique.
 pub fn tid() -> uint {
-    task_local_tid.with(|ref k| {
+    TASK_LOCAL_TID.with(|ref k| {
         let ret =
             match *k.borrow() {
                 None => unsafe { next_tid.fetch_add(1, SeqCst) },

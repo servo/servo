@@ -4,6 +4,7 @@
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 extern crate gfx;
 extern crate script_traits;

@@ -7,6 +7,7 @@
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(unrooted_must_root)]
+#![allow(missing_copy_implementations)]
 
 #[phase(plugin, link)]
 extern crate log;

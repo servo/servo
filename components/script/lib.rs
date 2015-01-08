@@ -7,6 +7,7 @@
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(non_snake_case)]
+#![allow(missing_copy_implementations)]
 
 #![doc="The script crate contains all matters DOM."]
 

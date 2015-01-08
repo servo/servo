@@ -36,7 +36,7 @@ use std::collections::hash_map::{HashMap, Vacant, Occupied};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-thread_local!(pub static LiveReferences: Rc<RefCell<Option<LiveDOMReferences>>> = Rc::new(RefCell::new(None)))
+thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> = Rc::new(RefCell::new(None)))
 
 
 /// A safe wrapper around a raw pointer to a DOM object that can be
@@ -57,7 +57,7 @@ impl<T: Reflectable> Trusted<T> {
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
     pub fn new(cx: *mut JSContext, ptr: JSRef<T>, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
-        LiveReferences.with(|ref r| {
+        LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
             let refcount = live_references.addref(cx, &*ptr as *const T);
@@ -74,7 +74,7 @@ impl<T: Reflectable> Trusted<T> {
     /// a different thread than the original value from which this `Trusted<T>` was
     /// obtained.
     pub fn to_temporary(&self) -> Temporary<T> {
-        assert!(LiveReferences.with(|ref r| {
+        assert!(LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
             self.owner_thread == (&*live_references) as *const _ as *const libc::c_void
@@ -123,7 +123,7 @@ pub struct LiveDOMReferences {
 impl LiveDOMReferences {
     /// Set up the task-local data required for storing the outstanding DOM references.
     pub fn initialize() {
-        LiveReferences.with(|ref r| {
+        LIVE_REFERENCES.with(|ref r| {
             *r.borrow_mut() = Some(LiveDOMReferences {
                 table: RefCell::new(HashMap::new()),
             })
@@ -152,7 +152,7 @@ impl LiveDOMReferences {
 
     /// Unpin the given DOM object if its refcount is 0.
     pub fn cleanup(cx: *mut JSContext, raw_reflectable: *const libc::c_void) {
-        LiveReferences.with(|ref r| {
+        LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
             let reflectable = raw_reflectable as *const Reflector;
