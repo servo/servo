@@ -23,7 +23,7 @@ use fontconfig::fontconfig::{
 use libc;
 use libc::c_int;
 use std::ptr;
-use std::string;
+use std::string::String;
 
 static FC_FAMILY: &'static [u8] = b"family\0";
 static FC_FILE: &'static [u8] = b"file\0";
@@ -38,7 +38,7 @@ pub fn get_available_families(callback: |String|) {
             let mut family: *mut FcChar8 = ptr::null_mut();
             let mut v: c_int = 0;
             while FcPatternGetString(*font, FC_FAMILY.as_ptr() as *mut i8, v, &mut family) == FcResultMatch {
-                let family_name = string::raw::from_buf(family as *const i8 as *const u8);
+                let family_name = String::from_raw_buf(family as *const i8 as *const u8);
                 callback(family_name);
                 v += 1;
             }
@@ -73,7 +73,7 @@ pub fn get_variations_for_family(family_name: &str, callback: |String|) {
             let font = (*matches).fonts.offset(i);
             let mut file: *mut FcChar8 = ptr::null_mut();
             let file = if FcPatternGetString(*font, FC_FILE.as_ptr() as *mut i8, 0, &mut file) == FcResultMatch {
-                string::raw::from_buf(file as *const i8 as *const u8)
+                String::from_raw_buf(file as *const i8 as *const u8)
             } else {
                 panic!();
             };
@@ -112,7 +112,7 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
         let family_name = if result == FcResultMatch {
             let mut match_string: *mut FcChar8 = ptr::null_mut();
             FcPatternGetString(family_match, FC_FAMILY.as_ptr() as *mut i8, 0, &mut match_string);
-            let result = string::raw::from_buf(match_string as *const i8 as *const u8);
+            let result = String::from_raw_buf(match_string as *const i8 as *const u8);
             FcPatternDestroy(family_match);
             Some(result)
         } else {
