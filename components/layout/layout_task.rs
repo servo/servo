@@ -998,7 +998,7 @@ impl LayoutRPC for LayoutRPCImpl {
 
             // Compute the new cursor.
             let cursor = if !mouse_over_list.is_empty() {
-                mouse_over_list[0].cursor
+                mouse_over_list[0].pointing.unwrap()
             } else {
                 Cursor::DefaultCursor
             };
