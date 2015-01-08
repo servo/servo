@@ -1546,6 +1546,11 @@ pub mod longhands {
         }
     </%self:single_component_value>
 
+    // NB: `pointer-events: auto` (and use of `pointer-events` in anything that isn't SVG, in fact)
+    // is nonstandard, slated for CSS4-UI.
+    // TODO(pcwalton): SVG-only values.
+    ${single_keyword("pointer-events", "auto none")}
+
     // Box-shadow, etc.
     ${new_style_struct("Effects", is_inherited=False)}
 

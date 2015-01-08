@@ -39,10 +39,9 @@ use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
 use std::slice::Items;
-use style::ComputedValues;
-use style::computed_values::border_style;
-use style::computed_values::cursor;
 use std::sync::Arc;
+use style::ComputedValues;
+use style::computed_values::{border_style, cursor, pointer_events};
 
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
 // layout to use.
@@ -340,9 +339,9 @@ impl StackingContext {
         tile_subrect.translate(&-child_stacking_context.bounds.to_azure_rect().origin)
     }
 
-    /// Places all nodes containing the point of interest into `result`, topmost first. If
-    /// `topmost_only` is true, stops after placing one node into the list. `result` must be empty
-    /// upon entry to this function.
+    /// Places all nodes containing the point of interest into `result`, topmost first. Respects
+    /// the `pointer-events` CSS property If `topmost_only` is true, stops after placing one node
+    /// into the list. `result` must be empty upon entry to this function.
     pub fn hit_test(&self,
                     point: Point2D<Au>,
                     result: &mut Vec<DisplayItemMetadata>,
@@ -361,6 +360,10 @@ impl StackingContext {
                 }
                 if !geometry::rect_contains_point(item.bounds(), point) {
                     // Can't possibly hit.
+                    continue
+                }
+                if item.base().metadata.pointing.is_none() {
+                    // `pointer-events` is `none`. Ignore this item.
                     continue
                 }
                 match *item {
@@ -632,8 +635,9 @@ impl ClippingRegion {
 pub struct DisplayItemMetadata {
     /// The DOM node from which this display item originated.
     pub node: OpaqueNode,
-    /// The value of the `cursor` property when the mouse hovers over this display item.
-    pub cursor: Cursor,
+    /// The value of the `cursor` property when the mouse hovers over this display item. If `None`,
+    /// this display item is ineligible for pointer events (`pointer-events: none`).
+    pub pointing: Option<Cursor>,
 }
 
 impl DisplayItemMetadata {
@@ -646,9 +650,10 @@ impl DisplayItemMetadata {
                -> DisplayItemMetadata {
         DisplayItemMetadata {
             node: node,
-            cursor: match style.get_pointing().cursor {
-                cursor::T::AutoCursor => default_cursor,
-                cursor::T::SpecifiedCursor(cursor) => cursor,
+            pointing: match (style.get_pointing().pointer_events, style.get_pointing().cursor) {
+                (pointer_events::T::none, _) => None,
+                (pointer_events::T::auto, cursor::T::AutoCursor) => Some(default_cursor),
+                (pointer_events::T::auto, cursor::T::SpecifiedCursor(cursor)) => Some(cursor),
             },
         }
     }
