@@ -471,6 +471,7 @@ version = "0.0.1"
 dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
+ "openssl 0.2.4 (git+https://github.com/sfackler/rust-openssl)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",

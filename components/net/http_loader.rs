@@ -10,8 +10,10 @@ use std::collections::HashSet;
 use hyper::client::Request;
 use hyper::header::common::{ContentLength, ContentType, Host, Location};
 use hyper::method::Method;
+use hyper::net::HttpConnector;
 use hyper::status::StatusClass;
 use std::error::Error;
+use openssl::ssl::{SslContext, SslVerifyMode};
 use std::io::Reader;
 use std::sync::mpsc::Sender;
 use util::task::spawn_named;
@@ -63,6 +65,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
         redirected_to.insert(url.clone());
 
+
         match url.scheme.as_slice() {
             "http" | "https" => {}
             _ => {
@@ -74,7 +77,12 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
         info!("requesting {}", url.serialize());
 
-        let mut req = match Request::new(load_data.method.clone(), url.clone()) {
+        fn verifier<'a>(ssl: &mut SslContext) {
+            ssl.set_verify(SslVerifyMode::SslVerifyPeer, None);
+            ssl.set_CA_file(&Path::new("/home/manishearth/sand/equifax"));
+        }
+
+        let mut req = match Request::with_connector(load_data.method.clone(), url.clone(), &mut HttpConnector(Some(verifier))) {
             Ok(req) => req,
             Err(e) => {
                 send_error(url, e.description().to_string(), senders);
