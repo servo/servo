@@ -86,7 +86,7 @@ impl CompositorEventListener for NullCompositor {
                 chan.send(None);
             }
 
-            Msg::SetIds(_, response_chan, _) => {
+            Msg::SetFrameTree(_, response_chan, _) => {
                 response_chan.send(());
             }
 
@@ -96,12 +96,12 @@ impl CompositorEventListener for NullCompositor {
 
             // Explicitly list ignored messages so that when we add a new one,
             // we'll notice and think about whether it needs a response, like
-            // SetIds.
+            // SetFrameTree.
 
-            Msg::CreateOrUpdateRootLayer(..) |
+            Msg::CreateOrUpdateBaseLayer(..) |
             Msg::CreateOrUpdateDescendantLayer(..) |
             Msg::SetLayerOrigin(..) |
-            Msg::Paint(..) |
+            Msg::AssignPaintedBuffers(..) |
             Msg::ChangeReadyState(..) |
             Msg::ChangePaintState(..) |
             Msg::ScrollFragmentPoint(..) |

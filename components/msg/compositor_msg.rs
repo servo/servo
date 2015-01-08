@@ -95,11 +95,11 @@ pub trait PaintListener for Sized? {
                                       metadata: Vec<LayerMetadata>,
                                       epoch: Epoch);
 
-    /// Sends new tiles for the given layer to the compositor.
-    fn paint(&mut self,
-             pipeline_id: PipelineId,
-             epoch: Epoch,
-             replies: Vec<(LayerId, Box<LayerBufferSet>)>);
+    /// Sends new buffers for the given layers to the compositor.
+    fn assign_painted_buffers(&mut self,
+                              pipeline_id: PipelineId,
+                              epoch: Epoch,
+                              replies: Vec<(LayerId, Box<LayerBufferSet>)>);
 
     fn paint_msg_discarded(&mut self);
     fn set_paint_state(&mut self, PipelineId, PaintState);
