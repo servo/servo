@@ -37,30 +37,30 @@ fn is_ascii_printable(string: &DOMString) -> bool{
 }
 
 impl Blob {
-    pub fn new_inherited(global: &GlobalRef, type_: BlobTypeId,
+    pub fn new_inherited(global: GlobalRef, type_: BlobTypeId,
                          bytes: Option<Vec<u8>>, typeString: &str) -> Blob {
         Blob {
             reflector_: Reflector::new(),
             type_: type_,
             bytes: bytes,
             typeString: typeString.into_string(),
-            global: GlobalField::from_rooted(global)
+            global: GlobalField::from_rooted(&global)
             //isClosed_: false
         }
     }
 
-    pub fn new(global: &GlobalRef, bytes: Option<Vec<u8>>,
+    pub fn new(global: GlobalRef, bytes: Option<Vec<u8>>,
                typeString: &str) -> Temporary<Blob> {
         reflect_dom_object(box Blob::new_inherited(global, BlobTypeId::Blob, bytes, typeString),
-                           *global,
+                           global,
                            BlobBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Blob>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Blob>> {
         Ok(Blob::new(global, None, ""))
     }
 
-    pub fn Constructor_(global: &GlobalRef, blobParts: DOMString, blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Fallible<Temporary<Blob>> {
+    pub fn Constructor_(global: GlobalRef, blobParts: DOMString, blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Fallible<Temporary<Blob>> {
         //TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView or Blob
         let bytes: Option<Vec<u8>> = Some(blobParts.into_bytes());
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
@@ -121,13 +121,13 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
         let span: i64 = max(relativeEnd - relativeStart, 0);
         let global = self.global.root();
         match self.bytes {
-            None => Blob::new(&global.r(), None, relativeContentType.as_slice()),
+            None => Blob::new(global.r(), None, relativeContentType.as_slice()),
             Some(ref vec) => {
                 let start = relativeStart.to_uint().unwrap();
                 let end = (relativeStart + span).to_uint().unwrap();
                 let mut bytes: Vec<u8> = Vec::new();
                 bytes.push_all(vec.slice(start, end));
-                Blob::new(&global.r(), Some(bytes), relativeContentType.as_slice())
+                Blob::new(global.r(), Some(bytes), relativeContentType.as_slice())
             }
         }
     }

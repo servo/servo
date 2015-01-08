@@ -86,7 +86,7 @@ impl MouseEvent {
         Temporary::from_rooted(ev.r())
     }
 
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &MouseEventBinding::MouseEventInit) -> Fallible<Temporary<MouseEvent>> {
         let event = MouseEvent::new(global.as_window(), type_,

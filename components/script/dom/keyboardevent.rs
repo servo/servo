@@ -95,7 +95,7 @@ impl KeyboardEvent {
         Temporary::from_rooted(ev.r())
     }
 
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &KeyboardEventBinding::KeyboardEventInit) -> Fallible<Temporary<KeyboardEvent>> {
         let event = KeyboardEvent::new(global.as_window(), type_,
