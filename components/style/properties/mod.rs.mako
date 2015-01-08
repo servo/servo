@@ -1483,6 +1483,8 @@ pub mod longhands {
     // TODO(pcwalton): `full-width`
     ${single_keyword("text-transform", "none capitalize uppercase lowercase")}
 
+    ${single_keyword("text-rendering", "auto optimizespeed optimizelegibility geometricprecision")}
+
     // CSS 2.1, Section 17 - Tables
     ${new_style_struct("Table", is_inherited=False)}
 
