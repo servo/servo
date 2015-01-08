@@ -38,6 +38,7 @@ use util::cursor::Cursor;
 use std::ptr;
 
 struct HeadlessContext {
+    #[allow(dead_code)]
     context: glutin::HeadlessContext,
     size: TypedSize2D<DevicePixel, uint>,
 }
