@@ -47,6 +47,7 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_lint_pass(box lints::privatize::PrivatizePass as LintPassObject);
     reg.register_lint_pass(box lints::inheritance_integrity::InheritancePass as LintPassObject);
     reg.register_lint_pass(box lints::str_to_string::StrToStringPass as LintPassObject);
+    reg.register_lint_pass(box lints::ban::BanPass as LintPassObject);
 }
 
 

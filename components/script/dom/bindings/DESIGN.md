@@ -37,3 +37,4 @@ For supporting SpiderMonkey’s exact GC rooting, we introduce [some types](http
 - `Root<T>` contains the pointer to `JSObject` which the represented DOM type has. SpiderMonkey's conservative stack scanner scans it's pointers and marks a pointed `JSObject` as GC root.
 - `JSRef` is just a reference to the value rooted by `Root<T>`.
 - `RootCollection` is used to dynamically check if rooting satisfies LIFO ordering, because SpiderMonkey's GC requires LIFO order (See also: [Exact Stack Rooting - Storing a GCPointer on the CStack](https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey/Internals/GC/Exact_Stack_Rooting)).
+ - `MutHeap<T>` is a version of `Cell<T>` that is safe to use for internal mutability of  Spidermonkey heap objects like `JSVal` and `JS<T>`
