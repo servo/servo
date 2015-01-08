@@ -253,3 +253,4 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == canvas_transform_a.html canvas_transform_ref.html
 != text_decoration_smoke_a.html text_decoration_smoke_ref.html
 == hide_after_create.html hide_after_create_ref.html
+== overflow_xy_a.html overflow_xy_ref.html
