@@ -34,7 +34,7 @@ use std::mem;
 use std::num::ToPrimitive;
 use std::ops::{Add, Sub, Mul, Div, Rem, Neg, Shl, Shr, Not, BitOr, BitAnd, BitXor};
 use std::u16;
-use style::computed_values::{overflow, text_align, text_justify, text_overflow, vertical_align};
+use style::computed_values::{overflow_x, text_align, text_justify, text_overflow, vertical_align};
 use style::computed_values::{white_space};
 use style::properties::ComputedValues;
 use std::sync::Arc;
@@ -653,8 +653,8 @@ impl LineBreaker {
         let available_inline_size = self.pending_line.green_zone.inline -
             self.pending_line.bounds.size.inline - indentation;
         match (fragment.style().get_inheritedtext().text_overflow,
-               fragment.style().get_box().overflow) {
-            (text_overflow::T::clip, _) | (_, overflow::T::visible) => {}
+               fragment.style().get_box().overflow_x) {
+            (text_overflow::T::clip, _) | (_, overflow_x::T::visible) => {}
             (text_overflow::T::ellipsis, _) => {
                 need_ellipsis = fragment.border_box.size.inline > available_inline_size;
             }

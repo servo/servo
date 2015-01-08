@@ -108,6 +108,8 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString counterReset;
 
   [TreatNullAs=EmptyString] attribute DOMString overflow;
+  [TreatNullAs=EmptyString] attribute DOMString overflowX;
+  [TreatNullAs=EmptyString] attribute DOMString overflowY;
   [TreatNullAs=EmptyString] attribute DOMString overflowWrap;
 
   [TreatNullAs=EmptyString] attribute DOMString tableLayout;
