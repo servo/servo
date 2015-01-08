@@ -4,6 +4,8 @@
 
 use std::io::{File, IoResult};
 use std::path::Path;
+
+#[cfg(not(target_os = "android"))]
 use opts;
 
 #[cfg(not(target_os = "android"))]
