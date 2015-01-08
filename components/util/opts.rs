@@ -113,6 +113,9 @@ pub struct Opts {
     pub validate_display_list_geometry: bool,
 
     pub render_api: RenderApi,
+
+    /// A specific path to find required resources (such as user-agent.css).
+    pub resources_path: Option<String>,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -180,6 +183,7 @@ pub fn default_opts() -> Opts {
         validate_display_list_geometry: false,
         profile_tasks: false,
         render_api: RenderApi::OpenGL,
+        resources_path: None,
     }
 }
 
@@ -208,6 +212,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optopt("Z", "debug", "A comma-separated string of debug options. Pass help to show available options.", ""),
         getopts::optflag("h", "help", "Print this message"),
         getopts::optopt("r", "render-api", "Set the rendering API to use", "gl|mesa"),
+        getopts::optopt("", "resources-path", "Path to find static resources", "/home/servo/resources"),
     );
 
     let opt_match = match getopts::getopts(args, opts.as_slice()) {
@@ -332,6 +337,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
         validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
         render_api: render_api,
+        resources_path: opt_match.opt_str("resources-path"),
     };
 
     set_opts(opts);
