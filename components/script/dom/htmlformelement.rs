@@ -246,7 +246,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
-        let mut data_set = node.traverse_preorder().filter_map(|child| {
+        let data_set = node.traverse_preorder().filter_map(|child| {
             if child.get_disabled_state() {
                 return None;
             }
