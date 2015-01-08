@@ -42,7 +42,7 @@ use std::slice::Items;
 use style::ComputedValues;
 use style::computed_values::border_style;
 use style::computed_values::cursor;
-use sync::Arc;
+use std::sync::Arc;
 
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
 // layout to use.
@@ -61,7 +61,7 @@ pub static BOX_SHADOW_INFLATION_FACTOR: i32 = 3;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[deriving(Clone, PartialEq)]
+#[deriving(Clone, PartialEq, Copy)]
 pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {
@@ -628,7 +628,7 @@ impl ClippingRegion {
 /// Metadata attached to each display item. This is useful for performing auxiliary tasks with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
-#[deriving(Clone)]
+#[deriving(Clone, Copy)]
 pub struct DisplayItemMetadata {
     /// The DOM node from which this display item originated.
     pub node: OpaqueNode,
@@ -739,7 +739,7 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[deriving(Clone, Default, PartialEq, Show)]
+#[deriving(Clone, Default, PartialEq, Show, Copy)]
 pub struct BorderRadii<T> {
     pub top_left: T,
     pub top_right: T,

@@ -12,8 +12,7 @@ use protocol::JsonPacketStream;
 
 use collections::TreeMap;
 use servo_msg::constellation_msg::PipelineId;
-use serialize::json;
-use serialize::json::ToJson;
+use serialize::json::{mod, Json, ToJson};
 use std::cell::RefCell;
 use std::io::TcpStream;
 use std::num::Float;
@@ -66,7 +65,7 @@ impl Actor for HighlighterActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &String,
-                      _msg: &json::JsonObject,
+                      _msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
         Ok(match msg_type.as_slice() {
             "showBoxModel" => {
@@ -103,12 +102,12 @@ impl Actor for NodeActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
-                      msg: &json::JsonObject,
+                      msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
         Ok(match msg_type.as_slice() {
             "modifyAttributes" => {
                 let target = msg.get(&"to".to_string()).unwrap().as_string().unwrap();
-                let mods = msg.get(&"modifications".to_string()).unwrap().as_list().unwrap();
+                let mods = msg.get(&"modifications".to_string()).unwrap().as_array().unwrap();
                 let modifications = mods.iter().map(|json_mod| {
                     json::decode(json_mod.to_string().as_slice()).unwrap()
                 }).collect();
@@ -276,7 +275,7 @@ impl Actor for WalkerActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
-                      msg: &json::JsonObject,
+                      msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
         Ok(match msg_type.as_slice() {
             "querySelector" => {
@@ -368,7 +367,7 @@ struct GetComputedReply {
 #[deriving(Encodable)]
 struct AppliedEntry {
     rule: String,
-    pseudoElement: json::Json,
+    pseudoElement: Json,
     isSystem: bool,
     matchedSelectors: Vec<String>,
 }
@@ -400,7 +399,7 @@ struct AppliedSheet {
 struct GetLayoutReply {
     width: int,
     height: int,
-    autoMargins: json::Json,
+    autoMargins: Json,
     from: String,
 }
 
@@ -421,7 +420,7 @@ impl Actor for PageStyleActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
-                      msg: &json::JsonObject,
+                      msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
         Ok(match msg_type.as_slice() {
             "getApplied" => {
@@ -469,9 +468,9 @@ impl Actor for PageStyleActor {
                         m.insert("bottom".to_string(), "auto".to_string().to_json());
                         m.insert("left".to_string(), "auto".to_string().to_json());
                         m.insert("right".to_string(), "auto".to_string().to_json());
-                        json::Object(m)
+                        Json::Object(m)
                     } else {
-                        json::Null
+                        Json::Null
                     },
                     from: self.name(),
                 };
@@ -492,7 +491,7 @@ impl Actor for InspectorActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
-                      _msg: &json::JsonObject,
+                      _msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()> {
         Ok(match msg_type.as_slice() {
             "getWalker" => {

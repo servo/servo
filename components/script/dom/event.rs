@@ -17,6 +17,7 @@ use std::default::Default;
 use time;
 
 #[jstraceable]
+#[deriving(Copy)]
 pub enum EventPhase {
     None      = EventConstants::NONE as int,
     Capturing = EventConstants::CAPTURING_PHASE as int,

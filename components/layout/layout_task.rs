@@ -30,27 +30,27 @@ use gfx::display_list::{StackingContext};
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::{PaintChan, PaintLayer};
 use gfx::paint_task::Msg as PaintMsg;
-use layout_traits::{mod, LayoutControlMsg, LayoutTaskFactory};
+use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
 use script::dom::bindings::js::JS;
 use script::dom::node::{LayoutDataRef, Node, NodeTypeId};
 use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse};
-use script::layout_interface::{ContentBoxesQuery, ContentBoxQuery};
+use script::layout_interface::ReflowQueryType;
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
-use script::layout_interface::{MouseOverResponse, Msg, NoQuery};
+use script::layout_interface::{MouseOverResponse, Msg};
 use script::layout_interface::{Reflow, ReflowGoal, ScriptLayoutChan, TrustedNodeAddress};
-use script_traits::{ConstellationControlMsg, ReflowEvent, OpaqueScriptLayoutChannel};
+use script_traits::{ConstellationControlMsg, CompositorEvent, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
-use servo_msg::compositor_msg::Scrollable;
+use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType};
 use servo_msg::constellation_msg::PipelineId;
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_net::resource_task::{ResourceTask, load_bytes_iter};
-use servo_util::cursor::DefaultCursor;
+use servo_util::cursor::Cursor;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalPoint;
 use servo_util::opts;
@@ -66,7 +66,7 @@ use std::mem;
 use std::ptr;
 use style::{StylesheetOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
 use style::{MediaType, Device};
-use sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 use url::Url;
 
 /// Mutable data belonging to the LayoutTask.
@@ -161,7 +161,8 @@ impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
                 debug!("Dirtying {:x}", node_address as uint);
                 let mut nodes = SmallVec1::new();
                 nodes.vec_push(node_address);
-                drop(chan.send_opt(ConstellationControlMsg::SendEvent(id.clone(), ReflowEvent(nodes))))
+                drop(chan.send_opt(ConstellationControlMsg::SendEvent(
+                    id.clone(), CompositorEvent::ReflowEvent(nodes))))
             };
         f
     }
@@ -346,7 +347,7 @@ impl LayoutTask {
         match port_to_read {
             PortToRead::Pipeline => {
                 match self.pipeline_port.recv() {
-                    layout_traits::ExitNowMsg(exit_type) => {
+                    LayoutControlMsg::ExitNowMsg(exit_type) => {
                         self.handle_script_request(Msg::ExitNow(exit_type), possibly_locked_rw_data)
                     }
                 }
@@ -690,7 +691,7 @@ impl LayoutTask {
                                                    .add_to(&mut *display_list);
             let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
                                                        color,
-                                                       Scrollable));
+                                                       ScrollPolicy::Scrollable));
             let origin = Rect(Point2D(Au(0), Au(0)), root_size);
             let stacking_context = Arc::new(StackingContext::new(display_list,
                                                                  &origin,
@@ -846,13 +847,13 @@ impl LayoutTask {
         }
 
         match data.query_type {
-            ContentBoxQuery(node) => {
+            ReflowQueryType::ContentBoxQuery(node) => {
                 self.process_content_box_request(node, &mut layout_root, &mut rw_data)
             }
-            ContentBoxesQuery(node) => {
+            ReflowQueryType::ContentBoxesQuery(node) => {
                 self.process_content_boxes_request(node, &mut layout_root, &mut rw_data)
             }
-            NoQuery => {}
+            ReflowQueryType::NoQuery => {}
         }
 
         self.first_reflow.set(false);
@@ -999,7 +1000,7 @@ impl LayoutRPC for LayoutRPCImpl {
             let cursor = if !mouse_over_list.is_empty() {
                 mouse_over_list[0].cursor
             } else {
-                DefaultCursor
+                Cursor::DefaultCursor
             };
             let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
             constellation_chan.send(ConstellationMsg::SetCursor(cursor));

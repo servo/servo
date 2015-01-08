@@ -16,7 +16,7 @@ macro_rules! define_css_keyword_enum {
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
         #[allow(non_camel_case_types)]
-        #[deriving(Clone, Eq, PartialEq, FromPrimitive)]
+        #[deriving(Clone, Eq, PartialEq, FromPrimitive, Copy)]
         pub enum $name {
             $( $variant ),+
         }
@@ -138,7 +138,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum Length {
         Au(Au),  // application units
         Em(CSSFloat),
@@ -219,7 +219,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentage {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -263,7 +263,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentageOrAuto {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -309,7 +309,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentageOrNone {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -355,7 +355,7 @@ pub mod specified {
     }
 
     // http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum PositionComponent {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -395,7 +395,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, PartialOrd)]
+    #[deriving(Clone, PartialEq, PartialOrd, Copy)]
     pub struct Angle(pub CSSFloat);
 
     impl fmt::Show for Angle {
@@ -452,7 +452,7 @@ pub mod specified {
             match self {
                 &Image::Url(ref url) => {
                     try!(dest.write_str("url(\""));
-                    try!(write!(CssStringWriter::new(dest), "{}", url));
+                    try!(write!(&mut CssStringWriter::new(dest), "{}", url));
                     try!(dest.write_str("\")"));
                     Ok(())
                 }
@@ -522,7 +522,7 @@ pub mod specified {
     }
 
     /// Specified values for an angle or a corner in a linear gradient.
-    #[deriving(Clone, PartialEq)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum AngleOrCorner {
         Angle(Angle),
         Corner(HorizontalDirection, VerticalDirection),
@@ -718,6 +718,7 @@ pub mod computed {
     use std::fmt;
     use url::Url;
 
+    #[allow(missing_copy_implementations)]  // It’s kinda big
     pub struct Context {
         pub inherited_font_weight: longhands::font_weight::computed_value::T,
         pub inherited_font_size: longhands::font_size::computed_value::T,
@@ -774,7 +775,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentage {
         Length(Au),
         Percentage(CSSFloat),
@@ -799,7 +800,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentageOrAuto {
         Length(Au),
         Percentage(CSSFloat),
@@ -827,7 +828,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentageOrNone {
         Length(Au),
         Percentage(CSSFloat),
@@ -892,7 +893,7 @@ pub mod computed {
     }
 
     /// Computed values for one color stop in a linear gradient.
-    #[deriving(Clone, PartialEq)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub struct ColorStop {
         /// The color of this stop.
         pub color: CSSColor,

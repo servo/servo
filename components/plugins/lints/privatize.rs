@@ -7,7 +7,6 @@ use syntax::ast::Public;
 use syntax::attr::AttrMetaMethods;
 use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty;
-use rustc::middle::typeck::astconv::AstConv;
 
 declare_lint!(PRIVATIZE, Deny,
               "Allows to enforce private fields for struct definitions")

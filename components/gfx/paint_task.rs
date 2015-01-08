@@ -35,7 +35,7 @@ use servo_util::time::{TimeProfilerChan, TimeProfilerCategory, profile};
 use std::comm::{Receiver, Sender, channel};
 use std::mem;
 use std::task::TaskBuilder;
-use sync::Arc;
+use std::sync::Arc;
 
 /// Information about a hardware graphics layer that layout sends to the painting task.
 #[deriving(Clone)]

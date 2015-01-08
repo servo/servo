@@ -9,7 +9,7 @@ use std::ascii::AsciiExt;
 use std::comm::Receiver;
 
 /// [Response type](http://fetch.spec.whatwg.org/#concept-response-type)
-#[deriving(Clone, PartialEq)]
+#[deriving(Clone, PartialEq, Copy)]
 pub enum ResponseType {
     Basic,
     CORS,
@@ -19,7 +19,7 @@ pub enum ResponseType {
 }
 
 /// [Response termination reason](http://fetch.spec.whatwg.org/#concept-response-termination-reason)
-#[deriving(Clone)]
+#[deriving(Clone, Copy)]
 pub enum TerminationReason {
     EndUserAbort,
     Fatal,

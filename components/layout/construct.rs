@@ -55,7 +55,7 @@ use std::sync::atomic::Relaxed;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
 use style::{mod, ComputedValues};
-use sync::Arc;
+use std::sync::Arc;
 use url::Url;
 
 /// The results of flow construction for a DOM node.
@@ -701,7 +701,7 @@ impl<'a> FlowConstructor<'a> {
         // `<div style="position:absolute">foo bar baz</div>`. The fragments for `foo`, `bar`, and
         // `baz` had better not be absolutely positioned!
         let mut style = (*node.style()).clone();
-        if style.get_box().display != display::inline {
+        if style.get_box().display != display::T::inline {
             style = Arc::new(style::make_inline(&*style))
         }
 
@@ -859,7 +859,7 @@ impl<'a> FlowConstructor<'a> {
                                     float_value: float::T) -> ConstructionResult {
         let fragment = Fragment::new_from_specific_info(node, SpecificFragmentInfo::TableWrapper);
         let wrapper_flow = match float_value {
-            float::none => box TableWrapperFlow::from_node_and_fragment(node, fragment),
+            float::T::none => box TableWrapperFlow::from_node_and_fragment(node, fragment),
             _ => {
                 let float_kind = FloatKind::from_property(float_value);
                 box TableWrapperFlow::float_from_node_and_fragment(node, fragment, float_kind)
@@ -882,7 +882,7 @@ impl<'a> FlowConstructor<'a> {
         // value of `caption-side`.
         self.place_table_caption_under_table_wrapper_on_side(&mut wrapper_flow,
                                                              node,
-                                                             caption_side::top);
+                                                             caption_side::T::top);
 
         match construction_result {
             ConstructionResult::Flow(table_flow, table_abs_descendants) => {
@@ -895,7 +895,7 @@ impl<'a> FlowConstructor<'a> {
         // If the value of `caption-side` is `bottom`, place it now.
         self.place_table_caption_under_table_wrapper_on_side(&mut wrapper_flow,
                                                              node,
-                                                             caption_side::bottom);
+                                                             caption_side::T::bottom);
 
         // The flow is done.
         wrapper_flow.finish();
@@ -954,10 +954,12 @@ impl<'a> FlowConstructor<'a> {
         // Determine if the table cell should be hidden. Per CSS 2.1 § 17.6.1.1, this will be true
         // if the cell has any in-flow elements (even empty ones!) and has `empty-cells` set to
         // `hide`.
-        let hide = node.style().get_inheritedtable().empty_cells == empty_cells::hide &&
+        let hide = node.style().get_inheritedtable().empty_cells == empty_cells::T::hide &&
             node.children().all(|kid| {
                 let position = kid.style().get_box().position;
-                !kid.is_content() || position == position::absolute || position == position::fixed
+                !kid.is_content() ||
+                position == position::T::absolute ||
+                position == position::T::fixed
             });
 
         let flow = box TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide)
@@ -1003,11 +1005,11 @@ impl<'a> FlowConstructor<'a> {
         let flow;
         let initial_fragment;
         match node.style().get_list().list_style_position {
-            list_style_position::outside => {
+            list_style_position::T::outside => {
                 flow = box ListItemFlow::from_node_and_marker(self, node, marker_fragment);
                 initial_fragment = None;
             }
-            list_style_position::inside => {
+            list_style_position::T::inside => {
                 flow = box ListItemFlow::from_node_and_marker(self, node, None);
                 initial_fragment = marker_fragment;
             }
@@ -1117,7 +1119,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
                 // Pseudo-element.
                 let style = node.style();
                 let display = match node.get_pseudo_element_type() {
-                    PseudoElementType::Normal => display::inline,
+                    PseudoElementType::Normal => display::T::inline,
                     PseudoElementType::Before(display) => display,
                     PseudoElementType::After(display) => display,
                 };
@@ -1126,20 +1128,20 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             Some(NodeTypeId::Element(_)) => {
                 let style = node.style();
                 let munged_display = if style.get_box()._servo_display_for_hypothetical_box ==
-                        display::inline {
-                    display::inline
+                        display::T::inline {
+                    display::T::inline
                 } else {
                     style.get_box().display
                 };
                 (munged_display, style.get_box().float, style.get_box().position)
             }
-            Some(NodeTypeId::Text) => (display::inline, float::none, position::static_),
+            Some(NodeTypeId::Text) => (display::T::inline, float::T::none, position::T::static_),
             Some(NodeTypeId::Comment) |
             Some(NodeTypeId::DocumentType) |
             Some(NodeTypeId::DocumentFragment) |
             Some(NodeTypeId::Document) |
             Some(NodeTypeId::ProcessingInstruction) => {
-                (display::none, float::none, position::static_)
+                (display::T::none, float::T::none, position::T::static_)
             }
         };
 
@@ -1149,14 +1151,14 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
         match (display, float, positioning) {
             // `display: none` contributes no flow construction result. Nuke the flow construction
             // results of children.
-            (display::none, _, _) => {
+            (display::T::none, _, _) => {
                 for child in node.children() {
                     drop(child.swap_out_construction_result())
                 }
             }
 
             // Table items contribute table flow construction results.
-            (display::table, float_value, _) => {
+            (display::T::table, float_value, _) => {
                 let construction_result = self.build_flow_for_table_wrapper(node, float_value);
                 node.set_flow_construction_result(construction_result)
             }
@@ -1167,18 +1169,19 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // positioned, but inline we shouldn't try to construct a block
             // flow here - instead, let it match the inline case
             // below.
-            (display::block, _, position::absolute) | (_, _, position::fixed) => {
+            (display::T::block, _, position::T::absolute) |
+            (_, _, position::T::fixed) => {
                 node.set_flow_construction_result(self.build_flow_for_nonfloated_block(node))
             }
 
             // List items contribute their own special flows.
-            (display::list_item, _, _) => {
+            (display::T::list_item, _, _) => {
                 node.set_flow_construction_result(self.build_flow_for_list_item(node))
             }
 
             // Inline items that are absolutely-positioned contribute inline fragment construction
             // results with a hypothetical fragment.
-            (display::inline, _, position::absolute) => {
+            (display::T::inline, _, position::T::absolute) => {
                 let construction_result =
                     self.build_fragment_for_absolutely_positioned_inline(node);
                 node.set_flow_construction_result(construction_result)
@@ -1187,50 +1190,51 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // Inline items contribute inline fragment construction results.
             //
             // FIXME(pcwalton, #3307): This is not sufficient to handle floated generated content.
-            (display::inline, float::none, _) => {
+            (display::T::inline, float::T::none, _) => {
                 let construction_result = self.build_fragments_for_inline(node);
                 node.set_flow_construction_result(construction_result)
             }
 
             // Inline-block items contribute inline fragment construction results.
-            (display::inline_block, float::none, _) => {
+            (display::T::inline_block, float::T::none, _) => {
                 let construction_result = self.build_fragment_for_inline_block(node);
                 node.set_flow_construction_result(construction_result)
             }
 
             // Table items contribute table flow construction results.
-            (display::table_caption, _, _) => {
+            (display::T::table_caption, _, _) => {
                 let construction_result = self.build_flow_for_table_caption(node);
                 node.set_flow_construction_result(construction_result)
             }
 
             // Table items contribute table flow construction results.
-            (display::table_column_group, _, _) => {
+            (display::T::table_column_group, _, _) => {
                 let construction_result = self.build_flow_for_table_colgroup(node);
                 node.set_flow_construction_result(construction_result)
             }
 
             // Table items contribute table flow construction results.
-            (display::table_column, _, _) => {
+            (display::T::table_column, _, _) => {
                 let construction_result = self.build_fragments_for_table_column(node);
                 node.set_flow_construction_result(construction_result)
             }
 
             // Table items contribute table flow construction results.
-            (display::table_row_group, _, _) | (display::table_header_group, _, _) |
-            (display::table_footer_group, _, _) => {
+            (display::T::table_row_group, _, _) |
+            (display::T::table_header_group, _, _) |
+            (display::T::table_footer_group, _, _) => {
                 let construction_result = self.build_flow_for_table_rowgroup(node);
                 node.set_flow_construction_result(construction_result)
             }
 
             // Table items contribute table flow construction results.
-            (display::table_row, _, _) => {
+            (display::T::table_row, _, _) => {
                 let construction_result = self.build_flow_for_table_row(node);
                 node.set_flow_construction_result(construction_result)
             }
 
             // Table items contribute table flow construction results.
-            (display::table_cell, _, _) => {
+            (display::T::table_cell, _, _) => {
                 let construction_result = self.build_flow_for_table_cell(node);
                 node.set_flow_construction_result(construction_result)
             }
@@ -1240,7 +1244,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             // TODO(pcwalton): Make this only trigger for blocks and handle the other `display`
             // properties separately.
 
-            (_, float::none, _) => {
+            (_, float::T::none, _) => {
                 node.set_flow_construction_result(self.build_flow_for_nonfloated_block(node))
             }
 

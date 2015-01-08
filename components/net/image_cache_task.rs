@@ -13,7 +13,7 @@ use std::comm::{channel, Receiver, Sender};
 use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
 use std::mem::replace;
-use sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
 use url::Url;
 

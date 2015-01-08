@@ -156,7 +156,7 @@ fn to_snake_case(name: DOMString) -> DOMString {
 impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
     fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult {
         if name.as_slice().chars()
-               .skip_while(|&ch| ch != '\u002d')
+               .skip_while(|&ch| ch != '\u{2d}')
                .nth(1).map_or(false, |ch| ch as u8 - b'a' < 26) {
             return Err(Syntax);
         }
@@ -204,7 +204,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
     }
 }
 
-#[deriving(PartialEq, Show)]
+#[deriving(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum HTMLElementTypeId {
     HTMLElement,

@@ -11,7 +11,7 @@
 pub use self::imp::{initialize, get, enter, exit};
 
 bitflags! {
-    #[deriving(Show)]
+    #[deriving(Show, Copy)]
     flags TaskState: u32 {
         const SCRIPT          = 0x01,
         const LAYOUT          = 0x02,
@@ -46,22 +46,28 @@ task_types! {
 #[cfg(not(ndebug))]
 mod imp {
     use super::{TaskState, TYPES};
+    use std::cell::RefCell;
 
-    local_data_key!(STATE: TaskState)
+    thread_local!(static STATE: RefCell<Option<TaskState>> = RefCell::new(None))
 
     pub fn initialize(x: TaskState) {
-        match STATE.replace(Some(x)) {
-            None => (),
-            Some(s) => panic!("Task state already initialized as {}", s),
-        };
+        STATE.with(|ref k| {
+            match *k.borrow() {
+                Some(s) => panic!("Task state already initialized as {}", s),
+                None => ()
+            };
+            *k.borrow_mut() = Some(x);
+        });
         get(); // check the assertion below
     }
 
     pub fn get() -> TaskState {
-        let state = match STATE.get() {
-            None => panic!("Task state not initialized"),
-            Some(s) => *s,
-        };
+        let state = STATE.with(|ref k| {
+            match *k.borrow() {
+                None => panic!("Task state not initialized"),
+                Some(s) => s,
+            }
+        });
 
         // Exactly one of the task type flags should be set.
         assert_eq!(1, TYPES.iter().filter(|&&ty| state.contains(ty)).count());
@@ -71,13 +77,17 @@ mod imp {
     pub fn enter(x: TaskState) {
         let state = get();
         assert!(!state.intersects(x));
-        STATE.replace(Some(state | x));
+        STATE.with(|ref k| {
+            *k.borrow_mut() = Some(state | x);
+        })
     }
 
     pub fn exit(x: TaskState) {
         let state = get();
         assert!(state.contains(x));
-        STATE.replace(Some(state & !x));
+        STATE.with(|ref k| {
+            *k.borrow_mut() = Some(state & !x);
+        })
     }
 }
 

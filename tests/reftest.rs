@@ -22,13 +22,14 @@ use std::io::process::ExitStatus;
 use std::io::fs::PathExtensions;
 use std::os;
 use std::path::Path;
-use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn};
+use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldFail};
 use test::run_tests_console;
 use regex::Regex;
 use url::Url;
 
 
 bitflags!(
+    #[deriving(Copy)]
     flags RenderMode: u32 {
         const CPU_RENDERING  = 0x00000001,
         const GPU_RENDERING  = 0x00000010,
@@ -95,7 +96,10 @@ fn main() {
         save_metrics: None,
         test_shard: None,
         nocapture: false,
-        color: AutoColor
+        color: AutoColor,
+        show_boxplot: false,
+        boxplot_width: 0,
+        show_all_stats: false,
     };
 
     match run(test_opts,
@@ -191,7 +195,7 @@ fn parse_lists(file: &Path, servo_args: &[String], render_mode: RenderMode, id_o
         // If we're running this directly, file.dir_path() might be relative.
         // (see issue #3521)
         let base = match file.dir_path().is_relative() {
-            true  => os::getcwd().join(file.dir_path()),
+            true  => os::getcwd().unwrap().join(file.dir_path()),
             false => file.dir_path()
         };
 
@@ -239,7 +243,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
         desc: TestDesc {
             name: DynTestName(name),
             ignore: false,
-            should_fail: false,
+            should_fail: ShouldFail::No,
         },
         testfn: DynTestFn(proc() {
             check_reftest(reftest);
@@ -255,7 +259,7 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
         // Allows pixel perfect rendering of Ahem font for reftests.
         .arg("-Z")
         .arg("disable-text-aa")
-        .args(["-f", "-o"])
+        .args(["-f", "-o"].as_slice())
         .arg(png_filename.as_slice())
         .arg({
             let mut url = Url::from_file_path(&reftest.files[side]).unwrap();
@@ -280,7 +284,7 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
 
     let image = png::load_png(&from_str::<Path>(png_filename.as_slice()).unwrap()).unwrap();
     let rgba8_bytes = match image.pixels {
-        png::RGBA8(pixels) => pixels,
+        png::PixelsByColorType::RGBA8(pixels) => pixels,
         _ => panic!(),
     };
     (image.width, image.height, rgba8_bytes)
@@ -320,7 +324,7 @@ fn check_reftest(reftest: Reftest) {
         let mut img = png::Image {
             width: left_width,
             height: left_height,
-            pixels: png::RGBA8(pixels),
+            pixels: png::PixelsByColorType::RGBA8(pixels),
         };
         let res = png::store_png(&mut img, &output);
         assert!(res.is_ok());

@@ -7,14 +7,14 @@ use platform::font_context::FontContextHandle;
 use platform::font::FontHandle;
 use platform::font_template::FontTemplateData;
 
-use sync::{Arc, Weak};
+use std::sync::{Arc, Weak};
 use font::FontHandleMethods;
 
 /// Describes how to select a font from a given family.
 /// This is very basic at the moment and needs to be
 /// expanded or refactored when we support more of the
 /// font styling parameters.
-#[deriving(Clone)]
+#[deriving(Clone, Copy)]
 pub struct FontTemplateDescriptor {
     pub weight: font_weight::T,
     pub italic: bool,

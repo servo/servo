@@ -29,9 +29,9 @@ use png;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
 use script_traits::{ConstellationControlMsg, ScriptControlChan};
-use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, LayerId};
-use servo_msg::compositor_msg::{ReadyState, PaintState, Scrollable};
-use servo_msg::constellation_msg::{mod, ConstellationChan};
+use servo_msg::compositor_msg::{Epoch, LayerId};
+use servo_msg::compositor_msg::{ReadyState, PaintState, ScrollPolicy};
+use servo_msg::constellation_msg::{ConstellationChan, NavigationDirection};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use servo_msg::constellation_msg::{PipelineId, WindowSizeData};
@@ -147,7 +147,7 @@ enum CompositionRequest {
     CompositeNow,
 }
 
-#[deriving(PartialEq, Show)]
+#[deriving(Copy, PartialEq, Show)]
 enum ShutdownState {
     NotShuttingDown,
     ShuttingDown,
@@ -380,9 +380,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn get_earliest_pipeline_ready_state(&self) -> ReadyState {
         if self.ready_states.len() == 0 {
-            return Blank;
+            return ReadyState::Blank;
         }
-        return self.ready_states.values().fold(FinishedLoading, |a, &b| cmp::min(a, b));
+        return self.ready_states.values().fold(ReadyState::FinishedLoading,
+                                               |a, &b| cmp::min(a, b));
 
     }
 
@@ -477,7 +478,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             id: LayerId::null(),
             rect: Rect::zero(),
             background_color: azure_hl::Color::new(0., 0., 0., 0.),
-            scroll_policy: Scrollable,
+            scroll_policy: ScrollPolicy::Scrollable,
         };
 
         let root_layer = CompositorData::new_layer(pipeline.clone(),
@@ -504,7 +505,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                      frame_rect: Option<TypedRect<PagePx, f32>>)
                                      -> Rc<Layer<CompositorData>> {
         // Initialize the ReadyState and PaintState for this pipeline.
-        self.ready_states.insert(frame_tree.pipeline.id, Blank);
+        self.ready_states.insert(frame_tree.pipeline.id, ReadyState::Blank);
         self.paint_states.insert(frame_tree.pipeline.id, PaintState::Painting);
 
         let root_layer = self.create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline,
@@ -907,8 +908,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
         let direction = match direction {
-            windowing::WindowNavigateMsg::Forward => constellation_msg::Forward,
-            windowing::WindowNavigateMsg::Back => constellation_msg::Back,
+            windowing::WindowNavigateMsg::Forward => NavigationDirection::Forward,
+            windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
         };
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(ConstellationMsg::Navigate(direction))
@@ -916,7 +917,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(constellation_msg::KeyEvent(key, state, modifiers))
+        chan.send(ConstellationMsg::KeyEvent(key, state, modifiers))
     }
 
     fn convert_buffer_requests_to_pipeline_requests_map(&self,
@@ -1025,7 +1026,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return false;
         }
 
-        if self.get_earliest_pipeline_ready_state() != FinishedLoading {
+        if self.get_earliest_pipeline_ready_state() != ReadyState::FinishedLoading {
             return false;
         }
 
@@ -1123,7 +1124,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let mut img = png::Image {
                 width: width as u32,
                 height: height as u32,
-                pixels: png::RGB8(pixels),
+                pixels: png::PixelsByColorType::RGB8(pixels),
             };
             let res = png::store_png(&mut img, &path);
             assert!(res.is_ok());

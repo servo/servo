@@ -14,7 +14,7 @@ use std::cell::RefCell;
 use std::io::File;
 use std::sync::atomic::{AtomicUint, SeqCst, INIT_ATOMIC_UINT};
 
-local_data_key!(state_key: RefCell<State>)
+thread_local!(static state_key: RefCell<Option<State>> = RefCell::new(None))
 
 static mut DEBUG_ID_COUNTER: AtomicUint = INIT_ATOMIC_UINT;
 
@@ -59,16 +59,16 @@ struct State {
 /// will be output at the beginning and end of this scope.
 impl Scope {
     pub fn new(name: String) -> Scope {
-        let maybe_refcell = state_key.get();
-        match maybe_refcell {
-            Some(refcell) => {
-                let mut state = refcell.borrow_mut();
-                let flow_trace = json::encode(&flow::base(state.flow_root.deref()));
-                let data = box ScopeData::new(name, flow_trace);
-                state.scope_stack.push(data);
+        state_key.with(|ref r| {
+            match &mut *r.borrow_mut() {
+                &Some(ref mut state) => {
+                    let flow_trace = json::encode(&flow::base(state.flow_root.deref()));
+                    let data = box ScopeData::new(name.clone(), flow_trace);
+                    state.scope_stack.push(data);
+                }
+                &None => {}
             }
-            None => {}
-        }
+        });
         Scope
     }
 }
@@ -76,17 +76,17 @@ impl Scope {
 #[cfg(not(ndebug))]
 impl Drop for Scope {
     fn drop(&mut self) {
-        let maybe_refcell = state_key.get();
-        match maybe_refcell {
-            Some(refcell) => {
-                let mut state = refcell.borrow_mut();
-                let mut current_scope = state.scope_stack.pop().unwrap();
-                current_scope.post = json::encode(&flow::base(state.flow_root.deref()));
-                let previous_scope = state.scope_stack.last_mut().unwrap();
-                previous_scope.children.push(current_scope);
+        state_key.with(|ref r| {
+            match &mut *r.borrow_mut() {
+                &Some(ref mut state) => {
+                    let mut current_scope = state.scope_stack.pop().unwrap();
+                    current_scope.post = json::encode(&flow::base(state.flow_root.deref()));
+                    let previous_scope = state.scope_stack.last_mut().unwrap();
+                    previous_scope.children.push(current_scope);
+                }
+                &None => {}
             }
-            None => {}
-        }
+        });
     }
 }
 
@@ -100,22 +100,23 @@ pub fn generate_unique_debug_id() -> u16 {
 /// Begin a layout debug trace. If this has not been called,
 /// creating debug scopes has no effect.
 pub fn begin_trace(flow_root: FlowRef) {
-    assert!(state_key.get().is_none());
+    assert!(state_key.with(|ref r| r.borrow().is_none()));
 
-    let flow_trace = json::encode(&flow::base(flow_root.deref()));
-    let state = State {
-        scope_stack: vec![box ScopeData::new("root".into_string(), flow_trace)],
-        flow_root: flow_root,
-    };
-    state_key.replace(Some(RefCell::new(state)));
+    state_key.with(|ref r| {
+        let flow_trace = json::encode(&flow::base(flow_root.deref()));
+        let state = State {
+            scope_stack: vec![box ScopeData::new("root".into_string(), flow_trace)],
+            flow_root: flow_root.clone(),
+        };
+        *r.borrow_mut() = Some(state);
+    });
 }
 
 /// End the debug layout trace. This will write the layout
 /// trace to disk in the current directory. The output
 /// file can then be viewed with an external tool.
 pub fn end_trace() {
-    let task_state_cell = state_key.replace(None).unwrap();
-    let mut task_state = task_state_cell.borrow_mut();
+    let mut task_state = state_key.with(|ref r| r.borrow_mut().take().unwrap());
     assert!(task_state.scope_stack.len() == 1);
     let mut root_scope = task_state.scope_stack.pop().unwrap();
     root_scope.post = json::encode(&flow::base(task_state.flow_root.deref()));

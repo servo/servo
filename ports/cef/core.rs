@@ -11,11 +11,9 @@ use compositing::windowing::WindowEvent;
 use geom::size::TypedSize2D;
 use glfw_app;
 use libc::{c_char, c_int, c_void};
-use native;
-use rustrt::local::Local;
 use servo::Browser;
 use servo_util::opts;
-use servo_util::opts::OpenGL;
+use servo_util::opts::RenderApi;
 use std::c_str::CString;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -33,12 +31,9 @@ pub enum ServoCefGlobals {
     OffScreenGlobals(RefCell<Rc<window::Window>>, RefCell<Browser<window::Window>>),
 }
 
-local_data_key!(pub globals: ServoCefGlobals)
+thread_local!(pub static globals: Rc<RefCell<Option<ServoCefGlobals>>> = Rc::new(RefCell::new(None)))
 
-local_data_key!(pub message_queue: RefCell<Vec<WindowEvent>>)
-
-// Copied from `libnative/lib.rs`.
-static OS_DEFAULT_STACK_ESTIMATE: uint = 2 * (1 << 20);
+thread_local!(pub static message_queue: Rc<RefCell<Vec<WindowEvent>>> = Rc::new(RefCell::new(vec!())))
 
 static CEF_API_HASH_UNIVERSAL: &'static [u8] = b"8efd129f4afc344bd04b2feb7f73a149b6c4e27f\0";
 #[cfg(target_os="windows")]
@@ -71,10 +66,6 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
             });
         }
     }
-
-    create_rust_task();
-
-    message_queue.replace(Some(RefCell::new(Vec::new())));
 
     let urls = vec![HOME_URL.into_string()];
     opts::set_opts(opts::Opts {
@@ -110,26 +101,10 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
         user_agent: None,
         dump_flow_tree: false,
         validate_display_list_geometry: false,
-        render_api: OpenGL,
+        render_api: RenderApi::OpenGL,
     });
 
     return 1
-}
-
-// Copied from `libnative/lib.rs`.
-fn create_rust_task() {
-    let something_around_the_top_of_the_stack = 1;
-    let addr = &something_around_the_top_of_the_stack as *const int;
-    let my_stack_top = addr as uint;
-
-    // FIXME #11359 we just assume that this thread has a stack of a
-    // certain size, and estimate that there's at most 20KB of stack
-    // frames above our current position.
-
-    let my_stack_bottom = my_stack_top + 20000 - OS_DEFAULT_STACK_ESTIMATE;
-
-    let task = native::task::new((my_stack_bottom, my_stack_top), rt::thread::main_guard_page());
-    Local::put(task);
 }
 
 #[no_mangle]
@@ -138,16 +113,17 @@ pub extern "C" fn cef_shutdown() {
 
 #[no_mangle]
 pub extern "C" fn cef_run_message_loop() {
-    let mut the_globals = globals.get();
-    let the_globals = the_globals.as_mut().unwrap();
-    match **the_globals {
-        ServoCefGlobals::OnScreenGlobals(ref window, ref browser) => {
-            while browser.borrow_mut().handle_event(window.borrow_mut().wait_events()) {}
+    globals.with(|ref r| {
+        let mut the_globals = r.borrow_mut();
+        match *the_globals.as_mut().unwrap() {
+            ServoCefGlobals::OnScreenGlobals(ref window, ref browser) => {
+                while browser.borrow_mut().handle_event(window.borrow_mut().wait_events()) {}
+            }
+            ServoCefGlobals::OffScreenGlobals(ref window, ref browser) => {
+                while browser.borrow_mut().handle_event(window.borrow_mut().wait_events()) {}
+            }
         }
-        ServoCefGlobals::OffScreenGlobals(ref window, ref browser) => {
-            while browser.borrow_mut().handle_event(window.borrow_mut().wait_events()) {}
-        }
-    }
+    });
 }
 
 #[no_mangle]
@@ -168,74 +144,67 @@ pub extern "C" fn cef_execute_process(_args: *const cef_main_args_t,
 }
 
 pub fn send_window_event(event: WindowEvent) {
-    message_queue.get().as_mut().unwrap().borrow_mut().push(event);
+    message_queue.with(|ref r| r.borrow_mut().push(event.clone()));
 
-    let mut the_globals = globals.get();
-    let the_globals = match the_globals.as_mut() {
-        None => return,
-        Some(the_globals) => the_globals,
-    };
-    loop {
-        match **the_globals {
-            ServoCefGlobals::OnScreenGlobals(_, ref browser) => {
-                match browser.try_borrow_mut() {
-                    None => {
-                        // We're trying to send an event while processing another one. This will
-                        // cause general badness, so queue up that event instead of immediately
-                        // processing it.
-                        break
+    globals.with(|ref r| {
+        let mut the_globals = r.borrow_mut();
+        match &mut *the_globals {
+            &None => return,
+            &Some(ref mut the_globals) => loop {
+                match *the_globals {
+                    ServoCefGlobals::OnScreenGlobals(_, ref browser) => {
+                        match browser.try_borrow_mut() {
+                            None => {
+                                // We're trying to send an event while processing another one. This will
+                                // cause general badness, so queue up that event instead of immediately
+                                // processing it.
+                                break
+                            }
+                            Some(ref mut browser) => {
+                                let event = match message_queue.with(|ref r| r.borrow_mut().pop()) {
+                                    None => return,
+                                    Some(event) => event,
+                                };
+                                browser.handle_event(event);
+                            }
+                        }
                     }
-                    Some(ref mut browser) => {
-                        let event = match message_queue.get()
-                                                       .as_mut()
-                                                       .unwrap()
-                                                       .borrow_mut()
-                                                       .pop() {
-                            None => return,
-                            Some(event) => event,
-                        };
-                        browser.handle_event(event);
-                    }
-                }
-            }
-            ServoCefGlobals::OffScreenGlobals(_, ref browser) => {
-                match browser.try_borrow_mut() {
-                    None => {
-                        // We're trying to send an event while processing another one. This will
-                        // cause general badness, so queue up that event instead of immediately
-                        // processing it.
-                        break
-                    }
-                    Some(ref mut browser) => {
-                        let event = match message_queue.get()
-                                                       .as_mut()
-                                                       .unwrap()
-                                                       .borrow_mut()
-                                                       .pop() {
-                            None => return,
-                            Some(event) => event,
-                        };
-                        browser.handle_event(event);
+                    ServoCefGlobals::OffScreenGlobals(_, ref browser) => {
+                        match browser.try_borrow_mut() {
+                            None => {
+                                // We're trying to send an event while processing another one. This will
+                                // cause general badness, so queue up that event instead of immediately
+                                // processing it.
+                                break
+                            }
+                            Some(ref mut browser) => {
+                                let event = match message_queue.with(|ref r| r.borrow_mut().pop()) {
+                                    None => return,
+                                    Some(event) => event,
+                                };
+                                browser.handle_event(event);
+                            }
+                        }
                     }
                 }
             }
         }
-    }
+    });
 }
 
 macro_rules! browser_method_delegate(
     ( $( fn $method:ident ( ) -> $return_type:ty ; )* ) => (
         $(
             pub fn $method() -> $return_type {
-                let mut the_globals = globals.get();
-                let the_globals = match the_globals.as_mut() {
-                    None => panic!("{}: no globals created", stringify!($method)),
-                    Some(the_globals) => the_globals,
-                };
-                match **the_globals {
-                    ServoCefGlobals::OnScreenGlobals(_, ref browser) => browser.borrow_mut().$method(),
-                    ServoCefGlobals::OffScreenGlobals(_, ref browser) => browser.borrow_mut().$method(),
-                }
+                globals.with(|ref r| {
+                    match r.borrow_mut().as_mut() {
+                        None => panic!("{}: no globals created", stringify!($method)),
+                        Some(&ServoCefGlobals::OnScreenGlobals(_, ref browser)) =>
+                            browser.borrow_mut().$method(),
+                        Some(&ServoCefGlobals::OffScreenGlobals(_, ref browser)) =>
+                            browser.borrow_mut().$method(),
+                    }
+                })
             }
         )*
     )

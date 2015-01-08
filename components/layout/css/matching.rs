@@ -20,7 +20,7 @@ use std::slice::Items;
 use string_cache::{Atom, Namespace};
 use style::{mod, PseudoElement, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
 use style::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes, cascade};
-use sync::Arc;
+use std::sync::Arc;
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec16<DeclarationBlock>,

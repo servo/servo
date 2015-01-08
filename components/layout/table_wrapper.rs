@@ -29,9 +29,9 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::{ComputedValues, CSSFloat};
 use style::computed_values::table_layout;
-use sync::Arc;
+use std::sync::Arc;
 
-#[deriving(Encodable, Show)]
+#[deriving(Copy, Encodable, Show)]
 pub enum TableLayout {
     Fixed,
     Auto
@@ -55,7 +55,7 @@ impl TableWrapperFlow {
                                   -> TableWrapperFlow {
         let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::fixed {
+                              table_layout::T::fixed {
             TableLayout::Fixed
         } else {
             TableLayout::Auto
@@ -72,7 +72,7 @@ impl TableWrapperFlow {
                      -> TableWrapperFlow {
         let mut block_flow = BlockFlow::from_node(constructor, node);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::fixed {
+                              table_layout::T::fixed {
             TableLayout::Fixed
         } else {
             TableLayout::Auto
@@ -90,7 +90,7 @@ impl TableWrapperFlow {
                                         -> TableWrapperFlow {
         let mut block_flow = BlockFlow::float_from_node_and_fragment(node, fragment, float_kind);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::fixed {
+                              table_layout::T::fixed {
             TableLayout::Fixed
         } else {
             TableLayout::Auto
@@ -487,7 +487,7 @@ impl Add<AutoLayoutCandidateGuess,AutoLayoutCandidateGuess> for AutoLayoutCandid
 
 /// The `CSSFloat` member specifies the weight of the smaller of the two guesses, on a scale from
 /// 0.0 to 1.0.
-#[deriving(PartialEq, Show)]
+#[deriving(Copy, PartialEq, Show)]
 enum SelectedAutoLayoutCandidateGuess {
     UseMinimumGuess,
     InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(CSSFloat),

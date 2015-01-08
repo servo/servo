@@ -15,8 +15,10 @@ use script_traits::UntrustedNodeAddress;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
-use sync::{Arc, Mutex};
+use std::cell::Cell;
 use std::mem;
+use std::ptr;
+use std::sync::{Arc, Mutex};
 use style::Stylist;
 use url::Url;
 
@@ -26,25 +28,21 @@ struct LocalLayoutContext {
     style_sharing_candidate_cache: StyleSharingCandidateCache,
 }
 
-local_data_key!(local_context_key: *mut LocalLayoutContext)
+thread_local!(static local_context_key: Cell<*mut LocalLayoutContext> = Cell::new(ptr::null_mut()))
 
 fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext) -> *mut LocalLayoutContext {
-    let maybe_context = local_context_key.get();
-
-    let context = match maybe_context {
-        None => {
+    local_context_key.with(|ref r| {
+        if r.get().is_null() {
             let context = box LocalLayoutContext {
                 font_context: FontContext::new(shared_layout_context.font_cache_task.clone()),
                 applicable_declarations_cache: ApplicableDeclarationsCache::new(),
                 style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             };
-            local_context_key.replace(Some(unsafe { mem::transmute(context) }));
-            local_context_key.get().unwrap()
-        },
-        Some(context) => context
-    };
+            r.set(unsafe { mem::transmute(context) });
+        }
 
-    *context
+        r.get()
+    })
 }
 
 pub struct SharedLayoutContext {

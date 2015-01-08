@@ -24,7 +24,7 @@ use std::cmp::max;
 use std::fmt;
 use style::ComputedValues;
 use style::computed_values::LengthOrPercentageOrAuto;
-use sync::Arc;
+use std::sync::Arc;
 
 /// A single row of a table.
 #[deriving(Encodable)]
@@ -39,7 +39,7 @@ pub struct TableRowFlow {
 }
 
 /// Information about the column inline size and span for each cell.
-#[deriving(Encodable)]
+#[deriving(Encodable, Copy)]
 pub struct CellIntrinsicInlineSize {
     /// Inline sizes that this cell contributes to the column.
     pub column_size: ColumnIntrinsicInlineSize,

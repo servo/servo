@@ -14,7 +14,8 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, EventTargetCast, NodeCas
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, RootCollection, Temporary, OptionalRootable};
+use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{RootCollection, RootCollectionPtr};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
@@ -76,6 +77,7 @@ use url::Url;
 use libc;
 use libc::size_t;
 use std::any::{Any, AnyRefExt};
+use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::fmt::{mod, Show};
 use std::mem::replace;
@@ -83,8 +85,9 @@ use std::rc::Rc;
 use std::u32;
 use time::{Tm, strptime};
 
-local_data_key!(pub StackRoots: *const RootCollection)
+thread_local!(pub static StackRoots: Cell<Option<RootCollectionPtr>> = Cell::new(None))
 
+#[deriving(Copy)]
 pub enum TimerSource {
     FromWindow(PipelineId),
     FromWorker
@@ -158,14 +161,16 @@ pub struct StackRootTLS;
 
 impl StackRootTLS {
     pub fn new(roots: &RootCollection) -> StackRootTLS {
-        StackRoots.replace(Some(roots as *const RootCollection));
+        StackRoots.with(|ref r| {
+            r.set(Some(RootCollectionPtr(roots as *const _)))
+        });
         StackRootTLS
     }
 }
 
 impl Drop for StackRootTLS {
     fn drop(&mut self) {
-        let _ = StackRoots.replace(None);
+        StackRoots.with(|ref r| r.set(None));
     }
 }
 

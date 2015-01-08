@@ -12,7 +12,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 
 #[repr(uint)]
-#[deriving(Show)]
+#[deriving(Copy, Show)]
 #[jstraceable]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR as uint,
