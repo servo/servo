@@ -569,10 +569,11 @@ impl FragmentDisplayListBuilding for Fragment {
         // Outlines are not accounted for in the dimensions of the border box, so adjust the
         // absolute bounds.
         let mut bounds = *bounds;
-        bounds.origin.x = bounds.origin.x - width;
-        bounds.origin.y = bounds.origin.y - width;
-        bounds.size.width = bounds.size.width + width + width;
-        bounds.size.height = bounds.size.height + width + width;
+        let offset = width + style.get_outline().outline_offset;
+        bounds.origin.x = bounds.origin.x - offset;
+        bounds.origin.y = bounds.origin.y - offset;
+        bounds.size.width = bounds.size.width + offset + offset;
+        bounds.size.height = bounds.size.height + offset + offset;
 
         // Append the outline to the display list.
         let color = style.resolve_color(style.get_outline().outline_color).to_gfx_color();
