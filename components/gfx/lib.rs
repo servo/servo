@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(globs, macro_rules, phase, unsafe_destructor, default_type_params, if_let)]
+#![feature(globs, macro_rules, phase, unsafe_destructor, default_type_params)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
