@@ -9,7 +9,7 @@ use std::ascii::AsciiExt;
 use std::iter::Filter;
 use std::num::Int;
 use std::str::{CharEq, CharSplits, FromStr};
-use unicode::char::to_lowercase;
+use unicode::char::UnicodeChar;
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
@@ -328,7 +328,7 @@ pub struct LowercaseString {
 impl LowercaseString {
     pub fn new(s: &str) -> LowercaseString {
         LowercaseString {
-            inner: s.chars().map(to_lowercase).collect(),
+            inner: s.chars().map(|c| c.to_lowercase()).collect(),
         }
     }
 }
