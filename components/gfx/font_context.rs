@@ -30,14 +30,14 @@ use azure::scaled_font::FontInfo;
 
 #[cfg(any(target_os="linux", target_os = "android"))]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
-    ScaledFont::new(BackendType::SkiaBackend, FontInfo::FontData(&template.bytes),
+    ScaledFont::new(BackendType::Skia, FontInfo::FontData(&template.bytes),
                     pt_size.to_subpx() as AzFloat)
 }
 
 #[cfg(target_os="macos")]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
     let cgfont = template.ctfont.as_ref().unwrap().copy_to_CGFont();
-    ScaledFont::new(BackendType::SkiaBackend, &cgfont, pt_size.to_subpx() as AzFloat)
+    ScaledFont::new(BackendType::Skia, &cgfont, pt_size.to_subpx() as AzFloat)
 }
 
 static SMALL_CAPS_SCALE_FACTOR: f64 = 0.8;      // Matches FireFox (see gfxFont.h)
