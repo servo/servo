@@ -68,6 +68,7 @@ pub mod font_template;
 
 // Misc.
 mod buffer_map;
+mod filters;
 
 // Platform-specific implementations.
 #[path="platform/mod.rs"]

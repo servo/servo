@@ -516,11 +516,11 @@ impl WorkerThread {
                                -> DrawTarget {
         let size = Size2D(tile.screen_rect.size.width as i32, tile.screen_rect.size.height as i32);
         let draw_target = if !opts::get().gpu_painting {
-            DrawTarget::new(BackendType::SkiaBackend, size, SurfaceFormat::B8G8R8A8)
+            DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
         } else {
             // FIXME(pcwalton): Cache the components of draw targets (texture color buffer,
             // paintbuffers) instead of recreating them.
-            let draw_target = DrawTarget::new_with_fbo(BackendType::SkiaBackend,
+            let draw_target = DrawTarget::new_with_fbo(BackendType::Skia,
                                                        native_graphics_context!(self),
                                                        size,
                                                        SurfaceFormat::B8G8R8A8);

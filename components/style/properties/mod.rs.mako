@@ -1663,19 +1663,24 @@ pub mod longhands {
 
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                                  -> computed_value::T {
-            value.into_iter().map(|value| {
-                computed_value::BoxShadow {
-                    offset_x: computed::compute_Au(value.offset_x, context),
-                    offset_y: computed::compute_Au(value.offset_y, context),
-                    blur_radius: computed::compute_Au(value.blur_radius, context),
-                    spread_radius: computed::compute_Au(value.spread_radius, context),
-                    color: value.color.map(|color| color.parsed).unwrap_or(cssparser::Color::CurrentColor),
-                    inset: value.inset,
-                }
-            }).collect()
+            value.into_iter().map(|value| compute_one_box_shadow(value, context)).collect()
         }
 
-        fn parse_one_box_shadow(iter: ParserIter) -> Result<SpecifiedBoxShadow,()> {
+        pub fn compute_one_box_shadow(value: SpecifiedBoxShadow, context: &computed::Context)
+                                      -> computed_value::BoxShadow {
+            computed_value::BoxShadow {
+                offset_x: computed::compute_Au(value.offset_x, context),
+                offset_y: computed::compute_Au(value.offset_y, context),
+                blur_radius: computed::compute_Au(value.blur_radius, context),
+                spread_radius: computed::compute_Au(value.spread_radius, context),
+                color: value.color
+                            .map(|color| color.parsed)
+                            .unwrap_or(cssparser::Color::CurrentColor),
+                inset: value.inset,
+            }
+        }
+
+        pub fn parse_one_box_shadow(iter: ParserIter) -> Result<SpecifiedBoxShadow,()> {
             let mut lengths = [specified::Length::Au(Au(0)), ..4];
             let mut lengths_parsed = false;
             let mut color = None;
@@ -1833,6 +1838,148 @@ pub mod longhands {
             }
         }
     </%self:single_component_value>
+
+    <%self:longhand name="filter">
+        pub mod computed_value {
+            use super::super::{Angle, CSSFloat};
+
+            // TODO(pcwalton): `blur`, `drop-shadow`
+            #[deriving(Clone, PartialEq, Show)]
+            pub enum Filter {
+                Brightness(CSSFloat),
+                Contrast(CSSFloat),
+                Grayscale(CSSFloat),
+                HueRotate(Angle),
+                Invert(CSSFloat),
+                Opacity(CSSFloat),
+                Saturate(CSSFloat),
+                Sepia(CSSFloat),
+            }
+
+            #[deriving(Clone, PartialEq, Show)]
+            pub struct T {
+                pub filters: Vec<Filter>,
+            }
+
+            impl T {
+                /// Creates a new filter pipeline.
+                #[inline]
+                pub fn new(filters: Vec<Filter>) -> T {
+                    T {
+                        filters: filters,
+                    }
+                }
+
+                /// Adds a new filter to the filter pipeline.
+                #[inline]
+                pub fn push(&mut self, filter: Filter) {
+                    self.filters.push(filter)
+                }
+
+                /// Returns true if this filter pipeline is empty and false otherwise.
+                #[inline]
+                pub fn is_empty(&self) -> bool {
+                    self.filters.is_empty()
+                }
+
+                /// Returns the resulting opacity of this filter pipeline.
+                #[inline]
+                pub fn opacity(&self) -> CSSFloat {
+                    let mut opacity = 1.0;
+                    for filter in self.filters.iter() {
+                        if let Filter::Opacity(ref opacity_value) = *filter {
+                            opacity *= *opacity_value
+                        }
+                    }
+                    opacity
+                }
+            }
+        }
+
+        // TODO(pcwalton): `blur`, `drop-shadow`
+        #[deriving(Clone, Show)]
+        pub enum SpecifiedFilter {
+            Brightness(CSSFloat),
+            Contrast(CSSFloat),
+            Grayscale(CSSFloat),
+            HueRotate(Angle),
+            Invert(CSSFloat),
+            Opacity(CSSFloat),
+            Saturate(CSSFloat),
+            Sepia(CSSFloat),
+        }
+
+        pub type SpecifiedValue = Vec<SpecifiedFilter>;
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T::new(Vec::new())
+        }
+
+        pub fn to_computed_value(value: SpecifiedValue, _: &computed::Context)
+                                 -> computed_value::T {
+            computed_value::T::new(value.into_iter().map(|filter| {
+                match filter {
+                    SpecifiedFilter::Brightness(amount) => {
+                        computed_value::Filter::Brightness(amount)
+                    }
+                    SpecifiedFilter::Contrast(amount) => computed_value::Filter::Contrast(amount),
+                    SpecifiedFilter::Grayscale(amount) => {
+                        computed_value::Filter::Grayscale(amount)
+                    }
+                    SpecifiedFilter::HueRotate(angle) => computed_value::Filter::HueRotate(angle),
+                    SpecifiedFilter::Invert(amount) => computed_value::Filter::Invert(amount),
+                    SpecifiedFilter::Opacity(amount) => computed_value::Filter::Opacity(amount),
+                    SpecifiedFilter::Saturate(amount) => computed_value::Filter::Saturate(amount),
+                    SpecifiedFilter::Sepia(amount) => computed_value::Filter::Sepia(amount),
+                }
+            }).collect())
+        }
+
+        pub fn parse(input: &[ComponentValue], _: &Url) -> Result<SpecifiedValue,()> {
+            let mut filters = Vec::new();
+            for filter in input.skip_whitespace() {
+                let name;
+                let args;
+                match *filter {
+                    Function(ref function_name, ref function_args) => {
+                        name = function_name;
+                        args = function_args;
+                    }
+                    _ => return Err(()),
+                }
+
+                if name.eq_ignore_ascii_case("brightness") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Brightness(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("contrast") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Contrast(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("grayscale") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Grayscale(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("hue-rotate") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::HueRotate(try!(Angle::parse(&args[0]))));
+                } else if name.eq_ignore_ascii_case("invert") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Invert(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("opacity") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Opacity(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("saturate") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Saturate(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("sepia") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Sepia(try!(parse_percentage(&args[0]))));
+                } else {
+                    return Err(())
+                }
+            }
+            Ok(filters)
+        }
+
+        fn parse_percentage(input: &ComponentValue) -> Result<CSSFloat,()> {
+            match *input {
+                Number(ref value) => Ok(value.value),
+                Percentage(ref value) => Ok(value.value / 100.0),
+                _ => Err(())
+            }
+        }
+    </%self:longhand>
 }
 
 

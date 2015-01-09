@@ -1623,6 +1623,9 @@ impl Fragment {
         if self.style().get_effects().opacity != 1.0 {
             return true
         }
+        if !self.style().get_effects().filter.is_empty() {
+            return true
+        }
         match self.style().get_box().position {
             position::T::absolute | position::T::fixed => {
                 // FIXME(pcwalton): This should only establish a new stacking context when
