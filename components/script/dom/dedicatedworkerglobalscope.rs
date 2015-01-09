@@ -197,6 +197,7 @@ trait PrivateDedicatedWorkerGlobalScopeHelpers {
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
+    #[allow(unsafe_blocks)]
     fn handle_event(self, msg: ScriptMsg) {
         match msg {
             ScriptMsg::DOMMessage(data, nbytes) => {
@@ -229,6 +230,7 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
 }
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
+    #[allow(unsafe_blocks)]
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;

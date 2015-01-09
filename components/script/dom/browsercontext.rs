@@ -47,6 +47,7 @@ impl BrowserContext {
         self.window_proxy
     }
 
+    #[allow(unsafe_blocks)]
     fn create_window_proxy(&mut self) {
         let win = self.active_window().root();
         let win = win.r();
@@ -117,6 +118,7 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     trace: None
 };
 
+#[allow(unsafe_blocks)]
 pub fn new_window_proxy_handler() -> WindowProxyHandler {
     unsafe {
         WindowProxyHandler(CreateWrapperProxyHandler(&PROXY_HANDLER))

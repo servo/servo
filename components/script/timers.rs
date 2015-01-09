@@ -105,6 +105,7 @@ impl TimerManager {
         }
     }
 
+    #[allow(unsafe_blocks)]
     pub fn set_timeout_or_interval(&self,
                                   callback: TimerCallback,
                                   arguments: Vec<JSVal>,

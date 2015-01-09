@@ -206,6 +206,7 @@ impl XMLHttpRequest {
         xhr.r().process_partial_response(progress);
     }
 
+    #[allow(unsafe_blocks)]
     fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
              mut load_data: LoadData, terminate_receiver: Receiver<TerminateReason>,
              cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId,
@@ -690,6 +691,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
         }
     }
+    #[allow(unsafe_blocks)]
     fn Response(self, cx: *mut JSContext) -> JSVal {
          match self.response_type.get() {
             _empty | Text => {

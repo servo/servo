@@ -171,6 +171,7 @@ impl NodeFlags {
 
 #[unsafe_destructor]
 impl Drop for Node {
+    #[allow(unsafe_blocks)]
     fn drop(&mut self) {
         unsafe {
             self.reap_layout_data();
@@ -779,6 +780,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselectorall
+    #[allow(unsafe_blocks)]
     fn query_selector_all(self, selectors: DOMString) -> Fallible<Temporary<NodeList>> {
         // Step 1.
         unsafe {
@@ -878,6 +880,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
 /// If the given untrusted node address represents a valid DOM node in the given runtime,
 /// returns it.
+#[allow(unsafe_blocks)]
 pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
     -> Temporary<Node> {
     unsafe {
