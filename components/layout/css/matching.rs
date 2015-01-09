@@ -55,13 +55,9 @@ pub struct ApplicableDeclarationsCacheEntry {
 }
 
 impl ApplicableDeclarationsCacheEntry {
-    fn new(slice: &[DeclarationBlock]) -> ApplicableDeclarationsCacheEntry {
-        let mut entry_declarations = Vec::new();
-        for declarations in slice.iter() {
-            entry_declarations.push(declarations.clone());
-        }
+    fn new(declarations: Vec<DeclarationBlock>) -> ApplicableDeclarationsCacheEntry {
         ApplicableDeclarationsCacheEntry {
-            declarations: entry_declarations,
+            declarations: declarations,
         }
     }
 }
@@ -138,7 +134,7 @@ impl ApplicableDeclarationsCache {
         }
     }
 
-    fn insert(&mut self, declarations: &[DeclarationBlock], style: Arc<ComputedValues>) {
+    fn insert(&mut self, declarations: Vec<DeclarationBlock>, style: Arc<ComputedValues>) {
         self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style)
     }
 }
@@ -438,7 +434,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
 
         // Cache the resolved style if it was cacheable.
         if cacheable {
-            applicable_declarations_cache.insert(applicable_declarations, this_style.clone());
+            applicable_declarations_cache.insert(applicable_declarations.to_vec(), this_style.clone());
         }
 
         // Calculate style difference and write.
