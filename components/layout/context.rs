@@ -99,24 +99,24 @@ impl<'a> LayoutContext<'a> {
     #[inline(always)]
     pub fn font_context<'a>(&'a self) -> &'a mut FontContext {
         unsafe {
-            let cached_context = &*self.cached_local_layout_context;
-            mem::transmute(&cached_context.font_context)
+            let cached_context = &mut *self.cached_local_layout_context;
+            &mut cached_context.font_context
         }
     }
 
     #[inline(always)]
     pub fn applicable_declarations_cache<'a>(&'a self) -> &'a mut ApplicableDeclarationsCache {
         unsafe {
-            let cached_context = &*self.cached_local_layout_context;
-            mem::transmute(&cached_context.applicable_declarations_cache)
+            let cached_context = &mut *self.cached_local_layout_context;
+            &mut cached_context.applicable_declarations_cache
         }
     }
 
     #[inline(always)]
     pub fn style_sharing_candidate_cache<'a>(&'a self) -> &'a mut StyleSharingCandidateCache {
         unsafe {
-            let cached_context = &*self.cached_local_layout_context;
-            mem::transmute(&cached_context.style_sharing_candidate_cache)
+            let cached_context = &mut *self.cached_local_layout_context;
+            &mut cached_context.style_sharing_candidate_cache
         }
     }
 }
