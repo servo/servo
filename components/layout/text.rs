@@ -194,16 +194,15 @@ impl TextRunScanner {
                 mem::replace(&mut self.clump, DList::new()).into_iter().enumerate() {
             let range = *new_ranges.get(logical_offset);
             if range.is_empty() {
-                debug!("Elided an `SpecificFragmentInfo::UnscannedText` because it was zero-length after \
-                        compression; {:?}",
-                       old_fragment);
+                debug!("Elided an `SpecificFragmentInfo::UnscannedText` because it was \
+                        zero-length after compression");
                 continue
             }
 
             let text_size = old_fragment.border_box.size;
             let &mut NewLinePositions(ref mut new_line_positions) =
                 new_line_positions.get_mut(logical_offset);
-            let new_text_fragment_info =
+            let mut new_text_fragment_info =
                 box ScannedTextFragmentInfo::new(run.clone(),
                                                  range,
                                                  mem::replace(new_line_positions, Vec::new()),
@@ -211,7 +210,10 @@ impl TextRunScanner {
             let new_metrics = new_text_fragment_info.run.metrics_for_range(&range);
             let bounding_box_size = bounding_box_for_run_metrics(&new_metrics,
                                                                  old_fragment.style.writing_mode);
-            let new_fragment = old_fragment.transform(bounding_box_size, new_text_fragment_info);
+            new_text_fragment_info.content_size = bounding_box_size;
+            let new_fragment =
+                old_fragment.transform(bounding_box_size,
+                                       SpecificFragmentInfo::ScannedText(new_text_fragment_info));
             out_fragments.push(new_fragment)
         }
 

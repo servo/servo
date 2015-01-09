@@ -991,7 +991,8 @@ impl<'a> FlowConstructor<'a> {
                         let mut unscanned_marker_fragments = DList::new();
                         unscanned_marker_fragments.push_back(Fragment::new_from_specific_info(
                             node,
-                            SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(text))));
+                            SpecificFragmentInfo::UnscannedText(
+                                UnscannedTextFragmentInfo::from_text(text))));
                         let marker_fragments = TextRunScanner::new().scan_for_runs(
                             self.layout_context.font_context(),
                             unscanned_marker_fragments);
