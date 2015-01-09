@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use canvas::canvas_paint_task::CanvasMsg;
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
@@ -9,8 +10,8 @@ use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElemen
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
-use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary};
+use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::{Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -57,6 +58,27 @@ impl HTMLCanvasElement {
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLCanvasElement> {
         let element = HTMLCanvasElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLCanvasElementBinding::Wrap)
+    }
+}
+
+pub trait LayoutHTMLCanvasElementHelpers {
+    unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>>;
+    unsafe fn get_canvas_width(&self) -> u32;
+    unsafe fn get_canvas_height(&self) -> u32;
+}
+
+impl LayoutHTMLCanvasElementHelpers for JS<HTMLCanvasElement> {
+    unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
+        let context = (*self.unsafe_get()).context.get_inner();
+        context.map(|cx| cx.get_renderer())
+    }
+
+    unsafe fn get_canvas_width(&self) -> u32 {
+        (*self.unsafe_get()).width.get()
+    }
+
+    unsafe fn get_canvas_height(&self) -> u32 {
+        (*self.unsafe_get()).height.get()
     }
 }
 

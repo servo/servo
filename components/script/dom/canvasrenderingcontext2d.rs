@@ -44,6 +44,16 @@ impl CanvasRenderingContext2D {
     }
 }
 
+pub trait LayoutCanvasRenderingContext2DHelpers {
+    unsafe fn get_renderer(&self) -> Sender<CanvasMsg>;
+}
+
+impl LayoutCanvasRenderingContext2DHelpers for JS<CanvasRenderingContext2D> {
+    unsafe fn get_renderer(&self) -> Sender<CanvasMsg> {
+        (*self.unsafe_get()).renderer.clone()
+    }
+}
+
 impl<'a> CanvasRenderingContext2DMethods for JSRef<'a, CanvasRenderingContext2D> {
     fn Canvas(self) -> Temporary<HTMLCanvasElement> {
         Temporary::new(self.canvas)

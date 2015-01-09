@@ -30,6 +30,7 @@
 //!   o Instead of `html_element_in_html_document()`, use
 //!     `html_element_in_html_document_for_layout()`.
 
+use canvas::canvas_paint_task::CanvasMsg;
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use incremental::RestyleDamage;
@@ -39,12 +40,13 @@ use util::{PrivateLayoutData};
 use cssparser::RGBA;
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLImageElementCast, HTMLInputElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlelement::HTMLElementTypeId;
+use script::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
@@ -109,6 +111,27 @@ pub trait TLayoutNode {
                 Some(elem) => elem.image().as_ref().map(|url| (*url).clone()),
                 None => panic!("not an image!")
             }
+        }
+    }
+
+    fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
+        unsafe {
+            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(self.get_jsmanaged());
+            canvas_element.and_then(|elem| elem.get_renderer())
+        }
+    }
+
+    fn get_canvas_width(&self) -> u32 {
+        unsafe {
+            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(self.get_jsmanaged());
+            canvas_element.unwrap().get_canvas_width()
+        }
+    }
+
+    fn get_canvas_height(&self) -> u32 {
+        unsafe {
+            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(self.get_jsmanaged());
+            canvas_element.unwrap().get_canvas_height()
         }
     }
 

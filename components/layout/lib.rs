@@ -13,12 +13,14 @@
 extern crate log;
 
 extern crate cssparser;
+extern crate canvas;
 extern crate geom;
 extern crate gfx;
 extern crate layout_traits;
 extern crate script;
 extern crate script_traits;
 extern crate serialize;
+extern crate png;
 extern crate style;
 #[phase(plugin)]
 extern crate "plugins" as servo_plugins;

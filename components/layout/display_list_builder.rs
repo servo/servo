@@ -11,6 +11,7 @@
 #![deny(unsafe_blocks)]
 
 use block::BlockFlow;
+use canvas::canvas_paint_task::CanvasMsg::SendPixelContents;
 use context::LayoutContext;
 use flow::{mod, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
 use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};
@@ -32,12 +33,14 @@ use gfx::display_list::TextOrientation;
 use gfx::display_list::{SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, TextDisplayItem};
 use gfx::paint_task::PaintLayer;
+use png;
+use png::PixelsByColorType;
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::image::holder::ImageHolder;
 use servo_util::cursor::Cursor;
-use servo_util::geometry::{mod, Au};
+use servo_util::geometry::{mod, Au, to_px};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::default::Default;
@@ -861,6 +864,37 @@ impl FragmentDisplayListBuilding for Fragment {
                     // TODO: Add some kind of placeholder image.
                     debug!("(building display list) no image :(");
                 }
+            }
+            SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
+                let width = canvas_fragment_info.replaced_image_fragment_info
+                    .computed_inline_size.map_or(0, |w| to_px(w) as uint);
+                let height = canvas_fragment_info.replaced_image_fragment_info
+                    .computed_block_size.map_or(0, |h| to_px(h) as uint);
+
+                let (sender, receiver) = channel::<Arc<Vec<u8>>>();
+                let canvas_data = match canvas_fragment_info.renderer {
+                    Some(ref renderer) =>  {
+                        renderer.deref().lock().send(SendPixelContents(sender));
+                        (*receiver.recv()).clone()
+                    },
+                    None => Vec::from_elem(width * height * 4, 0xFFu8)
+                };
+
+                let canvas_display_item = box ImageDisplayItem {
+                    base: BaseDisplayItem::new(stacking_relative_content_box,
+                                               DisplayItemMetadata::new(self.node,
+                                                                            &*self.style,
+                                                                            Cursor::DefaultCursor),
+                                               (*clip).clone()),
+                    image: Arc::new(box png::Image {
+                        width: width as u32,
+                        height: height as u32,
+                        pixels: PixelsByColorType::RGBA8(canvas_data),
+                    }),
+                    stretch_size: stacking_relative_content_box.size,
+                };
+
+                display_list.content.push_back(DisplayItem::ImageClass(canvas_display_item));
             }
         }
     }
