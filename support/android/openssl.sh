@@ -181,7 +181,7 @@ if [ ! -z "$VERBOSE" ] && [ "$VERBOSE" != "0" ]; then
   echo "ANDROID_DEV: $ANDROID_DEV"
 fi
 
-cd openssl-1.0.1j
+cd openssl-1.0.1k
 perl -pi -e 's/install: all install_docs install_sw/install: install_docs install_sw/g' Makefile.org
 ./config shared -no-ssl2 -no-ssl3 -no-comp -no-hw -no-engine --openssldir=/usr/local/ssl/$ANDROID_API
 make depend
