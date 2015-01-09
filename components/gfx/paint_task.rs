@@ -135,42 +135,6 @@ macro_rules! native_graphics_context(
     )
 )
 
-fn initialize_layers<C>(compositor: &mut C,
-                        pipeline_id: PipelineId,
-                        epoch: Epoch,
-                        root_stacking_context: &StackingContext)
-                        where C: PaintListener {
-    let mut metadata = Vec::new();
-    build(&mut metadata, root_stacking_context, &ZERO_POINT);
-    compositor.initialize_layers_for_pipeline(pipeline_id, metadata, epoch);
-
-    fn build(metadata: &mut Vec<LayerMetadata>,
-             stacking_context: &StackingContext,
-             page_position: &Point2D<Au>) {
-        let page_position = stacking_context.bounds.origin + *page_position;
-        if let Some(ref paint_layer) = stacking_context.layer {
-            // Layers start at the top left of their overflow rect, as far as the info we give to
-            // the compositor is concerned.
-            let overflow_relative_page_position = page_position + stacking_context.overflow.origin;
-            let layer_position =
-                Rect(Point2D(overflow_relative_page_position.x.to_nearest_px() as i32,
-                             overflow_relative_page_position.y.to_nearest_px() as i32),
-                     Size2D(stacking_context.overflow.size.width.to_nearest_px() as i32,
-                            stacking_context.overflow.size.height.to_nearest_px() as i32));
-            metadata.push(LayerMetadata {
-                id: paint_layer.id,
-                position: layer_position,
-                background_color: paint_layer.background_color,
-                scroll_policy: paint_layer.scroll_policy,
-            })
-        }
-
-        for kid in stacking_context.display_list.children.iter() {
-            build(metadata, &**kid, &page_position)
-        }
-    }
-}
-
 impl<C> PaintTask<C> where C: PaintListener + Send {
     pub fn create(id: PipelineId,
                   port: Receiver<Msg>,
@@ -235,7 +199,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
         loop {
             match self.port.recv() {
                 Msg::PaintInit(stacking_context) => {
-                    self.epoch.next();
                     self.root_stacking_context = Some(stacking_context.clone());
 
                     if !self.paint_permission {
@@ -245,10 +208,8 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                         continue;
                     }
 
-                    initialize_layers(&mut self.compositor,
-                                      self.id,
-                                      self.epoch,
-                                      &*stacking_context);
+                    self.epoch.next();
+                    self.initialize_layers();
                 }
                 Msg::Paint(requests) => {
                     if !self.paint_permission {
@@ -297,15 +258,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                 Msg::PaintPermissionGranted => {
                     self.paint_permission = true;
 
-                    match self.root_stacking_context {
-                        None => {}
-                        Some(ref stacking_context) => {
-                            self.epoch.next();
-                            initialize_layers(&mut self.compositor,
-                                              self.id,
-                                              self.epoch,
-                                              &**stacking_context);
-                        }
+                    if self.root_stacking_context.is_some() {
+                        self.epoch.next();
+                        self.initialize_layers();
                     }
                 }
                 Msg::PaintPermissionRevoked => {
@@ -417,6 +372,43 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
             };
             replies.push((layer_id, layer_buffer_set));
         })
+    }
+
+    fn initialize_layers(&mut self) {
+        let root_stacking_context = match self.root_stacking_context {
+            None => return,
+            Some(ref root_stacking_context) => root_stacking_context,
+        };
+
+        let mut metadata = Vec::new();
+        build(&mut metadata, &**root_stacking_context, &ZERO_POINT);
+        self.compositor.initialize_layers_for_pipeline(self.id, metadata, self.epoch);
+
+        fn build(metadata: &mut Vec<LayerMetadata>,
+                 stacking_context: &StackingContext,
+                 page_position: &Point2D<Au>) {
+            let page_position = stacking_context.bounds.origin + *page_position;
+            if let Some(ref paint_layer) = stacking_context.layer {
+                // Layers start at the top left of their overflow rect, as far as the info we give to
+                // the compositor is concerned.
+                let overflow_relative_page_position = page_position + stacking_context.overflow.origin;
+                let layer_position =
+                    Rect(Point2D(overflow_relative_page_position.x.to_nearest_px() as i32,
+                                 overflow_relative_page_position.y.to_nearest_px() as i32),
+                         Size2D(stacking_context.overflow.size.width.to_nearest_px() as i32,
+                                stacking_context.overflow.size.height.to_nearest_px() as i32));
+                metadata.push(LayerMetadata {
+                    id: paint_layer.id,
+                    position: layer_position,
+                    background_color: paint_layer.background_color,
+                    scroll_policy: paint_layer.scroll_policy,
+                })
+            }
+
+            for kid in stacking_context.display_list.children.iter() {
+                build(metadata, &**kid, &page_position)
+            }
+        }
     }
 }
 
