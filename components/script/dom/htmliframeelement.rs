@@ -167,7 +167,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
 
     fn SetSandbox(self, sandbox: DOMString) {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute(&atom!("sandbox"), sandbox);
+        element.set_tokenlist_attribute(&atom!("sandbox"), sandbox);
     }
 
     fn GetContentWindow(self) -> Option<Temporary<Window>> {
@@ -217,16 +217,18 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         match attr.local_name() {
             &atom!("sandbox") => {
                 let mut modes = SandboxAllowance::AllowNothing as u8;
-                for word in attr.value().as_slice().split(' ') {
-                    modes |= match word.to_ascii_lower().as_slice() {
-                        "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
-                        "allow-forms" => SandboxAllowance::AllowForms,
-                        "allow-pointer-lock" => SandboxAllowance::AllowPointerLock,
-                        "allow-popups" => SandboxAllowance::AllowPopups,
-                        "allow-scripts" => SandboxAllowance::AllowScripts,
-                        "allow-top-navigation" => SandboxAllowance::AllowTopNavigation,
-                        _ => SandboxAllowance::AllowNothing
-                    } as u8;
+                if let Some(ref tokens) = attr.value().tokens() {
+                    for token in tokens.iter() {
+                        modes |= match token.as_slice().to_ascii_lower().as_slice() {
+                            "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
+                            "allow-forms" => SandboxAllowance::AllowForms,
+                            "allow-pointer-lock" => SandboxAllowance::AllowPointerLock,
+                            "allow-popups" => SandboxAllowance::AllowPopups,
+                            "allow-scripts" => SandboxAllowance::AllowScripts,
+                            "allow-top-navigation" => SandboxAllowance::AllowTopNavigation,
+                            _ => SandboxAllowance::AllowNothing
+                        } as u8;
+                    }
                 }
                 self.sandbox.set(Some(modes));
             },
