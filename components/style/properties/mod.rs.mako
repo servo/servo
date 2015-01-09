@@ -1218,6 +1218,9 @@ pub mod longhands {
 
     ${single_keyword("text-overflow", "clip ellipsis")}
 
+    // TODO(pcwalton): Support `text-justify: distribute`.
+    ${single_keyword("text-justify", "auto none inter-word")}
+
     ${new_style_struct("Text", is_inherited=False)}
 
     <%self:longhand name="text-decoration">
