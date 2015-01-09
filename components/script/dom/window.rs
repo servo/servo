@@ -311,12 +311,12 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 }
 
-
 pub trait WindowHelpers {
     fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType);
     fn init_browser_context(self, doc: JSRef<Document>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
+    fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>>;
 }
 
 pub trait ScriptHelpers {
@@ -377,6 +377,11 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn handle_fire_timer(self, timer_id: TimerId) {
         self.timers.fire_timer(timer_id, self);
         self.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
+    }
+
+    // https://html.spec.whatwg.org/multipage/browsers.html#accessing-other-browsing-contexts
+    fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>> {
+        None
     }
 }
 

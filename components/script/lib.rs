@@ -62,7 +62,7 @@ pub mod dom {
         pub mod callback;
         pub mod error;
         pub mod conversions;
-        mod proxyhandler;
+        pub mod proxyhandler;
         pub mod str;
         pub mod structuredclone;
         pub mod trace;
