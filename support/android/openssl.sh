@@ -183,6 +183,9 @@ fi
 
 cd openssl-1.0.1k
 perl -pi -e 's/install: all install_docs install_sw/install: install_docs install_sw/g' Makefile.org
-./config shared -no-ssl2 -no-ssl3 -no-comp -no-hw -no-engine --openssldir=/usr/local/ssl/$ANDROID_API
-make depend
-make all
+
+# The code being built isn't maintained by us, so we redirect stderr to stdout
+# so that the warnings don't clutter up buildbot
+./config shared -no-ssl2 -no-ssl3 -no-comp -no-hw -no-engine --openssldir=/usr/local/ssl/$ANDROID_API 2>&1
+make depend 2>&1
+make all 2>&1
