@@ -1478,6 +1478,7 @@ impl Node {
         // Step 1.
         match child.parent_node() {
             Some(ref node) if node != &Temporary::from_rooted(parent) => return Err(NotFound),
+            None => return Err(NotFound),
             _ => ()
         }
 
