@@ -4,6 +4,7 @@
 
 #![feature(default_type_params, globs, macro_rules, phase, unsafe_destructor)]
 
+#![deny(unsafe_blocks)]
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(non_snake_case)]
@@ -51,6 +52,7 @@ pub mod dom {
     pub mod macros;
 
     /// The code to expose the DOM to JavaScript through IDL bindings.
+    #[allow(unsafe_blocks)]
     pub mod bindings {
         pub mod cell;
         pub mod global;

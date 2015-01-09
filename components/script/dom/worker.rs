@@ -80,6 +80,7 @@ impl Worker {
         Ok(Temporary::from_rooted(worker.r()))
     }
 
+    #[allow(unsafe_blocks)]
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: *mut u64, nbytes: size_t) {
         let worker = address.to_temporary().root();
@@ -100,6 +101,7 @@ impl Worker {
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
+    #[allow(unsafe_blocks)]
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
         let mut data = ptr::null_mut();
         let mut nbytes = 0;

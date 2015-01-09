@@ -99,6 +99,7 @@ impl tree_builder::Tracer<TrustedNodeAddress> for Tracer {
 }
 
 impl JSTraceable for ServoHTMLParser {
+    #[allow(unsafe_blocks)]
     fn trace(&self, trc: *mut JSTracer) {
         self.reflector_.trace(trc);
 
