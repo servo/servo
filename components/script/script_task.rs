@@ -18,7 +18,7 @@ use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
-use dom::bindings::refcounted::LiveDOMReferences;
+use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
 use dom::document::{Document, IsHTMLDocument, DocumentHelpers, DocumentSource};
@@ -867,24 +867,23 @@ impl ScriptTask {
         }
 
         // https://html.spec.whatwg.org/multipage/#the-end step 4
-        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".into_string(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
-        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
-        let _ = doctarget.DispatchEvent(event.r());
+        let addr: Trusted<Document> = Trusted::new(self.get_cx(), document.r(), self.chan.clone());
+
+        self.chan.send(ScriptMsg::RunnableMsg(box DocumentProgressHandler {
+            addr: addr.clone(),
+            task: DocumentProgressTask::DOMContentLoaded,
+        }));
 
         // We have no concept of a document loader right now, so just dispatch the
         // "load" event as soon as we've finished executing all scripts parsed during
         // the initial load.
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        document.r().set_ready_state(DocumentReadyState::Complete);
+        self.chan.send(ScriptMsg::RunnableMsg(box DocumentProgressHandler {
+            addr: addr,
+            task: DocumentProgressTask::Load,
+        }));
 
-        let event = Event::new(GlobalRef::Window(window.r()), "load".into_string(),
-                               EventBubbles::DoesNotBubble,
-                               EventCancelable::NotCancelable).root();
-        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
-        let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
 
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 
@@ -1345,4 +1344,56 @@ impl HeaderFormat for LastModified {
 
 fn dom_last_modified(tm: &Tm) -> String {
     format!("{}", tm.to_local().strftime("%m/%d/%Y %H:%M:%S").unwrap())
+}
+
+enum DocumentProgressTask {
+    DOMContentLoaded,
+    Load,
+}
+
+struct DocumentProgressHandler {
+    addr: Trusted<Document>,
+    task: DocumentProgressTask,
+}
+
+impl DocumentProgressHandler {
+    fn dispatch_dom_content_loaded(&self) {
+        let document = self.addr.to_temporary().root();
+        let window = document.r().window().root();
+        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".into_string(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
+        let _ = doctarget.DispatchEvent(event.r());
+    }
+
+    fn set_ready_state_complete(&self) {
+        let document = self.addr.to_temporary().root();
+        document.r().set_ready_state(DocumentReadyState::Complete);
+    }
+
+    fn dispatch_load(&self) {
+        let document = self.addr.to_temporary().root();
+        let window = document.r().window().root();
+        let event = Event::new(GlobalRef::Window(window.r()), "load".into_string(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
+        let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
+        let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
+    }
+}
+
+impl Runnable for DocumentProgressHandler {
+    fn handler(&self) {
+        match self.task {
+            DocumentProgressTask::DOMContentLoaded => {
+                self.dispatch_dom_content_loaded();
+            }
+            DocumentProgressTask::Load => {
+                self.set_ready_state_complete();
+                self.dispatch_load();
+            }
+        }
+    }
 }
