@@ -37,7 +37,9 @@ use servo_util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin};
 use servo_util::range::*;
 use servo_util::smallvec::SmallVec;
 use servo_util::str::is_whitespace;
+use std::borrow::ToOwned;
 use std::cmp::{max, min};
+use std::collections::DList;
 use std::fmt;
 use std::num::ToPrimitive;
 use std::str::FromStr;
@@ -49,6 +51,7 @@ use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::computed_values::{LengthOrPercentageOrNone, clear, mix_blend_mode, overflow_wrap};
 use style::computed_values::{position, text_align, text_decoration, vertical_align, white_space};
 use style::computed_values::{word_break};
+use text::TextRunScanner;
 use url::Url;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
@@ -575,6 +578,14 @@ pub struct SplitResult {
     pub text_run: Arc<Box<TextRun>>,
 }
 
+/// Describes how a fragment should be truncated.
+pub struct TruncationResult {
+    /// The part of the fragment remaining after truncation.
+    pub split: SplitInfo,
+    /// The text run which is being truncated.
+    pub text_run: Arc<Box<TextRun>>,
+}
+
 /// Data for an unscanned text fragment. Unscanned text fragments are the results of flow
 /// construction that have not yet had their inline-size determined.
 #[derive(Clone)]
@@ -778,13 +789,11 @@ impl Fragment {
 
     /// Transforms this fragment into another fragment of the given type, with the given size,
     /// preserving all the other data.
-    pub fn transform(&self, size: LogicalSize<Au>, mut info: Box<ScannedTextFragmentInfo>)
+    pub fn transform(&self, size: LogicalSize<Au>, info: SpecificFragmentInfo)
                      -> Fragment {
         let new_border_box = LogicalRect::from_point_size(self.style.writing_mode,
                                                           self.border_box.start,
                                                           size);
-
-        info.content_size = size.clone();
 
         Fragment {
             node: self.node,
@@ -793,10 +802,35 @@ impl Fragment {
             border_box: new_border_box,
             border_padding: self.border_padding,
             margin: self.margin,
-            specific: SpecificFragmentInfo::ScannedText(info),
+            specific: info,
             inline_context: self.inline_context.clone(),
             debug_id: self.debug_id,
         }
+    }
+
+    /// Transforms this fragment using the given `SplitInfo`, preserving all the other data.
+    pub fn transform_with_split_info(&self,
+                                     split: &SplitInfo,
+                                     text_run: Arc<Box<TextRun>>)
+                                     -> Fragment {
+        let size = LogicalSize::new(self.style.writing_mode,
+                                    split.inline_size,
+                                    self.border_box.size.block);
+        let info = box ScannedTextFragmentInfo::new(text_run, split.range, Vec::new(), size);
+        self.transform(size, SpecificFragmentInfo::ScannedText(info))
+    }
+
+    /// Transforms this fragment into an ellipsis fragment, preserving all the other data.
+    pub fn transform_into_ellipsis(&self, layout_context: &LayoutContext) -> Fragment {
+        let mut unscanned_ellipsis_fragments = DList::new();
+        unscanned_ellipsis_fragments.push_back(self.transform(
+                self.border_box.size,
+                SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(
+                        "…".to_owned()))));
+        let ellipsis_fragments = TextRunScanner::new().scan_for_runs(layout_context.font_context(),
+                                                                     unscanned_ellipsis_fragments);
+        debug_assert!(ellipsis_fragments.len() == 1);
+        ellipsis_fragments.fragments.into_iter().next().unwrap()
     }
 
     pub fn restyle_damage(&self) -> RestyleDamage {
@@ -1349,6 +1383,36 @@ impl Fragment {
                     character_breaking_strategy,
                     max_inline_size,
                     flags)
+            }
+        }
+    }
+
+    /// Truncates this fragment to the given `max_inline_size`, using a character-based breaking
+    /// strategy. If no characters could fit, returns `None`.
+    pub fn truncate_to_inline_size(&self, max_inline_size: Au) -> Option<TruncationResult> {
+        let text_fragment_info =
+            if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
+                text_fragment_info
+            } else {
+                return None
+            };
+
+        let character_breaking_strategy =
+            text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
+        match self.calculate_split_position_using_breaking_strategy(character_breaking_strategy,
+                                                                    max_inline_size,
+                                                                    SplitOptions::empty()) {
+            None => None,
+            Some(split_info) => {
+                match split_info.inline_start {
+                    None => None,
+                    Some(split) => {
+                        Some(TruncationResult {
+                            split: split,
+                            text_run: split_info.text_run.clone(),
+                        })
+                    }
+                }
             }
         }
     }

@@ -1213,6 +1213,8 @@ pub mod longhands {
     // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
     ${single_keyword("word-break", "normal break-all")}
 
+    ${single_keyword("text-overflow", "clip ellipsis")}
+
     ${new_style_struct("Text", is_inherited=False)}
 
     <%self:longhand name="text-decoration">
