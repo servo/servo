@@ -19,7 +19,6 @@ extern crate layers;
 extern crate egl;
 
 use servo_util::opts;
-use servo_util::rtinstrument;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
 
@@ -68,8 +67,6 @@ fn main() {
             browser
         } = browser;
         browser.shutdown();
-
-        rtinstrument::teardown();
     }
 }
 
