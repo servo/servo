@@ -9,10 +9,10 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::error::Error::DataClone;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
@@ -27,13 +27,11 @@ use servo_util::task::spawn_named;
 use servo_util::task_state;
 use servo_util::task_state::{SCRIPT, IN_WORKER};
 
-use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::JSContext;
+use js::jsval::JSVal;
 use js::rust::Cx;
 
 use std::rc::Rc;
-use std::ptr;
 use url::Url;
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
@@ -197,20 +195,12 @@ trait PrivateDedicatedWorkerGlobalScopeHelpers {
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
-    #[allow(unsafe_blocks)]
     fn handle_event(self, msg: ScriptMsg) {
         match msg {
-            ScriptMsg::DOMMessage(data, nbytes) => {
-                let mut message = UndefinedValue();
+            ScriptMsg::DOMMessage(data) => {
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
-                unsafe {
-                    assert!(JS_ReadStructuredClone(
-                        scope.get_cx(), data as *const u64, nbytes,
-                        JS_STRUCTURED_CLONE_VERSION, &mut message,
-                        ptr::null(), ptr::null_mut()) != 0);
-                }
-
                 let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+                let message = data.read(GlobalRef::Worker(scope));
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message);
             },
             ScriptMsg::RunnableMsg(runnable) => {
@@ -230,21 +220,11 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
 }
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
-    #[allow(unsafe_blocks)]
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
-        let mut data = ptr::null_mut();
-        let mut nbytes = 0;
-        let result = unsafe {
-            JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                    ptr::null(), ptr::null_mut())
-        };
-        if result == 0 {
-            unsafe { JS_ClearPendingException(cx); }
-            return Err(DataClone);
-        }
-
+        let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(ScriptMsg::RunnableMsg(box WorkerMessageHandler::new(worker, data, nbytes)));
+        self.parent_sender.send(ScriptMsg::RunnableMsg(
+            box WorkerMessageHandler::new(worker, data)));
         Ok(())
     }
 
