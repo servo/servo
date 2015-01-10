@@ -398,7 +398,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for QuerySelectorIterator<'a> {
 pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator<'a>;
     fn children(self) -> NodeChildrenIterator<'a>;
-    fn rev_children(self) -> ReverseChildrenIterator<'a>;
+    fn rev_children(self) -> ReverseChildrenIterator;
     fn child_elements(self) -> ChildElementIterator<'a>;
     fn following_siblings(self) -> NodeChildrenIterator<'a>;
     fn is_in_doc(self) -> bool;
@@ -816,9 +816,9 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         }
     }
 
-    fn rev_children(self) -> ReverseChildrenIterator<'a> {
+    fn rev_children(self) -> ReverseChildrenIterator {
         ReverseChildrenIterator {
-            current: self.last_child.get().map(|node| *node.root().deref()),
+            current: self.last_child.get().root(),
         }
     }
 
@@ -1022,14 +1022,14 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeChildrenIterator<'a> {
     }
 }
 
-pub struct ReverseChildrenIterator<'a> {
-    current: Option<JSRef<'a, Node>>,
+pub struct ReverseChildrenIterator {
+    current: Option<Root<Node>>,
 }
 
-impl<'a> Iterator<JSRef<'a, Node>> for ReverseChildrenIterator<'a> {
-    fn next(&mut self) -> Option<JSRef<'a, Node>> {
-        let node = self.current;
-        self.current = node.and_then(|node| node.prev_sibling().map(|node| *node.root().deref()));
+impl Iterator<Temporary<Node>> for ReverseChildrenIterator {
+    fn next(&mut self) -> Option<Temporary<Node>> {
+        let node = self.current.r().map(Temporary::from_rooted);
+        self.current = self.current.take().and_then(|node| node.r().prev_sibling()).root();
         node
     }
 }
@@ -1064,7 +1064,9 @@ impl<'a> TreeIterator<'a> {
 impl<'a> Iterator<JSRef<'a, Node>> for TreeIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let ret = self.stack.pop();
-        ret.map(|node| self.stack.extend(node.rev_children()));
+        ret.map(|node| {
+            self.stack.extend(node.rev_children().map(|c| *c.root()))
+        });
         ret
     }
 }
