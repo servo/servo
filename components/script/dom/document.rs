@@ -23,7 +23,7 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter};
 use dom::bindings::error::Error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
 use dom::bindings::utils::xml_name_type;
@@ -395,7 +395,7 @@ pub trait LayoutDocumentHelpers {
     unsafe fn is_html_document_for_layout(&self) -> bool;
 }
 
-impl LayoutDocumentHelpers for JS<Document> {
+impl LayoutDocumentHelpers for LayoutJS<Document> {
     #[allow(unrooted_must_root)]
     #[inline]
     unsafe fn is_html_document_for_layout(&self) -> bool {

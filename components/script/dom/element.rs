@@ -23,7 +23,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLTableRowElementDerived, HTMLTextA
 use dom::bindings::codegen::InheritTypes::{HTMLTableSectionElementDerived, NodeCast};
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NamespaceError, InvalidCharacter, Syntax};
-use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, Root};
 use dom::bindings::utils::xml_name_type;
 use dom::bindings::utils::XMLName::{QName, Name, InvalidXMLName};
@@ -376,13 +376,13 @@ pub trait LayoutElementHelpers {
     unsafe fn has_attr_for_layout(&self, namespace: &Namespace, name: &Atom) -> bool;
 }
 
-impl LayoutElementHelpers for JS<Element> {
+impl LayoutElementHelpers for LayoutJS<Element> {
     #[inline]
     unsafe fn html_element_in_html_document_for_layout(&self) -> bool {
         if (*self.unsafe_get()).namespace != ns!(HTML) {
             return false
         }
-        let node: JS<Node> = self.transmute_copy();
+        let node: LayoutJS<Node> = self.transmute_copy();
         node.owner_doc_for_layout().is_html_document_for_layout()
     }
 

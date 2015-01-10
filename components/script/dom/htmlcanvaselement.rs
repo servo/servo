@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElemen
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary};
+use dom::bindings::js::{MutNullableJS, JSRef, LayoutJS, Temporary};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::{Element, AttributeHandlers};
@@ -68,9 +68,9 @@ pub trait LayoutHTMLCanvasElementHelpers {
     unsafe fn get_canvas_height(&self) -> u32;
 }
 
-impl LayoutHTMLCanvasElementHelpers for JS<HTMLCanvasElement> {
+impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
-        let context = (*self.unsafe_get()).context.get_inner();
+        let context = (*self.unsafe_get()).context.get_inner_as_layout();
         context.map(|cx| cx.get_renderer())
     }
 

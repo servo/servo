@@ -23,7 +23,7 @@ use dom::bindings::conversions;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
+use dom::bindings::js::{JS, JSRef, LayoutJS, RootedReference, Temporary, Root};
 use dom::bindings::js::{TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
 use dom::bindings::trace::JSTraceable;
@@ -914,20 +914,20 @@ pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: Untrusted
 pub trait LayoutNodeHelpers {
     unsafe fn type_id_for_layout(&self) -> NodeTypeId;
 
-    unsafe fn parent_node_ref(&self) -> Option<JS<Node>>;
-    unsafe fn first_child_ref(&self) -> Option<JS<Node>>;
-    unsafe fn last_child_ref(&self) -> Option<JS<Node>>;
-    unsafe fn prev_sibling_ref(&self) -> Option<JS<Node>>;
-    unsafe fn next_sibling_ref(&self) -> Option<JS<Node>>;
+    unsafe fn parent_node_ref(&self) -> Option<LayoutJS<Node>>;
+    unsafe fn first_child_ref(&self) -> Option<LayoutJS<Node>>;
+    unsafe fn last_child_ref(&self) -> Option<LayoutJS<Node>>;
+    unsafe fn prev_sibling_ref(&self) -> Option<LayoutJS<Node>>;
+    unsafe fn next_sibling_ref(&self) -> Option<LayoutJS<Node>>;
 
-    unsafe fn owner_doc_for_layout(&self) -> JS<Document>;
+    unsafe fn owner_doc_for_layout(&self) -> LayoutJS<Document>;
 
     unsafe fn is_element_for_layout(&self) -> bool;
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
     unsafe fn set_flag(self, flag: NodeFlags, value: bool);
 }
 
-impl LayoutNodeHelpers for JS<Node> {
+impl LayoutNodeHelpers for LayoutJS<Node> {
     #[inline]
     unsafe fn type_id_for_layout(&self) -> NodeTypeId {
         (*self.unsafe_get()).type_id
@@ -939,33 +939,33 @@ impl LayoutNodeHelpers for JS<Node> {
     }
 
     #[inline]
-    unsafe fn parent_node_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).parent_node.get_inner()
+    unsafe fn parent_node_ref(&self) -> Option<LayoutJS<Node>> {
+        (*self.unsafe_get()).parent_node.get_inner_as_layout()
     }
 
     #[inline]
-    unsafe fn first_child_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).first_child.get_inner()
+    unsafe fn first_child_ref(&self) -> Option<LayoutJS<Node>> {
+        (*self.unsafe_get()).first_child.get_inner_as_layout()
     }
 
     #[inline]
-    unsafe fn last_child_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).last_child.get_inner()
+    unsafe fn last_child_ref(&self) -> Option<LayoutJS<Node>> {
+        (*self.unsafe_get()).last_child.get_inner_as_layout()
     }
 
     #[inline]
-    unsafe fn prev_sibling_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).prev_sibling.get_inner()
+    unsafe fn prev_sibling_ref(&self) -> Option<LayoutJS<Node>> {
+        (*self.unsafe_get()).prev_sibling.get_inner_as_layout()
     }
 
     #[inline]
-    unsafe fn next_sibling_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).next_sibling.get_inner()
+    unsafe fn next_sibling_ref(&self) -> Option<LayoutJS<Node>> {
+        (*self.unsafe_get()).next_sibling.get_inner_as_layout()
     }
 
     #[inline]
-    unsafe fn owner_doc_for_layout(&self) -> JS<Document> {
-        (*self.unsafe_get()).owner_doc.get_inner().unwrap()
+    unsafe fn owner_doc_for_layout(&self) -> LayoutJS<Document> {
+        (*self.unsafe_get()).owner_doc.get_inner_as_layout().unwrap()
     }
 
     #[inline]

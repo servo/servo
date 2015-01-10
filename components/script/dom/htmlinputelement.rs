@@ -15,7 +15,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInp
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementDerived, HTMLFieldSetElementDerived, EventTargetCast};
 use dom::bindings::codegen::InheritTypes::KeyboardEventCast;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Comparable, JS, JSRef, Root, Temporary, OptionalRootable};
+use dom::bindings::js::{Comparable, JSRef, LayoutJS, Root, Temporary, OptionalRootable};
 use dom::bindings::js::{ResultRootable, RootedReference, MutNullableJS};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{AttributeHandlers, Element};
@@ -140,15 +140,15 @@ pub trait RawLayoutHTMLInputElementHelpers {
     unsafe fn get_size_for_layout(&self) -> u32;
 }
 
-impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
+impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unrooted_must_root)]
     unsafe fn get_value_for_layout(self) -> String {
-        unsafe fn get_raw_textinput_value(input: JS<HTMLInputElement>) -> String {
+        unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> String {
             (*input.unsafe_get()).textinput.borrow_for_layout().get_content()
         }
 
-        unsafe fn get_raw_attr_value(input: JS<HTMLInputElement>) -> Option<String> {
-            let elem: JS<Element> = input.transmute_copy();
+        unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>) -> Option<String> {
+            let elem: LayoutJS<Element> = input.transmute_copy();
             (*elem.unsafe_get()).get_attr_val_for_layout(&ns!(""), &atom!("value"))
                                 .map(|s| s.to_owned())
         }

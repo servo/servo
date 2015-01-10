@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JSRef, LayoutJS, Temporary, OptionalRootable};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::Event;
@@ -58,7 +58,7 @@ pub trait RawLayoutHTMLTextAreaElementHelpers {
     unsafe fn get_rows_for_layout(&self) -> u32;
 }
 
-impl LayoutHTMLTextAreaElementHelpers for JS<HTMLTextAreaElement> {
+impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     unsafe fn get_value_for_layout(self) -> String {
         (*self.unsafe_get()).textinput.borrow_for_layout().get_content()
