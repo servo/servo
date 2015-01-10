@@ -359,7 +359,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
 }
 
 impl Runnable for Trusted<HTMLScriptElement> {
-    fn handler(&self) {
+    fn handler(self: Box<Trusted<HTMLScriptElement>>) {
         let target = self.to_temporary().root();
         target.r().dispatch_load_event();
     }
