@@ -92,19 +92,19 @@ dependencies = [
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "script_traits 0.0.1",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
 [[package]]
 name = "cookie"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "openssl 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -285,7 +285,7 @@ dependencies = [
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "style 0.0.1",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -395,10 +395,10 @@ source = "git+https://github.com/servo/html5ever#d35dfaaf0d85007057a299afc370d07
 
 [[package]]
 name = "hyper"
-version = "0.1.0"
-source = "git+https://github.com/servo/hyper?branch=servo#248a6f29086baa841eb30c88540dca3196accae4"
+version = "0.1.1"
+source = "git+https://github.com/servo/hyper?branch=servo#7f48a7e945180a4f762dc75236210d20a69b4a6a"
 dependencies = [
- "cookie 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cookie 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mucell 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -407,7 +407,7 @@ dependencies = [
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "unsafe-any 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -472,7 +472,7 @@ dependencies = [
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
  "style 0.0.1",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -533,11 +533,11 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
+ "hyper 0.1.1 (git+https://github.com/servo/hyper?branch=servo)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "style 0.0.1",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -551,12 +551,12 @@ name = "net"
 version = "0.0.1"
 dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
- "openssl 0.2.4 (git+https://github.com/sfackler/rust-openssl)",
+ "hyper 0.1.1 (git+https://github.com/servo/hyper?branch=servo)",
+ "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -647,7 +647,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "html5ever 0.0.0 (git+https://github.com/servo/html5ever)",
- "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
+ "hyper 0.1.1 (git+https://github.com/servo/hyper?branch=servo)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "msg 0.0.1",
  "net 0.0.1",
@@ -657,7 +657,7 @@ dependencies = [
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
  "style 0.0.1",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.1.7 (git+https://github.com/rust-lang/uuid)",
 ]
@@ -670,7 +670,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "msg 0.0.1",
  "net 0.0.1",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -688,7 +688,7 @@ dependencies = [
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "script 0.0.1",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -739,7 +739,7 @@ dependencies = [
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
  "text_writer 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -772,7 +772,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "url"
-version = "0.2.16"
+version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -792,7 +792,7 @@ dependencies = [
  "task_info 0.0.1",
  "text_writer 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
