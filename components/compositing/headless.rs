@@ -90,7 +90,11 @@ impl CompositorEventListener for NullCompositor {
                 response_chan.send(());
             }
 
-            Msg::FrameTreeUpdate(_, response_channel) => {
+            Msg::ChangeLayerPipelineAndRemoveChildren(_, _, response_channel) => {
+                response_channel.send(());
+            }
+
+            Msg::CreateRootLayerForPipeline(_, _, _, response_channel) => {
                 response_channel.send(());
             }
 
