@@ -13,6 +13,7 @@ use dom::bindings::error::Error::DataClone;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::Reflectable;
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
@@ -200,12 +201,12 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
     #[allow(unsafe_blocks)]
     fn handle_event(self, msg: ScriptMsg) {
         match msg {
-            ScriptMsg::DOMMessage(data, nbytes) => {
+            ScriptMsg::DOMMessage(data) => {
                 let mut message = UndefinedValue();
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 unsafe {
                     assert!(JS_ReadStructuredClone(
-                        scope.get_cx(), data as *const u64, nbytes,
+                        scope.get_cx(), data.data as *const u64, data.nbytes,
                         JS_STRUCTURED_CLONE_VERSION, &mut message,
                         ptr::null(), ptr::null_mut()) != 0);
                 }
@@ -242,9 +243,14 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
             unsafe { JS_ClearPendingException(cx); }
             return Err(DataClone);
         }
+        let data = StructuredCloneData {
+            data: data,
+            nbytes: nbytes,
+        };
 
         let worker = self.worker.borrow().as_ref().unwrap().clone();
-        self.parent_sender.send(ScriptMsg::RunnableMsg(box WorkerMessageHandler::new(worker, data, nbytes)));
+        self.parent_sender.send(ScriptMsg::RunnableMsg(
+            box WorkerMessageHandler::new(worker, data)));
         Ok(())
     }
 

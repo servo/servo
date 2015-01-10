@@ -11,6 +11,7 @@ use dom::bindings::error::Error::{Syntax, DataClone};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -26,7 +27,6 @@ use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPending
 use js::jsval::{JSVal, UndefinedValue};
 use url::UrlParser;
 
-use libc::size_t;
 use std::cell::Cell;
 use std::ptr;
 
@@ -82,7 +82,7 @@ impl Worker {
 
     #[allow(unsafe_blocks)]
     pub fn handle_message(address: TrustedWorkerAddress,
-                          data: *mut u64, nbytes: size_t) {
+                          data: StructuredCloneData) {
         let worker = address.to_temporary().root();
 
         let global = worker.r().global.root();
@@ -90,7 +90,7 @@ impl Worker {
         let mut message = UndefinedValue();
         unsafe {
             assert!(JS_ReadStructuredClone(
-                global.r().get_cx(), data as *const u64, nbytes,
+                global.r().get_cx(), data.data as *const u64, data.nbytes,
                 JS_STRUCTURED_CLONE_VERSION, &mut message,
                 ptr::null(), ptr::null_mut()) != 0);
         }
@@ -113,9 +113,13 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
             unsafe { JS_ClearPendingException(cx); }
             return Err(DataClone);
         }
+        let data = StructuredCloneData {
+            data: data,
+            nbytes: nbytes,
+        };
 
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
-        self.sender.send((address, ScriptMsg::DOMMessage(data, nbytes)));
+        self.sender.send((address, ScriptMsg::DOMMessage(data)));
         Ok(())
     }
 
@@ -124,22 +128,20 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
 
 pub struct WorkerMessageHandler {
     addr: TrustedWorkerAddress,
-    data: *mut u64,
-    nbytes: size_t
+    data: StructuredCloneData,
 }
 
 impl WorkerMessageHandler {
-    pub fn new(addr: TrustedWorkerAddress, data: *mut u64, nbytes: size_t) -> WorkerMessageHandler {
+    pub fn new(addr: TrustedWorkerAddress, data: StructuredCloneData) -> WorkerMessageHandler {
         WorkerMessageHandler {
             addr: addr,
             data: data,
-            nbytes: nbytes,
         }
     }
 }
 
 impl Runnable for WorkerMessageHandler {
     fn handler(&self){
-        Worker::handle_message(self.addr.clone(), self.data, self.nbytes);
+        Worker::handle_message(self.addr.clone(), self.data);
     }
 }
