@@ -4837,12 +4837,11 @@ class FakeMember():
         return None
 
 class CallbackMember(CGNativeMember):
-    def __init__(self, sig, name, descriptorProvider, needThisHandling, rethrowContentException=False):
+    def __init__(self, sig, name, descriptorProvider, needThisHandling):
         """
         needThisHandling is True if we need to be able to accept a specified
         thisObj, False otherwise.
         """
-        assert not rethrowContentException or not needThisHandling
 
         self.retvalType = sig[0]
         self.originalSig = sig
@@ -4861,7 +4860,6 @@ class CallbackMember(CGNativeMember):
         # If needThisHandling, we generate ourselves as private and the caller
         # will handle generating public versions that handle the "this" stuff.
         visibility = "priv" if needThisHandling else "pub"
-        self.rethrowContentException = rethrowContentException
         # We don't care, for callback codegen, whether our original member was
         # a method or attribute or whatnot.  Just always pass FakeMember()
         # here.
@@ -4984,11 +4982,8 @@ class CallbackMember(CGNativeMember):
         if not self.needThisHandling:
             # Since we don't need this handling, we're the actual method that
             # will be called, so we need an aRethrowExceptions argument.
-            if self.rethrowContentException:
-                args.append(Argument("JSCompartment*", "aCompartment", "nullptr"))
-            else:
-                args.append(Argument("ExceptionHandling", "aExceptionHandling",
-                                     "ReportExceptions"))
+            args.append(Argument("ExceptionHandling", "aExceptionHandling",
+                                 "ReportExceptions"))
             return args
         # We want to allow the caller to pass in a "this" object, as
         # well as a JSContext.
@@ -4999,22 +4994,12 @@ class CallbackMember(CGNativeMember):
         if self.needThisHandling:
             # It's been done for us already
             return ""
-        callSetup = "CallSetup s(CallbackPreserveColor(), aRv"
-        if self.rethrowContentException:
-            # getArgs doesn't add the aExceptionHandling argument but does add
-            # aCompartment for us.
-            callSetup += ", RethrowContentExceptions, aCompartment"
-        else:
-            callSetup += ", aExceptionHandling"
-        callSetup += ");"
-        return string.Template(
-            "${callSetup}\n"
+        return (
+            "CallSetup s(CallbackPreserveColor(), aRv, aExceptionHandling);\n"
             "JSContext* cx = s.GetContext();\n"
             "if (!cx) {\n"
             "    return Err(FailureUnknown);\n"
-            "}\n").substitute({
-                "callSetup": callSetup,
-            })
+            "}\n")
 
     def getArgcDecl(self):
         return CGGeneric("let mut argc = %s as u32;" % self.argCountStr);
@@ -5035,9 +5020,9 @@ class CallbackMember(CGNativeMember):
                                idlObject.location))
 
 class CallbackMethod(CallbackMember):
-    def __init__(self, sig, name, descriptorProvider, needThisHandling, rethrowContentException=False):
+    def __init__(self, sig, name, descriptorProvider, needThisHandling):
         CallbackMember.__init__(self, sig, name, descriptorProvider,
-                                needThisHandling, rethrowContentException)
+                                needThisHandling)
     def getRvalDecl(self):
         return "let mut rval = UndefinedValue();\n"
 
@@ -5076,10 +5061,10 @@ class CallbackOperationBase(CallbackMethod):
     """
     Common class for implementing various callback operations.
     """
-    def __init__(self, signature, jsName, nativeName, descriptor, singleOperation, rethrowContentException=False):
+    def __init__(self, signature, jsName, nativeName, descriptor, singleOperation):
         self.singleOperation = singleOperation
         self.methodName = jsName
-        CallbackMethod.__init__(self, signature, nativeName, descriptor, singleOperation, rethrowContentException)
+        CallbackMethod.__init__(self, signature, nativeName, descriptor, singleOperation)
 
     def getThisObj(self):
         if not self.singleOperation:
@@ -5117,8 +5102,7 @@ class CallbackOperation(CallbackOperationBase):
         jsName = method.identifier.name
         CallbackOperationBase.__init__(self, signature,
                                        jsName, MakeNativeName(jsName),
-                                       descriptor, descriptor.interface.isSingleOperationInterface(),
-                                       rethrowContentException=descriptor.interface.isJSImplemented())
+                                       descriptor, descriptor.interface.isSingleOperationInterface())
 
 class CallbackGetter(CallbackMember):
     def __init__(self, attr, descriptor):
@@ -5128,8 +5112,7 @@ class CallbackGetter(CallbackMember):
                                 (attr.type, []),
                                 callbackGetterName(attr),
                                 descriptor,
-                                needThisHandling=False,
-                                rethrowContentException=descriptor.interface.isJSImplemented())
+                                needThisHandling=False)
 
     def getRvalDecl(self):
         return "JS::Rooted<JS::Value> rval(cx, JS::UndefinedValue());\n"
@@ -5152,8 +5135,7 @@ class CallbackSetter(CallbackMember):
                                  [FakeArgument(attr.type, attr)]),
                                 callbackSetterName(attr),
                                 descriptor,
-                                needThisHandling=False,
-                                rethrowContentException=descriptor.interface.isJSImplemented())
+                                needThisHandling=False)
 
     def getRvalDecl(self):
         # We don't need an rval

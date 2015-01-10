@@ -20,10 +20,6 @@ use std::ptr;
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
     ReportExceptions,
-    /// Throw an exception to the caller code if the thrown exception is a
-    /// binding object for a DOMError from the caller's scope, otherwise report
-    /// it.
-    RethrowContentExceptions,
     /// Throw any exception to the caller code.
     RethrowExceptions
 }
