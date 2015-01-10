@@ -64,6 +64,7 @@ pub mod dom {
         pub mod conversions;
         mod proxyhandler;
         pub mod str;
+        pub mod structuredclone;
         pub mod trace;
 
         /// Generated JS-Rust bindings.

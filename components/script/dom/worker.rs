@@ -7,10 +7,11 @@ use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, ErrorResult};
-use dom::bindings::error::Error::{Syntax, DataClone};
+use dom::bindings::error::Error::Syntax;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -20,15 +21,11 @@ use script_task::{ScriptChan, ScriptMsg, Runnable};
 
 use servo_util::str::DOMString;
 
-use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::JSContext;
-use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::JSVal;
 use url::UrlParser;
 
-use libc::size_t;
 use std::cell::Cell;
-use std::ptr;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -80,42 +77,23 @@ impl Worker {
         Ok(Temporary::from_rooted(worker.r()))
     }
 
-    #[allow(unsafe_blocks)]
     pub fn handle_message(address: TrustedWorkerAddress,
-                          data: *mut u64, nbytes: size_t) {
+                          data: StructuredCloneData) {
         let worker = address.to_temporary().root();
 
         let global = worker.r().global.root();
-
-        let mut message = UndefinedValue();
-        unsafe {
-            assert!(JS_ReadStructuredClone(
-                global.r().get_cx(), data as *const u64, nbytes,
-                JS_STRUCTURED_CLONE_VERSION, &mut message,
-                ptr::null(), ptr::null_mut()) != 0);
-        }
-
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
+
+        let message = data.read(global.r());
         MessageEvent::dispatch_jsval(target, global.r(), message);
     }
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
-    #[allow(unsafe_blocks)]
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
-        let mut data = ptr::null_mut();
-        let mut nbytes = 0;
-        let result = unsafe {
-            JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                    ptr::null(), ptr::null_mut())
-        };
-        if result == 0 {
-            unsafe { JS_ClearPendingException(cx); }
-            return Err(DataClone);
-        }
-
+        let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
-        self.sender.send((address, ScriptMsg::DOMMessage(data, nbytes)));
+        self.sender.send((address, ScriptMsg::DOMMessage(data)));
         Ok(())
     }
 
@@ -124,22 +102,20 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
 
 pub struct WorkerMessageHandler {
     addr: TrustedWorkerAddress,
-    data: *mut u64,
-    nbytes: size_t
+    data: StructuredCloneData,
 }
 
 impl WorkerMessageHandler {
-    pub fn new(addr: TrustedWorkerAddress, data: *mut u64, nbytes: size_t) -> WorkerMessageHandler {
+    pub fn new(addr: TrustedWorkerAddress, data: StructuredCloneData) -> WorkerMessageHandler {
         WorkerMessageHandler {
             addr: addr,
             data: data,
-            nbytes: nbytes,
         }
     }
 }
 
 impl Runnable for WorkerMessageHandler {
     fn handler(&self){
-        Worker::handle_message(self.addr.clone(), self.data, self.nbytes);
+        Worker::handle_message(self.addr.clone(), self.data);
     }
 }
