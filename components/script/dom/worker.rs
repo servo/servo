@@ -21,14 +21,11 @@ use script_task::{ScriptChan, ScriptMsg, Runnable};
 
 use servo_util::str::DOMString;
 
-use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::JSContext;
-use js::jsapi::JS_ReadStructuredClone;
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsval::JSVal;
 use url::UrlParser;
 
 use std::cell::Cell;
-use std::ptr;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -80,22 +77,14 @@ impl Worker {
         Ok(Temporary::from_rooted(worker.r()))
     }
 
-    #[allow(unsafe_blocks)]
     pub fn handle_message(address: TrustedWorkerAddress,
                           data: StructuredCloneData) {
         let worker = address.to_temporary().root();
 
         let global = worker.r().global.root();
-
-        let mut message = UndefinedValue();
-        unsafe {
-            assert!(JS_ReadStructuredClone(
-                global.r().get_cx(), data.data as *const u64, data.nbytes,
-                JS_STRUCTURED_CLONE_VERSION, &mut message,
-                ptr::null(), ptr::null_mut()) != 0);
-        }
-
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
+
+        let message = data.read(global.r());
         MessageEvent::dispatch_jsval(target, global.r(), message);
     }
 }

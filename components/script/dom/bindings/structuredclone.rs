@@ -4,10 +4,13 @@
 
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::DataClone;
+use dom::bindings::global::GlobalRef;
 
+use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::JSContext;
 use js::jsapi::{JS_WriteStructuredClone, JS_ClearPendingException};
-use js::jsval::JSVal;
+use js::jsapi::JS_ReadStructuredClone;
+use js::jsval::{JSVal, UndefinedValue};
 
 use libc::size_t;
 use std::ptr;
@@ -36,5 +39,16 @@ impl StructuredCloneData {
             data: data,
             nbytes: nbytes,
         })
+    }
+
+    pub fn read(self, global: GlobalRef) -> JSVal {
+        let mut message = UndefinedValue();
+        unsafe {
+            assert!(JS_ReadStructuredClone(
+                global.get_cx(), self.data as *const u64, self.nbytes,
+                JS_STRUCTURED_CLONE_VERSION, &mut message,
+                ptr::null(), ptr::null_mut()) != 0);
+        }
+        message
     }
 }

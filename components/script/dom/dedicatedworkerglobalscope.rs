@@ -27,13 +27,11 @@ use servo_util::task::spawn_named;
 use servo_util::task_state;
 use servo_util::task_state::{SCRIPT, IN_WORKER};
 
-use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_ReadStructuredClone};
-use js::jsval::{JSVal, UndefinedValue};
+use js::jsapi::JSContext;
+use js::jsval::JSVal;
 use js::rust::Cx;
 
 use std::rc::Rc;
-use std::ptr;
 use url::Url;
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
@@ -197,20 +195,12 @@ trait PrivateDedicatedWorkerGlobalScopeHelpers {
 }
 
 impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerGlobalScope> {
-    #[allow(unsafe_blocks)]
     fn handle_event(self, msg: ScriptMsg) {
         match msg {
             ScriptMsg::DOMMessage(data) => {
-                let mut message = UndefinedValue();
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
-                unsafe {
-                    assert!(JS_ReadStructuredClone(
-                        scope.get_cx(), data.data as *const u64, data.nbytes,
-                        JS_STRUCTURED_CLONE_VERSION, &mut message,
-                        ptr::null(), ptr::null_mut()) != 0);
-                }
-
                 let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
+                let message = data.read(GlobalRef::Worker(scope));
                 MessageEvent::dispatch_jsval(target, GlobalRef::Worker(scope), message);
             },
             ScriptMsg::RunnableMsg(runnable) => {
