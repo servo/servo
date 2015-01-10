@@ -5,7 +5,7 @@
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver};
 use compositor_task::{CompositorTask, LayerProperties, Msg};
-use constellation::{FrameId, FrameTreeDiff, SendableFrameTree};
+use constellation::{FrameId, SendableFrameTree};
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
 use windowing;
@@ -289,9 +289,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.send_viewport_rects_for_all_layers();
             }
 
-            (Msg::FrameTreeUpdate(frame_tree_diff, response_channel),
+            (Msg::ChangeLayerPipelineAndRemoveChildren(old_pipeline, new_pipeline, response_channel),
              ShutdownState::NotShuttingDown) => {
-                self.update_frame_tree(&frame_tree_diff);
+                self.handle_change_layer_pipeline_and_remove_children(old_pipeline, new_pipeline);
+                response_channel.send(());
+            }
+
+            (Msg::CreateRootLayerForPipeline(parent_pipeline, pipeline, rect, response_channel),
+             ShutdownState::NotShuttingDown) => {
+                self.handle_create_root_layer_for_pipeline(parent_pipeline, pipeline, rect);
                 response_channel.send(());
             }
 
@@ -534,8 +540,41 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         return root_layer;
     }
 
-    fn update_frame_tree(&mut self, frame_tree_diff: &FrameTreeDiff) {
-        let pipeline_id = frame_tree_diff.parent_pipeline.id;
+    fn handle_change_layer_pipeline_and_remove_children(&mut self,
+                                                        old_pipeline: CompositionPipeline,
+                                                        new_pipeline: CompositionPipeline) {
+        let root_layer = match self.find_pipeline_root_layer(old_pipeline.id) {
+            Some(root_layer) => root_layer,
+            None => {
+                debug!("Ignoring ChangeLayerPipelineAndRemoveChildren message for pipeline ({}) shutting down.",
+                       old_pipeline.id);
+                return;
+            }
+        };
+
+        root_layer.clear_all_tiles(self);
+        root_layer.children().clear();
+
+        let new_pipeline_id = new_pipeline.id;
+        self.get_or_create_pipeline_details(new_pipeline_id).pipeline = Some(new_pipeline);
+    }
+
+    fn handle_create_root_layer_for_pipeline(&mut self,
+                                             parent_pipeline: CompositionPipeline,
+                                             new_pipeline: CompositionPipeline,
+                                             frame_rect: Option<TypedRect<PagePx, f32>>) {
+        let root_layer = self.create_root_layer_for_pipeline_and_rect(&new_pipeline, frame_rect);
+        match frame_rect {
+            Some(ref frame_rect) => {
+                *root_layer.masks_to_bounds.borrow_mut() = true;
+
+                let frame_rect = frame_rect.to_untyped();
+                *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
+            }
+            None => {}
+        }
+
+        let pipeline_id = parent_pipeline.id;
         let parent_layer = match self.find_pipeline_root_layer(pipeline_id) {
             Some(root_layer) => root_layer,
             None => {
@@ -544,9 +583,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 return;
             }
         };
-        parent_layer.add_child(
-            self.create_root_layer_for_pipeline_and_rect(&frame_tree_diff.pipeline,
-                                                         frame_tree_diff.rect));
+        parent_layer.add_child(root_layer);
     }
 
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Option<Rc<Layer<CompositorData>>> {
@@ -683,7 +720,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(ref layer) => {
                 layer.bounds.borrow_mut().origin = Point2D::from_untyped(&new_origin)
             }
-            None => panic!("Compositor received SetLayerOrigin for nonexistent layer"),
+            None => panic!("Compositor received SetLayerOrigin for nonexistent layer: {}", pipeline_id),
         };
 
         self.send_buffer_requests_for_all_layers();

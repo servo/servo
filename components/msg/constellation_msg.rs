@@ -203,7 +203,7 @@ pub enum Msg {
     LoadComplete,
     FrameRect(PipelineId, SubpageId, Rect<f32>),
     LoadUrl(PipelineId, LoadData),
-    ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, IFrameSandboxState),
+    ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
     Navigate(NavigationDirection),
     PainterReady(PipelineId),
     ResizedWindow(WindowSizeData),
