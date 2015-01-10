@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::error::{Fallible, ErrorResult};
-use dom::bindings::error::Error::{Syntax, DataClone};
+use dom::bindings::error::Error::Syntax;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::refcounted::Trusted;
@@ -23,7 +23,7 @@ use servo_util::str::DOMString;
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::JSContext;
-use js::jsapi::{JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
+use js::jsapi::JS_ReadStructuredClone;
 use js::jsval::{JSVal, UndefinedValue};
 use url::UrlParser;
 
@@ -101,23 +101,8 @@ impl Worker {
 }
 
 impl<'a> WorkerMethods for JSRef<'a, Worker> {
-    #[allow(unsafe_blocks)]
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
-        let mut data = ptr::null_mut();
-        let mut nbytes = 0;
-        let result = unsafe {
-            JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                    ptr::null(), ptr::null_mut())
-        };
-        if result == 0 {
-            unsafe { JS_ClearPendingException(cx); }
-            return Err(DataClone);
-        }
-        let data = StructuredCloneData {
-            data: data,
-            nbytes: nbytes,
-        };
-
+        let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
         self.sender.send((address, ScriptMsg::DOMMessage(data)));
         Ok(())

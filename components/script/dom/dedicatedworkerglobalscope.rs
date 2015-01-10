@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::InheritTypes::DedicatedWorkerGlobalScopeDerived;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, WorkerGlobalScopeCast};
 use dom::bindings::error::ErrorResult;
-use dom::bindings::error::Error::DataClone;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
@@ -29,7 +28,7 @@ use servo_util::task_state;
 use servo_util::task_state::{SCRIPT, IN_WORKER};
 
 use js::glue::JS_STRUCTURED_CLONE_VERSION;
-use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_WriteStructuredClone, JS_ClearPendingException};
+use js::jsapi::{JSContext, JS_ReadStructuredClone};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::Cx;
 
@@ -231,23 +230,8 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
 }
 
 impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalScope> {
-    #[allow(unsafe_blocks)]
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
-        let mut data = ptr::null_mut();
-        let mut nbytes = 0;
-        let result = unsafe {
-            JS_WriteStructuredClone(cx, message, &mut data, &mut nbytes,
-                                    ptr::null(), ptr::null_mut())
-        };
-        if result == 0 {
-            unsafe { JS_ClearPendingException(cx); }
-            return Err(DataClone);
-        }
-        let data = StructuredCloneData {
-            data: data,
-            nbytes: nbytes,
-        };
-
+        let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         self.parent_sender.send(ScriptMsg::RunnableMsg(
             box WorkerMessageHandler::new(worker, data)));
