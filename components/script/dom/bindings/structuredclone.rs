@@ -15,11 +15,9 @@ use js::jsval::{JSVal, UndefinedValue};
 use libc::size_t;
 use std::ptr;
 
-#[allow(raw_pointer_deriving)]
-#[deriving(Copy)]
 pub struct StructuredCloneData {
-    pub data: *mut u64,
-    pub nbytes: size_t,
+    data: *mut u64,
+    nbytes: size_t,
 }
 
 impl StructuredCloneData {
