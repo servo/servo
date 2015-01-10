@@ -7,16 +7,15 @@ use std::mem::size_of;
 use std::mem::transmute;
 use std::mem::zeroed;
 use std::os::errno;
+use std::os::unix::AsRawFd;
 use std::num::Float;
+use std::io::File;
 
 use geom::point::TypedPoint2D;
 
 use libc::c_int;
 use libc::c_long;
 use libc::time_t;
-use libc::open;
-use libc::read;
-use libc::O_RDONLY;
 
 use compositing::windowing::WindowEvent;
 use compositing::windowing::MouseWindowEvent;
@@ -87,23 +86,25 @@ fn dist(x1: i32, x2: i32, y1: i32, y2: i32) -> f32 {
 
 fn read_input_device(device_path: &Path,
                      sender: &Sender<WindowEvent>) {
-    // XXX we really want to use std::io:File but it currently doesn't expose
-    // the raw FD which is necessary for ioctl.
-    let device = unsafe { device_path.as_str().unwrap().with_c_str(|s| open(s, O_RDONLY, 0)) };
-    if device == -1 {
-        panic!("Couldn't open {}", device_path.as_str().unwrap());
-    }
+    let mut device = match File::open(device_path) {
+        Ok(dev) => dev,
+        Err(e) => {
+            println!("Couldn't open device! {}", e);
+            return;
+        },
+    };
+    let fd = device.as_raw_fd();
 
     let mut xInfo: linux_input_absinfo = unsafe { zeroed() };
     let mut yInfo: linux_input_absinfo = unsafe { zeroed() };
     unsafe {
-        let ret = ioctl(device, ev_ioc_g_abs(ABS_MT_POSITION_X), &xInfo);
+        let ret = ioctl(fd, ev_ioc_g_abs(ABS_MT_POSITION_X), &xInfo);
         if ret < 0 {
             println!("Couldn't get ABS_MT_POSITION_X info {} {}", ret, errno());
         }
     }
     unsafe {
-        let ret = ioctl(device, ev_ioc_g_abs(ABS_MT_POSITION_Y), &yInfo);
+        let ret = ioctl(fd, ev_ioc_g_abs(ABS_MT_POSITION_Y), &yInfo);
         if ret < 0 {
             println!("Couldn't get ABS_MT_POSITION_Y info {} {}", ret, errno());
         }
@@ -133,16 +134,19 @@ fn read_input_device(device_path: &Path,
     // XXX: Need to use the real dimensions of the screen
     let screen_dist = dist(0, 480, 854, 0);
     loop {
-        let read = unsafe { read(device, transmute(buf.as_mut_ptr()), buf.len() as u32) };
+        let read = match device.read(buf.as_mut_slice()) {
+            Ok(count) => {
+                assert!(count % size_of::<linux_input_event>() == 0,
+                        "Unexpected input device read length!");
+                count
+            },
+            Err(e) => {
+                println!("Couldn't read device! {}", e);
+                return;
+            }
+        };
 
-        if read < 0 {
-            println!("Couldn't read device! error {}", read);
-            return;
-        }
-        assert!(read % (size_of::<linux_input_event>() as i32) == 0,
-                "Unexpected input device read length!");
-
-        let count = read / (size_of::<linux_input_event>() as i32);
+        let count = read / size_of::<linux_input_event>();
         let events: *mut linux_input_event = unsafe { transmute(buf.as_mut_ptr()) };
         let mut tracking_updated = false;
         for idx in range(0, count as int) {
