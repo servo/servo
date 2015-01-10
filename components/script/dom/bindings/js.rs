@@ -129,7 +129,24 @@ pub struct JS<T> {
     ptr: NonZero<*const T>
 }
 
+impl<T> JS<T> {
+    /// Returns `LayoutJS<T>` containing the same pointer.
+    fn to_layout(self) -> LayoutJS<T> {
+        LayoutJS {
+            ptr: self.ptr.clone()
+        }
+    }
+}
+
+/// This is specialized `JS<T>` to use in under `layout` crate.
+/// `Layout*Helpers` traits must be implemented on this.
+pub struct LayoutJS<T> {
+    ptr: NonZero<*const T>
+}
+
 impl<T> Copy for JS<T> {}
+
+impl<T> Copy for LayoutJS<T> {}
 
 impl<T> PartialEq for JS<T> {
     #[allow(unrooted_must_root)]
@@ -138,10 +155,26 @@ impl<T> PartialEq for JS<T> {
     }
 }
 
+impl<T> PartialEq for LayoutJS<T> {
+    #[allow(unrooted_must_root)]
+    fn eq(&self, other: &LayoutJS<T>) -> bool {
+        self.ptr == other.ptr
+    }
+}
+
 impl <T> Clone for JS<T> {
     #[inline]
     fn clone(&self) -> JS<T> {
         JS {
+            ptr: self.ptr.clone()
+        }
+    }
+}
+
+impl <T> Clone for LayoutJS<T> {
+    #[inline]
+    fn clone(&self) -> LayoutJS<T> {
+        LayoutJS {
             ptr: self.ptr.clone()
         }
     }
@@ -191,6 +224,15 @@ impl<U: Reflectable> JS<U> {
 //XXXjdm This is disappointing. This only gets called from trace hooks, in theory,
 //       so it's safe to assume that self is rooted and thereby safe to access.
 impl<T: Reflectable> Reflectable for JS<T> {
+    fn reflector<'a>(&'a self) -> &'a Reflector {
+        unsafe {
+            (*self.unsafe_get()).reflector()
+        }
+    }
+}
+
+// XXXjdm same above
+impl<T: Reflectable> Reflectable for LayoutJS<T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         unsafe {
             (*self.unsafe_get()).reflector()
@@ -296,6 +338,12 @@ impl<T: Reflectable> MutNullableJS<T> {
         self.ptr.get()
     }
 
+    /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
+    /// For use by layout, which can't use safe types like Temporary.
+    pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
+        self.get_inner().map(|js| js.to_layout())
+    }
+
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
     pub fn or_init<F>(&self, cb: F) -> Temporary<T>
@@ -313,9 +361,8 @@ impl<T: Reflectable> MutNullableJS<T> {
 }
 
 impl<T: Reflectable> JS<T> {
-    /// Returns an unsafe pointer to the interior of this object. This is the
-    /// only method that be safely accessed from layout. (The fact that this is
-    /// unsafe is what necessitates the layout wrappers.)
+    /// Returns an unsafe pointer to the interior of this object.
+    /// This should only be used by the DOM bindings.
     pub unsafe fn unsafe_get(&self) -> *const T {
         *self.ptr
     }
@@ -325,6 +372,15 @@ impl<T: Reflectable> JS<T> {
     /// so this unrooted value becomes transitively rooted for the lifetime of its new owner.
     pub fn assign(&mut self, val: Temporary<T>) {
         *self = unsafe { val.inner() };
+    }
+}
+
+impl<T: Reflectable> LayoutJS<T> {
+    /// Returns an unsafe pointer to the interior of this JS object without touching the borrow
+    /// flags. This is the only method that be safely accessed from layout. (The fact that this
+    /// is unsafe is what necessitates the layout wrappers.)
+    pub unsafe fn unsafe_get(&self) -> *const T {
+        *self.ptr
     }
 }
 
@@ -341,6 +397,12 @@ impl<From> JS<From> {
     }
 }
 
+impl<From> LayoutJS<From> {
+    /// Return `self` as a `LayoutJS` of another type.
+    pub unsafe fn transmute_copy<To>(&self) -> LayoutJS<To> {
+        mem::transmute_copy(self)
+    }
+}
 
 /// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
