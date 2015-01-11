@@ -62,9 +62,11 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     fn GetCaption(self) -> Option<Temporary<HTMLTableCaptionElement>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.children()
-            .filter_map::<JSRef<HTMLTableCaptionElement>>(HTMLTableCaptionElementCast::to_ref)
+            .map(|c| c.root())
+            .filter_map(|c| {
+                HTMLTableCaptionElementCast::to_ref(c.r()).map(Temporary::from_rooted)
+            })
             .next()
-            .map(Temporary::from_rooted)
     }
 
     // http://www.whatwg.org/html/#dom-table-caption

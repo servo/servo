@@ -64,7 +64,6 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
             NodeListType::Children(ref node) => {
                 let node = node.root();
                 node.r().children().nth(index as uint)
-                                   .map(|child| Temporary::from_rooted(child))
             }
         }
     }

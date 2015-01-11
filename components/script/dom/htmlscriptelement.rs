@@ -321,7 +321,7 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
     // http://www.whatwg.org/html/#dom-script-text
     fn Text(self) -> DOMString {
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        Node::collect_text_contents(node.children())
+        Node::collect_text_contents(node.children().map(|c| *c.root()))
     }
 
     // http://www.whatwg.org/html/#dom-script-text

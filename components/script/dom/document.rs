@@ -544,9 +544,9 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn GetDoctype(self) -> Option<Temporary<DocumentType>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.children()
-            .filter_map(DocumentTypeCast::to_ref)
+            .map(|c| c.root())
+            .filter_map(|c| DocumentTypeCast::to_ref(c.r()).map(Temporary::from_rooted))
             .next()
-            .map(Temporary::from_rooted)
     }
 
     // http://dom.spec.whatwg.org/#dom-document-documentelement
@@ -770,8 +770,12 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             root.traverse_preorder()
                 .find(|node| node.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
                 .map(|title_elem| {
-                    for text in title_elem.children().filter_map::<JSRef<Text>>(TextCast::to_ref) {
-                        title.push_str(text.characterdata().data().as_slice());
+                    for child in title_elem.children() {
+                        let child = child.root();
+                        match TextCast::to_ref(child.r()) {
+                            Some(text) => title.push_str(text.characterdata().data().as_slice()),
+                            None => (),
+                        }
                     }
                 });
         });
@@ -787,14 +791,15 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
                 child.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHeadElement))
             });
             head_node.map(|head| {
-                let title_node = head.children().find(|child| {
+                let title_node = head.children().map(|c| c.root()).find(|child| {
                     child.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement))
                 });
 
                 match title_node {
                     Some(ref title_node) => {
                         for title_child in title_node.children() {
-                            assert!(title_node.RemoveChild(title_child).is_ok());
+                            let title_child = title_child.root();
+                            assert!(title_node.RemoveChild(title_child.r()).is_ok());
                         }
                         if !title.is_empty() {
                             let new_text = self.CreateTextNode(title.clone()).root();
@@ -822,7 +827,10 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
             let node: JSRef<Node> = NodeCast::from_ref(root.r());
-            node.children().filter_map(HTMLHeadElementCast::to_ref).next().map(Temporary::from_rooted)
+            node.children()
+                .map(|c| c.root())
+                .filter_map(|c| HTMLHeadElementCast::to_ref(c.r()).map(Temporary::from_rooted))
+                .next()
         })
     }
 
@@ -831,14 +839,14 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         self.get_html_element().and_then(|root| {
             let root = root.root();
             let node: JSRef<Node> = NodeCast::from_ref(root.r());
-            node.children().find(|child| {
+            node.children().map(|c| c.root()).find(|child| {
                 match child.type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)) |
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFrameSetElement)) => true,
                     _ => false
                 }
             }).map(|node| {
-                Temporary::from_rooted(HTMLElementCast::to_ref(node).unwrap())
+                Temporary::from_rooted(HTMLElementCast::to_ref(node.r()).unwrap())
             })
         })
     }

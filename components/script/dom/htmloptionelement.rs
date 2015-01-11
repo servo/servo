@@ -57,11 +57,12 @@ fn collect_text(node: &JSRef<Node>, value: &mut DOMString) {
         return;
     } else {
         for child in node.children() {
-            if child.is_text() {
-                let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(child).unwrap();
+            let child = child.root();
+            if child.r().is_text() {
+                let characterdata: JSRef<CharacterData> = CharacterDataCast::to_ref(child.r()).unwrap();
                 value.push_str(characterdata.Data().as_slice());
             } else {
-                collect_text(&child, value);
+                collect_text(&child.r(), value);
             }
         }
     }
