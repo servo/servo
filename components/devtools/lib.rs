@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! An actor-based remote devtools server implementation. Only tested with
+//! nightly Firefox versions at time of writing. Largely based on
+//! reverse-engineering of Firefox chrome devtool logs and reading of
+//! [code](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/).
+
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
@@ -10,13 +15,8 @@
 
 #![feature(phase)]
 
-#![feature(phase)]
 #[phase(plugin, link)]
 extern crate log;
-
-/// An actor-based remote devtools server implementation. Only tested with nightly Firefox
-/// versions at time of writing. Largely based on reverse-engineering of Firefox chrome
-/// devtool logs and reading of [code](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/).
 
 extern crate collections;
 extern crate core;
