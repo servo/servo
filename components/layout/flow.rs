@@ -35,7 +35,7 @@ use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
-use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
+use model::{CollapsibleMargins, IntrinsicISizes};
 use parallel::FlowParallelInfo;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;
@@ -227,12 +227,6 @@ pub trait Flow: fmt::Show + ToString + Sync {
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>);
-
-    fn compute_collapsible_block_start_margin(&mut self,
-                                              _layout_context: &mut LayoutContext,
-                                              _margin_collapse_info: &mut MarginCollapseInfo) {
-        // The default implementation is a no-op.
-    }
 
     /// Marks this flow as the root flow. The default implementation is a no-op.
     fn mark_as_root(&mut self) {}
