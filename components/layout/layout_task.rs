@@ -63,7 +63,7 @@ use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
-use style::computed_values::filter;
+use style::computed_values::{filter, mix_blend_mode};
 use style::{StylesheetOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
 use style::{MediaType, Device};
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -698,6 +698,7 @@ impl LayoutTask {
                                                                  &origin,
                                                                  0,
                                                                  filter::T::new(Vec::new()),
+                                                                 mix_blend_mode::T::normal,
                                                                  Some(paint_layer)));
 
             rw_data.stacking_context = Some(stacking_context.clone());

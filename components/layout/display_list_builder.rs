@@ -371,7 +371,9 @@ impl FragmentDisplayListBuilding for Fragment {
         // Create the image display item.
         display_list.push(DisplayItem::ImageClass(box ImageDisplayItem {
             base: BaseDisplayItem::new(bounds,
-                                       DisplayItemMetadata::new(self.node, style, Cursor::DefaultCursor),
+                                       DisplayItemMetadata::new(self.node,
+                                                                style,
+                                                                Cursor::DefaultCursor),
                                        clip),
             image: image.clone(),
             stretch_size: Size2D(Au::from_px(image.width as int),
@@ -481,7 +483,9 @@ impl FragmentDisplayListBuilding for Fragment {
 
         let gradient_display_item = DisplayItem::GradientClass(box GradientDisplayItem {
             base: BaseDisplayItem::new(*absolute_bounds,
-                                       DisplayItemMetadata::new(self.node, style, Cursor::DefaultCursor),
+                                       DisplayItemMetadata::new(self.node,
+                                                                style,
+                                                                Cursor::DefaultCursor),
                                        clip),
             start_point: center - delta,
             end_point: center + delta,
@@ -1194,6 +1198,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                       &overflow,
                                       self.fragment.style().get_box().z_index.number_or_zero(),
                                       filters,
+                                      self.fragment.style().get_effects().mix_blend_mode,
                                       layer))
     }
 }
