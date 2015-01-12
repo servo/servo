@@ -41,7 +41,7 @@ use std::fmt;
 use std::slice::Items;
 use std::sync::Arc;
 use style::ComputedValues;
-use style::computed_values::{border_style, cursor, filter, pointer_events};
+use style::computed_values::{border_style, cursor, filter, mix_blend_mode, pointer_events};
 
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
 // layout to use.
@@ -165,6 +165,8 @@ pub struct StackingContext {
     pub z_index: i32,
     /// CSS filters to be applied to this stacking context (including opacity).
     pub filters: filter::T,
+    /// The blend mode with which this stacking context blends with its backdrop.
+    pub blend_mode: mix_blend_mode::T,
 }
 
 impl StackingContext {
@@ -175,6 +177,7 @@ impl StackingContext {
                overflow: &Rect<Au>,
                z_index: i32,
                filters: filter::T,
+               blend_mode: mix_blend_mode::T,
                layer: Option<Arc<PaintLayer>>)
                -> StackingContext {
         StackingContext {
@@ -184,6 +187,7 @@ impl StackingContext {
             overflow: *overflow,
             z_index: z_index,
             filters: filters,
+            blend_mode: blend_mode,
         }
     }
 
@@ -194,7 +198,7 @@ impl StackingContext {
                                           transform: &Matrix2D<AzFloat>,
                                           clip_rect: Option<&Rect<Au>>) {
         let temporary_draw_target =
-            paint_context.get_or_create_temporary_draw_target(&self.filters);
+            paint_context.get_or_create_temporary_draw_target(&self.filters, self.blend_mode);
         {
             let mut paint_subcontext = PaintContext {
                 draw_target: temporary_draw_target.clone(),
@@ -307,7 +311,8 @@ impl StackingContext {
         }
 
         paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target,
-                                                              &self.filters)
+                                                              &self.filters,
+                                                              self.blend_mode)
     }
 
     /// Translate the given tile rect into the coordinate system of a child stacking context.
@@ -849,7 +854,7 @@ impl DisplayItem {
                         bounds.origin.y = bounds.origin.y + y_offset;
                         bounds.size = image_item.stretch_size;
 
-                        paint_context.draw_image(bounds, image_item.image.clone());
+                        paint_context.draw_image(&bounds, image_item.image.clone());
 
                         x_offset = x_offset + image_item.stretch_size.width;
                     }

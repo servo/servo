@@ -44,9 +44,9 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::{ComputedValues, TElement, TNode, cascade_anonymous};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use style::computed_values::{LengthOrPercentageOrNone};
-use style::computed_values::{clear, overflow_wrap, position, text_align, text_decoration};
-use style::computed_values::{vertical_align, white_space, word_break};
+use style::computed_values::{LengthOrPercentageOrNone, clear, mix_blend_mode, overflow_wrap};
+use style::computed_values::{position, text_align, text_decoration, vertical_align, white_space};
+use style::computed_values::{word_break};
 use url::Url;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
@@ -1745,6 +1745,9 @@ impl Fragment {
             return true
         }
         if !self.style().get_effects().filter.is_empty() {
+            return true
+        }
+        if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
             return true
         }
         match self.style().get_box().position {
