@@ -225,14 +225,6 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 }
 
 impl<'ln> LayoutNode<'ln> {
-    /// Creates a new layout node, scoped to the given closure.
-    pub unsafe fn with_layout_node<R>(node: JS<Node>, f: for <'a> |LayoutNode<'a>| -> R) -> R {
-        f(LayoutNode {
-            node: node,
-            chain: ContravariantLifetime,
-        })
-    }
-
     pub fn dump(self) {
         self.dump_indent(0);
     }
