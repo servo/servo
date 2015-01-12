@@ -55,6 +55,8 @@ use style::{IntegerAttribute, LengthAttribute, ParserContext, matches};
 use servo_util::namespace;
 use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
+use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
+
 use cssparser::RGBA;
 use std::ascii::AsciiExt;
 use std::cell::{Ref, RefMut};
@@ -571,7 +573,7 @@ pub trait AttributeHandlers {
                        value: DOMString) -> AttrValue;
 
     fn remove_attribute(self, namespace: Namespace, name: &str);
-    fn has_class(&self, name: &Atom) -> bool;
+    fn has_class(self, name: &Atom) -> bool;
 
     fn set_atomic_attribute(self, name: &Atom, value: DOMString);
 
@@ -713,10 +715,19 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         };
     }
 
-    fn has_class(&self, name: &Atom) -> bool {
+    fn has_class(self, name: &Atom) -> bool {
+        let quirks_mode = {
+            let node: JSRef<Node> = NodeCast::from_ref(self);
+            let owner_doc = node.owner_doc().root();
+            owner_doc.r().quirks_mode()
+        };
+        let is_equal = |lhs: &Atom, rhs: &Atom| match quirks_mode {
+            NoQuirks | LimitedQuirks => lhs == rhs,
+            Quirks => lhs.as_slice().eq_ignore_ascii_case(rhs.as_slice())
+        };
         self.get_attribute(ns!(""), &atom!("class")).root().map(|attr| {
             attr.r().value().tokens().map(|tokens| {
-                tokens.iter().any(|atom| atom == name)
+                tokens.iter().any(|atom| is_equal(name, atom))
             }).unwrap_or(false)
         }).unwrap_or(false)
     }
