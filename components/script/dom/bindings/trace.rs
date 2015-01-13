@@ -32,6 +32,7 @@ use dom::node::{Node, TrustedNodeAddress};
 use script_task::ScriptChan;
 
 use cssparser::RGBA;
+use geom::matrix2d::Matrix2D;
 use geom::rect::Rect;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
@@ -222,6 +223,7 @@ no_jsmanaged_fields!(WindowProxyHandler);
 no_jsmanaged_fields!(UntrustedNodeAddress);
 no_jsmanaged_fields!(LengthOrPercentageOrAuto);
 no_jsmanaged_fields!(RGBA);
+no_jsmanaged_fields!(Matrix2D<T>);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]

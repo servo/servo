@@ -91,6 +91,9 @@ pub mod dom {
     pub mod attr;
     pub mod blob;
     pub mod browsercontext;
+    pub mod canvasgradient;
+    pub mod canvaspathmethods;
+    pub mod canvaspattern;
     pub mod canvasrenderingcontext2d;
     pub mod characterdata;
     pub mod cssstyledeclaration;

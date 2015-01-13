@@ -245,3 +245,4 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == text_justify_none_a.html text_justify_none_ref.html
 == text_overflow_basic_a.html text_overflow_basic_ref.html
 == text_align_complex_a.html text_align_complex_ref.html
+== canvas_transform_a.html canvas_transform_ref.html
