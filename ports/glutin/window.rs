@@ -170,7 +170,11 @@ impl WindowMethods for Window {
     /// Returns the size of the window in hardware pixels.
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
         let (width, height) = match self.glutin {
-            WindowHandle::Windowed(ref window) => window.get_inner_size(),
+            WindowHandle::Windowed(ref window) => {
+                let scale_factor = window.hidpi_factor() as uint;
+                let (width, height) = window.get_inner_size().unwrap();
+                Some((width * scale_factor, height * scale_factor))
+            }
             WindowHandle::Headless(ref context) => Some((context.size.to_untyped().width,
                                                         context.size.to_untyped().height)),
         }.unwrap();
@@ -230,8 +234,10 @@ impl WindowMethods for Window {
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
-        // TODO - handle hidpi
-        ScaleFactor(1.0)
+        match self.glutin {
+            WindowHandle::Windowed(ref window) => ScaleFactor(window.hidpi_factor()),
+            WindowHandle::Headless(_) => ScaleFactor(1.0),
+        }
     }
 
     fn set_page_title(&self, _: Option<String>) {
