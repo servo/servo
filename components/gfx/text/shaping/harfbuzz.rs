@@ -13,32 +13,32 @@ use text::util::{float_to_fixed, fixed_to_float};
 
 use geom::Point2D;
 use harfbuzz::{HB_MEMORY_MODE_READONLY, HB_DIRECTION_LTR};
-use harfbuzz::{hb_blob_create, hb_face_create_for_tables};
+use harfbuzz::{RUST_hb_blob_create, RUST_hb_face_create_for_tables};
 use harfbuzz::{hb_blob_t};
 use harfbuzz::{hb_bool_t};
-use harfbuzz::{hb_buffer_add_utf8};
-use harfbuzz::{hb_buffer_destroy};
-use harfbuzz::{hb_buffer_get_glyph_positions};
-use harfbuzz::{hb_buffer_get_length};
-use harfbuzz::{hb_buffer_set_direction};
-use harfbuzz::{hb_face_destroy};
+use harfbuzz::{RUST_hb_buffer_add_utf8};
+use harfbuzz::{RUST_hb_buffer_destroy};
+use harfbuzz::{RUST_hb_buffer_get_glyph_positions};
+use harfbuzz::{RUST_hb_buffer_get_length};
+use harfbuzz::{RUST_hb_buffer_set_direction};
+use harfbuzz::{RUST_hb_face_destroy};
 use harfbuzz::{hb_face_t, hb_font_t};
 use harfbuzz::{hb_feature_t};
-use harfbuzz::{hb_font_create};
-use harfbuzz::{hb_font_destroy, hb_buffer_create};
-use harfbuzz::{hb_font_funcs_create};
-use harfbuzz::{hb_font_funcs_destroy};
-use harfbuzz::{hb_font_funcs_set_glyph_func};
-use harfbuzz::{hb_font_funcs_set_glyph_h_advance_func};
-use harfbuzz::{hb_font_funcs_set_glyph_h_kerning_func};
+use harfbuzz::{RUST_hb_font_create};
+use harfbuzz::{RUST_hb_font_destroy, RUST_hb_buffer_create};
+use harfbuzz::{RUST_hb_font_funcs_create};
+use harfbuzz::{RUST_hb_font_funcs_destroy};
+use harfbuzz::{RUST_hb_font_funcs_set_glyph_func};
+use harfbuzz::{RUST_hb_font_funcs_set_glyph_h_advance_func};
+use harfbuzz::{RUST_hb_font_funcs_set_glyph_h_kerning_func};
 use harfbuzz::{hb_font_funcs_t, hb_buffer_t, hb_codepoint_t};
-use harfbuzz::{hb_font_set_funcs};
-use harfbuzz::{hb_font_set_ppem};
-use harfbuzz::{hb_font_set_scale};
+use harfbuzz::{RUST_hb_font_set_funcs};
+use harfbuzz::{RUST_hb_font_set_ppem};
+use harfbuzz::{RUST_hb_font_set_scale};
 use harfbuzz::{hb_glyph_info_t};
 use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
-use harfbuzz::{hb_shape, hb_buffer_get_glyph_infos};
+use harfbuzz::{RUST_hb_shape, RUST_hb_buffer_get_glyph_infos};
 use libc::{c_uint, c_int, c_void, c_char};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
@@ -71,11 +71,11 @@ impl ShapedGlyphData {
     pub fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
         unsafe {
             let mut glyph_count = 0;
-            let glyph_infos = hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
+            let glyph_infos = RUST_hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
             let glyph_count = glyph_count as int;
             assert!(glyph_infos.is_not_null());
             let mut pos_count = 0;
-            let pos_infos = hb_buffer_get_glyph_positions(buffer, &mut pos_count);
+            let pos_infos = RUST_hb_buffer_get_glyph_positions(buffer, &mut pos_count);
             let pos_count = pos_count as int;
             assert!(pos_infos.is_not_null());
             assert!(glyph_count == pos_count);
@@ -156,13 +156,13 @@ impl Drop for Shaper {
     fn drop(&mut self) {
         unsafe {
             assert!(self.hb_face.is_not_null());
-            hb_face_destroy(self.hb_face);
+            RUST_hb_face_destroy(self.hb_face);
 
             assert!(self.hb_font.is_not_null());
-            hb_font_destroy(self.hb_font);
+            RUST_hb_font_destroy(self.hb_font);
 
             assert!(self.hb_funcs.is_not_null());
-            hb_font_funcs_destroy(self.hb_funcs);
+            RUST_hb_font_funcs_destroy(self.hb_funcs);
         }
     }
 }
@@ -175,29 +175,29 @@ impl Shaper {
                 options: *options,
             };
             let hb_face: *mut hb_face_t =
-                hb_face_create_for_tables(get_font_table_func,
+                RUST_hb_face_create_for_tables(get_font_table_func,
                                           (&mut *font_and_shaping_options)
                                             as *mut FontAndShapingOptions
                                             as *mut c_void,
                                           None);
-            let hb_font: *mut hb_font_t = hb_font_create(hb_face);
+            let hb_font: *mut hb_font_t = RUST_hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
             let pt_size = font.actual_pt_size.to_subpx();
-            hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
+            RUST_hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
             // Set scaling. Note that this takes 16.16 fixed point.
-            hb_font_set_scale(hb_font,
-                              Shaper::float_to_fixed(pt_size) as c_int,
-                              Shaper::float_to_fixed(pt_size) as c_int);
+            RUST_hb_font_set_scale(hb_font,
+                                   Shaper::float_to_fixed(pt_size) as c_int,
+                                   Shaper::float_to_fixed(pt_size) as c_int);
 
             // configure static function callbacks.
             // NB. This funcs structure could be reused globally, as it never changes.
-            let hb_funcs: *mut hb_font_funcs_t = hb_font_funcs_create();
-            hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::null_mut(), None);
-            hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::null_mut(), None);
-            hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, ptr::null_mut(), ptr::null_mut());
-            hb_font_set_funcs(hb_font, hb_funcs, font as *mut Font as *mut c_void, None);
+            let hb_funcs: *mut hb_font_funcs_t = RUST_hb_font_funcs_create();
+            RUST_hb_font_funcs_set_glyph_func(hb_funcs, glyph_func, ptr::null_mut(), None);
+            RUST_hb_font_funcs_set_glyph_h_advance_func(hb_funcs, glyph_h_advance_func, ptr::null_mut(), None);
+            RUST_hb_font_funcs_set_glyph_h_kerning_func(hb_funcs, glyph_h_kerning_func, ptr::null_mut(), ptr::null_mut());
+            RUST_hb_font_set_funcs(hb_font, hb_funcs, font as *mut Font as *mut c_void, None);
 
             Shaper {
                 hb_face: hb_face,
@@ -226,14 +226,14 @@ impl ShaperMethods for Shaper {
     /// font.
     fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
         unsafe {
-            let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
-            hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
+            let hb_buffer: *mut hb_buffer_t = RUST_hb_buffer_create();
+            RUST_hb_buffer_set_direction(hb_buffer, HB_DIRECTION_LTR);
 
-            hb_buffer_add_utf8(hb_buffer,
-                               text.as_ptr() as *const c_char,
-                               text.len() as c_int,
-                               0,
-                               text.len() as c_int);
+            RUST_hb_buffer_add_utf8(hb_buffer,
+                                    text.as_ptr() as *const c_char,
+                                    text.len() as c_int,
+                                    0,
+                                    text.len() as c_int);
 
             let mut features = Vec::new();
             if options.flags.contains(IGNORE_LIGATURES_SHAPING_FLAG) {
@@ -241,7 +241,7 @@ impl ShaperMethods for Shaper {
                     _tag: LIGA,
                     _value: 0,
                     _start: 0,
-                    _end: hb_buffer_get_length(hb_buffer),
+                    _end: RUST_hb_buffer_get_length(hb_buffer),
                 })
             }
             if options.flags.contains(DISABLE_KERNING_SHAPING_FLAG) {
@@ -249,13 +249,13 @@ impl ShaperMethods for Shaper {
                     _tag: KERN,
                     _value: 0,
                     _start: 0,
-                    _end: hb_buffer_get_length(hb_buffer),
+                    _end: RUST_hb_buffer_get_length(hb_buffer),
                 })
             }
 
-            hb_shape(self.hb_font, hb_buffer, features.as_mut_ptr(), features.len() as u32);
+            RUST_hb_shape(self.hb_font, hb_buffer, features.as_mut_ptr(), features.len() as u32);
             self.save_glyph_results(text, options, glyphs, hb_buffer);
-            hb_buffer_destroy(hb_buffer);
+            RUST_hb_buffer_destroy(hb_buffer);
         }
     }
 }
@@ -593,11 +593,11 @@ extern fn get_font_table_func(_: *mut hb_face_t,
                 let mut blob: *mut hb_blob_t = ptr::null_mut();
                 (*skinny_font_table_ptr).with_buffer(|buf: *const u8, len: uint| {
                     // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
-                    blob = hb_blob_create(buf as *const c_char,
-                                          len as c_uint,
-                                          HB_MEMORY_MODE_READONLY,
-                                          mem::transmute(skinny_font_table_ptr),
-                                          destroy_blob_func);
+                    blob = RUST_hb_blob_create(buf as *const c_char,
+                                               len as c_uint,
+                                               HB_MEMORY_MODE_READONLY,
+                                               mem::transmute(skinny_font_table_ptr),
+                                               destroy_blob_func);
                 });
 
                 assert!(blob.is_not_null());

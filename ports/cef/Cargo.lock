@@ -238,8 +238,8 @@ source = "git+https://github.com/servo/libfreetype2#f5c49c0da1d5bc6b206c41763440
 
 [[package]]
 name = "gcc"
-version = "0.0.2"
-source = "git+https://github.com/alexcrichton/gcc-rs#903e8f8a2e3766ad3d514404d452dbaa1d3b2d79"
+version = "0.1.1"
+source = "git+https://github.com/alexcrichton/gcc-rs#dfe97a119af4b2db53178eb8c3ca6be6589a152b"
 
 [[package]]
 name = "gcc"
@@ -339,7 +339,7 @@ dependencies = [
 [[package]]
 name = "harfbuzz"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-harfbuzz#8aab215463214647b7a81f66011da552bbb1121c"
+source = "git+https://github.com/servo/rust-harfbuzz#0489e7da24497f9ec17255fa72b90d6072f0c6d8"
 
 [[package]]
 name = "html5ever"
@@ -550,15 +550,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "png"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-png#f060a2d9484a150de286f930eb80f9f3bff3ea38"
+source = "git+https://github.com/servo/rust-png#cc1976df347bb21ac78c5b37e651b85878855991"
 dependencies = [
- "png-sys 1.6.3 (git+https://github.com/servo/libpng?ref=servo)",
+ "gcc 0.1.1 (git+https://github.com/alexcrichton/gcc-rs)",
+ "png-sys 1.6.16 (git+https://github.com/servo/rust-png)",
 ]
 
 [[package]]
 name = "png-sys"
-version = "1.6.3"
-source = "git+https://github.com/servo/libpng?ref=servo#d01f32b4eb86904695efe7fc02b574f902e21a98"
+version = "1.6.16"
+source = "git+https://github.com/servo/rust-png#cc1976df347bb21ac78c5b37e651b85878855991"
 
 [[package]]
 name = "script"
@@ -683,7 +684,7 @@ name = "time"
 version = "0.1.0"
 source = "git+https://github.com/rust-lang/time#afab521f3b91658a3ba2d3e877b7e01699733bef"
 dependencies = [
- "gcc 0.0.2 (git+https://github.com/alexcrichton/gcc-rs)",
+ "gcc 0.1.1 (git+https://github.com/alexcrichton/gcc-rs)",
 ]
 
 [[package]]
