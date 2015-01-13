@@ -28,7 +28,7 @@ use servo_util::geometry::Au;
 use std::cmp::{max, min};
 use std::fmt;
 use style::{ComputedValues, CSSFloat};
-use style::computed_values::table_layout;
+use style::computed_values::{table_layout, LengthOrPercentageOrAuto};
 use std::sync::Arc;
 
 #[deriving(Copy, Encodable, Show)]
@@ -128,8 +128,18 @@ impl TableWrapperFlow {
         // FIXME(pcwalton, spec): INTRINSIC § 8 does not properly define how to compute this, but
         // says "the basic idea is the same as the shrink-to-fit width that CSS2.1 defines". So we
         // just use the shrink-to-fit inline size.
-        let available_inline_size =
-            self.block_flow.get_shrink_to_fit_inline_size(available_inline_size);
+        let available_inline_size = match self.block_flow.fragment.style().content_inline_size() {
+            LengthOrPercentageOrAuto::Auto => self.block_flow
+                                                  .get_shrink_to_fit_inline_size(available_inline_size),
+            // FIXME(mttr) This fixes #4421 without breaking our current reftests, but I'm
+            // not completely sure this is "correct".
+            //
+            // That said, `available_inline_size` is, as far as I can tell, equal to the table's
+            // computed width property (W) and is used from this point forward in a way that seems
+            // to correspond with CSS 2.1 § 17.5.2.2 under "Column and caption widths
+            // influence the final table width as follows: ..."
+            _ => available_inline_size,
+        };
 
         // Compute all the guesses for the column sizes, and sum them.
         let mut total_guess = AutoLayoutCandidateGuess::new();
