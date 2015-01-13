@@ -26,7 +26,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#f4a02f3f621b0a994a20d42e438371a87c62f898"
+source = "git+https://github.com/servo/rust-azure#d0acabef6221e5fd6840254dc23f91c66b874629"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -34,7 +34,6 @@ dependencies = [
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "skia-sys 0.0.20130412 (git+https://github.com/servo/skia?ref=upstream-2014-06-16)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
@@ -432,8 +431,9 @@ source = "git+https://github.com/bjz/gl-rs.git#b5e3f4f76c31bc1b459d5e4c10d879ffa
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#574df7e1c1dd464af930d1cc735ca8d6af46bb90"
+source = "git+https://github.com/servo/rust-layers#f20270839f8658a2b19eae6fade9325efe5f4578"
 dependencies = [
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
