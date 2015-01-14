@@ -464,7 +464,7 @@ source = "git+https://github.com/hyperium/mime.rs#7898f1c29c7f5d35d0c3c7aed37ebc
 [[package]]
 name = "mozjs-sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#0dd618fcc78fe7aa64e4e2a3b0f7f0d8a2f0f08a"
+source = "git+https://github.com/servo/mozjs#39ed76a3a9d3834a6e1f106d1043efff9b5d6608"
 
 [[package]]
 name = "msg"
