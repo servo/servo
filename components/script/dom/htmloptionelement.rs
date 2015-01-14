@@ -12,12 +12,12 @@ use dom::bindings::codegen::InheritTypes::{HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, ElementHelpers, ElementTypeId};
+use dom::element::{AttributeHandlers, Element, ElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
@@ -31,14 +31,14 @@ pub struct HTMLOptionElement {
 
 impl HTMLOptionElementDerived for EventTarget {
     fn is_htmloptionelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLOptionElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)))
     }
 }
 
 impl HTMLOptionElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLOptionElement {
         HTMLOptionElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLOptionElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLOptionElement, localName, prefix, document)
         }
     }
 
@@ -186,8 +186,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
     }
 }
 
-impl Reflectable for HTMLOptionElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

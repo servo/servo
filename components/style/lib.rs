@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
-#![feature(globs, macro_rules, if_let)]
+#![feature(globs, macro_rules)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 #![feature(phase)]
 #[phase(plugin, link)] extern crate log;
@@ -17,7 +15,7 @@
 extern crate collections;
 extern crate geom;
 extern crate serialize;
-extern crate sync;
+extern crate text_writer;
 extern crate url;
 
 extern crate cssparser;
@@ -26,6 +24,9 @@ extern crate string_cache;
 
 #[phase(plugin)]
 extern crate string_cache_macros;
+
+#[phase(plugin)]
+extern crate plugins;
 
 #[phase(plugin)]
 extern crate lazy_static;
@@ -43,7 +44,7 @@ pub use selector_matching::{matches, matches_simple_selector, common_style_affec
 pub use selector_matching::{rare_style_affecting_attributes};
 pub use selector_matching::{RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE, SELECTOR_WHITESPACE};
 pub use properties::{cascade, cascade_anonymous, computed, longhands_from_shorthand};
-pub use properties::is_supported_property;
+pub use properties::{is_supported_property, make_inline};
 pub use properties::{PropertyDeclaration, ComputedValues, computed_values, style_structs};
 pub use properties::{PropertyDeclarationBlock, parse_style_attribute};  // Style attributes
 pub use properties::{CSSFloat, DeclaredValue, PropertyDeclarationParseResult};

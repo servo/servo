@@ -24,9 +24,6 @@ git = "https://github.com/servo/rust-url"
 [dependencies.cssparser]
 git = "https://github.com/servo/rust-cssparser"
 
-[dependencies.encoding]
-git = "https://github.com/lifthrasiir/rust-encoding"
-
 [dependencies.lazy_static]
 git = "https://github.com/Kimundi/lazy-static.rs"
 
@@ -36,3 +33,6 @@ git = "https://github.com/servo/string-cache"
 [dependencies.string_cache_macros]
 git = "https://github.com/servo/string-cache"
 
+[dependencies]
+text_writer = "0.1.1"
+encoding = "0.2"

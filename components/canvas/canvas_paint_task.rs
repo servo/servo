@@ -2,19 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use azure::azure_hl::{DrawTarget, Color, B8G8R8A8, SkiaBackend, StrokeOptions, DrawOptions};
-use azure::azure_hl::{ColorPattern, ColorPatternRef};
+use azure::azure_hl::{DrawTarget, Color, SurfaceFormat, BackendType, StrokeOptions, DrawOptions};
+use azure::azure_hl::{ColorPattern, PatternRef};
 use geom::rect::Rect;
 use geom::size::Size2D;
 use servo_util::task::spawn_named;
 
 use std::comm;
+use std::sync::Arc;
 
+#[deriving(Clone)]
 pub enum CanvasMsg {
     FillRect(Rect<f32>),
     ClearRect(Rect<f32>),
     StrokeRect(Rect<f32>),
     Recreate(Size2D<i32>),
+    SendPixelContents(Sender<Arc<Vec<u8>>>),
     Close,
 }
 
@@ -28,7 +31,7 @@ pub struct CanvasPaintTask {
 impl CanvasPaintTask {
     fn new(size: Size2D<i32>) -> CanvasPaintTask {
         CanvasPaintTask {
-            drawtarget: CanvasPaintTask::create(size),
+            drawtarget: CanvasPaintTask::create_with_data(size),
             fill_color: ColorPattern::new(Color::new(0., 0., 0., 1.)),
             stroke_color: ColorPattern::new(Color::new(0., 0., 0., 1.)),
             stroke_opts: StrokeOptions::new(1.0, 1.0),
@@ -46,6 +49,7 @@ impl CanvasPaintTask {
                     CanvasMsg::StrokeRect(ref rect) => painter.stroke_rect(rect),
                     CanvasMsg::ClearRect(ref rect) => painter.clear_rect(rect),
                     CanvasMsg::Recreate(size) => painter.recreate(size),
+                    CanvasMsg::SendPixelContents(chan) => painter.send_pixel_contents(chan),
                     CanvasMsg::Close => break,
                 }
             }
@@ -55,7 +59,7 @@ impl CanvasPaintTask {
 
     fn fill_rect(&self, rect: &Rect<f32>) {
         let drawopts = DrawOptions::new(1.0, 0);
-        self.drawtarget.fill_rect(rect, ColorPatternRef(&self.fill_color), Some(&drawopts));
+        self.drawtarget.fill_rect(rect, PatternRef::Color(&self.fill_color), Some(&drawopts));
     }
 
     fn clear_rect(&self, rect: &Rect<f32>) {
@@ -67,11 +71,20 @@ impl CanvasPaintTask {
         self.drawtarget.stroke_rect(rect, &self.stroke_color, &self.stroke_opts, &drawopts);
     }
 
-    fn create(size: Size2D<i32>) -> DrawTarget {
-        DrawTarget::new(SkiaBackend, size, B8G8R8A8)
+    fn create_with_data(size: Size2D<i32>) -> DrawTarget {
+        DrawTarget::new_with_data(BackendType::Skia,
+                                  Vec::from_elem((size.width * size.height * 4) as uint, 0u8),
+                                  0,
+                                  size,
+                                  size.width * 4,
+                                  SurfaceFormat::B8G8R8A8)
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
-        self.drawtarget = CanvasPaintTask::create(size);
+        self.drawtarget = CanvasPaintTask::create_with_data(size);
+    }
+
+    fn send_pixel_contents(&mut self, chan: Sender<Arc<Vec<u8>>>) {
+        chan.send(self.drawtarget.data.clone().unwrap());
     }
 }

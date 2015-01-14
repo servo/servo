@@ -5,11 +5,10 @@
 use dom::bindings::codegen::Bindings::HTMLDataElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLDataElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -20,14 +19,14 @@ pub struct HTMLDataElement {
 
 impl HTMLDataElementDerived for EventTarget {
     fn is_htmldataelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLDataElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataElement)))
     }
 }
 
 impl HTMLDataElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLDataElement {
         HTMLDataElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLDataElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDataElement, localName, prefix, document)
         }
     }
 
@@ -38,8 +37,3 @@ impl HTMLDataElement {
     }
 }
 
-impl Reflectable for HTMLDataElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

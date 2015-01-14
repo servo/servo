@@ -32,10 +32,10 @@ use display_list_builder::DisplayListBuildingResult;
 use floats::Floats;
 use flow_list::{FlowList, FlowListIterator, MutFlowListIterator};
 use flow_ref::FlowRef;
-use fragment::{Fragment, FragmentBoundsIterator, SpecificFragmentInfo};
+use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{RECONSTRUCT_FLOW, REFLOW, REFLOW_OUT_OF_FLOW, RestyleDamage};
 use inline::InlineFlow;
-use model::{CollapsibleMargins, IntrinsicISizes, MarginCollapseInfo};
+use model::{CollapsibleMargins, IntrinsicISizes};
 use parallel::FlowParallelInfo;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;
@@ -47,11 +47,11 @@ use table_wrapper::TableWrapperFlow;
 use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect, Size2D};
+use gfx::display_list::ClippingRegion;
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
-use servo_util::geometry::Au;
-use servo_util::logical_geometry::WritingMode;
-use servo_util::logical_geometry::{LogicalRect, LogicalSize};
+use servo_util::geometry::{Au, ZERO_RECT};
+use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use std::mem;
 use std::fmt;
 use std::iter::Zip;
@@ -60,7 +60,7 @@ use std::sync::atomic::{AtomicUint, SeqCst};
 use std::slice::MutItems;
 use style::computed_values::{clear, empty_cells, float, position, text_align};
 use style::ComputedValues;
-use sync::Arc;
+use std::sync::Arc;
 
 /// Virtual methods that make up a float context.
 ///
@@ -220,14 +220,13 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// Phase 5 of reflow: builds display lists.
     fn build_display_list(&mut self, layout_context: &LayoutContext);
 
-    /// Perform an iteration of fragment bounds on this flow.
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator);
+    /// Returns the union of all overflow rects of all of this flow's fragments.
+    fn compute_overflow(&self) -> Rect<Au>;
 
-    fn compute_collapsible_block_start_margin(&mut self,
-                                              _layout_context: &mut LayoutContext,
-                                              _margin_collapse_info: &mut MarginCollapseInfo) {
-        // The default implementation is a no-op.
-    }
+    /// Iterates through border boxes of all of this flow's fragments.
+    fn iterate_through_fragment_border_boxes(&self,
+                                             iterator: &mut FragmentBorderBoxIterator,
+                                             stacking_context_position: &Point2D<Au>);
 
     /// Marks this flow as the root flow. The default implementation is a no-op.
     fn mark_as_root(&mut self) {}
@@ -250,12 +249,12 @@ pub trait Flow: fmt::Show + ToString + Sync {
 
     /// The 'position' property of this flow.
     fn positioning(&self) -> position::T {
-        position::static_
+        position::T::static_
     }
 
     /// Return true if this flow has position 'fixed'.
     fn is_fixed(&self) -> bool {
-        self.positioning() == position::fixed
+        self.positioning() == position::T::fixed
     }
 
     fn is_positioned(&self) -> bool {
@@ -263,7 +262,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
     }
 
     fn is_relatively_positioned(&self) -> bool {
-        self.positioning() == position::relative
+        self.positioning() == position::T::relative
     }
 
     /// Return true if this is the root of an absolute flow tree.
@@ -290,7 +289,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// NB: Do not change this `&self` to `&mut self` under any circumstances! It has security
     /// implications because this can be called on parents concurrently from descendants!
     fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
-        panic!("generated_containing_block_position not yet implemented for this flow")
+        panic!("generated_containing_block_rect not yet implemented for this flow")
     }
 
     /// Returns a layer ID for the given fragment.
@@ -466,6 +465,7 @@ pub trait PostorderFlowTraversal {
 
 bitflags! {
     #[doc = "Flags used in flows."]
+    #[deriving(Copy)]
     flags FlowFlags: u16 {
         // floated descendants flags
         #[doc = "Whether this flow has descendants that float left in the same block formatting"]
@@ -570,11 +570,11 @@ impl FlowFlags {
     #[inline]
     pub fn float_kind(&self) -> float::T {
         if self.contains(FLOATS_LEFT) {
-            float::left
+            float::T::left
         } else if self.contains(FLOATS_RIGHT) {
-            float::right
+            float::T::right
         } else {
-            float::none
+            float::T::none
         }
     }
 
@@ -653,8 +653,8 @@ pub struct DescendantIter<'a> {
     iter: MutItems<'a, FlowRef>,
 }
 
-impl<'a> Iterator<&'a mut Flow + 'a> for DescendantIter<'a> {
-    fn next(&mut self) -> Option<&'a mut Flow + 'a> {
+impl<'a> Iterator<&'a mut (Flow + 'a)> for DescendantIter<'a> {
+    fn next(&mut self) -> Option<&'a mut (Flow + 'a)> {
         self.iter.next().map(|flow| &mut **flow)
     }
 }
@@ -663,7 +663,7 @@ pub type DescendantOffsetIter<'a> = Zip<DescendantIter<'a>, MutItems<'a, Au>>;
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows).
-#[deriving(Encodable)]
+#[deriving(Encodable, Copy)]
 pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
@@ -718,7 +718,7 @@ pub struct BaseFlow {
 
     /// The amount of overflow of this flow, relative to the containing block. Must include all the
     /// pixels of all the display list items for correct invalidation.
-    pub overflow: LogicalRect<Au>,
+    pub overflow: Rect<Au>,
 
     /// Data used during parallel traversals.
     ///
@@ -763,11 +763,8 @@ pub struct BaseFlow {
     /// FIXME(pcwalton): Merge with `absolute_static_i_offset` and `fixed_static_i_offset` above?
     pub absolute_position_info: AbsolutePositionInfo,
 
-    /// The clipping rectangle for this flow and its descendants, in layer coordinates.
-    ///
-    /// TODO(pcwalton): When we have `border-radius` this will need to at least support rounded
-    /// rectangles.
-    pub clip_rect: Rect<Au>,
+    /// The clipping region for this flow and its descendants, in layer coordinates.
+    pub clip: ClippingRegion,
 
     /// The results of display list building for this flow.
     pub display_list_building_result: DisplayListBuildingResult,
@@ -861,7 +858,7 @@ impl BaseFlow {
             Some(node) => {
                 let node_style = node.style();
                 match node_style.get_box().position {
-                    position::absolute | position::fixed => {
+                    position::T::absolute | position::T::fixed => {
                         flags.insert(IS_ABSOLUTELY_POSITIONED)
                     }
                     _ => {}
@@ -869,17 +866,17 @@ impl BaseFlow {
 
                 if force_nonfloated == ForceNonfloatedFlag::FloatIfNecessary {
                     match node_style.get_box().float {
-                        float::none => {}
-                        float::left => flags.insert(FLOATS_LEFT),
-                        float::right => flags.insert(FLOATS_RIGHT),
+                        float::T::none => {}
+                        float::T::left => flags.insert(FLOATS_LEFT),
+                        float::T::right => flags.insert(FLOATS_RIGHT),
                     }
                 }
 
                 match node_style.get_box().clear {
-                    clear::none => {}
-                    clear::left => flags.insert(CLEARS_LEFT),
-                    clear::right => flags.insert(CLEARS_RIGHT),
-                    clear::both => {
+                    clear::T::none => {}
+                    clear::T::left => flags.insert(CLEARS_LEFT),
+                    clear::T::right => flags.insert(CLEARS_RIGHT),
+                    clear::T::both => {
                         flags.insert(CLEARS_LEFT);
                         flags.insert(CLEARS_RIGHT);
                     }
@@ -897,7 +894,7 @@ impl BaseFlow {
             children: FlowList::new(),
             intrinsic_inline_sizes: IntrinsicISizes::new(),
             position: LogicalRect::zero(writing_mode),
-            overflow: LogicalRect::zero(writing_mode),
+            overflow: ZERO_RECT,
             parallel: FlowParallelInfo::new(),
             floats: Floats::new(writing_mode),
             collapsible_margins: CollapsibleMargins::new(),
@@ -910,7 +907,7 @@ impl BaseFlow {
             absolute_cb: ContainingBlockLink::new(),
             display_list_building_result: DisplayListBuildingResult::None,
             absolute_position_info: AbsolutePositionInfo::new(writing_mode),
-            clip_rect: Rect(Point2D::zero(), Size2D::zero()),
+            clip: ClippingRegion::max(),
             flags: flags,
             writing_mode: writing_mode,
         }
@@ -932,10 +929,12 @@ impl BaseFlow {
     /// Ensures that all display list items generated by this flow are within the flow's overflow
     /// rect. This should only be used for debugging.
     pub fn validate_display_list_geometry(&self) {
-        let position_with_overflow = self.position.union(&self.overflow);
-        let bounds = Rect(self.stacking_relative_position,
-                          Size2D(position_with_overflow.size.inline,
-                                 position_with_overflow.size.block));
+        // FIXME(pcwalton, #2795): Get the real container size.
+        let container_size = Size2D::zero();
+        let position_with_overflow = self.position
+                                         .to_physical(self.writing_mode, container_size)
+                                         .union(&self.overflow);
+        let bounds = Rect(self.stacking_relative_position, position_with_overflow.size);
 
         let all_items = match self.display_list_building_result {
             DisplayListBuildingResult::None => Vec::new(),
@@ -946,34 +945,19 @@ impl BaseFlow {
         };
 
         for item in all_items.iter() {
-            let paint_bounds = match item.base().bounds.intersection(&item.base().clip_rect) {
-                None => continue,
-                Some(rect) => rect,
-            };
-
-            if paint_bounds.is_empty() {
+            let paint_bounds = item.base().clip.clone().intersect_rect(&item.base().bounds);
+            if !paint_bounds.might_be_nonempty() {
                 continue;
             }
 
-            if bounds.union(&paint_bounds) != bounds {
+            if bounds.union(&paint_bounds.bounding_rect()) != bounds {
                 error!("DisplayList item {} outside of Flow overflow ({})", item, paint_bounds);
             }
         }
     }
-
-    /// Returns the position of the given fragment relative to the start of the nearest ancestor
-    /// stacking context. The fragment must be a child fragment of this flow.
-    pub fn stacking_relative_position_of_child_fragment(&self, fragment: &Fragment)
-                                                        -> Point2D<Au> {
-        let relative_offset =
-            fragment.relative_position(&self
-                                       .absolute_position_info
-                                       .relative_containing_block_size);
-        self.stacking_relative_position.add_size(&relative_offset.to_physical(self.writing_mode))
-    }
 }
 
-impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
+impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
     /// Returns true if this flow is a block flow.
     fn is_block_like(self) -> bool {
         match self.class() {
@@ -1067,15 +1051,15 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
         let flow = match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {
                 let fragment =
-                    Fragment::new_anonymous_table_fragment(node,
-                                                           SpecificFragmentInfo::TableRow);
+                    Fragment::new_anonymous_from_specific_info(node,
+                                                               SpecificFragmentInfo::TableRow);
                 box TableRowFlow::from_node_and_fragment(node, fragment) as Box<Flow>
             },
             FlowClass::TableRow => {
                 let fragment =
-                    Fragment::new_anonymous_table_fragment(node,
-                                                           SpecificFragmentInfo::TableCell);
-                let hide = node.style().get_inheritedtable().empty_cells == empty_cells::hide;
+                    Fragment::new_anonymous_from_specific_info(node,
+                                                               SpecificFragmentInfo::TableCell);
+                let hide = node.style().get_inheritedtable().empty_cells == empty_cells::T::hide;
                 box TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide) as
                     Box<Flow>
             },
@@ -1149,7 +1133,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow + 'a {
     }
 }
 
-impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
+impl<'a> MutableFlowUtils for &'a mut (Flow + 'a) {
     /// Traverses the tree in preorder.
     fn traverse_preorder<T:PreorderFlowTraversal>(self, traversal: &T) {
         if traversal.should_process(self) {
@@ -1182,40 +1166,29 @@ impl<'a> MutableFlowUtils for &'a mut Flow + 'a {
     /// already been set.
     /// Assumption: Absolute descendants have had their overflow calculated.
     fn store_overflow(self, _: &LayoutContext) {
-        let my_position = mut_base(self).position;
-
-        // FIXME(pcwalton): We should calculate overflow on a per-fragment basis, because their
-        // styles can affect overflow regions. Consider `box-shadow`, `outline`, etc.--anything
-        // that can draw outside the border box. For now we assume overflow is the border box, but
-        // that is wrong.
-        let mut overflow = my_position;
-
+        // Calculate overflow on a per-fragment basis.
+        let mut overflow = self.compute_overflow();
         if self.is_block_container() {
-            let writing_mode = base(self).writing_mode;
-            // FIXME(#2795): Get the real container size
+            // FIXME(#2795): Get the real container size.
             let container_size = Size2D::zero();
             for kid in child_iter(self) {
-                if kid.is_store_overflow_delayed() {
-                    // Absolute flows will be handled by their CB. If we are
-                    // their CB, they will show up in `abs_descendants`.
-                    continue;
+                if base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
+                    continue
                 }
-                let kid_base = base(kid);
-                let mut kid_overflow = kid_base.overflow.convert(
-                    kid_base.writing_mode, writing_mode, container_size);
-                kid_overflow = kid_overflow.translate(&my_position.start);
-                overflow = overflow.union(&kid_overflow)
+                let kid_overflow = base(kid).overflow;
+                let kid_position = base(kid).position.to_physical(base(kid).writing_mode,
+                                                                  container_size);
+                overflow = overflow.union(&kid_overflow.translate(&kid_position.origin))
             }
 
-            // FIXME(#2004, pcwalton): This is wrong for `position: fixed`.
-            for descendant_link in mut_base(self).abs_descendants.iter() {
-                let kid_base = base(descendant_link);
-                let mut kid_overflow = kid_base.overflow.convert(
-                    kid_base.writing_mode, writing_mode, container_size);
-                kid_overflow = kid_overflow.translate(&my_position.start);
-                overflow = overflow.union(&kid_overflow)
+            for kid in mut_base(self).abs_descendants.iter() {
+                let kid_overflow = base(kid).overflow;
+                let kid_position = base(kid).position.to_physical(base(kid).writing_mode,
+                                                                  container_size);
+                overflow = overflow.union(&kid_overflow.translate(&kid_position.origin))
             }
         }
+
         mut_base(self).overflow = overflow;
     }
 

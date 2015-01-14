@@ -6,11 +6,10 @@ use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLStyleElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
@@ -24,14 +23,14 @@ pub struct HTMLStyleElement {
 
 impl HTMLStyleElementDerived for EventTarget {
     fn is_htmlstyleelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLStyleElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLStyleElement)))
     }
 }
 
 impl HTMLStyleElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLStyleElement {
         HTMLStyleElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLStyleElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLStyleElement, localName, prefix, document)
         }
     }
 
@@ -52,6 +51,7 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         assert!(node.is_in_doc());
 
         let win = window_from_node(node).root();
+        let win = win.r();
         let url = win.page().get_url();
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
@@ -92,8 +92,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
     }
 }
 
-impl Reflectable for HTMLStyleElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

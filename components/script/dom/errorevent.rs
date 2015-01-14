@@ -12,7 +12,7 @@ use dom::bindings::js::{JSRef, Temporary, MutHeap};
 use js::jsapi::JSContext;
 use dom::bindings::trace::JSTraceable;
 
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use servo_util::str::DOMString;
 
@@ -40,21 +40,21 @@ impl ErrorEvent {
     fn new_inherited(type_id: EventTypeId) -> ErrorEvent {
         ErrorEvent {
             event: Event::new_inherited(type_id),
-            message: DOMRefCell::new("".to_string()),
-            filename: DOMRefCell::new("".to_string()),
+            message: DOMRefCell::new("".into_string()),
+            filename: DOMRefCell::new("".into_string()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
             error: MutHeap::new(NullValue())
         }
     }
 
-    pub fn new_uninitialized(global: &GlobalRef) -> Temporary<ErrorEvent> {
+    pub fn new_uninitialized(global: GlobalRef) -> Temporary<ErrorEvent> {
         reflect_dom_object(box ErrorEvent::new_inherited(EventTypeId::ErrorEvent),
-                           *global,
+                           global,
                            ErrorEventBinding::Wrap)
     }
 
-    pub fn new(global: &GlobalRef,
+    pub fn new(global: GlobalRef,
                type_: DOMString,
                bubbles: EventBubbles,
                cancelable: EventCancelable,
@@ -64,23 +64,23 @@ impl ErrorEvent {
                colno: u32,
                error: JSVal) -> Temporary<ErrorEvent> {
         let ev = ErrorEvent::new_uninitialized(global).root();
-        let event: JSRef<Event> = EventCast::from_ref(*ev);
+        let event: JSRef<Event> = EventCast::from_ref(ev.r());
         event.InitEvent(type_, bubbles == EventBubbles::Bubbles,
                         cancelable == EventCancelable::Cancelable);
-        *ev.message.borrow_mut() = message;
-        *ev.filename.borrow_mut() = filename;
-        ev.lineno.set(lineno);
-        ev.colno.set(colno);
-        ev.error.set(error);
-        Temporary::from_rooted(*ev)
+        *ev.r().message.borrow_mut() = message;
+        *ev.r().filename.borrow_mut() = filename;
+        ev.r().lineno.set(lineno);
+        ev.r().colno.set(colno);
+        ev.r().error.set(error);
+        Temporary::from_rooted(ev.r())
     }
 
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Temporary<ErrorEvent>>{
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
-            None => "".to_string(),
+            None => "".into_string(),
         };
 
         let file_name = match init.filename.as_ref() {
@@ -126,10 +126,4 @@ impl<'a> ErrorEventMethods for JSRef<'a, ErrorEvent> {
         self.error.get()
     }
 
-}
-
-impl Reflectable for ErrorEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event.reflector()
-    }
 }

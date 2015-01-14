@@ -8,11 +8,12 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::InvalidCharacter;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::Reflectable;
 use dom::browsercontext::BrowserContext;
 use dom::console::Console;
 use dom::document::Document;
@@ -27,7 +28,7 @@ use page::Page;
 use script_task::{TimerSource, ScriptChan};
 use script_task::ScriptMsg;
 use script_traits::ScriptControlChan;
-use timers::{IsInterval, TimerId, TimerManager};
+use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::LoadData;
@@ -52,7 +53,7 @@ use time;
 #[dom_struct]
 pub struct Window {
     eventtarget: EventTarget,
-    script_chan: ScriptChan,
+    script_chan: Box<ScriptChan+Send>,
     control_chan: ScriptControlChan,
     console: MutNullableJS<Console>,
     location: MutNullableJS<Location>,
@@ -75,8 +76,8 @@ impl Window {
         (*js_info.as_ref().unwrap().js_context).ptr
     }
 
-    pub fn script_chan<'a>(&'a self) -> &'a ScriptChan {
-        &self.script_chan
+    pub fn script_chan(&self) -> Box<ScriptChan+Send> {
+        self.script_chan.clone()
     }
 
     pub fn control_chan<'a>(&'a self) -> &'a ScriptControlChan {
@@ -114,7 +115,7 @@ pub fn base64_btoa(btoa: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
     //  the method's first argument contains any character whose code point
     //  is greater than U+00FF."
-    if input.chars().any(|c: char| c > '\u00FF') {
+    if input.chars().any(|c: char| c > '\u{FF}') {
         Err(InvalidCharacter)
     } else {
         // "Otherwise, the user agent must convert that argument to a
@@ -182,16 +183,14 @@ pub fn base64_atob(atob: DOMString) -> Fallible<DOMString> {
     }
 }
 
-
 impl<'a> WindowMethods for JSRef<'a, Window> {
     fn Alert(self, s: DOMString) {
         // Right now, just print to the console
-        println!("ALERT: {:s}", s);
+        println!("ALERT: {}", s);
     }
 
     fn Close(self) {
-        let ScriptChan(ref chan) = self.script_chan;
-        chan.send(ScriptMsg::ExitWindow(self.page.id.clone()));
+        self.script_chan.send(ScriptMsg::ExitWindow(self.page.id.clone()));
     }
 
     fn Document(self) -> Temporary<Document> {
@@ -216,7 +215,16 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn SetTimeout(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
-        self.timers.set_timeout_or_interval(callback,
+        self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
+                                            args,
+                                            timeout,
+                                            IsInterval::NonInterval,
+                                            TimerSource::FromWindow(self.page.id.clone()),
+                                            self.script_chan.clone())
+    }
+
+    fn SetTimeout_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
                                             IsInterval::NonInterval,
@@ -229,7 +237,16 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn SetInterval(self, _cx: *mut JSContext, callback: Function, timeout: i32, args: Vec<JSVal>) -> i32 {
-        self.timers.set_timeout_or_interval(callback,
+        self.timers.set_timeout_or_interval(TimerCallback::FunctionTimerCallback(callback),
+                                            args,
+                                            timeout,
+                                            IsInterval::Interval,
+                                            TimerSource::FromWindow(self.page.id.clone()),
+                                            self.script_chan.clone())
+    }
+
+    fn SetInterval_(self, _cx: *mut JSContext, callback: DOMString, timeout: i32, args: Vec<JSVal>) -> i32 {
+        self.timers.set_timeout_or_interval(TimerCallback::StringTimerCallback(callback),
                                             args,
                                             timeout,
                                             IsInterval::Interval,
@@ -275,9 +292,10 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 
     fn Debug(self, message: DOMString) {
-        debug!("{:s}", message);
+        debug!("{}", message);
     }
 
+    #[allow(unsafe_blocks)]
     fn Gc(self) {
         unsafe {
             JS_GC(JS_GetRuntime(self.get_cx()));
@@ -293,33 +311,32 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
     }
 }
 
-impl Reflectable for Window {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-}
-
 pub trait WindowHelpers {
     fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType);
     fn init_browser_context(self, doc: JSRef<Document>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
-    fn evaluate_js_with_result(self, code: &str) -> JSVal;
-    fn evaluate_script_with_result(self, code: &str, filename: &str) -> JSVal;
+    fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>>;
 }
 
+pub trait ScriptHelpers {
+    fn evaluate_js_on_global_with_result(self, code: &str) -> JSVal;
+    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str) -> JSVal;
+}
 
-impl<'a> WindowHelpers for JSRef<'a, Window> {
-    fn evaluate_js_with_result(self, code: &str) -> JSVal {
-        self.evaluate_script_with_result(code, "")
+impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
+    fn evaluate_js_on_global_with_result(self, code: &str) -> JSVal {
+        self.evaluate_script_on_global_with_result(code, "")
     }
 
-    fn evaluate_script_with_result(self, code: &str, filename: &str) -> JSVal {
-        let global = self.reflector().get_jsobject();
+    #[allow(unsafe_blocks)]
+    fn evaluate_script_on_global_with_result(self, code: &str, filename: &str) -> JSVal {
+        let this = self.reflector().get_jsobject();
+        let cx = global_object_for_js_object(this).root().r().get_cx();
+        let global = global_object_for_js_object(this).root().r().reflector().get_jsobject();
         let code: Vec<u16> = code.as_slice().utf16_units().collect();
         let mut rval = UndefinedValue();
         let filename = filename.to_c_str();
-        let cx = self.get_cx();
 
         with_compartment(cx, global, || {
             unsafe {
@@ -332,7 +349,9 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
             }
         })
     }
+}
 
+impl<'a> WindowHelpers for JSRef<'a, Window> {
     fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType) {
         self.page().flush_layout(goal, query);
     }
@@ -348,11 +367,10 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         let url = UrlParser::new().base_url(&base_url).parse(href.as_slice());
         // FIXME: handle URL parse errors more gracefully.
         let url = url.unwrap();
-        let ScriptChan(ref script_chan) = self.script_chan;
         if href.as_slice().starts_with("#") {
-            script_chan.send(ScriptMsg::TriggerFragment(self.page.id, url));
+            self.script_chan.send(ScriptMsg::TriggerFragment(self.page.id, url));
         } else {
-            script_chan.send(ScriptMsg::TriggerLoad(self.page.id, LoadData::new(url)));
+            self.script_chan.send(ScriptMsg::TriggerLoad(self.page.id, LoadData::new(url)));
         }
     }
 
@@ -360,12 +378,17 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         self.timers.fire_timer(timer_id, self);
         self.flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
     }
+
+    // https://html.spec.whatwg.org/multipage/browsers.html#accessing-other-browsing-contexts
+    fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>> {
+        None
+    }
 }
 
 impl Window {
     pub fn new(cx: *mut JSContext,
                page: Rc<Page>,
-               script_chan: ScriptChan,
+               script_chan: Box<ScriptChan+Send>,
                control_chan: ScriptControlChan,
                compositor: Box<ScriptListener+'static>,
                image_cache_task: ImageCacheTask)

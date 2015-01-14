@@ -10,7 +10,7 @@
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::workerglobalscope::WorkerGlobalScope;
+use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window;
 use script_task::ScriptChan;
 
@@ -26,15 +26,16 @@ use url::Url;
 use std::ptr;
 
 /// A freely-copyable reference to a rooted global object.
+#[deriving(Copy)]
 pub enum GlobalRef<'a> {
     Window(JSRef<'a, window::Window>),
     Worker(JSRef<'a, WorkerGlobalScope>),
 }
 
 /// A stack-based rooted reference to a global object.
-pub enum GlobalRoot<'a, 'b> {
-    Window(Root<'a, 'b, window::Window>),
-    Worker(Root<'a, 'b, WorkerGlobalScope>),
+pub enum GlobalRoot {
+    Window(Root<window::Window>),
+    Worker(Root<WorkerGlobalScope>),
 }
 
 /// A traced reference to a global object, for use in fields of traced Rust
@@ -81,7 +82,7 @@ impl<'a> GlobalRef<'a> {
 
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
-    pub fn script_chan<'b>(&'b self) -> &'b ScriptChan {
+    pub fn script_chan(&self) -> Box<ScriptChan+Send> {
         match *self {
             GlobalRef::Window(ref window) => window.script_chan(),
             GlobalRef::Worker(ref worker) => worker.script_chan(),
@@ -98,13 +99,13 @@ impl<'a> Reflectable for GlobalRef<'a> {
     }
 }
 
-impl<'a, 'b> GlobalRoot<'a, 'b> {
+impl GlobalRoot {
     /// Obtain a safe reference to the global object that cannot outlive the
     /// lifetime of this root.
-    pub fn root_ref<'c>(&'c self) -> GlobalRef<'c> {
+    pub fn r<'c>(&'c self) -> GlobalRef<'c> {
         match *self {
-            GlobalRoot::Window(ref window) => GlobalRef::Window(window.root_ref()),
-            GlobalRoot::Worker(ref worker) => GlobalRef::Worker(worker.root_ref()),
+            GlobalRoot::Window(ref window) => GlobalRef::Window(window.r()),
+            GlobalRoot::Worker(ref worker) => GlobalRef::Worker(worker.r()),
         }
     }
 }

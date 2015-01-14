@@ -7,12 +7,12 @@ use dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListEl
 use dom::bindings::codegen::InheritTypes::{HTMLDataListElementDerived, HTMLOptionElementDerived};
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId};
+use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use servo_util::str::DOMString;
 
@@ -23,14 +23,14 @@ pub struct HTMLDataListElement {
 
 impl HTMLDataListElementDerived for EventTarget {
     fn is_htmldatalistelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLDataListElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement)))
     }
 }
 
 impl HTMLDataListElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLDataListElement {
         HTMLDataListElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLDataListElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLDataListElement, localName, prefix, document)
         }
     }
 
@@ -53,12 +53,7 @@ impl<'a> HTMLDataListElementMethods for JSRef<'a, HTMLDataListElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let filter = box HTMLDataListOptionsFilter;
         let window = window_from_node(node).root();
-        HTMLCollection::create(*window, node, filter)
+        HTMLCollection::create(window.r(), node, filter)
     }
 }
 
-impl Reflectable for HTMLDataListElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

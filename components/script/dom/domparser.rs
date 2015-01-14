@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::FailureUnknown;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::window::Window;
@@ -19,15 +19,15 @@ use servo_util::str::DOMString;
 
 #[dom_struct]
 pub struct DOMParser {
+    reflector_: Reflector,
     window: JS<Window>, //XXXjdm Document instead?
-    reflector_: Reflector
 }
 
 impl DOMParser {
     fn new_inherited(window: JSRef<Window>) -> DOMParser {
         DOMParser {
+            reflector_: Reflector::new(),
             window: JS::from_rooted(window),
-            reflector_: Reflector::new()
         }
     }
 
@@ -36,7 +36,7 @@ impl DOMParser {
                            DOMParserBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<DOMParser>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<DOMParser>> {
         Ok(DOMParser::new(global.as_window()))
     }
 }
@@ -47,22 +47,22 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                        s: DOMString,
                        ty: DOMParserBinding::SupportedType)
                        -> Fallible<Temporary<Document>> {
-        let window = self.window.root().clone();
-        let url = window.get_url();
-        let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as uint].to_string();
+        let window = self.window.root();
+        let url = window.r().get_url();
+        let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as uint].into_string();
         match ty {
             Text_html => {
-                let document = Document::new(window, Some(url.clone()),
+                let document = Document::new(window.r(), Some(url.clone()),
                                              IsHTMLDocument::HTMLDocument,
                                              Some(content_type),
-                                             DocumentSource::FromParser).root().clone();
-                parse_html(document, HTMLInput::InputString(s), &url);
-                document.set_ready_state(DocumentReadyState::Complete);
-                Ok(Temporary::from_rooted(document))
+                                             DocumentSource::FromParser).root();
+                parse_html(document.r(), HTMLInput::InputString(s), &url);
+                document.r().set_ready_state(DocumentReadyState::Complete);
+                Ok(Temporary::from_rooted(document.r()))
             }
             Text_xml => {
                 //FIXME: this should probably be FromParser when we actually parse the string (#3756).
-                Ok(Document::new(window, Some(url.clone()),
+                Ok(Document::new(window.r(), Some(url.clone()),
                                  IsHTMLDocument::NonHTMLDocument,
                                  Some(content_type),
                                  DocumentSource::NotFromParser))
@@ -74,8 +74,3 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
     }
 }
 
-impl Reflectable for DOMParser {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

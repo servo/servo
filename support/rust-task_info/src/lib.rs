@@ -10,9 +10,6 @@
 #![crate_name = "task_info"]
 #![crate_type = "rlib"]
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
 #![feature(globs)]
 
 extern crate libc;

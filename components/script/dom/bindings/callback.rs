@@ -9,26 +9,24 @@
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
-use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable};
-use js::jsapi::JS_GetProperty;
+use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable, JS_GetGlobalObject};
+use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::with_compartment;
 
 use std::ptr;
 
 /// The exception handling used for a call.
+#[deriving(Copy, PartialEq)]
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
-    ReportExceptions,
-    /// Throw an exception to the caller code if the thrown exception is a
-    /// binding object for a DOMError from the caller's scope, otherwise report
-    /// it.
-    RethrowContentExceptions,
+    Report,
     /// Throw any exception to the caller code.
-    RethrowExceptions
+    Rethrow
 }
 
 /// A common base class for representing IDL callback function types.
-#[deriving(Clone,PartialEq)]
+#[deriving(Copy, Clone,PartialEq)]
 #[jstraceable]
 pub struct CallbackFunction {
     object: CallbackObject
@@ -46,7 +44,7 @@ impl CallbackFunction {
 }
 
 /// A common base class for representing IDL callback interface types.
-#[deriving(Clone,PartialEq)]
+#[deriving(Copy, Clone,PartialEq)]
 #[jstraceable]
 pub struct CallbackInterface {
     object: CallbackObject
@@ -55,7 +53,7 @@ pub struct CallbackInterface {
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[allow(raw_pointer_deriving)]
-#[deriving(Clone,PartialEq)]
+#[deriving(Copy, Clone,PartialEq)]
 #[jstraceable]
 struct CallbackObject {
     /// The underlying `JSObject`.
@@ -121,7 +119,7 @@ impl CallbackInterface {
 pub fn WrapCallThisObject<T: Reflectable>(cx: *mut JSContext,
                                           p: JSRef<T>) -> *mut JSObject {
     let mut obj = p.reflector().get_jsobject();
-    assert!(obj.is_not_null());
+    assert!(!obj.is_null());
 
     unsafe {
         if JS_WrapObject(cx, &mut obj) == 0 {
@@ -138,7 +136,7 @@ pub struct CallSetup {
     /// The `JSContext` used for the call.
     cx: *mut JSContext,
     /// The exception handling used for the call.
-    _handling: ExceptionHandling
+    _handling: ExceptionHandling,
 }
 
 impl CallSetup {
@@ -147,15 +145,30 @@ impl CallSetup {
     pub fn new<T: CallbackContainer>(callback: T, handling: ExceptionHandling) -> CallSetup {
         let global = global_object_for_js_object(callback.callback());
         let global = global.root();
-        let cx = global.root_ref().get_cx();
+        let cx = global.r().get_cx();
+
         CallSetup {
             cx: cx,
-            _handling: handling
+            _handling: handling,
         }
     }
 
     /// Returns the `JSContext` used for the call.
     pub fn GetContext(&self) -> *mut JSContext {
         self.cx
+    }
+}
+
+impl Drop for CallSetup {
+    fn drop(&mut self) {
+        let need_to_deal_with_exception = unsafe { JS_IsExceptionPending(self.cx) } != 0;
+        if need_to_deal_with_exception {
+            unsafe {
+                let old_global = JS_GetGlobalObject(self.cx);
+                with_compartment(self.cx, old_global, || {
+                    JS_ReportPendingException(self.cx)
+                });
+            }
+        }
     }
 }

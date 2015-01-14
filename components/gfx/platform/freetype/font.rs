@@ -28,9 +28,9 @@ use freetype::tt_os2::TT_OS2;
 use std::mem;
 use std::num::Float;
 use std::ptr;
-use std::string;
+use std::string::String;
 
-use sync::Arc;
+use std::sync::Arc;
 
 fn float_to_fixed_ft(f: f64) -> i32 {
     float_to_fixed(6, f)
@@ -121,16 +121,16 @@ impl FontHandleMethods for FontHandle {
         self.font_data.clone()
     }
     fn family_name(&self) -> String {
-        unsafe { string::raw::from_buf(&*(*self.face).family_name as *const i8 as *const u8) }
+        unsafe { String::from_raw_buf(&*(*self.face).family_name as *const i8 as *const u8) }
     }
     fn face_name(&self) -> String {
-        unsafe { string::raw::from_buf(&*FT_Get_Postscript_Name(self.face) as *const i8 as *const u8) }
+        unsafe { String::from_raw_buf(&*FT_Get_Postscript_Name(self.face) as *const i8 as *const u8) }
     }
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
     }
     fn boldness(&self) -> font_weight::T {
-        let default_weight = font_weight::Weight400;
+        let default_weight = font_weight::T::Weight400;
         if unsafe { (*self.face).style_flags & FT_STYLE_FLAG_BOLD == 0 } {
             default_weight
         } else {
@@ -140,15 +140,15 @@ impl FontHandleMethods for FontHandle {
                 if valid {
                     let weight =(*os2).usWeightClass;
                     match weight {
-                        1 | 100...199 => font_weight::Weight100,
-                        2 | 200...299 => font_weight::Weight200,
-                        3 | 300...399 => font_weight::Weight300,
-                        4 | 400...499 => font_weight::Weight400,
-                        5 | 500...599 => font_weight::Weight500,
-                        6 | 600...699 => font_weight::Weight600,
-                        7 | 700...799 => font_weight::Weight700,
-                        8 | 800...899 => font_weight::Weight800,
-                        9 | 900...999 => font_weight::Weight900,
+                        1 | 100...199 => font_weight::T::Weight100,
+                        2 | 200...299 => font_weight::T::Weight200,
+                        3 | 300...399 => font_weight::T::Weight300,
+                        4 | 400...499 => font_weight::T::Weight400,
+                        5 | 500...599 => font_weight::T::Weight500,
+                        6 | 600...699 => font_weight::T::Weight600,
+                        7 | 700...799 => font_weight::T::Weight700,
+                        8 | 800...899 => font_weight::T::Weight800,
+                        9 | 900...999 => font_weight::T::Weight900,
                         _ => default_weight
                     }
                 } else {
@@ -255,7 +255,7 @@ impl FontHandleMethods for FontHandle {
             line_gap:         height,
         };
 
-        debug!("Font metrics (@{:f} pt): {}", geometry::to_pt(em_size), metrics);
+        debug!("Font metrics (@{} pt): {}", geometry::to_pt(em_size), metrics);
         return metrics;
     }
 

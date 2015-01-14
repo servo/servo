@@ -6,6 +6,7 @@
 
 #![deny(unsafe_blocks)]
 
+use canvas::canvas_paint_task::CanvasMsg;
 use css::node_style::StyledNode;
 use construct::FlowConstructor;
 use context::LayoutContext;
@@ -23,7 +24,7 @@ use util::OpaqueNodeMethods;
 use wrapper::{TLayoutNode, ThreadSafeLayoutNode};
 
 use geom::{Point2D, Rect, Size2D};
-use gfx::display_list::OpaqueNode;
+use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use script_traits::UntrustedNodeAddress;
@@ -31,8 +32,7 @@ use serialize::{Encodable, Encoder};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
-use servo_util::geometry::Au;
-use servo_util::geometry;
+use servo_util::geometry::{mod, Au, ZERO_POINT};
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin};
 use servo_util::range::*;
 use servo_util::smallvec::SmallVec;
@@ -40,13 +40,13 @@ use servo_util::str::is_whitespace;
 use std::cmp::{max, min};
 use std::fmt;
 use std::str::FromStr;
+use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::{ComputedValues, TElement, TNode, cascade_anonymous};
 use style::computed_values::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use style::computed_values::{LengthOrPercentageOrNone};
-use style::computed_values::{clear, overflow_wrap, position, text_align};
-use style::computed_values::{text_decoration, vertical_align, white_space};
-use sync::{Arc, Mutex};
+use style::computed_values::{LengthOrPercentageOrNone, clear, mix_blend_mode, overflow_wrap};
+use style::computed_values::{position, text_align, text_decoration, vertical_align, white_space};
+use style::computed_values::{word_break};
 use url::Url;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
@@ -62,8 +62,8 @@ use url::Url;
 ///   positioned as if it were a block fragment, but its children are positioned according to
 ///   inline flow.
 ///
-/// A `SpecificFragmentInfo::Generic` is an empty fragment that contributes only borders, margins, padding, and
-/// backgrounds. It is analogous to a CSS nonreplaced content box.
+/// A `SpecificFragmentInfo::Generic` is an empty fragment that contributes only borders, margins,
+/// padding, and backgrounds. It is analogous to a CSS nonreplaced content box.
 ///
 /// A fragment's type influences how its styles are interpreted during layout. For example,
 /// replaced content such as images are resized differently from tables, text, or other content.
@@ -83,8 +83,10 @@ pub struct Fragment {
     /// The CSS style of this fragment.
     pub style: Arc<ComputedValues>,
 
-    /// The position of this fragment relative to its owning flow.
-    /// The size includes padding and border, but not margin.
+    /// The position of this fragment relative to its owning flow. The size includes padding and
+    /// border, but not margin.
+    ///
+    /// NB: This does not account for relative positioning.
     pub border_box: LogicalRect<Au>,
 
     /// The sum of border and padding; i.e. the distance from the edge of the border box to the
@@ -127,6 +129,7 @@ pub enum SpecificFragmentInfo {
     Generic,
     Iframe(Box<IframeFragmentInfo>),
     Image(Box<ImageFragmentInfo>),
+    Canvas(Box<CanvasFragmentInfo>),
 
     /// A hypothetical box (see CSS 2.1 § 10.3.7) for an absolutely-positioned block that was
     /// declared with `display: inline;`.
@@ -155,6 +158,7 @@ impl SpecificFragmentInfo {
                 | SpecificFragmentInfo::TableRow
                 | SpecificFragmentInfo::TableWrapper
                 | SpecificFragmentInfo::UnscannedText(_)
+                | SpecificFragmentInfo::Canvas(_)
                 | SpecificFragmentInfo::Generic => return RestyleDamage::empty(),
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref info) => &info.flow_ref,
                 SpecificFragmentInfo::InlineBlock(ref info) => &info.flow_ref,
@@ -165,6 +169,7 @@ impl SpecificFragmentInfo {
 
     pub fn get_type(&self) -> &'static str {
         match *self {
+            SpecificFragmentInfo::Canvas(_) => "SpecificFragmentInfo::Canvas",
             SpecificFragmentInfo::Generic => "SpecificFragmentInfo::Generic",
             SpecificFragmentInfo::Iframe(_) => "SpecificFragmentInfo::Iframe",
             SpecificFragmentInfo::Image(_) => "SpecificFragmentInfo::Image",
@@ -216,17 +221,40 @@ impl InlineBlockFragmentInfo {
     }
 }
 
+#[deriving(Clone)]
+pub struct CanvasFragmentInfo {
+    pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
+    pub renderer: Option<Arc<Mutex<Sender<CanvasMsg>>>>,
+}
+
+impl CanvasFragmentInfo {
+    pub fn new(node: &ThreadSafeLayoutNode) -> CanvasFragmentInfo {
+        CanvasFragmentInfo {
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
+                Some(Au::from_px(node.get_canvas_width() as int)),
+                Some(Au::from_px(node.get_canvas_height() as int))),
+            renderer: node.get_renderer().map(|rec| Arc::new(Mutex::new(rec))),
+        }
+    }
+
+    /// Returns the original inline-size of the canvas.
+    pub fn canvas_inline_size(&self) -> Au {
+        self.replaced_image_fragment_info.dom_inline_size.unwrap_or(Au(0))
+    }
+
+    /// Returns the original block-size of the canvas.
+    pub fn canvas_block_size(&self) -> Au {
+        self.replaced_image_fragment_info.dom_block_size.unwrap_or(Au(0))
+    }
+}
+
+
 /// A fragment that represents a replaced content image and its accompanying borders, shadows, etc.
 #[deriving(Clone)]
 pub struct ImageFragmentInfo {
     /// The image held within this fragment.
+    pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
     pub image: ImageHolder<UntrustedNodeAddress>,
-    pub for_node: UntrustedNodeAddress,
-    pub computed_inline_size: Option<Au>,
-    pub computed_block_size: Option<Au>,
-    pub dom_inline_size: Option<Au>,
-    pub dom_block_size: Option<Au>,
-    pub writing_mode_is_vertical: bool,
 }
 
 impl ImageFragmentInfo {
@@ -246,15 +274,60 @@ impl ImageFragmentInfo {
             }).and_then(|pixels| Some(Au::from_px(pixels)))
         }
 
-        let is_vertical = node.style().writing_mode.is_vertical();
-        let dom_width = convert_length(node, &atom!("width"));
-        let dom_height = convert_length(node, &atom!("height"));
+        ImageFragmentInfo {
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node,
+                convert_length(node, &atom!("width")),
+                convert_length(node, &atom!("height"))),
+            image: ImageHolder::new(image_url, local_image_cache)
+        }
+    }
 
+    /// Returns the original inline-size of the image.
+    pub fn image_inline_size(&mut self) -> Au {
+        let size = self.image.get_size(self.replaced_image_fragment_info.for_node).unwrap_or(Size2D::zero());
+        Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical { size.height }
+                    else { size.width })
+    }
+
+    /// Returns the original block-size of the image.
+    pub fn image_block_size(&mut self) -> Au {
+        let size = self.image.get_size(self.replaced_image_fragment_info.for_node).unwrap_or(Size2D::zero());
+        Au::from_px(if self.replaced_image_fragment_info.writing_mode_is_vertical { size.width }
+                    else { size.height })
+    }
+
+    /// Tile an image
+    pub fn tile_image(position: &mut Au, size: &mut Au,
+                        virtual_position: Au, image_size: u32) {
+        let image_size = image_size as int;
+        let delta_pixels = geometry::to_px(virtual_position - *position);
+        let tile_count = (delta_pixels + image_size - 1) / image_size;
+        let offset = Au::from_px(image_size * tile_count);
+        let new_position = virtual_position - offset;
+        *size = *position - new_position + *size;
+        *position = new_position;
+    }
+}
+
+#[deriving(Clone)]
+pub struct ReplacedImageFragmentInfo {
+    pub for_node: UntrustedNodeAddress,
+    pub computed_inline_size: Option<Au>,
+    pub computed_block_size: Option<Au>,
+    pub dom_inline_size: Option<Au>,
+    pub dom_block_size: Option<Au>,
+    pub writing_mode_is_vertical: bool,
+}
+
+impl ReplacedImageFragmentInfo {
+    pub fn new(node: &ThreadSafeLayoutNode,
+               dom_width: Option<Au>,
+               dom_height: Option<Au>) -> ReplacedImageFragmentInfo {
+        let is_vertical = node.style().writing_mode.is_vertical();
         let opaque_node: OpaqueNode = OpaqueNodeMethods::from_thread_safe_layout_node(node);
         let untrusted_node: UntrustedNodeAddress = opaque_node.to_untrusted_node_address();
 
-        ImageFragmentInfo {
-            image: ImageHolder::new(image_url, local_image_cache),
+        ReplacedImageFragmentInfo {
             for_node: untrusted_node,
             computed_inline_size: None,
             computed_block_size: None,
@@ -272,18 +345,6 @@ impl ImageFragmentInfo {
     /// Returns the calculated block-size of the image, accounting for the block-size attribute.
     pub fn computed_block_size(&self) -> Au {
         self.computed_block_size.expect("image block_size is not computed yet!")
-    }
-
-    /// Returns the original inline-size of the image.
-    pub fn image_inline_size(&mut self) -> Au {
-        let size = self.image.get_size(self.for_node).unwrap_or(Size2D::zero());
-        Au::from_px(if self.writing_mode_is_vertical { size.height } else { size.width })
-    }
-
-    /// Returns the original block-size of the image.
-    pub fn image_block_size(&mut self) -> Au {
-        let size = self.image.get_size(self.for_node).unwrap_or(Size2D::zero());
-        Au::from_px(if self.writing_mode_is_vertical { size.width } else { size.height })
     }
 
     // Return used value for inline-size or block-size.
@@ -318,16 +379,101 @@ impl ImageFragmentInfo {
         })
     }
 
-    /// Tile an image
-    pub fn tile_image(position: &mut Au, size: &mut Au,
-                        virtual_position: Au, image_size: u32) {
-        let image_size = image_size as int;
-        let delta_pixels = geometry::to_px(virtual_position - *position);
-        let tile_count = (delta_pixels + image_size - 1) / image_size;
-        let offset = Au::from_px(image_size * tile_count);
-        let new_position = virtual_position - offset;
-        *size = *position - new_position + *size;
-        *position = new_position;
+    pub fn calculate_replaced_inline_size(&mut self,
+                                          style: ComputedValues,
+                                          noncontent_inline_size: Au,
+                                          container_inline_size: Au,
+                                          fragment_inline_size: Au,
+                                          fragment_block_size: Au) -> Au {
+
+        let style_inline_size = style.content_inline_size();
+        let style_block_size = style.content_block_size();
+        let style_min_inline_size = style.min_inline_size();
+        let style_max_inline_size = style.max_inline_size();
+        let style_min_block_size = style.min_block_size();
+        let style_max_block_size = style.max_block_size();
+
+        // TODO(ksh8281): compute border,margin
+        let inline_size = ReplacedImageFragmentInfo::style_length(
+            style_inline_size,
+            self.dom_inline_size,
+            container_inline_size);
+
+        let inline_size = match inline_size {
+            MaybeAuto::Auto => {
+                let intrinsic_width = fragment_inline_size;
+                let intrinsic_height = fragment_block_size;
+                if intrinsic_height == Au(0) {
+                    intrinsic_width
+                } else {
+                    let ratio = intrinsic_width.to_f32().unwrap() /
+                                intrinsic_height.to_f32().unwrap();
+
+                    let specified_height = ReplacedImageFragmentInfo::style_length(
+                        style_block_size,
+                        self.dom_block_size,
+                        Au(0));
+                    let specified_height = match specified_height {
+                        MaybeAuto::Auto => intrinsic_height,
+                        MaybeAuto::Specified(h) => h,
+                    };
+                    let specified_height = ReplacedImageFragmentInfo::clamp_size(
+                        specified_height,
+                        style_min_block_size,
+                        style_max_block_size,
+                        Au(0));
+                    Au((specified_height.to_f32().unwrap() * ratio) as i32)
+                }
+            },
+            MaybeAuto::Specified(w) => w,
+        };
+
+        let inline_size = ReplacedImageFragmentInfo::clamp_size(inline_size,
+                                                                style_min_inline_size,
+                                                                style_max_inline_size,
+                                                                container_inline_size);
+
+        self.computed_inline_size = Some(inline_size);
+        inline_size + noncontent_inline_size
+    }
+
+    pub fn calculate_replaced_block_size(&mut self,
+                                         style: ComputedValues,
+                                         noncontent_block_size: Au,
+                                         containing_block_block_size: Au,
+                                         fragment_inline_size: Au,
+                                         fragment_block_size: Au) -> Au {
+
+        // TODO(ksh8281): compute border,margin,padding
+        let style_block_size = style.content_block_size();
+        let style_min_block_size = style.min_block_size();
+        let style_max_block_size = style.max_block_size();
+
+        let inline_size = self.computed_inline_size();
+        let block_size = ReplacedImageFragmentInfo::style_length(
+            style_block_size,
+            self.dom_block_size,
+            containing_block_block_size);
+
+        let block_size = match block_size {
+            MaybeAuto::Auto => {
+                let intrinsic_width = fragment_inline_size;
+                let intrinsic_height = fragment_block_size;
+                let scale = intrinsic_width.to_f32().unwrap() / inline_size.to_f32().unwrap();
+                Au((intrinsic_height.to_f32().unwrap() / scale) as i32)
+            },
+            MaybeAuto::Specified(h) => {
+                h
+            }
+        };
+
+        let block_size = ReplacedImageFragmentInfo::clamp_size(block_size,
+            style_min_block_size,
+            style_max_block_size,
+            Au(0));
+
+        self.computed_block_size = Some(block_size);
+        block_size + noncontent_block_size
     }
 }
 
@@ -397,7 +543,7 @@ impl ScannedTextFragmentInfo {
 
 /// Describes how to split a fragment. This is used during line breaking as part of the return
 /// value of `find_split_info_for_inline_size()`.
-#[deriving(Show)]
+#[deriving(Show, Clone)]
 pub struct SplitInfo {
     // TODO(bjz): this should only need to be a single character index, but both values are
     // currently needed for splitting in the `inline::try_append_*` functions.
@@ -454,7 +600,7 @@ impl UnscannedTextFragmentInfo {
 }
 
 /// A fragment that represents a table column.
-#[deriving(Clone)]
+#[deriving(Copy, Clone)]
 pub struct TableColumnFragmentInfo {
     /// the number of columns a <col> element should span
     pub span: int,
@@ -520,10 +666,28 @@ impl Fragment {
         }
     }
 
+    /// Constructs a new `Fragment` instance for an anonymous object.
+    pub fn new_anonymous(constructor: &mut FlowConstructor, node: &ThreadSafeLayoutNode)
+                         -> Fragment {
+        let node_style = cascade_anonymous(&**node.style());
+        let writing_mode = node_style.writing_mode;
+        Fragment {
+            node: OpaqueNodeMethods::from_thread_safe_layout_node(node),
+            style: Arc::new(node_style),
+            restyle_damage: node.restyle_damage(),
+            border_box: LogicalRect::zero(writing_mode),
+            border_padding: LogicalMargin::zero(writing_mode),
+            margin: LogicalMargin::zero(writing_mode),
+            specific: constructor.build_specific_fragment_info_for_node(node),
+            inline_context: None,
+            debug_id: layout_debug::generate_unique_debug_id(),
+        }
+    }
+
     /// Constructs a new `Fragment` instance for an anonymous table object.
-    pub fn new_anonymous_table_fragment(node: &ThreadSafeLayoutNode,
-                                        specific: SpecificFragmentInfo)
-                                        -> Fragment {
+    pub fn new_anonymous_from_specific_info(node: &ThreadSafeLayoutNode,
+                                            specific: SpecificFragmentInfo)
+                                            -> Fragment {
         // CSS 2.1 § 17.2.1 This is for non-inherited properties on anonymous table fragments
         // example:
         //
@@ -531,8 +695,9 @@ impl Fragment {
         //         Foo
         //     </div>
         //
-        // Anonymous table fragments, SpecificFragmentInfo::TableRow and SpecificFragmentInfo::TableCell, are generated around
-        // `Foo`, but they shouldn't inherit the border.
+        // Anonymous table fragments, SpecificFragmentInfo::TableRow and
+        // SpecificFragmentInfo::TableCell, are generated around `Foo`, but they shouldn't inherit
+        // the border.
 
         let node_style = cascade_anonymous(&**node.style());
         let writing_mode = node_style.writing_mode;
@@ -647,7 +812,11 @@ impl Fragment {
     fn quantities_included_in_intrinsic_inline_size(&self)
                                                     -> QuantitiesIncludedInIntrinsicInlineSizes {
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::InlineBlock(_) => {
+            SpecificFragmentInfo::Canvas(_) |
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::InlineBlock(_) => {
                 QuantitiesIncludedInIntrinsicInlineSizes::all()
             }
             SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell => {
@@ -836,9 +1005,7 @@ impl Fragment {
     }
 
     // Return offset from original position because of `position: relative`.
-    pub fn relative_position(&self,
-                             containing_block_size: &LogicalSize<Au>)
-                             -> LogicalSize<Au> {
+    pub fn relative_position(&self, containing_block_size: &LogicalSize<Au>) -> LogicalSize<Au> {
         fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>)
                       -> LogicalSize<Au> {
             let offsets = style.logical_position();
@@ -856,7 +1023,7 @@ impl Fragment {
         }
 
         // Go over the ancestor fragments and add all relative offsets (if any).
-        let mut rel_pos = if self.style().get_box().position == position::relative {
+        let mut rel_pos = if self.style().get_box().position == position::T::relative {
             from_style(self.style(), containing_block_size)
         } else {
             LogicalSize::zero(self.style.writing_mode)
@@ -866,7 +1033,7 @@ impl Fragment {
             None => {}
             Some(ref inline_fragment_context) => {
                 for style in inline_fragment_context.styles.iter() {
-                    if style.get_box().position == position::relative {
+                    if style.get_box().position == position::T::relative {
                         rel_pos = rel_pos + from_style(&**style, containing_block_size);
                     }
                 }
@@ -882,10 +1049,10 @@ impl Fragment {
     pub fn clear(&self) -> Option<ClearType> {
         let style = self.style();
         match style.get_box().clear {
-            clear::none => None,
-            clear::left => Some(ClearType::Left),
-            clear::right => Some(ClearType::Right),
-            clear::both => Some(ClearType::Both),
+            clear::T::none => None,
+            clear::T::left => Some(ClearType::Left),
+            clear::T::right => Some(ClearType::Right),
+            clear::T::both => Some(ClearType::Both),
         }
     }
 
@@ -954,7 +1121,7 @@ impl Fragment {
     }
 
     /// Returns true if and only if this is a scanned text fragment.
-    fn is_scanned_text_fragment(&self) -> bool {
+    pub fn is_scanned_text_fragment(&self) -> bool {
         match self.specific {
             SpecificFragmentInfo::ScannedText(..) => true,
             _ => false,
@@ -977,6 +1144,13 @@ impl Fragment {
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: image_inline_size,
                     preferred_inline_size: image_inline_size,
+                })
+            }
+            SpecificFragmentInfo::Canvas(ref mut canvas_fragment_info) => {
+                let canvas_inline_size = canvas_fragment_info.canvas_inline_size();
+                result.union_block(&IntrinsicISizes {
+                    minimum_inline_size: canvas_inline_size,
+                    preferred_inline_size: canvas_inline_size,
                 })
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment_info) => {
@@ -1025,8 +1199,11 @@ impl Fragment {
             SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper | SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => Au(0),
+            SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
+                canvas_fragment_info.replaced_image_fragment_info.computed_inline_size()
+            }
             SpecificFragmentInfo::Image(ref image_fragment_info) => {
-                image_fragment_info.computed_inline_size()
+                image_fragment_info.replaced_image_fragment_info.computed_inline_size()
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment_info) => {
                 let (range, run) = (&text_fragment_info.range, &text_fragment_info.run);
@@ -1045,7 +1222,10 @@ impl Fragment {
             SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper | SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => Au(0),
             SpecificFragmentInfo::Image(ref image_fragment_info) => {
-                image_fragment_info.computed_block_size()
+                image_fragment_info.replaced_image_fragment_info.computed_block_size()
+            }
+            SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
+                canvas_fragment_info.replaced_image_fragment_info.computed_block_size()
             }
             SpecificFragmentInfo::ScannedText(_) => {
                 // Compute the block-size based on the line-block-size and font size.
@@ -1076,7 +1256,7 @@ impl Fragment {
     pub fn find_split_info_by_new_line(&self)
             -> Option<(SplitInfo, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper => None,
             SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not need to split"),
             SpecificFragmentInfo::UnscannedText(_) => panic!("Unscanned text fragments should have been scanned by now!"),
@@ -1117,30 +1297,42 @@ impl Fragment {
     /// information are both optional due to the possibility of them being whitespace.
     pub fn calculate_split_position(&self, max_inline_size: Au, starts_line: bool)
                                     -> Option<SplitResult> {
-        let text_fragment_info = match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell | SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper | SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => return None,
-            SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not have inline_size"),
-            SpecificFragmentInfo::UnscannedText(_) => {
-                panic!("Unscanned text fragments should have been scanned by now!")
-            }
-            SpecificFragmentInfo::ScannedText(ref text_fragment_info) => text_fragment_info,
-        };
+        let text_fragment_info =
+            if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
+                text_fragment_info
+            } else {
+                return None
+            };
 
         let mut flags = SplitOptions::empty();
         if starts_line {
             flags.insert(STARTS_LINE);
-            if self.style().get_inheritedtext().overflow_wrap == overflow_wrap::break_word {
+            if self.style().get_inheritedtext().overflow_wrap == overflow_wrap::T::break_word {
                 flags.insert(RETRY_AT_CHARACTER_BOUNDARIES)
             }
         }
 
-        let natural_word_breaking_strategy =
-            text_fragment_info.run.natural_word_slices_in_range(&text_fragment_info.range);
-        self.calculate_split_position_using_breaking_strategy(natural_word_breaking_strategy,
-                                                              max_inline_size,
-                                                              flags)
+        match self.style().get_inheritedtext().word_break {
+            word_break::T::normal => {
+                // Break at normal word boundaries.
+                let natural_word_breaking_strategy =
+                    text_fragment_info.run.natural_word_slices_in_range(&text_fragment_info.range);
+                self.calculate_split_position_using_breaking_strategy(
+                    natural_word_breaking_strategy,
+                    max_inline_size,
+                    flags)
+            }
+            word_break::T::break_all => {
+                // Break at character boundaries.
+                let character_breaking_strategy =
+                    text_fragment_info.run.character_slices_in_range(&text_fragment_info.range);
+                flags.remove(RETRY_AT_CHARACTER_BOUNDARIES);
+                return self.calculate_split_position_using_breaking_strategy(
+                    character_breaking_strategy,
+                    max_inline_size,
+                    flags)
+            }
+        }
     }
 
     /// A helper method that uses the breaking strategy described by `slice_iterator` (at present,
@@ -1151,16 +1343,12 @@ impl Fragment {
                                                               flags: SplitOptions)
                                                               -> Option<SplitResult>
                                                               where I: Iterator<TextRunSlice<'a>> {
-        let text_fragment_info = match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::Table |
-            SpecificFragmentInfo::TableCell | SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper | SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => return None,
-            SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not have inline_size"),
-            SpecificFragmentInfo::UnscannedText(_) => {
-                panic!("Unscanned text fragments should have been scanned by now!")
-            }
-            SpecificFragmentInfo::ScannedText(ref text_fragment_info) => text_fragment_info,
-        };
+        let text_fragment_info =
+            if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
+                text_fragment_info
+            } else {
+                return None
+            };
 
         let mut pieces_processed_count: uint = 0;
         let mut remaining_inline_size = max_inline_size;
@@ -1258,8 +1446,8 @@ impl Fragment {
     /// whitespace that should be stripped.
     pub fn is_ignorable_whitespace(&self) -> bool {
         match self.white_space() {
-            white_space::pre => return false,
-            white_space::normal | white_space::nowrap => {}
+            white_space::T::pre => return false,
+            white_space::T::normal | white_space::T::nowrap => {}
         }
         match self.specific {
             SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => {
@@ -1271,7 +1459,7 @@ impl Fragment {
 
     /// Assigns replaced inline-size, padding, and margins for this fragment only if it is replaced
     /// content per CSS 2.1 § 10.3.2.
-    pub fn assign_replaced_inline_size_if_necessary(&mut self, container_inline_size: Au) {
+    pub fn assign_replaced_inline_size_if_necessary<'a>(&'a mut self, container_inline_size: Au) {
         match self.specific {
             SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper => return,
@@ -1279,16 +1467,11 @@ impl Fragment {
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             }
-            SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {}
         };
 
-        let style_inline_size = self.style().content_inline_size();
-        let style_block_size = self.style().content_block_size();
-        let style_min_inline_size = self.style().min_inline_size();
-        let style_max_inline_size = self.style().max_inline_size();
-        let style_min_block_size = self.style().min_block_size();
-        let style_max_block_size = self.style().max_block_size();
+        let style = self.style().clone();
         let noncontent_inline_size = self.border_padding.inline_start_end();
 
         match self.specific {
@@ -1312,49 +1495,24 @@ impl Fragment {
                 self.border_box.size.inline = info.content_size.inline + noncontent_inline_size
             }
             SpecificFragmentInfo::Image(ref mut image_fragment_info) => {
-                // TODO(ksh8281): compute border,margin
-                let inline_size = ImageFragmentInfo::style_length(
-                    style_inline_size,
-                    image_fragment_info.dom_inline_size,
-                    container_inline_size);
-
-                let inline_size = match inline_size {
-                    MaybeAuto::Auto => {
-                        let intrinsic_width = image_fragment_info.image_inline_size();
-                        let intrinsic_height = image_fragment_info.image_block_size();
-
-                        if intrinsic_height == Au(0) {
-                            intrinsic_width
-                        } else {
-                            let ratio = intrinsic_width.to_f32().unwrap() /
-                                        intrinsic_height.to_f32().unwrap();
-
-                            let specified_height = ImageFragmentInfo::style_length(
-                                style_block_size,
-                                image_fragment_info.dom_block_size,
-                                Au(0));
-                            let specified_height = match specified_height {
-                                MaybeAuto::Auto => intrinsic_height,
-                                MaybeAuto::Specified(h) => h,
-                            };
-                            let specified_height = ImageFragmentInfo::clamp_size(
-                                specified_height,
-                                style_min_block_size,
-                                style_max_block_size,
-                                Au(0));
-                            Au((specified_height.to_f32().unwrap() * ratio) as i32)
-                        }
-                    },
-                    MaybeAuto::Specified(w) => w,
-                };
-
-                let inline_size = ImageFragmentInfo::clamp_size(inline_size,
-                                                                style_min_inline_size,
-                                                                style_max_inline_size,
-                                                                container_inline_size);
-
-                self.border_box.size.inline = inline_size + noncontent_inline_size;
-                image_fragment_info.computed_inline_size = Some(inline_size);
+                let fragment_inline_size = image_fragment_info.image_inline_size();
+                let fragment_block_size = image_fragment_info.image_block_size();
+                self.border_box.size.inline = image_fragment_info.replaced_image_fragment_info.
+                                              calculate_replaced_inline_size(style,
+                                                                             noncontent_inline_size,
+                                                                             container_inline_size,
+                                                                             fragment_inline_size,
+                                                                             fragment_block_size);
+            }
+            SpecificFragmentInfo::Canvas(ref mut canvas_fragment_info) => {
+                let fragment_inline_size = canvas_fragment_info.canvas_inline_size();
+                let fragment_block_size = canvas_fragment_info.canvas_block_size();
+                self.border_box.size.inline = canvas_fragment_info.replaced_image_fragment_info.
+                                              calculate_replaced_inline_size(style,
+                                                                             noncontent_inline_size,
+                                                                             container_inline_size,
+                                                                             fragment_inline_size,
+                                                                             fragment_block_size);
             }
             _ => panic!("this case should have been handled above"),
         }
@@ -1372,42 +1530,33 @@ impl Fragment {
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             }
-            SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {}
         }
 
-        let style_block_size = self.style().content_block_size();
-        let style_min_block_size = self.style().min_block_size();
-        let style_max_block_size = self.style().max_block_size();
+        let style = self.style().clone();
         let noncontent_block_size = self.border_padding.block_start_end();
 
         match self.specific {
             SpecificFragmentInfo::Image(ref mut image_fragment_info) => {
-                // TODO(ksh8281): compute border,margin,padding
-                let inline_size = image_fragment_info.computed_inline_size();
-                let block_size = ImageFragmentInfo::style_length(
-                    style_block_size,
-                    image_fragment_info.dom_block_size,
-                    containing_block_block_size);
-
-                let block_size = match block_size {
-                    MaybeAuto::Auto => {
-                        let scale = image_fragment_info.image_inline_size().to_f32().unwrap()
-                            / inline_size.to_f32().unwrap();
-                        Au((image_fragment_info.image_block_size().to_f32().unwrap() / scale)
-                           as i32)
-                    },
-                    MaybeAuto::Specified(h) => {
-                        h
-                    }
-                };
-
-                let block_size = ImageFragmentInfo::clamp_size(block_size, style_min_block_size,
-                                                               style_max_block_size,
-                                                               Au(0));
-
-                image_fragment_info.computed_block_size = Some(block_size);
-                self.border_box.size.block = block_size + noncontent_block_size
+                let fragment_inline_size = image_fragment_info.image_inline_size();
+                let fragment_block_size = image_fragment_info.image_block_size();
+                self.border_box.size.block = image_fragment_info.replaced_image_fragment_info.
+                                             calculate_replaced_block_size(style,
+                                                                           noncontent_block_size,
+                                                                           containing_block_block_size,
+                                                                           fragment_inline_size,
+                                                                           fragment_block_size);
+            }
+            SpecificFragmentInfo::Canvas(ref mut canvas_fragment_info) => {
+                let fragment_inline_size = canvas_fragment_info.canvas_inline_size();
+                let fragment_block_size = canvas_fragment_info.canvas_block_size();
+                self.border_box.size.block = canvas_fragment_info.replaced_image_fragment_info.
+                                             calculate_replaced_block_size(style,
+                                                                           noncontent_block_size,
+                                                                           containing_block_block_size,
+                                                                           fragment_inline_size,
+                                                                           fragment_block_size);
             }
             SpecificFragmentInfo::ScannedText(ref info) => {
                 // Scanned text fragments' content block-sizes are calculated by the text run
@@ -1434,7 +1583,7 @@ impl Fragment {
     pub fn inline_metrics(&self, layout_context: &LayoutContext) -> InlineMetrics {
         match self.specific {
             SpecificFragmentInfo::Image(ref image_fragment_info) => {
-                let computed_block_size = image_fragment_info.computed_block_size();
+                let computed_block_size = image_fragment_info.replaced_image_fragment_info.computed_block_size();
                 InlineMetrics {
                     block_size_above_baseline: computed_block_size + self.border_padding.block_start_end(),
                     depth_below_baseline: Au(0),
@@ -1506,10 +1655,18 @@ impl Fragment {
     /// because the corresponding table flow is the primary fragment.
     pub fn is_primary_fragment(&self) -> bool {
         match self.specific {
-            SpecificFragmentInfo::InlineBlock(_) | SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::TableWrapper => false,
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::ScannedText(_) |
-            SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell | SpecificFragmentInfo::TableColumn(_) | SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::Canvas(_) |
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableColumn(_) |
+            SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::UnscannedText(_) => true,
         }
     }
@@ -1538,15 +1695,48 @@ impl Fragment {
         self.style = (*new_style).clone()
     }
 
-    /// Given the stacking-context-relative position of the containing flow, returns the boundaries
-    /// of this fragment relative to the parent stacking context.
-    pub fn stacking_relative_bounds(&self, stacking_relative_flow_origin: &Point2D<Au>)
-                                    -> Rect<Au> {
-        // FIXME(#2795): Get the real container size
+    /// Given the stacking-context-relative position of the containing flow, returns the border box
+    /// of this fragment relative to the parent stacking context. This takes `position: relative`
+    /// into account.
+    ///
+    /// If `coordinate_system` is `Parent`, this returns the border box in the parent stacking
+    /// context's coordinate system. Otherwise, if `coordinate_system` is `Self` and this fragment
+    /// establishes a stacking context itself, this returns a border box anchored at (0, 0). (If
+    /// this fragment does not establish a stacking context, then it always belongs to its parent
+    /// stacking context and thus `coordinate_system` is ignored.)
+    ///
+    /// This is the method you should use for display list construction as well as
+    /// `getBoundingClientRect()` and so forth.
+    pub fn stacking_relative_border_box(&self,
+                                        stacking_relative_flow_origin: &Point2D<Au>,
+                                        relative_containing_block_size: &LogicalSize<Au>,
+                                        coordinate_system: CoordinateSystem)
+                                        -> Rect<Au> {
+        // FIXME(pcwalton, #2795): Get the real container size.
         let container_size = Size2D::zero();
-        self.border_box
-            .to_physical(self.style.writing_mode, container_size)
-            .translate(stacking_relative_flow_origin)
+        let border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
+        if coordinate_system == CoordinateSystem::Self && self.establishes_stacking_context() {
+            return Rect(ZERO_POINT, border_box.size)
+        }
+
+        // FIXME(pcwalton): This can double-count relative position sometimes for inlines (e.g.
+        // `<div style="position:relative">x</div>`, because the `position:relative` trickles down
+        // to the inline flow. Possibly we should extend the notion of "primary fragment" to fix
+        // this.
+        let relative_position = self.relative_position(relative_containing_block_size);
+        border_box.translate_by_size(&relative_position.to_physical(self.style.writing_mode))
+                  .translate(stacking_relative_flow_origin)
+    }
+
+    /// Given the stacking-context-relative border box, returns the stacking-context-relative
+    /// content box.
+    pub fn stacking_relative_content_box(&self, stacking_relative_border_box: &Rect<Au>)
+                                         -> Rect<Au> {
+        let border_padding = self.border_padding.to_physical(self.style.writing_mode);
+        Rect(Point2D(stacking_relative_border_box.origin.x + border_padding.left,
+                     stacking_relative_border_box.origin.y + border_padding.top),
+             Size2D(stacking_relative_border_box.size.width - border_padding.horizontal(),
+                    stacking_relative_border_box.size.height - border_padding.vertical()))
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
@@ -1554,18 +1744,59 @@ impl Fragment {
         if self.style().get_effects().opacity != 1.0 {
             return true
         }
+        if !self.style().get_effects().filter.is_empty() {
+            return true
+        }
+        if self.style().get_effects().mix_blend_mode != mix_blend_mode::T::normal {
+            return true
+        }
         match self.style().get_box().position {
-            position::absolute | position::fixed => {
+            position::T::absolute | position::T::fixed => {
                 // FIXME(pcwalton): This should only establish a new stacking context when
                 // `z-index` is not `auto`. But this matches what we did before.
                 true
             }
-            position::relative | position::static_ => {
+            position::T::relative | position::T::static_ => {
                 // FIXME(pcwalton): `position: relative` establishes a new stacking context if
                 // `z-index` is not `auto`. But this matches what we did before.
                 false
             }
         }
+    }
+
+    /// Computes the overflow rect of this fragment relative to the start of the flow.
+    pub fn compute_overflow(&self) -> Rect<Au> {
+        // FIXME(pcwalton, #2795): Get the real container size.
+        let container_size = Size2D::zero();
+        let mut border_box = self.border_box.to_physical(self.style.writing_mode, container_size);
+
+        // Relative position can cause us to draw outside our border box.
+        //
+        // FIXME(pcwalton): I'm not a fan of the way this makes us crawl though so many styles all
+        // the time. Can't we handle relative positioning by just adjusting `border_box`?
+        let relative_position =
+            self.relative_position(&LogicalSize::zero(self.style.writing_mode));
+        border_box =
+            border_box.translate_by_size(&relative_position.to_physical(self.style.writing_mode));
+        let mut overflow = border_box;
+
+        // Box shadows cause us to draw outside our border box.
+        for box_shadow in self.style().get_effects().box_shadow.iter() {
+            let offset = Point2D(box_shadow.offset_x, box_shadow.offset_y);
+            let inflation = box_shadow.spread_radius +
+                box_shadow.blur_radius * BOX_SHADOW_INFLATION_FACTOR;
+            overflow = overflow.union(&border_box.translate(&offset).inflate(inflation, inflation))
+        }
+
+        // Outlines cause us to draw outside our border box.
+        let outline_width = self.style.get_outline().outline_width;
+        if outline_width != Au(0) {
+            overflow = overflow.union(&border_box.inflate(outline_width, outline_width))
+        }
+
+        // FIXME(pcwalton): Sometimes excessively fancy glyphs can make us draw outside our border
+        // box too.
+        overflow
     }
 }
 
@@ -1600,13 +1831,23 @@ bitflags! {
     }
 }
 
-/// A top-down fragment bounds iteration handler.
-pub trait FragmentBoundsIterator {
+/// A top-down fragment border box iteration handler.
+pub trait FragmentBorderBoxIterator {
     /// The operation to perform.
-    fn process(&mut self, fragment: &Fragment, bounds: Rect<Au>);
+    fn process(&mut self, fragment: &Fragment, overflow: &Rect<Au>);
 
     /// Returns true if this fragment must be processed in-order. If this returns false,
     /// we skip the operation for this fragment, but continue processing siblings.
     fn should_process(&mut self, fragment: &Fragment) -> bool;
+}
+
+/// The coordinate system used in `stacking_relative_border_box()`. See the documentation of that
+/// method for details.
+#[deriving(Clone, PartialEq, Show)]
+pub enum CoordinateSystem {
+    /// The border box returned is relative to the fragment's parent stacking context.
+    Parent,
+    /// The border box returned is relative to the fragment's own stacking context, if applicable.
+    Self,
 }
 

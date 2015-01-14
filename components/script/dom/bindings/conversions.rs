@@ -44,7 +44,7 @@ pub trait IDLInterface {
 }
 
 /// A trait to convert Rust types to `JSVal`s.
-pub trait ToJSValConvertible {
+pub trait ToJSValConvertible for Sized? {
     /// Convert `self` to a `JSVal`. JSAPI failure causes a task failure.
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal;
 }
@@ -232,16 +232,22 @@ impl FromJSValConvertible<()> for f64 {
     }
 }
 
-impl ToJSValConvertible for DOMString {
+impl ToJSValConvertible for str {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         unsafe {
-            let string_utf16: Vec<u16> = self.as_slice().utf16_units().collect();
+            let string_utf16: Vec<u16> = self.utf16_units().collect();
             let jsstr = JS_NewUCStringCopyN(cx, string_utf16.as_ptr(), string_utf16.len() as libc::size_t);
             if jsstr.is_null() {
                 panic!("JS_NewUCStringCopyN failed");
             }
             StringValue(&*jsstr)
         }
+    }
+}
+
+impl ToJSValConvertible for DOMString {
+    fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
+        self.as_slice().to_jsval(cx)
     }
 }
 
@@ -266,9 +272,8 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
     unsafe {
         let mut length = 0;
         let chars = JS_GetStringCharsAndLength(cx, s, &mut length);
-        slice::raw::buf_as_slice(chars, length as uint, |char_vec| {
-            String::from_utf16(char_vec).unwrap()
-        })
+        let char_vec = slice::from_raw_buf(&chars, length as uint);
+        String::from_utf16(char_vec).unwrap()
     }
 }
 
@@ -284,7 +289,7 @@ pub fn jsid_to_str(cx: *mut JSContext, id: jsid) -> DOMString {
 impl FromJSValConvertible<StringificationBehavior> for DOMString {
     fn from_jsval(cx: *mut JSContext, value: JSVal, nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
         if nullBehavior == StringificationBehavior::Empty && value.is_null() {
-            Ok("".to_string())
+            Ok("".into_string())
         } else {
             let jsstr = unsafe { JS_ValueToString(cx, value) };
             if jsstr.is_null() {
@@ -322,14 +327,14 @@ impl FromJSValConvertible<()> for ByteString {
 
             let mut length = 0;
             let chars = JS_GetStringCharsAndLength(cx, string, &mut length);
-            slice::raw::buf_as_slice(chars, length as uint, |char_vec| {
-                if char_vec.iter().any(|&c| c > 0xFF) {
-                    // XXX Throw
-                    Err(())
-                } else {
-                    Ok(ByteString::new(char_vec.iter().map(|&c| c as u8).collect()))
-                }
-            })
+            let char_vec = slice::from_raw_buf(&chars, length as uint);
+
+            if char_vec.iter().any(|&c| c > 0xFF) {
+                // XXX Throw
+                Err(())
+            } else {
+                Ok(ByteString::new(char_vec.iter().map(|&c| c as u8).collect()))
+            }
         }
     }
 }
@@ -337,7 +342,7 @@ impl FromJSValConvertible<()> for ByteString {
 impl ToJSValConvertible for Reflector {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
         let obj = self.get_jsobject();
-        assert!(obj.is_not_null());
+        assert!(!obj.is_null());
         let mut value = ObjectValue(unsafe { &*obj });
         if unsafe { JS_WrapValue(cx, &mut value) } == 0 {
             panic!("JS_WrapValue failed.");
@@ -347,7 +352,7 @@ impl ToJSValConvertible for Reflector {
 }
 
 /// Returns whether the given `clasp` is one for a DOM object.
-fn is_dom_class(clasp: *const JSClass) -> bool {
+pub fn is_dom_class(clasp: *const JSClass) -> bool {
     unsafe {
         ((*clasp).flags & js::JSCLASS_IS_DOMJSCLASS) != 0
     }
@@ -465,9 +470,9 @@ impl<T: Reflectable+IDLInterface> FromJSValConvertible<()> for JS<T> {
     }
 }
 
-impl<'a, 'b, T: Reflectable> ToJSValConvertible for Root<'a, 'b, T> {
+impl<T: Reflectable> ToJSValConvertible for Root<T> {
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal {
-        self.reflector().to_jsval(cx)
+        self.r().reflector().to_jsval(cx)
     }
 }
 

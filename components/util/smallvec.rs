@@ -529,34 +529,34 @@ pub mod tests {
     #[test]
     pub fn test_inline() {
         let mut v = SmallVec16::new();
-        v.push("hello".to_string());
-        v.push("there".to_string());
-        assert_eq!(v.as_slice(), vec!["hello".to_string(), "there".to_string()].as_slice());
+        v.push("hello".into_string());
+        v.push("there".into_string());
+        assert_eq!(v.as_slice(), vec!["hello".into_string(), "there".into_string()].as_slice());
     }
 
     #[test]
     pub fn test_spill() {
         let mut v = SmallVec2::new();
-        v.push("hello".to_string());
-        v.push("there".to_string());
-        v.push("burma".to_string());
-        v.push("shave".to_string());
-        assert_eq!(v.as_slice(), vec!["hello".to_string(), "there".to_string(), "burma".to_string(), "shave".to_string()].as_slice());
+        v.push("hello".into_string());
+        v.push("there".into_string());
+        v.push("burma".into_string());
+        v.push("shave".into_string());
+        assert_eq!(v.as_slice(), vec!["hello".into_string(), "there".into_string(), "burma".into_string(), "shave".into_string()].as_slice());
     }
 
     #[test]
     pub fn test_double_spill() {
         let mut v = SmallVec2::new();
-        v.push("hello".to_string());
-        v.push("there".to_string());
-        v.push("burma".to_string());
-        v.push("shave".to_string());
-        v.push("hello".to_string());
-        v.push("there".to_string());
-        v.push("burma".to_string());
-        v.push("shave".to_string());
+        v.push("hello".into_string());
+        v.push("there".into_string());
+        v.push("burma".into_string());
+        v.push("shave".into_string());
+        v.push("hello".into_string());
+        v.push("there".into_string());
+        v.push("burma".into_string());
+        v.push("shave".into_string());
         assert_eq!(v.as_slice(), vec![
-            "hello".to_string(), "there".to_string(), "burma".to_string(), "shave".to_string(), "hello".to_string(), "there".to_string(), "burma".to_string(), "shave".to_string(),
+            "hello".into_string(), "there".into_string(), "burma".into_string(), "shave".into_string(), "hello".into_string(), "there".into_string(), "burma".into_string(), "shave".into_string(),
         ].as_slice());
     }
 }

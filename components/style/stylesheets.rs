@@ -153,7 +153,7 @@ pub fn parse_nested_at_rule(context: &ParserContext,
         }
         "font-face" => parse_font_face_rule(rule, parent_rules, base_url),
         _ => log_css_error(rule.location,
-                           format!("Unsupported at-rule: @{:s}", lower_name).as_slice())
+                           format!("Unsupported at-rule: @{}", lower_name).as_slice())
     }
 }
 
@@ -168,7 +168,7 @@ pub fn parse_style_rule(context: &ParserContext,
         block
     } = rule;
     // FIXME: avoid doing this for valid selectors
-    let serialized = prelude.iter().to_css();
+    let serialized = prelude.to_css_string();
     match selectors::parse_selector_list(context, prelude.into_iter(), namespaces) {
         Ok(selectors) => parent_rules.push(CSSRule::Style(StyleRule{
             selectors: selectors,

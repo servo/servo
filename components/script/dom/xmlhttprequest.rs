@@ -15,8 +15,9 @@ use dom::bindings::error::Error::{InvalidState, InvalidAccess};
 use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
 use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::ByteString;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::document::Document;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
@@ -25,7 +26,7 @@ use dom::urlsearchparams::URLSearchParamsHelpers;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTarget;
 use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::xmlhttprequestupload::XMLHttpRequestUpload;
-use script_task::{ScriptChan, ScriptMsg};
+use script_task::{ScriptChan, ScriptMsg, Runnable};
 
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
@@ -35,16 +36,15 @@ use hyper::header::Headers;
 use hyper::header::common::{Accept, ContentLength, ContentType};
 use hyper::http::RawStatus;
 use hyper::mime::{mod, Mime};
-use hyper::method::{Method, Get, Head, Connect, Trace, Extension};
+use hyper::method::Method;
 
-use js::jsapi::{JS_AddObjectRoot, JS_ParseJSON, JS_RemoveObjectRoot, JSContext};
+use js::jsapi::{JS_ParseJSON, JSContext};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
-use libc;
-use libc::c_void;
-
-use net::resource_task::{ResourceTask, ResourceCORSData, Load, LoadData, LoadResponse, Payload, Done};
+use net::resource_task::{ResourceTask, ResourceCORSData, LoadData, LoadResponse};
+use net::resource_task::ControlMsg::Load;
+use net::resource_task::ProgressMsg::{Payload, Done};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode};
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
@@ -63,7 +63,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 pub type SendParam = StringOrURLSearchParams;
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Copy)]
 #[jstraceable]
 enum XMLHttpRequestState {
     Unsent = 0,
@@ -73,10 +73,29 @@ enum XMLHttpRequestState {
     XHRDone = 4, // So as not to conflict with the ProgressMsg `Done`
 }
 
-#[deriving(PartialEq)]
+struct XHRProgressHandler {
+    addr: TrustedXHRAddress,
+    progress: XHRProgress,
+}
+
+impl XHRProgressHandler {
+    fn new(addr: TrustedXHRAddress, progress: XHRProgress) -> XHRProgressHandler {
+        XHRProgressHandler { addr: addr, progress: progress }
+    }
+}
+
+impl Runnable for XHRProgressHandler {
+    fn handler(self: Box<XHRProgressHandler>) {
+        let this = *self;
+        XMLHttpRequest::handle_progress(this.addr, this.progress);
+    }
+}
+
+#[deriving(PartialEq, Clone, Copy)]
 #[jstraceable]
 pub struct GenerationId(uint);
 
+#[deriving(Clone)]
 pub enum XHRProgress {
     /// Notify that headers have been received
     HeadersReceived(GenerationId, Option<Headers>, Option<RawStatus>),
@@ -101,7 +120,7 @@ impl XHRProgress {
 
 enum SyncOrAsync<'a> {
     Sync(JSRef<'a, XMLHttpRequest>),
-    Async(TrustedXHRAddress, &'a ScriptChan)
+    Async(TrustedXHRAddress, Box<ScriptChan+Send>)
 }
 
 enum TerminateReason {
@@ -135,7 +154,6 @@ pub struct XMLHttpRequest {
     send_flag: Cell<bool>,
 
     global: GlobalField,
-    pinned_count: Cell<uint>,
     timer: DOMRefCell<Timer>,
     fetch_time: Cell<i64>,
     terminate_sender: DOMRefCell<Option<Sender<TerminateReason>>>,
@@ -143,14 +161,14 @@ pub struct XMLHttpRequest {
 }
 
 impl XMLHttpRequest {
-    fn new_inherited(global: &GlobalRef) -> XMLHttpRequest {
+    fn new_inherited(global: GlobalRef) -> XMLHttpRequest {
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(XMLHttpRequestEventTargetTypeId::XMLHttpRequest),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
-            upload: JS::from_rooted(XMLHttpRequestUpload::new(*global)),
-            response_url: "".to_string(),
+            upload: JS::from_rooted(XMLHttpRequestUpload::new(global)),
+            response_url: "".into_string(),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
             response: DOMRefCell::new(ByteString::new(vec!())),
@@ -158,7 +176,7 @@ impl XMLHttpRequest {
             response_xml: Default::default(),
             response_headers: DOMRefCell::new(Headers::new()),
 
-            request_method: DOMRefCell::new(Get),
+            request_method: DOMRefCell::new(Method::Get),
             request_url: DOMRefCell::new(None),
             request_headers: DOMRefCell::new(Headers::new()),
             request_body_len: Cell::new(0),
@@ -168,34 +186,28 @@ impl XMLHttpRequest {
             upload_complete: Cell::new(false),
             upload_events: Cell::new(false),
 
-            global: GlobalField::from_rooted(global),
-            pinned_count: Cell::new(0),
+            global: GlobalField::from_rooted(&global),
             timer: DOMRefCell::new(Timer::new().unwrap()),
             fetch_time: Cell::new(0),
             terminate_sender: DOMRefCell::new(None),
             generation_id: Cell::new(GenerationId(0))
         }
     }
-    pub fn new(global: &GlobalRef) -> Temporary<XMLHttpRequest> {
+    pub fn new(global: GlobalRef) -> Temporary<XMLHttpRequest> {
         reflect_dom_object(box XMLHttpRequest::new_inherited(global),
-                           *global,
+                           global,
                            XMLHttpRequestBinding::Wrap)
     }
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<XMLHttpRequest>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<XMLHttpRequest>> {
         Ok(XMLHttpRequest::new(global))
     }
 
     pub fn handle_progress(addr: TrustedXHRAddress, progress: XHRProgress) {
-        unsafe {
-            let xhr = JS::from_trusted_xhr_address(addr).root();
-            xhr.process_partial_response(progress);
-        }
+        let xhr = addr.to_temporary().root();
+        xhr.r().process_partial_response(progress);
     }
 
-    pub fn handle_release(addr: TrustedXHRAddress) {
-        addr.release_once();
-    }
-
+    #[allow(unsafe_blocks)]
     fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
              mut load_data: LoadData, terminate_receiver: Receiver<TerminateReason>,
              cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId,
@@ -206,13 +218,11 @@ impl XMLHttpRequest {
                 SyncOrAsync::Sync(xhr) => {
                     xhr.process_partial_response(msg);
                 },
-                SyncOrAsync::Async(addr, script_chan) => {
-                    let ScriptChan(ref chan) = *script_chan;
-                    chan.send(ScriptMsg::XHRProgress(addr, msg));
+                SyncOrAsync::Async(ref addr, ref script_chan) => {
+                    script_chan.send(ScriptMsg::RunnableMsg(box XHRProgressHandler::new(addr.clone(), msg)));
                 }
             }
         }
-
 
         macro_rules! notify_error_and_return(
             ($err:expr) => ({
@@ -354,14 +364,14 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         // Step 2
         match maybe_method {
             // Step 4
-            Some(Connect) | Some(Trace) => Err(Security),
-            Some(Extension(ref t)) if t.as_slice() == "TRACK" => Err(Security),
+            Some(Method::Connect) | Some(Method::Trace) => Err(Security),
+            Some(Method::Extension(ref t)) if t.as_slice() == "TRACK" => Err(Security),
             Some(_) if method.is_token() => {
 
                 *self.request_method.borrow_mut() = maybe_method.unwrap();
 
                 // Step 6
-                let base = self.global.root().root_ref().get_url();
+                let base = self.global.root().r().get_url();
                 let parsed_url = match UrlParser::new().base_url(&base).parse(url.as_slice()) {
                     Ok(parsed) => parsed,
                     Err(_) => return Err(Syntax) // Step 7
@@ -487,7 +497,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
 
         let data = match *self.request_method.borrow() {
-            Get | Head => None, // Step 3
+            Method::Get | Method::Head => None, // Step 3
             _ => data
         };
         let extracted = data.as_ref().map(|d| d.extract());
@@ -504,8 +514,8 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         if !self.sync.get() {
             // Step 8
-            let upload_target = *self.upload.root();
-            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target);
+            let upload_target = self.upload.root();
+            let event_target: JSRef<EventTarget> = EventTargetCast::from_ref(upload_target.r());
             if event_target.has_handlers() {
                 self.upload_events.set(true);
             }
@@ -515,12 +525,12 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             // If one of the event handlers below aborts the fetch by calling
             // abort or open we will need the current generation id to detect it.
             let gen_id = self.generation_id.get();
-            self.dispatch_response_progress_event("loadstart".to_string());
+            self.dispatch_response_progress_event("loadstart".into_string());
             if self.generation_id.get() != gen_id {
                 return Ok(());
             }
             if !self.upload_complete.get() {
-                self.dispatch_upload_progress_event("loadstart".to_string(), Some(0));
+                self.dispatch_upload_progress_event("loadstart".into_string(), Some(0));
                 if self.generation_id.get() != gen_id {
                     return Ok(());
                 }
@@ -529,7 +539,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
 
         let global = self.global.root();
-        let resource_task = global.root_ref().resource_task();
+        let resource_task = global.r().resource_task();
         let (start_chan, start_port) = channel();
         let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap(), start_chan);
         load_data.data = extracted;
@@ -552,10 +562,10 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 let n = "content-type";
                 match data {
                     Some(eString(_)) =>
-                        request_headers.set_raw(n, vec![join_raw("text/plain", params)]),
+                        request_headers.set_raw(n.into_string(), vec![join_raw("text/plain", params)]),
                     Some(eURLSearchParams(_)) =>
                         request_headers.set_raw(
-                            n, vec![join_raw("application/x-www-form-urlencoded", params)]),
+                            n.into_string(), vec![join_raw("application/x-www-form-urlencoded", params)]),
                     None => ()
                 }
             }
@@ -573,7 +583,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         *self.terminate_sender.borrow_mut() = Some(terminate_sender);
 
         // CORS stuff
-        let referer_url = self.global.root().root_ref().get_url();
+        let referer_url = self.global.root().r().get_url();
         let mode = if self.upload_events.get() {
             RequestMode::ForcedPreflight
         } else {
@@ -589,12 +599,12 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 referer_url.serialize_host().map(|ref h| buf.push_str(h.as_slice()));
                 referer_url.port().as_ref().map(|&p| {
                     buf.push_str(":".as_slice());
-                    buf.push_str(format!("{:u}", p).as_slice());
+                    buf.push_str(format!("{}", p).as_slice());
                 });
                 referer_url.serialize_path().map(|ref h| buf.push_str(h.as_slice()));
-                self.request_headers.borrow_mut().set_raw("Referer".to_string(), vec![buf.into_bytes()]);
+                self.request_headers.borrow_mut().set_raw("Referer".into_string(), vec![buf.into_bytes()]);
             },
-            Ok(Some(ref req)) => self.insert_trusted_header("origin".to_string(),
+            Ok(Some(ref req)) => self.insert_trusted_header("origin".into_string(),
                                                             format!("{}", req.origin)),
             _ => {}
         }
@@ -607,25 +617,20 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                                          terminate_receiver, cors_request, gen_id, start_port);
         } else {
             self.fetch_time.set(time::now().to_timespec().sec);
-            let script_chan = global.root_ref().script_chan().clone();
-            // Pin the object before launching the fetch task.
-            // The `ScriptMsg::XHRRelease` sent when the fetch task completes will
-            // unpin it. This is to ensure that the object will stay alive
-            // as long as there are (possibly cancelled) inflight events queued up
-            // in the script task's port
-            let addr = unsafe {
-                self.to_trusted()
-            };
+            let script_chan = global.r().script_chan();
+            // Pin the object before launching the fetch task. This is to ensure that
+            // the object will stay alive as long as there are (possibly cancelled)
+            // inflight events queued up in the script task's port.
+            let addr = Trusted::new(self.global.root().r().get_cx(), self,
+                                    script_chan.clone());
             spawn_named("XHRTask", proc() {
-                let _ = XMLHttpRequest::fetch(&mut SyncOrAsync::Async(addr, &script_chan),
+                let _ = XMLHttpRequest::fetch(&mut SyncOrAsync::Async(addr, script_chan),
                                               resource_task,
                                               load_data,
                                               terminate_receiver,
                                               cors_request,
                                               gen_id,
                                               start_port);
-                let ScriptChan(ref chan) = script_chan;
-                chan.send(ScriptMsg::XHRRelease(addr));
             });
             let timeout = self.timeout.get();
             if timeout > 0 {
@@ -687,6 +692,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
         }
     }
+    #[allow(unsafe_blocks)]
     fn Response(self, cx: *mut JSContext) -> JSVal {
          match self.response_type.get() {
             _empty | Text => {
@@ -694,12 +700,12 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 if ready_state == XMLHttpRequestState::XHRDone || ready_state == XMLHttpRequestState::Loading {
                     self.text_response().to_jsval(cx)
                 } else {
-                    "".to_string().to_jsval(cx)
+                    "".to_jsval(cx)
                 }
             },
             _ if self.ready_state.get() != XMLHttpRequestState::XHRDone => NullValue(),
             Json => {
-                let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_string();
+                let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().into_string();
                 let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
                 let mut vp = UndefinedValue();
                 unsafe {
@@ -721,7 +727,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             _empty | Text => {
                 match self.ready_state.get() {
                     XMLHttpRequestState::Loading | XMLHttpRequestState::XHRDone => Ok(self.text_response()),
-                    _ => Ok("".to_string())
+                    _ => Ok("".into_string())
                 }
             },
             _ => Err(InvalidState)
@@ -732,11 +738,6 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     }
 }
 
-impl Reflectable for XMLHttpRequest {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.eventtarget.reflector()
-    }
-}
 
 impl XMLHttpRequestDerived for EventTarget {
     fn is_xmlhttprequest(&self) -> bool {
@@ -747,20 +748,9 @@ impl XMLHttpRequestDerived for EventTarget {
     }
 }
 
-pub struct TrustedXHRAddress(pub *const c_void);
-
-impl TrustedXHRAddress {
-    pub fn release_once(self) {
-        unsafe {
-            JS::from_trusted_xhr_address(self).root().release_once();
-        }
-    }
-}
-
+pub type TrustedXHRAddress = Trusted<XMLHttpRequest>;
 
 trait PrivateXMLHttpRequestHelpers {
-    unsafe fn to_trusted(self) -> TrustedXHRAddress;
-    fn release_once(self);
     fn change_ready_state(self, XMLHttpRequestState);
     fn process_partial_response(self, progress: XHRProgress);
     fn terminate_ongoing_fetch(self);
@@ -775,43 +765,16 @@ trait PrivateXMLHttpRequestHelpers {
 }
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
-    // Creates a trusted address to the object, and roots it. Always pair this with a release()
-    unsafe fn to_trusted(self) -> TrustedXHRAddress {
-        if self.pinned_count.get() == 0 {
-            JS_AddObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
-        }
-        let pinned_count = self.pinned_count.get();
-        self.pinned_count.set(pinned_count + 1);
-        TrustedXHRAddress(self.deref() as *const XMLHttpRequest as *const libc::c_void)
-    }
-
-    fn release_once(self) {
-        if self.sync.get() {
-            // Lets us call this at various termination cases without having to
-            // check self.sync every time, since the pinning mechanism only is
-            // meaningful during an async fetch
-            return;
-        }
-        assert!(self.pinned_count.get() > 0)
-        let pinned_count = self.pinned_count.get();
-        self.pinned_count.set(pinned_count - 1);
-        if self.pinned_count.get() == 0 {
-            unsafe {
-                JS_RemoveObjectRoot(self.global.root().root_ref().get_cx(), self.reflector().rootable());
-            }
-        }
-    }
-
     fn change_ready_state(self, rs: XMLHttpRequestState) {
         assert!(self.ready_state.get() != rs)
         self.ready_state.set(rs);
         let global = self.global.root();
-        let event = Event::new(global.root_ref(),
-                               "readystatechange".to_string(),
+        let event = Event::new(global.r(),
+                               "readystatechange".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.dispatch_event(*event);
+        target.dispatch_event(event.r());
     }
 
     fn process_partial_response(self, progress: XHRProgress) {
@@ -841,11 +804,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 self.upload_complete.set(true);
                 // Substeps 2-4
                 if !self.sync.get() {
-                    self.dispatch_upload_progress_event("progress".to_string(), None);
+                    self.dispatch_upload_progress_event("progress".into_string(), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event("load".to_string(), None);
+                    self.dispatch_upload_progress_event("load".into_string(), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event("loadend".to_string(), None);
+                    self.dispatch_upload_progress_event("loadend".into_string(), None);
                     return_if_fetch_was_terminated!();
                 }
                 // Part of step 13, send() (processing response)
@@ -853,7 +816,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 // Substep 2
                 status.map(|RawStatus(code, reason)| {
                     self.status.set(code);
-                    *self.status_text.borrow_mut() = ByteString::new(format!("{}", reason).into_bytes());
+                    *self.status_text.borrow_mut() = ByteString::new(reason.into_bytes());
                 });
                 headers.as_ref().map(|h| *self.response_headers.borrow_mut() = h.clone());
 
@@ -873,7 +836,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                         self.change_ready_state(XMLHttpRequestState::Loading);
                         return_if_fetch_was_terminated!();
                     }
-                    self.dispatch_response_progress_event("progress".to_string());
+                    self.dispatch_response_progress_event("progress".into_string());
                 }
             },
             XHRProgress::Done(_) => {
@@ -889,11 +852,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 self.change_ready_state(XMLHttpRequestState::XHRDone);
                 return_if_fetch_was_terminated!();
                 // Subsubsteps 10-12
-                self.dispatch_response_progress_event("progress".to_string());
+                self.dispatch_response_progress_event("progress".into_string());
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event("load".to_string());
+                self.dispatch_response_progress_event("load".into_string());
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event("loadend".to_string());
+                self.dispatch_response_progress_event("loadend".into_string());
             },
             XHRProgress::Errored(_, e) => {
                 self.send_flag.set(false);
@@ -910,18 +873,18 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 let upload_complete: &Cell<bool> = &self.upload_complete;
                 if !upload_complete.get() {
                     upload_complete.set(true);
-                    self.dispatch_upload_progress_event("progress".to_string(), None);
+                    self.dispatch_upload_progress_event("progress".into_string(), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event(errormsg.to_string(), None);
+                    self.dispatch_upload_progress_event(errormsg.into_string(), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event("loadend".to_string(), None);
+                    self.dispatch_upload_progress_event("loadend".into_string(), None);
                     return_if_fetch_was_terminated!();
                 }
-                self.dispatch_response_progress_event("progress".to_string());
+                self.dispatch_response_progress_event("progress".into_string());
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event(errormsg.to_string());
+                self.dispatch_response_progress_event(errormsg.into_string());
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event("loadend".to_string());
+                self.dispatch_response_progress_event("loadend".into_string());
             }
         }
     }
@@ -940,17 +903,17 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_progress_event(self, upload: bool, type_: DOMString, loaded: u64, total: Option<u64>) {
         let global = self.global.root();
-        let upload_target = *self.upload.root();
-        let progressevent = ProgressEvent::new(global.root_ref(),
+        let upload_target = self.upload.root();
+        let progressevent = ProgressEvent::new(global.r(),
                                                type_, false, false,
                                                total.is_some(), loaded,
                                                total.unwrap_or(0)).root();
         let target: JSRef<EventTarget> = if upload {
-            EventTargetCast::from_ref(upload_target)
+            EventTargetCast::from_ref(upload_target.r())
         } else {
             EventTargetCast::from_ref(self)
         };
-        let event: JSRef<Event> = EventCast::from_ref(*progressevent);
+        let event: JSRef<Event> = EventCast::from_ref(progressevent.r());
         target.dispatch_event(event);
     }
 
@@ -963,7 +926,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
     fn dispatch_response_progress_event(self, type_: DOMString) {
         let len = self.response.borrow().len() as u64;
-        let total = self.response_headers.borrow().get::<ContentLength>().map(|x| {x.len() as u64});
+        let total = self.response_headers.borrow().get::<ContentLength>().map(|x| {**x as u64});
         self.dispatch_progress_event(false, type_, len, total);
     }
     fn set_timeout(self, timeout: u32) {
@@ -997,7 +960,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         match self.response_headers.borrow().get() {
             Some(&ContentType(mime::Mime(_, _, ref params))) => {
                 for &(ref name, ref value) in params.iter() {
-                    if name == &mime::Charset {
+                    if name == &mime::Attr::Charset {
                         encoding = encoding_from_whatwg_label(value.to_string().as_slice()).unwrap_or(encoding);
                     }
                 }
@@ -1007,7 +970,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_string()
+        encoding.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().into_string()
     }
     fn filter_response_headers(self) -> Headers {
         // http://fetch.spec.whatwg.org/#concept-response-header-list
@@ -1050,7 +1013,7 @@ impl Extractable for SendParam {
         let encoding = UTF_8 as EncodingRef;
         match *self {
             eString(ref s) => encoding.encode(s.as_slice(), EncoderTrap::Replace).unwrap(),
-            eURLSearchParams(ref usp) => usp.root().serialize(None) // Default encoding is UTF8
+            eURLSearchParams(ref usp) => usp.root().r().serialize(None) // Default encoding is UTF8
         }
     }
 }

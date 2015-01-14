@@ -28,14 +28,14 @@ use url::Url;
 
 use std::collections::HashMap;
 
-#[deriving(PartialEq)]
+#[deriving(Copy, PartialEq)]
 #[jstraceable]
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
 }
 
-#[deriving(PartialEq)]
+#[deriving(Copy, PartialEq)]
 #[jstraceable]
 pub enum EventTargetTypeId {
     Node(NodeTypeId),
@@ -46,7 +46,7 @@ pub enum EventTargetTypeId {
     XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId)
 }
 
-#[deriving(PartialEq)]
+#[deriving(Copy, PartialEq)]
 #[jstraceable]
 pub enum EventListenerType {
     Additive(EventListener),
@@ -62,7 +62,7 @@ impl EventListenerType {
     }
 }
 
-#[deriving(PartialEq)]
+#[deriving(Copy, PartialEq)]
 #[jstraceable]
 #[privatize]
 pub struct EventListenerEntry {
@@ -72,29 +72,29 @@ pub struct EventListenerEntry {
 
 #[dom_struct]
 pub struct EventTarget {
-    type_id: EventTargetTypeId,
     reflector_: Reflector,
+    type_id: EventTargetTypeId,
     handlers: DOMRefCell<HashMap<DOMString, Vec<EventListenerEntry>, FnvHasher>>,
 }
 
 impl EventTarget {
     pub fn new_inherited(type_id: EventTargetTypeId) -> EventTarget {
         EventTarget {
-            type_id: type_id,
             reflector_: Reflector::new(),
+            type_id: type_id,
             handlers: DOMRefCell::new(HashMap::with_hasher(FnvHasher)),
         }
     }
 
     pub fn get_listeners(&self, type_: &str) -> Option<Vec<EventListener>> {
-        self.handlers.borrow().find_equiv(type_).map(|listeners| {
+        self.handlers.borrow().get(type_).map(|listeners| {
             listeners.iter().map(|entry| entry.listener.get_listener()).collect()
         })
     }
 
     pub fn get_listeners_for(&self, type_: &str, desired_phase: ListenerPhase)
         -> Option<Vec<EventListener>> {
-        self.handlers.borrow().find_equiv(type_).map(|listeners| {
+        self.handlers.borrow().get(type_).map(|listeners| {
             let filtered = listeners.iter().filter(|entry| entry.phase == desired_phase);
             filtered.map(|entry| entry.listener.get_listener()).collect()
         })
@@ -186,6 +186,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         }).map(|entry| entry.listener.get_listener()))
     }
 
+    #[allow(unsafe_blocks)]
     fn set_event_handler_uncompiled(self,
                                     cx: *mut JSContext,
                                     url: Url,
@@ -221,7 +222,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         let funobj = unsafe {
             JS_CloneFunctionObject(cx, JS_GetFunctionObject(handler), scope)
         };
-        assert!(funobj.is_not_null());
+        assert!(!funobj.is_null());
         self.set_event_handler_common(ty, Some(EventHandlerNonNull::new(funobj)));
     }
 
@@ -230,11 +231,11 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     {
         let event_listener = listener.map(|listener|
                                           EventListener::new(listener.callback()));
-        self.set_inline_event_listener(ty.to_string(), event_listener);
+        self.set_inline_event_listener(ty.into_string(), event_listener);
     }
 
     fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<T> {
-        let listener = self.get_inline_event_listener(ty.to_string());
+        let listener = self.get_inline_event_listener(ty.into_string());
         listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
 
@@ -298,12 +299,6 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
             return Err(InvalidState);
         }
         Ok(self.dispatch_event(event))
-    }
-}
-
-impl Reflectable for EventTarget {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 

@@ -5,11 +5,10 @@
 use dom::bindings::codegen::Bindings::HTMLQuoteElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLQuoteElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -20,14 +19,14 @@ pub struct HTMLQuoteElement {
 
 impl HTMLQuoteElementDerived for EventTarget {
     fn is_htmlquoteelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLQuoteElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLQuoteElement)))
     }
 }
 
 impl HTMLQuoteElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLQuoteElement {
         HTMLQuoteElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLQuoteElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLQuoteElement, localName, prefix, document)
         }
     }
 
@@ -38,8 +37,3 @@ impl HTMLQuoteElement {
     }
 }
 
-impl Reflectable for HTMLQuoteElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

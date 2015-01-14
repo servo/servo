@@ -32,7 +32,7 @@ use context::LayoutContext;
 use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, FragmentDisplayListBuilding};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use flow::{AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
+use flow::{mod, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
 use flow::{ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
 use flow::{PostorderFlowTraversal, mut_base};
 use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
@@ -40,8 +40,7 @@ use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use flow::{LAYERS_NEEDED_FOR_DESCENDANTS, NEEDS_LAYER};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{CLEARS_LEFT, CLEARS_RIGHT};
-use flow;
-use fragment::{Fragment, FragmentBoundsIterator, SpecificFragmentInfo};
+use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, MarginCollapseInfo};
@@ -49,11 +48,11 @@ use model::{MaybeAuto, CollapsibleMargins, specified, specified_or_none};
 use table::ColumnComputedInlineSize;
 use wrapper::ThreadSafeLayoutNode;
 
-use geom::Size2D;
-use gfx::display_list::DisplayList;
+use geom::{Point2D, Rect, Size2D};
+use gfx::display_list::{ClippingRegion, DisplayList};
 use serialize::{Encoder, Encodable};
 use servo_msg::compositor_msg::LayerId;
-use servo_util::geometry::{Au, MAX_AU, MAX_RECT, ZERO_POINT};
+use servo_util::geometry::{Au, MAX_AU};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::cmp::{max, min};
@@ -62,7 +61,7 @@ use style::ComputedValues;
 use style::computed_values::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use style::computed_values::{LengthOrPercentage, box_sizing, display, float};
 use style::computed_values::{overflow, position};
-use sync::Arc;
+use std::sync::Arc;
 
 /// Information specific to floated blocks.
 #[deriving(Clone, Encodable)]
@@ -93,6 +92,7 @@ impl FloatedBlockInfo {
 }
 
 /// The solutions for the block-size-and-margins constraint equation.
+#[deriving(Copy)]
 struct BSizeConstraintSolution {
     block_start: Au,
     _block_end: Au,
@@ -348,8 +348,8 @@ impl CandidateBSizeIterator {
 
         // If the style includes `box-sizing: border-box`, subtract the border and padding.
         let adjustment_for_box_sizing = match fragment.style.get_box().box_sizing {
-            box_sizing::border_box => fragment.border_padding.block_start_end(),
-            box_sizing::content_box => Au(0),
+            box_sizing::T::border_box => fragment.border_padding.block_start_end(),
+            box_sizing::T::content_box => Au(0),
         };
 
         return CandidateBSizeIterator {
@@ -1324,12 +1324,12 @@ impl BlockFlow {
             }
 
             match flow::base(kid).flags.float_kind() {
-                float::none => {}
-                float::left => {
+                float::T::none => {}
+                float::T::left => {
                     inline_size_of_preceding_left_floats = inline_size_of_preceding_left_floats +
                         flow::base(kid).intrinsic_inline_sizes.preferred_inline_size;
                 }
-                float::right => {
+                float::T::right => {
                     inline_size_of_preceding_right_floats = inline_size_of_preceding_right_floats +
                         flow::base(kid).intrinsic_inline_sizes.preferred_inline_size;
                 }
@@ -1409,14 +1409,16 @@ impl BlockFlow {
     /// `FormattingContextType`.
     fn formatting_context_type(&self) -> FormattingContextType {
         let style = self.fragment.style();
-        if style.get_box().float != float::none {
+        if style.get_box().float != float::T::none {
             return FormattingContextType::Other
         }
         match style.get_box().display {
-            display::table_cell | display::table_caption | display::inline_block => {
+            display::T::table_cell |
+            display::T::table_caption |
+            display::T::inline_block => {
                 FormattingContextType::Other
             }
-            _ if style.get_box().overflow != overflow::visible => FormattingContextType::Block,
+            _ if style.get_box().overflow != overflow::T::visible => FormattingContextType::Block,
             _ => FormattingContextType::None,
         }
     }
@@ -1463,7 +1465,7 @@ impl BlockFlow {
     }
 
     fn is_inline_block(&self) -> bool {
-        self.fragment.style().get_box().display == display::inline_block
+        self.fragment.style().get_box().display == display::T::inline_block
     }
 
     /// Computes the content portion (only) of the intrinsic inline sizes of this flow. This is
@@ -1528,16 +1530,16 @@ impl Flow for BlockFlow {
                         child_base.intrinsic_inline_sizes.minimum_inline_size);
 
                 match float_kind {
-                    float::none => {
+                    float::T::none => {
                         computation.content_intrinsic_sizes.preferred_inline_size =
                             max(computation.content_intrinsic_sizes.preferred_inline_size,
                                 child_base.intrinsic_inline_sizes.preferred_inline_size);
                     }
-                    float::left => {
+                    float::T::left => {
                         left_float_width = left_float_width +
                             child_base.intrinsic_inline_sizes.preferred_inline_size;
                     }
-                    float::right => {
+                    float::T::right => {
                         right_float_width = right_float_width +
                             child_base.intrinsic_inline_sizes.preferred_inline_size;
                     }
@@ -1557,9 +1559,9 @@ impl Flow for BlockFlow {
         self.base.intrinsic_inline_sizes = computation.finish();
 
         match self.fragment.style().get_box().float {
-            float::none => {}
-            float::left => flags.insert(HAS_LEFT_FLOATED_DESCENDANTS),
-            float::right => flags.insert(HAS_RIGHT_FLOATED_DESCENDANTS),
+            float::T::none => {}
+            float::T::left => flags.insert(HAS_LEFT_FLOATED_DESCENDANTS),
+            float::T::right => flags.insert(HAS_RIGHT_FLOATED_DESCENDANTS),
         }
         self.base.flags = flags
     }
@@ -1699,7 +1701,7 @@ impl Flow for BlockFlow {
         let container_size = Size2D::zero();
 
         if self.is_root() {
-            self.base.clip_rect = MAX_RECT
+            self.base.clip = ClippingRegion::max()
         }
 
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
@@ -1769,39 +1771,49 @@ impl Flow for BlockFlow {
         };
 
         // Compute the origin and clipping rectangle for children.
-        let origin_for_children = if self.fragment.establishes_stacking_context() {
-            ZERO_POINT
+        let relative_offset = relative_offset.to_physical(self.base.writing_mode);
+        let origin_for_children;
+        let clip_in_child_coordinate_system;
+        if self.fragment.establishes_stacking_context() {
+            // We establish a stacking context, so the position of our children is vertically
+            // correct, but has to be adjusted to accommodate horizontal margins. (Note the
+            // calculation involving `position` below and recall that inline-direction flow
+            // positions are relative to the edges of the margin box.)
+            //
+            // FIXME(pcwalton): Is this vertical-writing-direction-safe?
+            let margin = self.fragment.margin.to_physical(self.base.writing_mode);
+            origin_for_children = Point2D(-margin.left, Au(0)) + relative_offset;
+            clip_in_child_coordinate_system =
+                self.base.clip.translate(&-self.base.stacking_relative_position)
         } else {
-            self.base.stacking_relative_position
-        };
-        let clip_rect = self.fragment.clip_rect_for_children(&self.base.clip_rect,
-                                                             &origin_for_children);
+            origin_for_children = self.base.stacking_relative_position + relative_offset;
+            clip_in_child_coordinate_system = self.base.clip.clone()
+        }
+        let stacking_relative_border_box =
+            self.fragment
+                .stacking_relative_border_box(&self.base.stacking_relative_position,
+                                              &self.base
+                                                   .absolute_position_info
+                                                   .relative_containing_block_size,
+                                              CoordinateSystem::Self);
+        let clip = self.fragment.clipping_region_for_children(&clip_in_child_coordinate_system,
+                                                              &stacking_relative_border_box);
 
         // Process children.
-        let writing_mode = self.base.writing_mode;
         for kid in self.base.child_iter() {
             if !flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                 let kid_base = flow::mut_base(kid);
-                kid_base.stacking_relative_position =
-                    origin_for_children
-                    + kid_base.position.start.to_physical(kid_base.writing_mode, container_size)
-                    + relative_offset.to_physical(writing_mode);
+                kid_base.stacking_relative_position = origin_for_children +
+                    kid_base.position.start.to_physical(kid_base.writing_mode, container_size);
             }
 
             flow::mut_base(kid).absolute_position_info = absolute_position_info_for_children;
-            flow::mut_base(kid).clip_rect = clip_rect
+            flow::mut_base(kid).clip = clip.clone()
         }
     }
 
     fn mark_as_root(&mut self) {
         self.flags.insert(IS_ROOT)
-    }
-
-    /// Return true if store overflow is delayed for this flow.
-    ///
-    /// Currently happens only for absolutely positioned flows.
-    fn is_store_overflow_delayed(&mut self) -> bool {
-        self.base.flags.contains(IS_ABSOLUTELY_POSITIONED)
     }
 
     fn is_root(&self) -> bool {
@@ -1839,16 +1851,20 @@ impl Flow for BlockFlow {
 
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
-                self.fragment.style().logical_position().inline_start == LengthOrPercentageOrAuto::Auto &&
-                self.fragment.style().logical_position().inline_end == LengthOrPercentageOrAuto::Auto {
+                self.fragment.style().logical_position().inline_start ==
+                    LengthOrPercentageOrAuto::Auto &&
+                self.fragment.style().logical_position().inline_end ==
+                LengthOrPercentageOrAuto::Auto {
             self.base.position.start.i = inline_position
         }
     }
 
     fn update_late_computed_block_position_if_necessary(&mut self, block_position: Au) {
         if self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) &&
-                self.fragment.style().logical_position().block_start == LengthOrPercentageOrAuto::Auto &&
-                self.fragment.style().logical_position().block_end == LengthOrPercentageOrAuto::Auto {
+                self.fragment.style().logical_position().block_start ==
+                    LengthOrPercentageOrAuto::Auto &&
+                self.fragment.style().logical_position().block_end ==
+                LengthOrPercentageOrAuto::Auto {
             self.base.position.start.b = block_position
         }
     }
@@ -1864,24 +1880,41 @@ impl Flow for BlockFlow {
         self.fragment.repair_style(new_style)
     }
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
-        if iterator.should_process(&self.fragment) {
-            let fragment_origin =
-                self.base.stacking_relative_position_of_child_fragment(&self.fragment);
-            iterator.process(&self.fragment,
-                             self.fragment.stacking_relative_bounds(&fragment_origin));
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.fragment.compute_overflow()
+    }
+
+    fn iterate_through_fragment_border_boxes(&self,
+                                             iterator: &mut FragmentBorderBoxIterator,
+                                             stacking_context_position: &Point2D<Au>) {
+        if !iterator.should_process(&self.fragment) {
+            return
         }
+
+        iterator.process(&self.fragment,
+                         &self.fragment
+                              .stacking_relative_border_box(&self.base.stacking_relative_position,
+                                                            &self.base
+                                                                 .absolute_position_info
+                                                                 .relative_containing_block_size,
+                                                            CoordinateSystem::Parent)
+                              .translate(stacking_context_position));
     }
 }
 
 impl fmt::Show for BlockFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} - {:x}: frag={} ({})", self.class(), self.base.debug_id(), self.fragment, self.base)
+        write!(f,
+               "{} - {:x}: frag={} ({})",
+               self.class(),
+               self.base.debug_id(),
+               self.fragment,
+               self.base)
     }
 }
 
 /// The inputs for the inline-sizes-and-margins constraint equation.
-#[deriving(Show)]
+#[deriving(Show, Copy)]
 pub struct ISizeConstraintInput {
     pub computed_inline_size: MaybeAuto,
     pub inline_start_margin: MaybeAuto,
@@ -1914,7 +1947,7 @@ impl ISizeConstraintInput {
 }
 
 /// The solutions for the inline-size-and-margins constraint equation.
-#[deriving(Show)]
+#[deriving(Copy, Show)]
 pub struct ISizeConstraintSolution {
     pub inline_start: Au,
     pub inline_end: Au,
@@ -1976,11 +2009,12 @@ pub trait ISizeAndMarginsComputer {
 
         let style = block.fragment.style();
         match (computed_inline_size, style.get_box().box_sizing) {
-            (MaybeAuto::Specified(size), box_sizing::border_box) => {
+            (MaybeAuto::Specified(size), box_sizing::T::border_box) => {
                 computed_inline_size =
                     MaybeAuto::Specified(size - block.fragment.border_padding.inline_start_end())
             }
-            (MaybeAuto::Auto, box_sizing::border_box) | (_, box_sizing::content_box) => {}
+            (MaybeAuto::Auto, box_sizing::T::border_box) |
+            (_, box_sizing::T::content_box) => {}
         }
 
         // The text alignment of a block flow is the text alignment of its box's style.
@@ -2455,11 +2489,14 @@ impl ISizeAndMarginsComputer for AbsoluteReplaced {
         MaybeAuto::Specified(fragment.content_inline_size())
     }
 
-    fn containing_block_inline_size(&self, block: &mut BlockFlow, _: Au, ctx: &LayoutContext) -> Au {
+    fn containing_block_inline_size(&self, block: &mut BlockFlow, _: Au, ctx: &LayoutContext)
+                                    -> Au {
         block.containing_block_size(ctx.shared.screen_size).inline
     }
 
-    fn set_flow_x_coord_if_necessary(&self, block: &mut BlockFlow, solution: ISizeConstraintSolution) {
+    fn set_flow_x_coord_if_necessary(&self,
+                                     block: &mut BlockFlow,
+                                     solution: ISizeConstraintSolution) {
         // Set the x-coordinate of the absolute flow wrt to its containing block.
         block.base.position.start.i = solution.inline_start;
     }

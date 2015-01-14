@@ -22,24 +22,12 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::{c_char, c_void};
 use servo_msg::constellation_msg::{Key, KeyModifiers};
-use servo_msg::compositor_msg::{Blank, FinishedLoading, Loading, PerformingLayout, PaintState};
-use servo_msg::compositor_msg::{ReadyState};
+use servo_msg::compositor_msg::{ReadyState, PaintState};
 use servo_msg::constellation_msg::LoadData;
 use servo_util::cursor::Cursor;
 use servo_util::geometry::ScreenPx;
 use std::cell::RefCell;
 use std::rc::Rc;
-
-#[cfg(target_os="macos")]
-use servo_util::cursor::{AliasCursor, AllScrollCursor, ColResizeCursor, ContextMenuCursor};
-#[cfg(target_os="macos")]
-use servo_util::cursor::{CopyCursor, CrosshairCursor, EResizeCursor, EwResizeCursor};
-#[cfg(target_os="macos")]
-use servo_util::cursor::{GrabCursor, GrabbingCursor, NResizeCursor, NoCursor, NoDropCursor};
-#[cfg(target_os="macos")]
-use servo_util::cursor::{NsResizeCursor, NotAllowedCursor, PointerCursor, RowResizeCursor};
-#[cfg(target_os="macos")]
-use servo_util::cursor::{SResizeCursor, TextCursor, VerticalTextCursor, WResizeCursor};
 
 #[cfg(target_os="macos")]
 use std::ptr;
@@ -107,23 +95,23 @@ impl Window {
         use cocoa::base::{class, msg_send, selector};
 
         let cocoa_name = match cursor {
-            NoCursor => return 0 as cef_cursor_handle_t,
-            ContextMenuCursor => "contextualMenuCursor",
-            GrabbingCursor => "closedHandCursor",
-            CrosshairCursor => "crosshairCursor",
-            CopyCursor => "dragCopyCursor",
-            AliasCursor => "dragLinkCursor",
-            TextCursor => "IBeamCursor",
-            GrabCursor | AllScrollCursor => "openHandCursor",
-            NoDropCursor | NotAllowedCursor => "operationNotAllowedCursor",
-            PointerCursor => "pointingHandCursor",
-            SResizeCursor => "resizeDownCursor",
-            WResizeCursor => "resizeLeftCursor",
-            EwResizeCursor | ColResizeCursor => "resizeLeftRightCursor",
-            EResizeCursor => "resizeRightCursor",
-            NResizeCursor => "resizeUpCursor",
-            NsResizeCursor | RowResizeCursor => "resizeUpDownCursor",
-            VerticalTextCursor => "IBeamCursorForVerticalLayout",
+            Cursor::NoCursor => return 0 as cef_cursor_handle_t,
+            Cursor::ContextMenuCursor => "contextualMenuCursor",
+            Cursor::GrabbingCursor => "closedHandCursor",
+            Cursor::CrosshairCursor => "crosshairCursor",
+            Cursor::CopyCursor => "dragCopyCursor",
+            Cursor::AliasCursor => "dragLinkCursor",
+            Cursor::TextCursor => "IBeamCursor",
+            Cursor::GrabCursor | Cursor::AllScrollCursor => "openHandCursor",
+            Cursor::NoDropCursor | Cursor::NotAllowedCursor => "operationNotAllowedCursor",
+            Cursor::PointerCursor => "pointingHandCursor",
+            Cursor::SResizeCursor => "resizeDownCursor",
+            Cursor::WResizeCursor => "resizeLeftCursor",
+            Cursor::EwResizeCursor | Cursor::ColResizeCursor => "resizeLeftRightCursor",
+            Cursor::EResizeCursor => "resizeRightCursor",
+            Cursor::NResizeCursor => "resizeUpCursor",
+            Cursor::NsResizeCursor | Cursor::RowResizeCursor => "resizeUpDownCursor",
+            Cursor::VerticalTextCursor => "IBeamCursorForVerticalLayout",
             _ => "arrowCursor",
         };
         unsafe {
@@ -185,8 +173,8 @@ impl WindowMethods for Window {
             Some(ref browser) => browser,
         };
         let is_loading = match ready_state {
-            Blank | FinishedLoading => 0,
-            Loading | PerformingLayout => 1,
+            ReadyState::Blank | ReadyState::FinishedLoading => 0,
+            ReadyState::Loading | ReadyState::PerformingLayout => 1,
         };
         browser.get_host()
                .get_client()

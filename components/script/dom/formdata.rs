@@ -11,7 +11,7 @@ use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
@@ -29,28 +29,28 @@ pub enum FormDatum {
 
 #[dom_struct]
 pub struct FormData {
-    data: DOMRefCell<HashMap<DOMString, Vec<FormDatum>>>,
     reflector_: Reflector,
+    data: DOMRefCell<HashMap<DOMString, Vec<FormDatum>>>,
     global: GlobalField,
     form: Option<JS<HTMLFormElement>>
 }
 
 impl FormData {
-    fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> FormData {
+    fn new_inherited(form: Option<JSRef<HTMLFormElement>>, global: GlobalRef) -> FormData {
         FormData {
-            data: DOMRefCell::new(HashMap::new()),
             reflector_: Reflector::new(),
-            global: GlobalField::from_rooted(global),
+            data: DOMRefCell::new(HashMap::new()),
+            global: GlobalField::from_rooted(&global),
             form: form.map(|f| JS::from_rooted(f)),
         }
     }
 
-    pub fn new(form: Option<JSRef<HTMLFormElement>>, global: &GlobalRef) -> Temporary<FormData> {
+    pub fn new(form: Option<JSRef<HTMLFormElement>>, global: GlobalRef) -> Temporary<FormData> {
         reflect_dom_object(box FormData::new_inherited(form, global),
-                           *global, FormDataBinding::Wrap)
+                           global, FormDataBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
+    pub fn Constructor(global: GlobalRef, form: Option<JSRef<HTMLFormElement>>) -> Fallible<Temporary<FormData>> {
         Ok(FormData::new(form, global))
     }
 }
@@ -81,7 +81,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
 
     fn Get(self, name: DOMString) -> Option<FileOrString> {
-        if self.data.borrow().contains_key_equiv(&name) {
+        if self.data.borrow().contains_key(&name) {
             match (*self.data.borrow())[name][0].clone() {
                 FormDatum::StringData(ref s) => Some(eString(s.clone())),
                 FormDatum::FileData(ref f) => {
@@ -94,7 +94,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
 
     fn Has(self, name: DOMString) -> bool {
-        self.data.borrow().contains_key_equiv(&name)
+        self.data.borrow().contains_key(&name)
     }
     #[allow(unrooted_must_root)]
     fn Set(self, name: DOMString, value: JSRef<Blob>, filename: Option<DOMString>) {
@@ -107,12 +107,6 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
     }
 }
 
-impl Reflectable for FormData {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}
-
 trait PrivateFormDataHelpers{
   fn get_file_from_blob(&self, value: JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File>;
 }
@@ -121,7 +115,7 @@ impl PrivateFormDataHelpers for FormData {
     fn get_file_from_blob(&self, value: JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File> {
         let global = self.global.root();
         let f: Option<JSRef<File>> = FileCast::to_ref(value);
-        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".to_string()));
-        File::new(&global.root_ref(), value, name)
+        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".into_string()));
+        File::new(global.r(), value, name)
     }
 }

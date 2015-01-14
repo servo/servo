@@ -12,15 +12,16 @@ use construct::FlowConstructor;
 use context::LayoutContext;
 use display_list_builder::ListItemFlowDisplayListBuilding;
 use flow::{Flow, FlowClass};
-use fragment::{Fragment, FragmentBoundsIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use wrapper::ThreadSafeLayoutNode;
 
+use geom::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
 use servo_util::opts;
 use style::ComputedValues;
 use style::computed_values::list_style_type;
-use sync::Arc;
+use std::sync::Arc;
 
 /// A block with the CSS `display` property equal to `list-item`.
 #[deriving(Show)]
@@ -111,8 +112,14 @@ impl Flow for ListItemFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
-        self.block_flow.iterate_through_fragment_bounds(iterator);
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.block_flow.compute_overflow()
+    }
+
+    fn iterate_through_fragment_border_boxes(&self,
+                                             iterator: &mut FragmentBorderBoxIterator,
+                                             stacking_context_position: &Point2D<Au>) {
+        self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
 }
 
@@ -124,12 +131,12 @@ pub fn static_text_for_list_style_type(list_style_type: list_style_type::T)
     // Just to keep things simple, use a nonbreaking space (Unicode 0xa0) to provide the marker
     // separation.
     match list_style_type {
-        list_style_type::none => None,
-        list_style_type::disc => Some("•\u00a0"),
-        list_style_type::circle => Some("◦\u00a0"),
-        list_style_type::square => Some("▪\u00a0"),
-        list_style_type::disclosure_open => Some("▾\u00a0"),
-        list_style_type::disclosure_closed => Some("‣\u00a0"),
+        list_style_type::T::none => None,
+        list_style_type::T::disc => Some("•\u{a0}"),
+        list_style_type::T::circle => Some("◦\u{a0}"),
+        list_style_type::T::square => Some("▪\u{a0}"),
+        list_style_type::T::disclosure_open => Some("▾\u{a0}"),
+        list_style_type::T::disclosure_closed => Some("‣\u{a0}"),
     }
 }
 

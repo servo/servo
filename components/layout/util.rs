@@ -19,7 +19,7 @@ use std::mem;
 use std::cell::{Ref, RefMut};
 use style::ComputedValues;
 use style;
-use sync::Arc;
+use std::sync::Arc;
 
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
@@ -64,6 +64,7 @@ impl PrivateLayoutData {
 }
 
 bitflags! {
+    #[deriving(Copy)]
     flags LayoutDataFlags: u8 {
         #[doc="Whether a flow has been newly constructed."]
         const HAS_NEWLY_CONSTRUCTED_FLOW = 0x01

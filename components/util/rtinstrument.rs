@@ -13,7 +13,7 @@ use std::rt::local::Local;
 //use std::rt::rtio;
 use std::rt::task::{Task, TaskOpts, BlockedTask};
 use std_time;
-use sync::Mutex;
+use std::sync::Mutex;
 #[cfg(not(test))]
 use serialize::json;
 
@@ -83,7 +83,7 @@ pub fn instrument(f: proc()) {
             let task = Local::borrow(None::<Task>);
             match task.name {
                 Some(ref name) => name.to_string(),
-                None => "unknown".to_string(),
+                None => "unknown".into_string(),
             }
         };
         let stats = TaskStats {

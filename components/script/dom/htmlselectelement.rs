@@ -11,11 +11,11 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLSelectElementDerived
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::element::{AttributeHandlers, Element};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -30,14 +30,14 @@ pub struct HTMLSelectElement {
 
 impl HTMLSelectElementDerived for EventTarget {
     fn is_htmlselectelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLSelectElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)))
     }
 }
 
 impl HTMLSelectElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLSelectElement {
         HTMLSelectElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLSelectElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLSelectElement, localName, prefix, document)
         }
     }
 
@@ -51,7 +51,7 @@ impl HTMLSelectElement {
 impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     fn Validity(self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
-        ValidityState::new(*window)
+        ValidityState::new(window.r())
     }
 
     // Note: this function currently only exists for test_union.html.
@@ -68,9 +68,9 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     fn Type(self) -> DOMString {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
         if elem.has_attribute(&atom!("multiple")) {
-            "select-multiple".to_string()
+            "select-multiple".into_string()
         } else {
-            "select-one".to_string()
+            "select-one".into_string()
         }
     }
 }
@@ -139,8 +139,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
     }
 }
 
-impl Reflectable for HTMLSelectElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

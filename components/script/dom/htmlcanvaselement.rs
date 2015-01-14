@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use canvas::canvas_paint_task::CanvasMsg;
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
@@ -9,13 +10,13 @@ use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElemen
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalSettable};
-use dom::bindings::utils::{Reflectable, Reflector};
-use dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary};
+use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId, AttributeHandlers};
+use dom::element::{Element, AttributeHandlers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -39,14 +40,14 @@ pub struct HTMLCanvasElement {
 
 impl HTMLCanvasElementDerived for EventTarget {
     fn is_htmlcanvaselement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLCanvasElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement)))
     }
 }
 
 impl HTMLCanvasElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLCanvasElement {
         HTMLCanvasElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLCanvasElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLCanvasElement, localName, prefix, document),
             context: Default::default(),
             width: Cell::new(DEFAULT_WIDTH),
             height: Cell::new(DEFAULT_HEIGHT),
@@ -57,6 +58,27 @@ impl HTMLCanvasElement {
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLCanvasElement> {
         let element = HTMLCanvasElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLCanvasElementBinding::Wrap)
+    }
+}
+
+pub trait LayoutHTMLCanvasElementHelpers {
+    unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>>;
+    unsafe fn get_canvas_width(&self) -> u32;
+    unsafe fn get_canvas_height(&self) -> u32;
+}
+
+impl LayoutHTMLCanvasElementHelpers for JS<HTMLCanvasElement> {
+    unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
+        let context = (*self.unsafe_get()).context.get_inner();
+        context.map(|cx| cx.get_renderer())
+    }
+
+    unsafe fn get_canvas_width(&self) -> u32 {
+        (*self.unsafe_get()).width.get()
+    }
+
+    unsafe fn get_canvas_height(&self) -> u32 {
+        (*self.unsafe_get()).height.get()
     }
 }
 
@@ -84,13 +106,11 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
             return None;
         }
 
-        if self.context.get().is_none() {
+        Some(self.context.or_init(|| {
             let window = window_from_node(self).root();
             let (w, h) = (self.width.get() as i32, self.height.get() as i32);
-            let context = CanvasRenderingContext2D::new(&GlobalRef::Window(*window), self, Size2D(w, h));
-            self.context.assign(Some(context));
-        }
-        self.context.get()
+            CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, Size2D(w, h))
+        }))
      }
 }
 
@@ -121,7 +141,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         if recreate {
             let (w, h) = (self.width.get() as i32, self.height.get() as i32);
             match self.context.get() {
-                Some(ref context) => context.root().recreate(Size2D(w, h)),
+                Some(context) => context.root().r().recreate(Size2D(w, h)),
                 None => ()
             }
         }
@@ -149,15 +169,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
         if recreate {
             let (w, h) = (self.width.get() as i32, self.height.get() as i32);
             match self.context.get() {
-                Some(ref context) => context.root().recreate(Size2D(w, h)),
+                Some(context) => context.root().r().recreate(Size2D(w, h)),
                 None => ()
             }
         }
     }
 }
 
-impl Reflectable for HTMLCanvasElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

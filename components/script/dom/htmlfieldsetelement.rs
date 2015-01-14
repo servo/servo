@@ -9,12 +9,12 @@ use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetEl
 use dom::bindings::codegen::InheritTypes::{HTMLFieldSetElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLLegendElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element, ElementHelpers, ElementTypeId};
+use dom::element::{AttributeHandlers, Element, ElementHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -29,14 +29,14 @@ pub struct HTMLFieldSetElement {
 
 impl HTMLFieldSetElementDerived for EventTarget {
     fn is_htmlfieldsetelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLFieldSetElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFieldSetElement)))
     }
 }
 
 impl HTMLFieldSetElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFieldSetElement {
         HTMLFieldSetElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLFieldSetElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFieldSetElement, localName, prefix, document)
         }
     }
 
@@ -62,12 +62,12 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let filter = box ElementsFilter;
         let window = window_from_node(node).root();
-        HTMLCollection::create(*window, node, filter)
+        HTMLCollection::create(window.r(), node, filter)
     }
 
     fn Validity(self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
-        ValidityState::new(*window)
+        ValidityState::new(window.r())
     }
 
     // http://www.whatwg.org/html/#dom-fieldset-disabled
@@ -100,10 +100,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
                 }).collect();
                 for descendant in filtered.iter().flat_map(|child| child.traverse_preorder()) {
                     match descendant.type_id() {
-                        NodeTypeId::Element(ElementTypeId::HTMLButtonElement) |
-                        NodeTypeId::Element(ElementTypeId::HTMLInputElement) |
-                        NodeTypeId::Element(ElementTypeId::HTMLSelectElement) |
-                        NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) => {
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
                             descendant.set_disabled_state(true);
                             descendant.set_enabled_state(false);
                         },
@@ -132,10 +132,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
                 }).collect();
                 for descendant in filtered.iter().flat_map(|child| child.traverse_preorder()) {
                     match descendant.type_id() {
-                        NodeTypeId::Element(ElementTypeId::HTMLButtonElement) |
-                        NodeTypeId::Element(ElementTypeId::HTMLInputElement) |
-                        NodeTypeId::Element(ElementTypeId::HTMLSelectElement) |
-                        NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) => {
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) |
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) |
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
+                        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
                             descendant.check_disabled_attribute();
                             descendant.check_ancestors_disabled_state_for_form_control();
                         },
@@ -148,8 +148,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
     }
 }
 
-impl Reflectable for HTMLFieldSetElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::ast::*;
+use cssparser::ast::ComponentValue::*;
 use cssparser::parse_declaration_list;
 use errors::{ErrorLoggerIterator, log_css_error};
 use std::ascii::AsciiExt;
@@ -68,7 +69,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
     for item in ErrorLoggerIterator(parse_declaration_list(block.into_iter())) {
         match item {
             DeclarationListItem::AtRule(rule) => log_css_error(
-                rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
+                rule.location, format!("Unsupported at-rule in declaration list: @{}", rule.name).as_slice()),
             DeclarationListItem::Declaration(Declaration{ location, name, value, important }) => {
                 if important {
                     log_css_error(location, "!important is not allowed on @font-face descriptors");
@@ -94,7 +95,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                         };
                     },
                     _ => {
-                        log_css_error(location, format!("Unsupported declaration {:s}", name).as_slice());
+                        log_css_error(location, format!("Unsupported declaration {}", name).as_slice());
                     }
                 }
             }

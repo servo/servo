@@ -10,15 +10,16 @@ use block::{BlockFlow, ISizeAndMarginsComputer, MarginsMayCollapseFlag};
 use construct::FlowConstructor;
 use context::LayoutContext;
 use flow::{FlowClass, Flow};
-use fragment::{Fragment, FragmentBoundsIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable};
 use wrapper::ThreadSafeLayoutNode;
 
+use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
 use std::fmt;
 use style::ComputedValues;
-use sync::Arc;
+use std::sync::Arc;
 
 /// A table formatting context.
 #[deriving(Encodable)]
@@ -150,8 +151,14 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
-        self.block_flow.iterate_through_fragment_bounds(iterator);
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.block_flow.compute_overflow()
+    }
+
+    fn iterate_through_fragment_border_boxes(&self,
+                                             iterator: &mut FragmentBorderBoxIterator,
+                                             stacking_context_position: &Point2D<Au>) {
+        self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
 }
 

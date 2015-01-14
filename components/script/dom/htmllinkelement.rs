@@ -9,12 +9,12 @@ use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMet
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::element::{AttributeHandlers, Element};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
@@ -33,14 +33,14 @@ pub struct HTMLLinkElement {
 
 impl HTMLLinkElementDerived for EventTarget {
     fn is_htmllinkelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLLinkElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)))
     }
 }
 
 impl HTMLLinkElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLLinkElement {
         HTMLLinkElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLLinkElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLLinkElement, localName, prefix, document),
             rel_list: Default::default(),
         }
     }
@@ -54,7 +54,7 @@ impl HTMLLinkElement {
 
 fn get_attr(element: JSRef<Element>, name: &Atom) -> Option<String> {
     let elem = element.get_attribute(ns!(""), name).root();
-    elem.map(|e| e.value().as_slice().to_string())
+    elem.map(|e| e.r().value().as_slice().into_string())
 }
 
 fn is_stylesheet(value: &Option<String>) -> bool {
@@ -94,7 +94,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("rel") => AttrValue::from_tokenlist(value),
+            &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -128,19 +128,14 @@ trait PrivateHTMLLinkElementHelpers {
 impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
     fn handle_stylesheet_url(self, href: &str) {
         let window = window_from_node(self).root();
+        let window = window.r();
         match UrlParser::new().base_url(&window.page().get_url()).parse(href) {
             Ok(url) => {
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;
                 layout_chan.send(Msg::LoadStylesheet(url));
             }
-            Err(e) => debug!("Parsing url {:s} failed: {}", href, e)
+            Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
-    }
-}
-
-impl Reflectable for HTMLLinkElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
     }
 }
 

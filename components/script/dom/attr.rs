@@ -8,7 +8,8 @@ use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::js::{OptionalRootedRootable, RootedReference};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::Node;
 use dom::window::Window;
@@ -37,9 +38,21 @@ pub enum AttrValue {
 }
 
 impl AttrValue {
-    pub fn from_tokenlist(tokens: DOMString) -> AttrValue {
-        let atoms = split_html_space_chars(tokens.as_slice())
-            .map(|token| Atom::from_slice(token)).collect();
+    pub fn from_serialized_tokenlist(tokens: DOMString) -> AttrValue {
+        let mut atoms: Vec<Atom> = vec!();
+        for token in split_html_space_chars(tokens.as_slice()).map(|slice| Atom::from_slice(slice)) {
+            if !atoms.iter().any(|atom| *atom == token) {
+                atoms.push(token);
+            }
+        }
+        AttrValue::TokenList(tokens, atoms)
+    }
+
+    pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
+        let tokens = {
+            let slices: Vec<&str> = atoms.iter().map(|atom| atom.as_slice()).collect();
+            slices.connect("\x20")
+        };
         AttrValue::TokenList(tokens, atoms)
     }
 
@@ -85,12 +98,6 @@ pub struct Attr {
     owner: Option<JS<Element>>,
 }
 
-impl Reflectable for Attr {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}
-
 impl Attr {
     fn new_inherited(local_name: Atom, value: AttrValue,
                      name: Atom, namespace: Namespace,
@@ -131,11 +138,11 @@ impl Attr {
 
 impl<'a> AttrMethods for JSRef<'a, Attr> {
     fn LocalName(self) -> DOMString {
-        self.local_name().as_slice().to_string()
+        self.local_name().as_slice().into_string()
     }
 
     fn Value(self) -> DOMString {
-        self.value().as_slice().to_string()
+        self.value().as_slice().into_string()
     }
 
     fn SetValue(self, value: DOMString) {
@@ -145,8 +152,8 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
             }
             Some(o) => {
                 let owner = o.root();
-                let value = owner.parse_attribute(&self.namespace, self.local_name(), value);
-                self.set_value(AttrSettingType::ReplacedAttr, value, *owner);
+                let value = owner.r().parse_attribute(&self.namespace, self.local_name(), value);
+                self.set_value(AttrSettingType::ReplacedAttr, value, owner.r());
             }
         }
     }
@@ -168,14 +175,14 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Name(self) -> DOMString {
-        self.name.as_slice().to_string()
+        self.name.as_slice().into_string()
     }
 
     fn GetNamespaceURI(self) -> Option<DOMString> {
         let Namespace(ref atom) = self.namespace;
         match atom.as_slice() {
             "" => None,
-            url => Some(url.to_string()),
+            url => Some(url.into_string()),
         }
     }
 
@@ -201,7 +208,7 @@ pub trait AttrHelpers<'a> {
 
 impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     fn set_value(self, set_type: AttrSettingType, value: AttrValue, owner: JSRef<Element>) {
-        assert!(Some(owner) == self.owner.map(|o| *o.root()));
+        assert!(Some(owner) == self.owner.root().r());
 
         let node: JSRef<Node> = NodeCast::from_ref(owner);
         let namespace_is_null = self.namespace == ns!("");
@@ -230,7 +237,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     fn summarize(self) -> AttrInfo {
         let Namespace(ref ns) = self.namespace;
         AttrInfo {
-            namespace: ns.as_slice().to_string(),
+            namespace: ns.as_slice().into_string(),
             name: self.Name(),
             value: self.Value(),
         }

@@ -20,7 +20,7 @@ use std::slice::Items;
 use string_cache::{Atom, Namespace};
 use style::{mod, PseudoElement, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
 use style::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes, cascade};
-use sync::Arc;
+use std::sync::Arc;
 
 pub struct ApplicableDeclarations {
     pub normal: SmallVec16<DeclarationBlock>,
@@ -55,13 +55,9 @@ pub struct ApplicableDeclarationsCacheEntry {
 }
 
 impl ApplicableDeclarationsCacheEntry {
-    fn new(slice: &[DeclarationBlock]) -> ApplicableDeclarationsCacheEntry {
-        let mut entry_declarations = Vec::new();
-        for declarations in slice.iter() {
-            entry_declarations.push(declarations.clone());
-        }
+    fn new(declarations: Vec<DeclarationBlock>) -> ApplicableDeclarationsCacheEntry {
         ApplicableDeclarationsCacheEntry {
-            declarations: entry_declarations,
+            declarations: declarations,
         }
     }
 }
@@ -138,7 +134,7 @@ impl ApplicableDeclarationsCache {
         }
     }
 
-    fn insert(&mut self, declarations: &[DeclarationBlock], style: Arc<ComputedValues>) {
+    fn insert(&mut self, declarations: Vec<DeclarationBlock>, style: Arc<ComputedValues>) {
         self.cache.insert(ApplicableDeclarationsCacheEntry::new(declarations), style)
     }
 }
@@ -241,7 +237,7 @@ impl StyleSharingCandidate {
             parent_style: parent_style,
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&ns!(""), &atom!("class"))
-                          .map(|string| string.to_string()),
+                          .map(|string| string.into_string()),
             link: element.get_link().is_some(),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:
@@ -438,7 +434,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
 
         // Cache the resolved style if it was cacheable.
         if cacheable {
-            applicable_declarations_cache.insert(applicable_declarations, this_style.clone());
+            applicable_declarations_cache.insert(applicable_declarations.to_vec(), this_style.clone());
         }
 
         // Calculate style difference and write.
@@ -460,7 +456,7 @@ impl<'ln> PrivateMatchMethods for LayoutNode<'ln> {
         };
 
         let parent_layout_data: &Option<LayoutDataWrapper> = unsafe {
-            mem::transmute(parent_node.borrow_layout_data_unchecked())
+            &*parent_node.borrow_layout_data_unchecked()
         };
         match parent_layout_data {
             &Some(ref parent_layout_data_ref) => {

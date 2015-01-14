@@ -14,9 +14,20 @@ use syntax::parse::token::InternedString;
 
 pub fn expand_dom_struct(_: &mut ExtCtxt, _: Span, _: &MetaItem, item: P<Item>) -> P<Item> {
     let mut item2 = (*item).clone();
-    item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("must_root"))));
-    item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("privatize"))));
-    item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("jstraceable"))));
+    {
+        let add_attr = |s| {
+            item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new(s))));
+        };
+        add_attr("must_root");
+        add_attr("privatize");
+        add_attr("jstraceable");
+
+        // The following attributes are only for internal usage
+        add_attr("_generate_reflector");
+        // #[dom_struct] gets consumed, so this lets us keep around a residue
+        // Do NOT register a modifier/decorator on this attribute
+        add_attr("_dom_struct_marker");
+    }
     P(item2)
 }
 
@@ -37,7 +48,9 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
                 explicit_self: ty::borrowed_explicit_self(),
                 args: vec!(ty::Ptr(box ty::Literal(ty::Path::new(vec!("js","jsapi","JSTracer"))), ty::Raw(ast::MutMutable))),
                 ret_ty: ty::nil_ty(),
-                attributes: vec!(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new("inline")))),
+                attributes: vec!(attr::mk_attr_outer(attr::mk_attr_id(),
+                                                     attr::mk_name_value_item_str(InternedString::new("inline"),
+                                                                                  InternedString::new("always")))),
                 combine_substructure: combine_substructure(|a, b, c| {
                     jstraceable_substructure(a, b, c)
                 })

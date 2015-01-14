@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary, OptionalSettable};
 
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use dom::window::Window;
 use servo_util::str::DOMString;
@@ -53,16 +53,16 @@ impl UIEvent {
                view: Option<JSRef<Window>>,
                detail: i32) -> Temporary<UIEvent> {
         let ev = UIEvent::new_uninitialized(window).root();
-        ev.InitUIEvent(type_, can_bubble, cancelable, view, detail);
-        Temporary::from_rooted(*ev)
+        ev.r().InitUIEvent(type_, can_bubble, cancelable, view, detail);
+        Temporary::from_rooted(ev.r())
     }
 
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &UIEventBinding::UIEventInit) -> Fallible<Temporary<UIEvent>> {
         let event = UIEvent::new(global.as_window(), type_,
                                  init.parent.bubbles, init.parent.cancelable,
-                                 init.view.root_ref(), init.detail);
+                                 init.view.r(), init.detail);
         Ok(event)
     }
 }
@@ -93,8 +93,3 @@ impl<'a> UIEventMethods for JSRef<'a, UIEvent> {
     }
 }
 
-impl Reflectable for UIEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event.reflector()
-    }
-}

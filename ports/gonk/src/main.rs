@@ -2,14 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 
 extern crate servo;
-extern crate native;
 extern crate time;
 extern crate "util" as servo_util;
 
@@ -23,7 +19,6 @@ extern crate layers;
 extern crate egl;
 
 use servo_util::opts;
-use servo_util::rtinstrument;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
 
@@ -72,8 +67,6 @@ fn main() {
             browser
         } = browser;
         browser.shutdown();
-
-        rtinstrument::teardown();
     }
 }
 

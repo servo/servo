@@ -83,7 +83,7 @@ class MachCommands(CommandBase):
                 status = subprocess.call(
                     ["make", "-j4", "-f", "openssl.makefile"],
                     env=self.build_env())
-            env['OPENSSL_PATH'] = path.join(self.android_support_dir(), "openssl-1.0.1j")
+            env['OPENSSL_PATH'] = path.join(self.android_support_dir(), "openssl-1.0.1k")
 
         status = subprocess.call(
             ["cargo", "build"] + opts,

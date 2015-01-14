@@ -10,21 +10,21 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLIFrameElementDerived};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{ElementTypeId, Element};
+use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
-use page::IterablePage;
+use page::{IterablePage, Page};
 
-use servo_msg::constellation_msg::{PipelineId, SubpageId};
-use servo_msg::constellation_msg::{IFrameSandboxed, IFrameUnsandboxed};
-use servo_msg::constellation_msg::{ConstellationChan, ScriptLoadedURLInIFrameMsg};
+use servo_msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan};
+use servo_msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_util::str::DOMString;
 
 use std::ascii::AsciiExt;
@@ -44,32 +44,14 @@ enum SandboxAllowance {
 #[dom_struct]
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
-    size: Cell<Option<IFrameSize>>,
+    subpage_id: Cell<Option<SubpageId>>,
+    containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
 }
 
 impl HTMLIFrameElementDerived for EventTarget {
     fn is_htmliframeelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLIFrameElement))
-    }
-}
-
-#[jstraceable]
-#[privatize]
-pub struct IFrameSize {
-    pipeline_id: PipelineId,
-    subpage_id: SubpageId,
-}
-
-impl IFrameSize {
-    #[inline]
-    pub fn pipeline_id<'a>(&'a self) -> &'a PipelineId {
-        &self.pipeline_id
-    }
-
-    #[inline]
-    pub fn subpage_id<'a>(&'a self) -> &'a SubpageId {
-        &self.subpage_id
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement)))
     }
 }
 
@@ -78,6 +60,7 @@ pub trait HTMLIFrameElementHelpers {
     fn get_url(self) -> Option<Url>;
     /// http://www.whatwg.org/html/#process-the-iframe-attributes
     fn process_the_iframe_attributes(self);
+    fn generate_new_subpage_id(self, page: &Page) -> (SubpageId, Option<SubpageId>);
 }
 
 impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
@@ -88,15 +71,22 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
     fn get_url(self) -> Option<Url> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(ns!(""), &atom!("src")).root().and_then(|src| {
-            let url = src.value();
+            let url = src.r().value();
             if url.as_slice().is_empty() {
                 None
             } else {
                 let window = window_from_node(self).root();
-                UrlParser::new().base_url(&window.page().get_url())
+                UrlParser::new().base_url(&window.r().page().get_url())
                     .parse(url.as_slice()).ok()
             }
         })
+    }
+
+    fn generate_new_subpage_id(self, page: &Page) -> (SubpageId, Option<SubpageId>) {
+        let old_subpage_id = self.subpage_id.get();
+        let subpage_id = page.get_next_subpage_id();
+        self.subpage_id.set(Some(subpage_id));
+        (subpage_id, old_subpage_id)
     }
 
     fn process_the_iframe_attributes(self) {
@@ -111,26 +101,28 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
             IFrameUnsandboxed
         };
 
-        // Subpage Id
         let window = window_from_node(self).root();
+        let window = window.r();
         let page = window.page();
-        let subpage_id = page.get_next_subpage_id();
+        let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id(page);
 
-        self.size.set(Some(IFrameSize {
-            pipeline_id: page.id,
-            subpage_id: subpage_id,
-        }));
+        self.containing_page_pipeline_id.set(Some(page.id));
 
         let ConstellationChan(ref chan) = page.constellation_chan;
-        chan.send(ScriptLoadedURLInIFrameMsg(url, page.id, subpage_id, sandboxed));
+    chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
+                                                        page.id,
+                                                        new_subpage_id,
+                                                        old_subpage_id,
+                                                        sandboxed));
     }
 }
 
 impl HTMLIFrameElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLIFrameElement {
         HTMLIFrameElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLIFrameElement, localName, prefix, document),
-            size: Cell::new(None),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLIFrameElement, localName, prefix, document),
+            subpage_id: Cell::new(None),
+            containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
         }
     }
@@ -142,8 +134,13 @@ impl HTMLIFrameElement {
     }
 
     #[inline]
-    pub fn size(&self) -> Option<IFrameSize> {
-        self.size.get()
+    pub fn containing_page_pipeline_id(&self) -> Option<PipelineId> {
+        self.containing_page_pipeline_id.get()
+    }
+
+    #[inline]
+    pub fn subpage_id(&self) -> Option<SubpageId> {
+        self.subpage_id.get()
     }
 }
 
@@ -165,15 +162,15 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
 
     fn SetSandbox(self, sandbox: DOMString) {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        element.set_string_attribute(&atom!("sandbox"), sandbox);
+        element.set_tokenlist_attribute(&atom!("sandbox"), sandbox);
     }
 
     fn GetContentWindow(self) -> Option<Temporary<Window>> {
-        self.size.get().and_then(|size| {
+        self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self).root();
             let children = window.page().children.borrow();
             let child = children.iter().find(|child| {
-                child.subpage_id.unwrap() == size.subpage_id
+                child.subpage_id.unwrap() == subpage_id
             });
             child.and_then(|page| {
                 page.frame.borrow().as_ref().map(|frame| {
@@ -189,10 +186,10 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
                 Some(self_url) => self_url,
                 None => return None,
             };
-            let win_url = window_from_node(self).root().page().get_url();
+            let win_url = window_from_node(self).root().r().page().get_url();
 
             if UrlHelper::SameOrigin(&self_url, &win_url) {
-                Some(window.Document())
+                Some(window.r().Document())
             } else {
                 None
             }
@@ -215,16 +212,18 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
         match attr.local_name() {
             &atom!("sandbox") => {
                 let mut modes = SandboxAllowance::AllowNothing as u8;
-                for word in attr.value().as_slice().split(' ') {
-                    modes |= match word.to_ascii_lower().as_slice() {
-                        "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
-                        "allow-forms" => SandboxAllowance::AllowForms,
-                        "allow-pointer-lock" => SandboxAllowance::AllowPointerLock,
-                        "allow-popups" => SandboxAllowance::AllowPopups,
-                        "allow-scripts" => SandboxAllowance::AllowScripts,
-                        "allow-top-navigation" => SandboxAllowance::AllowTopNavigation,
-                        _ => SandboxAllowance::AllowNothing
-                    } as u8;
+                if let Some(ref tokens) = attr.value().tokens() {
+                    for token in tokens.iter() {
+                        modes |= match token.as_slice().to_ascii_lower().as_slice() {
+                            "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
+                            "allow-forms" => SandboxAllowance::AllowForms,
+                            "allow-pointer-lock" => SandboxAllowance::AllowPointerLock,
+                            "allow-popups" => SandboxAllowance::AllowPopups,
+                            "allow-scripts" => SandboxAllowance::AllowScripts,
+                            "allow-top-navigation" => SandboxAllowance::AllowTopNavigation,
+                            _ => SandboxAllowance::AllowNothing
+                        } as u8;
+                    }
                 }
                 self.sandbox.set(Some(modes));
             },
@@ -262,8 +261,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
     }
 }
 
-impl Reflectable for HTMLIFrameElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

@@ -5,11 +5,10 @@
 use dom::bindings::codegen::Bindings::HTMLUListElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLUListElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -20,14 +19,14 @@ pub struct HTMLUListElement {
 
 impl HTMLUListElementDerived for EventTarget {
     fn is_htmlulistelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLUListElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLUListElement)))
     }
 }
 
 impl HTMLUListElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLUListElement {
         HTMLUListElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLUListElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLUListElement, localName, prefix, document)
         }
     }
 
@@ -38,8 +37,3 @@ impl HTMLUListElement {
     }
 }
 
-impl Reflectable for HTMLUListElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

@@ -3,10 +3,57 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![allow(non_camel_case_types)]
+#![macro_escape]
 
 use url::{Url, UrlParser};
 
 pub use servo_util::geometry::Au;
+
+
+macro_rules! define_css_keyword_enum {
+    ($name: ident: $( $css: expr => $variant: ident ),+,) => {
+        define_css_keyword_enum!($name: $( $css => $variant ),+)
+    };
+    ($name: ident: $( $css: expr => $variant: ident ),+) => {
+        #[allow(non_camel_case_types)]
+        #[deriving(Clone, Eq, PartialEq, FromPrimitive, Copy)]
+        pub enum $name {
+            $( $variant ),+
+        }
+
+        impl $name {
+            pub fn parse(component_value: &::cssparser::ast::ComponentValue) -> Result<$name, ()> {
+                match component_value {
+                    &::cssparser::ast::ComponentValue::Ident(ref value) => {
+                        match_ignore_ascii_case! { value:
+                            $( $css => Ok($name::$variant) ),+
+                            _ => Err(())
+                        }
+                    }
+                    _ => Err(())
+                }
+            }
+        }
+
+        impl ::std::fmt::Show for $name {
+            #[inline]
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                use cssparser::ToCss;
+                self.fmt_to_css(f)
+            }
+        }
+
+        impl ::cssparser::ToCss for $name {
+            fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
+            where W: ::text_writer::TextWriter {
+                match self {
+                    $( &$name::$variant => dest.write_str($css) ),+
+                }
+            }
+        }
+    }
+}
+
 
 pub type CSSFloat = f64;
 
@@ -14,11 +61,12 @@ pub mod specified {
     use std::ascii::AsciiExt;
     use std::f64::consts::PI;
     use std::fmt;
-    use std::fmt::{Formatter, FormatError, Show};
+    use std::fmt::{Formatter, Show};
     use url::Url;
-    use cssparser;
-    use cssparser::ast;
+    use cssparser::{mod, ToCss, CssStringWriter};
     use cssparser::ast::*;
+    use cssparser::ast::ComponentValue::*;
+    use text_writer::{mod, TextWriter};
     use parsing_utils::{mod, BufferedIter, ParserIter};
     use super::{Au, CSSFloat};
 
@@ -42,11 +90,16 @@ pub mod specified {
             })
         }
     }
+
     impl fmt::Show for CSSColor {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for CSSColor {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             match self.authored {
-                Some(ref s) => write!(f, "{}", s),
-                None => write!(f, "{}", self.parsed),
+                Some(ref s) => dest.write_str(s.as_slice()),
+                None => self.parsed.to_css(dest),
             }
         }
     }
@@ -57,27 +110,35 @@ pub mod specified {
         pub authored: Option<String>,
     }
     impl fmt::Show for CSSRGBA {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for CSSRGBA {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             match self.authored {
-                Some(ref s) => write!(f, "{}", s),
-                None => write!(f, "{}", self.parsed),
+                Some(ref s) => dest.write_str(s.as_slice()),
+                None => self.parsed.to_css(dest),
             }
         }
     }
 
     #[deriving(Clone, PartialEq)]
     pub struct CSSImage(pub Option<Image>);
+
     impl fmt::Show for CSSImage {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            let &CSSImage(ref url) = self;
-            match url {
-                &Some(ref image) => write!(f, "{}", image),
-                &None => write!(f, "none"),
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for CSSImage {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+            match self {
+                &CSSImage(Some(ref image)) => image.to_css(dest),
+                &CSSImage(None) => dest.write_str("none"),
             }
         }
     }
 
-    #[deriving(Clone, PartialEq)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum Length {
         Au(Au),  // application units
         Em(CSSFloat),
@@ -97,17 +158,24 @@ pub mod specified {
 //        Vmin(CSSFloat),
 //        Vmax(CSSFloat),
     }
+
     impl fmt::Show for Length {
-        fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for Length {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             match self {
-                &Length::Au(length) => write!(f, "{}", length),
-                &Length::Em(length) => write!(f, "{}em", length),
-                &Length::Ex(length) => write!(f, "{}ex", length),
-                &Length::Rem(length) => write!(f, "{}rem", length),
-                &Length::ServoCharacterWidth(_) => panic!("internal CSS values should never be serialized"),
+                &Length::Au(length) => write!(dest, "{}px", length.to_subpx()),
+                &Length::Em(length) => write!(dest, "{}em", length),
+                &Length::Ex(length) => write!(dest, "{}ex", length),
+                &Length::Rem(length) => write!(dest, "{}rem", length),
+                &Length::ServoCharacterWidth(_)
+                => panic!("internal CSS values should never be serialized"),
             }
         }
     }
+
     const AU_PER_PX: CSSFloat = 60.;
     const AU_PER_IN: CSSFloat = AU_PER_PX * 96.;
     const AU_PER_CM: CSSFloat = AU_PER_IN / 2.54;
@@ -151,16 +219,22 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentage {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
     }
+
     impl fmt::Show for LengthOrPercentage {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for LengthOrPercentage {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             match self {
-                &LengthOrPercentage::Length(length) => write!(f, "{}", length),
-                &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
+                &LengthOrPercentage::Length(length) => length.to_css(dest),
+                &LengthOrPercentage::Percentage(percentage)
+                => write!(dest, "{}%", percentage * 100.),
             }
         }
     }
@@ -171,7 +245,7 @@ pub mod specified {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0. =>
                     Length::parse_dimension(value.value, unit.as_slice())
                         .map(LengthOrPercentage::Length),
-                &ast::Percentage(ref value) if negative_ok || value.value >= 0. =>
+                &Percentage(ref value) if negative_ok || value.value >= 0. =>
                     Ok(LengthOrPercentage::Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentage::Length(Length::Au(Au(0)))),
@@ -189,18 +263,24 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentageOrAuto {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
         Auto,
     }
+
     impl fmt::Show for LengthOrPercentageOrAuto {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for LengthOrPercentageOrAuto {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             match self {
-                &LengthOrPercentageOrAuto::Length(length) => write!(f, "{}", length),
-                &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
-                &LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
+                &LengthOrPercentageOrAuto::Length(length) => length.to_css(dest),
+                &LengthOrPercentageOrAuto::Percentage(percentage)
+                => write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
             }
         }
     }
@@ -210,7 +290,7 @@ pub mod specified {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0. =>
                     Length::parse_dimension(value.value, unit.as_slice()).map(LengthOrPercentageOrAuto::Length),
-                &ast::Percentage(ref value) if negative_ok || value.value >= 0. =>
+                &Percentage(ref value) if negative_ok || value.value >= 0. =>
                     Ok(LengthOrPercentageOrAuto::Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. =>
                     Ok(LengthOrPercentageOrAuto::Length(Length::Au(Au(0)))),
@@ -229,18 +309,24 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentageOrNone {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
         None,
     }
+
     impl fmt::Show for LengthOrPercentageOrNone {
-        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for LengthOrPercentageOrNone {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             match self {
-                &LengthOrPercentageOrNone::Length(length) => write!(f, "{}", length),
-                &LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
-                &LengthOrPercentageOrNone::None => write!(f, "none"),
+                &LengthOrPercentageOrNone::Length(length) => length.to_css(dest),
+                &LengthOrPercentageOrNone::Percentage(percentage)
+                => write!(dest, "{}%", percentage * 100.),
+                &LengthOrPercentageOrNone::None => dest.write_str("none"),
             }
         }
     }
@@ -250,7 +336,7 @@ pub mod specified {
             match input {
                 &Dimension(ref value, ref unit) if negative_ok || value.value >= 0.
                 => Length::parse_dimension(value.value, unit.as_slice()).map(LengthOrPercentageOrNone::Length),
-                &ast::Percentage(ref value) if negative_ok || value.value >= 0.
+                &Percentage(ref value) if negative_ok || value.value >= 0.
                 => Ok(LengthOrPercentageOrNone::Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. => Ok(LengthOrPercentageOrNone::Length(Length::Au(Au(0)))),
                 &Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => Ok(LengthOrPercentageOrNone::None),
@@ -269,7 +355,7 @@ pub mod specified {
     }
 
     // http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
-    #[deriving(Clone)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum PositionComponent {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -284,7 +370,7 @@ pub mod specified {
             match input {
                 &Dimension(ref value, ref unit) =>
                     Length::parse_dimension(value.value, unit.as_slice()).map(PositionComponent::Length),
-                &ast::Percentage(ref value) => Ok(PositionComponent::Percentage(value.value / 100.)),
+                &Percentage(ref value) => Ok(PositionComponent::Percentage(value.value / 100.)),
                 &Number(ref value) if value.value == 0. => Ok(PositionComponent::Length(Length::Au(Au(0)))),
                 &Ident(ref value) => {
                     if value.as_slice().eq_ignore_ascii_case("center") { Ok(PositionComponent::Center) }
@@ -309,13 +395,17 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, PartialOrd)]
+    #[deriving(Clone, PartialEq, PartialOrd, Copy)]
     pub struct Angle(pub CSSFloat);
 
-    impl Show for Angle {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    impl fmt::Show for Angle {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for Angle {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             let Angle(value) = *self;
-            write!(f, "{}", value)
+            write!(dest, "{}rad", value)
         }
     }
 
@@ -344,6 +434,15 @@ pub mod specified {
                 Err(())
             }
         }
+        /// Parses an angle from a token according to CSS-VALUES § 6.1.
+        pub fn parse(value: &ComponentValue) -> Result<Angle,()> {
+            match *value {
+                Dimension(ref value, ref unit) => {
+                    Angle::parse_dimension(value.value, unit.as_slice())
+                }
+                _ => Err(())
+            }
+        }
     }
 
     /// Specified values for an image according to CSS-IMAGES.
@@ -353,11 +452,20 @@ pub mod specified {
         LinearGradient(LinearGradient),
     }
 
-    impl Show for Image {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    impl fmt::Show for Image {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for Image {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             match self {
-                &Image::Url(ref url) => write!(f, "url(\"{}\")", url),
-                &Image::LinearGradient(ref grad) => write!(f, "linear-gradient({})", grad),
+                &Image::Url(ref url) => {
+                    try!(dest.write_str("url(\""));
+                    try!(write!(&mut CssStringWriter::new(dest), "{}", url));
+                    try!(dest.write_str("\")"));
+                    Ok(())
+                }
+                &Image::LinearGradient(ref gradient) => gradient.to_css(dest)
             }
         }
     }
@@ -366,11 +474,11 @@ pub mod specified {
         pub fn from_component_value(component_value: &ComponentValue, base_url: &Url)
                                     -> Result<Image,()> {
             match component_value {
-                &ast::URL(ref url) => {
+                &URL(ref url) => {
                     let image_url = super::parse_url(url.as_slice(), base_url);
                     Ok(Image::Url(image_url))
                 },
-                &ast::Function(ref name, ref args) => {
+                &Function(ref name, ref args) => {
                     if name.as_slice().eq_ignore_ascii_case("linear-gradient") {
                         Ok(Image::LinearGradient(try!(
                                     super::specified::LinearGradient::parse_function(
@@ -405,28 +513,45 @@ pub mod specified {
         pub stops: Vec<ColorStop>,
     }
 
-    impl Show for LinearGradient {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
-            let _ = write!(f, "{}", self.angle_or_corner);
+    impl fmt::Show for LinearGradient {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for LinearGradient {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+            try!(dest.write_str("linear-gradient("));
+            try!(self.angle_or_corner.to_css(dest));
             for stop in self.stops.iter() {
-                let _ = write!(f, ", {}", stop);
+                try!(dest.write_str(", "));
+                try!(stop.to_css(dest));
             }
+            try!(dest.write_char(')'));
             Ok(())
         }
     }
 
     /// Specified values for an angle or a corner in a linear gradient.
-    #[deriving(Clone, PartialEq)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub enum AngleOrCorner {
         Angle(Angle),
         Corner(HorizontalDirection, VerticalDirection),
     }
 
-    impl Show for AngleOrCorner {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
+    impl fmt::Show for AngleOrCorner {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for AngleOrCorner {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
             match self {
-                &AngleOrCorner::Angle(angle) => write!(f, "{}", angle),
-                &AngleOrCorner::Corner(horiz, vert) => write!(f, "to {} {}", horiz, vert),
+                &AngleOrCorner::Angle(angle) => angle.to_css(dest),
+                &AngleOrCorner::Corner(horizontal, vertical) => {
+                    try!(dest.write_str("to "));
+                    try!(horizontal.to_css(dest));
+                    try!(dest.write_char(' '));
+                    try!(vertical.to_css(dest));
+                    Ok(())
+                }
             }
         }
     }
@@ -442,45 +567,23 @@ pub mod specified {
         pub position: Option<LengthOrPercentage>,
     }
 
-    impl Show for ColorStop {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
-            let _ = write!(f, "{}", self.color);
-            self.position.map(|pos| {
-                let _ = write!(f, " {}", pos);
-            });
+    impl fmt::Show for ColorStop {
+        #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
+    }
+
+    impl ToCss for ColorStop {
+        fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+            try!(self.color.to_css(dest));
+            if let Some(position) = self.position {
+                try!(dest.write_char(' '));
+                try!(position.to_css(dest));
+            }
             Ok(())
         }
     }
 
-    #[deriving(Clone, PartialEq)]
-    pub enum HorizontalDirection {
-        Left,
-        Right,
-    }
-
-    impl Show for HorizontalDirection {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
-            match self {
-                &HorizontalDirection::Left => write!(f, "left"),
-                &HorizontalDirection::Right => write!(f, "right"),
-            }
-        }
-    }
-
-    #[deriving(Clone, PartialEq)]
-    pub enum VerticalDirection {
-        Top,
-        Bottom,
-    }
-
-    impl Show for VerticalDirection {
-        fn fmt(&self, f: &mut Formatter) -> Result<(), FormatError> {
-            match self {
-                &VerticalDirection::Top => write!(f, "top"),
-                &VerticalDirection::Bottom => write!(f, "bottom"),
-            }
-        }
-    }
+    define_css_keyword_enum!(HorizontalDirection: "left" => Left, "right" => Right)
+    define_css_keyword_enum!(VerticalDirection: "top" => Top, "bottom" => Bottom)
 
     fn parse_color_stop(source: ParserIter) -> Result<ColorStop,()> {
         let color = match source.next() {
@@ -624,6 +727,7 @@ pub mod computed {
     use std::fmt;
     use url::Url;
 
+    #[allow(missing_copy_implementations)]  // It’s kinda big
     pub struct Context {
         pub inherited_font_weight: longhands::font_weight::computed_value::T,
         pub inherited_font_size: longhands::font_size::computed_value::T,
@@ -680,7 +784,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentage {
         Length(Au),
         Percentage(CSSFloat),
@@ -705,7 +809,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentageOrAuto {
         Length(Au),
         Percentage(CSSFloat),
@@ -733,7 +837,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone)]
+    #[deriving(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentageOrNone {
         Length(Au),
         Percentage(CSSFloat),
@@ -798,7 +902,7 @@ pub mod computed {
     }
 
     /// Computed values for one color stop in a linear gradient.
-    #[deriving(Clone, PartialEq)]
+    #[deriving(Clone, PartialEq, Copy)]
     pub struct ColorStop {
         /// The color of this stop.
         pub color: CSSColor,
@@ -838,6 +942,14 @@ pub mod computed {
             }
         }
     }
+
+    #[allow(non_snake_case)]
+    #[inline]
+    pub fn compute_Length(value: specified::Length, context: &Context) -> Au {
+        compute_Au(value, context)
+    }
+
+    pub type Length = Au;
 }
 
 pub fn parse_url(input: &str, base_url: &Url) -> Url {

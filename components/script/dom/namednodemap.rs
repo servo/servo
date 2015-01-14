@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::NamedNodeMapBinding;
 use dom::bindings::codegen::Bindings::NamedNodeMapBinding::NamedNodeMapMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, ElementHelpers};
 use dom::window::Window;
 
@@ -33,11 +33,11 @@ impl NamedNodeMap {
 
 impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
     fn Length(self) -> u32 {
-        self.owner.root().attrs().len() as u32
+        self.owner.root().r().attrs().len() as u32
     }
 
     fn Item(self, index: u32) -> Option<Temporary<Attr>> {
-        self.owner.root().attrs().as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
+        self.owner.root().r().attrs().as_slice().get(index as uint).map(|x| Temporary::new(x.clone()))
     }
 
     fn IndexedGetter(self, index: u32, found: &mut bool) -> Option<Temporary<Attr>> {
@@ -47,8 +47,3 @@ impl<'a> NamedNodeMapMethods for JSRef<'a, NamedNodeMap> {
     }
 }
 
-impl Reflectable for NamedNodeMap {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

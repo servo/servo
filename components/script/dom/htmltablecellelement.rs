@@ -5,17 +5,23 @@
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCellElementDerived};
 use dom::bindings::js::JSRef;
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::NodeTypeId;
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
 use servo_util::str::{mod, DOMString, LengthOrPercentageOrAuto};
 use std::cell::Cell;
+
+#[deriving(Copy, PartialEq, Show)]
+#[jstraceable]
+pub enum HTMLTableCellElementTypeId {
+    HTMLTableDataCellElement,
+    HTMLTableHeaderCellElement,
+}
 
 #[dom_struct]
 pub struct HTMLTableCellElement {
@@ -28,21 +34,20 @@ pub struct HTMLTableCellElement {
 impl HTMLTableCellElementDerived for EventTarget {
     fn is_htmltablecellelement(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableDataCellElement)) |
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableHeaderCellElement)) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableCellElement(_)))) => true,
             _ => false
         }
     }
 }
 
 impl HTMLTableCellElement {
-    pub fn new_inherited(type_id: ElementTypeId,
+    pub fn new_inherited(type_id: HTMLTableCellElementTypeId,
                          tag_name: DOMString,
                          prefix: Option<DOMString>,
                          document: JSRef<Document>)
                          -> HTMLTableCellElement {
         HTMLTableCellElement {
-            htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableCellElement(type_id), tag_name, prefix, document),
             background_color: Cell::new(None),
             colspan: Cell::new(None),
             width: Cell::new(LengthOrPercentageOrAuto::Auto),
@@ -114,8 +119,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
     }
 }
 
-impl Reflectable for HTMLTableCellElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

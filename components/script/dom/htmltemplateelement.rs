@@ -5,11 +5,10 @@
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding;
 use dom::bindings::codegen::InheritTypes::HTMLTemplateElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
 use servo_util::str::DOMString;
 
@@ -20,14 +19,14 @@ pub struct HTMLTemplateElement {
 
 impl HTMLTemplateElementDerived for EventTarget {
     fn is_htmltemplateelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTemplateElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTemplateElement)))
     }
 }
 
 impl HTMLTemplateElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTemplateElement {
         HTMLTemplateElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTemplateElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTemplateElement, localName, prefix, document)
         }
     }
 
@@ -38,8 +37,3 @@ impl HTMLTemplateElement {
     }
 }
 
-impl Reflectable for HTMLTemplateElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

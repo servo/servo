@@ -8,7 +8,6 @@ use dom::bindings::codegen::InheritTypes::TextDerived;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -39,9 +38,9 @@ impl Text {
                            document, TextBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef, text: DOMString) -> Fallible<Temporary<Text>> {
+    pub fn Constructor(global: GlobalRef, text: DOMString) -> Fallible<Temporary<Text>> {
         let document = global.as_window().Document().root();
-        Ok(Text::new(text, *document))
+        Ok(Text::new(text, document.r()))
     }
 
     #[inline]
@@ -50,8 +49,3 @@ impl Text {
     }
 }
 
-impl Reflectable for Text {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.characterdata.reflector()
-    }
-}

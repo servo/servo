@@ -10,7 +10,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eURLSearchPara
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 
 use servo_util::str::DOMString;
 
@@ -24,15 +24,15 @@ use std::ascii::OwnedAsciiExt;
 
 #[dom_struct]
 pub struct URLSearchParams {
-    data: DOMRefCell<HashMap<DOMString, Vec<DOMString>>>,
     reflector_: Reflector,
+    data: DOMRefCell<HashMap<DOMString, Vec<DOMString>>>,
 }
 
 impl URLSearchParams {
     fn new_inherited() -> URLSearchParams {
         URLSearchParams {
-            data: DOMRefCell::new(HashMap::new()),
             reflector_: Reflector::new(),
+            data: DOMRefCell::new(HashMap::new()),
         }
     }
 
@@ -40,8 +40,8 @@ impl URLSearchParams {
         reflect_dom_object(box URLSearchParams::new_inherited(), global, URLSearchParamsBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef, init: Option<StringOrURLSearchParams>) -> Fallible<Temporary<URLSearchParams>> {
-        let usp = URLSearchParams::new(*global).root();
+    pub fn Constructor(global: GlobalRef, init: Option<StringOrURLSearchParams>) -> Fallible<Temporary<URLSearchParams>> {
+        let usp = URLSearchParams::new(global).root();
         match init {
             Some(eString(_s)) => {
                 // XXXManishearth we need to parse the input here
@@ -52,7 +52,7 @@ impl URLSearchParams {
             Some(eURLSearchParams(u)) => {
                 let u = u.root();
                 let mut map = usp.data.borrow_mut();
-                *map = u.data.borrow().clone();
+                *map = u.r().data.borrow().clone();
             },
             None => {}
         }
@@ -80,22 +80,16 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
     }
 
     fn Get(self, name: DOMString) -> Option<DOMString> {
-        self.data.borrow().find_equiv(&name).map(|v| v[0].clone())
+        self.data.borrow().get(&name).map(|v| v[0].clone())
     }
 
     fn Has(self, name: DOMString) -> bool {
-        self.data.borrow().contains_key_equiv(&name)
+        self.data.borrow().contains_key(&name)
     }
 
     fn Set(self, name: DOMString, value: DOMString) {
         self.data.borrow_mut().insert(name, vec!(value));
         self.update_steps();
-    }
-}
-
-impl Reflectable for URLSearchParams {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 

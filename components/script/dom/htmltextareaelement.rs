@@ -13,12 +13,12 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCas
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, AttributeHandlers, ElementTypeId};
+use dom::element::{Element, AttributeHandlers};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::FormControl;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
@@ -44,7 +44,7 @@ pub struct HTMLTextAreaElement {
 
 impl HTMLTextAreaElementDerived for EventTarget {
     fn is_htmltextareaelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)))
     }
 }
 
@@ -82,8 +82,8 @@ static DEFAULT_ROWS: u32 = 2;
 impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTextAreaElement, localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_string())),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
+            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".into_string())),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),
@@ -151,7 +151,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-type
     fn Type(self) -> DOMString {
-        "textarea".to_string()
+        "textarea".into_string()
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-defaultvalue
@@ -194,7 +194,7 @@ impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
     fn force_relayout(self) {
         let doc = document_from_node(self).root();
         let node: JSRef<Node> = NodeCast::from_ref(self);
-        doc.content_changed(node, NodeDamage::OtherNodeDamage)
+        doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
     }
 }
 
@@ -313,7 +313,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
             //TODO: set the editing position for text inputs
 
             let doc = document_from_node(*self).root();
-            doc.request_focus(ElementCast::from_ref(*self));
+            doc.r().request_focus(ElementCast::from_ref(*self));
         } else if "keydown" == event.Type().as_slice() && !event.DefaultPrevented() {
             let keyevent: Option<JSRef<KeyboardEvent>> = KeyboardEventCast::to_ref(event);
             keyevent.map(|event| {
@@ -327,12 +327,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
                 }
             });
         }
-    }
-}
-
-impl Reflectable for HTMLTextAreaElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
     }
 }
 

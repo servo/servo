@@ -8,7 +8,6 @@ use dom::bindings::codegen::InheritTypes::CommentDerived;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -39,9 +38,9 @@ impl Comment {
                            document, CommentBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef, data: DOMString) -> Fallible<Temporary<Comment>> {
+    pub fn Constructor(global: GlobalRef, data: DOMString) -> Fallible<Temporary<Comment>> {
         let document = global.as_window().Document().root();
-        Ok(Comment::new(data, *document))
+        Ok(Comment::new(data, document.r()))
     }
 
     #[inline]
@@ -50,8 +49,3 @@ impl Comment {
     }
 }
 
-impl Reflectable for Comment {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.characterdata.reflector()
-    }
-}

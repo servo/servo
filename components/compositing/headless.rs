@@ -7,7 +7,8 @@ use windowing::WindowEvent;
 
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
-use servo_msg::constellation_msg::{ConstellationChan, ExitMsg, ResizedWindowMsg, WindowSizeData};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::memory;
 use servo_util::time::TimeProfilerChan;
@@ -55,7 +56,7 @@ impl NullCompositor {
         // Tell the constellation about the initial fake size.
         {
             let ConstellationChan(ref chan) = compositor.constellation_chan;
-            chan.send(ResizedWindowMsg(WindowSizeData {
+            chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
                 initial_viewport: TypedSize2D(640_f32, 480_f32),
                 visible_viewport: TypedSize2D(640_f32, 480_f32),
                 device_pixel_ratio: ScaleFactor(1.0),
@@ -72,7 +73,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::Exit(chan) => {
                 debug!("shutting down the constellation");
                 let ConstellationChan(ref con_chan) = self.constellation_chan;
-                con_chan.send(ExitMsg);
+                con_chan.send(ConstellationMsg::Exit);
                 chan.send(());
             }
 
@@ -85,22 +86,26 @@ impl CompositorEventListener for NullCompositor {
                 chan.send(None);
             }
 
-            Msg::SetIds(_, response_chan, _) => {
+            Msg::SetFrameTree(_, response_chan, _) => {
                 response_chan.send(());
             }
 
-            Msg::FrameTreeUpdate(_, response_channel) => {
+            Msg::ChangeLayerPipelineAndRemoveChildren(_, _, response_channel) => {
+                response_channel.send(());
+            }
+
+            Msg::CreateRootLayerForPipeline(_, _, _, response_channel) => {
                 response_channel.send(());
             }
 
             // Explicitly list ignored messages so that when we add a new one,
             // we'll notice and think about whether it needs a response, like
-            // SetIds.
+            // SetFrameTree.
 
-            Msg::CreateOrUpdateRootLayer(..) |
+            Msg::CreateOrUpdateBaseLayer(..) |
             Msg::CreateOrUpdateDescendantLayer(..) |
             Msg::SetLayerOrigin(..) |
-            Msg::Paint(..) |
+            Msg::AssignPaintedBuffers(..) |
             Msg::ChangeReadyState(..) |
             Msg::ChangePaintState(..) |
             Msg::ScrollFragmentPoint(..) |
@@ -111,6 +116,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::ChangePageLoadData(..) |
             Msg::KeyEvent(..) |
             Msg::SetCursor(..) => {}
+            Msg::PaintTaskExited(..) => {}
         }
         true
     }

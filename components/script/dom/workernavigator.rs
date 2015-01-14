@@ -6,8 +6,8 @@ use dom::bindings::codegen::Bindings::WorkerNavigatorBinding;
 use dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::navigatorinfo::NavigatorInfo;
+use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::navigatorinfo;
 use dom::workerglobalscope::WorkerGlobalScope;
 use servo_util::str::DOMString;
 
@@ -32,32 +32,27 @@ impl WorkerNavigator {
 
 impl<'a> WorkerNavigatorMethods for JSRef<'a, WorkerNavigator> {
     fn Product(self) -> DOMString {
-        NavigatorInfo::Product()
+        navigatorinfo::Product()
     }
 
     fn TaintEnabled(self) -> bool {
-        NavigatorInfo::TaintEnabled()
+        navigatorinfo::TaintEnabled()
     }
 
     fn AppName(self) -> DOMString {
-        NavigatorInfo::AppName()
+        navigatorinfo::AppName()
     }
 
     fn AppCodeName(self) -> DOMString {
-        NavigatorInfo::AppCodeName()
+        navigatorinfo::AppCodeName()
     }
 
     fn Platform(self) -> DOMString {
-        NavigatorInfo::Platform()
+        navigatorinfo::Platform()
     }
 
     fn UserAgent(self) -> DOMString {
-        NavigatorInfo::UserAgent()
+        navigatorinfo::UserAgent()
     }
 }
 
-impl Reflectable for WorkerNavigator {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

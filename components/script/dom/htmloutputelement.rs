@@ -6,11 +6,10 @@ use dom::bindings::codegen::Bindings::HTMLOutputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use dom::bindings::codegen::InheritTypes::HTMLOutputElementDerived;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::validitystate::ValidityState;
 use servo_util::str::DOMString;
@@ -22,14 +21,14 @@ pub struct HTMLOutputElement {
 
 impl HTMLOutputElementDerived for EventTarget {
     fn is_htmloutputelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLOutputElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)))
     }
 }
 
 impl HTMLOutputElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLOutputElement {
         HTMLOutputElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLOutputElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLOutputElement, localName, prefix, document)
         }
     }
 
@@ -43,12 +42,7 @@ impl HTMLOutputElement {
 impl<'a> HTMLOutputElementMethods for JSRef<'a, HTMLOutputElement> {
     fn Validity(self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
-        ValidityState::new(*window)
+        ValidityState::new(window.r())
     }
 }
 
-impl Reflectable for HTMLOutputElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

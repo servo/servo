@@ -4,14 +4,14 @@
 
 use geom::{Point2D, Rect, Size2D};
 use std::mem;
-use std::string;
+use std::slice;
 use std::rc::Rc;
 use std::cell::RefCell;
 use servo_util::cache::{Cache, HashCache};
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use style::computed_values::{font_variant, font_weight};
 use style::style_structs::Font as FontStyle;
-use sync::Arc;
+use std::sync::Arc;
 
 use collections::hash::Hash;
 use platform::font_context::FontContextHandle;
@@ -56,11 +56,10 @@ pub trait FontTableTagConversions {
 impl FontTableTagConversions for FontTableTag {
     fn tag_to_str(&self) -> String {
         unsafe {
-            let reversed = string::raw::from_buf_len(mem::transmute(self), 4);
-            return String::from_chars([reversed.as_slice().char_at(3),
-                                       reversed.as_slice().char_at(2),
-                                       reversed.as_slice().char_at(1),
-                                       reversed.as_slice().char_at(0)]);
+            let pointer = mem::transmute::<&u32, *const u8>(self);
+            let mut bytes = slice::from_raw_buf(&pointer, 4).to_vec();
+            bytes.reverse();
+            String::from_utf8_unchecked(bytes)
         }
     }
 }
@@ -101,16 +100,19 @@ pub struct Font {
 }
 
 bitflags! {
+    #[deriving(Copy)]
     flags ShapingFlags: u8 {
         #[doc="Set if the text is entirely whitespace."]
         const IS_WHITESPACE_SHAPING_FLAG = 0x01,
         #[doc="Set if we are to ignore ligatures."]
-        const IGNORE_LIGATURES_SHAPING_FLAG = 0x02
+        const IGNORE_LIGATURES_SHAPING_FLAG = 0x02,
+        #[doc="Set if we are to disable kerning."]
+        const DISABLE_KERNING_SHAPING_FLAG = 0x04
     }
 }
 
 /// Various options that control text shaping.
-#[deriving(Clone, Eq, PartialEq, Hash)]
+#[deriving(Clone, Eq, PartialEq, Hash, Copy)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
@@ -160,7 +162,7 @@ impl Font {
 
         let glyphs = Arc::new(glyphs);
         self.shape_cache.insert(ShapeCacheEntry {
-            text: text.to_string(),
+            text: text.into_string(),
             options: *options,
         }, glyphs.clone());
         glyphs
@@ -185,7 +187,7 @@ impl Font {
         let result = self.handle.get_table_for_tag(tag);
         let status = if result.is_some() { "Found" } else { "Didn't find" };
 
-        debug!("{:s} font table[{:s}] with family={}, face={}",
+        debug!("{} font table[{}] with family={}, face={}",
                status, tag.tag_to_str(),
                self.handle.family_name(), self.handle.face_name());
 
@@ -194,8 +196,8 @@ impl Font {
 
     pub fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         let codepoint = match self.variant {
-            font_variant::small_caps => codepoint.to_uppercase(),
-            font_variant::normal => codepoint,
+            font_variant::T::small_caps => codepoint.to_uppercase(),
+            font_variant::T::normal => codepoint,
         };
         self.handle.glyph_index(codepoint)
     }

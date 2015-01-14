@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use browser_host::{ServoCefBrowserHost, ServoCefBrowserHostExtensions};
-use core::{mod, ServoCefGlobals, globals};
 use eutil::Downcast;
-use frame::ServoCefFrame;
+use frame::{ServoCefFrame, ServoCefFrameExtensions};
 use interfaces::{CefBrowser, CefBrowserHost, CefClient, CefFrame, CefRequestContext};
 use interfaces::{cef_browser_t, cef_browser_host_t, cef_client_t, cef_frame_t};
 use interfaces::{cef_request_context_t};
@@ -13,11 +12,45 @@ use servo::Browser;
 use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t};
 use window;
 
-use compositing::windowing::{Back, Forward, WindowEvent};
+use compositing::windowing::{WindowNavigateMsg, WindowEvent};
 use glfw_app;
 use libc::c_int;
 use servo_util::opts;
 use std::cell::{Cell, RefCell};
+
+thread_local!(pub static BROWSERS: RefCell<Vec<CefBrowser>> = RefCell::new(vec!()))
+
+pub enum ServoBrowser {
+    Invalid,
+    OnScreen(Browser<glfw_app::window::Window>),
+    OffScreen(Browser<window::Window>),
+}
+
+impl ServoBrowser {
+    fn handle_event(&mut self, event: WindowEvent) {
+        match *self {
+            ServoBrowser::OnScreen(ref mut browser) => { browser.handle_event(event); }
+            ServoBrowser::OffScreen(ref mut browser) => { browser.handle_event(event); }
+            ServoBrowser::Invalid => {}
+        }
+    }
+
+    pub fn get_title_for_main_frame(&self) {
+        match *self {
+            ServoBrowser::OnScreen(ref browser) => browser.get_title_for_main_frame(),
+            ServoBrowser::OffScreen(ref browser) => browser.get_title_for_main_frame(),
+            ServoBrowser::Invalid => {}
+        }
+    }
+
+    pub fn pinch_zoom_level(&self) -> f32 {
+        match *self {
+            ServoBrowser::OnScreen(ref browser) => browser.pinch_zoom_level(),
+            ServoBrowser::OffScreen(ref browser) => browser.pinch_zoom_level(),
+            ServoBrowser::Invalid => 1.0,
+        }
+    }
+}
 
 cef_class_impl! {
     ServoCefBrowser : CefBrowser, cef_browser_t {
@@ -25,12 +58,12 @@ cef_class_impl! {
             this.downcast().host.clone()
         }
 
-        fn go_back(&_this) -> () {
-            core::send_window_event(WindowEvent::Navigation(Back));
+        fn go_back(&this) -> () {
+            this.send_window_event(WindowEvent::Navigation(WindowNavigateMsg::Back));
         }
 
-        fn go_forward(&_this) -> () {
-            core::send_window_event(WindowEvent::Navigation(Forward));
+        fn go_forward(&this) -> () {
+            this.send_window_event(WindowEvent::Navigation(WindowNavigateMsg::Forward));
         }
 
         // Returns the main (top-level) frame for the browser window.
@@ -49,29 +82,40 @@ pub struct ServoCefBrowser {
     pub client: CefClient,
     /// Whether the on-created callback has fired yet.
     pub callback_executed: Cell<bool>,
+
+    servo_browser: RefCell<ServoBrowser>,
+    message_queue: RefCell<Vec<WindowEvent>>,
 }
 
 impl ServoCefBrowser {
     pub fn new(window_info: &cef_window_info_t, client: CefClient) -> ServoCefBrowser {
         let frame = ServoCefFrame::new().as_cef_interface();
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
-        if window_info.windowless_rendering_enabled == 0 {
+
+        let servo_browser = if window_info.windowless_rendering_enabled == 0 {
             let glfw_window = glfw_app::create_window();
-            globals.replace(Some(ServoCefGlobals::OnScreenGlobals(RefCell::new(glfw_window.clone()),
-                                                                  RefCell::new(Browser::new(Some(glfw_window))))));
-        }
+            let servo_browser = Browser::new(Some(glfw_window.clone()));
+            ServoBrowser::OnScreen(servo_browser)
+        } else {
+            ServoBrowser::Invalid
+        };
 
         ServoCefBrowser {
             frame: frame,
             host: host,
             client: client,
             callback_executed: Cell::new(false),
+            servo_browser: RefCell::new(servo_browser),
+            message_queue: RefCell::new(vec!()),
         }
     }
 }
 
-trait ServoCefBrowserExtensions {
+pub trait ServoCefBrowserExtensions {
     fn init(&self, window_info: &cef_window_info_t);
+    fn send_window_event(&self, event: WindowEvent);
+    fn get_title_for_main_frame(&self);
+    fn pinch_zoom_level(&self) -> f32;
 }
 
 impl ServoCefBrowserExtensions for CefBrowser {
@@ -80,15 +124,51 @@ impl ServoCefBrowserExtensions for CefBrowser {
             let window = window::Window::new();
             let servo_browser = Browser::new(Some(window.clone()));
             window.set_browser(self.clone());
-            globals.replace(Some(ServoCefGlobals::OffScreenGlobals(RefCell::new(window),
-                                                                   RefCell::new(servo_browser))));
+            *self.downcast().servo_browser.borrow_mut() = ServoBrowser::OffScreen(servo_browser);
         }
 
         self.downcast().host.set_browser((*self).clone());
+        self.downcast().frame.set_browser((*self).clone());
+    }
+
+    fn send_window_event(&self, event: WindowEvent) {
+        self.downcast().message_queue.borrow_mut().push(event);
+
+        loop {
+            match self.downcast().servo_browser.try_borrow_mut() {
+                None => {
+                    // We're trying to send an event while processing another one. This will
+                    // cause general badness, so queue up that event instead of immediately
+                    // processing it.
+                    break
+                }
+                Some(ref mut browser) => {
+                    let event = match self.downcast().message_queue.borrow_mut().pop() {
+                        None => return,
+                        Some(event) => event,
+                    };
+                    browser.handle_event(event);
+                }
+            }
+        }
+    }
+
+    fn get_title_for_main_frame(&self) {
+        self.downcast().servo_browser.borrow().get_title_for_main_frame()
+    }
+
+    fn pinch_zoom_level(&self) -> f32 {
+        self.downcast().servo_browser.borrow().pinch_zoom_level()
     }
 }
 
-local_data_key!(pub GLOBAL_BROWSERS: RefCell<Vec<CefBrowser>>)
+pub fn update() {
+    BROWSERS.with(|browsers| {
+        for browser in browsers.borrow().iter() {
+            browser.send_window_event(WindowEvent::Idle);
+        }
+    });
+}
 
 pub fn browser_callback_after_created(browser: CefBrowser) {
     if browser.downcast().client.is_null_cef_object() {
@@ -107,7 +187,7 @@ fn browser_host_create(window_info: &cef_window_info_t,
                        callback_executed: bool)
                        -> CefBrowser {
     let mut urls = Vec::new();
-    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".to_string());
+    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".into_string());
     let mut opts = opts::default_opts();
     opts.urls = urls;
     let browser = ServoCefBrowser::new(window_info, client).as_cef_interface();
@@ -115,16 +195,9 @@ fn browser_host_create(window_info: &cef_window_info_t,
     if callback_executed {
         browser_callback_after_created(browser.clone());
     }
-    match GLOBAL_BROWSERS.replace(None) {
-        Some(brs) => {
-            brs.borrow_mut().push(browser.clone());
-            GLOBAL_BROWSERS.replace(Some(brs));
-        },
-        None => {
-            let brs = RefCell::new(vec!(browser.clone()));
-            GLOBAL_BROWSERS.replace(Some(brs));
-        }
-    }
+    BROWSERS.with(|browsers| {
+        browsers.borrow_mut().push(browser.clone());
+    });
     browser
 }
 

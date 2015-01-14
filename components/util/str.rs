@@ -9,17 +9,18 @@ use std::ascii::AsciiExt;
 use std::iter::Filter;
 use std::num::Int;
 use std::str::{CharEq, CharSplits, FromStr};
-use unicode::char::to_lowercase;
+use unicode::char::UnicodeChar;
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
 pub type StaticStringVec = &'static [&'static str];
 
 pub fn null_str_as_empty(s: &Option<DOMString>) -> DOMString {
-    // We don't use map_default because it would allocate "".to_string() even for Some.
+    // We don't use map_default because it would allocate "".into_string() even
+    // for Some.
     match *s {
         Some(ref s) => s.clone(),
-        None => "".to_string()
+        None => "".into_string()
     }
 }
 
@@ -56,11 +57,11 @@ pub fn is_whitespace(s: &str) -> bool {
 ///
 /// http://www.whatwg.org/specs/web-apps/current-work/multipage/common-microsyntaxes.html#space-character
 pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
-    '\u0020',
-    '\u0009',
-    '\u000a',
-    '\u000c',
-    '\u000d',
+    '\u{0020}',
+    '\u{0009}',
+    '\u{000a}',
+    '\u{000c}',
+    '\u{000d}',
 ];
 
 pub fn split_html_space_chars<'a>(s: &'a str)
@@ -130,6 +131,7 @@ pub fn parse_unsigned_integer<T: Iterator<char>>(input: T) -> Option<u32> {
     })
 }
 
+#[deriving(Copy)]
 pub enum LengthOrPercentageOrAuto {
     Auto,
     Percentage(f64),
@@ -326,7 +328,7 @@ pub struct LowercaseString {
 impl LowercaseString {
     pub fn new(s: &str) -> LowercaseString {
         LowercaseString {
-            inner: s.chars().map(to_lowercase).collect(),
+            inner: s.chars().map(|c| c.to_lowercase()).collect(),
         }
     }
 }

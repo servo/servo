@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
 #![feature(globs, macro_rules, phase, thread_local)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 #[phase(plugin, link)]
 extern crate log;
@@ -23,7 +21,6 @@ extern crate script;
 extern crate layout;
 extern crate gfx;
 extern crate libc;
-extern crate native;
 extern crate rustrt;
 extern crate url;
 
@@ -33,7 +30,9 @@ use compositing::windowing::{WindowEvent, WindowMethods};
 #[cfg(not(test))]
 use compositing::{CompositorProxy, CompositorTask, Constellation};
 #[cfg(not(test))]
-use servo_msg::constellation_msg::{ConstellationChan, InitLoadUrlMsg};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+#[cfg(not(test))]
+use servo_msg::constellation_msg::ConstellationChan;
 #[cfg(not(test))]
 use script::dom::bindings::codegen::RegisterBindings;
 
@@ -113,7 +112,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                           storage_task);
 
             // Send the URL command to the constellation.
-            let cwd = os::getcwd();
+            let cwd = os::getcwd().unwrap();
             for url in opts.urls.iter() {
                 let url = match url::Url::parse(url.as_slice()) {
                     Ok(url) => url,
@@ -123,7 +122,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 };
 
                 let ConstellationChan(ref chan) = constellation_chan;
-                chan.send(InitLoadUrlMsg(url));
+                chan.send(ConstellationMsg::InitLoadUrl(url));
             }
 
             // Send the constallation Chan as the result

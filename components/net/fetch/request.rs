@@ -3,14 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use url::Url;
-use hyper::method::{Get, Method};
-use hyper::mime::{Mime, Text, Html, Charset, Utf8};
+use hyper::method::Method;
+use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use hyper::header::Headers;
 use hyper::header::common::ContentType;
 use fetch::cors_cache::CORSCache;
 use fetch::response::Response;
 
 /// A [request context](http://fetch.spec.whatwg.org/#concept-request-context)
+#[deriving(Copy)]
 pub enum Context {
     Audio, Beacon, CSPreport, Download, Embed, Eventsource,
     Favicon, Fetch, Font, Form, Frame, Hyperlink, IFrame, Image,
@@ -20,6 +21,7 @@ pub enum Context {
 }
 
 /// A [request context frame type](http://fetch.spec.whatwg.org/#concept-request-context-frame-type)
+#[deriving(Copy)]
 pub enum ContextFrameType {
     Auxiliary,
     TopLevel,
@@ -35,6 +37,7 @@ pub enum Referer {
 }
 
 /// A [request mode](http://fetch.spec.whatwg.org/#concept-request-mode)
+#[deriving(Copy)]
 pub enum RequestMode {
     SameOrigin,
     NoCORS,
@@ -43,6 +46,7 @@ pub enum RequestMode {
 }
 
 /// Request [credentials mode](http://fetch.spec.whatwg.org/#concept-request-credentials-mode)
+#[deriving(Copy)]
 pub enum CredentialsMode {
     Omit,
     CredentialsSameOrigin,
@@ -50,6 +54,7 @@ pub enum CredentialsMode {
 }
 
 /// [Response tainting](http://fetch.spec.whatwg.org/#concept-request-response-tainting)
+#[deriving(Copy)]
 pub enum ResponseTainting {
     Basic,
     CORSTainting,
@@ -87,7 +92,7 @@ pub struct Request {
 impl Request {
     pub fn new(url: Url, context: Context) -> Request {
          Request {
-            method: Get,
+            method: Method::Get,
             url: url,
             headers: Headers::new(),
             unsafe_request: false,
@@ -118,7 +123,9 @@ impl Request {
             "about" => match self.url.non_relative_scheme_data() {
                 Some(s) if s.as_slice() == "blank" => {
                     let mut response = Response::new();
-                    response.headers.set(ContentType(Mime(Text, Html, vec![(Charset, Utf8)])));
+                    response.headers.set(ContentType(Mime(
+                        TopLevel::Text, SubLevel::Html,
+                        vec![(Attr::Charset, Value::Utf8)])));
                     response
                 },
                 _ => Response::network_error()

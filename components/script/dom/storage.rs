@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::StorageBinding;
 use dom::bindings::codegen::Bindings::StorageBinding::StorageMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::bindings::error::Fallible;
 use servo_util::str::DOMString;
 use servo_net::storage_task::StorageTask;
@@ -38,13 +38,13 @@ impl Storage {
 
     fn get_url(&self) -> Url {
         let global_root = self.global.root();
-        let global_ref = global_root.root_ref();
+        let global_ref = global_root.r();
         global_ref.get_url()
     }
 
     fn get_storage_task(&self) -> StorageTask {
         let global_root = self.global.root();
-        let global_ref = global_root.root_ref();
+        let global_ref = global_root.r();
         global_ref.as_window().storage_task()
     }
 
@@ -118,8 +118,3 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     }
 }
 
-impl Reflectable for Storage {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

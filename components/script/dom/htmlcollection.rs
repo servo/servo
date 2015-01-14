@@ -8,7 +8,7 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, NodeCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::trace::JSTraceable;
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers, ElementHelpers};
 use dom::node::{Node, NodeHelpers, TreeIterator};
 use dom::window::Window;
@@ -32,15 +32,15 @@ pub enum CollectionTypeId {
 
 #[dom_struct]
 pub struct HTMLCollection {
-    collection: CollectionTypeId,
     reflector_: Reflector,
+    collection: CollectionTypeId,
 }
 
 impl HTMLCollection {
     fn new_inherited(collection: CollectionTypeId) -> HTMLCollection {
         HTMLCollection {
-            collection: collection,
             reflector_: Reflector::new(),
+            collection: collection,
         }
     }
 
@@ -181,8 +181,8 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
             CollectionTypeId::Static(ref elems) => elems.len() as u32,
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
-                HTMLCollection::traverse(*root)
-                    .filter(|element| filter.filter(*element, *root))
+                HTMLCollection::traverse(root.r())
+                    .filter(|element| filter.filter(*element, root.r()))
                     .count() as u32
             }
         }
@@ -197,8 +197,8 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
                 .map(|elem| Temporary::new(elem.clone())),
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
-                HTMLCollection::traverse(*root)
-                    .filter(|element| filter.filter(*element, *root))
+                HTMLCollection::traverse(root.r())
+                    .filter(|element| filter.filter(*element, root.r()))
                     .nth(index as uint)
                     .clone()
                     .map(Temporary::from_rooted)
@@ -218,13 +218,13 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
             CollectionTypeId::Static(ref elems) => elems.iter()
                 .map(|elem| elem.root())
                 .find(|elem| {
-                    elem.get_string_attribute(&atom!("name")) == key ||
-                    elem.get_string_attribute(&atom!("id")) == key })
-                .map(|maybe_elem| Temporary::from_rooted(*maybe_elem)),
+                    elem.r().get_string_attribute(&atom!("name")) == key ||
+                    elem.r().get_string_attribute(&atom!("id")) == key })
+                .map(|maybe_elem| Temporary::from_rooted(maybe_elem.r())),
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
-                HTMLCollection::traverse(*root)
-                    .filter(|element| filter.filter(*element, *root))
+                HTMLCollection::traverse(root.r())
+                    .filter(|element| filter.filter(*element, root.r()))
                     .find(|elem| {
                         elem.get_string_attribute(&atom!("name")) == key ||
                         elem.get_string_attribute(&atom!("id")) == key })
@@ -246,8 +246,3 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
     }
 }
 
-impl Reflectable for HTMLCollection {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 
 #[dom_struct]
@@ -26,13 +26,13 @@ impl Range {
     pub fn new(document: JSRef<Document>) -> Temporary<Range> {
         let window = document.window().root();
         reflect_dom_object(box Range::new_inherited(),
-                           GlobalRef::Window(*window),
+                           GlobalRef::Window(window.r()),
                            RangeBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<Range>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<Range>> {
         let document = global.as_window().Document().root();
-        Ok(Range::new(*document))
+        Ok(Range::new(document.r()))
     }
 }
 
@@ -43,8 +43,3 @@ impl<'a> RangeMethods for JSRef<'a, Range> {
     }
 }
 
-impl Reflectable for Range {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

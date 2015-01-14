@@ -9,8 +9,8 @@ use log;
 use std::collections::HashSet;
 use hyper::client::Request;
 use hyper::header::common::{ContentLength, ContentType, Host, Location};
-use hyper::method::{Get, Head};
-use hyper::status::Redirection;
+use hyper::method::Method;
+use hyper::status::StatusClass;
 use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::{Url, UrlParser};
@@ -62,13 +62,13 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         match url.scheme.as_slice() {
             "http" | "https" => {}
             _ => {
-                let s = format!("{:s} request, but we don't support that scheme", url.scheme);
+                let s = format!("{} request, but we don't support that scheme", url.scheme);
                 send_error(url, s, senders);
                 return;
             }
         }
 
-        info!("requesting {:s}", url.serialize());
+        info!("requesting {}", url.serialize());
 
         let mut req = match Request::new(load_data.method.clone(), url.clone()) {
             Ok(req) => req,
@@ -85,7 +85,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         // FIXME(seanmonstar): use AcceptEncoding from Hyper once available
         //if !req.headers.has::<AcceptEncoding>() {
             // We currently don't support HTTP Compression (FIXME #2587)
-            req.headers_mut().set_raw("Accept-Encoding", vec![b"identity".to_vec()]);
+            req.headers_mut().set_raw("Accept-Encoding".into_string(), vec![b"identity".to_vec()]);
         //}
         let writer = match load_data.data {
             Some(ref data) => {
@@ -108,7 +108,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
             },
             None => {
                 match load_data.method {
-                    Get | Head => (),
+                    Method::Get | Method::Head => (),
                     _ => req.headers_mut().set(ContentLength(0))
                 }
                 match req.start() {
@@ -136,7 +136,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
             }
         }
 
-        if response.status.class() == Redirection {
+        if response.status.class() == StatusClass::Redirection {
             match response.headers.get::<Location>() {
                 Some(&Location(ref new_url)) => {
                     // CORS (http://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)

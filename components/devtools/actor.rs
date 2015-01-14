@@ -20,12 +20,12 @@ pub trait Actor : Any {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
-                      msg: &json::JsonObject,
+                      msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()>;
     fn name(&self) -> String;
 }
 
-impl<'a> AnyMutRefExt<'a> for &'a mut Actor + 'a {
+impl<'a> AnyMutRefExt<'a> for &'a mut (Actor + 'a) {
     fn downcast_mut<T: 'static>(self) -> Option<&'a mut T> {
         if self.is::<T>() {
             unsafe {
@@ -41,7 +41,7 @@ impl<'a> AnyMutRefExt<'a> for &'a mut Actor + 'a {
     }
 }
 
-impl<'a> AnyRefExt<'a> for &'a Actor + 'a {
+impl<'a> AnyRefExt<'a> for &'a (Actor + 'a) {
     fn is<T: 'static>(self) -> bool {
         // This implementation is only needed so long as there's a Rust bug that
         // prevents downcast_ref from giving realistic return values.
@@ -85,7 +85,7 @@ impl ActorRegistry {
     }
 
     pub fn register_script_actor(&self, script_id: String, actor: String) {
-        println!("registering {:s} ({:s})", actor.as_slice(), script_id.as_slice());
+        println!("registering {} ({})", actor.as_slice(), script_id.as_slice());
         let mut script_actors = self.script_actors.borrow_mut();
         script_actors.insert(script_id, actor);
     }
@@ -103,19 +103,19 @@ impl ActorRegistry {
 
     pub fn actor_to_script(&self, actor: String) -> String {
         for (key, value) in self.script_actors.borrow().iter() {
-            println!("checking {:s}", value.as_slice());
+            println!("checking {}", value.as_slice());
             if value.as_slice() == actor.as_slice() {
                 return key.to_string();
             }
         }
-        panic!("couldn't find actor named {:s}", actor)
+        panic!("couldn't find actor named {}", actor)
     }
 
     /// Create a unique name based on a monotonically increasing suffix
     pub fn new_name(&self, prefix: &str) -> String {
         let suffix = self.next.get();
         self.next.set(suffix + 1);
-        format!("{:s}{:u}", prefix, suffix)
+        format!("{}{}", prefix, suffix)
     }
 
     /// Add an actor to the registry of known actors that can receive messages.
@@ -149,16 +149,16 @@ impl ActorRegistry {
     /// Attempt to process a message as directed by its `to` property. If the actor is not
     /// found or does not indicate that it knew how to process the message, ignore the failure.
     pub fn handle_message(&mut self,
-                          msg: &json::JsonObject,
+                          msg: &json::Object,
                           stream: &mut TcpStream)
                           -> Result<(), ()> {
-        let to = msg.get(&"to".to_string()).unwrap().as_string().unwrap();
+        let to = msg.get("to").unwrap().as_string().unwrap();
         match self.actors.get(&to.to_string()) {
-            None => println!("message received for unknown actor \"{:s}\"", to),
+            None => println!("message received for unknown actor \"{}\"", to),
             Some(actor) => {
-                let msg_type = msg.get(&"type".to_string()).unwrap().as_string().unwrap();
+                let msg_type = msg.get("type").unwrap().as_string().unwrap();
                 if !try!(actor.handle_message(self, &msg_type.to_string(), msg, stream)) {
-                    println!("unexpected message type \"{:s}\" found for actor \"{:s}\"",
+                    println!("unexpected message type \"{}\" found for actor \"{}\"",
                              msg_type, to);
                 }
             }

@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::ScreenBinding;
 use dom::bindings::codegen::Bindings::ScreenBinding::ScreenMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 
 #[dom_struct]
@@ -38,8 +38,3 @@ impl<'a> ScreenMethods for JSRef<'a, Screen> {
     }
 }
 
-impl Reflectable for Screen {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

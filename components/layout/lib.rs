@@ -2,25 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
-#![feature(globs, macro_rules, phase, thread_local, unsafe_destructor, if_let)]
+#![feature(globs, macro_rules, phase, thread_local, unsafe_destructor)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(unrooted_must_root)]
+#![allow(missing_copy_implementations)]
 
 #[phase(plugin, link)]
 extern crate log;
 
 extern crate cssparser;
+extern crate canvas;
 extern crate geom;
 extern crate gfx;
 extern crate layout_traits;
 extern crate script;
 extern crate script_traits;
 extern crate serialize;
+extern crate png;
 extern crate style;
 #[phase(plugin)]
 extern crate "plugins" as servo_plugins;
@@ -36,7 +36,6 @@ extern crate string_cache;
 extern crate collections;
 extern crate encoding;
 extern crate libc;
-extern crate sync;
 extern crate url;
 
 // Listed first because of macro definitions

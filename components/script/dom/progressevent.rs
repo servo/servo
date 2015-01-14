@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, ProgressEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use servo_util::str::DOMString;
 
@@ -42,15 +42,15 @@ impl ProgressEvent {
         let ev = reflect_dom_object(box ProgressEvent::new_inherited(length_computable, loaded, total),
                                     global,
                                     ProgressEventBinding::Wrap).root();
-        let event: JSRef<Event> = EventCast::from_ref(*ev);
+        let event: JSRef<Event> = EventCast::from_ref(ev.r());
         event.InitEvent(type_, can_bubble, cancelable);
-        Temporary::from_rooted(*ev)
+        Temporary::from_rooted(ev.r())
     }
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &ProgressEventBinding::ProgressEventInit)
                        -> Fallible<Temporary<ProgressEvent>> {
-        let ev = ProgressEvent::new(*global, type_, init.parent.bubbles, init.parent.cancelable,
+        let ev = ProgressEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
                                     init.lengthComputable, init.loaded, init.total);
         Ok(ev)
     }
@@ -68,8 +68,3 @@ impl<'a> ProgressEventMethods for JSRef<'a, ProgressEvent> {
     }
 }
 
-impl Reflectable for ProgressEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event.reflector()
-    }
-}
