@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::ExceptionHandling::RethrowExceptions;
+use dom::bindings::callback::ExceptionHandling::Rethrow;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding::TreeWalkerMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -325,7 +325,7 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
         match self.filter {
             Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
             Filter::Native(f) => Ok((f)(node)),
-            Filter::JS(callback) => callback.AcceptNode_(self, node, RethrowExceptions)
+            Filter::JS(callback) => callback.AcceptNode_(self, node, Rethrow)
         }
     }
 
