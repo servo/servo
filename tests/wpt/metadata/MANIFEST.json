@@ -1004,18 +1004,6 @@
         "url": "/app-uri/resources/icons/w3c-48.png"
       },
       {
-        "url": "/app-uri/resources/idlharness.js"
-      },
-      {
-        "url": "/app-uri/resources/testharness.css"
-      },
-      {
-        "url": "/app-uri/resources/testharness.js"
-      },
-      {
-        "url": "/app-uri/resources/testharnessreport.js"
-      },
-      {
         "url": "/battery-status/battery-interface.js"
       },
       {
@@ -1976,6 +1964,9 @@
         "url": "/html/rendering/non-replaced-elements/tables/table-width-150percent-ref.html"
       },
       {
+        "url": "/html/rendering/non-replaced-elements/the-page/body_text_00ffff-ref.html"
+      },
+      {
         "url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img_border-ref.xhtml"
       },
       {
@@ -2013,6 +2004,9 @@
       },
       {
         "url": "/html/semantics/document-metadata/the-meta-element/contains.json"
+      },
+      {
+        "url": "/html/semantics/document-metadata/the-style-element/html_style_in_comment-ref.html"
       },
       {
         "url": "/html/semantics/embedded-content/image-maps/contains.json"
@@ -2774,24 +2768,6 @@
         "url": "/old-tests/submission/Infraware/Session_History/contents/Session_History/css/result.css"
       },
       {
-        "url": "/old-tests/submission/Infraware/Session_History/resources/WebIDLParser.js"
-      },
-      {
-        "url": "/old-tests/submission/Infraware/Session_History/resources/idlharness.js"
-      },
-      {
-        "url": "/old-tests/submission/Infraware/Session_History/resources/readme.md"
-      },
-      {
-        "url": "/old-tests/submission/Infraware/Session_History/resources/testharness.css"
-      },
-      {
-        "url": "/old-tests/submission/Infraware/Session_History/resources/testharness.js"
-      },
-      {
-        "url": "/old-tests/submission/Infraware/Session_History/resources/testharnessreport.js"
-      },
-      {
         "url": "/old-tests/submission/Microsoft/dragdrop/dragdrop_support.js"
       },
       {
@@ -2990,7 +2966,7 @@
         "url": "/shadow-dom/testcommon.js"
       },
       {
-        "url": "/subresource-integrity/loads-scripts-with-badly-encoded-digest.js"
+        "url": "/subresource-integrity/loads-scripts-with-base64-encoded-sha-digests.js"
       },
       {
         "url": "/subresource-integrity/loads-scripts-with-correct-content-type.js"
@@ -3008,10 +2984,13 @@
         "url": "/subresource-integrity/loads-scripts-with-non-matching-digest.js"
       },
       {
+        "url": "/subresource-integrity/loads-scripts-with-unhyphenated-digest-name.js"
+      },
+      {
         "url": "/subresource-integrity/loads-scripts-with-weak-digest-algorithms.js"
       },
       {
-        "url": "/subresource-integrity/support/generate_javascript.py"
+        "url": "/subresource-integrity/tools/generate_javascript.py"
       },
       {
         "url": "/touch-events/multi-touch-interactions.js"
@@ -4233,6 +4212,9 @@
       },
       {
         "url": "/workers/constructors/Worker/undefined"
+      },
+      {
+        "url": "/workers/interfaces.idl"
       },
       {
         "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/message-event.js"
@@ -5499,6 +5481,11 @@
       },
       {
         "ref_type": "==",
+        "ref_url": "/html/rendering/non-replaced-elements/the-page/body_text_00ffff-ref.html",
+        "url": "/html/rendering/non-replaced-elements/the-page/body_text_00ffff.xhtml"
+      },
+      {
+        "ref_type": "==",
         "ref_url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img_border-ref.xhtml",
         "url": "/html/rendering/replaced-elements/attributes-for-embedded-content-and-images/img_border_percent.xhtml"
       },
@@ -5516,6 +5503,11 @@
         "ref_type": "==",
         "ref_url": "/html/rendering/replaced-elements/images/space-ref.html",
         "url": "/html/rendering/replaced-elements/images/space.html"
+      },
+      {
+        "ref_type": "==",
+        "ref_url": "/html/semantics/document-metadata/the-style-element/html_style_in_comment-ref.html",
+        "url": "/html/semantics/document-metadata/the-style-element/html_style_in_comment.xhtml"
       },
       {
         "ref_type": "==",
@@ -9301,9 +9293,6 @@
         "url": "/DOMEvents/tests/approved/Determined.candidate.EventListeners.html"
       },
       {
-        "url": "/DOMEvents/tests/approved/Event.bubbles.false.html"
-      },
-      {
         "url": "/DOMEvents/tests/approved/EventListener.dispatch.new.event.html"
       },
       {
@@ -9344,9 +9333,6 @@
       },
       {
         "url": "/DOMEvents/tests/submissions/Microsoft/converted/Determined.candidate.EventListeners.html"
-      },
-      {
-        "url": "/DOMEvents/tests/submissions/Microsoft/converted/Event.bubbles.false.html"
       },
       {
         "url": "/DOMEvents/tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html"
@@ -9437,6 +9423,9 @@
       },
       {
         "url": "/FileAPI/FileReader/Determining-Encoding.html"
+      },
+      {
+        "url": "/FileAPI/FileReaderSync.worker"
       },
       {
         "url": "/FileAPI/filelist-section/filelist.html"
@@ -10030,6 +10019,12 @@
         "url": "/IndexedDB/idbobjectstore_get5.htm"
       },
       {
+        "url": "/IndexedDB/idbobjectstore_get6.htm"
+      },
+      {
+        "url": "/IndexedDB/idbobjectstore_get7.htm"
+      },
+      {
         "url": "/IndexedDB/idbobjectstore_index.htm"
       },
       {
@@ -10163,6 +10158,18 @@
       },
       {
         "url": "/IndexedDB/value_recursive.htm"
+      },
+      {
+        "url": "/WebCryptoAPI/test_getRandomValues.html"
+      },
+      {
+        "url": "/WebIDL/ecmascript-binding/es-exceptions/DOMException-constants.html"
+      },
+      {
+        "url": "/WebIDL/ecmascript-binding/es-exceptions/DOMException-constructor.html"
+      },
+      {
+        "url": "/WebIDL/ecmascript-binding/es-exceptions/exceptions.html"
       },
       {
         "url": "/XMLHttpRequest/FormData-append.html"
@@ -10705,6 +10712,9 @@
         "url": "/battery-status/battery-interface.html"
       },
       {
+        "url": "/battery-status/battery-promise.html"
+      },
+      {
         "url": "/content-security-policy/generic/generic-0_10.html"
       },
       {
@@ -11011,12 +11021,6 @@
         "url": "/dom/collections/HTMLCollection-empty-name.html"
       },
       {
-        "url": "/dom/errors/DOMException-constants.html"
-      },
-      {
-        "url": "/dom/errors/exceptions.html"
-      },
-      {
         "url": "/dom/events/Event-constants.html"
       },
       {
@@ -11024,6 +11028,9 @@
       },
       {
         "url": "/dom/events/Event-defaultPrevented.html"
+      },
+      {
+        "url": "/dom/events/Event-dispatch-bubbles-false.html"
       },
       {
         "url": "/dom/events/Event-dispatch-omitted-capture.html"
@@ -11135,9 +11142,6 @@
       },
       {
         "url": "/dom/nodes/Document-contentType/contentType/contenttype_mimeheader_02.html"
-      },
-      {
-        "url": "/dom/nodes/Document-contentType/contentType/contenttype_mimeheader_03.html"
       },
       {
         "url": "/dom/nodes/Document-contentType/contentType/contenttype_png.html"
@@ -13564,6 +13568,9 @@
         "url": "/html/semantics/embedded-content/the-img-element/current-pixel-density/error.html"
       },
       {
+        "url": "/html/semantics/embedded-content/the-img-element/environment-changes/viewport-change.html"
+      },
+      {
         "url": "/html/semantics/embedded-content/the-img-element/img.complete.html"
       },
       {
@@ -14393,6 +14400,9 @@
       },
       {
         "url": "/js/builtins/Object.prototype.hasOwnProperty-order.html"
+      },
+      {
+        "url": "/js/builtins/Object.prototype.hasOwnProperty-prototype-chain.html"
       },
       {
         "url": "/js/builtins/WeakMap.prototype-properties.html"
@@ -17068,6 +17078,9 @@
         "url": "/workers/constructors/Worker/unresolvable-url.html"
       },
       {
+        "url": "/workers/interfaces.worker"
+      },
+      {
         "url": "/workers/interfaces/DedicatedWorkerGlobalScope/onmessage.html"
       },
       {
@@ -17254,10 +17267,10 @@
         "url": "/workers/semantics/encodings/004.html"
       },
       {
-        "url": "/workers/semantics/interface-objects/001.html"
+        "url": "/workers/semantics/interface-objects/001.worker"
       },
       {
-        "url": "/workers/semantics/interface-objects/002.html"
+        "url": "/workers/semantics/interface-objects/002.worker"
       },
       {
         "url": "/workers/semantics/interface-objects/003.html"
@@ -17903,6 +17916,6 @@
     "deleted": [],
     "items": {}
   },
-  "rev": "b646eda81238531b7f664cb6479131f9835425ca",
+  "rev": "34eea70476fb2a9e5f5b3cfc6e3dbad441790056",
   "url_base": "/"
 }
