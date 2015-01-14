@@ -15,12 +15,14 @@ use dom::bindings::codegen::InheritTypes::{HTMLElementDerived, HTMLBodyElementDe
 use dom::bindings::js::{JSRef, Temporary, MutNullableJS};
 use dom::bindings::error::ErrorResult;
 use dom::bindings::error::Error::Syntax;
-use dom::bindings::utils::{Reflectable, Reflector};
-use dom::cssstyledeclaration::CSSStyleDeclaration;
+use dom::bindings::utils::Reflectable;
+use dom::cssstyledeclaration::{CSSStyleDeclaration, CSSModificationAccess};
 use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers, AttributeHandlers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::htmlmediaelement::HTMLMediaElementTypeId;
+use dom::htmltablecellelement::HTMLTableCellElementTypeId;
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -40,17 +42,16 @@ pub struct HTMLElement {
 impl HTMLElementDerived for EventTarget {
     fn is_htmlelement(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::Element)) => false,
-            EventTargetTypeId::Node(NodeTypeId::Element(_)) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(_))) => true,
             _ => false
         }
     }
 }
 
 impl HTMLElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLElement {
+    pub fn new_inherited(type_id: HTMLElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLElement {
         HTMLElement {
-            element: Element::new_inherited(type_id, tag_name, ns!(HTML), prefix, document),
+            element: Element::new_inherited(ElementTypeId::HTMLElement(type_id), tag_name, ns!(HTML), prefix, document),
             style_decl: Default::default(),
             dataset: Default::default(),
         }
@@ -58,7 +59,7 @@ impl HTMLElement {
 
     #[allow(unrooted_must_root)]
     pub fn new(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> Temporary<HTMLElement> {
-        let element = HTMLElement::new_inherited(ElementTypeId::HTMLElement, localName, prefix, document);
+        let element = HTMLElement::new_inherited(HTMLElementTypeId::HTMLElement, localName, prefix, document);
         Node::reflect_node(box element, document, HTMLElementBinding::Wrap)
     }
 }
@@ -78,7 +79,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn Style(self) -> Temporary<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self).root();
-            CSSStyleDeclaration::new(*global, self)
+            CSSStyleDeclaration::new(global.r(), self, CSSModificationAccess::ReadWrite)
         })
     }
 
@@ -102,7 +103,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn GetOnload(self) -> Option<EventHandlerNonNull> {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();
-            win.GetOnload()
+            win.r().GetOnload()
         } else {
             let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
             target.get_event_handler_common("load")
@@ -112,7 +113,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
     fn SetOnload(self, listener: Option<EventHandlerNonNull>) {
         if self.is_body_or_frameset() {
             let win = window_from_node(self).root();
-            win.SetOnload(listener)
+            win.r().SetOnload(listener)
         } else {
             let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
             target.set_event_handler_common("load", listener)
@@ -155,7 +156,7 @@ fn to_snake_case(name: DOMString) -> DOMString {
 impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
     fn set_custom_attr(self, name: DOMString, value: DOMString) -> ErrorResult {
         if name.as_slice().chars()
-               .skip_while(|&ch| ch != '\u002d')
+               .skip_while(|&ch| ch != '\u{2d}')
                .nth(1).map_or(false, |ch| ch as u8 - b'a' < 26) {
             return Err(Syntax);
         }
@@ -167,7 +168,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(ns!(""), &Atom::from_slice(to_snake_case(name).as_slice())).map(|attr| {
             let attr = attr.root();
-            attr.value().as_slice().to_string()
+            attr.r().value().as_slice().into_string()
         })
     }
 
@@ -192,19 +193,84 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
         let name = attr.local_name().as_slice();
         if name.starts_with("on") {
             let window = window_from_node(*self).root();
-            let (cx, url, reflector) = (window.get_cx(),
-                                        window.get_url(),
-                                        window.reflector().get_jsobject());
+            let (cx, url, reflector) = (window.r().get_cx(),
+                                        window.r().get_url(),
+                                        window.r().reflector().get_jsobject());
             let evtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.slice_from(2),
-                                                  attr.value().as_slice().to_string());
+                                                  attr.value().as_slice().into_string());
         }
     }
 }
 
-impl Reflectable for HTMLElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.element.reflector()
-    }
+#[deriving(Copy, PartialEq, Show)]
+#[jstraceable]
+pub enum HTMLElementTypeId {
+    HTMLElement,
+
+    HTMLAnchorElement,
+    HTMLAppletElement,
+    HTMLAreaElement,
+    HTMLBaseElement,
+    HTMLBRElement,
+    HTMLBodyElement,
+    HTMLButtonElement,
+    HTMLCanvasElement,
+    HTMLDataElement,
+    HTMLDataListElement,
+    HTMLDirectoryElement,
+    HTMLDListElement,
+    HTMLDivElement,
+    HTMLEmbedElement,
+    HTMLFieldSetElement,
+    HTMLFontElement,
+    HTMLFormElement,
+    HTMLFrameElement,
+    HTMLFrameSetElement,
+    HTMLHRElement,
+    HTMLHeadElement,
+    HTMLHeadingElement,
+    HTMLHtmlElement,
+    HTMLIFrameElement,
+    HTMLImageElement,
+    HTMLInputElement,
+    HTMLLabelElement,
+    HTMLLegendElement,
+    HTMLLinkElement,
+    HTMLLIElement,
+    HTMLMapElement,
+    HTMLMediaElement(HTMLMediaElementTypeId),
+    HTMLMetaElement,
+    HTMLMeterElement,
+    HTMLModElement,
+    HTMLObjectElement,
+    HTMLOListElement,
+    HTMLOptGroupElement,
+    HTMLOptionElement,
+    HTMLOutputElement,
+    HTMLParagraphElement,
+    HTMLParamElement,
+    HTMLPreElement,
+    HTMLProgressElement,
+    HTMLQuoteElement,
+    HTMLScriptElement,
+    HTMLSelectElement,
+    HTMLSourceElement,
+    HTMLSpanElement,
+    HTMLStyleElement,
+    HTMLTableElement,
+    HTMLTableCaptionElement,
+    HTMLTableCellElement(HTMLTableCellElementTypeId),
+    HTMLTableColElement,
+    HTMLTableRowElement,
+    HTMLTableSectionElement,
+    HTMLTemplateElement,
+    HTMLTextAreaElement,
+    HTMLTimeElement,
+    HTMLTitleElement,
+    HTMLTrackElement,
+    HTMLUListElement,
+    HTMLUnknownElement,
 }
+

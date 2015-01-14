@@ -15,15 +15,15 @@ use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCas
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{ElementTypeId, Element, AttributeHandlers, ElementCreator};
+use dom::element::{Element, AttributeHandlers, ElementCreator};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, CloneChildrenFlag};
 use dom::virtualmethods::VirtualMethods;
-use dom::window::WindowHelpers;
+use dom::window::ScriptHelpers;
 
 use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
@@ -56,7 +56,7 @@ pub struct HTMLScriptElement {
 
 impl HTMLScriptElementDerived for EventTarget {
     fn is_htmlscriptelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLScriptElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLScriptElement)))
     }
 }
 
@@ -64,7 +64,7 @@ impl HTMLScriptElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>,
                      creator: ElementCreator) -> HTMLScriptElement {
         HTMLScriptElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLScriptElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLScriptElement, localName, prefix, document),
             already_started: Cell::new(false),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
@@ -171,16 +171,17 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         // TODO: Add support for the `defer` and `async` attributes.  (For now, we fetch all
         // scripts synchronously and execute them immediately.)
         let window = window_from_node(self).root();
+        let window = window.r();
         let page = window.page();
         let base_url = page.get_url();
 
         let (source, url) = match element.get_attribute(ns!(""), &atom!("src")).root() {
             Some(src) => {
-                if src.deref().Value().is_empty() {
+                if src.r().Value().is_empty() {
                     // TODO: queue a task to fire a simple event named `error` at the element
                     return;
                 }
-                match UrlParser::new().base_url(&base_url).parse(src.deref().Value().as_slice()) {
+                match UrlParser::new().base_url(&base_url).parse(src.r().Value().as_slice()) {
                     Ok(url) => {
                         // TODO: Do a potentially CORS-enabled fetch with the mode being the current
                         // state of the element's `crossorigin` content attribute, the origin being
@@ -193,14 +194,14 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                                 (source, metadata.final_url)
                             }
                             Err(_) => {
-                                error!("error loading script {}", src.deref().Value());
+                                error!("error loading script {}", src.r().Value());
                                 return;
                             }
                         }
                     }
                     Err(_) => {
                         // TODO: queue a task to fire a simple event named `error` at the element
-                        error!("error parsing URL for script {}", src.deref().Value());
+                        error!("error parsing URL for script {}", src.r().Value());
                         return;
                     }
                 }
@@ -208,40 +209,40 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
             None => (text, base_url)
         };
 
-        window.evaluate_script_with_result(source.as_slice(), url.serialize().as_slice());
+        window.evaluate_script_on_global_with_result(source.as_slice(), url.serialize().as_slice());
 
-        let event = Event::new(GlobalRef::Window(*window),
-                               "load".to_string(),
+        let event = Event::new(GlobalRef::Window(window),
+                               "load".into_string(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
-        event.set_trusted(true);
+        event.r().set_trusted(true);
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.dispatch_event(*event);
+        target.dispatch_event(event.r());
     }
 
     fn is_javascript(self) -> bool {
         let element: JSRef<Element> = ElementCast::from_ref(self);
-        match element.get_attribute(ns!(""), &atom!("type")).root().map(|s| s.Value()) {
+        match element.get_attribute(ns!(""), &atom!("type")).root().map(|s| s.r().Value()) {
             Some(ref s) if s.is_empty() => {
                 // type attr exists, but empty means js
                 debug!("script type empty, inferring js");
                 true
             },
             Some(ref s) => {
-                debug!("script type={:s}", *s);
+                debug!("script type={}", *s);
                 SCRIPT_JS_MIMES.contains(&s.to_ascii_lower().as_slice().trim_chars(HTML_SPACE_CHARACTERS))
             },
             None => {
                 debug!("no script type");
                 match element.get_attribute(ns!(""), &atom!("language"))
                              .root()
-                             .map(|s| s.Value()) {
+                             .map(|s| s.r().Value()) {
                     Some(ref s) if s.is_empty() => {
                         debug!("script language empty, inferring js");
                         true
                     },
                     Some(ref s) => {
-                        debug!("script language={:s}", *s);
+                        debug!("script language={}", *s);
                         SCRIPT_JS_MIMES.contains(&format!("text/{}", s).to_ascii_lower().as_slice())
                     },
                     None => {
@@ -330,8 +331,3 @@ impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
     }
 }
 
-impl Reflectable for HTMLScriptElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

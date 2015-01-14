@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, CustomEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, MutHeap};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
@@ -40,12 +40,12 @@ impl CustomEvent {
                            global,
                            CustomEventBinding::Wrap)
     }
-    pub fn new(global: &GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
-        let ev = CustomEvent::new_uninitialized(*global).root();
-        ev.InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
-        Temporary::from_rooted(*ev)
+    pub fn new(global: GlobalRef, type_: DOMString, bubbles: bool, cancelable: bool, detail: JSVal) -> Temporary<CustomEvent> {
+        let ev = CustomEvent::new_uninitialized(global).root();
+        ev.r().InitCustomEvent(global.get_cx(), type_, bubbles, cancelable, detail);
+        Temporary::from_rooted(ev.r())
     }
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &CustomEventBinding::CustomEventInit) -> Fallible<Temporary<CustomEvent>>{
         Ok(CustomEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable, init.detail))
@@ -73,8 +73,3 @@ impl<'a> CustomEventMethods for JSRef<'a, CustomEvent> {
     }
 }
 
-impl Reflectable for CustomEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event.reflector()
-    }
-}

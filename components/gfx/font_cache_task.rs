@@ -10,7 +10,7 @@ use platform::font_context::FontContextHandle;
 
 use collections::str::Str;
 use std::collections::HashMap;
-use sync::Arc;
+use std::sync::Arc;
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use platform::font_template::FontTemplateData;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
@@ -181,7 +181,7 @@ impl FontCache {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
         if self.local_families.contains_key(family_name) {
-            debug!("FontList: Found font family with name={:s}", family_name.to_string());
+            debug!("FontList: Found font family with name={}", family_name.as_slice());
             let s = &mut self.local_families[*family_name];
 
             if s.templates.len() == 0 {
@@ -199,7 +199,7 @@ impl FontCache {
 
             None
         } else {
-            debug!("FontList: Couldn't find font family with name={:s}", family_name.to_string());
+            debug!("FontList: Couldn't find font family with name={}", family_name.as_slice());
             None
         }
     }

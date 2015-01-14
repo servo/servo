@@ -9,12 +9,12 @@ use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, ElementTypeId};
+use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use servo_net::image_cache_task;
@@ -32,7 +32,7 @@ pub struct HTMLImageElement {
 
 impl HTMLImageElementDerived for EventTarget {
     fn is_htmlimageelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLImageElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement)))
     }
 }
 
@@ -46,7 +46,8 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
     fn update_image(self, value: Option<(DOMString, &Url)>) {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let document = node.owner_doc().root();
-        let window = document.window().root();
+        let window = document.r().window().root();
+        let window = window.r();
         let image_cache = window.image_cache_task();
         match value {
             None => {
@@ -60,7 +61,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
 
                 // inform the image cache to load this, but don't store a
                 // handle.
-                image_cache.send(image_cache_task::Prefetch(img_url));
+                image_cache.send(image_cache_task::Msg::Prefetch(img_url));
             }
         }
     }
@@ -69,7 +70,7 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
 impl HTMLImageElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLImageElement {
         HTMLImageElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLImageElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLImageElement, localName, prefix, document),
             image: DOMRefCell::new(None),
         }
     }
@@ -187,8 +188,8 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
         match attr.local_name() {
             &atom!("src") => {
                 let window = window_from_node(*self).root();
-                let url = window.get_url();
-                self.update_image(Some((attr.value().as_slice().to_string(), &url)));
+                let url = window.r().get_url();
+                self.update_image(Some((attr.value().as_slice().into_string(), &url)));
             },
             _ => ()
         }
@@ -215,8 +216,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
     }
 }
 
-impl Reflectable for HTMLImageElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

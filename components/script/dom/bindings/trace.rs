@@ -28,8 +28,10 @@
 //! a datatype.
 
 use dom::bindings::js::JS;
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use dom::node::{Node, TrustedNodeAddress};
+use script_task::ScriptChan;
 
 use collections::hash::{Hash, Hasher};
 use cssparser::RGBA;
@@ -37,7 +39,7 @@ use geom::rect::Rect;
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
-use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSTRACE_OBJECT};
+use js::jsapi::{JSObject, JSTracer, JS_CallTracer, JSGCTraceKind};
 use js::jsval::JSVal;
 use js::rust::Cx;
 use layout_interface::{LayoutRPC, LayoutChan};
@@ -85,7 +87,7 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
         (*tracer).debugPrinter = None;
         (*tracer).debugPrintIndex = -1;
         (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
-        debug!("tracing value {:s}", description);
+        debug!("tracing value {}", description);
         JS_CallTracer(tracer, val.to_gcthing(), val.trace_kind());
     }
 }
@@ -103,8 +105,8 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject
         (*tracer).debugPrinter = None;
         (*tracer).debugPrintIndex = -1;
         (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
-        debug!("tracing {:s}", description);
-        JS_CallTracer(tracer, obj as *mut libc::c_void, JSTRACE_OBJECT);
+        debug!("tracing {}", description);
+        JS_CallTracer(tracer, obj as *mut libc::c_void, JSGCTraceKind::JSTRACE_OBJECT);
     }
 }
 
@@ -203,6 +205,7 @@ no_jsmanaged_fields!(Receiver<T>)
 no_jsmanaged_fields!(Rect<T>)
 no_jsmanaged_fields!(ImageCacheTask, ScriptControlChan)
 no_jsmanaged_fields!(Atom, Namespace, Timer)
+no_jsmanaged_fields!(Trusted<T>)
 no_jsmanaged_fields!(PropertyDeclarationBlock)
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
@@ -216,6 +219,13 @@ no_jsmanaged_fields!(WindowProxyHandler)
 no_jsmanaged_fields!(UntrustedNodeAddress)
 no_jsmanaged_fields!(LengthOrPercentageOrAuto)
 no_jsmanaged_fields!(RGBA)
+
+impl JSTraceable for Box<ScriptChan+Send> {
+    #[inline]
+    fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
 
 impl<'a> JSTraceable for &'a str {
     #[inline]

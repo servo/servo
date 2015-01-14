@@ -34,7 +34,7 @@ impl FontTemplateData {
 
         FontTemplateData {
             ctfont: ctfont,
-            identifier: identifier.to_string(),
+            identifier: identifier.into_string(),
         }
     }
 }

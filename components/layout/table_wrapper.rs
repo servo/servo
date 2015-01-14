@@ -19,18 +19,19 @@ use context::LayoutContext;
 use floats::FloatKind;
 use flow::{FlowClass, Flow, ImmutableFlowUtils};
 use flow::{IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
-use fragment::{Fragment, FragmentBoundsIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize};
 use wrapper::ThreadSafeLayoutNode;
 
+use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
 use std::cmp::{max, min};
 use std::fmt;
 use style::{ComputedValues, CSSFloat};
-use style::computed_values::table_layout;
-use sync::Arc;
+use style::computed_values::{table_layout, LengthOrPercentageOrAuto};
+use std::sync::Arc;
 
-#[deriving(Encodable, Show)]
+#[deriving(Copy, Encodable, Show)]
 pub enum TableLayout {
     Fixed,
     Auto
@@ -54,7 +55,7 @@ impl TableWrapperFlow {
                                   -> TableWrapperFlow {
         let mut block_flow = BlockFlow::from_node_and_fragment(node, fragment);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::fixed {
+                              table_layout::T::fixed {
             TableLayout::Fixed
         } else {
             TableLayout::Auto
@@ -71,7 +72,7 @@ impl TableWrapperFlow {
                      -> TableWrapperFlow {
         let mut block_flow = BlockFlow::from_node(constructor, node);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::fixed {
+                              table_layout::T::fixed {
             TableLayout::Fixed
         } else {
             TableLayout::Auto
@@ -89,7 +90,7 @@ impl TableWrapperFlow {
                                         -> TableWrapperFlow {
         let mut block_flow = BlockFlow::float_from_node_and_fragment(node, fragment, float_kind);
         let table_layout = if block_flow.fragment().style().get_table().table_layout ==
-                              table_layout::fixed {
+                              table_layout::T::fixed {
             TableLayout::Fixed
         } else {
             TableLayout::Auto
@@ -127,8 +128,18 @@ impl TableWrapperFlow {
         // FIXME(pcwalton, spec): INTRINSIC § 8 does not properly define how to compute this, but
         // says "the basic idea is the same as the shrink-to-fit width that CSS2.1 defines". So we
         // just use the shrink-to-fit inline size.
-        let available_inline_size =
-            self.block_flow.get_shrink_to_fit_inline_size(available_inline_size);
+        let available_inline_size = match self.block_flow.fragment.style().content_inline_size() {
+            LengthOrPercentageOrAuto::Auto => self.block_flow
+                                                  .get_shrink_to_fit_inline_size(available_inline_size),
+            // FIXME(mttr) This fixes #4421 without breaking our current reftests, but I'm
+            // not completely sure this is "correct".
+            //
+            // That said, `available_inline_size` is, as far as I can tell, equal to the table's
+            // computed width property (W) and is used from this point forward in a way that seems
+            // to correspond with CSS 2.1 § 17.5.2.2 under "Column and caption widths
+            // influence the final table width as follows: ..."
+            _ => available_inline_size,
+        };
 
         // Compute all the guesses for the column sizes, and sum them.
         let mut total_guess = AutoLayoutCandidateGuess::new();
@@ -358,8 +369,14 @@ impl Flow for TableWrapperFlow {
         self.block_flow.repair_style(new_style)
     }
 
-    fn iterate_through_fragment_bounds(&self, iterator: &mut FragmentBoundsIterator) {
-        self.block_flow.iterate_through_fragment_bounds(iterator);
+    fn compute_overflow(&self) -> Rect<Au> {
+        self.block_flow.compute_overflow()
+    }
+
+    fn iterate_through_fragment_border_boxes(&self,
+                                             iterator: &mut FragmentBorderBoxIterator,
+                                             stacking_context_position: &Point2D<Au>) {
+        self.block_flow.iterate_through_fragment_border_boxes(iterator, stacking_context_position)
     }
 }
 
@@ -480,7 +497,7 @@ impl Add<AutoLayoutCandidateGuess,AutoLayoutCandidateGuess> for AutoLayoutCandid
 
 /// The `CSSFloat` member specifies the weight of the smaller of the two guesses, on a scale from
 /// 0.0 to 1.0.
-#[deriving(PartialEq, Show)]
+#[deriving(Copy, PartialEq, Show)]
 enum SelectedAutoLayoutCandidateGuess {
     UseMinimumGuess,
     InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(CSSFloat),

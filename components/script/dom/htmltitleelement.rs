@@ -8,11 +8,10 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTitleElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{TextCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
@@ -25,14 +24,14 @@ pub struct HTMLTitleElement {
 
 impl HTMLTitleElementDerived for EventTarget {
     fn is_htmltitleelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTitleElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
     }
 }
 
 impl HTMLTitleElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTitleElement {
         HTMLTitleElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTitleElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTitleElement, localName, prefix, document)
         }
     }
 
@@ -65,12 +64,6 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
     }
 }
 
-impl Reflectable for HTMLTitleElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}
-
 impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
     fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
@@ -81,8 +74,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
         let node: JSRef<Node> = NodeCast::from_ref(*self);
         if is_in_doc {
             let document = node.owner_doc().root();
-            document.send_title_to_compositor()
+            document.r().send_title_to_compositor()
         }
     }
 }
-

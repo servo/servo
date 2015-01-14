@@ -10,7 +10,6 @@ use dom::bindings::codegen::InheritTypes::{CharacterDataDerived, NodeCast};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::IndexSize;
 use dom::bindings::js::JSRef;
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
@@ -81,7 +80,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
-        Ok(self.data.borrow().as_slice().slice(offset as uint, count as uint).to_string())
+        Ok(self.data.borrow().as_slice().slice(offset as uint, count as uint).into_string())
     }
 
     fn AppendData(self, arg: DOMString) -> ErrorResult {
@@ -94,7 +93,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn DeleteData(self, offset: u32, count: u32) -> ErrorResult {
-        self.ReplaceData(offset, count, "".to_string())
+        self.ReplaceData(offset, count, "".into_string())
     }
 
     fn ReplaceData(self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
@@ -107,7 +106,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         } else {
             count
         };
-        let mut data = self.data.borrow().as_slice().slice(0, offset as uint).to_string();
+        let mut data = self.data.borrow().as_slice().slice(0, offset as uint).into_string();
         data.push_str(arg.as_slice());
         data.push_str(self.data.borrow().as_slice().slice((offset + count) as uint, length as uint));
         *self.data.borrow_mut() = data;
@@ -122,8 +121,3 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 }
 
-impl Reflectable for CharacterData {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-}

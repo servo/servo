@@ -72,7 +72,8 @@ impl ServoHTMLParser {
             tokenizer: DOMRefCell::new(tok),
         };
 
-        reflect_dom_object(box parser, GlobalRef::Window(*window), ServoHTMLParserBinding::Wrap)
+        reflect_dom_object(box parser, GlobalRef::Window(window.r()),
+                           ServoHTMLParserBinding::Wrap)
     }
 
     #[inline]
@@ -98,6 +99,7 @@ impl tree_builder::Tracer<TrustedNodeAddress> for Tracer {
 }
 
 impl JSTraceable for ServoHTMLParser {
+    #[allow(unsafe_blocks)]
     fn trace(&self, trc: *mut JSTracer) {
         self.reflector_.trace(trc);
 

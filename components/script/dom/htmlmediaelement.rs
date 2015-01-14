@@ -3,12 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::js::{JSRef};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::bindings::codegen::InheritTypes::HTMLMediaElementDerived;
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::NodeTypeId;
 use servo_util::str::DOMString;
 
@@ -20,17 +19,16 @@ pub struct HTMLMediaElement {
 impl HTMLMediaElementDerived for EventTarget {
     fn is_htmlmediaelement(&self) -> bool {
         match *self.type_id() {
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLVideoElement)) |
-            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLAudioElement)) => true,
+            EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_)))) => true,
             _ => false
         }
     }
 }
 
 impl HTMLMediaElement {
-    pub fn new_inherited(type_id: ElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMediaElement {
+    pub fn new_inherited(type_id: HTMLMediaElementTypeId, tag_name: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLMediaElement {
         HTMLMediaElement {
-            htmlelement: HTMLElement::new_inherited(type_id, tag_name, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLMediaElement(type_id), tag_name, prefix, document)
         }
     }
 
@@ -40,8 +38,10 @@ impl HTMLMediaElement {
     }
 }
 
-impl Reflectable for HTMLMediaElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
+#[deriving(Copy, PartialEq, Show)]
+#[jstraceable]
+pub enum HTMLMediaElementTypeId {
+    HTMLAudioElement,
+    HTMLVideoElement,
 }
+

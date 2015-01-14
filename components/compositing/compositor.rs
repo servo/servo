@@ -5,7 +5,7 @@
 use compositor_layer::{CompositorData, CompositorLayer, WantsScrollEventsFlag};
 use compositor_task::{CompositorEventListener, CompositorProxy, CompositorReceiver};
 use compositor_task::{CompositorTask, LayerProperties, Msg};
-use constellation::{FrameId, FrameTreeDiff, SendableFrameTree};
+use constellation::{FrameId, SendableFrameTree};
 use pipeline::CompositionPipeline;
 use scrolling::ScrollingTimerProxy;
 use windowing;
@@ -18,7 +18,8 @@ use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
-use gfx::paint_task::{PaintChan, PaintMsg, PaintRequest, UnusedBufferMsg};
+use gfx::paint_task::Msg as PaintMsg;
+use gfx::paint_task::PaintRequest;
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
@@ -27,17 +28,17 @@ use layers::scene::Scene;
 use png;
 use gleam::gl::types::{GLint, GLsizei};
 use gleam::gl;
-use script_traits::{ViewportMsg, ScriptControlChan};
-use servo_msg::compositor_msg::{Blank, Epoch, FinishedLoading, IdlePaintState, LayerId};
-use servo_msg::compositor_msg::{ReadyState, PaintState, PaintingPaintState, Scrollable};
-use servo_msg::constellation_msg::{mod, ConstellationChan, ExitMsg};
-use servo_msg::constellation_msg::{GetPipelineTitleMsg, Key, KeyModifiers, KeyState, LoadData};
-use servo_msg::constellation_msg::{LoadUrlMsg, NavigateMsg, PipelineId, ResizedWindowMsg};
-use servo_msg::constellation_msg::{WindowSizeData};
+use script_traits::{ConstellationControlMsg, ScriptControlChan};
+use servo_msg::compositor_msg::{Epoch, LayerId};
+use servo_msg::compositor_msg::{ReadyState, PaintState, ScrollPolicy};
+use servo_msg::constellation_msg::{ConstellationChan, NavigationDirection};
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use servo_msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
+use servo_msg::constellation_msg::{PipelineId, WindowSizeData};
 use servo_util::geometry::{PagePx, ScreenPx, ViewportPx};
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::opts;
-use servo_util::time::{profile, TimeProfilerChan};
+use servo_util::time::{TimeProfilerCategory, profile, TimeProfilerChan};
 use servo_util::{memory, time};
 use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
@@ -62,6 +63,9 @@ pub struct IOCompositor<Window: WindowMethods> {
 
     /// The root pipeline.
     root_pipeline: Option<CompositionPipeline>,
+
+    /// Tracks details about each active pipeline that the compositor knows about.
+    pipeline_details: HashMap<PipelineId, PipelineDetails>,
 
     /// The canvas to paint a page.
     scene: Scene<CompositorData>,
@@ -101,19 +105,13 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The time of the last zoom action has started.
     zoom_time: f64,
 
-    /// Current display/reflow status of each pipeline.
-    ready_states: HashMap<PipelineId, ReadyState>,
-
-    /// Current paint status of each pipeline.
-    paint_states: HashMap<PipelineId, PaintState>,
-
     /// Whether the page being rendered has loaded completely.
     /// Differs from ReadyState because we can finish loading (ready)
     /// many times for a single page.
     got_load_complete_message: bool,
 
-    /// Whether we have gotten a `SetIds` message.
-    got_set_ids_message: bool,
+    /// Whether we have received a `SetFrameTree` message.
+    got_set_frame_tree_message: bool,
 
     /// The channel on which messages can be sent to the constellation.
     constellation_chan: ConstellationChan,
@@ -143,7 +141,7 @@ enum CompositionRequest {
     CompositeNow,
 }
 
-#[deriving(PartialEq, Show)]
+#[deriving(Copy, PartialEq, Show)]
 enum ShutdownState {
     NotShuttingDown,
     ShuttingDown,
@@ -153,6 +151,27 @@ enum ShutdownState {
 struct HitTestResult {
     layer: Rc<Layer<CompositorData>>,
     point: TypedPoint2D<LayerPixel, f32>,
+}
+
+struct PipelineDetails {
+    /// The pipeline associated with this PipelineDetails object.
+    pipeline: Option<CompositionPipeline>,
+
+    /// The status of this pipeline's ScriptTask.
+    ready_state: ReadyState,
+
+    /// The status of this pipeline's PaintTask.
+    paint_state: PaintState,
+}
+
+impl PipelineDetails {
+    fn new() -> PipelineDetails {
+        PipelineDetails {
+            pipeline: None,
+            ready_state: ReadyState::Blank,
+            paint_state: PaintState::Painting,
+        }
+    }
 }
 
 impl<Window: WindowMethods> IOCompositor<Window> {
@@ -174,6 +193,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             port: receiver,
             context: None,
             root_pipeline: None,
+            pipeline_details: HashMap::new(),
             scene: Scene::new(Rect {
                 origin: Point2D::zero(),
                 size: window_size.as_f32(),
@@ -188,10 +208,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             viewport_zoom: ScaleFactor(1.0),
             zoom_action: false,
             zoom_time: 0f64,
-            ready_states: HashMap::new(),
-            paint_states: HashMap::new(),
             got_load_complete_message: false,
-            got_set_ids_message: false,
+            got_set_frame_tree_message: false,
             constellation_chan: constellation_chan,
             time_profiler_chan: time_profiler_chan,
             memory_profiler_chan: memory_profiler_chan,
@@ -232,7 +250,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::Exit(chan), _) => {
                 debug!("shutting down the constellation");
                 let ConstellationChan(ref con_chan) = self.constellation_chan;
-                con_chan.send(ExitMsg);
+                con_chan.send(ConstellationMsg::Exit);
                 chan.send(());
                 self.shutdown_state = ShutdownState::ShuttingDown;
             }
@@ -263,7 +281,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.remove_outstanding_paint_msg();
             }
 
-            (Msg::SetIds(frame_tree, response_chan, new_constellation_chan),
+            (Msg::SetFrameTree(frame_tree, response_chan, new_constellation_chan),
              ShutdownState::NotShuttingDown) => {
                 self.set_frame_tree(&frame_tree,
                                     response_chan,
@@ -271,14 +289,20 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.send_viewport_rects_for_all_layers();
             }
 
-            (Msg::FrameTreeUpdate(frame_tree_diff, response_channel),
+            (Msg::ChangeLayerPipelineAndRemoveChildren(old_pipeline, new_pipeline, response_channel),
              ShutdownState::NotShuttingDown) => {
-                self.update_frame_tree(&frame_tree_diff);
+                self.handle_change_layer_pipeline_and_remove_children(old_pipeline, new_pipeline);
                 response_channel.send(());
             }
 
-            (Msg::CreateOrUpdateRootLayer(layer_properties), ShutdownState::NotShuttingDown) => {
-                self.create_or_update_root_layer(layer_properties);
+            (Msg::CreateRootLayerForPipeline(parent_pipeline, pipeline, rect, response_channel),
+             ShutdownState::NotShuttingDown) => {
+                self.handle_create_root_layer_for_pipeline(parent_pipeline, pipeline, rect);
+                response_channel.send(());
+            }
+
+            (Msg::CreateOrUpdateBaseLayer(layer_properties), ShutdownState::NotShuttingDown) => {
+                self.create_or_update_base_layer(layer_properties);
             }
 
             (Msg::CreateOrUpdateDescendantLayer(layer_properties),
@@ -295,9 +319,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.set_layer_origin(pipeline_id, layer_id, origin);
             }
 
-            (Msg::Paint(pipeline_id, epoch, replies), ShutdownState::NotShuttingDown) => {
+            (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies), ShutdownState::NotShuttingDown) => {
                 for (layer_id, new_layer_buffer_set) in replies.into_iter() {
-                    self.paint(pipeline_id, layer_id, new_layer_buffer_set, epoch);
+                    self.assign_painted_buffers(pipeline_id, layer_id, new_layer_buffer_set, epoch);
                 }
                 self.remove_outstanding_paint_msg();
             }
@@ -341,6 +365,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.set_cursor(cursor)
             }
 
+            (Msg::PaintTaskExited(pipeline_id), ShutdownState::NotShuttingDown) => {
+                if self.pipeline_details.remove(&pipeline_id).is_none() {
+                    panic!("Saw PaintTaskExited message from an unknown pipeline!");
+                }
+            }
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
@@ -351,14 +381,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn change_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
-        match self.ready_states.entry(pipeline_id) {
-            Occupied(entry) => {
-                *entry.into_mut() = ready_state;
-            }
-            Vacant(entry) => {
-                entry.set(ready_state);
-            }
-        }
+        self.get_or_create_pipeline_details(pipeline_id).ready_state = ready_state;
         self.window.set_ready_state(self.get_earliest_pipeline_ready_state());
 
         // If we're painting in headless mode, schedule a recomposite.
@@ -368,24 +391,41 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn get_earliest_pipeline_ready_state(&self) -> ReadyState {
-        if self.ready_states.len() == 0 {
-            return Blank;
+        if self.pipeline_details.len() == 0 {
+            return ReadyState::Blank;
         }
-        return self.ready_states.values().fold(FinishedLoading, |a, &b| cmp::min(a, b));
-
+        return self.pipeline_details.values().fold(ReadyState::FinishedLoading,
+                                                   |v, ref details| {
+                                                       cmp::min(v, details.ready_state)
+                                                   });
     }
 
     fn change_paint_state(&mut self, pipeline_id: PipelineId, paint_state: PaintState) {
-        match self.paint_states.entry(pipeline_id) {
-            Occupied(entry) => {
-                *entry.into_mut() = paint_state;
-            }
-            Vacant(entry) => {
-                entry.set(paint_state);
-            }
-        }
-
+        self.get_or_create_pipeline_details(pipeline_id).paint_state = paint_state;
         self.window.set_paint_state(paint_state);
+    }
+
+    pub fn get_or_create_pipeline_details<'a>(&'a mut self,
+                                              pipeline_id: PipelineId)
+                                              -> &'a mut PipelineDetails {
+        if !self.pipeline_details.contains_key(&pipeline_id) {
+            self.pipeline_details.insert(pipeline_id, PipelineDetails::new());
+        }
+        return self.pipeline_details.get_mut(&pipeline_id).unwrap();
+    }
+
+    pub fn get_pipeline<'a>(&'a self, pipeline_id: PipelineId) -> &'a CompositionPipeline {
+        match self.pipeline_details.get(&pipeline_id) {
+            Some(ref details) => {
+                match details.pipeline {
+                    Some(ref pipeline) => pipeline,
+                    None => panic!("Compositor layer has an unitialized pipeline ({}).",
+                                   pipeline_id),
+
+                }
+            }
+            None => panic!("Compositor layer has an unknown pipeline ({}).", pipeline_id),
+        }
     }
 
     fn change_page_title(&mut self, _: PipelineId, title: Option<String>) {
@@ -397,10 +437,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn all_pipelines_in_idle_paint_state(&self) -> bool {
-        if self.ready_states.len() == 0 {
+        if self.pipeline_details.len() == 0 {
             return false;
         }
-        return self.paint_states.values().all(|&value| value == IdlePaintState);
+        return self.pipeline_details.values().all(|ref details| {
+                                                     details.paint_state == PaintState::Idle
+                                                  });
     }
 
     fn has_paint_msg_tracking(&self) -> bool {
@@ -442,7 +484,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         // If we have an old root layer, release all old tiles before replacing it.
         match self.scene.root {
-            Some(ref mut layer) => layer.clear_all_tiles(),
+            Some(ref layer) => layer.clear_all_tiles(self),
             None => { }
         }
         self.scene.root = Some(self.create_frame_tree_root_layers(frame_tree, None));
@@ -452,37 +494,103 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.constellation_chan = new_constellation_chan;
         self.send_window_size();
 
-        self.got_set_ids_message = true;
+        self.got_set_frame_tree_message = true;
         self.composite_if_necessary();
+    }
+
+    fn create_root_layer_for_pipeline_and_rect(&mut self,
+                                               pipeline: &CompositionPipeline,
+                                               frame_rect: Option<TypedRect<PagePx, f32>>)
+                                               -> Rc<Layer<CompositorData>> {
+        let layer_properties = LayerProperties {
+            pipeline_id: pipeline.id,
+            epoch: Epoch(0),
+            id: LayerId::null(),
+            rect: Rect::zero(),
+            background_color: azure_hl::Color::new(0., 0., 0., 0.),
+            scroll_policy: ScrollPolicy::Scrollable,
+        };
+
+        let root_layer = CompositorData::new_layer(layer_properties,
+                                                   WantsScrollEventsFlag::WantsScrollEvents,
+                                                   opts::get().tile_size);
+
+        self.get_or_create_pipeline_details(pipeline.id).pipeline = Some(pipeline.clone());
+
+        // All root layers mask to bounds.
+        *root_layer.masks_to_bounds.borrow_mut() = true;
+
+        if let Some(ref frame_rect) = frame_rect {
+            let frame_rect = frame_rect.to_untyped();
+            *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
+        }
+
+        return root_layer;
     }
 
     fn create_frame_tree_root_layers(&mut self,
                                      frame_tree: &SendableFrameTree,
                                      frame_rect: Option<TypedRect<PagePx, f32>>)
                                      -> Rc<Layer<CompositorData>> {
-        // Initialize the ReadyState and PaintState for this pipeline.
-        self.ready_states.insert(frame_tree.pipeline.id, Blank);
-        self.paint_states.insert(frame_tree.pipeline.id, PaintingPaintState);
-
-        let root_layer = create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline, frame_rect);
+        let root_layer = self.create_root_layer_for_pipeline_and_rect(&frame_tree.pipeline,
+                                                                      frame_rect);
         for kid in frame_tree.children.iter() {
             root_layer.add_child(self.create_frame_tree_root_layers(&kid.frame_tree, kid.rect));
         }
         return root_layer;
     }
 
-    fn update_frame_tree(&mut self, frame_tree_diff: &FrameTreeDiff) {
-        let parent_layer = self.find_pipeline_root_layer(frame_tree_diff.parent_pipeline.id);
-        parent_layer.add_child(
-            create_root_layer_for_pipeline_and_rect(&frame_tree_diff.pipeline,
-                                                    frame_tree_diff.rect));
+    fn handle_change_layer_pipeline_and_remove_children(&mut self,
+                                                        old_pipeline: CompositionPipeline,
+                                                        new_pipeline: CompositionPipeline) {
+        let root_layer = match self.find_pipeline_root_layer(old_pipeline.id) {
+            Some(root_layer) => root_layer,
+            None => {
+                debug!("Ignoring ChangeLayerPipelineAndRemoveChildren message for pipeline ({}) shutting down.",
+                       old_pipeline.id);
+                return;
+            }
+        };
+
+        root_layer.clear_all_tiles(self);
+        root_layer.children().clear();
+
+        let new_pipeline_id = new_pipeline.id;
+        self.get_or_create_pipeline_details(new_pipeline_id).pipeline = Some(new_pipeline);
     }
 
-    fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Rc<Layer<CompositorData>> {
-        match self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null()) {
-            Some(ref layer) => layer.clone(),
-            None => panic!("Tried to create or update layer for unknown pipeline"),
+    fn handle_create_root_layer_for_pipeline(&mut self,
+                                             parent_pipeline: CompositionPipeline,
+                                             new_pipeline: CompositionPipeline,
+                                             frame_rect: Option<TypedRect<PagePx, f32>>) {
+        let root_layer = self.create_root_layer_for_pipeline_and_rect(&new_pipeline, frame_rect);
+        match frame_rect {
+            Some(ref frame_rect) => {
+                *root_layer.masks_to_bounds.borrow_mut() = true;
+
+                let frame_rect = frame_rect.to_untyped();
+                *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
+            }
+            None => {}
         }
+
+        let pipeline_id = parent_pipeline.id;
+        let parent_layer = match self.find_pipeline_root_layer(pipeline_id) {
+            Some(root_layer) => root_layer,
+            None => {
+                debug!("Ignoring FrameTreeUpdate message for pipeline ({}) shutting down.",
+                       pipeline_id);
+                return;
+            }
+        };
+        parent_layer.add_child(root_layer);
+    }
+
+    fn find_pipeline_root_layer(&self, pipeline_id: PipelineId) -> Option<Rc<Layer<CompositorData>>> {
+        if !self.pipeline_details.contains_key(&pipeline_id) {
+            panic!("Tried to create or update layer for unknown pipeline")
+        }
+        self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null())
     }
 
     fn update_layer_if_exists(&mut self, properties: LayerProperties) -> bool {
@@ -495,24 +603,31 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn create_or_update_root_layer(&mut self, layer_properties: LayerProperties) {
-        let need_new_root_layer = !self.update_layer_if_exists(layer_properties);
-        if need_new_root_layer {
-            let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
+    fn create_or_update_base_layer(&mut self, layer_properties: LayerProperties) {
+        let pipeline_id = layer_properties.pipeline_id;
+        let root_layer = match self.find_pipeline_root_layer(pipeline_id) {
+            Some(root_layer) => root_layer,
+            None => {
+                debug!("Ignoring CreateOrUpdateBaseLayer message for pipeline ({}) shutting down.",
+                       pipeline_id);
+                return;
+            }
+        };
+
+        let need_new_base_layer = !self.update_layer_if_exists(layer_properties);
+        if need_new_base_layer {
             root_layer.update_layer_except_bounds(layer_properties);
 
-            let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
-            let first_child = CompositorData::new_layer(
-                root_layer_pipeline.clone(),
+            let base_layer = CompositorData::new_layer(
                 layer_properties,
                 WantsScrollEventsFlag::DoesntWantScrollEvents,
                 opts::get().tile_size);
 
-            // Add the first child / base layer to the front of the child list, so that
-            // child iframe layers are painted on top of the base layer. These iframe
-            // layers were added previously when creating the layer tree skeleton in
-            // create_frame_tree_root_layers.
-            root_layer.children().insert(0, first_child);
+            // Add the base layer to the front of the child list, so that child
+            // iframe layers are painted on top of the base layer. These iframe
+            // layers were added previously when creating the layer tree
+            // skeleton in create_frame_tree_root_layers.
+            root_layer.children().insert(0, base_layer);
         }
 
         self.scroll_layer_to_fragment_point_if_necessary(layer_properties.pipeline_id,
@@ -530,10 +645,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn create_descendant_layer(&self, layer_properties: LayerProperties) {
-        let root_layer = self.find_pipeline_root_layer(layer_properties.pipeline_id);
-        let root_layer_pipeline = root_layer.extra_data.borrow().pipeline.clone();
-        let new_layer = CompositorData::new_layer(root_layer_pipeline,
-                                                  layer_properties,
+        let root_layer = match self.find_pipeline_root_layer(layer_properties.pipeline_id) {
+            Some(root_layer) => root_layer,
+            None => return, // This pipeline is in the process of shutting down.
+        };
+
+        let new_layer = CompositorData::new_layer(layer_properties,
                                                   WantsScrollEventsFlag::DoesntWantScrollEvents,
                                                   root_layer.tile_size);
         root_layer.add_child(new_layer);
@@ -545,7 +662,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let visible_viewport = initial_viewport / self.viewport_zoom;
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ResizedWindowMsg(WindowSizeData {
+        chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
             visible_viewport: visible_viewport,
@@ -603,17 +720,34 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(ref layer) => {
                 layer.bounds.borrow_mut().origin = Point2D::from_untyped(&new_origin)
             }
-            None => panic!("Compositor received SetLayerOrigin for nonexistent layer"),
+            None => panic!("Compositor received SetLayerOrigin for nonexistent layer: {}", pipeline_id),
         };
 
         self.send_buffer_requests_for_all_layers();
     }
 
-    fn paint(&mut self,
-             pipeline_id: PipelineId,
-             layer_id: LayerId,
-             new_layer_buffer_set: Box<LayerBufferSet>,
-             epoch: Epoch) {
+    fn assign_painted_buffers(&mut self,
+                              pipeline_id: PipelineId,
+                              layer_id: LayerId,
+                              new_layer_buffer_set: Box<LayerBufferSet>,
+                              epoch: Epoch) {
+        match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
+            Some(layer) => {
+                self.assign_painted_buffers_to_layer(layer, new_layer_buffer_set, epoch);
+                return;
+            }
+            None => {}
+        }
+
+        let pipeline = self.get_pipeline(pipeline_id);
+        let message = PaintMsg::UnusedBuffer(new_layer_buffer_set.buffers);
+        let _ = pipeline.paint_chan.send_opt(message);
+    }
+
+    fn assign_painted_buffers_to_layer(&mut self,
+                                       layer: Rc<Layer<CompositorData>>,
+                                       new_layer_buffer_set: Box<LayerBufferSet>,
+                                       epoch: Epoch) {
         debug!("compositor received new frame at size {}x{}",
                self.window_size.width.get(),
                self.window_size.height.get());
@@ -622,20 +756,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut new_layer_buffer_set = new_layer_buffer_set;
         new_layer_buffer_set.mark_will_leak();
 
-        match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
-            Some(ref layer) => {
-                // FIXME(pcwalton): This is going to cause problems with inconsistent frames since
-                // we only composite one layer at a time.
-                assert!(layer.add_buffers(new_layer_buffer_set, epoch));
-                self.composite_if_necessary();
-            }
-            None => {
-                // FIXME: This may potentially be triggered by a race condition where a
-                // buffers are being painted but the layer is removed before painting
-                // completes.
-                panic!("compositor given paint command for non-existent layer");
-            }
-        }
+        // FIXME(pcwalton): This is going to cause problems with inconsistent frames since
+        // we only composite one layer at a time.
+        assert!(layer.add_buffers(self, new_layer_buffer_set, epoch));
+        self.composite_if_necessary();
     }
 
     fn scroll_fragment_to_point(&mut self,
@@ -702,7 +826,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             WindowEvent::Quit => {
                 debug!("shutting down the constellation for WindowEvent::Quit");
                 let ConstellationChan(ref chan) = self.constellation_chan;
-                chan.send(ExitMsg);
+                chan.send(ConstellationMsg::Exit);
                 self.shutdown_state = ShutdownState::ShuttingDown;
             }
         }
@@ -729,35 +853,35 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_load_url_window_event(&mut self, url_string: String) {
-        debug!("osmain: loading URL `{:s}`", url_string);
+        debug!("osmain: loading URL `{}`", url_string);
         self.got_load_complete_message = false;
         let root_pipeline_id = match self.scene.root {
-            Some(ref layer) => layer.extra_data.borrow().pipeline.id.clone(),
+            Some(ref layer) => layer.get_pipeline_id(),
             None => panic!("Compositor: Received WindowEvent::LoadUrl without initialized compositor \
                            layers"),
         };
 
-        let msg = LoadUrlMsg(root_pipeline_id,
-                             LoadData::new(Url::parse(url_string.as_slice()).unwrap()));
+        let msg = ConstellationMsg::LoadUrl(root_pipeline_id,
+            LoadData::new(Url::parse(url_string.as_slice()).unwrap()));
         let ConstellationChan(ref chan) = self.constellation_chan;
         chan.send(msg);
     }
 
     fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
         let point = match mouse_window_event {
-            MouseWindowEvent::MouseWindowClickEvent(_, p) => p,
-            MouseWindowEvent::MouseWindowMouseDownEvent(_, p) => p,
-            MouseWindowEvent::MouseWindowMouseUpEvent(_, p) => p,
+            MouseWindowEvent::Click(_, p) => p,
+            MouseWindowEvent::MouseDown(_, p) => p,
+            MouseWindowEvent::MouseUp(_, p) => p,
         };
         match self.find_topmost_layer_at_point(point / self.scene.scale) {
-            Some(result) => result.layer.send_mouse_event(mouse_window_event, result.point),
+            Some(result) => result.layer.send_mouse_event(self, mouse_window_event, result.point),
             None => {},
         }
     }
 
     fn on_mouse_window_move_event_class(&self, cursor: TypedPoint2D<DevicePixel, f32>) {
         match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
-            Some(result) => result.layer.send_mouse_move_event(result.point),
+            Some(result) => result.layer.send_mouse_move_event(self, result.point),
             None => {},
         }
     }
@@ -855,39 +979,35 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
         let direction = match direction {
-            windowing::WindowNavigateMsg::Forward => constellation_msg::Forward,
-            windowing::WindowNavigateMsg::Back => constellation_msg::Back,
+            windowing::WindowNavigateMsg::Forward => NavigationDirection::Forward,
+            windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
         };
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(NavigateMsg(direction))
+        chan.send(ConstellationMsg::Navigate(direction))
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(constellation_msg::KeyEvent(key, state, modifiers))
+        chan.send(ConstellationMsg::KeyEvent(key, state, modifiers))
     }
 
     fn convert_buffer_requests_to_pipeline_requests_map(&self,
                                                         requests: Vec<(Rc<Layer<CompositorData>>,
-                                                                       Vec<BufferRequest>)>) ->
-                                                        HashMap<PipelineId, (PaintChan,
-                                                                             Vec<PaintRequest>)> {
+                                                                       Vec<BufferRequest>)>)
+                                                        -> HashMap<PipelineId, Vec<PaintRequest>> {
         let scale = self.device_pixels_per_page_px();
-        let mut results:
-            HashMap<PipelineId, (PaintChan, Vec<PaintRequest>)> = HashMap::new();
+        let mut results: HashMap<PipelineId, Vec<PaintRequest>> = HashMap::new();
 
         for (layer, mut layer_requests) in requests.into_iter() {
-            let &(_, ref mut vec) =
-                match results.entry(layer.extra_data.borrow().pipeline.id) {
-                    Occupied(mut entry) => {
-                        *entry.get_mut() =
-                            (layer.extra_data.borrow().pipeline.paint_chan.clone(), vec!());
-                        entry.into_mut()
-                    }
-                    Vacant(entry) => {
-                        entry.set((layer.extra_data.borrow().pipeline.paint_chan.clone(), vec!()))
-                    }
-                };
+            let vec = match results.entry(layer.get_pipeline_id()) {
+                Occupied(mut entry) => {
+                    *entry.get_mut() = Vec::new();
+                    entry.into_mut()
+                }
+                Vacant(entry) => {
+                    entry.set(Vec::new())
+                }
+            };
 
             // All the BufferRequests are in layer/device coordinates, but the paint task
             // wants to know the page coordinates. We scale them before sending them.
@@ -911,7 +1031,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(ref pipeline) => {
                 let unused_buffers = self.scene.collect_unused_buffers();
                 if unused_buffers.len() != 0 {
-                    let message = UnusedBufferMsg(unused_buffers);
+                    let message = PaintMsg::UnusedBuffer(unused_buffers);
                     let _ = pipeline.paint_chan.send_opt(message);
                 }
             },
@@ -923,9 +1043,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if layer.extra_data.borrow().id == LayerId::null() {
             let layer_rect = Rect(-layer.extra_data.borrow().scroll_offset.to_untyped(),
                                   layer.bounds.borrow().size.to_untyped());
-            let pipeline = &layer.extra_data.borrow().pipeline;
+            let pipeline = self.get_pipeline(layer.get_pipeline_id());
             let ScriptControlChan(ref chan) = pipeline.script_chan;
-            chan.send(ViewportMsg(pipeline.id.clone(), layer_rect));
+            chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect));
         }
 
         for kid in layer.children().iter() {
@@ -959,9 +1079,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             self.convert_buffer_requests_to_pipeline_requests_map(layers_and_requests);
 
         let mut num_paint_msgs_sent = 0;
-        for (_pipeline_id, (chan, requests)) in pipeline_requests.into_iter() {
+        for (pipeline_id, requests) in pipeline_requests.into_iter() {
             num_paint_msgs_sent += 1;
-            let _ = chan.send_opt(PaintMsg(requests));
+            let _ = self.get_pipeline(pipeline_id).paint_chan.send_opt(PaintMsg::Paint(requests));
         }
 
         self.add_outstanding_paint_msg(num_paint_msgs_sent);
@@ -973,7 +1093,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return false;
         }
 
-        if self.get_earliest_pipeline_ready_state() != FinishedLoading {
+        if self.get_earliest_pipeline_ready_state() != ReadyState::FinishedLoading {
             return false;
         }
 
@@ -985,7 +1105,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return false;
         }
 
-        if !self.got_set_ids_message {
+        if !self.got_set_frame_tree_message {
             return false;
         }
 
@@ -1022,7 +1142,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             gl::bind_texture(gl::TEXTURE_2D, 0);
         }
 
-        profile(time::CompositingCategory, None, self.time_profiler_chan.clone(), || {
+        profile(TimeProfilerCategory::Compositing, None, self.time_profiler_chan.clone(), || {
             debug!("compositor: compositing");
             // Adjust the layer dimensions as necessary to correspond to the size of the window.
             self.scene.viewport = Rect {
@@ -1071,14 +1191,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let mut img = png::Image {
                 width: width as u32,
                 height: height as u32,
-                pixels: png::RGB8(pixels),
+                pixels: png::PixelsByColorType::RGB8(pixels),
             };
             let res = png::store_png(&mut img, &path);
             assert!(res.is_ok());
 
             debug!("shutting down the constellation after generating an output file");
             let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ExitMsg);
+            chan.send(ConstellationMsg::Exit);
             self.shutdown_state = ShutdownState::ShuttingDown;
         }
 
@@ -1179,7 +1299,7 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
                                                    pipeline_id: PipelineId,
                                                    layer_id: LayerId)
                                                    -> Option<Rc<Layer<CompositorData>>> {
-    if layer.extra_data.borrow().pipeline.id == pipeline_id &&
+    if layer.extra_data.borrow().pipeline_id == pipeline_id &&
        layer.extra_data.borrow().id == layer_id {
         return Some(layer);
     }
@@ -1194,37 +1314,6 @@ fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorDat
     }
 
     return None;
-}
-
-fn create_root_layer_for_pipeline_and_rect(pipeline: &CompositionPipeline,
-                                           frame_rect: Option<TypedRect<PagePx, f32>>)
-                                           -> Rc<Layer<CompositorData>> {
-    let layer_properties = LayerProperties {
-        pipeline_id: pipeline.id,
-        epoch: Epoch(0),
-        id: LayerId::null(),
-        rect: Rect::zero(),
-        background_color: azure_hl::Color::new(0., 0., 0., 0.),
-        scroll_policy: Scrollable,
-    };
-
-    let root_layer = CompositorData::new_layer(pipeline.clone(),
-                                               layer_properties,
-                                               WantsScrollEventsFlag::WantsScrollEvents,
-                                               opts::get().tile_size);
-
-    // All root layers mask to bounds.
-    *root_layer.masks_to_bounds.borrow_mut() = true;
-
-    match frame_rect {
-        Some(ref frame_rect) => {
-            let frame_rect = frame_rect.to_untyped();
-            *root_layer.bounds.borrow_mut() = Rect::from_untyped(&frame_rect);
-        }
-        None => {}
-    }
-
-    return root_layer;
 }
 
 impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
@@ -1273,12 +1362,12 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
     fn repaint_synchronously(&mut self) {
         while self.shutdown_state != ShutdownState::ShuttingDown {
             let msg = self.port.recv_compositor_msg();
-            let is_paint = match msg {
-                Msg::Paint(..) => true,
+            let received_new_buffers = match msg {
+                Msg::AssignPaintedBuffers(..) => true,
                 _ => false,
             };
             let keep_going = self.handle_browser_message(msg);
-            if is_paint {
+            if received_new_buffers {
                 self.composite();
                 break
             }
@@ -1296,7 +1385,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         }
 
         // Drain compositor port, sometimes messages contain channels that are blocking
-        // another task from finishing (i.e. SetIds)
+        // another task from finishing (i.e. SetFrameTree).
         while self.port.try_recv_compositor_msg().is_some() {}
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
@@ -1319,6 +1408,6 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             Some(ref root_pipeline) => root_pipeline.id,
         };
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(GetPipelineTitleMsg(root_pipeline_id));
+        chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id));
     }
 }

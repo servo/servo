@@ -30,6 +30,7 @@
 //!   o Instead of `html_element_in_html_document()`, use
 //!     `html_element_in_html_document_for_layout()`.
 
+use canvas::canvas_paint_task::CanvasMsg;
 use context::SharedLayoutContext;
 use css::node_style::StyledNode;
 use incremental::RestyleDamage;
@@ -39,11 +40,13 @@ use util::{PrivateLayoutData};
 use cssparser::RGBA;
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLImageElementCast, HTMLInputElementCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLImageElementCast, HTMLInputElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
+use script::dom::htmlelement::HTMLElementTypeId;
+use script::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
@@ -111,6 +114,27 @@ pub trait TLayoutNode {
         }
     }
 
+    fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
+        unsafe {
+            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(self.get_jsmanaged());
+            canvas_element.and_then(|elem| elem.get_renderer())
+        }
+    }
+
+    fn get_canvas_width(&self) -> u32 {
+        unsafe {
+            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(self.get_jsmanaged());
+            canvas_element.unwrap().get_canvas_width()
+        }
+    }
+
+    fn get_canvas_height(&self) -> u32 {
+        unsafe {
+            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(self.get_jsmanaged());
+            canvas_element.unwrap().get_canvas_height()
+        }
+    }
+
     /// If this node is an iframe element, returns its pipeline and subpage IDs. If this node is
     /// not an iframe element, fails.
     fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
@@ -120,8 +144,8 @@ pub trait TLayoutNode {
                     Some(elem) => elem,
                     None => panic!("not an iframe element!")
                 };
-            let size = (*iframe_element.unsafe_get()).size().unwrap();
-            (*size.pipeline_id(), *size.subpage_id())
+            ((*iframe_element.unsafe_get()).containing_page_pipeline_id().unwrap(),
+             (*iframe_element.unsafe_get()).subpage_id().unwrap())
         }
     }
 
@@ -136,6 +160,7 @@ pub trait TLayoutNode {
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `JS`.
+#[deriving(Copy)]
 pub struct LayoutNode<'a> {
     /// The wrapped node.
     node: JS<Node>,
@@ -187,7 +212,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
     fn text(&self) -> String {
         unsafe {
             if let Some(text) = TextCast::to_js(self.get_jsmanaged()) {
-                (*text.unsafe_get()).characterdata().data_for_layout().to_string()
+                (*text.unsafe_get()).characterdata().data_for_layout().into_string()
             } else if let Some(input) = HTMLInputElementCast::to_js(self.get_jsmanaged()) {
                 input.get_value_for_layout()
             } else if let Some(area) = HTMLTextAreaElementCast::to_js(self.get_jsmanaged()) {
@@ -200,14 +225,6 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 }
 
 impl<'ln> LayoutNode<'ln> {
-    /// Creates a new layout node, scoped to the given closure.
-    pub unsafe fn with_layout_node<R>(node: JS<Node>, f: for <'a> |LayoutNode<'a>| -> R) -> R {
-        f(LayoutNode {
-            node: node,
-            chain: ContravariantLifetime,
-        })
-    }
-
     pub fn dump(self) {
         self.dump_indent(0);
     }
@@ -219,7 +236,7 @@ impl<'ln> LayoutNode<'ln> {
         }
 
         s.push_str(self.debug_str().as_slice());
-        println!("{:s}", s);
+        println!("{}", s);
 
         for kid in self.children() {
             kid.dump_indent(indent + 1);
@@ -475,6 +492,7 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
 }
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
+#[deriving(Copy)]
 pub struct LayoutElement<'le> {
     element: &'le Element,
 }
@@ -516,9 +534,9 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
         match NodeCast::from_actual(self.element).type_id_for_layout() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
-            NodeTypeId::Element(ElementTypeId::HTMLAnchorElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLAreaElement) |
-            NodeTypeId::Element(ElementTypeId::HTMLLinkElement) => {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAreaElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
                 unsafe {
                     self.element.get_attr_val_for_layout(&ns!(""), &atom!("href"))
                 }
@@ -630,18 +648,18 @@ impl<'le> TElementAttributes for LayoutElement<'le> {
 
 fn get_content(content_list: &content::T) -> String {
     match *content_list {
-        content::Content(ref value) => {
+        content::T::Content(ref value) => {
             let iter = &mut value.clone().into_iter().peekable();
             match iter.next() {
-                Some(content::StringContent(content)) => content,
-                _ => "".to_string(),
+                Some(content::ContentItem::StringContent(content)) => content,
+                _ => "".into_string(),
             }
         }
-        _ => "".to_string(),
+        _ => "".into_string(),
     }
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(Copy, PartialEq, Clone)]
 pub enum PseudoElementType {
     Normal,
     Before(display::T),
@@ -666,7 +684,7 @@ impl PseudoElementType {
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
-#[deriving(Clone)]
+#[deriving(Copy, Clone)]
 pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
     node: LayoutNode<'ln>,
@@ -715,9 +733,9 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
                     let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(self.get_before_display()));
                     return Some(pseudo_before_node)
                 }
-                PseudoElementType::Before(display::inline) => {}
+                PseudoElementType::Before(display::T::inline) => {}
                 PseudoElementType::Before(_) => {
-                    let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(display::inline));
+                    let pseudo_before_node = self.with_pseudo(PseudoElementType::Before(display::T::inline));
                     return Some(pseudo_before_node)
                 }
                 _ => {}
@@ -921,7 +939,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             // If you implement other values for this property, you will almost certainly
             // want to update this check.
             match self.style().get_inheritedtext().white_space {
-                white_space::normal => true,
+                white_space::T::normal => true,
                 _ => false,
             }
         }

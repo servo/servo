@@ -19,7 +19,7 @@ use libc;
 use std::ptr;
 
 /// DOM exceptions that can be thrown by a native DOM method.
-#[deriving(Show)]
+#[deriving(Show, Clone)]
 pub enum Error {
     IndexSize,
     FailureUnknown,
@@ -35,7 +35,8 @@ pub enum Error {
     Network,
     Abort,
     Timeout,
-    DataClone
+    DataClone,
+    NoModificationAllowedError
 }
 
 /// The return type for IDL operations that can throw DOM exceptions.
@@ -46,10 +47,10 @@ pub type Fallible<T> = Result<T, Error>;
 pub type ErrorResult = Fallible<()>;
 
 /// Set a pending DOM exception for the given `result` on `cx`.
-pub fn throw_dom_exception(cx: *mut JSContext, global: &GlobalRef,
+pub fn throw_dom_exception(cx: *mut JSContext, global: GlobalRef,
                            result: Error) {
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
-    let exception = DOMException::new_from_error(*global, result).root();
+    let exception = DOMException::new_from_error(global, result).root();
     let thrown = exception.to_jsval(cx);
     unsafe {
         JS_SetPendingException(cx, thrown);

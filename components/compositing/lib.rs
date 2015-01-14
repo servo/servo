@@ -2,13 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
 #![feature(globs, phase, macro_rules)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 #[phase(plugin, link)]
 extern crate log;
@@ -28,7 +26,6 @@ extern crate "util" as servo_util;
 extern crate gleam;
 
 extern crate libc;
-extern crate native;
 extern crate time;
 extern crate url;
 

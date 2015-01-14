@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 extern crate gfx;
 extern crate script_traits;
@@ -21,8 +19,7 @@ extern crate "util" as servo_util;
 
 use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::PaintChan;
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId};
-use servo_msg::constellation_msg::Failure;
+use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::TimeProfilerChan;
@@ -31,7 +28,7 @@ use std::comm::Sender;
 
 /// Messages sent to the layout task from the constellation
 pub enum LayoutControlMsg {
-    ExitNowMsg,
+    ExitNowMsg(PipelineExitType),
 }
 
 /// A channel wrapper for constellation messages

@@ -11,13 +11,12 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::HTMLAnchorElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{Element, AttributeHandlers, ElementTypeId};
 use dom::event::Event;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
@@ -33,14 +32,14 @@ pub struct HTMLAnchorElement {
 
 impl HTMLAnchorElementDerived for EventTarget {
     fn is_htmlanchorelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLAnchorElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)))
     }
 }
 
 impl HTMLAnchorElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLAnchorElement {
         HTMLAnchorElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLAnchorElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLAnchorElement, localName, prefix, document),
             rel_list: Default::default(),
         }
     }
@@ -63,11 +62,11 @@ impl<'a> PrivateHTMLAnchorElementHelpers for JSRef<'a, HTMLAnchorElement> {
             let attr = element.get_attribute(ns!(""), &atom!("href")).root();
             match attr {
                 Some(ref href) => {
-                    let value = href.Value();
-                    debug!("clicked on link to {:s}", value);
+                    let value = href.r().Value();
+                    debug!("clicked on link to {}", value);
                     let node: JSRef<Node> = NodeCast::from_ref(self);
                     let doc = node.owner_doc().root();
-                    doc.load_anchor_href(value);
+                    doc.r().load_anchor_href(value);
                 }
                 None => ()
             }
@@ -93,15 +92,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAnchorElement> {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("rel") => AttrValue::from_tokenlist(value),
+            &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
-    }
-}
-
-impl Reflectable for HTMLAnchorElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
     }
 }
 

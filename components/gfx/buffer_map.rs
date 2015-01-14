@@ -27,7 +27,7 @@ pub struct BufferMap {
 }
 
 /// A key with which to store buffers. It is based on the size of the buffer.
-#[deriving(Eq)]
+#[deriving(Eq, Copy)]
 struct BufferKey([uint, ..2]);
 
 impl Hash for BufferKey {

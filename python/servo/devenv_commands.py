@@ -21,6 +21,8 @@ class MachCommands(CommandBase):
         'params', default=None, nargs='...',
         help="Command-line arguments to be passed through to Cargo")
     def cargo(self, params):
+        if not params:
+            params = []
         return subprocess.call(["cargo"] + params,
                                env=self.build_env())
 

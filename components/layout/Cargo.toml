@@ -34,9 +34,6 @@ path = "../util"
 [dependencies.cssparser]
 git = "https://github.com/servo/rust-cssparser"
 
-[dependencies.encoding]
-git = "https://github.com/lifthrasiir/rust-encoding"
-
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
@@ -48,3 +45,6 @@ git = "https://github.com/servo/string-cache"
 
 [dependencies.string_cache_macros]
 git = "https://github.com/servo/string-cache"
+
+[dependencies]
+encoding = "0.2"

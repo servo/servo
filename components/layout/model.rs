@@ -18,6 +18,7 @@ use std::cmp::{max, min};
 use std::fmt;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
+#[deriving(Copy)]
 pub struct AdjoiningMargins {
     /// The value of the greatest positive margin.
     pub most_positive: Au,
@@ -60,6 +61,7 @@ impl AdjoiningMargins {
 }
 
 /// Represents the block-start and block-end margins of a flow with collapsible margins. See CSS 2.1 § 8.3.1.
+#[deriving(Copy)]
 pub enum CollapsibleMargins {
     /// Margins may not collapse with this flow.
     None(Au, Au),
@@ -237,6 +239,7 @@ impl MarginCollapseInfo {
     }
 }
 
+#[deriving(Copy)]
 pub enum MarginCollapseState {
     AccumulatingCollapsibleTopMargin,
     AccumulatingMarginIn,
@@ -322,7 +325,7 @@ impl IntrinsicISizesContribution {
 }
 
 /// Useful helper data type when computing values for blocks and positioned elements.
-#[deriving(PartialEq, Show)]
+#[deriving(Copy, PartialEq, Show)]
 pub enum MaybeAuto {
     Auto,
     Specified(Au),

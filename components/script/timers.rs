@@ -3,14 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::callback::ExceptionHandling::ReportExceptions;
+use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
 
+use dom::window::ScriptHelpers;
+
 use script_task::{ScriptChan, ScriptMsg, TimerSource};
 
 use servo_util::task::spawn_named;
+use servo_util::str::DOMString;
 
 use js::jsval::JSVal;
 
@@ -25,6 +28,7 @@ use std::time::duration::Duration;
 
 #[deriving(PartialEq, Eq)]
 #[jstraceable]
+#[deriving(Copy)]
 pub struct TimerId(i32);
 
 #[jstraceable]
@@ -33,6 +37,13 @@ struct TimerHandle {
     handle: TimerId,
     data: TimerData,
     cancel_chan: Option<Sender<()>>,
+}
+
+#[jstraceable]
+#[deriving(Clone)]
+pub enum TimerCallback {
+    StringTimerCallback(DOMString),
+    FunctionTimerCallback(Function)
 }
 
 impl Hash for TimerId {
@@ -67,7 +78,7 @@ impl Drop for TimerManager {
 
 // Enum allowing more descriptive values for the is_interval field
 #[jstraceable]
-#[deriving(PartialEq, Clone)]
+#[deriving(PartialEq, Copy, Clone)]
 pub enum IsInterval {
     Interval,
     NonInterval,
@@ -82,7 +93,7 @@ pub enum IsInterval {
 #[deriving(Clone)]
 struct TimerData {
     is_interval: IsInterval,
-    funval: Function,
+    callback: TimerCallback,
     args: Vec<JSVal>
 }
 
@@ -94,13 +105,14 @@ impl TimerManager {
         }
     }
 
+    #[allow(unsafe_blocks)]
     pub fn set_timeout_or_interval(&self,
-                                  callback: Function,
+                                  callback: TimerCallback,
                                   arguments: Vec<JSVal>,
                                   timeout: i32,
                                   is_interval: IsInterval,
                                   source: TimerSource,
-                                  script_chan: ScriptChan)
+                                  script_chan: Box<ScriptChan+Send>)
                                   -> i32 {
         let timeout = cmp::max(0, timeout) as u64;
         let handle = self.next_timer_handle.get();
@@ -136,8 +148,7 @@ impl TimerManager {
                 let id = select.wait();
                 if id == timeout_handle.id() {
                     timeout_port.recv();
-                    let ScriptChan(ref chan) = script_chan;
-                    chan.send(ScriptMsg::FireTimer(source, TimerId(handle)));
+                    script_chan.send(ScriptMsg::FireTimer(source, TimerId(handle)));
                     if is_interval == IsInterval::NonInterval {
                         break;
                     }
@@ -152,7 +163,7 @@ impl TimerManager {
             cancel_chan: Some(cancel_chan),
             data: TimerData {
                 is_interval: is_interval,
-                funval: callback,
+                callback: callback,
                 args: arguments
             }
         };
@@ -164,7 +175,7 @@ impl TimerManager {
         let mut timer_handle = self.active_timers.borrow_mut().remove(&TimerId(handle));
         match timer_handle {
             Some(ref mut handle) => handle.cancel(),
-            None => { }
+            None => {}
         }
     }
 
@@ -176,7 +187,14 @@ impl TimerManager {
         };
 
         // TODO: Must handle rooting of funval and args when movable GC is turned on
-        let _ = data.funval.Call_(this, data.args, ReportExceptions);
+        match data.callback {
+            TimerCallback::FunctionTimerCallback(function) => {
+                let _ = function.Call_(this, data.args, Report);
+            }
+            TimerCallback::StringTimerCallback(code_str) => {
+                this.evaluate_js_on_global_with_result(code_str.as_slice());
+            }
+        };
 
         if data.is_interval == IsInterval::NonInterval {
             self.active_timers.borrow_mut().remove(&timer_id);

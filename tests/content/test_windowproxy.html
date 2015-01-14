@@ -1,0 +1,23 @@
+<html>
+<head id="foo">
+  <script src="harness.js"></script>
+</head>
+<body>
+<div></div>
+<script>
+  window.abcd = 15;
+  is(window.abcd, 15);
+  is(Object.getOwnPropertyDescriptor(window, 'abcd').value, 15);
+  is(window.hasOwnProperty('abcd'), true);
+
+  is('location' in window, true);
+  // FIXME: https://github.com/servo/servo/issues/4593
+  is(Object.hasOwnProperty('location'), false)
+
+  // Can't set indexed properties
+  window[100] = "abc";
+  is(window[100], undefined);
+  is(Object.getOwnPropertyDescriptor(window, 1000), undefined);
+</script>
+</body>
+</html>

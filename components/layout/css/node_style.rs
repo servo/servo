@@ -8,7 +8,7 @@ use wrapper::{PseudoElementType, ThreadSafeLayoutNode};
 
 use std::mem;
 use style::ComputedValues;
-use sync::Arc;
+use std::sync::Arc;
 
 /// Node mixin providing `style` method that returns a `NodeStyle`
 pub trait StyledNode {

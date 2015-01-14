@@ -9,7 +9,7 @@ use display_list::{DisplayItem, DisplayList, StackingContext};
 use collections::dlist::DList;
 use geom::rect::Rect;
 use servo_util::geometry::{mod, Au};
-use sync::Arc;
+use std::sync::Arc;
 
 /// Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
 pub struct DisplayListOptimizer {
@@ -47,7 +47,7 @@ impl DisplayListOptimizer {
                                          where I: Iterator<&'a DisplayItem> {
         for display_item in display_items {
             if self.visible_rect.intersects(&display_item.base().bounds) &&
-                    self.visible_rect.intersects(&display_item.base().clip_rect) {
+                    display_item.base().clip.might_intersect_rect(&self.visible_rect) {
                 result_list.push_back((*display_item).clone())
             }
         }
@@ -59,7 +59,8 @@ impl DisplayListOptimizer {
                                              mut stacking_contexts: I)
                                              where I: Iterator<&'a Arc<StackingContext>> {
         for stacking_context in stacking_contexts {
-            if self.visible_rect.intersects(&stacking_context.bounds) {
+            let overflow = stacking_context.overflow.translate(&stacking_context.bounds.origin);
+            if self.visible_rect.intersects(&overflow) {
                 result_list.push_back((*stacking_context).clone())
             }
         }

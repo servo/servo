@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::DOMRectBinding;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
 use servo_util::geometry::Au;
 use std::num::Float;
@@ -66,8 +66,3 @@ impl<'a> DOMRectMethods for JSRef<'a, DOMRect> {
     }
 }
 
-impl Reflectable for DOMRect {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

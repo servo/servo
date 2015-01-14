@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 extern crate devtools_traits;
 extern crate geom;
@@ -26,6 +24,7 @@ use devtools_traits::DevtoolsControlChan;
 use libc::c_void;
 use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, WindowSizeData};
 use servo_msg::constellation_msg::{LoadData, SubpageId, Key, KeyState, KeyModifiers};
+use servo_msg::constellation_msg::PipelineExitType;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
@@ -52,23 +51,23 @@ pub struct NewLayoutInfo {
 /// Messages sent from the constellation to the script task
 pub enum ConstellationControlMsg {
     /// Loads a new URL on the specified pipeline.
-    LoadMsg(PipelineId, LoadData),
+    Load(PipelineId, LoadData),
     /// Gives a channel and ID to a layout task, as well as the ID of that layout's parent
-    AttachLayoutMsg(NewLayoutInfo),
+    AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
-    ResizeMsg(PipelineId, WindowSizeData),
+    Resize(PipelineId, WindowSizeData),
     /// Notifies script that window has been resized but to not take immediate action.
-    ResizeInactiveMsg(PipelineId, WindowSizeData),
+    ResizeInactive(PipelineId, WindowSizeData),
     /// Notifies the script that a pipeline should be closed.
-    ExitPipelineMsg(PipelineId),
+    ExitPipeline(PipelineId, PipelineExitType),
     /// Sends a DOM event.
-    SendEventMsg(PipelineId, CompositorEvent),
+    SendEvent(PipelineId, CompositorEvent),
     /// Notifies script that reflow is finished.
-    ReflowCompleteMsg(PipelineId, uint),
+    ReflowComplete(PipelineId, uint),
     /// Notifies script of the viewport.
-    ViewportMsg(PipelineId, Rect<f32>),
+    Viewport(PipelineId, Rect<f32>),
     /// Requests that the script task immediately send the constellation the title of a pipeline.
-    GetTitleMsg(PipelineId),
+    GetTitle(PipelineId),
 }
 
 /// Events from the compositor that the script task needs to know about

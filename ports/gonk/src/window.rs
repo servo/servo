@@ -11,7 +11,6 @@ use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use libc::c_int;
-use msg::compositor_msg::{Blank, IdlePaintState};
 use msg::compositor_msg::{ReadyState, PaintState};
 use msg::constellation_msg::{Key, KeyModifiers};
 use msg::constellation_msg::LoadData;
@@ -148,6 +147,7 @@ pub struct hwc_color {
 }
 
 #[repr(C)]
+#[deriving(Copy)]
 pub struct hwc_rect {
     left: c_int,
     top: c_int,
@@ -747,8 +747,8 @@ impl Window {
             ctx: ctx,
             surf: eglwindow,
 
-            ready_state: Cell::new(Blank),
-            paint_state: Cell::new(IdlePaintState),
+            ready_state: Cell::new(ReadyState::Blank),
+            paint_state: Cell::new(PaintState::Idle),
         };
 
         Rc::new(window)

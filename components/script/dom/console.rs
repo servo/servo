@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::ConsoleBinding;
 use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 
 #[dom_struct]
@@ -28,23 +28,23 @@ impl Console {
 
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Log(self, message: DOMString) {
-        println!("{:s}", message);
+        println!("{}", message);
     }
 
     fn Debug(self, message: DOMString) {
-        println!("{:s}", message);
+        println!("{}", message);
     }
 
     fn Info(self, message: DOMString) {
-        println!("{:s}", message);
+        println!("{}", message);
     }
 
     fn Warn(self, message: DOMString) {
-        println!("{:s}", message);
+        println!("{}", message);
     }
 
     fn Error(self, message: DOMString) {
-        println!("{:s}", message);
+        println!("{}", message);
     }
 
     fn Assert(self, condition: bool, message: Option<DOMString>) {
@@ -53,13 +53,8 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
                 Some(ref message) => message.as_slice(),
                 None => "no message",
             };
-            println!("Assertion failed: {:s}", message);
+            println!("Assertion failed: {}", message);
         }
     }
 }
 
-impl Reflectable for Console {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

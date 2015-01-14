@@ -19,7 +19,7 @@ use wrapper::{PostorderNodeMutTraversal, UnsafeLayoutNode};
 use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 
 use servo_util::opts;
-use servo_util::time::{mod, ProfilerMetadata, TimeProfilerChan, profile};
+use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan, profile};
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::mem;
 use std::ptr;
@@ -432,7 +432,8 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
     queue.data = shared_layout_context as *const _;
 
-    profile(time::LayoutParallelWarmupCategory, profiler_metadata, time_profiler_chan, || {
+    profile(TimeProfilerCategory::LayoutParallelWarmup, profiler_metadata,
+            time_profiler_chan, || {
         queue.push(WorkUnit {
             fun: assign_inline_sizes,
             data: mut_owned_flow_to_unsafe_flow(root),
@@ -451,7 +452,8 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                       queue: &mut WorkQueue<*const SharedLayoutContext,UnsafeFlow>) {
     queue.data = shared_layout_context as *const _;
 
-    profile(time::LayoutParallelWarmupCategory, profiler_metadata, time_profiler_chan, || {
+    profile(TimeProfilerCategory::LayoutParallelWarmup, profiler_metadata,
+            time_profiler_chan, || {
         queue.push(WorkUnit {
             fun: compute_absolute_positions,
             data: mut_owned_flow_to_unsafe_flow(root),

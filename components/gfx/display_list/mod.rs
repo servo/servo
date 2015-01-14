@@ -6,8 +6,8 @@
 //! perform. Using a list instead of painting elements in immediate mode allows transforms, hit
 //! testing, and invalidation to be performed using the same primitives as painting. It also allows
 //! Servo to aggressively cull invisible and out-of-bounds painting elements, to reduce overdraw.
-//! Finally, display lists allow tiles to be farmed out onto multiple CPUs and painted in
-//! parallel (although this benefit does not apply to GPU-based painting).
+//! Finally, display lists allow tiles to be farmed out onto multiple CPUs and painted in parallel
+//! (although this benefit does not apply to GPU-based painting).
 //!
 //! Display items describe relatively high-level drawing operations (for example, entire borders
 //! and shadows instead of lines and blur operations), to reduce the amount of allocation required.
@@ -27,21 +27,21 @@ use text::TextRun;
 use azure::azure::AzFloat;
 use collections::dlist::{mod, DList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
+use geom::num::Zero;
 use libc::uintptr_t;
 use paint_task::PaintLayer;
 use servo_msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
 use servo_util::cursor::Cursor;
 use servo_util::dlist as servo_dlist;
-use servo_util::geometry::{mod, Au, ZERO_POINT};
+use servo_util::geometry::{mod, Au, MAX_RECT, ZERO_RECT};
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
 use std::slice::Items;
+use std::sync::Arc;
 use style::ComputedValues;
-use style::computed_values::border_style;
-use style::computed_values::cursor::{AutoCursor, SpecifiedCursor};
-use sync::Arc;
+use style::computed_values::{border_style, cursor, filter, mix_blend_mode, pointer_events};
 
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
 // layout to use.
@@ -60,7 +60,7 @@ pub static BOX_SHADOW_INFLATION_FACTOR: i32 = 3;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[deriving(Clone, PartialEq)]
+#[deriving(Clone, PartialEq, Copy)]
 pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {
@@ -159,34 +159,35 @@ pub struct StackingContext {
     pub layer: Option<Arc<PaintLayer>>,
     /// The position and size of this stacking context.
     pub bounds: Rect<Au>,
-    /// The clipping rect for this stacking context, in the coordinate system of the *parent*
-    /// stacking context.
-    pub clip_rect: Rect<Au>,
+    /// The overflow rect for this stacking context in its coordinate system.
+    pub overflow: Rect<Au>,
     /// The `z-index` for this stacking context.
     pub z_index: i32,
-    /// The opacity of this stacking context.
-    pub opacity: AzFloat,
+    /// CSS filters to be applied to this stacking context (including opacity).
+    pub filters: filter::T,
+    /// The blend mode with which this stacking context blends with its backdrop.
+    pub blend_mode: mix_blend_mode::T,
 }
 
 impl StackingContext {
     /// Creates a new stacking context.
-    ///
-    /// TODO(pcwalton): Stacking contexts should not always be clipped to their bounds, to handle
-    /// overflow properly.
     #[inline]
     pub fn new(display_list: Box<DisplayList>,
-               bounds: Rect<Au>,
+               bounds: &Rect<Au>,
+               overflow: &Rect<Au>,
                z_index: i32,
-               opacity: AzFloat,
+               filters: filter::T,
+               blend_mode: mix_blend_mode::T,
                layer: Option<Arc<PaintLayer>>)
                -> StackingContext {
         StackingContext {
             display_list: display_list,
             layer: layer,
-            bounds: bounds,
-            clip_rect: Rect(ZERO_POINT, bounds.size),
+            bounds: *bounds,
+            overflow: *overflow,
             z_index: z_index,
-            opacity: opacity,
+            filters: filters,
+            blend_mode: blend_mode,
         }
     }
 
@@ -195,17 +196,17 @@ impl StackingContext {
                                           paint_context: &mut PaintContext,
                                           tile_bounds: &Rect<AzFloat>,
                                           transform: &Matrix2D<AzFloat>,
-                                          clip_rect: Option<Rect<Au>>) {
+                                          clip_rect: Option<&Rect<Au>>) {
         let temporary_draw_target =
-            paint_context.get_or_create_temporary_draw_target(self.opacity);
+            paint_context.get_or_create_temporary_draw_target(&self.filters, self.blend_mode);
         {
             let mut paint_subcontext = PaintContext {
                 draw_target: temporary_draw_target.clone(),
                 font_ctx: &mut *paint_context.font_ctx,
                 page_rect: paint_context.page_rect,
                 screen_rect: paint_context.screen_rect,
-                clip_rect: clip_rect,
-                transient_clip_rect: None,
+                clip_rect: clip_rect.map(|clip_rect| *clip_rect),
+                transient_clip: None,
             };
 
             // Optimize the display list to throw out out-of-bounds display items and so forth.
@@ -251,7 +252,7 @@ impl StackingContext {
                     positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
-                                                                  Some(positioned_kid.clip_rect))
+                                                                  Some(&positioned_kid.overflow))
                 }
             }
 
@@ -294,7 +295,7 @@ impl StackingContext {
                     positioned_kid.optimize_and_draw_into_context(&mut paint_subcontext,
                                                                   &new_tile_rect,
                                                                   &new_transform,
-                                                                  Some(positioned_kid.clip_rect))
+                                                                  Some(&positioned_kid.overflow))
                 }
             }
 
@@ -309,7 +310,9 @@ impl StackingContext {
             paint_subcontext.draw_target.set_transform(&old_transform)
         }
 
-        paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target, self.opacity)
+        paint_context.draw_temporary_draw_target_if_necessary(&temporary_draw_target,
+                                                              &self.filters,
+                                                              self.blend_mode)
     }
 
     /// Translate the given tile rect into the coordinate system of a child stacking context.
@@ -328,16 +331,23 @@ impl StackingContext {
             }
         };
 
-        let child_stacking_context_bounds = child_stacking_context.bounds.to_azure_rect();
-        let tile_subrect = tile_bounds.intersection(&child_stacking_context_bounds)
+        // Translate the child's overflow region into our coordinate system.
+        let child_stacking_context_overflow =
+            child_stacking_context.overflow.translate(&child_stacking_context.bounds.origin)
+                                           .to_azure_rect();
+
+        // Intersect that with the current tile boundaries to find the tile boundaries that the
+        // child covers.
+        let tile_subrect = tile_bounds.intersection(&child_stacking_context_overflow)
                                       .unwrap_or(ZERO_AZURE_RECT);
-        let offset = tile_subrect.origin - child_stacking_context_bounds.origin;
-        Rect(offset, tile_subrect.size)
+
+        // Translate the resulting rect into the child's coordinate system.
+        tile_subrect.translate(&-child_stacking_context.bounds.to_azure_rect().origin)
     }
 
-    /// Places all nodes containing the point of interest into `result`, topmost first. If
-    /// `topmost_only` is true, stops after placing one node into the list. `result` must be empty
-    /// upon entry to this function.
+    /// Places all nodes containing the point of interest into `result`, topmost first. Respects
+    /// the `pointer-events` CSS property If `topmost_only` is true, stops after placing one node
+    /// into the list. `result` must be empty upon entry to this function.
     pub fn hit_test(&self,
                     point: Point2D<Au>,
                     result: &mut Vec<DisplayItemMetadata>,
@@ -348,12 +358,18 @@ impl StackingContext {
                                   mut iterator: I)
                                   where I: Iterator<&'a DisplayItem> {
             for item in iterator {
-                if !geometry::rect_contains_point(item.base().clip_rect, point) {
+                // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
+                // test elements with `border-radius`, for example.
+                if !item.base().clip.might_intersect_point(&point) {
                     // Clipped out.
                     continue
                 }
                 if !geometry::rect_contains_point(item.bounds(), point) {
                     // Can't possibly hit.
+                    continue
+                }
+                if item.base().metadata.pointing.is_none() {
+                    // `pointer-events` is `none`. Ignore this item.
                     continue
                 }
                 match *item {
@@ -477,21 +493,143 @@ pub struct BaseDisplayItem {
     /// Metadata attached to this display item.
     pub metadata: DisplayItemMetadata,
 
-    /// The rectangle to clip to.
-    ///
-    /// TODO(pcwalton): Eventually, to handle `border-radius`, this will (at least) need to grow
-    /// the ability to describe rounded rectangles.
-    pub clip_rect: Rect<Au>,
+    /// The region to clip to.
+    pub clip: ClippingRegion,
 }
 
 impl BaseDisplayItem {
     #[inline(always)]
-    pub fn new(bounds: Rect<Au>, metadata: DisplayItemMetadata, clip_rect: Rect<Au>)
+    pub fn new(bounds: Rect<Au>, metadata: DisplayItemMetadata, clip: ClippingRegion)
                -> BaseDisplayItem {
         BaseDisplayItem {
             bounds: bounds,
             metadata: metadata,
-            clip_rect: clip_rect,
+            clip: clip,
+        }
+    }
+}
+
+/// A clipping region for a display item. Currently, this can describe rectangles, rounded
+/// rectangles (for `border-radius`), or arbitrary intersections of the two. Arbitrary transforms
+/// are not supported because those are handled by the higher-level `StackingContext` abstraction.
+#[deriving(Clone, PartialEq, Show)]
+pub struct ClippingRegion {
+    /// The main rectangular region. This does not include any corners.
+    pub main: Rect<Au>,
+    /// Any complex regions.
+    ///
+    /// TODO(pcwalton): Atomically reference count these? Not sure if it's worth the trouble.
+    /// Measure and follow up.
+    pub complex: Vec<ComplexClippingRegion>,
+}
+
+/// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
+/// they're stored in a list over to the side. Currently a complex clipping region is just a
+/// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
+#[deriving(Clone, PartialEq, Show)]
+pub struct ComplexClippingRegion {
+    /// The boundaries of the rectangle.
+    pub rect: Rect<Au>,
+    /// Border radii of this rectangle.
+    pub radii: BorderRadii<Au>,
+}
+
+impl ClippingRegion {
+    /// Returns an empty clipping region that, if set, will result in no pixels being visible.
+    #[inline]
+    pub fn empty() -> ClippingRegion {
+        ClippingRegion {
+            main: ZERO_RECT,
+            complex: Vec::new(),
+        }
+    }
+
+    /// Returns an all-encompassing clipping region that clips no pixels out.
+    #[inline]
+    pub fn max() -> ClippingRegion {
+        ClippingRegion {
+            main: MAX_RECT,
+            complex: Vec::new(),
+        }
+    }
+
+    /// Returns a clipping region that represents the given rectangle.
+    #[inline]
+    pub fn from_rect(rect: &Rect<Au>) -> ClippingRegion {
+        ClippingRegion {
+            main: *rect,
+            complex: Vec::new(),
+        }
+    }
+
+    /// Returns the intersection of this clipping region and the given rectangle.
+    ///
+    /// TODO(pcwalton): This could more eagerly eliminate complex clipping regions, at the cost of
+    /// complexity.
+    #[inline]
+    pub fn intersect_rect(self, rect: &Rect<Au>) -> ClippingRegion {
+        ClippingRegion {
+            main: self.main.intersection(rect).unwrap_or(ZERO_RECT),
+            complex: self.complex,
+        }
+    }
+
+    /// Returns true if this clipping region might be nonempty. This can return false positives,
+    /// but never false negatives.
+    #[inline]
+    pub fn might_be_nonempty(&self) -> bool {
+        !self.main.is_empty()
+    }
+
+    /// Returns true if this clipping region might contain the given point and false otherwise.
+    /// This is a quick, not a precise, test; it can yield false positives.
+    #[inline]
+    pub fn might_intersect_point(&self, point: &Point2D<Au>) -> bool {
+        geometry::rect_contains_point(self.main, *point) &&
+            self.complex.iter().all(|complex| geometry::rect_contains_point(complex.rect, *point))
+    }
+
+    /// Returns true if this clipping region might intersect the given rectangle and false
+    /// otherwise. This is a quick, not a precise, test; it can yield false positives.
+    #[inline]
+    pub fn might_intersect_rect(&self, rect: &Rect<Au>) -> bool {
+        self.main.intersects(rect) &&
+            self.complex.iter().all(|complex| complex.rect.intersects(rect))
+    }
+
+
+    /// Returns a bounding rect that surrounds this entire clipping region.
+    #[inline]
+    pub fn bounding_rect(&self) -> Rect<Au> {
+        let mut rect = self.main;
+        for complex in self.complex.iter() {
+            rect = rect.union(&complex.rect)
+        }
+        rect
+    }
+
+    /// Intersects this clipping region with the given rounded rectangle.
+    #[inline]
+    pub fn intersect_with_rounded_rect(mut self, rect: &Rect<Au>, radii: &BorderRadii<Au>)
+                                       -> ClippingRegion {
+        self.complex.push(ComplexClippingRegion {
+            rect: *rect,
+            radii: *radii,
+        });
+        self
+    }
+
+    /// Translates this clipping region by the given vector.
+    #[inline]
+    pub fn translate(&self, delta: &Point2D<Au>) -> ClippingRegion {
+        ClippingRegion {
+            main: self.main.translate(delta),
+            complex: self.complex.iter().map(|complex| {
+                ComplexClippingRegion {
+                    rect: complex.rect.translate(delta),
+                    radii: complex.radii,
+                }
+            }).collect(),
         }
     }
 }
@@ -499,12 +637,13 @@ impl BaseDisplayItem {
 /// Metadata attached to each display item. This is useful for performing auxiliary tasks with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
-#[deriving(Clone)]
+#[deriving(Clone, Copy)]
 pub struct DisplayItemMetadata {
     /// The DOM node from which this display item originated.
     pub node: OpaqueNode,
-    /// The value of the `cursor` property when the mouse hovers over this display item.
-    pub cursor: Cursor,
+    /// The value of the `cursor` property when the mouse hovers over this display item. If `None`,
+    /// this display item is ineligible for pointer events (`pointer-events: none`).
+    pub pointing: Option<Cursor>,
 }
 
 impl DisplayItemMetadata {
@@ -517,9 +656,10 @@ impl DisplayItemMetadata {
                -> DisplayItemMetadata {
         DisplayItemMetadata {
             node: node,
-            cursor: match style.get_pointing().cursor {
-                AutoCursor => default_cursor,
-                SpecifiedCursor(cursor) => cursor,
+            pointing: match (style.get_pointing().pointer_events, style.get_pointing().cursor) {
+                (pointer_events::T::none, _) => None,
+                (pointer_events::T::auto, cursor::T::AutoCursor) => Some(default_cursor),
+                (pointer_events::T::auto, cursor::T::SpecifiedCursor(cursor)) => Some(cursor),
             },
         }
     }
@@ -610,12 +750,21 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[deriving(Clone, Default, Show)]
+#[deriving(Clone, Default, PartialEq, Show, Copy)]
 pub struct BorderRadii<T> {
-    pub top_left:     T,
-    pub top_right:    T,
+    pub top_left: T,
+    pub top_right: T,
     pub bottom_right: T,
-    pub bottom_left:  T,
+    pub bottom_left: T,
+}
+
+impl<T> BorderRadii<T> where T: PartialEq + Zero {
+    /// Returns true if all the radii are zero.
+    pub fn is_square(&self) -> bool {
+        let zero = Zero::zero();
+        self.top_left == zero && self.top_right == zero && self.bottom_right == zero &&
+            self.bottom_left == zero
+    }
 }
 
 /// Paints a line segment.
@@ -673,13 +822,12 @@ impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
 impl DisplayItem {
     /// Paints this display item into the given painting context.
     fn draw_into_context(&self, paint_context: &mut PaintContext) {
-        let this_clip_rect = self.base().clip_rect;
-        if paint_context.transient_clip_rect != Some(this_clip_rect) {
-            if paint_context.transient_clip_rect.is_some() {
-                paint_context.draw_pop_clip();
+        {
+            let this_clip = &self.base().clip;
+            match paint_context.transient_clip {
+                Some(ref transient_clip) if transient_clip == this_clip => {}
+                Some(_) | None => paint_context.push_transient_clip((*this_clip).clone()),
             }
-            paint_context.draw_push_clip(&this_clip_rect);
-            paint_context.transient_clip_rect = Some(this_clip_rect)
         }
 
         match *self {
@@ -693,6 +841,8 @@ impl DisplayItem {
             }
 
             DisplayItem::ImageClass(ref image_item) => {
+                // FIXME(pcwalton): This is a really inefficient way to draw a tiled image; use a
+                // brush instead.
                 debug!("Drawing image at {}.", image_item.base.bounds);
 
                 let mut y_offset = Au(0);
@@ -704,7 +854,7 @@ impl DisplayItem {
                         bounds.origin.y = bounds.origin.y + y_offset;
                         bounds.size = image_item.stretch_size;
 
-                        paint_context.draw_image(bounds, image_item.image.clone());
+                        paint_context.draw_image(&bounds, image_item.image.clone());
 
                         x_offset = x_offset + image_item.stretch_size.width;
                     }
@@ -715,23 +865,21 @@ impl DisplayItem {
 
             DisplayItem::BorderClass(ref border) => {
                 paint_context.draw_border(&border.base.bounds,
-                                           border.border_widths,
-                                           &border.radius,
-                                           border.color,
-                                           border.style)
+                                          &border.border_widths,
+                                          &border.radius,
+                                          &border.color,
+                                          &border.style)
             }
 
             DisplayItem::GradientClass(ref gradient) => {
                 paint_context.draw_linear_gradient(&gradient.base.bounds,
-                                                    &gradient.start_point,
-                                                    &gradient.end_point,
-                                                    gradient.stops.as_slice());
+                                                   &gradient.start_point,
+                                                   &gradient.end_point,
+                                                   gradient.stops.as_slice());
             }
 
             DisplayItem::LineClass(ref line) => {
-                paint_context.draw_line(&line.base.bounds,
-                                          line.color,
-                                          line.style)
+                paint_context.draw_line(&line.base.bounds, line.color, line.style)
             }
 
             DisplayItem::BoxShadowClass(ref box_shadow) => {

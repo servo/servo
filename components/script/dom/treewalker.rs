@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::callback::ExceptionHandling::RethrowExceptions;
+use dom::bindings::callback::ExceptionHandling::Rethrow;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding;
 use dom::bindings::codegen::Bindings::TreeWalkerBinding::TreeWalkerMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, OptionalRootable, Temporary, MutHeap};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::{Document, DocumentHelpers};
 use dom::node::{Node, NodeHelpers};
 
@@ -47,7 +47,7 @@ impl TreeWalker {
                            filter: Filter) -> Temporary<TreeWalker> {
         let window = document.window().root();
         reflect_dom_object(box TreeWalker::new_inherited(root_node, what_to_show, filter),
-                           GlobalRef::Window(*window),
+                           GlobalRef::Window(window.r()),
                            TreeWalkerBinding::Wrap)
     }
 
@@ -116,12 +116,6 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
 
     fn NextNode(self) -> Fallible<Option<Temporary<Node>>> {
         self.next_node()
-    }
-}
-
-impl Reflectable for TreeWalker {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
     }
 }
 
@@ -262,9 +256,9 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
                 // "5. If result is FILTER_REJECT or sibling is null,
                 //     then set sibling to node's next sibling if type is next,
                 //     and node's previous sibling if type is previous."
-                match (result, sibling_op) {
+                match (result, &sibling_op) {
                     (Ok(NodeFilterConstants::FILTER_REJECT), _)
-                    | (_, None) => sibling_op = next_sibling(node),
+                    | (_, &None) => sibling_op = next_sibling(node),
                     _ => {}
                 }
             }
@@ -331,7 +325,7 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
         match self.filter {
             Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
             Filter::Native(f) => Ok((f)(node)),
-            Filter::JS(callback) => callback.AcceptNode_(self, node, RethrowExceptions)
+            Filter::JS(callback) => callback.AcceptNode_(self, node, Rethrow)
         }
     }
 

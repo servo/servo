@@ -10,12 +10,12 @@ use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElemen
 use dom::bindings::codegen::InheritTypes::HTMLObjectElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::{Element, ElementTypeId};
+use dom::element::Element;
 use dom::element::AttributeHandlers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, NodeHelpers, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -34,14 +34,14 @@ pub struct HTMLObjectElement {
 
 impl HTMLObjectElementDerived for EventTarget {
     fn is_htmlobjectelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLObjectElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)))
     }
 }
 
 impl HTMLObjectElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLObjectElement {
         HTMLObjectElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLObjectElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLObjectElement, localName, prefix, document),
         }
     }
 
@@ -63,13 +63,13 @@ impl<'a> ProcessDataURL for JSRef<'a, HTMLObjectElement> {
         let elem: JSRef<Element> = ElementCast::from_ref(*self);
 
         // TODO: support other values
-        match (elem.get_attribute(ns!(""), &atom!("type")).map(|x| x.root().Value()),
-               elem.get_attribute(ns!(""), &atom!("data")).map(|x| x.root().Value())) {
+        match (elem.get_attribute(ns!(""), &atom!("type")).map(|x| x.root().r().Value()),
+               elem.get_attribute(ns!(""), &atom!("data")).map(|x| x.root().r().Value())) {
             (None, Some(uri)) => {
                 if is_image_data(uri.as_slice()) {
                     let data_url = Url::parse(uri.as_slice()).unwrap();
                     // Issue #84
-                    image_cache.send(image_cache_task::Prefetch(data_url));
+                    image_cache.send(image_cache_task::Msg::Prefetch(data_url));
                 }
             }
             _ => { }
@@ -85,7 +85,7 @@ pub fn is_image_data(uri: &str) -> bool {
 impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     fn Validity(self) -> Temporary<ValidityState> {
         let window = window_from_node(self).root();
-        ValidityState::new(*window)
+        ValidityState::new(window.r())
     }
 
     // https://html.spec.whatwg.org/multipage/embedded-content.html#dom-object-type
@@ -110,15 +110,10 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {
         match attr.local_name() {
             &atom!("data") => {
                 let window = window_from_node(*self).root();
-                self.process_data_url(window.image_cache_task().clone());
+                self.process_data_url(window.r().image_cache_task().clone());
             },
             _ => ()
         }
     }
 }
 
-impl Reflectable for HTMLObjectElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

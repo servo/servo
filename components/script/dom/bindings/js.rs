@@ -31,11 +31,11 @@
 //! Both `Temporary<T>` and `JS<T>` do not allow access to their inner value without explicitly
 //! creating a stack-based root via the `root` method. This returns a `Root<T>`, which causes
 //! the JS-owned value to be uncollectable for the duration of the `Root` object's lifetime.
-//! A `JSRef<T>` can be obtained from a `Root<T>` either by dereferencing the `Root<T>` (`*rooted`)
-//! or explicitly calling the `root_ref` method. These `JSRef<T>` values are not allowed to
-//! outlive their originating `Root<T>`, to ensure that all interactions with the enclosed value
-//! only occur when said value is uncollectable, and will cause static lifetime errors if
-//! misused.
+//! A `JSRef<T>` can be obtained from a `Root<T>` by calling the `r` method. (Dereferencing the
+//! object is still supported, but as it is unsafe, this is deprecated.) These `JSRef<T>` values
+//! are not allowed to outlive their originating `Root<T>`, to ensure that all interactions with
+//! the enclosed value only occur when said value is uncollectable, and will cause static lifetime
+//! errors if misused.
 //!
 //! Other miscellaneous helper traits:
 //!
@@ -48,12 +48,10 @@
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;
-use dom::xmlhttprequest::{XMLHttpRequest, TrustedXHRAddress};
-use dom::worker::{Worker, TrustedWorkerAddress};
 use js::jsapi::JSObject;
 use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
-use script_task::StackRoots;
+use script_task::STACK_ROOTS;
 
 use servo_util::smallvec::{SmallVec, SmallVec16};
 use std::cell::{Cell, UnsafeCell};
@@ -70,6 +68,15 @@ pub struct Temporary<T> {
     inner: JS<T>,
     /// On-stack JS pointer to assuage conservative stack scanner
     _js_ptr: *mut JSObject,
+}
+
+impl<T> Clone for Temporary<T> {
+    fn clone(&self) -> Temporary<T> {
+        Temporary {
+            inner: self.inner,
+            _js_ptr: self._js_ptr,
+        }
+    }
 }
 
 impl<T> PartialEq for Temporary<T> {
@@ -93,11 +100,13 @@ impl<T: Reflectable> Temporary<T> {
     }
 
     /// Create a stack-bounded root for this value.
-    pub fn root<'a, 'b>(self) -> Root<'a, 'b, T> {
-        let collection = StackRoots.get().unwrap();
-        unsafe {
-            Root::new(&**collection, &self.inner)
-        }
+    pub fn root(self) -> Root<T> {
+        STACK_ROOTS.with(|ref collection| {
+            let RootCollectionPtr(collection) = collection.get().unwrap();
+            unsafe {
+                Root::new(&*collection, &self.inner)
+            }
+        })
     }
 
     unsafe fn inner(&self) -> JS<T> {
@@ -115,6 +124,8 @@ impl<T: Reflectable> Temporary<T> {
 pub struct JS<T> {
     ptr: *const T
 }
+
+impl<T> Copy for JS<T> {}
 
 impl<T> PartialEq for JS<T> {
     #[allow(unrooted_must_root)]
@@ -142,24 +153,6 @@ impl JS<Node> {
     }
 }
 
-impl JS<XMLHttpRequest> {
-    pub unsafe fn from_trusted_xhr_address(inner: TrustedXHRAddress) -> JS<XMLHttpRequest> {
-        let TrustedXHRAddress(addr) = inner;
-        JS {
-            ptr: addr as *const XMLHttpRequest
-        }
-    }
-}
-
-impl JS<Worker> {
-    pub unsafe fn from_trusted_worker_address(inner: TrustedWorkerAddress) -> JS<Worker> {
-        let TrustedWorkerAddress(addr) = inner;
-        JS {
-            ptr: addr as *const Worker
-        }
-    }
-}
-
 impl<T: Reflectable> JS<T> {
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
     pub unsafe fn from_raw(raw: *const T) -> JS<T> {
@@ -170,11 +163,13 @@ impl<T: Reflectable> JS<T> {
 
 
     /// Root this JS-owned value to prevent its collection as garbage.
-    pub fn root<'a, 'b>(&self) -> Root<'a, 'b, T> {
-        let collection = StackRoots.get().unwrap();
-        unsafe {
-            Root::new(&**collection, self)
-        }
+    pub fn root(&self) -> Root<T> {
+        STACK_ROOTS.with(|ref collection| {
+            let RootCollectionPtr(collection) = collection.get().unwrap();
+            unsafe {
+                Root::new(&*collection, self)
+            }
+        })
     }
 }
 
@@ -290,7 +285,7 @@ impl<T: Reflectable> MutNullableJS<T> {
             Some(inner) => inner,
             None => {
                 let inner = cb();
-                self.assign(Some(inner));
+                self.assign(Some(inner.clone()));
                 inner
             },
         }
@@ -327,23 +322,23 @@ impl<From, To> JS<From> {
 
 /// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
-    fn root_ref<'a>(&'a self) -> Option<JSRef<'a, T>>;
+    fn r<'a>(&'a self) -> Option<JSRef<'a, T>>;
 }
 
-impl<'a, 'b, T: Reflectable> RootedReference<T> for Option<Root<'a, 'b, T>> {
-    fn root_ref<'a>(&'a self) -> Option<JSRef<'a, T>> {
-        self.as_ref().map(|root| root.root_ref())
+impl<T: Reflectable> RootedReference<T> for Option<Root<T>> {
+    fn r<'a>(&'a self) -> Option<JSRef<'a, T>> {
+        self.as_ref().map(|root| root.r())
     }
 }
 
 /// Get an `Option<Option<JSRef<T>>>` out of an `Option<Option<Root<T>>>`
 pub trait OptionalRootedReference<T> {
-    fn root_ref<'a>(&'a self) -> Option<Option<JSRef<'a, T>>>;
+    fn r<'a>(&'a self) -> Option<Option<JSRef<'a, T>>>;
 }
 
-impl<'a, 'b, T: Reflectable> OptionalRootedReference<T> for Option<Option<Root<'a, 'b, T>>> {
-    fn root_ref<'a>(&'a self) -> Option<Option<JSRef<'a, T>>> {
-        self.as_ref().map(|inner| inner.root_ref())
+impl<T: Reflectable> OptionalRootedReference<T> for Option<Option<Root<T>>> {
+    fn r<'a>(&'a self) -> Option<Option<JSRef<'a, T>>> {
+        self.as_ref().map(|inner| inner.r())
     }
 }
 
@@ -387,11 +382,11 @@ impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Cell<Option<JS<U>
 
 /// Root a rootable `Option` type (used for `Option<Temporary<T>>`)
 pub trait OptionalRootable<T> {
-    fn root<'a, 'b>(self) -> Option<Root<'a, 'b, T>>;
+    fn root(self) -> Option<Root<T>>;
 }
 
 impl<T: Reflectable> OptionalRootable<T> for Option<Temporary<T>> {
-    fn root<'a, 'b>(self) -> Option<Root<'a, 'b, T>> {
+    fn root(self) -> Option<Root<T>> {
         self.map(|inner| inner.root())
     }
 }
@@ -409,22 +404,22 @@ impl<'a, T: Reflectable> OptionalUnrootable<T> for Option<JSRef<'a, T>> {
 
 /// Root a rootable `Option` type (used for `Option<JS<T>>`)
 pub trait OptionalRootedRootable<T> {
-    fn root<'a, 'b>(&self) -> Option<Root<'a, 'b, T>>;
+    fn root(&self) -> Option<Root<T>>;
 }
 
 impl<T: Reflectable> OptionalRootedRootable<T> for Option<JS<T>> {
-    fn root<'a, 'b>(&self) -> Option<Root<'a, 'b, T>> {
+    fn root(&self) -> Option<Root<T>> {
         self.as_ref().map(|inner| inner.root())
     }
 }
 
 /// Root a rootable `Option<Option>` type (used for `Option<Option<JS<T>>>`)
 pub trait OptionalOptionalRootedRootable<T> {
-    fn root<'a, 'b>(&self) -> Option<Option<Root<'a, 'b, T>>>;
+    fn root(&self) -> Option<Option<Root<T>>>;
 }
 
 impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<JS<T>>> {
-    fn root<'a, 'b>(&self) -> Option<Option<Root<'a, 'b, T>>> {
+    fn root(&self) -> Option<Option<Root<T>>> {
         self.as_ref().map(|inner| inner.root())
     }
 }
@@ -432,17 +427,17 @@ impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<JS<T>>>
 
 /// Root a rootable `Result` type (any of `Temporary<T>` or `JS<T>`)
 pub trait ResultRootable<T,U> {
-    fn root<'a, 'b>(self) -> Result<Root<'a, 'b, T>, U>;
+    fn root(self) -> Result<Root<T>, U>;
 }
 
 impl<T: Reflectable, U> ResultRootable<T, U> for Result<Temporary<T>, U> {
-    fn root<'a, 'b>(self) -> Result<Root<'a, 'b, T>, U> {
+    fn root(self) -> Result<Root<T>, U> {
         self.map(|inner| inner.root())
     }
 }
 
 impl<T: Reflectable, U> ResultRootable<T, U> for Result<JS<T>, U> {
-    fn root<'a, 'b>(self) -> Result<Root<'a, 'b, T>, U> {
+    fn root(self) -> Result<Root<T>, U> {
         self.map(|inner| inner.root())
     }
 }
@@ -470,6 +465,10 @@ pub struct RootCollection {
     roots: UnsafeCell<SmallVec16<*mut JSObject>>,
 }
 
+pub struct RootCollectionPtr(pub *const RootCollection);
+
+impl Copy for RootCollectionPtr {}
+
 impl RootCollection {
     /// Create an empty collection of roots
     pub fn new() -> RootCollection {
@@ -479,7 +478,7 @@ impl RootCollection {
     }
 
     /// Track a stack-based root to ensure LIFO root ordering
-    fn root<'a, 'b, T: Reflectable>(&self, untracked: &Root<'a, 'b, T>) {
+    fn root<'b, T: Reflectable>(&self, untracked: &Root<T>) {
         unsafe {
             let roots = self.roots.get();
             (*roots).push(untracked.js_ptr);
@@ -488,7 +487,7 @@ impl RootCollection {
     }
 
     /// Stop tracking a stack-based root, asserting if LIFO root ordering has been violated
-    fn unroot<'a, 'b, T: Reflectable>(&self, rooted: &Root<'a, 'b, T>) {
+    fn unroot<'b, T: Reflectable>(&self, rooted: &Root<T>) {
         unsafe {
             let roots = self.roots.get();
             debug!("unrooting {} (expecting {}",
@@ -505,20 +504,20 @@ impl RootCollection {
 /// for the same JS value. `Root`s cannot outlive the associated `RootCollection` object.
 /// Attempts to transfer ownership of a `Root` via moving will trigger dynamic unrooting
 /// failures due to incorrect ordering.
-pub struct Root<'a, 'b, T> {
+pub struct Root<T> {
     /// List that ensures correct dynamic root ordering
-    root_list: &'a RootCollection,
+    root_list: &'static RootCollection,
     /// Reference to rooted value that must not outlive this container
-    jsref: JSRef<'b, T>,
+    jsref: JSRef<'static, T>,
     /// On-stack JS pointer to assuage conservative stack scanner
     js_ptr: *mut JSObject,
 }
 
-impl<'b, 'a: 'b, T: Reflectable> Root<'a, 'b, T> {
+impl<T: Reflectable> Root<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
     /// It cannot not outlive its associated `RootCollection`, and it contains a `JSRef`
     /// which cannot outlive this new `Root`.
-    fn new(roots: &'a RootCollection, unrooted: &JS<T>) -> Root<'a, 'b, T> {
+    fn new(roots: &'static RootCollection, unrooted: &JS<T>) -> Root<T> {
         let root = Root {
             root_list: roots,
             jsref: JSRef {
@@ -533,19 +532,22 @@ impl<'b, 'a: 'b, T: Reflectable> Root<'a, 'b, T> {
 
     /// Obtain a safe reference to the wrapped JS owned-value that cannot outlive
     /// the lifetime of this root.
-    pub fn root_ref<'b>(&'b self) -> JSRef<'b,T> {
-        self.jsref.clone()
+    pub fn r<'b>(&'b self) -> JSRef<'b, T> {
+        JSRef {
+            ptr: self.jsref.ptr,
+            chain: ContravariantLifetime,
+        }
     }
 }
 
 #[unsafe_destructor]
-impl<'b, 'a: 'b, T: Reflectable> Drop for Root<'a, 'b, T> {
+impl<T: Reflectable> Drop for Root<T> {
     fn drop(&mut self) {
         self.root_list.unroot(self);
     }
 }
 
-impl<'b, 'a: 'b, T: Reflectable> Deref<JSRef<'b, T>> for Root<'a, 'b, T> {
+impl<'b, T: Reflectable> Deref<JSRef<'b, T>> for Root<T> {
     fn deref<'c>(&'c self) -> &'c JSRef<'b, T> {
         &self.jsref
     }
@@ -564,6 +566,8 @@ pub struct JSRef<'a, T> {
     ptr: *const T,
     chain: ContravariantLifetime<'a>,
 }
+
+impl<'a, T> Copy for JSRef<'a, T> {}
 
 impl<'a, T> Clone for JSRef<'a, T> {
     fn clone(&self) -> JSRef<'a, T> {

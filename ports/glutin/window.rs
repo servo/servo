@@ -5,29 +5,24 @@
 //! A windowing implementation using glutin.
 
 use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
-use compositing::windowing::{WindowEvent, WindowMethods, KeyEvent};
-use compositing::windowing::{Idle, Resize};
-use compositing::windowing::{MouseWindowEventClass,  MouseWindowMoveEventClass, Scroll};
-use compositing::windowing::{Zoom, PinchZoom, Navigation};
-use compositing::windowing::{Quit, MouseWindowClickEvent};
-use compositing::windowing::{MouseWindowMouseDownEvent, MouseWindowMouseUpEvent};
-use compositing::windowing::{Forward, Back};
+use compositing::windowing::WindowNavigateMsg;
+use compositing::windowing::{MouseWindowEvent, WindowEvent, WindowMethods};
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use msg::constellation_msg;
-use msg::constellation_msg::{Key, CONTROL, SHIFT, ALT};
-use msg::compositor_msg::{IdlePaintState, PaintState, PaintingPaintState};
-use msg::compositor_msg::{FinishedLoading, Blank, Loading, PerformingLayout, ReadyState};
+use msg::constellation_msg::{Key, KeyState, CONTROL, SHIFT, ALT};
+use msg::compositor_msg::{PaintState, ReadyState};
 use msg::constellation_msg::LoadData;
 use std::cell::{Cell, RefCell};
 use std::num::Float;
 use std::rc::Rc;
 use time::{mod, Timespec};
 use util::geometry::ScreenPx;
-use util::opts::{RenderApi, Mesa, OpenGL};
+use util::opts;
+use util::opts::RenderApi;
 use gleam::gl;
 use glutin;
 use glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
@@ -38,6 +33,7 @@ use util::cursor::Cursor;
 use std::ptr;
 
 struct HeadlessContext {
+    #[allow(dead_code)]
     context: glutin::HeadlessContext,
     size: TypedSize2D<DevicePixel, uint>,
 }
@@ -47,8 +43,21 @@ enum WindowHandle {
     Headless(HeadlessContext),
 }
 
+static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
+
+fn nested_window_resize(width: uint, height: uint) {
+    unsafe {
+        match g_nested_event_loop_listener {
+            None => {}
+            Some(listener) => {
+                (*listener).handle_event_from_nested_event_loop(WindowEvent::Resize(TypedSize2D(width, height)));
+            }
+        }
+    }
+}
+
 bitflags!(
-    #[deriving(Show)]
+    #[deriving(Show, Copy)]
     flags KeyModifiers: u8 {
         const LEFT_CONTROL = 1,
         const RIGHT_CONTROL = 2,
@@ -106,8 +115,8 @@ impl Window {
         let window_size = size.to_untyped();
 
         let glutin = match render_api {
-            OpenGL => {
-                let glutin_window = glutin::WindowBuilder::new()
+            RenderApi::OpenGL => {
+                let mut glutin_window = glutin::WindowBuilder::new()
                                     .with_title("Servo [glutin]".to_string())
                                     .with_dimensions(window_size.width, window_size.height)
                                     .with_gl_version(gl_version())
@@ -116,9 +125,10 @@ impl Window {
                                     .unwrap();
                 unsafe { glutin_window.make_current() };
 
+                glutin_window.set_window_resize_callback(Some(nested_window_resize));
                 WindowHandle::Windowed(glutin_window)
             }
-            Mesa => {
+            RenderApi::Mesa => {
                 let headless_builder = glutin::HeadlessRendererBuilder::new(window_size.width,
                                                                             window_size.height);
                 let headless_context = headless_builder.build().unwrap();
@@ -140,8 +150,8 @@ impl Window {
             mouse_down_point: Cell::new(Point2D(0, 0)),
 
             mouse_pos: Cell::new(Point2D(0, 0)),
-            ready_state: Cell::new(Blank),
-            paint_state: Cell::new(IdlePaintState),
+            ready_state: Cell::new(ReadyState::Blank),
+            paint_state: Cell::new(PaintState::Idle),
             key_modifiers: Cell::new(KeyModifiers::empty()),
 
             last_title_set_time: Cell::new(Timespec::new(0, 0)),
@@ -160,7 +170,11 @@ impl WindowMethods for Window {
     /// Returns the size of the window in hardware pixels.
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
         let (width, height) = match self.glutin {
-            WindowHandle::Windowed(ref window) => window.get_inner_size(),
+            WindowHandle::Windowed(ref window) => {
+                let scale_factor = window.hidpi_factor() as uint;
+                let (width, height) = window.get_inner_size().unwrap();
+                Some((width * scale_factor, height * scale_factor))
+            }
             WindowHandle::Headless(ref context) => Some((context.size.to_untyped().width,
                                                         context.size.to_untyped().height)),
         }.unwrap();
@@ -186,11 +200,23 @@ impl WindowMethods for Window {
         }
     }
 
-    fn create_compositor_channel(_: &Option<Rc<Window>>)
+    fn create_compositor_channel(window: &Option<Rc<Window>>)
                                  -> (Box<CompositorProxy+Send>, Box<CompositorReceiver>) {
         let (sender, receiver) = channel();
+
+        let window_proxy = match window {
+            &Some(ref window) => {
+                match window.glutin {
+                    WindowHandle::Windowed(ref window) => Some(window.create_window_proxy()),
+                    WindowHandle::Headless(_) => None,
+                }
+            }
+            &None => None,
+        };
+
         (box GlutinCompositorProxy {
              sender: sender,
+             window_proxy: window_proxy,
          } as Box<CompositorProxy+Send>,
          box receiver as Box<CompositorReceiver>)
     }
@@ -208,8 +234,10 @@ impl WindowMethods for Window {
     }
 
     fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
-        // TODO - handle hidpi
-        ScaleFactor(1.0)
+        match self.glutin {
+            WindowHandle::Windowed(ref window) => ScaleFactor(window.hidpi_factor()),
+            WindowHandle::Headless(_) => ScaleFactor(1.0),
+        }
     }
 
     fn set_page_title(&self, _: Option<String>) {
@@ -272,16 +300,16 @@ impl WindowMethods for Window {
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
         match key {
             Key::Equal if mods.contains(CONTROL) => { // Ctrl-+
-                self.event_queue.borrow_mut().push(Zoom(1.1));
+                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.1));
             }
             Key::Minus if mods.contains(CONTROL) => { // Ctrl--
-                self.event_queue.borrow_mut().push(Zoom(1.0/1.1));
+                self.event_queue.borrow_mut().push(WindowEvent::Zoom(1.0/1.1));
             }
             Key::Backspace if mods.contains(SHIFT) => { // Shift-Backspace
-                self.event_queue.borrow_mut().push(Navigation(Forward));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
             Key::Backspace => { // Backspace
-                self.event_queue.borrow_mut().push(Navigation(Back));
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
             Key::PageDown => {
                 self.scroll_window(0.0, -self.framebuffer_size().as_f32().to_untyped().height);
@@ -306,21 +334,21 @@ impl Window {
                 self.last_title_set_time.set(now);
 
                 match self.ready_state.get() {
-                    Blank => {
+                    ReadyState::Blank => {
                         window.set_title("blank - Servo [glutin]")
                     }
-                    Loading => {
+                    ReadyState::Loading => {
                         window.set_title("Loading - Servo [glutin]")
                     }
-                    PerformingLayout => {
+                    ReadyState::PerformingLayout => {
                         window.set_title("Performing Layout - Servo [glutin]")
                     }
-                    FinishedLoading => {
+                    ReadyState::FinishedLoading => {
                         match self.paint_state.get() {
-                            PaintingPaintState => {
+                            PaintState::Painting => {
                                 window.set_title("Rendering - Servo [glutin]")
                             }
-                            IdlePaintState => {
+                            PaintState::Idle => {
                                 window.set_title("Servo [glutin]")
                             }
                         }
@@ -377,9 +405,9 @@ impl Window {
                         (ElementState::Pressed, key_code) => {
                             match glutin_key_to_script_key(key_code) {
                                 Ok(key) => {
-                                    let state = constellation_msg::Pressed;
+                                    let state = KeyState::Pressed;
                                     let modifiers = glutin_mods_to_script_mods(self.key_modifiers.get());
-                                    self.event_queue.borrow_mut().push(KeyEvent(key, state, modifiers));
+                                    self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
                                 }
                                 _ => {}
                             }
@@ -389,7 +417,7 @@ impl Window {
                 }
             }
             Event::Resized(width, height) => {
-                self.event_queue.borrow_mut().push(Resize(TypedSize2D(width, height)));
+                self.event_queue.borrow_mut().push(WindowEvent::Resize(TypedSize2D(width, height)));
             }
             Event::MouseInput(element_state, mouse_button) => {
                 if mouse_button == MouseButton::LeftMouseButton ||
@@ -401,15 +429,15 @@ impl Window {
             Event::MouseMoved((x, y)) => {
                 self.mouse_pos.set(Point2D(x, y));
                 self.event_queue.borrow_mut().push(
-                    MouseWindowMoveEventClass(TypedPoint2D(x as f32, y as f32)));
+                    WindowEvent::MouseWindowMoveEventClass(TypedPoint2D(x as f32, y as f32)));
             }
             Event::MouseWheel(delta) => {
                 if self.ctrl_pressed() {
                     // Ctrl-Scrollwheel simulates a "pinch zoom" gesture.
                     if delta < 0 {
-                        self.event_queue.borrow_mut().push(PinchZoom(1.0/1.1));
+                        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.0/1.1));
                     } else if delta > 0 {
-                        self.event_queue.borrow_mut().push(PinchZoom(1.1));
+                        self.event_queue.borrow_mut().push(WindowEvent::PinchZoom(1.1));
                     }
                 } else {
                     let dx = 0.0;
@@ -437,8 +465,8 @@ impl Window {
     /// Helper function to send a scroll event.
     fn scroll_window(&self, dx: f32, dy: f32) {
         let mouse_pos = self.mouse_pos.get();
-        let event = Scroll(TypedPoint2D(dx as f32, dy as f32),
-                           TypedPoint2D(mouse_pos.x as i32, mouse_pos.y as i32));
+        let event = WindowEvent::Scroll(TypedPoint2D(dx as f32, dy as f32),
+                                 TypedPoint2D(mouse_pos.x as i32, mouse_pos.y as i32));
         self.event_queue.borrow_mut().push(event);
     }
 
@@ -450,7 +478,7 @@ impl Window {
             ElementState::Pressed => {
                 self.mouse_down_point.set(Point2D(x, y));
                 self.mouse_down_button.set(Some(button));
-                MouseWindowMouseDownEvent(0, TypedPoint2D(x as f32, y as f32))
+                MouseWindowEvent::MouseDown(0, TypedPoint2D(x as f32, y as f32))
             }
             ElementState::Released => {
                 match self.mouse_down_button.get() {
@@ -460,36 +488,27 @@ impl Window {
                         let pixel_dist = ((pixel_dist.x * pixel_dist.x +
                                            pixel_dist.y * pixel_dist.y) as f64).sqrt();
                         if pixel_dist < max_pixel_dist {
-                            let click_event = MouseWindowClickEvent(0,
-                                                                    TypedPoint2D(x as f32,
-                                                                                 y as f32));
-                            self.event_queue.borrow_mut().push(MouseWindowEventClass(click_event));
+                            let click_event = MouseWindowEvent::Click(
+                                0, TypedPoint2D(x as f32, y as f32));
+                            self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(click_event));
                         }
                     }
                     Some(_) => (),
                 }
-                MouseWindowMouseUpEvent(0, TypedPoint2D(x as f32, y as f32))
+                MouseWindowEvent::MouseUp(0, TypedPoint2D(x as f32, y as f32))
             }
         };
-        self.event_queue.borrow_mut().push(MouseWindowEventClass(event));
+        self.event_queue.borrow_mut().push(WindowEvent::MouseWindowEventClass(event));
     }
 
     pub unsafe fn set_nested_event_loop_listener(
             &self,
-            _listener: *mut NestedEventLoopListener + 'static) {
-        // TODO: Support this with glutin
-        //self.glfw_window.set_refresh_polling(false);
-        //glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.ptr, Some(on_refresh));
-        //glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.ptr, Some(on_framebuffer_size));
-        //g_nested_event_loop_listener = Some(listener)
+            listener: *mut (NestedEventLoopListener + 'static)) {
+        g_nested_event_loop_listener = Some(listener)
     }
 
     pub unsafe fn remove_nested_event_loop_listener(&self) {
-        // TODO: Support this with glutin
-        //glfw::ffi::glfwSetWindowRefreshCallback(self.glfw_window.ptr, None);
-        //glfw::ffi::glfwSetFramebufferSizeCallback(self.glfw_window.ptr, None);
-        //self.glfw_window.set_refresh_polling(true);
-        //g_nested_event_loop_listener = None
+        g_nested_event_loop_listener = None
     }
 
     pub fn wait_events(&self) -> WindowEvent {
@@ -503,21 +522,34 @@ impl Window {
         match self.glutin {
             WindowHandle::Windowed(ref window) => {
                 let mut close_event = false;
-                for event in window.wait_events() {
-                    close_event = self.handle_window_event(event);
-                    if close_event {
-                        break;
+
+                // When writing to a file then exiting, use event
+                // polling so that we don't block on a GUI event
+                // such as mouse click.
+                if opts::get().output_file.is_some() {
+                    for event in window.poll_events() {
+                        close_event = self.handle_window_event(event);
+                        if close_event {
+                            break;
+                        }
+                    }
+                } else {
+                    for event in window.wait_events() {
+                        close_event = self.handle_window_event(event);
+                        if close_event {
+                            break;
+                        }
                     }
                 }
 
                 if close_event || window.is_closed() {
-                    Quit
+                    WindowEvent::Quit
                 } else {
-                    self.event_queue.borrow_mut().remove(0).unwrap_or(Idle)
+                    self.event_queue.borrow_mut().remove(0).unwrap_or(WindowEvent::Idle)
                 }
             }
             WindowHandle::Headless(_) => {
-                self.event_queue.borrow_mut().remove(0).unwrap_or(Idle)
+                self.event_queue.borrow_mut().remove(0).unwrap_or(WindowEvent::Idle)
             }
         }
     }
@@ -525,18 +557,22 @@ impl Window {
 
 struct GlutinCompositorProxy {
     sender: Sender<compositor_task::Msg>,
+    window_proxy: Option<glutin::WindowProxy>,
 }
 
 impl CompositorProxy for GlutinCompositorProxy {
     fn send(&mut self, msg: compositor_task::Msg) {
         // Send a message and kick the OS event loop awake.
         self.sender.send(msg);
-        // TODO: Support this with glutin
-        //glfw::Glfw::post_empty_event()
+        match self.window_proxy {
+            Some(ref window_proxy) => window_proxy.wakeup_event_loop(),
+            None => {}
+        }
     }
     fn clone_compositor_proxy(&self) -> Box<CompositorProxy+Send> {
         box GlutinCompositorProxy {
             sender: self.sender.clone(),
+            window_proxy: self.window_proxy.clone(),
         } as Box<CompositorProxy+Send>
     }
 }

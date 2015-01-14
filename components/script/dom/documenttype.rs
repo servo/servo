@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::DocumentTypeBinding;
 use dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
 use dom::bindings::codegen::InheritTypes::{DocumentTypeDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
@@ -36,8 +35,8 @@ impl DocumentType {
         DocumentType {
             node: Node::new_inherited(NodeTypeId::DocumentType, document),
             name: name,
-            public_id: public_id.unwrap_or("".to_string()),
-            system_id: system_id.unwrap_or("".to_string())
+            public_id: public_id.unwrap_or("".into_string()),
+            system_id: system_id.unwrap_or("".into_string())
         }
     }
     #[allow(unrooted_must_root)]
@@ -89,8 +88,3 @@ impl<'a> DocumentTypeMethods for JSRef<'a, DocumentType> {
     }
 }
 
-impl Reflectable for DocumentType {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-}

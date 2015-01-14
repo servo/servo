@@ -13,7 +13,14 @@ use std::cmp::{min, max};
 use std::default::Default;
 use std::num::SignedInt;
 
+#[deriving(Copy, PartialEq)]
+enum Selection {
+    Selected,
+    NotSelected
+}
+
 #[jstraceable]
+#[deriving(Copy)]
 struct TextPoint {
     /// 0-based line number
     line: uint,
@@ -64,6 +71,19 @@ enum DeleteDir {
     Backward
 }
 
+
+/// Was the keyboard event accompanied by the standard control modifier,
+/// i.e. cmd on Mac OS or ctrl on other platforms.
+#[cfg(target_os="macos")]
+fn is_control_key(event: JSRef<KeyboardEvent>) -> bool {
+    event.MetaKey() && !event.CtrlKey() && !event.AltKey()
+}
+
+#[cfg(not(target_os="macos"))]
+fn is_control_key(event: JSRef<KeyboardEvent>) -> bool {
+    event.CtrlKey() && !event.MetaKey() && !event.AltKey()
+}
+
 impl TextInput {
     /// Instantiate a new text input control
     pub fn new(lines: Lines, initial: DOMString) -> TextInput {
@@ -84,9 +104,9 @@ impl TextInput {
                 1
             } else {
                 -1
-            }, true);
+            }, Selection::Selected);
         }
-        self.replace_selection("".to_string());
+        self.replace_selection("".into_string());
     }
 
     /// Insert a character at the current editing point
@@ -119,12 +139,12 @@ impl TextInput {
             let lines_suffix = self.lines.slice(end.line + 1, self.lines.len());
 
             let mut insert_lines = if self.multiline {
-                insert.as_slice().split('\n').map(|s| s.to_string()).collect()
+                insert.as_slice().split('\n').map(|s| s.into_string()).collect()
             } else {
                 vec!(insert)
             };
 
-            let mut new_line = prefix.to_string();
+            let mut new_line = prefix.into_string();
             new_line.push_str(insert_lines[0].as_slice());
             insert_lines[0] = new_line;
 
@@ -151,12 +171,12 @@ impl TextInput {
 
     /// Adjust the editing point position by a given of lines. The resulting column is
     /// as close to the original column position as possible.
-    fn adjust_vertical(&mut self, adjust: int, select: bool) {
+    fn adjust_vertical(&mut self, adjust: int, select: Selection) {
         if !self.multiline {
             return;
         }
 
-        if select {
+        if select == Selection::Selected {
             if self.selection_begin.is_none() {
                 self.selection_begin = Some(self.edit_point);
             }
@@ -185,8 +205,8 @@ impl TextInput {
     /// Adjust the editing point position by a given number of columns. If the adjustment
     /// requested is larger than is available in the current line, the editing point is
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
-    fn adjust_horizontal(&mut self, adjust: int, select: bool) {
-        if select {
+    fn adjust_horizontal(&mut self, adjust: int, select: Selection) {
+        if select == Selection::Selected {
             if self.selection_begin.is_none() {
                 self.selection_begin = Some(self.edit_point);
             }
@@ -231,9 +251,31 @@ impl TextInput {
         return KeyReaction::DispatchInput;
     }
 
+    /// Select all text in the input control.
+    fn select_all(&mut self) {
+        self.selection_begin = Some(TextPoint {
+            line: 0,
+            index: 0,
+        });
+        let last_line = self.lines.len() - 1;
+        self.edit_point.line = last_line;
+        self.edit_point.index = self.lines[last_line].char_len();
+    }
+
     /// Process a given `KeyboardEvent` and return an action for the caller to execute.
     pub fn handle_keydown(&mut self, event: JSRef<KeyboardEvent>) -> KeyReaction {
+        //A simple way to convert an event to a selection
+        fn maybe_select(event: JSRef<KeyboardEvent>) -> Selection {
+            if event.ShiftKey() {
+                return Selection::Selected
+            }
+            return Selection::NotSelected
+        }
         match event.Key().as_slice() {
+           "a" if is_control_key(event) => {
+                self.select_all();
+                KeyReaction::Nothing
+            },
             // printable characters have single-character key values
             c if c.len() == 1 => {
                 self.insert_char(c.char_at(0));
@@ -252,19 +294,19 @@ impl TextInput {
                 KeyReaction::DispatchInput
             }
             "ArrowLeft" => {
-                self.adjust_horizontal(-1, event.ShiftKey());
+                self.adjust_horizontal(-1, maybe_select(event));
                 KeyReaction::Nothing
             }
             "ArrowRight" => {
-                self.adjust_horizontal(1, event.ShiftKey());
+                self.adjust_horizontal(1, maybe_select(event));
                 KeyReaction::Nothing
             }
             "ArrowUp" => {
-                self.adjust_vertical(-1, event.ShiftKey());
+                self.adjust_vertical(-1, maybe_select(event));
                 KeyReaction::Nothing
             }
             "ArrowDown" => {
-                self.adjust_vertical(1, event.ShiftKey());
+                self.adjust_vertical(1, maybe_select(event));
                 KeyReaction::Nothing
             }
             "Enter" => self.handle_return(),
@@ -277,11 +319,11 @@ impl TextInput {
                 KeyReaction::Nothing
             }
             "PageUp" => {
-                self.adjust_vertical(-28, event.ShiftKey());
+                self.adjust_vertical(-28, maybe_select(event));
                 KeyReaction::Nothing
             }
             "PageDown" => {
-                self.adjust_vertical(28, event.ShiftKey());
+                self.adjust_vertical(28, maybe_select(event));
                 KeyReaction::Nothing
             }
             "Tab" => KeyReaction::TriggerDefaultAction,
@@ -291,7 +333,7 @@ impl TextInput {
 
     /// Get the current contents of the text input. Multiple lines are joined by \n.
     pub fn get_content(&self) -> DOMString {
-        let mut content = "".to_string();
+        let mut content = "".into_string();
         for (i, line) in self.lines.iter().enumerate() {
             content.push_str(line.as_slice());
             if i < self.lines.len() - 1 {
@@ -305,7 +347,7 @@ impl TextInput {
     /// any \n encountered will be stripped and force a new logical line.
     pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
-            content.as_slice().split('\n').map(|s| s.to_string()).collect()
+            content.as_slice().split('\n').map(|s| s.into_string()).collect()
         } else {
             vec!(content)
         };

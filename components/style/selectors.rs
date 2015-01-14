@@ -4,9 +4,10 @@
 
 use std::{cmp, iter};
 use std::ascii::{AsciiExt, OwnedAsciiExt};
-use sync::Arc;
+use std::sync::Arc;
 
 use cssparser::ast::*;
+use cssparser::ast::ComponentValue::*;
 use cssparser::{tokenize, parse_nth};
 
 use selector_matching::StylesheetOrigin;
@@ -15,6 +16,7 @@ use string_cache::{Atom, Namespace};
 use namespaces::NamespaceMap;
 
 /// Ambient data used by the parser.
+#[deriving(Copy)]
 pub struct ParserContext {
     /// The origin of this stylesheet.
     pub origin: StylesheetOrigin,
@@ -27,7 +29,7 @@ pub struct Selector {
     pub specificity: u32,
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Copy)]
 pub enum PseudoElement {
     Before,
     After,
@@ -42,7 +44,7 @@ pub struct CompoundSelector {
     pub next: Option<(Box<CompoundSelector>, Combinator)>,  // c.next is left of c
 }
 
-#[deriving(PartialEq, Clone)]
+#[deriving(PartialEq, Clone, Copy)]
 pub enum Combinator {
     Child,  //  >
     Descendant,  // space
@@ -92,7 +94,7 @@ pub enum SimpleSelector {
 }
 
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Copy)]
 pub enum CaseSensitivity {
     CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
     CaseInsensitive,
@@ -666,7 +668,7 @@ fn skip_whitespace<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use sync::Arc;
+    use std::sync::Arc;
     use cssparser;
     use namespaces::NamespaceMap;
     use selector_matching::StylesheetOrigin;

@@ -10,7 +10,7 @@ use construct::ConstructionResult;
 use context::SharedLayoutContext;
 use flow::{mod, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
-use fragment::{Fragment, FragmentBoundsIterator};
+use fragment::{Fragment, FragmentBorderBoxIterator};
 use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
 use layout_debug;
 use parallel::{mod, UnsafeFlow};
@@ -25,45 +25,48 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::color;
-use gfx::display_list::{DisplayItemMetadata, DisplayList, OpaqueNode, StackingContext};
+use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, OpaqueNode};
+use gfx::display_list::{StackingContext};
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::{mod, PaintInitMsg, PaintChan, PaintLayer};
-use layout_traits;
+use gfx::paint_task::{PaintChan, PaintLayer};
+use gfx::paint_task::Msg as PaintMsg;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
 use script::dom::bindings::js::JS;
 use script::dom::node::{LayoutDataRef, Node, NodeTypeId};
 use script::dom::element::ElementTypeId;
+use script::dom::htmlelement::HTMLElementTypeId;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse};
-use script::layout_interface::{ContentBoxesQuery, ContentBoxQuery};
+use script::layout_interface::ReflowQueryType;
 use script::layout_interface::{HitTestResponse, LayoutChan, LayoutRPC};
-use script::layout_interface::{MouseOverResponse, Msg, NoQuery};
+use script::layout_interface::{MouseOverResponse, Msg};
 use script::layout_interface::{Reflow, ReflowGoal, ScriptLayoutChan, TrustedNodeAddress};
-use script_traits::{SendEventMsg, ReflowEvent, ReflowCompleteMsg, OpaqueScriptLayoutChannel};
+use script_traits::{ConstellationControlMsg, CompositorEvent, OpaqueScriptLayoutChannel};
 use script_traits::{ScriptControlChan, UntrustedNodeAddress};
-use servo_msg::compositor_msg::Scrollable;
-use servo_msg::constellation_msg::{ConstellationChan, PipelineId, Failure, FailureMsg};
-use servo_msg::constellation_msg::{SetCursorMsg};
+use servo_msg::compositor_msg::ScrollPolicy;
+use servo_msg::constellation_msg::Msg as ConstellationMsg;
+use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineExitType, PipelineId};
 use servo_net::image_cache_task::{ImageCacheTask, ImageResponseMsg};
 use servo_net::local_image_cache::{ImageResponder, LocalImageCache};
 use servo_net::resource_task::{ResourceTask, load_bytes_iter};
-use servo_util::cursor::DefaultCursor;
+use servo_util::cursor::Cursor;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalPoint;
 use servo_util::opts;
 use servo_util::smallvec::{SmallVec, SmallVec1, VecLike};
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
-use servo_util::time::{mod, ProfilerMetadata, TimeProfilerChan, TimerMetadataFrameType};
-use servo_util::time::{TimerMetadataReflowType, profile};
+use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan};
+use servo_util::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile};
 use servo_util::workqueue::WorkQueue;
 use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
+use style::computed_values::{filter, mix_blend_mode};
 use style::{StylesheetOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
 use style::{MediaType, Device};
-use sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 use url::Url;
 
 /// Mutable data belonging to the LayoutTask.
@@ -158,7 +161,8 @@ impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
                 debug!("Dirtying {:x}", node_address as uint);
                 let mut nodes = SmallVec1::new();
                 nodes.vec_push(node_address);
-                drop(chan.send_opt(SendEventMsg(id.clone(), ReflowEvent(nodes))))
+                drop(chan.send_opt(ConstellationControlMsg::SendEvent(
+                    id.clone(), CompositorEvent::ReflowEvent(nodes))))
             };
         f
     }
@@ -199,7 +203,7 @@ impl LayoutTaskFactory for LayoutTask {
                 layout.start();
             }
             shutdown_chan.send(());
-        }, FailureMsg(failure_msg), con_chan, false);
+        }, ConstellationMsg::Failure(failure_msg), con_chan);
     }
 }
 
@@ -343,8 +347,8 @@ impl LayoutTask {
         match port_to_read {
             PortToRead::Pipeline => {
                 match self.pipeline_port.recv() {
-                    layout_traits::ExitNowMsg => {
-                        self.handle_script_request(Msg::ExitNow, possibly_locked_rw_data)
+                    LayoutControlMsg::ExitNowMsg(exit_type) => {
+                        self.handle_script_request(Msg::ExitNow(exit_type), possibly_locked_rw_data)
                     }
                 }
             },
@@ -396,7 +400,7 @@ impl LayoutTask {
                                    Box<LayoutRPC + Send>);
             },
             Msg::Reflow(data) => {
-                profile(time::LayoutPerformCategory,
+                profile(TimeProfilerCategory::LayoutPerform,
                         self.profiler_metadata(&*data),
                         self.time_profiler_chan.clone(),
                         || self.handle_reflow(&*data, possibly_locked_rw_data));
@@ -411,9 +415,9 @@ impl LayoutTask {
                 self.prepare_to_exit(response_chan, possibly_locked_rw_data);
                 return false
             },
-            Msg::ExitNow => {
+            Msg::ExitNow(exit_type) => {
                 debug!("layout: ExitNowMsg received");
-                self.exit_now(possibly_locked_rw_data);
+                self.exit_now(possibly_locked_rw_data, exit_type);
                 return false
             }
         }
@@ -435,9 +439,9 @@ impl LayoutTask {
                         LayoutTask::handle_reap_layout_data(dead_layout_data)
                     }
                 }
-                Msg::ExitNow => {
+                Msg::ExitNow(exit_type) => {
                     debug!("layout task is exiting...");
-                    self.exit_now(possibly_locked_rw_data);
+                    self.exit_now(possibly_locked_rw_data, exit_type);
                     break
                 }
                 _ => {
@@ -450,7 +454,9 @@ impl LayoutTask {
 
     /// Shuts down the layout task now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
-    fn exit_now<'a>(&'a self, possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
+    fn exit_now<'a>(&'a self,
+                    possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>,
+                    exit_type: PipelineExitType) {
         let (response_chan, response_port) = channel();
 
         {
@@ -462,7 +468,7 @@ impl LayoutTask {
             LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
         }
 
-        self.paint_chan.send(paint_task::ExitMsg(Some(response_chan)));
+        self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
         response_port.recv()
     }
 
@@ -493,7 +499,7 @@ impl LayoutTask {
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
         iter_font_face_rules(&sheet, &rw_data.stylist.device, |family, src| {
-            self.font_cache_task.add_web_font(family.to_string(), (*src).clone());
+            self.font_cache_task.add_web_font(family.into_string(), (*src).clone());
         });
         rw_data.stylist.add_stylesheet(sheet);
         LayoutTask::return_rw_data(possibly_locked_rw_data, rw_data);
@@ -599,8 +605,8 @@ impl LayoutTask {
         // FIXME(pcwalton): This has not been updated to handle the stacking context relative
         // stuff. So the position is wrong in most cases.
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
-        let mut iterator = UnioningFragmentBoundsIterator::new(requested_node);
-        sequential::iterate_through_flow_tree_fragment_bounds(layout_root, &mut iterator);
+        let mut iterator = UnioningFragmentBorderBoxIterator::new(requested_node);
+        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
         rw_data.content_box_response = iterator.rect;
     }
 
@@ -611,8 +617,8 @@ impl LayoutTask {
         // FIXME(pcwalton): This has not been updated to handle the stacking context relative
         // stuff. So the position is wrong in most cases.
         let requested_node: OpaqueNode = OpaqueNodeMethods::from_script_node(requested_node);
-        let mut iterator = CollectingFragmentBoundsIterator::new(requested_node);
-        sequential::iterate_through_flow_tree_fragment_bounds(layout_root, &mut iterator);
+        let mut iterator = CollectingFragmentBorderBoxIterator::new(requested_node);
+        sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
         rw_data.content_boxes_response = iterator.rects;
     }
 
@@ -623,7 +629,7 @@ impl LayoutTask {
                                          shared_layout_context: &mut SharedLayoutContext,
                                          rw_data: &mut RWGuard<'a>) {
         let writing_mode = flow::base(&**layout_root).writing_mode;
-        profile(time::LayoutDispListBuildCategory,
+        profile(TimeProfilerCategory::LayoutDispListBuild,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -634,7 +640,8 @@ impl LayoutTask {
                 LogicalPoint::zero(writing_mode).to_physical(writing_mode,
                                                              rw_data.screen_size);
 
-            flow::mut_base(&mut **layout_root).clip_rect = data.page_clip_rect;
+            flow::mut_base(&mut **layout_root).clip =
+                ClippingRegion::from_rect(&data.page_clip_rect);
 
             let rw_data = rw_data.deref_mut();
             match rw_data.parallel_traversal {
@@ -656,8 +663,8 @@ impl LayoutTask {
             // it with extreme prejudice.
             let mut color = color::rgba(1.0, 1.0, 1.0, 1.0);
             for child in node.traverse_preorder() {
-                if child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLHtmlElement)) ||
-                        child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLBodyElement)) {
+                if child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHtmlElement))) ||
+                        child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement))) {
                     let element_bg_color = {
                         let thread_safe_child = ThreadSafeLayoutNode::new(&child);
                         thread_safe_child.style()
@@ -683,20 +690,22 @@ impl LayoutTask {
             flow::mut_base(layout_root.deref_mut()).display_list_building_result
                                                    .add_to(&mut *display_list);
             let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
-                                                         color,
-                                                         Scrollable));
+                                                       color,
+                                                       ScrollPolicy::Scrollable));
             let origin = Rect(Point2D(Au(0), Au(0)), root_size);
             let stacking_context = Arc::new(StackingContext::new(display_list,
-                                                                 origin,
+                                                                 &origin,
+                                                                 &origin,
                                                                  0,
-                                                                 1.0,
+                                                                 filter::T::new(Vec::new()),
+                                                                 mix_blend_mode::T::normal,
                                                                  Some(paint_layer)));
 
             rw_data.stacking_context = Some(stacking_context.clone());
 
             debug!("Layout done!");
 
-            self.paint_chan.send(PaintInitMsg(stacking_context));
+            self.paint_chan.send(PaintMsg::PaintInit(stacking_context));
         });
     }
 
@@ -714,7 +723,7 @@ impl LayoutTask {
             mem::transmute(&mut node)
         };
 
-        debug!("layout: received layout request for: {:s}", data.url.serialize());
+        debug!("layout: received layout request for: {}", data.url.serialize());
         debug!("layout: parsed Node tree");
         if log_enabled!(log::DEBUG) {
             node.dump();
@@ -766,7 +775,7 @@ impl LayoutTask {
                 |mut flow| LayoutTask::reflow_all_nodes(flow.deref_mut()));
         }
 
-        let mut layout_root = profile(time::LayoutStyleRecalcCategory,
+        let mut layout_root = profile(TimeProfilerCategory::LayoutStyleRecalc,
                                       self.profiler_metadata(data),
                                       self.time_profiler_chan.clone(),
                                       || {
@@ -784,7 +793,7 @@ impl LayoutTask {
             self.get_layout_root((*node).clone())
         });
 
-        profile(time::LayoutRestyleDamagePropagation,
+        profile(TimeProfilerCategory::LayoutRestyleDamagePropagation,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -806,7 +815,7 @@ impl LayoutTask {
 
         // Perform the primary layout passes over the flow tree to compute the locations of all
         // the boxes.
-        profile(time::LayoutMainCategory,
+        profile(TimeProfilerCategory::LayoutMain,
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
@@ -839,13 +848,13 @@ impl LayoutTask {
         }
 
         match data.query_type {
-            ContentBoxQuery(node) => {
+            ReflowQueryType::ContentBoxQuery(node) => {
                 self.process_content_box_request(node, &mut layout_root, &mut rw_data)
             }
-            ContentBoxesQuery(node) => {
+            ReflowQueryType::ContentBoxesQuery(node) => {
                 self.process_content_boxes_request(node, &mut layout_root, &mut rw_data)
             }
-            NoQuery => {}
+            ReflowQueryType::NoQuery => {}
         }
 
         self.first_reflow.set(false);
@@ -866,7 +875,7 @@ impl LayoutTask {
         // either select or a filtered recv() that only looks for messages of a given type.
         data.script_join_chan.send(());
         let ScriptControlChan(ref chan) = data.script_chan;
-        chan.send(ReflowCompleteMsg(self.id, data.id));
+        chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id));
     }
 
     unsafe fn dirty_all_nodes(node: &mut LayoutNode) {
@@ -990,12 +999,12 @@ impl LayoutRPC for LayoutRPCImpl {
 
             // Compute the new cursor.
             let cursor = if !mouse_over_list.is_empty() {
-                mouse_over_list[0].cursor
+                mouse_over_list[0].pointing.unwrap()
             } else {
-                DefaultCursor
+                Cursor::DefaultCursor
             };
             let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-            constellation_chan.send(SetCursorMsg(cursor));
+            constellation_chan.send(ConstellationMsg::SetCursor(cursor));
         }
 
         if mouse_over_list.is_empty() {
@@ -1010,26 +1019,26 @@ impl LayoutRPC for LayoutRPCImpl {
     }
 }
 
-struct UnioningFragmentBoundsIterator {
+struct UnioningFragmentBorderBoxIterator {
     node_address: OpaqueNode,
     rect: Rect<Au>,
 }
 
-impl UnioningFragmentBoundsIterator {
-    fn new(node_address: OpaqueNode) -> UnioningFragmentBoundsIterator {
-        UnioningFragmentBoundsIterator {
+impl UnioningFragmentBorderBoxIterator {
+    fn new(node_address: OpaqueNode) -> UnioningFragmentBorderBoxIterator {
+        UnioningFragmentBorderBoxIterator {
             node_address: node_address,
             rect: Rect::zero(),
         }
     }
 }
 
-impl FragmentBoundsIterator for UnioningFragmentBoundsIterator {
-    fn process(&mut self, _: &Fragment, bounds: Rect<Au>) {
-        if self.rect.is_empty() {
-            self.rect = bounds;
+impl FragmentBorderBoxIterator for UnioningFragmentBorderBoxIterator {
+    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
+        self.rect = if self.rect.is_empty() {
+            *border_box
         } else {
-            self.rect = self.rect.union(&bounds);
+            self.rect.union(border_box)
         }
     }
 
@@ -1038,23 +1047,23 @@ impl FragmentBoundsIterator for UnioningFragmentBoundsIterator {
     }
 }
 
-struct CollectingFragmentBoundsIterator {
+struct CollectingFragmentBorderBoxIterator {
     node_address: OpaqueNode,
     rects: Vec<Rect<Au>>,
 }
 
-impl CollectingFragmentBoundsIterator {
-    fn new(node_address: OpaqueNode) -> CollectingFragmentBoundsIterator {
-        CollectingFragmentBoundsIterator {
+impl CollectingFragmentBorderBoxIterator {
+    fn new(node_address: OpaqueNode) -> CollectingFragmentBorderBoxIterator {
+        CollectingFragmentBorderBoxIterator {
             node_address: node_address,
             rects: Vec::new(),
         }
     }
 }
 
-impl FragmentBoundsIterator for CollectingFragmentBoundsIterator {
-    fn process(&mut self, _: &Fragment, bounds: Rect<Au>) {
-        self.rects.push(bounds);
+impl FragmentBorderBoxIterator for CollectingFragmentBorderBoxIterator {
+    fn process(&mut self, _: &Fragment, border_box: &Rect<Au>) {
+        self.rects.push(*border_box);
     }
 
     fn should_process(&mut self, fragment: &Fragment) -> bool {

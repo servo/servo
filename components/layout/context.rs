@@ -15,8 +15,10 @@ use script_traits::UntrustedNodeAddress;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::local_image_cache::LocalImageCache;
 use servo_util::geometry::Au;
-use sync::{Arc, Mutex};
+use std::cell::Cell;
 use std::mem;
+use std::ptr;
+use std::sync::{Arc, Mutex};
 use style::Stylist;
 use url::Url;
 
@@ -26,25 +28,21 @@ struct LocalLayoutContext {
     style_sharing_candidate_cache: StyleSharingCandidateCache,
 }
 
-local_data_key!(local_context_key: *mut LocalLayoutContext)
+thread_local!(static LOCAL_CONTEXT_KEY: Cell<*mut LocalLayoutContext> = Cell::new(ptr::null_mut()))
 
 fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext) -> *mut LocalLayoutContext {
-    let maybe_context = local_context_key.get();
-
-    let context = match maybe_context {
-        None => {
+    LOCAL_CONTEXT_KEY.with(|ref r| {
+        if r.get().is_null() {
             let context = box LocalLayoutContext {
                 font_context: FontContext::new(shared_layout_context.font_cache_task.clone()),
                 applicable_declarations_cache: ApplicableDeclarationsCache::new(),
                 style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             };
-            local_context_key.replace(Some(unsafe { mem::transmute(context) }));
-            local_context_key.get().unwrap()
-        },
-        Some(context) => context
-    };
+            r.set(unsafe { mem::transmute(context) });
+        }
 
-    *context
+        r.get()
+    })
 }
 
 pub struct SharedLayoutContext {
@@ -101,24 +99,24 @@ impl<'a> LayoutContext<'a> {
     #[inline(always)]
     pub fn font_context<'a>(&'a self) -> &'a mut FontContext {
         unsafe {
-            let cached_context = &*self.cached_local_layout_context;
-            mem::transmute(&cached_context.font_context)
+            let cached_context = &mut *self.cached_local_layout_context;
+            &mut cached_context.font_context
         }
     }
 
     #[inline(always)]
     pub fn applicable_declarations_cache<'a>(&'a self) -> &'a mut ApplicableDeclarationsCache {
         unsafe {
-            let cached_context = &*self.cached_local_layout_context;
-            mem::transmute(&cached_context.applicable_declarations_cache)
+            let cached_context = &mut *self.cached_local_layout_context;
+            &mut cached_context.applicable_declarations_cache
         }
     }
 
     #[inline(always)]
     pub fn style_sharing_candidate_cache<'a>(&'a self) -> &'a mut StyleSharingCandidateCache {
         unsafe {
-            let cached_context = &*self.cached_local_layout_context;
-            mem::transmute(&cached_context.style_sharing_candidate_cache)
+            let cached_context = &mut *self.cached_local_layout_context;
+            &mut cached_context.style_sharing_candidate_cache
         }
     }
 }

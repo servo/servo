@@ -12,16 +12,16 @@ use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDeriv
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast, HTMLFormElementCast};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::{Document, DocumentHelpers};
-use dom::element::{Element, AttributeHandlers, ElementTypeId};
+use dom::element::{Element, AttributeHandlers};
 use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
-use hyper::method::Post;
+use hyper::method::Method;
 use servo_msg::constellation_msg::LoadData;
 use servo_util::str::DOMString;
 use script_task::{ScriptChan, ScriptMsg};
@@ -40,14 +40,14 @@ pub struct HTMLFormElement {
 
 impl HTMLFormElementDerived for EventTarget {
     fn is_htmlformelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLFormElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLFormElement)))
     }
 }
 
 impl HTMLFormElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLFormElement {
         HTMLFormElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLFormElement, localName, prefix, document),
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLFormElement, localName, prefix, document),
             marked_for_reset: Cell::new(false),
         }
     }
@@ -129,11 +129,13 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 }
 
+#[deriving(Copy)]
 pub enum SubmittedFrom {
     FromFormSubmitMethod,
     NotFromFormSubmitMethod
 }
 
+#[deriving(Copy)]
 pub enum ResetFrom {
     FromFormResetMethod,
     NotFromFormResetMethod
@@ -153,17 +155,17 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         // Step 1
         let doc = document_from_node(self).root();
         let win = window_from_node(self).root();
-        let base = doc.url();
+        let base = doc.r().url();
         // TODO: Handle browsing contexts
         // TODO: Handle validation
-        let event = Event::new(GlobalRef::Window(*win),
-                               "submit".to_string(),
+        let event = Event::new(GlobalRef::Window(win.r()),
+                               "submit".into_string(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
-        event.set_trusted(true);
+        event.r().set_trusted(true);
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.DispatchEvent(*event).ok();
-        if event.DefaultPrevented() {
+        target.DispatchEvent(event.r()).ok();
+        if event.r().DefaultPrevented() {
             return;
         }
         // Step 6
@@ -185,7 +187,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
 
         let parsed_data = match enctype {
             FormEncType::UrlEncoded => serialize(form_data.iter().map(|d| (d.name.as_slice(), d.value.as_slice()))),
-            _ => "".to_string() // TODO: Add serializers for the other encoding types
+            _ => "".into_string() // TODO: Add serializers for the other encoding types
         };
 
         let mut load_data = LoadData::new(action_components);
@@ -196,7 +198,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                 load_data.url.query = Some(parsed_data);
             },
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
-                load_data.method = Post;
+                load_data.method = Method::Post;
                 load_data.data = Some(parsed_data.into_bytes());
             },
             // https://html.spec.whatwg.org/multipage/forms.html#submit-get-action
@@ -205,15 +207,14 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         }
 
         // This is wrong. https://html.spec.whatwg.org/multipage/forms.html#planned-navigation
-        let ScriptChan(ref script_chan) = *win.script_chan();
-        script_chan.send(ScriptMsg::TriggerLoad(win.page().id, load_data));
+        win.r().script_chan().send(ScriptMsg::TriggerLoad(win.r().page().id, load_data));
     }
 
     fn get_form_dataset<'b>(self, submitter: Option<FormSubmitter<'b>>) -> Vec<FormDatum> {
         fn clean_crlf(s: &str) -> DOMString {
             // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
             // Step 4
-            let mut buf = "".to_string();
+            let mut buf = "".into_string();
             let mut prev = ' ';
             for ch in s.chars() {
                 match ch {
@@ -245,16 +246,16 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         // TODO: This is an incorrect way of getting controls owned
         //       by the form, but good enough until html5ever lands
-        let mut data_set = node.traverse_preorder().filter_map(|child| {
+        let data_set = node.traverse_preorder().filter_map(|child| {
             if child.get_disabled_state() {
                 return None;
             }
-            if child.ancestors().any(|a| a.type_id() == NodeTypeId::Element(ElementTypeId::HTMLDataListElement)) {
+            if child.ancestors().any(|a| a.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLDataListElement))) {
                 return None;
             }
             // XXXManishearth don't include it if it is a button but not the submitter
             match child.type_id() {
-                NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                     let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child).unwrap();
                     let ty = input.Type();
                     let name = input.Name();
@@ -283,7 +284,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                         "image" => None, // Unimplemented
                         "radio" | "checkbox" => {
                             if value.is_empty() {
-                                value = "on".to_string();
+                                value = "on".into_string();
                             }
                             Some(FormDatum {
                                 ty: ty,
@@ -301,19 +302,19 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                         })
                     }
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLButtonElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
                     // Unimplemented
                     None
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLSelectElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
                     // Unimplemented
                     None
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLObjectElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
                     // Unimplemented
                     None
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
                     // Unimplemented
                     None
                 }
@@ -344,13 +345,13 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         }
 
         let win = window_from_node(self).root();
-        let event = Event::new(GlobalRef::Window(*win),
-                               "reset".to_string(),
+        let event = Event::new(GlobalRef::Window(win.r()),
+                               "reset".into_string(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.DispatchEvent(*event).ok();
-        if event.DefaultPrevented() {
+        target.DispatchEvent(event.r()).ok();
+        if event.r().DefaultPrevented() {
             return;
         }
 
@@ -360,26 +361,26 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         //       by the form, but good enough until html5ever lands
         for child in node.traverse_preorder() {
             match child.type_id() {
-                NodeTypeId::Element(ElementTypeId::HTMLInputElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                     let input: JSRef<HTMLInputElement> = HTMLInputElementCast::to_ref(child)
                                                                                .unwrap();
                     input.reset()
                 }
                 // TODO HTMLKeygenElement unimplemented
-                //NodeTypeId::Element(ElementTypeId::HTMLKeygenElement) => {
+                //NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLKeygenElement)) => {
                 //    // Unimplemented
                 //    {}
                 //}
-                NodeTypeId::Element(ElementTypeId::HTMLSelectElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
                     // Unimplemented
                     {}
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLTextAreaElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
                     let textarea: JSRef<HTMLTextAreaElement> = HTMLTextAreaElementCast::to_ref(child)
                                                                                         .unwrap();
                     textarea.reset()
                 }
-                NodeTypeId::Element(ElementTypeId::HTMLOutputElement) => {
+                NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOutputElement)) => {
                     // Unimplemented
                     {}
                 }
@@ -390,12 +391,6 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
     }
 }
 
-impl Reflectable for HTMLFormElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}
-
 // TODO: add file support
 pub struct FormDatum {
     pub ty: DOMString,
@@ -403,18 +398,21 @@ pub struct FormDatum {
     pub value: DOMString
 }
 
+#[deriving(Copy)]
 pub enum FormEncType {
     TextPlainEncoded,
     UrlEncoded,
     FormDataEncoded
 }
 
+#[deriving(Copy)]
 pub enum FormMethod {
     FormGet,
     FormPost,
     FormDialog
 }
 
+#[deriving(Copy)]
 pub enum FormSubmitter<'a> {
     FormElement(JSRef<'a, HTMLFormElement>),
     InputElement(JSRef<'a, HTMLInputElement>)
@@ -492,10 +490,10 @@ pub trait FormControl<'a> : Copy {
         let owner = elem.get_string_attribute(&atom!("form"));
         if !owner.is_empty() {
             let doc = document_from_node(elem).root();
-            let owner = doc.GetElementById(owner).root();
+            let owner = doc.r().GetElementById(owner).root();
             match owner {
                 Some(o) => {
-                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(*o);
+                    let maybe_form: Option<JSRef<HTMLFormElement>> = HTMLFormElementCast::to_ref(o.r());
                     if maybe_form.is_some() {
                         return maybe_form.map(Temporary::from_rooted);
                     }
@@ -515,7 +513,7 @@ pub trait FormControl<'a> : Copy {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or("".to_string(), |t| owner(*t.root()))
+            self.form_owner().map_or("".into_string(), |t| owner(t.root().r()))
         }
     }
     fn to_element(self) -> JSRef<'a, Element>;

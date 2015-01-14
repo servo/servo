@@ -8,7 +8,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::MAX_PROTO_CHAIN_LENGTH;
-use dom::bindings::conversions::unwrap_jsmanaged;
+use dom::bindings::conversions::{unwrap_jsmanaged, is_dom_class};
 use dom::bindings::error::throw_type_error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Temporary, Root};
@@ -20,7 +20,8 @@ use libc::c_uint;
 use std::cell::Cell;
 use std::mem;
 use std::ptr;
-use js::glue::{RUST_JSID_IS_INT, RUST_JSID_TO_INT};
+use js::glue::UnwrapObject;
+use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
@@ -129,6 +130,7 @@ pub struct NativePropertyHooks {
 }
 
 /// The struct that holds inheritance information for DOM object reflectors.
+#[deriving(Copy)]
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
@@ -139,6 +141,7 @@ pub struct DOMClass {
 }
 
 /// The JSClass used for DOM object reflectors.
+#[deriving(Copy)]
 pub struct DOMJSClass {
     /// The actual JSClass.
     pub base: js::Class,
@@ -214,10 +217,10 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
     unsafe {
         let fun = JS_NewFunction(cx, Some(constructorNative), ctorNargs,
                                  JSFUN_CONSTRUCTOR, global, name);
-        assert!(fun.is_not_null());
+        assert!(!fun.is_null());
 
         let constructor = JS_GetFunctionObject(fun);
-        assert!(constructor.is_not_null());
+        assert!(!constructor.is_null());
 
         match members.staticMethods {
             Some(staticMethods) => DefineMethods(cx, constructor, staticMethods),
@@ -234,7 +237,7 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
             _ => (),
         }
 
-        if proto.is_not_null() {
+        if !proto.is_null() {
             assert!(JS_LinkConstructorAndPrototype(cx, constructor, proto) != 0);
         }
 
@@ -288,7 +291,7 @@ fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
                                   members: &'static NativeProperties) -> *mut JSObject {
     unsafe {
         let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, &*parentProto, &*global);
-        assert!(ourProto.is_not_null());
+        assert!(!ourProto.is_null());
 
         match members.methods {
             Some(methods) => DefineMethods(cx, ourProto, methods),
@@ -346,9 +349,12 @@ pub fn reflect_dom_object<T: Reflectable>
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
-#[allow(raw_pointer_deriving, unrooted_must_root)]
+// Allowing unused_attribute because the lint sometimes doesn't run in order
+#[allow(raw_pointer_deriving, unrooted_must_root, unused_attributes)]
 #[deriving(PartialEq)]
 #[must_root]
+#[servo_lang = "reflector"]
+// If you're renaming or moving this field, update the path in plugins::reflector as well
 pub struct Reflector {
     object: Cell<*mut JSObject>,
 }
@@ -363,7 +369,7 @@ impl Reflector {
     /// Initialize the reflector. (May be called only once.)
     pub fn set_jsobject(&self, object: *mut JSObject) {
         assert!(self.object.get().is_null());
-        assert!(object.is_not_null());
+        assert!(!object.is_null());
         self.object.set(object);
     }
 
@@ -461,6 +467,28 @@ pub fn FindEnumStringIndex(cx: *mut JSContext,
     }
 }
 
+/// Returns wether `obj` is a platform object
+/// http://heycam.github.io/webidl/#dfn-platform-object
+pub fn IsPlatformObject(obj: *mut JSObject) -> bool {
+    unsafe {
+        // Fast-path the common case
+        let mut clasp = JS_GetClass(obj);
+        if is_dom_class(&*clasp) {
+            return true;
+        }
+        // Now for simplicity check for security wrappers before anything else
+        if IsWrapper(obj) == 1 {
+            let unwrapped_obj = UnwrapObject(obj, /* stopAtOuter = */ 0, ptr::null_mut());
+            if unwrapped_obj.is_null() {
+                return false;
+            }
+            clasp = js::jsapi::JS_GetClass(obj);
+        }
+        // TODO also check if JS_IsArrayBufferObject
+        return is_dom_class(&*clasp);
+    }
+}
+
 /// Get the property with name `property` from `object`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(None)` if there was no property with the given name.
@@ -549,7 +577,7 @@ pub extern fn outerize_global(_cx: *mut JSContext, obj: JSHandleObject) -> *mut 
         debug!("outerizing");
         let obj = *obj.unnamed_field1;
         let win: Root<window::Window> = unwrap_jsmanaged(obj).unwrap().root();
-        win.browser_context().as_ref().unwrap().window_proxy()
+        win.r().browser_context().as_ref().unwrap().window_proxy()
     }
 }
 
@@ -583,18 +611,18 @@ pub fn xml_name_type(name: &str) -> XMLName {
             'A' ... 'Z' |
             '_' |
             'a' ... 'z' |
-            '\u00C0' ... '\u00D6' |
-            '\u00D8' ... '\u00F6' |
-            '\u00F8' ... '\u02FF' |
-            '\u0370' ... '\u037D' |
-            '\u037F' ... '\u1FFF' |
-            '\u200C' ... '\u200D' |
-            '\u2070' ... '\u218F' |
-            '\u2C00' ... '\u2FEF' |
-            '\u3001' ... '\uD7FF' |
-            '\uF900' ... '\uFDCF' |
-            '\uFDF0' ... '\uFFFD' |
-            '\U00010000' ... '\U000EFFFF' => true,
+            '\u{C0}' ... '\u{D6}' |
+            '\u{D8}' ... '\u{F6}' |
+            '\u{F8}' ... '\u{2FF}' |
+            '\u{370}' ... '\u{37D}' |
+            '\u{37F}' ... '\u{1FFF}' |
+            '\u{200C}' ... '\u{200D}' |
+            '\u{2070}' ... '\u{218F}' |
+            '\u{2C00}' ... '\u{2FEF}' |
+            '\u{3001}' ... '\u{D7FF}' |
+            '\u{F900}' ... '\u{FDCF}' |
+            '\u{FDF0}' ... '\u{FFFD}' |
+            '\u{10000}' ... '\u{EFFFF}' => true,
             _ => false,
         }
     }
@@ -604,9 +632,9 @@ pub fn xml_name_type(name: &str) -> XMLName {
             '-' |
             '.' |
             '0' ... '9' |
-            '\u00B7' |
-            '\u0300' ... '\u036F' |
-            '\u203F' ... '\u2040' => true,
+            '\u{B7}' |
+            '\u{300}' ... '\u{36F}' |
+            '\u{203F}' ... '\u{2040}' => true,
             _ => false,
         }
     }

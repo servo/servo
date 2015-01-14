@@ -6,6 +6,7 @@
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 #![feature(phase)]
 #[phase(plugin, link)]
@@ -18,22 +19,20 @@ extern crate geom;
 extern crate getopts;
 extern crate layers;
 extern crate libc;
-extern crate native;
 extern crate rand;
 extern crate rustrt;
 extern crate serialize;
-extern crate sync;
 #[cfg(target_os="macos")]
 extern crate task_info;
 extern crate "time" as std_time;
+extern crate text_writer;
 extern crate string_cache;
 extern crate unicode;
 extern crate url;
 
-#[phase(plugin)]
-extern crate string_cache_macros;
-#[phase(plugin)]
-extern crate lazy_static;
+#[phase(plugin)] extern crate plugins;
+#[phase(plugin)] extern crate string_cache_macros;
+#[phase(plugin)] extern crate lazy_static;
 
 use std::sync::Arc;
 
@@ -41,6 +40,7 @@ pub mod bloom;
 pub mod cache;
 pub mod cursor;
 pub mod debug_utils;
+pub mod deque;
 pub mod dlist;
 pub mod fnv;
 pub mod geometry;
@@ -51,7 +51,8 @@ pub mod opts;
 pub mod persistent_list;
 pub mod range;
 pub mod resource_files;
-pub mod rtinstrument;
+// FIXME: Find replacement for this post-runtime removal
+// pub mod rtinstrument;
 pub mod smallvec;
 pub mod sort;
 pub mod str;

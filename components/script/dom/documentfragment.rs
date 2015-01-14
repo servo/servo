@@ -9,7 +9,6 @@ use dom::bindings::codegen::InheritTypes::{DocumentFragmentDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
@@ -42,11 +41,11 @@ impl DocumentFragment {
                            document, DocumentFragmentBinding::Wrap)
     }
 
-    pub fn Constructor(global: &GlobalRef) -> Fallible<Temporary<DocumentFragment>> {
+    pub fn Constructor(global: GlobalRef) -> Fallible<Temporary<DocumentFragment>> {
         let document = global.as_window().Document();
         let document = document.root();
 
-        Ok(DocumentFragment::new(*document))
+        Ok(DocumentFragment::new(document.r()))
     }
 }
 
@@ -54,7 +53,7 @@ impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
     // http://dom.spec.whatwg.org/#dom-parentnode-children
     fn Children(self) -> Temporary<HTMLCollection> {
         let window = window_from_node(self).root();
-        HTMLCollection::children(*window, NodeCast::from_ref(self))
+        HTMLCollection::children(window.r(), NodeCast::from_ref(self))
     }
 
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
@@ -70,8 +69,3 @@ impl<'a> DocumentFragmentMethods for JSRef<'a, DocumentFragment> {
     }
 }
 
-impl Reflectable for DocumentFragment {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.node.reflector()
-    }
-}

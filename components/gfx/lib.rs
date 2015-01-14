@@ -6,6 +6,7 @@
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
+#![allow(missing_copy_implementations)]
 
 #![feature(phase)]
 #[phase(plugin, link)]
@@ -16,7 +17,6 @@ extern crate collections;
 extern crate geom;
 extern crate layers;
 extern crate libc;
-extern crate native;
 extern crate rustrt;
 extern crate stb_image;
 extern crate png;
@@ -30,7 +30,6 @@ extern crate "net" as servo_net;
 extern crate "util" as servo_util;
 extern crate "msg" as servo_msg;
 extern crate style;
-extern crate sync;
 extern crate time;
 extern crate url;
 
@@ -69,6 +68,7 @@ pub mod font_template;
 
 // Misc.
 mod buffer_map;
+mod filters;
 
 // Platform-specific implementations.
 #[path="platform/mod.rs"]

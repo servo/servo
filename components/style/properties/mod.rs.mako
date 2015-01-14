@@ -7,13 +7,14 @@
 pub use std::ascii::AsciiExt;
 use std::fmt;
 use std::fmt::Show;
+use std::sync::Arc;
 
 use servo_util::logical_geometry::{WritingMode, LogicalMargin};
-use sync::Arc;
 pub use url::Url;
 
 pub use cssparser::*;
 pub use cssparser::ast::*;
+pub use cssparser::ast::ComponentValue::*;
 pub use geom::SideOffsets2D;
 pub use self::common_types::specified::{Angle, AngleOrCorner};
 pub use self::common_types::specified::{HorizontalDirection, VerticalDirection};
@@ -159,40 +160,21 @@ pub mod longhands {
 
     <%def name="single_keyword_computed(name, values, experimental=False)">
         <%self:single_component_value name="${name}" experimental="${experimental}">
+            pub use self::computed_value::T as SpecifiedValue;
             ${caller.body()}
             pub mod computed_value {
-                use std::fmt;
-                #[allow(non_camel_case_types)]
-                #[deriving(PartialEq, Clone, FromPrimitive)]
-                pub enum T {
+                define_css_keyword_enum! { T:
                     % for value in values.split():
-                        ${to_rust_ident(value)},
+                        "${value}" => ${to_rust_ident(value)},
                     % endfor
                 }
-                impl fmt::Show for T {
-		    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                        match self {
-                            % for value in values.split():
-                                &T::${to_rust_ident(value)} => write!(f, "${value}"),
-                            % endfor
-                        }
-                    }
-                }
             }
-            pub type SpecifiedValue = computed_value::T;
             #[inline] pub fn get_initial_value() -> computed_value::T {
                 T::${to_rust_ident(values.split()[0])}
             }
             pub fn from_component_value(v: &ComponentValue, _base_url: &Url)
                                         -> Result<SpecifiedValue, ()> {
-                get_ident_lower(v).and_then(|keyword| {
-                    match keyword.as_slice() {
-                        % for value in values.split():
-                            "${value}" => Ok(T::${to_rust_ident(value)}),
-                        % endfor
-                        _ => Err(()),
-                    }
-                })
+                computed_value::T::parse(v)
             }
         </%self:single_component_value>
     </%def>
@@ -297,7 +279,7 @@ pub mod longhands {
     % endfor
 
     <%self:longhand name="border-top-left-radius">
-        #[deriving(Clone, Show)]
+        #[deriving(Clone, Show, PartialEq, Copy)]
         pub struct SpecifiedValue {
             pub radius: specified::LengthOrPercentage,
         }
@@ -305,7 +287,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::computed;
 
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq, Copy, Show)]
             pub struct T {
                 pub radius: computed::LengthOrPercentage,
             }
@@ -399,6 +381,8 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    ${predefined_type("outline-offset", "Length", "Au(0)")}
+
     ${new_style_struct("PositionOffsets", is_inherited=False)}
 
     % for side in ["top", "right", "bottom", "left"]:
@@ -467,14 +451,14 @@ pub mod longhands {
         pub use super::computed_as_specified as to_computed_value;
         pub type SpecifiedValue = computed_value::T;
         pub mod computed_value {
-	    use std::fmt;
+            use std::fmt;
 
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Clone, Eq, Copy)]
             pub enum T {
                 Auto,
                 Number(i32),
             }
-	    impl fmt::Show for T {
+            impl fmt::Show for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     match self {
                         &T::Auto => write!(f, "auto"),
@@ -499,7 +483,7 @@ pub mod longhands {
         fn from_component_value(input: &ComponentValue, _: &Url) -> Result<SpecifiedValue,()> {
             match *input {
                 Ident(ref keyword) if keyword.as_slice().eq_ignore_ascii_case("auto") => Ok(T::Auto),
-                ast::Number(ast::NumericValue {
+                Number(NumericValue {
                     int_value: Some(value),
                     ..
                 }) => Ok(T::Number(value as i32)),
@@ -561,7 +545,7 @@ pub mod longhands {
 
     <%self:single_component_value name="line-height">
         use std::fmt;
-        #[deriving(Clone)]
+        #[deriving(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             Normal,
             Length(specified::Length),
@@ -574,7 +558,7 @@ pub mod longhands {
                     &SpecifiedValue::Normal => write!(f, "normal"),
                     &SpecifiedValue::Length(length) => write!(f, "{}", length),
                     &SpecifiedValue::Number(number) => write!(f, "{}", number),
-		    &SpecifiedValue::Percentage(number) => write!(f, "{}%", number * 100.),
+                    &SpecifiedValue::Percentage(number) => write!(f, "{}%", number * 100.),
                 }
             }
         }
@@ -582,9 +566,9 @@ pub mod longhands {
         pub fn from_component_value(input: &ComponentValue, _base_url: &Url)
                                     -> Result<SpecifiedValue, ()> {
             match input {
-                &ast::Number(ref value) if value.value >= 0. =>
+                &Number(ref value) if value.value >= 0. =>
                     Ok(SpecifiedValue::Number(value.value)),
-                &ast::Percentage(ref value) if value.value >= 0. =>
+                &Percentage(ref value) if value.value >= 0. =>
                     Ok(SpecifiedValue::Percentage(value.value / 100.)),
                 &Dimension(ref value, ref unit) if value.value >= 0. =>
                     specified::Length::parse_dimension(value.value, unit.as_slice())
@@ -597,7 +581,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
             use std::fmt;
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Copy, Clone)]
             pub enum T {
                 Normal,
                 Length(Au),
@@ -634,7 +618,7 @@ pub mod longhands {
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
         #[allow(non_camel_case_types)]
-        #[deriving(Clone)]
+        #[deriving(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             % for keyword in vertical_align_keywords:
                 ${to_rust_ident(keyword)},
@@ -647,7 +631,7 @@ pub mod longhands {
                     % for keyword in vertical_align_keywords:
                         &SpecifiedValue::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
                     % endfor
-		    &SpecifiedValue::LengthOrPercentage(lop) => write!(f, "{}", lop),
+                    &SpecifiedValue::LengthOrPercentage(lop) => write!(f, "{}", lop),
                 }
             }
         }
@@ -672,7 +656,7 @@ pub mod longhands {
             use super::super::{Au, CSSFloat};
             use std::fmt;
             #[allow(non_camel_case_types)]
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Copy, Clone)]
             pub enum T {
                 % for keyword in vertical_align_keywords:
                     ${to_rust_ident(keyword)},
@@ -727,36 +711,36 @@ pub mod longhands {
     <%self:longhand name="content">
             pub use super::computed_as_specified as to_computed_value;
             pub mod computed_value {
-	        use std::fmt;
-                #[deriving(PartialEq, Clone)]
+            use std::fmt;
+                #[deriving(PartialEq, Eq, Clone)]
                 pub enum ContentItem {
                     StringContent(String),
                 }
                 impl fmt::Show for ContentItem {
-		    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                         match self {
                             &ContentItem::StringContent(ref s) => write!(f, "\"{}\"", s),
                         }
                     }
                 }
                 #[allow(non_camel_case_types)]
-                #[deriving(PartialEq, Clone)]
+                #[deriving(PartialEq, Eq, Clone)]
                 pub enum T {
                     normal,
                     none,
                     Content(Vec<ContentItem>),
                 }
                 impl fmt::Show for T {
-		    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                         match self {
-			    &T::normal => write!(f, "normal"),
-			    &T::none => write!(f, "none"),
-			    &T::Content(ref content) => {
+                            &T::normal => write!(f, "normal"),
+                            &T::none => write!(f, "none"),
+                            &T::Content(ref content) => {
                                 for c in content.iter() {
                                     let _ = write!(f, "{}", c);
                                 }
                                 Ok(())
-			    }
+                            }
                         }
                     }
                 }
@@ -806,11 +790,9 @@ pub mod longhands {
 
     <%self:single_component_value name="list-style-image">
         pub use super::computed_as_specified as to_computed_value;
-        #[deriving(Clone)]
         pub type SpecifiedValue = Option<Url>;
         pub mod computed_value {
             use url::Url;
-            #[deriving(Clone, PartialEq)]
             pub type T = Option<Url>;
         }
         pub fn from_component_value(input: &ComponentValue, base_url: &Url)
@@ -842,7 +824,6 @@ pub mod longhands {
             use super::super::super::common_types::computed;
             pub type T = Option<computed::Image>;
         }
-        #[deriving(Clone)]
         pub type SpecifiedValue = common_specified::CSSImage;
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
@@ -851,7 +832,8 @@ pub mod longhands {
         pub fn from_component_value(component_value: &ComponentValue, base_url: &Url)
                                     -> Result<SpecifiedValue, ()> {
             match component_value {
-                &ast::Ident(ref value) if value.as_slice().eq_ignore_ascii_case("none") => {
+                &Ident(ref value)
+                if value.as_slice().eq_ignore_ascii_case("none") => {
                     Ok(CSSImage(None))
                 }
                 _ => {
@@ -879,19 +861,19 @@ pub mod longhands {
                 use super::super::super::common_types::computed::LengthOrPercentage;
                 use std::fmt;
 
-                #[deriving(PartialEq, Clone)]
+                #[deriving(PartialEq, Copy, Clone)]
                 pub struct T {
                     pub horizontal: LengthOrPercentage,
                     pub vertical: LengthOrPercentage,
                 }
                 impl fmt::Show for T {
-		    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                         write!(f, "{} {}", self.horizontal, self.vertical)
                     }
                 }
             }
 
-            #[deriving(Clone)]
+            #[deriving(Clone, PartialEq, Copy)]
             pub struct SpecifiedValue {
                 pub horizontal: specified::LengthOrPercentage,
                 pub vertical: specified::LengthOrPercentage,
@@ -1043,7 +1025,7 @@ pub mod longhands {
         pub use super::computed_as_specified as to_computed_value;
         pub mod computed_value {
             use std::fmt;
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Eq, Clone)]
             pub enum FontFamily {
                 FamilyName(String),
                 // Generic
@@ -1081,7 +1063,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            vec![FontFamily::FamilyName("serif".to_string())]
+            vec![FontFamily::FamilyName("serif".into_string())]
         }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
@@ -1130,7 +1112,7 @@ pub mod longhands {
 
     <%self:single_component_value name="font-weight">
         use std::fmt;
-        #[deriving(Clone)]
+        #[deriving(Clone, PartialEq, Eq, Copy)]
         pub enum SpecifiedValue {
             Bolder,
             Lighter,
@@ -1179,7 +1161,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use std::fmt;
-            #[deriving(PartialEq, Clone)]
+            #[deriving(PartialEq, Eq, Copy, Clone)]
             pub enum T {
                 % for weight in range(100, 901, 100):
                     Weight${weight},
@@ -1342,12 +1324,15 @@ pub mod longhands {
     // name per CSS-TEXT 6.2.
     ${single_keyword("overflow-wrap", "normal break-word")}
 
+    // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
+    ${single_keyword("word-break", "normal break-all")}
+
     ${new_style_struct("Text", is_inherited=False)}
 
     <%self:longhand name="text-decoration">
         pub use super::computed_as_specified as to_computed_value;
         use std::fmt;
-        #[deriving(PartialEq, Clone)]
+        #[deriving(PartialEq, Eq, Copy, Clone)]
         pub struct SpecifiedValue {
             pub underline: bool,
             pub overline: bool,
@@ -1375,7 +1360,7 @@ pub mod longhands {
                     }
                     let _ = write!(f, "line-through");
                 }
-		Ok(())
+                Ok(())
             }
         }
         pub mod computed_value {
@@ -1424,7 +1409,7 @@ pub mod longhands {
                     derived_from="display text-decoration">
         pub use super::computed_as_specified as to_computed_value;
 
-        #[deriving(Clone, PartialEq)]
+        #[deriving(Clone, PartialEq, Copy)]
         pub struct SpecifiedValue {
             pub underline: Option<RGBA>,
             pub overline: Option<RGBA>,
@@ -1498,6 +1483,8 @@ pub mod longhands {
     // TODO(pcwalton): `full-width`
     ${single_keyword("text-transform", "none capitalize uppercase lowercase")}
 
+    ${single_keyword("text-rendering", "auto optimizespeed optimizelegibility geometricprecision")}
+
     // CSS 2.1, Section 17 - Tables
     ${new_style_struct("Table", is_inherited=False)}
 
@@ -1536,7 +1523,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use servo_util::cursor::Cursor;
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq, Eq, Copy, Show)]
             pub enum T {
                 AutoCursor,
                 SpecifiedCursor(Cursor),
@@ -1550,116 +1537,23 @@ pub mod longhands {
         pub fn from_component_value(value: &ComponentValue, _: &Url)
                                     -> Result<SpecifiedValue,()> {
             match value {
-                &Ident(ref value) if value.eq_ignore_ascii_case("auto") => Ok(T::AutoCursor),
-                &Ident(ref value) if value.eq_ignore_ascii_case("none") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NoCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("default") => {
-                    Ok(T::SpecifiedCursor(util_cursor::DefaultCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("pointer") => {
-                    Ok(T::SpecifiedCursor(util_cursor::PointerCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("context-menu") => {
-                    Ok(T::SpecifiedCursor(util_cursor::ContextMenuCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("help") => {
-                    Ok(T::SpecifiedCursor(util_cursor::HelpCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("progress") => {
-                    Ok(T::SpecifiedCursor(util_cursor::ProgressCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("wait") => {
-                    Ok(T::SpecifiedCursor(util_cursor::WaitCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("cell") => {
-                    Ok(T::SpecifiedCursor(util_cursor::CellCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("crosshair") => {
-                    Ok(T::SpecifiedCursor(util_cursor::CrosshairCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("text") => {
-                    Ok(T::SpecifiedCursor(util_cursor::TextCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("vertical-text") => {
-                    Ok(T::SpecifiedCursor(util_cursor::VerticalTextCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("alias") => {
-                    Ok(T::SpecifiedCursor(util_cursor::AliasCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("copy") => {
-                    Ok(T::SpecifiedCursor(util_cursor::CopyCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("move") => {
-                    Ok(T::SpecifiedCursor(util_cursor::MoveCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("no-drop") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NoDropCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("not-allowed") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NotAllowedCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("grab") => {
-                    Ok(T::SpecifiedCursor(util_cursor::GrabCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("grabbing") => {
-                    Ok(T::SpecifiedCursor(util_cursor::GrabbingCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("e-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::EResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("n-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("ne-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NeResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("nw-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NwResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("s-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::SResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("se-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::SeResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("sw-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::SwResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("w-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::WResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("ew-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::EwResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("ns-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NsResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("nesw-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NeswResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("nwse-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::NwseResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("col-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::ColResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("row-resize") => {
-                    Ok(T::SpecifiedCursor(util_cursor::RowResizeCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("all-scroll") => {
-                    Ok(T::SpecifiedCursor(util_cursor::AllScrollCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("zoom-in") => {
-                    Ok(T::SpecifiedCursor(util_cursor::ZoomInCursor))
-                }
-                &Ident(ref value) if value.eq_ignore_ascii_case("zoom-out") => {
-                    Ok(T::SpecifiedCursor(util_cursor::ZoomOutCursor))
+                &Ident(ref ident) => {
+                    if ident.eq_ignore_ascii_case("auto") {
+                        Ok(T::AutoCursor)
+                    } else {
+                        util_cursor::Cursor::from_css_keyword(ident.as_slice())
+                        .map(T::SpecifiedCursor)
+                    }
                 }
                 _ => Err(())
             }
         }
     </%self:single_component_value>
+
+    // NB: `pointer-events: auto` (and use of `pointer-events` in anything that isn't SVG, in fact)
+    // is nonstandard, slated for CSS4-UI.
+    // TODO(pcwalton): SVG-only values.
+    ${single_keyword("pointer-events", "auto none")}
 
     // Box-shadow, etc.
     ${new_style_struct("Effects", is_inherited=False)}
@@ -1699,7 +1593,7 @@ pub mod longhands {
 
         pub type SpecifiedValue = Vec<SpecifiedBoxShadow>;
 
-        #[deriving(Clone)]
+        #[deriving(Clone, PartialEq)]
         pub struct SpecifiedBoxShadow {
             pub offset_x: specified::Length,
             pub offset_y: specified::Length,
@@ -1719,7 +1613,7 @@ pub mod longhands {
                 if let Some(ref color) = self.color {
                     let _ = write!(f, "{}", color);
                 }
-		Ok(())
+                Ok(())
             }
         }
 
@@ -1730,7 +1624,7 @@ pub mod longhands {
 
             pub type T = Vec<BoxShadow>;
 
-            #[deriving(Clone, PartialEq)]
+            #[deriving(Clone, PartialEq, Copy)]
             pub struct BoxShadow {
                 pub offset_x: Au,
                 pub offset_y: Au,
@@ -1747,7 +1641,7 @@ pub mod longhands {
                     }
                     let _ = write!(f, "{} {} {} {} {}", self.offset_x, self.offset_y,
                                    self.blur_radius, self.spread_radius, self.color);
-		    Ok(())
+                    Ok(())
                 }
             }
         }
@@ -1769,19 +1663,24 @@ pub mod longhands {
 
         pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
                                  -> computed_value::T {
-            value.into_iter().map(|value| {
-                computed_value::BoxShadow {
-                    offset_x: computed::compute_Au(value.offset_x, context),
-                    offset_y: computed::compute_Au(value.offset_y, context),
-                    blur_radius: computed::compute_Au(value.blur_radius, context),
-                    spread_radius: computed::compute_Au(value.spread_radius, context),
-                    color: value.color.map(|color| color.parsed).unwrap_or(cssparser::Color::CurrentColor),
-                    inset: value.inset,
-                }
-            }).collect()
+            value.into_iter().map(|value| compute_one_box_shadow(value, context)).collect()
         }
 
-        fn parse_one_box_shadow(iter: ParserIter) -> Result<SpecifiedBoxShadow,()> {
+        pub fn compute_one_box_shadow(value: SpecifiedBoxShadow, context: &computed::Context)
+                                      -> computed_value::BoxShadow {
+            computed_value::BoxShadow {
+                offset_x: computed::compute_Au(value.offset_x, context),
+                offset_y: computed::compute_Au(value.offset_y, context),
+                blur_radius: computed::compute_Au(value.blur_radius, context),
+                spread_radius: computed::compute_Au(value.spread_radius, context),
+                color: value.color
+                            .map(|color| color.parsed)
+                            .unwrap_or(cssparser::Color::CurrentColor),
+                inset: value.inset,
+            }
+        }
+
+        pub fn parse_one_box_shadow(iter: ParserIter) -> Result<SpecifiedBoxShadow,()> {
             let mut lengths = [specified::Length::Au(Au(0)), ..4];
             let mut lengths_parsed = false;
             let mut color = None;
@@ -1868,7 +1767,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::Au;
 
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq, Eq, Copy, Show)]
             pub struct ClipRect {
                 pub top: Au,
                 pub right: Option<Au>,
@@ -1879,7 +1778,7 @@ pub mod longhands {
             pub type T = Option<ClipRect>;
         }
 
-        #[deriving(Clone, Show)]
+        #[deriving(Clone, Show, PartialEq, Copy)]
         pub struct SpecifiedClipRect {
             pub top: specified::Length,
             pub right: Option<specified::Length>,
@@ -1939,6 +1838,151 @@ pub mod longhands {
             }
         }
     </%self:single_component_value>
+
+    <%self:longhand name="filter">
+        pub mod computed_value {
+            use super::super::{Angle, CSSFloat};
+
+            // TODO(pcwalton): `blur`, `drop-shadow`
+            #[deriving(Clone, PartialEq, Show)]
+            pub enum Filter {
+                Brightness(CSSFloat),
+                Contrast(CSSFloat),
+                Grayscale(CSSFloat),
+                HueRotate(Angle),
+                Invert(CSSFloat),
+                Opacity(CSSFloat),
+                Saturate(CSSFloat),
+                Sepia(CSSFloat),
+            }
+
+            #[deriving(Clone, PartialEq, Show)]
+            pub struct T {
+                pub filters: Vec<Filter>,
+            }
+
+            impl T {
+                /// Creates a new filter pipeline.
+                #[inline]
+                pub fn new(filters: Vec<Filter>) -> T {
+                    T {
+                        filters: filters,
+                    }
+                }
+
+                /// Adds a new filter to the filter pipeline.
+                #[inline]
+                pub fn push(&mut self, filter: Filter) {
+                    self.filters.push(filter)
+                }
+
+                /// Returns true if this filter pipeline is empty and false otherwise.
+                #[inline]
+                pub fn is_empty(&self) -> bool {
+                    self.filters.is_empty()
+                }
+
+                /// Returns the resulting opacity of this filter pipeline.
+                #[inline]
+                pub fn opacity(&self) -> CSSFloat {
+                    let mut opacity = 1.0;
+                    for filter in self.filters.iter() {
+                        if let Filter::Opacity(ref opacity_value) = *filter {
+                            opacity *= *opacity_value
+                        }
+                    }
+                    opacity
+                }
+            }
+        }
+
+        // TODO(pcwalton): `blur`, `drop-shadow`
+        #[deriving(Clone, Show)]
+        pub enum SpecifiedFilter {
+            Brightness(CSSFloat),
+            Contrast(CSSFloat),
+            Grayscale(CSSFloat),
+            HueRotate(Angle),
+            Invert(CSSFloat),
+            Opacity(CSSFloat),
+            Saturate(CSSFloat),
+            Sepia(CSSFloat),
+        }
+
+        pub type SpecifiedValue = Vec<SpecifiedFilter>;
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            computed_value::T::new(Vec::new())
+        }
+
+        pub fn to_computed_value(value: SpecifiedValue, _: &computed::Context)
+                                 -> computed_value::T {
+            computed_value::T::new(value.into_iter().map(|filter| {
+                match filter {
+                    SpecifiedFilter::Brightness(amount) => {
+                        computed_value::Filter::Brightness(amount)
+                    }
+                    SpecifiedFilter::Contrast(amount) => computed_value::Filter::Contrast(amount),
+                    SpecifiedFilter::Grayscale(amount) => {
+                        computed_value::Filter::Grayscale(amount)
+                    }
+                    SpecifiedFilter::HueRotate(angle) => computed_value::Filter::HueRotate(angle),
+                    SpecifiedFilter::Invert(amount) => computed_value::Filter::Invert(amount),
+                    SpecifiedFilter::Opacity(amount) => computed_value::Filter::Opacity(amount),
+                    SpecifiedFilter::Saturate(amount) => computed_value::Filter::Saturate(amount),
+                    SpecifiedFilter::Sepia(amount) => computed_value::Filter::Sepia(amount),
+                }
+            }).collect())
+        }
+
+        pub fn parse(input: &[ComponentValue], _: &Url) -> Result<SpecifiedValue,()> {
+            let mut filters = Vec::new();
+            for filter in input.skip_whitespace() {
+                let name;
+                let args;
+                match *filter {
+                    Function(ref function_name, ref function_args) => {
+                        name = function_name;
+                        args = function_args;
+                    }
+                    _ => return Err(()),
+                }
+
+                if name.eq_ignore_ascii_case("brightness") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Brightness(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("contrast") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Contrast(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("grayscale") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Grayscale(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("hue-rotate") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::HueRotate(try!(Angle::parse(&args[0]))));
+                } else if name.eq_ignore_ascii_case("invert") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Invert(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("opacity") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Opacity(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("saturate") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Saturate(try!(parse_percentage(&args[0]))));
+                } else if name.eq_ignore_ascii_case("sepia") && args.len() == 1 {
+                    filters.push(SpecifiedFilter::Sepia(try!(parse_percentage(&args[0]))));
+                } else {
+                    return Err(())
+                }
+            }
+            Ok(filters)
+        }
+
+        fn parse_percentage(input: &ComponentValue) -> Result<CSSFloat,()> {
+            match *input {
+                Number(ref value) => Ok(value.value),
+                Percentage(ref value) => Ok(value.value / 100.0),
+                _ => Err(())
+            }
+        }
+    </%self:longhand>
+
+    ${single_keyword("mix-blend-mode",
+                     "normal multiply screen overlay darken lighten color-dodge color-burn hard-light soft-light difference exclusion hue saturation color luminosity")}
 }
 
 
@@ -2537,7 +2581,7 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
     for item in items.into_iter().rev() {
         match item {
             DeclarationListItem::AtRule(rule) => log_css_error(
-                rule.location, format!("Unsupported at-rule in declaration list: @{:s}", rule.name).as_slice()),
+                rule.location, format!("Unsupported at-rule in declaration list: @{}", rule.name).as_slice()),
             DeclarationListItem::Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
                 let (list, seen) = if i {
@@ -2547,13 +2591,13 @@ pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &U
                 };
                 match PropertyDeclaration::parse(n.as_slice(), v.as_slice(), list, base_url, seen) {
                     PropertyDeclarationParseResult::UnknownProperty => log_css_error(l, format!(
-                        "Unsupported property: {}:{}", n, v.iter().to_css()).as_slice()),
+                        "Unsupported property: {}:{}", n, v.to_css_string()).as_slice()),
                     PropertyDeclarationParseResult::ExperimentalProperty => log_css_error(l, format!(
                         "Experimental property, use `servo --enable_experimental` \
                          or `servo -e` to enable: {}:{}",
-                        n, v.iter().to_css()).as_slice()),
+                        n, v.to_css_string()).as_slice()),
                     PropertyDeclarationParseResult::InvalidValue => log_css_error(l, format!(
-                        "Invalid value: {}:{}", n, v.iter().to_css()).as_slice()),
+                        "Invalid value: {}:{}", n, v.to_css_string()).as_slice()),
                     PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => (),
                 }
             }
@@ -2586,7 +2630,7 @@ impl CSSWideKeyword {
 }
 
 
-#[deriving(Clone)]
+#[deriving(Clone, PartialEq, Eq, Copy)]
 pub enum DeclaredValue<T> {
     SpecifiedValue(T),
     Initial,
@@ -2601,7 +2645,7 @@ impl<T: Show> DeclaredValue<T> {
         match self {
             &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{}", inner)),
             &DeclaredValue::Initial => None,
-            &DeclaredValue::Inherit => Some("inherit".to_string()),
+            &DeclaredValue::Inherit => Some("inherit".into_string()),
         }
     }
 }
@@ -2614,6 +2658,7 @@ pub enum PropertyDeclaration {
 }
 
 
+#[deriving(Eq, PartialEq, Copy)]
 pub enum PropertyDeclarationParseResult {
     UnknownProperty,
     ExperimentalProperty,
@@ -2626,10 +2671,10 @@ impl PropertyDeclaration {
         match self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".to_string(),
-		% endif
+                    &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".into_string(),
+                % endif
             % endfor
-            _ => "".to_string(),
+            _ => "".into_string(),
         }
     }
 
@@ -2640,7 +2685,7 @@ impl PropertyDeclaration {
                     &PropertyDeclaration::${property.camel_case}Declaration(ref value) =>
                         value.specified_value()
                              .unwrap_or_else(|| format!("{}", longhands::${property.ident}::get_initial_value())),
-		% endif
+                % endif
             % endfor
             decl => panic!("unsupported property declaration: {}", decl.name()),
         }
@@ -2652,7 +2697,7 @@ impl PropertyDeclaration {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     (&PropertyDeclaration::${property.camel_case}Declaration(..), "${property.name}") => true,
-		% endif
+                % endif
             % endfor
             _ => false,
         }
@@ -2763,6 +2808,7 @@ pub mod style_structs {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
+        #[allow(missing_copy_implementations)]
         #[deriving(PartialEq, Clone)]
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:
@@ -3301,6 +3347,15 @@ pub fn cascade_anonymous(parent_style: &ComputedValues) -> ComputedValues {
     result
 }
 
+/// Sets `display` to `inline` and `position` to `static`.
+#[inline]
+pub fn make_inline(style: &ComputedValues) -> ComputedValues {
+    let mut style = (*style).clone();
+    style.box_.make_unique().display = longhands::display::computed_value::T::inline;
+    style.box_.make_unique().position = longhands::position::computed_value::T::static_;
+    style
+}
+
 pub fn is_supported_property(property: &str) -> bool {
     match property {
         % for property in SHORTHANDS:
@@ -3318,7 +3373,7 @@ pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
         % for property in SHORTHANDS:
             "${property.name}" => Some(vec!(
             % for sub in property.sub_properties:
-                "${sub.name}".to_string(),
+                "${sub.name}".into_string(),
             % endfor
             )),
         % endfor

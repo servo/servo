@@ -9,11 +9,11 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
-use dom::htmlelement::HTMLElement;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
@@ -29,7 +29,7 @@ pub struct HTMLBodyElement {
 
 impl HTMLBodyElementDerived for EventTarget {
     fn is_htmlbodyelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLBodyElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement)))
     }
 }
 
@@ -37,7 +37,7 @@ impl HTMLBodyElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
                      -> HTMLBodyElement {
         HTMLBodyElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLBodyElement,
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLBodyElement,
                                                     localName,
                                                     prefix,
                                                     document),
@@ -56,12 +56,12 @@ impl HTMLBodyElement {
 impl<'a> HTMLBodyElementMethods for JSRef<'a, HTMLBodyElement> {
     fn GetOnunload(self) -> Option<EventHandlerNonNull> {
         let win = window_from_node(self).root();
-        win.GetOnunload()
+        win.r().GetOnunload()
     }
 
     fn SetOnunload(self, listener: Option<EventHandlerNonNull>) {
         let win = window_from_node(self).root();
-        win.SetOnunload(listener)
+        win.r().SetOnunload(listener)
     }
 }
 
@@ -95,18 +95,18 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                   "onoffline", "ononline", "onpagehide", "onpageshow", "onpopstate",
                   "onstorage", "onresize", "onunload", "onerror"];
             let window = window_from_node(*self).root();
-            let (cx, url, reflector) = (window.get_cx(),
-                                        window.get_url(),
-                                        window.reflector().get_jsobject());
+            let (cx, url, reflector) = (window.r().get_cx(),
+                                        window.r().get_url(),
+                                        window.r().reflector().get_jsobject());
             let evtarget: JSRef<EventTarget> =
                 if FORWARDED_EVENTS.iter().any(|&event| name == event) {
-                    EventTargetCast::from_ref(*window)
+                    EventTargetCast::from_ref(window.r())
                 } else {
                     EventTargetCast::from_ref(*self)
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.slice_from(2),
-                                                  attr.value().as_slice().to_string());
+                                                  attr.value().as_slice().into_string());
         }
 
         match attr.local_name() {
@@ -130,8 +130,3 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
     }
 }
 
-impl Reflectable for HTMLBodyElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
-    }
-}

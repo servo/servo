@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorProxy;
-use layout_traits::{LayoutTaskFactory, LayoutControlChan};
+use layout_traits::{LayoutControlMsg, LayoutTaskFactory, LayoutControlChan};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
-use script_traits::{AttachLayoutMsg, LoadMsg, NewLayoutInfo, ExitPipelineMsg};
+use script_traits::{NewLayoutInfo, ConstellationControlMsg};
 
 use devtools_traits::DevtoolsControlChan;
-use gfx::paint_task::{PaintPermissionGranted, PaintPermissionRevoked};
+use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintTask};
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
-use servo_msg::constellation_msg::{LoadData, WindowSizeData};
+use servo_msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use servo_net::image_cache_task::ImageCacheTask;
 use gfx::font_cache_task::FontCacheTask;
 use servo_net::resource_task::ResourceTask;
@@ -99,7 +99,7 @@ impl Pipeline {
                 };
 
                 let ScriptControlChan(ref chan) = spipe.script_chan;
-                chan.send(AttachLayoutMsg(new_layout_info));
+                chan.send(ConstellationControlMsg::AttachLayout(new_layout_info));
                 spipe.script_chan.clone()
             }
         };
@@ -161,30 +161,41 @@ impl Pipeline {
 
     pub fn load(&self) {
         let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(LoadMsg(self.id, self.load_data.clone()));
+        chan.send(ConstellationControlMsg::Load(self.id, self.load_data.clone()));
     }
 
     pub fn grant_paint_permission(&self) {
-        let _ = self.paint_chan.send_opt(PaintPermissionGranted);
+        let _ = self.paint_chan.send_opt(PaintMsg::PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking paint channel paint permission");
-        let _ = self.paint_chan.send_opt(PaintPermissionRevoked);
+        let _ = self.paint_chan.send_opt(PaintMsg::PaintPermissionRevoked);
     }
 
-    pub fn exit(&self) {
+    pub fn exit(&self, exit_type: PipelineExitType) {
         debug!("pipeline {} exiting", self.id);
 
         // Script task handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script task has failed, we give up on clean shutdown.
         let ScriptControlChan(ref chan) = self.script_chan;
-        if chan.send_opt(ExitPipelineMsg(self.id)).is_ok() {
+        if chan.send_opt(ConstellationControlMsg::ExitPipeline(self.id, exit_type)).is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
             let _ = self.paint_shutdown_port.recv_opt();
             let _ = self.layout_shutdown_port.recv_opt();
         }
+
+    }
+
+    pub fn force_exit(&self) {
+        let ScriptControlChan(ref script_channel) = self.script_chan;
+        let _ = script_channel.send_opt(
+            ConstellationControlMsg::ExitPipeline(self.id,
+                                                  PipelineExitType::PipelineOnly));
+        let _ = self.paint_chan.send_opt(PaintMsg::Exit(None, PipelineExitType::PipelineOnly));
+        let LayoutControlChan(ref layout_channel) = self.layout_chan;
+        let _ = layout_channel.send_opt(LayoutControlMsg::ExitNowMsg(PipelineExitType::PipelineOnly));
     }
 
     pub fn to_sendable(&self) -> CompositionPipeline {

@@ -9,7 +9,7 @@ use geom::rect::Rect;
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use hyper::header::Headers;
-use hyper::method::{Method, Get};
+use hyper::method::Method;
 use layers::geometry::DevicePixel;
 use servo_util::cursor::Cursor;
 use servo_util::geometry::{PagePx, ViewportPx};
@@ -26,19 +26,20 @@ impl ConstellationChan {
     }
 }
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Eq, Copy)]
 pub enum IFrameSandboxState {
     IFrameSandboxed,
     IFrameUnsandboxed
 }
 
 // We pass this info to various tasks, so it lives in a separate, cloneable struct.
-#[deriving(Clone)]
+#[deriving(Clone, Copy)]
 pub struct Failure {
     pub pipeline_id: PipelineId,
     pub subpage_id: Option<SubpageId>,
 }
 
+#[deriving(Copy)]
 pub struct WindowSizeData {
     /// The size of the initial layout viewport, before parsing an
     /// http://www.w3.org/TR/css-device-adapt/#initial-viewport
@@ -51,7 +52,7 @@ pub struct WindowSizeData {
     pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
 }
 
-#[deriving(PartialEq)]
+#[deriving(PartialEq, Eq, Copy, Clone)]
 pub enum KeyState {
     Pressed,
     Released,
@@ -59,7 +60,7 @@ pub enum KeyState {
 }
 
 //N.B. Straight up copied from glfw-rs
-#[deriving(Show)]
+#[deriving(Show, PartialEq, Eq, Copy, Clone)]
 pub enum Key {
     Space,
     Apostrophe,
@@ -185,6 +186,7 @@ pub enum Key {
 }
 
 bitflags! {
+    #[deriving(Copy)]
     flags KeyModifiers: u8 {
         const SHIFT = 0x01,
         const CONTROL = 0x02,
@@ -195,26 +197,26 @@ bitflags! {
 
 /// Messages from the compositor and script to the constellation.
 pub enum Msg {
-    ExitMsg,
-    FailureMsg(Failure),
-    InitLoadUrlMsg(Url),
-    LoadCompleteMsg,
-    FrameRectMsg(PipelineId, SubpageId, Rect<f32>),
-    LoadUrlMsg(PipelineId, LoadData),
-    ScriptLoadedURLInIFrameMsg(Url, PipelineId, SubpageId, IFrameSandboxState),
-    NavigateMsg(NavigationDirection),
-    PainterReadyMsg(PipelineId),
-    ResizedWindowMsg(WindowSizeData),
+    Exit,
+    Failure(Failure),
+    InitLoadUrl(Url),
+    LoadComplete,
+    FrameRect(PipelineId, SubpageId, Rect<f32>),
+    LoadUrl(PipelineId, LoadData),
+    ScriptLoadedURLInIFrame(Url, PipelineId, SubpageId, Option<SubpageId>, IFrameSandboxState),
+    Navigate(NavigationDirection),
+    PainterReady(PipelineId),
+    ResizedWindow(WindowSizeData),
     KeyEvent(Key, KeyState, KeyModifiers),
     /// Requests that the constellation inform the compositor of the title of the pipeline
     /// immediately.
-    GetPipelineTitleMsg(PipelineId),
+    GetPipelineTitle(PipelineId),
     /// Requests that the constellation inform the compositor of the a cursor change.
-    SetCursorMsg(Cursor),
+    SetCursor(Cursor),
 }
 
 /// Similar to net::resource_task::LoadData
-/// can be passed to LoadUrlMsg to load a page with GET/POST
+/// can be passed to LoadUrl to load a page with GET/POST
 /// parameters or headers
 #[deriving(Clone)]
 pub struct LoadData {
@@ -228,7 +230,7 @@ impl LoadData {
     pub fn new(url: Url) -> LoadData {
         LoadData {
             url: url,
-            method: Get,
+            method: Method::Get,
             headers: Headers::new(),
             data: None,
         }
@@ -236,20 +238,28 @@ impl LoadData {
 }
 
 /// Represents the two different ways to which a page can be navigated
-#[deriving(Clone, PartialEq, Hash, Show)]
+#[deriving(Clone, PartialEq, Eq, Copy, Hash, Show)]
 pub enum NavigationType {
     Load,               // entered or clicked on a url
     Navigate,           // browser forward/back buttons
 }
 
-#[deriving(Clone, PartialEq, Hash, Show)]
+#[deriving(Clone, PartialEq, Eq, Copy, Hash, Show)]
 pub enum NavigationDirection {
     Forward,
     Back,
 }
 
-#[deriving(Clone, PartialEq, Eq, Hash, Show)]
+#[deriving(Clone, PartialEq, Eq, Copy, Hash, Show)]
 pub struct PipelineId(pub uint);
 
-#[deriving(Clone, PartialEq, Eq, Hash, Show)]
+#[deriving(Clone, PartialEq, Eq, Copy, Hash, Show)]
 pub struct SubpageId(pub uint);
+
+// The type of pipeline exit. During complete shutdowns, pipelines do not have to
+// release resources automatically released on process termination.
+#[deriving(Copy)]
+pub enum PipelineExitType {
+    PipelineOnly,
+    Complete,
+}

@@ -5,24 +5,25 @@
 /// Low-level wire protocol implementation. Currently only supports [JSON packets](https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport#JSON_Packets).
 
 use serialize::{json, Encodable};
+use serialize::json::Json;
 use std::io::{IoError, OtherIoError, EndOfFile, TcpStream, IoResult};
 use std::num;
 
 pub trait JsonPacketStream {
     fn write_json_packet<'a, T: Encodable<json::Encoder<'a>,IoError>>(&mut self, obj: &T);
-    fn read_json_packet(&mut self) -> IoResult<json::Json>;
+    fn read_json_packet(&mut self) -> IoResult<Json>;
 }
 
 impl JsonPacketStream for TcpStream {
     fn write_json_packet<'a, T: Encodable<json::Encoder<'a>,IoError>>(&mut self, obj: &T) {
         let s = json::encode(obj).replace("__type__", "type");
-        println!("<- {:s}", s);
+        println!("<- {}", s);
         self.write_str(s.len().to_string().as_slice()).unwrap();
         self.write_u8(':' as u8).unwrap();
         self.write_str(s.as_slice()).unwrap();
     }
 
-    fn read_json_packet<'a>(&mut self) -> IoResult<json::Json> {
+    fn read_json_packet<'a>(&mut self) -> IoResult<Json> {
         // https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport
         // In short, each JSON packet is [ascii length]:[JSON data of given length]
         let mut buffer = vec!();
@@ -35,7 +36,7 @@ impl JsonPacketStream for TcpStream {
                     let packet_len = num::from_str_radix(packet_len_str.as_slice(), 10).unwrap();
                     let packet_buf = self.read_exact(packet_len).unwrap();
                     let packet = String::from_utf8(packet_buf).unwrap();
-                    println!("{:s}", packet);
+                    println!("{}", packet);
                     return Ok(json::from_str(packet.as_slice()).unwrap())
                 },
                 Err(ref e) if e.kind == EndOfFile =>

@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
+#![feature(default_type_params, globs, macro_rules, phase, unsafe_destructor)]
 
-#![feature(default_type_params, globs, macro_rules, phase, unsafe_destructor, if_let)]
-
+#![deny(unsafe_blocks)]
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(non_snake_case)]
+#![allow(missing_copy_implementations)]
 
 #![doc="The script crate contains all matters DOM."]
 
@@ -26,7 +25,6 @@ extern crate hyper;
 extern crate js;
 extern crate libc;
 extern crate msg;
-extern crate native;
 extern crate net;
 extern crate rustrt;
 extern crate serialize;
@@ -38,7 +36,6 @@ extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
 extern crate "util" as servo_util;
 extern crate style;
-extern crate sync;
 extern crate "msg" as servo_msg;
 extern crate url;
 extern crate uuid;
@@ -55,16 +52,19 @@ pub mod dom {
     pub mod macros;
 
     /// The code to expose the DOM to JavaScript through IDL bindings.
+    #[allow(unsafe_blocks)]
     pub mod bindings {
         pub mod cell;
         pub mod global;
         pub mod js;
+        pub mod refcounted;
         pub mod utils;
         pub mod callback;
         pub mod error;
         pub mod conversions;
-        mod proxyhandler;
+        pub mod proxyhandler;
         pub mod str;
+        pub mod structuredclone;
         pub mod trace;
 
         /// Generated JS-Rust bindings.

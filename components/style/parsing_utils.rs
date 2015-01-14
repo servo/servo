@@ -4,7 +4,8 @@
 
 
 use std::ascii::AsciiExt;
-use cssparser::ast::{ComponentValue, Ident, Comma, SkipWhitespaceIterable, SkipWhitespaceIterator};
+use cssparser::ast::{SkipWhitespaceIterable, SkipWhitespaceIterator};
+use cssparser::ast::ComponentValue::{mod, Ident, Comma};
 
 
 pub fn one_component_value<'a>(input: &'a [ComponentValue]) -> Result<&'a ComponentValue, ()> {

@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, MessageEventDerived};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 
@@ -44,7 +44,7 @@ impl MessageEvent {
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Temporary<MessageEvent> {
-        MessageEvent::new_initialized(global, UndefinedValue(), "".to_string(), "".to_string())
+        MessageEvent::new_initialized(global, UndefinedValue(), "".into_string(), "".into_string())
     }
 
     pub fn new_initialized(global: GlobalRef, data: JSVal, origin: DOMString, lastEventId: DOMString) -> Temporary<MessageEvent> {
@@ -58,16 +58,16 @@ impl MessageEvent {
                data: JSVal, origin: DOMString, lastEventId: DOMString)
                -> Temporary<MessageEvent> {
         let ev = MessageEvent::new_initialized(global, data, origin, lastEventId).root();
-        let event: JSRef<Event> = EventCast::from_ref(*ev);
+        let event: JSRef<Event> = EventCast::from_ref(ev.r());
         event.InitEvent(type_, bubbles, cancelable);
-        Temporary::from_rooted(*ev)
+        Temporary::from_rooted(ev.r())
     }
 
-    pub fn Constructor(global: &GlobalRef,
+    pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &MessageEventBinding::MessageEventInit)
                        -> Fallible<Temporary<MessageEvent>> {
-        let ev = MessageEvent::new(*global, type_, init.parent.bubbles, init.parent.cancelable,
+        let ev = MessageEvent::new(global, type_, init.parent.bubbles, init.parent.cancelable,
                                    init.data, init.origin.clone(), init.lastEventId.clone());
         Ok(ev)
     }
@@ -78,9 +78,9 @@ impl MessageEvent {
                           scope: GlobalRef,
                           message: JSVal) {
         let messageevent = MessageEvent::new(
-            scope, "message".to_string(), false, false, message,
-            "".to_string(), "".to_string()).root();
-        let event: JSRef<Event> = EventCast::from_ref(*messageevent);
+            scope, "message".into_string(), false, false, message,
+            "".into_string(), "".into_string()).root();
+        let event: JSRef<Event> = EventCast::from_ref(messageevent.r());
         target.dispatch_event(event);
     }
 }
@@ -99,8 +99,3 @@ impl<'a> MessageEventMethods for JSRef<'a, MessageEvent> {
     }
 }
 
-impl Reflectable for MessageEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.event.reflector()
-    }
-}

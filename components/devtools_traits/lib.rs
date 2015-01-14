@@ -2,22 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! This module contains shared types and messages for use by devtools/script.
+//! The traits are here instead of in script so that the devtools crate can be
+//! modified independently of the rest of Servo.
+
 #![crate_name = "devtools_traits"]
 #![crate_type = "rlib"]
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
 #![allow(non_snake_case)]
+#![allow(missing_copy_implementations)]
+#![feature(globs)]
 
 extern crate "msg" as servo_msg;
 extern crate serialize;
 extern crate url;
 extern crate "util" as servo_util;
 
-/// This module contains shared types and messages for use by devtools/script.
-/// The traits are here instead of in script so that the devtools crate can be
-/// modified independently of the rest of Servo.
+pub use self::DevtoolsControlMsg::*;
+pub use self::DevtoolScriptControlMsg::*;
+pub use self::EvaluateJSReply::*;
 
 use serialize::{Decodable, Decoder};
 use servo_msg::constellation_msg::PipelineId;

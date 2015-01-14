@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::DOMRectListBinding;
 use dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::domrect::DOMRect;
 use dom::window::Window;
 
@@ -55,8 +55,3 @@ impl<'a> DOMRectListMethods for JSRef<'a, DOMRectList> {
     }
 }
 
-impl Reflectable for DOMRectList {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        &self.reflector_
-    }
-}

@@ -2,29 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! An actor-based remote devtools server implementation. Only tested with
+//! nightly Firefox versions at time of writing. Largely based on
+//! reverse-engineering of Firefox chrome devtool logs and reading of
+//! [code](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/).
+
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
 #![allow(non_snake_case)]
+#![allow(missing_copy_implementations)]
 
 #![feature(phase)]
 
-#![feature(phase)]
 #[phase(plugin, link)]
 extern crate log;
-
-/// An actor-based remote devtools server implementation. Only tested with nightly Firefox
-/// versions at time of writing. Largely based on reverse-engineering of Firefox chrome
-/// devtool logs and reading of [code](http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/).
 
 extern crate collections;
 extern crate core;
 extern crate devtools_traits;
 extern crate serialize;
-extern crate sync;
 extern crate "msg" as servo_msg;
 extern crate "util" as servo_util;
 
@@ -45,7 +42,7 @@ use std::comm;
 use std::comm::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
 use std::io::{Acceptor, Listener, TimedOut};
-use sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex};
 
 mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/

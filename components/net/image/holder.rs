@@ -7,7 +7,7 @@ use image_cache_task::ImageResponseMsg;
 use local_image_cache::LocalImageCache;
 
 use geom::size::Size2D;
-use sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex};
 use url::Url;
 
 // FIXME: Nasty coupling here This will be a problem if we want to factor out image handling from
@@ -87,8 +87,8 @@ impl<NodeAddress: Send> ImageHolder<NodeAddress> {
             };
             match port.recv() {
                 ImageResponseMsg::ImageReady(image) => self.image = Some(image),
-                ImageResponseMsg::ImageNotReady => debug!("image not ready for {:s}", self.url.serialize()),
-                ImageResponseMsg::ImageFailed => debug!("image decoding failed for {:s}", self.url.serialize()),
+                ImageResponseMsg::ImageNotReady => debug!("image not ready for {}", self.url.serialize()),
+                ImageResponseMsg::ImageFailed => debug!("image decoding failed for {}", self.url.serialize()),
             }
         }
 

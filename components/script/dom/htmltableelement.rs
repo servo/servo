@@ -9,11 +9,10 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{HTMLElementCast, HTMLTableCaptionElementCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTableElementDerived, NodeCast};
 use dom::bindings::js::{JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
 use dom::document::Document;
-use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::htmlelement::HTMLElement;
+use dom::element::ElementTypeId;
+use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
@@ -32,7 +31,7 @@ pub struct HTMLTableElement {
 
 impl HTMLTableElementDerived for EventTarget {
     fn is_htmltableelement(&self) -> bool {
-        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLTableElement))
+        *self.type_id() == EventTargetTypeId::Node(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTableElement)))
     }
 }
 
@@ -40,7 +39,7 @@ impl HTMLTableElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>)
                      -> HTMLTableElement {
         HTMLTableElement {
-            htmlelement: HTMLElement::new_inherited(ElementTypeId::HTMLTableElement,
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTableElement,
                                                     localName,
                                                     prefix,
                                                     document),
@@ -55,12 +54,6 @@ impl HTMLTableElement {
                -> Temporary<HTMLTableElement> {
         let element = HTMLTableElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTableElementBinding::Wrap)
-    }
-}
-
-impl Reflectable for HTMLTableElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
     }
 }
 
@@ -82,7 +75,7 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
         match old_caption {
             Some(htmlelem) => {
                 let htmlelem_root = htmlelem.root();
-                let old_caption_node: JSRef<Node> = NodeCast::from_ref(*htmlelem_root);
+                let old_caption_node: JSRef<Node> = NodeCast::from_ref(htmlelem_root.r());
                 assert!(node.RemoveChild(old_caption_node).is_ok());
             }
             None => ()

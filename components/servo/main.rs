@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![comment = "The Servo Parallel Browser Project"]
-#![license = "MPL"]
-
 #![feature(phase)]
 
 #![deny(unused_imports)]
@@ -14,7 +11,6 @@
 extern crate libc;
 
 extern crate servo;
-extern crate native;
 extern crate time;
 extern crate "util" as servo_util;
 
@@ -36,8 +32,9 @@ use libc::c_int;
 #[cfg(not(test))]
 use servo_util::opts;
 
-#[cfg(not(test))]
-use servo_util::rtinstrument;
+// FIXME: Find replacement for this post-runtime removal
+//#[cfg(not(test))]
+//use servo_util::rtinstrument;
 
 #[cfg(not(test))]
 use servo::Browser;
@@ -58,8 +55,8 @@ android_start!(main)
 #[cfg(target_os="android")]
 fn get_args() -> Vec<String> {
     vec![
-        "servo".to_string(),
-        "http://en.wikipedia.org/wiki/Rust".to_string()
+        "servo".into_string(),
+        "http://en.wikipedia.org/wiki/Rust".into_string()
     ]
 }
 
@@ -162,7 +159,7 @@ fn main() {
         } = browser;
         browser.shutdown();
 
-        rtinstrument::teardown();
+        //rtinstrument::teardown();
     }
 }
 
