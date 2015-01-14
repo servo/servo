@@ -9,19 +9,21 @@
 use dom::bindings::global::global_object_for_js_object;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::Reflectable;
-use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable};
-use js::jsapi::JS_GetProperty;
+use js::jsapi::{JSContext, JSObject, JS_WrapObject, JS_ObjectIsCallable, JS_GetGlobalObject};
+use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
+use js::jsapi::{JS_GetPendingException};
 use js::jsval::{JSVal, UndefinedValue};
+use js::rust::with_compartment;
 
 use std::ptr;
 
 /// The exception handling used for a call.
-#[deriving(Copy)]
+#[deriving(Copy, PartialEq)]
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
-    ReportExceptions,
+    Report,
     /// Throw any exception to the caller code.
-    RethrowExceptions
+    Rethrow
 }
 
 /// A common base class for representing IDL callback function types.
@@ -135,7 +137,7 @@ pub struct CallSetup {
     /// The `JSContext` used for the call.
     cx: *mut JSContext,
     /// The exception handling used for the call.
-    _handling: ExceptionHandling
+    handling: ExceptionHandling,
 }
 
 impl CallSetup {
@@ -145,14 +147,52 @@ impl CallSetup {
         let global = global_object_for_js_object(callback.callback());
         let global = global.root();
         let cx = global.r().get_cx();
+
         CallSetup {
             cx: cx,
-            _handling: handling
+            handling: handling,
         }
     }
 
     /// Returns the `JSContext` used for the call.
     pub fn GetContext(&self) -> *mut JSContext {
         self.cx
+    }
+}
+
+impl Drop for CallSetup {
+    fn drop(&mut self) {
+        let mut need_to_deal_with_exception = unsafe { JS_IsExceptionPending(self.cx) } != 0;
+        if self.handling == ExceptionHandling::Rethrow && need_to_deal_with_exception {
+            let mut exn = UndefinedValue();
+            let got_exn = unsafe {
+                JS_GetPendingException(self.cx, &mut exn) != 0
+            };
+
+            if got_exn {
+                //TODO: actually rethrow instead of eagerly reporting.
+                //      Gecko stores a mutable reference to an ErrorResult
+                //      abstraction that can store a JS exception and
+                //      report it at content boundaries. Our return value
+                //      wrappers around Result<U,V> make that more difficult.
+                unsafe {
+                    JS_ReportPendingException(self.cx);
+                }
+                need_to_deal_with_exception = false;
+            }
+        }
+
+        if need_to_deal_with_exception {
+            // Either we're supposed to report our exceptions, or we're supposed to
+            // re-throw them but we failed to JS_GetPendingException.  Either way,
+            // just report the pending exception, if any.
+
+            unsafe {
+                let old_global = JS_GetGlobalObject(self.cx);
+                with_compartment(self.cx, old_global, || {
+                    JS_ReportPendingException(self.cx)
+                });
+            }
+        }
     }
 }
