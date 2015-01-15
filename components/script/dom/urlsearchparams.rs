@@ -18,7 +18,7 @@ use encoding::all::UTF_8;
 use encoding::types::{EncodingRef, EncoderTrap};
 
 use std::collections::HashMap;
-use std::collections::hash_map::{Occupied, Vacant};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::fmt::radix;
 use std::ascii::OwnedAsciiExt;
 
@@ -67,7 +67,7 @@ impl<'a> URLSearchParamsMethods for JSRef<'a, URLSearchParams> {
         match data.entry(name) {
             Occupied(entry) => entry.into_mut().push(value),
             Vacant(entry) => {
-                entry.set(vec!(value));
+                entry.insert(vec!(value));
             }
         }
 
@@ -117,7 +117,7 @@ impl URLSearchParamsHelpers for URLSearchParams {
                     a => {
                         // http://url.spec.whatwg.org/#percent-encode
                         let mut encoded = vec!(0x25); // %
-                        let s = format!("{}", radix(a, 16)).into_ascii_upper();
+                        let s = format!("{}", radix(a, 16)).into_ascii_uppercase();
                         let bytes = s.as_bytes();
                         encoded.push_all(bytes);
                         encoded

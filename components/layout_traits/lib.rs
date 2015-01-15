@@ -24,7 +24,7 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_util::time::TimeProfilerChan;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
-use std::comm::Sender;
+use std::sync::mpsc::{Sender, Receiver};
 
 /// Messages sent to the layout task from the constellation
 pub enum LayoutControlMsg {

@@ -10,14 +10,14 @@ use libc;
 
 cef_stub_static_method_impls! {
     fn cef_stream_reader_create_for_file(_file_name: *const cef_string_t)
-                                         -> *mut cef_stream_reader_t;
+                                         -> *mut cef_stream_reader_t
     fn cef_stream_reader_create_for_data(_data: *mut (), _size: libc::size_t)
-                                         -> *mut cef_stream_reader_t;
+                                         -> *mut cef_stream_reader_t
     fn cef_stream_reader_create_for_handler(_handler: *mut cef_read_handler_t)
-                                            -> *mut cef_stream_reader_t;
+                                            -> *mut cef_stream_reader_t
     fn cef_stream_writer_create_for_file(_file_name: *const cef_string_t)
-                                         -> *mut cef_stream_writer_t;
+                                         -> *mut cef_stream_writer_t
     fn cef_stream_writer_create_for_handler(_handler: *mut cef_write_handler_t)
-                                            -> *mut cef_stream_writer_t;
+                                            -> *mut cef_stream_writer_t
 }
 

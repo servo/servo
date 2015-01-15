@@ -350,7 +350,7 @@ fn code_value(key: constellation_msg::Key) -> &'static str {
 
         constellation_msg::Key::GraveAccent |
         constellation_msg::Key::World1 |
-        constellation_msg::Key::World2 => panic!("unknown char code for {}", key),
+        constellation_msg::Key::World2 => panic!("unknown char code for {:?}", key),
 
         constellation_msg::Key::Escape => "Escape",
         constellation_msg::Key::Enter => "Enter",

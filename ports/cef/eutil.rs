@@ -19,11 +19,10 @@ pub trait Downcast<Class> {
     fn downcast(&self) -> &Class;
 }
 
-pub fn slice_to_str(s: *const u8, l: uint, f: |&str| -> c_int) -> c_int {
+pub fn slice_to_str<F>(s: *const u8, l: uint, f: F) -> c_int where F: FnOnce(&str) -> c_int {
     unsafe {
-        slice::raw::buf_as_slice(s, l, |result| {
-             str::from_utf8(result).map(|s| f(s)).unwrap_or(0)
-        })
+        let s = slice::from_raw_buf(&s, l);
+        str::from_utf8(s).map(f).unwrap_or(0)
     }
 }
 
@@ -34,8 +33,8 @@ pub unsafe fn create_cef_object<Base,Extra>(size: size_t) -> *mut Base {
     let object = libc::calloc(1, (mem::size_of::<Base>() + mem::size_of::<Extra>()) as u64) as
         *mut cef_base_t;
     (*object).size = size;
-    (*object).add_ref = Some(servo_add_ref);
-    (*object).release = Some(servo_release);
+    (*object).add_ref = Some(servo_add_ref as extern "C" fn(*mut cef_base_t) -> c_int);
+    (*object).release = Some(servo_release as extern "C" fn(*mut cef_base_t) -> c_int);
     *ref_count(object) = 1;
     object as *mut Base
 }

@@ -141,20 +141,20 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
 }
 
 impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
-    make_url_getter!(Href)
-    make_setter!(SetHref, "href")
+    make_url_getter!(Href);
+    make_setter!(SetHref, "href");
 
-    make_getter!(Rel)
-    make_setter!(SetRel, "rel")
+    make_getter!(Rel);
+    make_setter!(SetRel, "rel");
 
-    make_getter!(Media)
-    make_setter!(SetMedia, "media")
+    make_getter!(Media);
+    make_setter!(SetMedia, "media");
 
-    make_getter!(Hreflang)
-    make_setter!(SetHreflang, "hreflang")
+    make_getter!(Hreflang);
+    make_setter!(SetHreflang, "hreflang");
 
-    make_getter!(Type)
-    make_setter!(SetType, "type")
+    make_getter!(Type);
+    make_setter!(SetType, "type");
 
     fn RelList(self) -> Temporary<DOMTokenList> {
         self.rel_list.or_init(|| {

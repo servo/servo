@@ -15,11 +15,11 @@ use selectors::{Selector, parse_selector_list};
 use parser::ParserContext;
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use namespaces::{NamespaceMap, parse_namespace_rule};
-use media_queries::{mod, Device, MediaQueryList, parse_media_query_list};
+use media_queries::{self, Device, MediaQueryList, parse_media_query_list};
 use font_face::{FontFaceRule, Source, parse_font_face_block, iter_font_face_rules_inner};
 
 
-#[deriving(Clone, PartialEq, Eq, Copy, Show)]
+#[derive(Clone, PartialEq, Eq, Copy, Show)]
 pub enum Origin {
     UserAgent,
     Author,
@@ -27,7 +27,7 @@ pub enum Origin {
 }
 
 
-#[deriving(Show, PartialEq)]
+#[derive(Show, PartialEq)]
 pub struct Stylesheet {
     /// List of rules in the order they were found (important for
     /// cascading order)
@@ -36,7 +36,7 @@ pub struct Stylesheet {
 }
 
 
-#[deriving(Show, PartialEq)]
+#[derive(Show, PartialEq)]
 pub enum CSSRule {
     Charset(String),
     Namespace(Option<String>, Namespace),
@@ -45,14 +45,14 @@ pub enum CSSRule {
     FontFace(FontFaceRule),
 }
 
-#[deriving(Show, PartialEq)]
+#[derive(Show, PartialEq)]
 pub struct MediaRule {
     pub media_queries: MediaQueryList,
     pub rules: Vec<CSSRule>,
 }
 
 
-#[deriving(Show, PartialEq)]
+#[derive(Show, PartialEq)]
 pub struct StyleRule {
     pub selectors: Vec<Selector>,
     pub declarations: PropertyDeclarationBlock,
@@ -60,7 +60,7 @@ pub struct StyleRule {
 
 
 impl Stylesheet {
-    pub fn from_bytes_iter<I: Iterator<Vec<u8>>>(
+    pub fn from_bytes_iter<I: Iterator<Item=Vec<u8>>>(
             mut input: I, base_url: Url, protocol_encoding_label: Option<&str>,
             environment_encoding: Option<EncodingRef>, origin: Origin) -> Stylesheet {
         let mut bytes = vec!();
@@ -122,7 +122,7 @@ struct MainRuleParser<'a, 'b: 'a> {
 }
 
 
-#[deriving(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Eq, PartialEq, Ord, PartialOrd)]
 enum State {
     Start = 1,
     Imports = 2,
@@ -140,7 +140,7 @@ enum AtRulePrelude {
 impl<'a, 'b> AtRuleParser<AtRulePrelude, CSSRule> for MainRuleParser<'a, 'b> {
     fn parse_prelude(&mut self, name: &str, input: &mut Parser)
                      -> Result<AtRuleType<AtRulePrelude, CSSRule>, ()> {
-        match_ignore_ascii_case! { name:
+        match_ignore_ascii_case! { name,
             "charset" => {
                 if self.state <= State::Start {
                     // Valid @charset rules are just ignored
@@ -174,7 +174,7 @@ impl<'a, 'b> AtRuleParser<AtRulePrelude, CSSRule> for MainRuleParser<'a, 'b> {
 
         self.state = State::Body;
 
-        match_ignore_ascii_case! { name:
+        match_ignore_ascii_case! { name,
             "media" => {
                 let media_queries = parse_media_query_list(input);
                 Ok(AtRuleType::WithBlock(AtRulePrelude::Media(media_queries)))
@@ -217,13 +217,13 @@ impl<'a, 'b> QualifiedRuleParser<Vec<Selector>, CSSRule> for MainRuleParser<'a, 
 }
 
 
-pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
-                            callback: |&StyleRule|) {
+pub fn iter_style_rules<'a, F>(rules: &[CSSRule], device: &media_queries::Device,
+                               callback: &mut F) where F: FnMut(&StyleRule) {
     for rule in rules.iter() {
         match *rule {
             CSSRule::Style(ref rule) => callback(rule),
             CSSRule::Media(ref rule) => if rule.media_queries.evaluate(device) {
-                iter_style_rules(rule.rules.as_slice(), device, |s| callback(s))
+                iter_style_rules(rule.rules.as_slice(), device, callback)
             },
             CSSRule::FontFace(..) |
             CSSRule::Charset(..) |
@@ -232,7 +232,7 @@ pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
     }
 }
 
-pub fn iter_stylesheet_media_rules(stylesheet: &Stylesheet, callback: |&MediaRule|) {
+pub fn iter_stylesheet_media_rules<F>(stylesheet: &Stylesheet, mut callback: F) where F: FnMut(&MediaRule) {
     for rule in stylesheet.rules.iter() {
         match *rule {
             CSSRule::Media(ref rule) => callback(rule),
@@ -245,15 +245,15 @@ pub fn iter_stylesheet_media_rules(stylesheet: &Stylesheet, callback: |&MediaRul
 }
 
 #[inline]
-pub fn iter_stylesheet_style_rules(stylesheet: &Stylesheet, device: &media_queries::Device,
-                                   callback: |&StyleRule|) {
-    iter_style_rules(stylesheet.rules.as_slice(), device, callback)
+pub fn iter_stylesheet_style_rules<F>(stylesheet: &Stylesheet, device: &media_queries::Device,
+                                      mut callback: F) where F: FnMut(&StyleRule) {
+    iter_style_rules(stylesheet.rules.as_slice(), device, &mut callback)
 }
 
 
 #[inline]
-pub fn iter_font_face_rules(stylesheet: &Stylesheet, device: &Device,
-                            callback: |family: &str, source: &Source|) {
+pub fn iter_font_face_rules<F>(stylesheet: &Stylesheet, device: &Device,
+                               callback: &F) where F: Fn(&str, &Source) {
     iter_font_face_rules_inner(stylesheet.rules.as_slice(), device, callback)
 }
 
@@ -265,6 +265,7 @@ fn test_parse_stylesheet() {
     use selectors::*;
     use string_cache::Atom;
     use properties::{PropertyDeclaration, DeclaredValue, longhands};
+    use std::borrow::ToOwned;
 
     let css = r"
         @namespace url(http://www.w3.org/1999/xhtml);
@@ -293,7 +294,7 @@ fn test_parse_stylesheet() {
                                     name: atom!(type),
                                     lower_name: atom!(type),
                                     namespace: NamespaceConstraint::Specific(ns!("")),
-                                }, "hidden".into_string(), CaseSensitivity::CaseInsensitive)
+                                }, "hidden".to_owned(), CaseSensitivity::CaseInsensitive)
                             ],
                             next: None,
                         }),
@@ -374,7 +375,7 @@ fn test_parse_stylesheet() {
                         PropertyDeclaration::BackgroundPosition(DeclaredValue::Initial),
                         PropertyDeclaration::BackgroundColor(DeclaredValue::SpecifiedValue(
                             longhands::background_color::SpecifiedValue {
-                                authored: Some("blue".into_string()),
+                                authored: Some("blue".to_owned()),
                                 parsed: cssparser::Color::RGBA(cssparser::RGBA {
                                     red: 0., green: 0., blue: 1., alpha: 1.
                                 }),

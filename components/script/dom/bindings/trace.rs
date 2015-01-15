@@ -33,7 +33,6 @@ use dom::bindings::utils::{Reflectable, Reflector, WindowProxyHandler};
 use dom::node::{Node, TrustedNodeAddress};
 use script_task::ScriptChan;
 
-use collections::hash::{Hash, Hasher};
 use cssparser::RGBA;
 use geom::rect::Rect;
 use html5ever::tree_builder::QuirksMode;
@@ -54,9 +53,12 @@ use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::comm::{Receiver, Sender};
+use std::collections::hash_state::HashState;
+use std::ffi::CString;
+use std::hash::{Hash, Hasher};
 use std::io::timer::Timer;
 use std::rc::Rc;
+use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
 use style::PropertyDeclarationBlock;
 use url::Url;
@@ -74,7 +76,7 @@ impl<T: Reflectable> JSTraceable for JS<T> {
     }
 }
 
-no_jsmanaged_fields!(Reflector)
+no_jsmanaged_fields!(Reflector);
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
@@ -83,7 +85,7 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
     }
 
     unsafe {
-        let name = description.to_c_str();
+        let name = CString::from_slice(description.as_bytes());
         (*tracer).debugPrinter = None;
         (*tracer).debugPrintIndex = -1;
         (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
@@ -101,7 +103,7 @@ pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Ref
 /// Trace a `JSObject`.
 pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: *mut JSObject) {
     unsafe {
-        let name = description.to_c_str();
+        let name = CString::from_slice(description.as_bytes());
         (*tracer).debugPrinter = None;
         (*tracer).debugPrintIndex = -1;
         (*tracer).debugPrintArg = name.as_ptr() as *const libc::c_void;
@@ -175,14 +177,17 @@ impl<T: JSTraceable> JSTraceable for Option<T> {
     }
 }
 
-impl<K,V,S,H> JSTraceable for HashMap<K, V, H> where K: Eq + Hash<S> + JSTraceable,
-                                                     V: JSTraceable,
-                                                     H: Hasher<S> {
+impl<K,V,S> JSTraceable for HashMap<K, V, S>
+    where K: Hash<<S as HashState>::Hasher> + Eq + JSTraceable,
+          V: JSTraceable,
+          S: HashState,
+          <S as HashState>::Hasher: Hasher<Output=u64>,
+{
     #[inline]
     fn trace(&self, trc: *mut JSTracer) {
-        for e in self.iter() {
-            e.val0().trace(trc);
-            e.val1().trace(trc);
+        for (k, v) in self.iter() {
+            k.trace(trc);
+            v.trace(trc);
         }
     }
 }
@@ -197,28 +202,28 @@ impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
 }
 
 
-no_jsmanaged_fields!(bool, f32, f64, String, Url)
-no_jsmanaged_fields!(uint, u8, u16, u32, u64)
-no_jsmanaged_fields!(int, i8, i16, i32, i64)
-no_jsmanaged_fields!(Sender<T>)
-no_jsmanaged_fields!(Receiver<T>)
-no_jsmanaged_fields!(Rect<T>)
-no_jsmanaged_fields!(ImageCacheTask, ScriptControlChan)
-no_jsmanaged_fields!(Atom, Namespace, Timer)
-no_jsmanaged_fields!(Trusted<T>)
-no_jsmanaged_fields!(PropertyDeclarationBlock)
+no_jsmanaged_fields!(bool, f32, f64, String, Url);
+no_jsmanaged_fields!(uint, u8, u16, u32, u64);
+no_jsmanaged_fields!(int, i8, i16, i32, i64);
+no_jsmanaged_fields!(Sender<T>);
+no_jsmanaged_fields!(Receiver<T>);
+no_jsmanaged_fields!(Rect<T>);
+no_jsmanaged_fields!(ImageCacheTask, ScriptControlChan);
+no_jsmanaged_fields!(Atom, Namespace, Timer);
+no_jsmanaged_fields!(Trusted<T>);
+no_jsmanaged_fields!(PropertyDeclarationBlock);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId)
-no_jsmanaged_fields!(QuirksMode)
-no_jsmanaged_fields!(Cx)
-no_jsmanaged_fields!(Headers, Method)
-no_jsmanaged_fields!(ConstellationChan)
-no_jsmanaged_fields!(LayoutChan)
-no_jsmanaged_fields!(WindowProxyHandler)
-no_jsmanaged_fields!(UntrustedNodeAddress)
-no_jsmanaged_fields!(LengthOrPercentageOrAuto)
-no_jsmanaged_fields!(RGBA)
+no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId);
+no_jsmanaged_fields!(QuirksMode);
+no_jsmanaged_fields!(Cx);
+no_jsmanaged_fields!(Headers, Method);
+no_jsmanaged_fields!(ConstellationChan);
+no_jsmanaged_fields!(LayoutChan);
+no_jsmanaged_fields!(WindowProxyHandler);
+no_jsmanaged_fields!(UntrustedNodeAddress);
+no_jsmanaged_fields!(LengthOrPercentageOrAuto);
+no_jsmanaged_fields!(RGBA);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]

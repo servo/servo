@@ -20,7 +20,7 @@ pub trait TNode<'a, E: TElement<'a>> : Clone + Copy {
     fn is_document(self) -> bool;
     fn is_element(self) -> bool;
     fn as_element(self) -> E;
-    fn match_attr(self, attr: &AttrSelector, test: |&str| -> bool) -> bool;
+    fn match_attr<F>(self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool;
     fn is_html_element_in_html_document(self) -> bool;
 
     fn has_changed(self) -> bool;
@@ -55,7 +55,7 @@ pub trait TElement<'a> : Copy {
     // really messy, since there is a `JSRef` and a `RefCell` involved. Maybe
     // in the future when we have associated types and/or a more convenient
     // JS GC story... --pcwalton
-    fn each_class(self, callback: |&Atom|);
+    fn each_class<F>(self, callback: F) where F: FnMut(&Atom);
 }
 
 pub trait TElementAttributes : Copy {

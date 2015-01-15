@@ -8,13 +8,13 @@ use std::mem;
 use std::slice;
 use std::rc::Rc;
 use std::cell::RefCell;
-use servo_util::cache::{Cache, HashCache};
+use servo_util::cache::HashCache;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use style::computed_values::{font_variant, font_weight};
 use style::style_structs::Font as FontStyle;
 use std::sync::Arc;
 
-use collections::hash::Hash;
+use std::hash::Hash;
 use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
 use servo_util::geometry::Au;
@@ -66,10 +66,10 @@ impl FontTableTagConversions for FontTableTag {
 }
 
 pub trait FontTableMethods {
-    fn with_buffer(&self, |*const u8, uint|);
+    fn with_buffer<F>(&self, F) where F: FnOnce(*const u8, uint);
 }
 
-#[deriving(Clone, Show)]
+#[derive(Clone, Show)]
 pub struct FontMetrics {
     pub underline_size:   Au,
     pub underline_offset: Au,
@@ -101,7 +101,6 @@ pub struct Font {
 }
 
 bitflags! {
-    #[deriving(Copy)]
     flags ShapingFlags: u8 {
         #[doc="Set if the text is entirely whitespace."]
         const IS_WHITESPACE_SHAPING_FLAG = 0x01,
@@ -113,7 +112,7 @@ bitflags! {
 }
 
 /// Various options that control text shaping.
-#[deriving(Clone, Eq, PartialEq, Hash, Copy)]
+#[derive(Clone, Eq, PartialEq, Hash, Copy)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
@@ -125,36 +124,25 @@ pub struct ShapingOptions {
 }
 
 /// An entry in the shape cache.
-#[deriving(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct ShapeCacheEntry {
     text: String,
     options: ShapingOptions,
-}
-
-#[deriving(Clone, Eq, PartialEq, Hash)]
-struct ShapeCacheEntryRef<'a> {
-    text: &'a str,
-    options: &'a ShapingOptions,
-}
-
-impl<'a> Equiv<ShapeCacheEntry> for ShapeCacheEntryRef<'a> {
-    fn equiv(&self, other: &ShapeCacheEntry) -> bool {
-        self.text == other.text.as_slice() && *self.options == other.options
-    }
 }
 
 impl Font {
     pub fn shape_text(&mut self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
         self.make_shaper(options);
 
+        //FIXME: find the equivalent of Equiv and the old ShapeCacheEntryRef
         let shaper = &self.shaper;
-        let lookup_key = ShapeCacheEntryRef {
-            text: text,
-            options: options,
+        let lookup_key = ShapeCacheEntry {
+            text: text.to_owned(),
+            options: options.clone(),
         };
-        match self.shape_cache.find_equiv(&lookup_key) {
+        match self.shape_cache.find(&lookup_key) {
             None => {}
-            Some(glyphs) => return (*glyphs).clone(),
+            Some(glyphs) => return glyphs.clone(),
         }
 
         let mut glyphs = GlyphStore::new(text.chars().count() as int,

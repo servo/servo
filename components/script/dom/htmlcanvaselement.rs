@@ -26,6 +26,7 @@ use geom::size::Size2D;
 
 use std::cell::Cell;
 use std::default::Default;
+use std::sync::mpsc::Sender;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;

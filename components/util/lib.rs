@@ -2,15 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(default_type_params,macro_rules,unsafe_destructor)]
+#![feature(unsafe_destructor)]
+#![feature(plugin)]
+#![feature(int_uint)]
+#![feature(old_impl_check)]
+#![feature(box_syntax)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
+#![allow(unstable)]
 
-#![feature(phase)]
-#[phase(plugin, link)]
-extern crate log;
+#[macro_use] extern crate log;
 
 extern crate alloc;
 extern crate collections;
@@ -19,9 +22,9 @@ extern crate geom;
 extern crate getopts;
 extern crate layers;
 extern crate libc;
+#[no_link] #[macro_use] extern crate cssparser;
 extern crate rand;
-extern crate rustrt;
-extern crate serialize;
+extern crate "serialize" as rustc_serialize;
 #[cfg(target_os="macos")]
 extern crate task_info;
 extern crate "time" as std_time;
@@ -30,9 +33,9 @@ extern crate string_cache;
 extern crate unicode;
 extern crate url;
 
-#[phase(plugin)] extern crate plugins;
-#[phase(plugin)] extern crate string_cache_macros;
-#[phase(plugin)] extern crate lazy_static;
+#[no_link] #[macro_use] #[plugin]
+extern crate string_cache_macros;
+extern crate lazy_static;
 
 use std::sync::Arc;
 

@@ -195,13 +195,13 @@ impl TextRunScanner {
             let range = *new_ranges.get(logical_offset);
             if range.is_empty() {
                 debug!("Elided an `SpecificFragmentInfo::UnscannedText` because it was zero-length after \
-                        compression; {}",
+                        compression; {:?}",
                        old_fragment);
                 continue
             }
 
             let text_size = old_fragment.border_box.size;
-            let &NewLinePositions(ref mut new_line_positions) =
+            let &mut NewLinePositions(ref mut new_line_positions) =
                 new_line_positions.get_mut(logical_offset);
             let new_text_fragment_info =
                 box ScannedTextFragmentInfo::new(run.clone(),

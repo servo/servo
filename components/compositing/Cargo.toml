@@ -43,9 +43,6 @@ git = "https://github.com/servo/rust-layers"
 [dependencies.png]
 git = "https://github.com/servo/rust-png"
 
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
-
 [dependencies.core_graphics]
 git = "https://github.com/servo/rust-core-graphics"
 
@@ -55,5 +52,6 @@ git = "https://github.com/servo/rust-core-text"
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
 
-[dependencies.time]
-git = "https://github.com/rust-lang/time"
+[dependencies]
+url = "*"
+time = "*"

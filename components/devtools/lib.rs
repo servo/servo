@@ -10,17 +10,19 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
+#![feature(int_uint, box_syntax)]
+
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
+#![allow(unstable)]
 
-#![feature(phase)]
-
-#[phase(plugin, link)]
+#[macro_use]
 extern crate log;
 
 extern crate collections;
 extern crate core;
 extern crate devtools_traits;
+extern crate "serialize" as rustc_serialize;
 extern crate serialize;
 extern crate "msg" as servo_msg;
 extern crate "util" as servo_util;
@@ -39,8 +41,8 @@ use servo_util::task::spawn_named;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::comm;
-use std::comm::{Disconnected, Empty};
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
 use std::io::{Acceptor, Listener, TimedOut};
 use std::sync::{Arc, Mutex};
@@ -57,8 +59,8 @@ mod protocol;
 
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
-    let (sender, receiver) = comm::channel();
-    spawn_named("Devtools".to_owned(), proc() {
+    let (sender, receiver) = channel();
+    spawn_named("Devtools".to_owned(), move || {
         run_server(receiver, port)
     });
     sender
@@ -92,7 +94,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
         println!("connection established to {}", stream.peer_name().unwrap());
         {
-            let actors = actors.lock();
+            let actors = actors.lock().unwrap();
             let msg = actors.find::<RootActor>("root").encodable();
             stream.write_json_packet(&msg);
         }
@@ -100,8 +102,9 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         'outer: loop {
             match stream.read_json_packet() {
                 Ok(json_packet) => {
-                    match actors.lock().handle_message(json_packet.as_object().unwrap(),
-                                                       &mut stream) {
+                    let mut actors = actors.lock().unwrap();
+                    match actors.handle_message(json_packet.as_object().unwrap(),
+                                                &mut stream) {
                         Ok(()) => {},
                         Err(()) => {
                             println!("error: devtools actor stopped responding");
@@ -127,7 +130,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
                          sender: Sender<DevtoolScriptControlMsg>,
                          actor_pipelines: &mut HashMap<PipelineId, String>,
                          page_info: DevtoolsPageInfo) {
-        let mut actors = actors.lock();
+        let mut actors = actors.lock().unwrap();
 
         //TODO: move all this actor creation into a constructor method on TabActor
         let (tab, console, inspector) = {
@@ -185,7 +188,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Ok(stream) => {
                 let actors = actors.clone();
                 accepted_connections.push(stream.clone());
-                spawn_named("DevtoolsClientHandler".to_owned(), proc() {
+                spawn_named("DevtoolsClientHandler".to_owned(), move || {
                     // connection succeeded
                     handle_client(actors, stream.clone())
                 })

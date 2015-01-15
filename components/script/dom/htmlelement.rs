@@ -21,6 +21,7 @@ use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers, AttributeHandlers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId;
 use dom::node::{Node, NodeTypeId, window_from_node};
@@ -84,17 +85,17 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
         })
     }
 
-    make_getter!(Title)
-    make_setter!(SetTitle, "title")
+    make_getter!(Title);
+    make_setter!(SetTitle, "title");
 
-    make_getter!(Lang)
-    make_setter!(SetLang, "lang")
+    make_getter!(Lang);
+    make_setter!(SetLang, "lang");
 
     // http://html.spec.whatwg.org/multipage/#dom-hidden
-    make_bool_getter!(Hidden)
-    make_bool_setter!(SetHidden, "hidden")
+    make_bool_getter!(Hidden);
+    make_bool_setter!(SetHidden, "hidden");
 
-    global_event_handlers!(NoOnload)
+    global_event_handlers!(NoOnload);
 
     // https://html.spec.whatwg.org/multipage/dom.html#dom-dataset
     fn Dataset(self) -> Temporary<DOMStringMap> {
@@ -123,7 +124,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
 
     // https://html.spec.whatwg.org/multipage/interaction.html#dom-click
     fn Click(self) {
-        let maybe_input = HTMLInputElementCast::to_ref(self);
+        let maybe_input: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
         match maybe_input {
             Some(i) if i.Disabled() => return,
             _ => ()
@@ -205,7 +206,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
     }
 }
 
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum HTMLElementTypeId {
     HTMLElement,
