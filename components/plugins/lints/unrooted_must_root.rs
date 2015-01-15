@@ -11,7 +11,7 @@ use rustc::util::ppaux::Repr;
 use utils::unsafe_context;
 
 declare_lint!(UNROOTED_MUST_ROOT, Deny,
-              "Warn and report usage of unrooted jsmanaged objects")
+              "Warn and report usage of unrooted jsmanaged objects");
 
 /// Lint for ensuring safe usage of unrooted pointers
 ///

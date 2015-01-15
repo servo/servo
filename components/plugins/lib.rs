@@ -12,15 +12,17 @@
 //!  - `#[dom_struct]` : Implies `#[privatize]`,`#[jstraceable]`, and `#[must_root]`.
 //!     Use this for structs that correspond to a DOM type
 
-#![feature(macro_rules, plugin_registrar, quote, phase)]
+#![feature(plugin_registrar, quote)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
 
-#[phase(plugin,link)]
+#[plugin]
+#[macro_use]
 extern crate syntax;
-#[phase(plugin, link)]
+#[plugin]
+#[macro_use]
 extern crate rustc;
 
 use rustc::lint::LintPassObject;

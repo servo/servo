@@ -7,7 +7,7 @@ use rustc::lint::{Context, LintPass, LintArray};
 use utils::match_ty_unwrap;
 
 declare_lint!(BANNED_TYPE, Deny,
-              "Ban various unsafe type combinations")
+              "Ban various unsafe type combinations");
 
 /// Lint for banning various unsafe types
 ///
