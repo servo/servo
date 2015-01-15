@@ -108,14 +108,6 @@ reason: \"certificate verify failed\" }]";
             }
         };
 
-        let (tx, rx) = channel();
-        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP));
-        if let Some(cookies) = rx.recv().unwrap() {
-            let mut v = Vec::new();
-            v.push(cookies.into_bytes());
-            load_data.headers.set_raw("Cookie".to_owned(), v);
-        }
-
         // Avoid automatically preserving request headers when redirects occur.
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
         // https://bugzilla.mozilla.org/show_bug.cgi?id=216828
@@ -124,6 +116,14 @@ reason: \"certificate verify failed\" }]";
             let host = req.headers().get::<Host>().unwrap().clone();
             *req.headers_mut() = load_data.headers.clone();
             req.headers_mut().set(host);
+        }
+
+        let (tx, rx) = channel();
+        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP));
+        if let Some(cookies) = rx.recv().unwrap() {
+            let mut v = Vec::new();
+            v.push(cookies.into_bytes());
+            load_data.headers.set_raw("Cookie".to_owned(), v);
         }
 
         // FIXME(seanmonstar): use AcceptEncoding from Hyper once available
