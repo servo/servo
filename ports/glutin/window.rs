@@ -25,7 +25,7 @@ use util::opts;
 use util::opts::RenderApi;
 use gleam::gl;
 use glutin;
-use glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
+use glutin::{ElementState, Event, MouseButton, MouseCursor, VirtualKeyCode};
 use NestedEventLoopListener;
 use util::cursor::Cursor;
 
@@ -252,10 +252,49 @@ impl WindowMethods for Window {
         // TODO(gw)
     }
 
-    fn set_cursor(&self, _: Cursor) {
-        // No-op. We could take over mouse handling ourselves and draw the cursor as an extra
-        // layer with our own custom bitmaps or something, but it doesn't seem worth the
-        // trouble.
+    fn set_cursor(&self, c: Cursor) {
+        let glutin_cursor = match c {
+            Cursor::NoCursor => MouseCursor::NoneCursor,
+            Cursor::DefaultCursor => MouseCursor::Default,
+            Cursor::PointerCursor => MouseCursor::Hand,
+            Cursor::ContextMenuCursor => MouseCursor::ContextMenu,
+            Cursor::HelpCursor => MouseCursor::Help,
+            Cursor::ProgressCursor => MouseCursor::Progress,
+            Cursor::WaitCursor => MouseCursor::Wait,
+            Cursor::CellCursor => MouseCursor::Cell,
+            Cursor::CrosshairCursor => MouseCursor::Crosshair,
+            Cursor::TextCursor => MouseCursor::Text,
+            Cursor::VerticalTextCursor => MouseCursor::VerticalText,
+            Cursor::AliasCursor => MouseCursor::Alias,
+            Cursor::CopyCursor => MouseCursor::Copy,
+            Cursor::MoveCursor => MouseCursor::Move,
+            Cursor::NoDropCursor => MouseCursor::NoDrop,
+            Cursor::NotAllowedCursor => MouseCursor::NotAllowed,
+            Cursor::GrabCursor => MouseCursor::Grab,
+            Cursor::GrabbingCursor => MouseCursor::Grabbing,
+            Cursor::EResizeCursor => MouseCursor::EResize,
+            Cursor::NResizeCursor => MouseCursor::NResize,
+            Cursor::NeResizeCursor => MouseCursor::NeResize,
+            Cursor::NwResizeCursor => MouseCursor::NwResize,
+            Cursor::SResizeCursor => MouseCursor::SResize,
+            Cursor::SeResizeCursor => MouseCursor::SeResize,
+            Cursor::SwResizeCursor => MouseCursor::SwResize,
+            Cursor::WResizeCursor => MouseCursor::WResize,
+            Cursor::EwResizeCursor => MouseCursor::EwResize,
+            Cursor::NsResizeCursor => MouseCursor::NsResize,
+            Cursor::NeswResizeCursor => MouseCursor::NeswResize,
+            Cursor::NwseResizeCursor => MouseCursor::NwseResize,
+            Cursor::ColResizeCursor => MouseCursor::ColResize,
+            Cursor::RowResizeCursor => MouseCursor::RowResize,
+            Cursor::AllScrollCursor => MouseCursor::AllScroll,
+            Cursor::ZoomInCursor => MouseCursor::ZoomIn,
+            Cursor::ZoomOutCursor => MouseCursor::ZoomOut,
+        };
+        match self.glutin {
+            WindowHandle::Windowed(ref window) => window.set_cursor(glutin_cursor),
+            WindowHandle::Headless(_) => (),
+        }
+        
     }
 
     fn prepare_for_composite(&self) -> bool {
