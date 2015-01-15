@@ -14,7 +14,7 @@ use servo_util::str::DOMString;
 use std::borrow::ToOwned;
 
 #[repr(uint)]
-#[deriving(Copy, Show)]
+#[derive(Copy, Show)]
 #[jstraceable]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR as uint,

@@ -423,7 +423,7 @@ pub trait MutableOwnedFlowUtils {
     fn set_absolute_descendants(&mut self, abs_descendants: AbsDescendants);
 }
 
-#[deriving(Encodable, PartialEq, Show)]
+#[derive(Encodable, PartialEq, Show)]
 pub enum FlowClass {
     Block,
     Inline,
@@ -465,7 +465,7 @@ pub trait PostorderFlowTraversal {
 
 bitflags! {
     #[doc = "Flags used in flows."]
-    #[deriving(Copy)]
+    #[derive(Copy)]
     flags FlowFlags: u16 {
         // floated descendants flags
         #[doc = "Whether this flow has descendants that float left in the same block formatting"]
@@ -592,7 +592,7 @@ impl FlowFlags {
 /// The Descendants of a flow.
 ///
 /// Also, details about their position wrt this flow.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Descendants {
     /// Links to every descendant. This must be private because it is unsafe to leak `FlowRef`s to
     /// layout.
@@ -663,7 +663,7 @@ pub type DescendantOffsetIter<'a> = Zip<DescendantIter<'a>, MutItems<'a, Au>>;
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows).
-#[deriving(Encodable, Copy)]
+#[derive(Encodable, Copy)]
 pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
@@ -838,7 +838,7 @@ impl Drop for BaseFlow {
 
 /// Whether a base flow should be forced to be nonfloated. This can affect e.g. `TableFlow`, which
 /// is never floated because the table wrapper flow is the floated one.
-#[deriving(Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum ForceNonfloatedFlag {
     /// The flow should be floated if the node has a `float` property.
     FloatIfNecessary,

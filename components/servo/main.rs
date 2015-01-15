@@ -23,7 +23,7 @@ extern crate "glfw_app" as app;
 extern crate compositing;
 
 #[cfg(target_os="android")]
-#[phase(plugin, link)]
+#[macro_use]
 extern crate android_glue;
 
 #[cfg(target_os="android")]
@@ -80,7 +80,7 @@ fn redirect_output(file_no: c_int) {
         let input_file = "r".with_c_str(|mode| {
             fdopen(pipes[0], mode)
         });
-        spawn(proc() {
+        spawn(move || {
             loop {
                 let mut read_buffer: [c_char, ..1024] = mem::zeroed();
                 fgets(read_buffer.as_mut_ptr(), read_buffer.len() as i32, input_file);

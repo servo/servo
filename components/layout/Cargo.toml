@@ -37,9 +37,6 @@ git = "https://github.com/servo/rust-cssparser"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
-
 [dependencies.string_cache]
 git = "https://github.com/servo/string-cache"
 
@@ -48,3 +45,4 @@ git = "https://github.com/servo/string-cache"
 
 [dependencies]
 encoding = "0.2"
+url = "*"

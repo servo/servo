@@ -96,7 +96,7 @@ impl HTMLCollection {
         }
         let filter = TagNameFilter {
             tag: Atom::from_slice(tag.as_slice()),
-            ascii_lower_tag: Atom::from_slice(tag.as_slice().to_ascii_lower().as_slice()),
+            ascii_lower_tag: Atom::from_slice(tag.as_slice().to_ascii_lowercase().as_slice()),
         };
         HTMLCollection::create(window, root, box filter)
     }
@@ -165,12 +165,13 @@ impl HTMLCollection {
     }
 
     fn traverse<'a>(root: JSRef<'a, Node>)
-                    -> FilterMap<'a, JSRef<'a, Node>,
+                    -> FilterMap<JSRef<'a, Node>,
                                  JSRef<'a, Element>,
-                                 Skip<TreeIterator<'a>>> {
+                                 Skip<TreeIterator<'a>>,
+                                 fn(JSRef<Node>) -> Option<JSRef<Element>>> {
         root.traverse_preorder()
             .skip(1)
-            .filter_map(ElementCast::to_ref)
+            .filter_map(ElementCast::to_ref as fn(JSRef<Node>) -> Option<JSRef<Element>>)
     }
 }
 

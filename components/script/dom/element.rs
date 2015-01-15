@@ -89,14 +89,14 @@ impl ElementDerived for EventTarget {
     }
 }
 
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum ElementTypeId {
     HTMLElement(HTMLElementTypeId),
     Element,
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum ElementCreator {
     ParserCreated,
     ScriptCreated,
@@ -388,7 +388,7 @@ impl LayoutElementHelpers for JS<Element> {
     }
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum StylePriority {
     Important,
     Normal,
@@ -424,7 +424,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn parsed_name(self, name: DOMString) -> DOMString {
         if self.html_element_in_html_document() {
-            name.as_slice().to_ascii_lower()
+            name.as_slice().to_ascii_lowercase()
         } else {
             name
         }
@@ -569,9 +569,10 @@ pub trait AttributeHandlers {
                                  prefix: Option<DOMString>);
     fn set_attribute(self, name: &Atom, value: AttrValue);
     fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult;
-    fn do_set_attribute(self, local_name: Atom, value: AttrValue,
-                        name: Atom, namespace: Namespace,
-                        prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool);
+    fn do_set_attribute<F>(self, local_name: Atom, value: AttrValue,
+                           name: Atom, namespace: Namespace,
+                           prefix: Option<DOMString>, cb: F)
+        where F: Fn(JSRef<Attr>) -> bool;
     fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue;
 
@@ -633,7 +634,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_attribute(self, name: &Atom, value: AttrValue) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         assert!(!name.as_slice().contains(":"));
 
         self.do_set_attribute(name.clone(), value, name.clone(),
@@ -657,9 +658,15 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         Ok(())
     }
 
-    fn do_set_attribute(self, local_name: Atom, value: AttrValue,
-                        name: Atom, namespace: Namespace,
-                        prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool) {
+    fn do_set_attribute<F>(self,
+                           local_name: Atom,
+                           value: AttrValue,
+                           name: Atom,
+                           namespace: Namespace,
+                           prefix: Option<DOMString>,
+                           cb: F)
+        where F: Fn(JSRef<Attr>) -> bool
+    {
         let idx = self.attrs.borrow().iter()
                                      .map(|attr| attr.root())
                                      .position(|attr| cb(attr.r()));
@@ -742,9 +749,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn has_attribute(self, name: &Atom) -> bool {
-        assert!(name.as_slice().chars().all(|ch| {
-            !ch.is_ascii() || ch.to_ascii().to_lowercase() == ch.to_ascii()
-        }));
+        assert!(name.bytes().all(|b| b.to_ascii_lowercase() == b));
         self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
             *attr.r().local_name() == *name && *attr.r().namespace() == ns!("")
         })
@@ -760,7 +765,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_url_attribute(self, name: &Atom) -> DOMString {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         if !self.has_attribute(name) {
             return "".to_owned();
         }
@@ -785,7 +790,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_string_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::String(value));
     }
 
@@ -800,12 +805,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::from_serialized_tokenlist(value));
     }
 
     fn set_atomic_tokenlist_attribute(self, name: &Atom, tokens: Vec<Atom>) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::from_atomic_tokens(tokens));
     }
 
@@ -826,7 +831,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_uint_attribute(self, name: &Atom, value: u32) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::UInt(value.to_string(), value));
     }
 }
@@ -1394,7 +1399,9 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
 
         has_class(self, name)
     }
-    fn each_class(self, callback: |&Atom|) {
+    fn each_class<F>(self, callback: F)
+        where F: Fn(&Atom)
+    {
         match self.get_attribute(ns!(""), &atom!("class")).root() {
             None => {}
             Some(ref attr) => {

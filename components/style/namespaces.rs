@@ -8,7 +8,7 @@ use string_cache::{Atom, Namespace};
 use parser::ParserContext;
 
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct NamespaceMap {
     pub default: Option<Namespace>,
     pub prefix_map: HashMap<String, Namespace>,

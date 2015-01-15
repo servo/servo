@@ -12,7 +12,7 @@ use std::fmt;
 use style::computed_values::float;
 
 /// The kind of float: left or right.
-#[deriving(Clone, Encodable, Show, Copy)]
+#[derive(Clone, Encodable, Show, Copy)]
 pub enum FloatKind {
     Left,
     Right
@@ -29,7 +29,7 @@ impl FloatKind {
 }
 
 /// The kind of clearance: left, right, or both.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum ClearType {
     Left,
     Right,
@@ -37,7 +37,7 @@ pub enum ClearType {
 }
 
 /// Information about a single float.
-#[deriving(Clone, Copy)]
+#[derive(Clone, Copy)]
 struct Float {
     /// The boundaries of this float.
     bounds: LogicalRect<Au>,
@@ -52,7 +52,7 @@ impl fmt::Show for Float {
 }
 
 /// Information about the floats next to a flow.
-#[deriving(Clone)]
+#[derive(Clone)]
 struct FloatList {
     /// Information about each of the floats here.
     floats: PersistentList<Float>,
@@ -110,7 +110,7 @@ fn range_intersect(block_start_1: Au, block_end_1: Au, block_start_2: Au, block_
 
 /// Encapsulates information about floats. This is optimized to avoid allocation if there are
 /// no floats, and to avoid copying when translating the list of floats downward.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Floats {
     /// The list of floats.
     list: FloatList,

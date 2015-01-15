@@ -18,10 +18,11 @@ use js::glue::{ReportError};
 use js::rust::with_compartment;
 
 use libc;
+use std::ffi::CString;
 use std::ptr;
 
 /// DOM exceptions that can be thrown by a native DOM method.
-#[deriving(Show, Clone)]
+#[derive(Show, Clone)]
 pub enum Error {
     /// IndexSizeError
     IndexSize,
@@ -95,14 +96,13 @@ pub fn report_pending_exception(cx: *mut JSContext, obj: *mut JSObject) {
 pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) -> JSBool {
     assert!(unsafe { JS_IsExceptionPending(cx) } == 0);
     let message = format!("argument could not be converted to any of: {}", names);
-    message.with_c_str(|string| {
-        unsafe { ReportError(cx, string) };
-    });
+    let string = CString::from_slice(message.as_bytes());
+    unsafe { ReportError(cx, string.as_ptr()) };
     return 0;
 }
 
 /// Format string used to throw `TypeError`s.
-static ERROR_FORMAT_STRING_STRING: [libc::c_char, ..4] = [
+static ERROR_FORMAT_STRING_STRING: [libc::c_char; 4] = [
     '{' as libc::c_char,
     '0' as libc::c_char,
     '}' as libc::c_char,
@@ -127,8 +127,12 @@ unsafe extern fn get_error_message(_user_ref: *mut libc::c_void,
 
 /// Throw a `TypeError` with the given message.
 pub fn throw_type_error(cx: *mut JSContext, error: &str) {
-    let error = error.to_c_str();
+    let error = CString::from_slice(error.as_bytes());
     unsafe {
-        JS_ReportErrorNumber(cx, Some(get_error_message), ptr::null_mut(), 0, error.as_ptr());
+        JS_ReportErrorNumber(cx,
+            Some(get_error_message as
+                unsafe extern "C" fn(*mut libc::c_void, *const libc::c_char,
+                                     libc::c_uint) -> *const JSErrorFormatString),
+            ptr::null_mut(), 0, error.as_ptr());
     }
 }

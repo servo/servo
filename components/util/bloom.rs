@@ -58,7 +58,7 @@ const KEY_SHIFT: uint = 16;
 /// positive rate for N == 100 and to quite bad false positive
 /// rates for larger N.
 pub struct BloomFilter {
-    counters: [u8, ..ARRAY_SIZE],
+    counters: [u8; ARRAY_SIZE],
 }
 
 impl Clone for BloomFilter {
@@ -75,7 +75,7 @@ impl BloomFilter {
     #[inline]
     pub fn new() -> BloomFilter {
         BloomFilter {
-            counters: [0, ..ARRAY_SIZE],
+            counters: [0; ARRAY_SIZE],
         }
     }
 
@@ -101,7 +101,7 @@ impl BloomFilter {
 
     #[inline]
     pub fn clear(&mut self) {
-        self.counters = [0, ..ARRAY_SIZE]
+        self.counters = [0; ARRAY_SIZE]
     }
 
     #[inline]
@@ -231,7 +231,7 @@ fn create_and_insert_some_stuff() {
     let false_positives =
         range(1001u, 2000).filter(|i| bf.might_contain(i)).count();
 
-    assert!(false_positives < 10) // 1%.
+    assert!(false_positives < 10); // 1%.
 
     for i in range(0u, 100) {
         bf.remove(&i);

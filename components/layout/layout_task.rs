@@ -61,7 +61,7 @@ use servo_util::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile}
 use servo_util::workqueue::WorkQueue;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::comm::{channel, Sender, Receiver, Select};
+use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
 use style::computed_values::{filter, mix_blend_mode};
@@ -162,7 +162,7 @@ impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
                 debug!("Dirtying {:x}", node_address as uint);
                 let mut nodes = SmallVec1::new();
                 nodes.vec_push(node_address);
-                drop(chan.send_opt(ConstellationControlMsg::SendEvent(
+                drop(chan.send(ConstellationControlMsg::SendEvent(
                     id.clone(), CompositorEvent::ReflowEvent(nodes))))
             };
         f
@@ -185,7 +185,7 @@ impl LayoutTaskFactory for LayoutTask {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, proc() {
+        spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
                 let layout =

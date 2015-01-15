@@ -31,14 +31,14 @@ use style::{ComputedValues, CSSFloat};
 use style::computed_values::{table_layout, LengthOrPercentageOrAuto};
 use std::sync::Arc;
 
-#[deriving(Copy, Encodable, Show)]
+#[derive(Copy, Encodable, Show)]
 pub enum TableLayout {
     Fixed,
     Auto
 }
 
 /// A table wrapper flow based on a block formatting context.
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub struct TableWrapperFlow {
     pub block_flow: BlockFlow,
 
@@ -497,7 +497,7 @@ impl Add<AutoLayoutCandidateGuess,AutoLayoutCandidateGuess> for AutoLayoutCandid
 
 /// The `CSSFloat` member specifies the weight of the smaller of the two guesses, on a scale from
 /// 0.0 to 1.0.
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 enum SelectedAutoLayoutCandidateGuess {
     UseMinimumGuess,
     InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(CSSFloat),

@@ -161,7 +161,7 @@ pub trait TLayoutNode {
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `JS`.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct LayoutNode<'a> {
     /// The wrapped node.
     node: JS<Node>,
@@ -493,7 +493,7 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
 }
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct LayoutElement<'le> {
     element: &'le Element,
 }
@@ -660,7 +660,7 @@ fn get_content(content_list: &content::T) -> String {
     }
 }
 
-#[deriving(Copy, PartialEq, Clone)]
+#[derive(Copy, PartialEq, Clone)]
 pub enum PseudoElementType {
     Normal,
     Before(display::T),
@@ -685,7 +685,7 @@ impl PseudoElementType {
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
-#[deriving(Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
     node: LayoutNode<'ln>,

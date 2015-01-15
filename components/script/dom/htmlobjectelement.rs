@@ -89,10 +89,10 @@ impl<'a> HTMLObjectElementMethods for JSRef<'a, HTMLObjectElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/embedded-content.html#dom-object-type
-    make_getter!(Type)
+    make_getter!(Type);
 
     // https://html.spec.whatwg.org/multipage/embedded-content.html#dom-object-type
-    make_setter!(SetType, "type")
+    make_setter!(SetType, "type");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLObjectElement> {

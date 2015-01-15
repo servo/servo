@@ -23,8 +23,7 @@ path = "../../components/msg"
 path = "../../components/util"
 
 [dependencies.glutin]
-git = "https://github.com/servo/glutin"
-branch = "servo"
+git = "https://github.com/jdm/glutin"
 features = ["window", "headless"]
 
 [dependencies.gleam]
@@ -33,5 +32,8 @@ git = "https://github.com/servo/gleam"
 [dependencies.cgl]
 git = "https://github.com/servo/rust-cgl"
 
-[dependencies.time]
-git = "https://github.com/rust-lang/time"
+[dependencies.egl]
+git = "https://github.com/servo/rust-egl"
+
+[dependencies]
+time = "*"

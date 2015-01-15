@@ -10,11 +10,12 @@ use devtools_traits::{GetLayout, NodeInfo, ModifyAttribute};
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
 
-use collections::TreeMap;
+use collections::BTreeMap;
 use servo_msg::constellation_msg::PipelineId;
 use serialize::json::{mod, Json, ToJson};
 use std::cell::RefCell;
 use std::io::TcpStream;
+use std::sync::mpsc::{channel, Sender};
 use std::num::Float;
 
 pub struct InspectorActor {
@@ -26,13 +27,13 @@ pub struct InspectorActor {
     pub pipeline: PipelineId,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct GetHighlighterReply {
     highligter: HighlighterMsg, // sic.
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct HighlighterMsg {
     actor: String,
 }
@@ -47,12 +48,12 @@ pub struct NodeActor {
     pipeline: PipelineId,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct ShowBoxModelReply {
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct HideBoxModelReply {
     from: String,
 }
@@ -89,7 +90,7 @@ impl Actor for HighlighterActor {
     }
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct ModifyAttributeReply{
     from: String,
 }
@@ -114,7 +115,8 @@ impl Actor for NodeActor {
 
                 self.script_chan.send(ModifyAttribute(self.pipeline,
                                                       registry.actor_to_script(target.to_string()),
-                                                      modifications));
+                                                      modifications))
+                                .unwrap();
                 let reply = ModifyAttributeReply{
                     from: self.name(),
                 };
@@ -127,26 +129,26 @@ impl Actor for NodeActor {
     }
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct GetWalkerReply {
     from: String,
     walker: WalkerMsg,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct WalkerMsg {
     actor: String,
     root: NodeActorMsg,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct AttrMsg {
     namespace: String,
     name: String,
     value: String,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct NodeActorMsg {
     actor: String,
     baseURI: String,
@@ -243,23 +245,23 @@ struct WalkerActor {
     pipeline: PipelineId,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct QuerySelectorReply {
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct DocumentElementReply {
     from: String,
     node: NodeActorMsg,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct ClearPseudoclassesReply {
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct ChildrenReply {
     hasFirst: bool,
     hasLast: bool,
@@ -288,8 +290,8 @@ impl Actor for WalkerActor {
 
             "documentElement" => {
                 let (tx, rx) = channel();
-                self.script_chan.send(GetDocumentElement(self.pipeline, tx));
-                let doc_elem_info = rx.recv();
+                self.script_chan.send(GetDocumentElement(self.pipeline, tx)).unwrap();
+                let doc_elem_info = rx.recv().unwrap();
                 let node = doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
 
                 let msg = DocumentElementReply {
@@ -313,8 +315,9 @@ impl Actor for WalkerActor {
                 let (tx, rx) = channel();
                 self.script_chan.send(GetChildren(self.pipeline,
                                                   registry.actor_to_script(target.to_string()),
-                                                  tx));
-                let children = rx.recv();
+                                                  tx))
+                                .unwrap();
+                let children = rx.recv().unwrap();
 
                 let msg = ChildrenReply {
                     hasFirst: true,
@@ -333,13 +336,13 @@ impl Actor for WalkerActor {
     }
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct GetPageStyleReply {
     from: String,
     pageStyle: PageStyleMsg,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct PageStyleMsg {
     actor: String,
 }
@@ -350,7 +353,7 @@ struct PageStyleActor {
     pipeline: PipelineId,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct GetAppliedReply {
     entries: Vec<AppliedEntry>,
     rules: Vec<AppliedRule>,
@@ -358,13 +361,13 @@ struct GetAppliedReply {
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct GetComputedReply {
     computed: Vec<uint>, //XXX all css props
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct AppliedEntry {
     rule: String,
     pseudoElement: Json,
@@ -372,7 +375,7 @@ struct AppliedEntry {
     matchedSelectors: Vec<String>,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct AppliedRule {
     actor: String,
     __type__: uint,
@@ -383,7 +386,7 @@ struct AppliedRule {
     parentStyleSheet: String,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct AppliedSheet {
     actor: String,
     href: String,
@@ -395,7 +398,7 @@ struct AppliedSheet {
     ruleCount: uint,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct GetLayoutReply {
     width: int,
     height: int,
@@ -403,7 +406,7 @@ struct GetLayoutReply {
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 #[allow(dead_code)]
 struct AutoMargins {
     top: String,
@@ -450,9 +453,10 @@ impl Actor for PageStyleActor {
                 let target = msg.get(&"node".to_string()).unwrap().as_string().unwrap();
                 let (tx, rx) = channel();
                 self.script_chan.send(GetLayout(self.pipeline,
-                                                registry.actor_to_script(target.to_string()),
-                                                tx));
-                let (width, height) = rx.recv();
+                                      registry.actor_to_script(target.to_string()),
+                                      tx))
+                                .unwrap();
+                let (width, height) = rx.recv().unwrap();
 
                 let auto_margins = msg.get(&"autoMargins".to_string()).unwrap().as_boolean().unwrap();
 
@@ -463,7 +467,7 @@ impl Actor for PageStyleActor {
                     height: height.round() as int,
                     autoMargins: if auto_margins {
                         //TODO: real values like processMargins in http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
-                        let mut m = TreeMap::new();
+                        let mut m = BTreeMap::new();
                         m.insert("top".to_string(), "auto".to_string().to_json());
                         m.insert("bottom".to_string(), "auto".to_string().to_json());
                         m.insert("left".to_string(), "auto".to_string().to_json());
@@ -507,8 +511,8 @@ impl Actor for InspectorActor {
                 }
 
                 let (tx, rx) = channel();
-                self.script_chan.send(GetRootNode(self.pipeline, tx));
-                let root_info = rx.recv();
+                self.script_chan.send(GetRootNode(self.pipeline, tx)).unwrap();
+                let root_info = rx.recv().unwrap();
 
                 let node = root_info.encode(registry, false, self.script_chan.clone(), self.pipeline);
 

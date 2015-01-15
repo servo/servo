@@ -11,7 +11,7 @@ use png;
 pub type Image = png::Image;
 
 
-static TEST_IMAGE: &'static [u8] = include_bin!("test.jpeg");
+static TEST_IMAGE: &'static [u8] = include_bytes!("test.jpeg");
 
 pub fn test_image_bin() -> Vec<u8> {
     TEST_IMAGE.iter().map(|&x| x).collect()

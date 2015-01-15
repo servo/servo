@@ -50,7 +50,7 @@ impl ApplicableDeclarations {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ApplicableDeclarationsCacheEntry {
     pub declarations: Vec<DeclarationBlock>,
 }
@@ -168,7 +168,7 @@ fn create_common_style_affecting_attributes_from_element(element: &LayoutElement
     flags
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct StyleSharingCandidate {
     pub style: Arc<ComputedValues>,
     pub parent_style: Arc<ComputedValues>,

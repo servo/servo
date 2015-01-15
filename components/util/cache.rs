@@ -2,13 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![old_impl_check]
+
 use std::collections::HashMap;
-use std::collections::hash_map::{Occupied, Vacant};
+use std::collections::hash_map::Hasher;
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use rand::Rng;
-use std::hash::{Hash, sip};
+use std::hash::{Hash, SipHasher};
 use std::iter::repeat;
-use std::rand::task_rng;
-use std::slice::Items;
+use std::rand;
+use std::slice::Iter;
 
 #[cfg(test)]
 use std::cell::Cell;
@@ -16,7 +19,7 @@ use std::cell::Cell;
 pub trait Cache<K: PartialEq, V: Clone> {
     fn insert(&mut self, key: K, value: V);
     fn find(&mut self, key: &K) -> Option<V>;
-    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V;
+    fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V;
     fn evict_all(&mut self);
 }
 
@@ -24,15 +27,21 @@ pub struct HashCache<K, V> {
     entries: HashMap<K, V>,
 }
 
-impl<K: Clone + PartialEq + Eq + Hash, V: Clone> HashCache<K,V> {
-    pub fn new() -> HashCache<K, V> {
+impl<K, V> HashCache<K,V>
+    where K: Clone + PartialEq + Eq + Hash<Hasher>,
+          V: Clone,
+{
+    pub fn new() -> HashCache<K,V> {
         HashCache {
           entries: HashMap::new(),
         }
     }
 }
 
-impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
+impl<K, V> Cache<K,V> for HashCache<K,V>
+    where K: Clone + PartialEq + Eq + Hash<Hasher>,
+          V: Clone
+{
     fn insert(&mut self, key: K, value: V) {
         self.entries.insert(key, value);
     }
@@ -44,13 +53,13 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
+    fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
         match self.entries.entry(key.clone()) {
             Occupied(occupied) => {
                 (*occupied.get()).clone()
             }
             Vacant(vacant) => {
-                (*vacant.set(blk(key))).clone()
+                (*vacant.insert(blk(key))).clone()
             }
         }
     }
@@ -59,12 +68,6 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
         self.entries.clear();
     }
 
-}
-
-impl<K,V> HashCache<K,V> where K: Clone + PartialEq + Eq + Hash, V: Clone {
-    pub fn find_equiv<'a,Sized? Q>(&'a self, key: &Q) -> Option<&'a V> where Q: Hash + Equiv<K> {
-        self.entries.find_equiv(key)
-    }
 }
 
 #[test]
@@ -98,12 +101,12 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
         let last_index = self.entries.len() - 1;
         if pos != last_index {
             let entry = self.entries.remove(pos);
-            self.entries.push(entry.unwrap());
+            self.entries.push(entry);
         }
-        self.entries[last_index].ref1().clone()
+        self.entries[last_index].1.clone()
     }
 
-    pub fn iter<'a>(&'a self) -> Items<'a,(K,V)> {
+    pub fn iter<'a>(&'a self) -> Iter<'a,(K,V)> {
         self.entries.iter()
     }
 }
@@ -123,7 +126,7 @@ impl<K: Clone + PartialEq, V: Clone> Cache<K,V> for LRUCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
+    fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
         match self.entries.iter().position(|&(ref k, _)| *k == *key) {
             Some(pos) => self.touch(pos),
             None => {
@@ -145,9 +148,9 @@ pub struct SimpleHashCache<K,V> {
     k1: u64,
 }
 
-impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
+impl<K:Clone+PartialEq+Hash<SipHasher>,V:Clone> SimpleHashCache<K,V> {
     pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
-        let mut r = task_rng();
+        let mut r = rand::thread_rng();
         SimpleHashCache {
             entries: repeat(None).take(cache_size).collect(),
             k0: r.gen(),
@@ -161,21 +164,14 @@ impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
     }
 
     #[inline]
-    fn bucket_for_key<Q:Hash>(&self, key: &Q) -> uint {
-        self.to_bucket(sip::hash_with_keys(self.k0, self.k1, key) as uint)
-    }
-
-    #[inline]
-    pub fn find_equiv<'a,Q:Hash+Equiv<K>>(&'a self, key: &Q) -> Option<&'a V> {
-        let bucket_index = self.bucket_for_key(key);
-        match self.entries[bucket_index] {
-            Some((ref existing_key, ref value)) if key.equiv(existing_key) => Some(value),
-            _ => None,
-        }
+    fn bucket_for_key<Q:Hash<SipHasher>>(&self, key: &Q) -> uint {
+        let mut hasher = SipHasher::new_with_keys(self.k0, self.k1);
+        key.hash(&mut hasher);
+        self.to_bucket(hasher.result() as uint)
     }
 }
 
-impl<K:Clone+PartialEq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
+impl<K:Clone+PartialEq+Hash<SipHasher>,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
     fn insert(&mut self, key: K, value: V) {
         let bucket_index = self.bucket_for_key(&key);
         self.entries[bucket_index] = Some((key, value));
@@ -189,7 +185,7 @@ impl<K:Clone+PartialEq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
+    fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
         match self.find(key) {
             Some(value) => return value,
             None => {}

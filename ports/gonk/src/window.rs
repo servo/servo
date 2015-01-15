@@ -147,7 +147,7 @@ pub struct hwc_color {
 }
 
 #[repr(C)]
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct hwc_rect {
     left: c_int,
     top: c_int,

@@ -60,7 +60,7 @@ impl NullCompositor {
                 initial_viewport: TypedSize2D(640_f32, 480_f32),
                 visible_viewport: TypedSize2D(640_f32, 480_f32),
                 device_pixel_ratio: ScaleFactor(1.0),
-            }));
+            })).unwrap();
         }
 
         compositor
@@ -73,8 +73,8 @@ impl CompositorEventListener for NullCompositor {
             Msg::Exit(chan) => {
                 debug!("shutting down the constellation");
                 let ConstellationChan(ref con_chan) = self.constellation_chan;
-                con_chan.send(ConstellationMsg::Exit);
-                chan.send(());
+                con_chan.send(ConstellationMsg::Exit).unwrap();
+                chan.send(()).unwrap();
             }
 
             Msg::ShutdownComplete => {
@@ -83,19 +83,19 @@ impl CompositorEventListener for NullCompositor {
             }
 
             Msg::GetGraphicsMetadata(chan) => {
-                chan.send(None);
+                chan.send(None).unwrap();
             }
 
             Msg::SetFrameTree(_, response_chan, _) => {
-                response_chan.send(());
+                response_chan.send(()).unwrap();
             }
 
             Msg::ChangeLayerPipelineAndRemoveChildren(_, _, response_channel) => {
-                response_channel.send(());
+                response_channel.send(()).unwrap();
             }
 
             Msg::CreateRootLayerForPipeline(_, _, _, response_channel) => {
-                response_channel.send(());
+                response_channel.send(()).unwrap();
             }
 
             // Explicitly list ignored messages so that when we add a new one,

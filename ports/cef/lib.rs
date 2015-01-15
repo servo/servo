@@ -8,7 +8,7 @@
 #![deny(unused_imports, unused_variables, unused_mut)]
 
 #![feature(phase)]
-#[phase(plugin, link)]
+#[macro_use]
 extern crate log;
 #[phase(plugin)]
 extern crate "plugins" as servo_plugins;

@@ -65,7 +65,7 @@ static FONT_SUPERSCRIPT_OFFSET_RATIO: f64 = 0.34;
 /// with a float or a horizontal wall of the containing block. The block-start
 /// inline-start corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
-#[deriving(Encodable, Show, Copy)]
+#[derive(Encodable, Show, Copy)]
 pub struct Line {
     /// A range of line indices that describe line breaks.
     ///
@@ -150,7 +150,7 @@ pub struct Line {
 }
 
 int_range_index! {
-    #[deriving(Encodable)]
+    #[derive(Encodable)]
     #[doc = "The index of a fragment in a flattened vector of DOM elements."]
     struct FragmentIndex(int)
 }
@@ -657,7 +657,7 @@ impl LineBreaker {
 }
 
 /// Represents a list of inline fragments, including element ranges.
-#[deriving(Encodable, Clone)]
+#[derive(Encodable, Clone)]
 pub struct InlineFragments {
     /// The fragments themselves.
     pub fragments: Vec<Fragment>,
@@ -711,7 +711,7 @@ impl InlineFragments {
 }
 
 /// Flows for inline layout.
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub struct InlineFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -1258,7 +1258,7 @@ impl fmt::Show for InlineFlow {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct InlineFragmentContext {
     pub styles: Vec<Arc<ComputedValues>>,
 }

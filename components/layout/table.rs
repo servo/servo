@@ -32,7 +32,7 @@ use std::sync::Arc;
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
 /// not table fragment per CSS 2.1 § 10.5.
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub struct TableFlow {
     pub block_flow: BlockFlow,
 
@@ -441,7 +441,7 @@ impl ISizeAndMarginsComputer for InternalTable {
 /// maximum of 100 pixels and 20% of the table), the preceding constraint means that we must
 /// potentially store both a specified width *and* a specified percentage, so that the inline-size
 /// assignment phase of layout will know which one to pick.
-#[deriving(Clone, Encodable, Show, Copy)]
+#[derive(Clone, Encodable, Show, Copy)]
 pub struct ColumnIntrinsicInlineSize {
     /// The preferred intrinsic inline size.
     pub preferred: Au,
@@ -485,7 +485,7 @@ impl ColumnIntrinsicInlineSize {
 ///
 /// TODO(pcwalton): There will probably be some `border-collapse`-related info in here too
 /// eventually.
-#[deriving(Encodable, Copy)]
+#[derive(Encodable, Copy)]
 pub struct ColumnComputedInlineSize {
     /// The computed size of this inline column.
     pub size: Au,

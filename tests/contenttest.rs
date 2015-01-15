@@ -23,7 +23,7 @@ use std::io::Reader;
 use std::io::process::{Command, Ignored, CreatePipe, InheritFd, ExitStatus};
 use regex::Regex;
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct Config {
     source_dir: String,
     filter: Option<Regex>

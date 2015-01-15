@@ -1276,7 +1276,7 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
 }
 
 // A helper data structure for gradients.
-#[deriving(Copy)]
+#[derive(Copy)]
 struct StopRun {
     start_offset: f32,
     end_offset: f32,
@@ -1300,7 +1300,7 @@ fn position_to_offset(position: LengthOrPercentage, Au(total_length): Au) -> f32
 }
 
 /// "Steps" as defined by CSS 2.1 § E.2.
-#[deriving(Clone, PartialEq, Show, Copy)]
+#[derive(Clone, PartialEq, Show, Copy)]
 pub enum StackingLevel {
     /// The border and backgrounds for the root of this stacking context: steps 1 and 2.
     BackgroundAndBorders,

@@ -29,7 +29,7 @@ use url::Url;
 
 
 bitflags!(
-    #[deriving(Copy)]
+    #[derive(Copy)]
     flags RenderMode: u32 {
         const CPU_RENDERING  = 0x00000001,
         const GPU_RENDERING  = 0x00000010,
@@ -131,7 +131,7 @@ fn run(test_opts: TestOpts, all_tests: Vec<TestDescAndFn>,
     run_tests_console(&test_opts, all_tests)
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 enum ReftestKind {
     Same,
     Different,

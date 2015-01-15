@@ -19,6 +19,7 @@ use msg::constellation_msg::LoadData;
 use std::cell::{Cell, RefCell};
 use std::num::Float;
 use std::rc::Rc;
+use std::sync::mpsc::{channel, Sender};
 use time::{mod, Timespec};
 use util::geometry::ScreenPx;
 use util::opts;
@@ -56,8 +57,8 @@ fn nested_window_resize(width: uint, height: uint) {
     }
 }
 
-bitflags!(
-    #[deriving(Show, Copy)]
+bitflags! {
+    #[derive(Show, Copy)]
     flags KeyModifiers: u8 {
         const LEFT_CONTROL = 1,
         const RIGHT_CONTROL = 2,
@@ -66,7 +67,7 @@ bitflags!(
         const LEFT_ALT = 16,
         const RIGHT_ALT = 32,
     }
-)
+}
 
 /// The type of a window.
 pub struct Window {
@@ -125,7 +126,7 @@ impl Window {
                                     .unwrap();
                 unsafe { glutin_window.make_current() };
 
-                glutin_window.set_window_resize_callback(Some(nested_window_resize));
+                glutin_window.set_window_resize_callback(Some(nested_window_resize as fn(uint, uint)));
                 WindowHandle::Windowed(glutin_window)
             }
             RenderApi::Mesa => {
@@ -588,7 +589,7 @@ impl Window {
         {
             let mut event_queue = self.event_queue.borrow_mut();
             if !event_queue.is_empty() {
-                return event_queue.remove(0).unwrap();
+                return event_queue.remove(0);
             }
         }
 
@@ -618,11 +619,19 @@ impl Window {
                 if close_event || window.is_closed() {
                     WindowEvent::Quit
                 } else {
-                    self.event_queue.borrow_mut().remove(0).unwrap_or(WindowEvent::Idle)
+                    if self.event_queue.borrow().is_empty() {
+                        WindowEvent::Idle
+                    } else {
+                        self.event_queue.borrow_mut().remove(0)
+                    }
                 }
             }
             WindowHandle::Headless(_) => {
-                self.event_queue.borrow_mut().remove(0).unwrap_or(WindowEvent::Idle)
+                if self.event_queue.borrow().is_empty() {
+                    WindowEvent::Idle
+                } else {
+                    self.event_queue.borrow_mut().remove(0)
+                }
             }
         }
     }

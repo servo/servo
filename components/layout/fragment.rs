@@ -75,7 +75,7 @@ use url::Url;
 ///
 /// FIXME(#2260, pcwalton): This can be slimmed down some by (at least) moving `inline_context`
 /// to be on `InlineFlow` only.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Fragment {
     /// An opaque reference to the DOM node that this `Fragment` originates from.
     pub node: OpaqueNode,
@@ -124,7 +124,7 @@ impl<E, S: Encoder<E>> Encodable<S, E> for Fragment {
 /// Info specific to the kind of fragment.
 ///
 /// Keep this enum small. As in, no more than one word. Or pcwalton will yell at you.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum SpecificFragmentInfo {
     Generic,
     Iframe(Box<IframeFragmentInfo>),
@@ -191,7 +191,7 @@ impl SpecificFragmentInfo {
 ///
 /// FIXME(pcwalton): Stop leaking this `FlowRef` to layout; that is not memory safe because layout
 /// can clone it.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct InlineAbsoluteHypotheticalFragmentInfo {
     pub flow_ref: FlowRef,
 }
@@ -208,7 +208,7 @@ impl InlineAbsoluteHypotheticalFragmentInfo {
 ///
 /// FIXME(pcwalton): Stop leaking this `FlowRef` to layout; that is not memory safe because layout
 /// can clone it.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct InlineBlockFragmentInfo {
     pub flow_ref: FlowRef,
 }
@@ -221,7 +221,7 @@ impl InlineBlockFragmentInfo {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct CanvasFragmentInfo {
     pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
     pub renderer: Option<Arc<Mutex<Sender<CanvasMsg>>>>,
@@ -250,7 +250,7 @@ impl CanvasFragmentInfo {
 
 
 /// A fragment that represents a replaced content image and its accompanying borders, shadows, etc.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ImageFragmentInfo {
     /// The image held within this fragment.
     pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
@@ -309,7 +309,7 @@ impl ImageFragmentInfo {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ReplacedImageFragmentInfo {
     pub for_node: UntrustedNodeAddress,
     pub computed_inline_size: Option<Au>,
@@ -479,7 +479,7 @@ impl ReplacedImageFragmentInfo {
 
 /// A fragment that represents an inline frame (iframe). This stores the pipeline ID so that the size
 /// of this iframe can be communicated via the constellation to the iframe's own layout task.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct IframeFragmentInfo {
     /// The pipeline ID of this iframe.
     pub pipeline_id: PipelineId,
@@ -502,7 +502,7 @@ impl IframeFragmentInfo {
 /// may be split into two or more fragments across line breaks. Several `TextFragment`s may
 /// correspond to a single DOM text node. Split text fragments are implemented by referring to
 /// subsets of a single `TextRun` object.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ScannedTextFragmentInfo {
     /// The text run that this represents.
     pub run: Arc<Box<TextRun>>,
@@ -543,7 +543,7 @@ impl ScannedTextFragmentInfo {
 
 /// Describes how to split a fragment. This is used during line breaking as part of the return
 /// value of `find_split_info_for_inline_size()`.
-#[deriving(Show, Clone)]
+#[derive(Show, Clone)]
 pub struct SplitInfo {
     // TODO(bjz): this should only need to be a single character index, but both values are
     // currently needed for splitting in the `inline::try_append_*` functions.
@@ -572,7 +572,7 @@ pub struct SplitResult {
 
 /// Data for an unscanned text fragment. Unscanned text fragments are the results of flow
 /// construction that have not yet had their inline-size determined.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct UnscannedTextFragmentInfo {
     /// The text inside the fragment.
     ///
@@ -600,7 +600,7 @@ impl UnscannedTextFragmentInfo {
 }
 
 /// A fragment that represents a table column.
-#[deriving(Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct TableColumnFragmentInfo {
     /// the number of columns a <col> element should span
     pub span: int,
@@ -1856,7 +1856,7 @@ pub trait FragmentBorderBoxIterator {
 
 /// The coordinate system used in `stacking_relative_border_box()`. See the documentation of that
 /// method for details.
-#[deriving(Clone, PartialEq, Show)]
+#[derive(Clone, PartialEq, Show)]
 pub enum CoordinateSystem {
     /// The border box returned is relative to the fragment's parent stacking context.
     Parent,

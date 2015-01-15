@@ -9,7 +9,7 @@
 #![allow(unrooted_must_root)]
 #![allow(missing_copy_implementations)]
 
-#[phase(plugin, link)]
+#[macro_use]
 extern crate log;
 
 extern crate cssparser;
@@ -26,7 +26,7 @@ extern crate style;
 extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
 extern crate "msg" as servo_msg;
-#[phase(plugin, link)]
+#[macro_use]
 extern crate "util" as servo_util;
 
 #[phase(plugin)]

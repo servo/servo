@@ -119,30 +119,37 @@ impl<'a> TreeWalkerMethods for JSRef<'a, TreeWalker> {
     }
 }
 
-type NodeAdvancer<'a> = |node: JSRef<'a, Node>|: 'a -> Option<Temporary<Node>>;
+type NodeAdvancer<'a> = Fn(JSRef<'a, Node>) -> Option<Temporary<Node>> + 'a;
 
-trait PrivateTreeWalkerHelpers<'a> {
-    fn traverse_children(self,
-                         next_child: NodeAdvancer<'a>,
-                         next_sibling: NodeAdvancer<'a>)
-                         -> Fallible<Option<Temporary<Node>>>;
-    fn traverse_siblings(self,
-                         next_child: NodeAdvancer<'a>,
-                         next_sibling: NodeAdvancer<'a>)
-                         -> Fallible<Option<Temporary<Node>>>;
-    fn is_root_node(self, node: JSRef<'a, Node>) -> bool;
-    fn is_current_node(self, node: JSRef<'a, Node>) -> bool;
-    fn first_following_node_not_following_root(self, node: JSRef<'a, Node>)
+trait PrivateTreeWalkerHelpers {
+    fn traverse_children<F, G>(self,
+                               next_child: F,
+                               next_sibling: G)
+                               -> Fallible<Option<Temporary<Node>>>
+        where F: Fn(JSRef<Node>) -> Option<Temporary<Node>>,
+              G: Fn(JSRef<Node>) -> Option<Temporary<Node>>;
+    fn traverse_siblings<F, G>(self,
+                               next_child: F,
+                               next_sibling: G)
+                               -> Fallible<Option<Temporary<Node>>>
+        where F: Fn(JSRef<Node>) -> Option<Temporary<Node>>,
+              G: Fn(JSRef<Node>) -> Option<Temporary<Node>>;
+    fn is_root_node(self, node: JSRef<Node>) -> bool;
+    fn is_current_node(self, node: JSRef<Node>) -> bool;
+    fn first_following_node_not_following_root(self, node: JSRef<Node>)
                                                -> Option<Temporary<Node>>;
-    fn accept_node(self, node: JSRef<'a, Node>) -> Fallible<u16>;
+    fn accept_node(self, node: JSRef<Node>) -> Fallible<u16>;
 }
 
-impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
+impl<'a> PrivateTreeWalkerHelpers for JSRef<'a, TreeWalker> {
     // http://dom.spec.whatwg.org/#concept-traverse-children
-    fn traverse_children(self,
-                         next_child: NodeAdvancer<'a>,
-                         next_sibling: NodeAdvancer<'a>)
-                         -> Fallible<Option<Temporary<Node>>> {
+    fn traverse_children<F, G>(self,
+                               next_child: F,
+                               next_sibling: G)
+                               -> Fallible<Option<Temporary<Node>>>
+        where F: Fn(JSRef<Node>) -> Option<Temporary<Node>>,
+              G: Fn(JSRef<Node>) -> Option<Temporary<Node>>
+    {
         // "To **traverse children** of type *type*, run these steps:"
         // "1. Let node be the value of the currentNode attribute."
         // "2. Set node to node's first child if type is first, and node's last child if type is last."
@@ -218,10 +225,13 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
     }
 
     // http://dom.spec.whatwg.org/#concept-traverse-siblings
-    fn traverse_siblings(self,
-                         next_child: NodeAdvancer<'a>,
-                         next_sibling: NodeAdvancer<'a>)
-                         -> Fallible<Option<Temporary<Node>>> {
+    fn traverse_siblings<F, G>(self,
+                               next_child: F,
+                               next_sibling: G)
+                               -> Fallible<Option<Temporary<Node>>>
+        where F: Fn(JSRef<Node>) -> Option<Temporary<Node>>,
+              G: Fn(JSRef<Node>) -> Option<Temporary<Node>>
+    {
         // "To **traverse siblings** of type *type* run these steps:"
         // "1. Let node be the value of the currentNode attribute."
         let mut node = self.current_node.get().root().clone();
@@ -282,7 +292,7 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
     }
 
     // http://dom.spec.whatwg.org/#concept-tree-following
-    fn first_following_node_not_following_root(self, node: JSRef<'a, Node>)
+    fn first_following_node_not_following_root(self, node: JSRef<Node>)
                                                -> Option<Temporary<Node>> {
         // "An object A is following an object B if A and B are in the same tree
         //  and A comes after B in tree order."
@@ -309,7 +319,7 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
     }
 
     // http://dom.spec.whatwg.org/#concept-node-filter
-    fn accept_node(self, node: JSRef<'a, Node>) -> Fallible<u16> {
+    fn accept_node(self, node: JSRef<Node>) -> Fallible<u16> {
         // "To filter node run these steps:"
         // "1. Let n be node's nodeType attribute value minus 1."
         let n: uint = node.NodeType() as uint - 1;
@@ -329,11 +339,11 @@ impl<'a> PrivateTreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
         }
     }
 
-    fn is_root_node(self, node: JSRef<'a, Node>) -> bool {
+    fn is_root_node(self, node: JSRef<Node>) -> bool {
         JS::from_rooted(node) == self.root_node
     }
 
-    fn is_current_node(self, node: JSRef<'a, Node>) -> bool {
+    fn is_current_node(self, node: JSRef<Node>) -> bool {
         JS::from_rooted(node) == self.current_node.get()
     }
 }
@@ -526,7 +536,9 @@ impl<'a> TreeWalkerHelpers<'a> for JSRef<'a, TreeWalker> {
     }
 }
 
-impl<'a> Iterator<JSRef<'a, Node>> for JSRef<'a, TreeWalker> {
+impl<'a> Iterator for JSRef<'a, TreeWalker> {
+    type Item = JSRef<'a, Node>;
+
    fn next(&mut self) -> Option<JSRef<'a, Node>> {
        match self.next_node() {
            Ok(node) => node.map(|n| n.root().clone()),

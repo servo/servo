@@ -7,12 +7,12 @@
 //! The `ByteString` struct.
 
 use std::borrow::ToOwned;
-use std::hash::{Hash, sip};
+use std::hash::{Hash, SipHasher};
 use std::str;
 use std::str::FromStr;
 
 /// Encapsulates the IDL `ByteString` type.
-#[deriving(Clone,Eq,PartialEq)]
+#[derive(Clone,Eq,PartialEq)]
 #[jstraceable]
 pub struct ByteString(Vec<u8>);
 
@@ -26,7 +26,7 @@ impl ByteString {
     /// otherwise.
     pub fn as_str<'a>(&'a self) -> Option<&'a str> {
         let ByteString(ref vec) = *self;
-        str::from_utf8(vec.as_slice())
+        str::from_utf8(vec.as_slice()).ok()
     }
 
     /// Returns the underlying vector as a slice.
@@ -84,7 +84,7 @@ impl ByteString {
     /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-32).
     pub fn is_field_value(&self) -> bool {
         // Classifications of characters necessary for the [CRLF] (SP|HT) rule
-        #[deriving(PartialEq)]
+        #[derive(PartialEq)]
         enum PreviousCharacter {
             Other,
             CR,
@@ -146,8 +146,8 @@ impl ByteString {
     }
 }
 
-impl Hash for ByteString {
-    fn hash(&self, state: &mut sip::SipState) {
+impl Hash<SipHasher> for ByteString {
+    fn hash(&self, state: &mut SipHasher) {
         let ByteString(ref vec) = *self;
         vec.hash(state);
     }

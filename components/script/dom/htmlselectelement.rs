@@ -61,10 +61,10 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     }
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled")
+    make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-select-type
     fn Type(self) -> DOMString {

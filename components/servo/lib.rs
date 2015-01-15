@@ -8,20 +8,19 @@
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
 
-#[phase(plugin, link)]
+#[macro_use]
 extern crate log;
 
 extern crate compositing;
 extern crate devtools;
 extern crate "net" as servo_net;
 extern crate "msg" as servo_msg;
-#[phase(plugin, link)]
+#[macro_use]
 extern crate "util" as servo_util;
 extern crate script;
 extern crate layout;
 extern crate gfx;
 extern crate libc;
-extern crate rustrt;
 extern crate url;
 
 use compositing::CompositorEventListener;
@@ -87,7 +86,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         let (result_chan, result_port) = channel();
         let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
         TaskBuilder::new()
-            .spawn(proc() {
+            .spawn(move || {
             let opts = &opts_clone;
             // Create a Servo instance.
             let resource_task = new_resource_task(opts.user_agent.clone());

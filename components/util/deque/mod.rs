@@ -54,12 +54,13 @@ pub use self::Stolen::{Empty, Abort, Data};
 
 use alloc::arc::Arc;
 use alloc::heap::{allocate, deallocate};
-use std::kinds::marker;
+use std::marker;
 use std::mem::{forget, min_align_of, size_of, transmute};
 use std::ptr;
 
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicInt, AtomicPtr, SeqCst};
+use std::sync::atomic::{AtomicInt, AtomicPtr};
+use std::sync::atomic::Ordering::SeqCst;
 
 // Once the queue is less than 1/K full, then it will be downsized. Note that
 // the deque requires that this number be less than 2.
@@ -97,7 +98,7 @@ pub struct Stealer<T> {
 }
 
 /// When stealing some data, this is an enumeration of the possible outcomes.
-#[deriving(PartialEq, Show)]
+#[derive(PartialEq, Show)]
 pub enum Stolen<T> {
     /// The deque was empty at the time of stealing
     Empty,
@@ -141,6 +142,8 @@ struct Buffer<T> {
     log_size: uint,
 }
 
+unsafe impl<T: 'static> Send for Buffer<T> { }
+
 impl<T: Send> BufferPool<T> {
     /// Allocates a new buffer pool which in turn can be used to allocate new
     /// deques.
@@ -159,16 +162,16 @@ impl<T: Send> BufferPool<T> {
 
     fn alloc(&mut self, bits: uint) -> Box<Buffer<T>> {
         unsafe {
-            let mut pool = self.pool.lock();
+            let mut pool = self.pool.lock().unwrap();
             match pool.iter().position(|x| x.size() >= (1 << bits)) {
-                Some(i) => pool.remove(i).unwrap(),
+                Some(i) => pool.remove(i),
                 None => box Buffer::new(bits)
             }
         }
     }
 
     fn free(&self, buf: Box<Buffer<T>>) {
-        let mut pool = self.pool.lock();
+        let mut pool = self.pool.lock().unwrap();
         match pool.iter().position(|v| v.size() > buf.size()) {
             Some(i) => pool.insert(i, buf),
             None => pool.push(buf),
@@ -435,7 +438,7 @@ mod tests {
         static AMT: int = 100000;
         let pool = BufferPool::<int>::new();
         let (w, s) = pool.deque();
-        let t = Thread::start(proc() {
+        let t = Thread::start(move || {
             let mut left = AMT;
             while left > 0 {
                 match s.steal() {
@@ -460,7 +463,7 @@ mod tests {
         static AMT: int = 100000;
         let pool = BufferPool::<(int, int)>::new();
         let (w, s) = pool.deque();
-        let t = Thread::start(proc() {
+        let t = Thread::start(move || {
             let mut left = AMT;
             while left > 0 {
                 match s.steal() {
@@ -488,7 +491,7 @@ mod tests {
 
         let threads = range(0, nthreads).map(|_| {
             let s = s.clone();
-            Thread::start(proc() {
+            Thread::start(move || {
                 unsafe {
                     while (*unsafe_remaining).load(SeqCst) > 0 {
                         match s.steal() {
@@ -529,7 +532,7 @@ mod tests {
         let pool = BufferPool::<Box<int>>::new();
         let threads = range(0, AMT).map(|_| {
             let (w, s) = pool.deque();
-            Thread::start(proc() {
+            Thread::start(move || {
                 stampede(w, s, 4, 10000);
             })
         }).collect::<Vec<Thread<()>>>();
@@ -550,7 +553,7 @@ mod tests {
 
         let threads = range(0, NTHREADS).map(|_| {
             let s = s.clone();
-            Thread::start(proc() {
+            Thread::start(move || {
                 loop {
                     match s.steal() {
                         Data(2) => { HITS.fetch_add(1, SeqCst); }
@@ -609,7 +612,7 @@ mod tests {
                 *mem::transmute::<&Box<AtomicUint>,
                                   *const *mut AtomicUint>(&unique_box)
             };
-            (Thread::start(proc() {
+            (Thread::start(move || {
                 unsafe {
                     loop {
                         match s.steal() {

@@ -12,15 +12,18 @@
 //!  - `#[dom_struct]` : Implies `#[privatize]`,`#[jstraceable]`, and `#[must_root]`.
 //!     Use this for structs that correspond to a DOM type
 
-#![feature(macro_rules, plugin_registrar, quote, phase)]
+#![feature(plugin_registrar, quote, plugin, box_syntax)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
+#![allow(unstable)]
 
-#[phase(plugin,link)]
+#[plugin]
+#[macro_use]
 extern crate syntax;
-#[phase(plugin, link)]
+#[plugin]
+#[macro_use]
 extern crate rustc;
 
 use rustc::lint::LintPassObject;
@@ -49,24 +52,4 @@ pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_lint_pass(box lints::inheritance_integrity::InheritancePass as LintPassObject);
     reg.register_lint_pass(box lints::str_to_string::StrToStringPass as LintPassObject);
     reg.register_lint_pass(box lints::ban::BanPass as LintPassObject);
-}
-
-
-#[macro_export]
-macro_rules! match_ignore_ascii_case {
-    ( $value: expr: $( $string: expr => $result: expr ),+ _ => $fallback: expr, ) => {
-        match_ignore_ascii_case! { $value:
-            $( $string => $result ),+
-            _ => $fallback
-        }
-    };
-    ( $value: expr: $( $string: expr => $result: expr ),+ _ => $fallback: expr ) => {
-        {
-            use std::ascii::AsciiExt;
-            match $value.as_slice() {
-                $( s if s.eq_ignore_ascii_case($string) => $result, )+
-                _ => $fallback
-            }
-        }
-    };
 }
