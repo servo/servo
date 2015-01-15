@@ -339,7 +339,7 @@ dependencies = [
 [[package]]
 name = "harfbuzz"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-harfbuzz#0489e7da24497f9ec17255fa72b90d6072f0c6d8"
+source = "git+https://github.com/servo/rust-harfbuzz#59b5b18087418404d661784934c3d864386024b5"
 
 [[package]]
 name = "html5ever"
