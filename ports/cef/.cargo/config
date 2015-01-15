@@ -1,7 +1,1 @@
-# FIXME: Remove this next rustup. This is a temporary
-# hack to allow android cross compilation to work. When
-# this is removed, the support/time submodule can also
-# be removed!
-paths = [
-        "../../support/time"
-]
+

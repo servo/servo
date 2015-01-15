@@ -10,7 +10,7 @@ use syntax::ast;
 use utils::match_ty_unwrap;
 
 
-pub fn expand_reflector(cx: &mut ExtCtxt, span: Span, _: &MetaItem, item: &Item, push: |P<Item>|) {
+pub fn expand_reflector<F: Fn(P<Item>) -> ()>(cx: &mut ExtCtxt, span: Span, _: &MetaItem, item: &Item, push: F) {
     if let ast::ItemStruct(ref def, _) = item.node {
         let struct_name = item.ident;
         // This path has to be hardcoded, unfortunately, since we can't resolve paths at expansion time
