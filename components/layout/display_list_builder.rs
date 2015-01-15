@@ -875,11 +875,11 @@ impl FragmentDisplayListBuilding for Fragment {
                 let height = canvas_fragment_info.replaced_image_fragment_info
                     .computed_block_size.map_or(0, |h| to_px(h) as uint);
 
-                let (sender, receiver) = channel::<Arc<Vec<u8>>>();
+                let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
                     Some(ref renderer) =>  {
                         renderer.deref().lock().send(SendPixelContents(sender));
-                        (*receiver.recv()).clone()
+                        receiver.recv()
                     },
                     None => Vec::from_elem(width * height * 4, 0xFFu8)
                 };
