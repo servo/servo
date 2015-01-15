@@ -83,6 +83,16 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     }
 }
 
+pub trait HTMLCanvasElementHelpers {
+    fn get_size(&self) -> Size2D<i32>;
+}
+
+impl<'a> HTMLCanvasElementHelpers for JSRef<'a, HTMLCanvasElement> {
+    fn get_size(&self) -> Size2D<i32> {
+        Size2D(self.Width() as i32, self.Height() as i32)
+    }
+}
+
 impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
     fn Width(self) -> u32 {
         self.width.get()

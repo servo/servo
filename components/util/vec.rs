@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cmp::{PartialOrd, PartialEq, Ordering};
+use std::iter::range_step;
 
 #[cfg(test)]
 use std::fmt::Debug;
@@ -61,6 +62,17 @@ struct DefaultComparator;
 impl<T:PartialEq + PartialOrd + Ord> Comparator<T,T> for DefaultComparator {
     fn compare(&self, key: &T, value: &T) -> Ordering {
         (*key).cmp(value)
+    }
+}
+
+
+// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
+pub fn byte_swap(data: &mut [u8]) {
+    let length = data.len();
+    for i in range_step(0, length, 4) {
+        let r = data[i + 2];
+        data[i + 2] = data[i + 0];
+        data[i + 0] = r;
     }
 }
 
