@@ -9,7 +9,8 @@ use std::mem::zeroed as i;
 use std::cmp;
 use std::fmt;
 use std::intrinsics;
-use std::kinds::marker::ContravariantLifetime;
+use std::iter::FromIterator;
+use std::marker::ContravariantLifetime;
 use std::mem;
 use std::ptr;
 use std::raw::Slice;
@@ -249,7 +250,9 @@ pub struct SmallVecIterator<'a,T> {
     lifetime: ContravariantLifetime<'a>
 }
 
-impl<'a,T> Iterator<&'a T> for SmallVecIterator<'a,T> {
+impl<'a,T> Iterator for SmallVecIterator<'a,T> {
+    type Item = &'a T;
+
     #[inline]
     fn next(&mut self) -> Option<&'a T> {
         unsafe {
@@ -273,7 +276,9 @@ pub struct SmallVecMutIterator<'a,T> {
     lifetime: ContravariantLifetime<'a>,
 }
 
-impl<'a,T> Iterator<&'a mut T> for SmallVecMutIterator<'a,T> {
+impl<'a,T> Iterator for SmallVecMutIterator<'a,T> {
+    type Item = &'a mut T;
+
     #[inline]
     fn next(&mut self) -> Option<&'a mut T> {
         unsafe {
@@ -298,7 +303,9 @@ pub struct SmallVecMoveIterator<'a,T> {
     lifetime: ContravariantLifetime<'a>,
 }
 
-impl<'a, T: 'a> Iterator<T> for SmallVecMoveIterator<'a,T> {
+impl<'a, T: 'a> Iterator for SmallVecMoveIterator<'a,T> {
+    type Item = T;
+
     #[inline]
     fn next(&mut self) -> Option<T> {
         unsafe {
@@ -341,7 +348,7 @@ macro_rules! def_small_vector(
             len: uint,
             cap: uint,
             ptr: *const T,
-            data: [T, ..$size],
+            data: [T; $size],
         }
 
         impl<T> SmallVecPrivate<T> for $name<T> {
@@ -403,7 +410,7 @@ macro_rules! def_small_vector(
         }
 
         impl<T> FromIterator<T> for $name<T> {
-            fn from_iter<I: Iterator<T>>(mut iter: I) -> $name<T> {
+            fn from_iter<I: Iterator<Item=T>>(mut iter: I) -> $name<T> {
                 let mut v = $name::new();
 
                 let (lower_size_bound, _) = iter.size_hint();
@@ -421,7 +428,7 @@ macro_rules! def_small_vector(
         }
 
         impl<T> $name<T> {
-            pub fn extend<I: Iterator<T>>(&mut self, mut iter: I) {
+            pub fn extend<I: Iterator<Item=T>>(&mut self, mut iter: I) {
                 let (lower_size_bound, _) = iter.size_hint();
 
                 let target_len = self.len() + lower_size_bound;
@@ -438,7 +445,7 @@ macro_rules! def_small_vector(
 
         impl<T: fmt::Show> fmt::Show for $name<T> {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                write!(f, "{}", self.as_slice())
+                write!(f, "{:?}", self.as_slice())
             }
         }
 
@@ -456,15 +463,15 @@ macro_rules! def_small_vector(
             }
         }
     )
-)
+);
 
-def_small_vector!(SmallVec1, 1)
-def_small_vector!(SmallVec2, 2)
-def_small_vector!(SmallVec4, 4)
-def_small_vector!(SmallVec8, 8)
-def_small_vector!(SmallVec16, 16)
-def_small_vector!(SmallVec24, 24)
-def_small_vector!(SmallVec32, 32)
+def_small_vector!(SmallVec1, 1);
+def_small_vector!(SmallVec2, 2);
+def_small_vector!(SmallVec4, 4);
+def_small_vector!(SmallVec8, 8);
+def_small_vector!(SmallVec16, 16);
+def_small_vector!(SmallVec24, 24);
+def_small_vector!(SmallVec32, 32);
 
 macro_rules! def_small_vector_drop_impl(
     ($name:ident, $size:expr) => (
@@ -488,15 +495,15 @@ macro_rules! def_small_vector_drop_impl(
             }
         }
     )
-)
+);
 
-def_small_vector_drop_impl!(SmallVec1, 1)
-def_small_vector_drop_impl!(SmallVec2, 2)
-def_small_vector_drop_impl!(SmallVec4, 4)
-def_small_vector_drop_impl!(SmallVec8, 8)
-def_small_vector_drop_impl!(SmallVec16, 16)
-def_small_vector_drop_impl!(SmallVec24, 24)
-def_small_vector_drop_impl!(SmallVec32, 32)
+def_small_vector_drop_impl!(SmallVec1, 1);
+def_small_vector_drop_impl!(SmallVec2, 2);
+def_small_vector_drop_impl!(SmallVec4, 4);
+def_small_vector_drop_impl!(SmallVec8, 8);
+def_small_vector_drop_impl!(SmallVec16, 16);
+def_small_vector_drop_impl!(SmallVec24, 24);
+def_small_vector_drop_impl!(SmallVec32, 32);
 
 macro_rules! def_small_vector_clone_impl(
     ($name:ident) => (
@@ -510,15 +517,15 @@ macro_rules! def_small_vector_clone_impl(
             }
         }
     )
-)
+);
 
-def_small_vector_clone_impl!(SmallVec1)
-def_small_vector_clone_impl!(SmallVec2)
-def_small_vector_clone_impl!(SmallVec4)
-def_small_vector_clone_impl!(SmallVec8)
-def_small_vector_clone_impl!(SmallVec16)
-def_small_vector_clone_impl!(SmallVec24)
-def_small_vector_clone_impl!(SmallVec32)
+def_small_vector_clone_impl!(SmallVec1);
+def_small_vector_clone_impl!(SmallVec2);
+def_small_vector_clone_impl!(SmallVec4);
+def_small_vector_clone_impl!(SmallVec8);
+def_small_vector_clone_impl!(SmallVec16);
+def_small_vector_clone_impl!(SmallVec24);
+def_small_vector_clone_impl!(SmallVec32);
 
 #[cfg(test)]
 pub mod tests {

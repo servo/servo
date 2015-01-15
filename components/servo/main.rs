@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(phase)]
-
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 
@@ -23,7 +21,7 @@ extern crate "glfw_app" as app;
 extern crate compositing;
 
 #[cfg(target_os="android")]
-#[phase(plugin, link)]
+#[macro_use]
 extern crate android_glue;
 
 #[cfg(target_os="android")]
@@ -49,7 +47,7 @@ struct BrowserWrapper {
 }
 
 #[cfg(target_os="android")]
-android_start!(main)
+android_start!(main);
 
 #[cfg(target_os="android")]
 fn get_args() -> Vec<String> {
@@ -74,15 +72,15 @@ fn redirect_output(file_no: c_int) {
     use std::c_str::CString;
 
     unsafe {
-        let mut pipes: [c_int, ..2] = [ 0, 0 ];
+        let mut pipes: [c_int; 2] = [ 0, 0 ];
         pipe(pipes.as_mut_ptr());
         dup2(pipes[1], file_no);
         let input_file = "r".with_c_str(|mode| {
             fdopen(pipes[0], mode)
         });
-        spawn(proc() {
+        spawn(move || {
             loop {
-                let mut read_buffer: [c_char, ..1024] = mem::zeroed();
+                let mut read_buffer: [c_char; 1024] = mem::zeroed();
                 fgets(read_buffer.as_mut_ptr(), read_buffer.len() as i32, input_file);
                 let cs = CString::new(read_buffer.as_ptr(), false);
                 match cs.as_str() {

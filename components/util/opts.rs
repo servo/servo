@@ -20,7 +20,7 @@ use std::ptr;
 use std::rt;
 
 /// Global flags for Servo, currently set on the command line.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Opts {
     /// The initial URLs to load.
     pub urls: Vec<String>,
@@ -241,31 +241,31 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     };
 
     let tile_size: uint = match opt_match.opt_str("s") {
-        Some(tile_size_str) => from_str(tile_size_str.as_slice()).unwrap(),
+        Some(tile_size_str) => tile_size_str.parse().unwrap(),
         None => 512,
     };
 
     let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        ScaleFactor(from_str(dppx_str.as_slice()).unwrap())
+        ScaleFactor(dppx_str.parse().unwrap())
     );
 
     let mut n_paint_threads: uint = match opt_match.opt_str("t") {
-        Some(n_paint_threads_str) => from_str(n_paint_threads_str.as_slice()).unwrap(),
+        Some(n_paint_threads_str) => n_paint_threads_str.parse().unwrap(),
         None => 1,      // FIXME: Number of cores.
     };
 
     // If only the flag is present, default to a 5 second period for both profilers.
     let time_profiler_period = opt_match.opt_default("p", "5").map(|period| {
-        from_str(period.as_slice()).unwrap()
+        period.parse().unwrap()
     });
     let memory_profiler_period = opt_match.opt_default("m", "5").map(|period| {
-        from_str(period.as_slice()).unwrap()
+        period.parse().unwrap()
     });
 
     let gpu_painting = !FORCE_CPU_PAINTING && opt_match.opt_present("g");
 
     let mut layout_threads: uint = match opt_match.opt_str("y") {
-        Some(layout_threads_str) => from_str(layout_threads_str.as_slice()).unwrap(),
+        Some(layout_threads_str) => layout_threads_str.parse().unwrap(),
         None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
     };
 
@@ -280,12 +280,12 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
     }
 
     let devtools_port = opt_match.opt_default("devtools", "6000").map(|port| {
-        from_str(port.as_slice()).unwrap()
+        port.parse().unwrap()
     });
 
     let initial_window_size = match opt_match.opt_str("resolution") {
         Some(res_string) => {
-            let res: Vec<uint> = res_string.as_slice().split('x').map(|r| from_str(r).unwrap()).collect();
+            let res: Vec<uint> = res_string.split('x').map(|r| r.parse().unwrap()).collect();
             TypedSize2D(res[0], res[1])
         }
         None => {

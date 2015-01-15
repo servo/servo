@@ -18,6 +18,9 @@ pub struct FontTemplateData {
     pub identifier: String,
 }
 
+unsafe impl Send for FontTemplateData {}
+unsafe impl Sync for FontTemplateData {}
+
 impl FontTemplateData {
     pub fn new(identifier: &str, font_data: Option<Vec<u8>>) -> FontTemplateData {
         let ctfont = match font_data {

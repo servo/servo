@@ -61,7 +61,7 @@ use std::sync::Arc;
 use url::Url;
 
 /// The results of flow construction for a DOM node.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum ConstructionResult {
     /// This node contributes nothing at all (`display: none`). Alternately, this is what newly
     /// created nodes have their `ConstructionResult` set to.
@@ -98,7 +98,7 @@ impl ConstructionResult {
 /// Represents the output of flow construction for a DOM node that has not yet resulted in a
 /// complete flow. Construction items bubble up the tree until they find a `Flow` to be attached
 /// to.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum ConstructionItem {
     /// Inline fragments and associated {ib} splits that have not yet found flows.
     InlineFragments(InlineFragmentsConstructionResult),
@@ -109,7 +109,7 @@ pub enum ConstructionItem {
 }
 
 /// Represents inline fragments and {ib} splits that are bubbling up from an inline.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct InlineFragmentsConstructionResult {
     /// Any {ib} splits that we're bubbling up.
     pub splits: DList<InlineBlockSplit>,
@@ -147,7 +147,7 @@ pub struct InlineFragmentsConstructionResult {
 ///             C
 ///         ])
 /// ```
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct InlineBlockSplit {
     /// The inline fragments that precede the flow.
     pub predecessors: DList<Fragment>,
@@ -1150,7 +1150,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             }
         };
 
-        debug!("building flow for node: {} {} {}", display, float, node.type_id());
+        debug!("building flow for node: {:?} {:?} {:?}", display, float, node.type_id());
 
         // Switch on display and floatedness.
         match (display, float, positioning) {

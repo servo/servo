@@ -10,6 +10,7 @@ use flow::Flow;
 use flow;
 
 use std::mem;
+use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::raw;
 use std::sync::atomic::Ordering;
@@ -18,6 +19,9 @@ use std::sync::atomic::Ordering;
 pub struct FlowRef {
     object: raw::TraitObject,
 }
+
+unsafe impl Send for FlowRef {}
+unsafe impl Sync for FlowRef {}
 
 impl FlowRef {
     pub fn new(mut flow: Box<Flow>) -> FlowRef {
@@ -33,7 +37,8 @@ impl FlowRef {
     }
 }
 
-impl<'a> Deref<Flow + 'a> for FlowRef {
+impl<'a> Deref for FlowRef {
+    type Target = Flow + 'a;
     fn deref(&self) -> &(Flow + 'a) {
         unsafe {
             mem::transmute_copy::<raw::TraitObject, &(Flow + 'a)>(&self.object)
@@ -41,7 +46,7 @@ impl<'a> Deref<Flow + 'a> for FlowRef {
     }
 }
 
-impl<'a> DerefMut<Flow + 'a> for FlowRef {
+impl<'a> DerefMut for FlowRef {
     fn deref_mut<'a>(&mut self) -> &mut (Flow + 'a) {
         unsafe {
             mem::transmute_copy::<raw::TraitObject, &mut (Flow + 'a)>(&self.object)

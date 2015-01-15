@@ -29,7 +29,6 @@ use url::Url;
 
 
 bitflags!(
-    #[deriving(Copy)]
     flags RenderMode: u32 {
         const CPU_RENDERING  = 0x00000001,
         const GPU_RENDERING  = 0x00000010,
@@ -37,7 +36,7 @@ bitflags!(
         const MACOS_TARGET   = 0x00001000,
         const ANDROID_TARGET = 0x00010000
     }
-)
+);
 
 
 fn main() {
@@ -131,7 +130,7 @@ fn run(test_opts: TestOpts, all_tests: Vec<TestDescAndFn>,
     run_tests_console(&test_opts, all_tests)
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 enum ReftestKind {
     Same,
     Different,
@@ -140,7 +139,7 @@ enum ReftestKind {
 struct Reftest {
     name: String,
     kind: ReftestKind,
-    files: [Path, ..2],
+    files: [Path; 2],
     id: uint,
     servo_args: Vec<String>,
     render_mode: RenderMode,
@@ -245,7 +244,7 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
             ignore: false,
             should_fail: ShouldFail::No,
         },
-        testfn: DynTestFn(proc() {
+        testfn: DynTestFn(move || {
             check_reftest(reftest);
         }),
     }

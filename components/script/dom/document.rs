@@ -65,13 +65,13 @@ use url::Url;
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::collections::hash_map::{Vacant, Occupied};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::ascii::AsciiExt;
 use std::cell::{Cell, Ref};
 use std::default::Default;
 use time;
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 #[jstraceable]
 pub enum IsHTMLDocument {
     HTMLDocument,
@@ -284,7 +284,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
 
         match idmap.entry(id) {
             Vacant(entry) => {
-                entry.set(vec!(element.unrooted()));
+                entry.insert(vec!(element.unrooted()));
             }
             Occupied(entry) => {
                 let elements = entry.into_mut();
@@ -321,7 +321,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>> {
         self.GetElementById(fragid.clone()).or_else(|| {
-            let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
+            let check_anchor = |&:&node: &JSRef<HTMLAnchorElement>| {
                 let elem: JSRef<Element> = ElementCast::from_ref(node);
                 elem.get_attribute(ns!(""), &atom!("name")).root().map_or(false, |attr| {
                     attr.r().value().as_slice() == fragid.as_slice()
@@ -385,7 +385,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     }
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum DocumentSource {
     FromParser,
     NotFromParser,
@@ -475,12 +475,12 @@ impl Document {
 }
 
 trait PrivateDocumentHelpers {
-    fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList>;
+    fn createNodeList<F: Fn(JSRef<Node>) -> bool>(self, callback: F) -> Temporary<NodeList>;
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>>;
 }
 
 impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
-    fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList> {
+    fn createNodeList<F: Fn(JSRef<Node>) -> bool>(self, callback: F) -> Temporary<NodeList> {
         let window = self.window.root();
         let document_element = self.GetDocumentElement().root();
         let nodes = match document_element {
@@ -591,7 +591,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(InvalidCharacter);
         }
         let local_name = if self.is_html_document {
-            local_name.as_slice().to_ascii_lower()
+            local_name.as_slice().to_ascii_lowercase()
         } else {
             local_name
         };
@@ -727,7 +727,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn CreateEvent(self, interface: DOMString) -> Fallible<Temporary<Event>> {
         let window = self.window.root();
 
-        match interface.as_slice().to_ascii_lower().as_slice() {
+        match interface.as_slice().to_ascii_lowercase().as_slice() {
             "uievents" | "uievent" => Ok(EventCast::from_temporary(
                 UIEvent::new_uninitialized(window.r()))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(
@@ -771,7 +771,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             root.traverse_preorder()
                 .find(|node| node.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
                 .map(|title_elem| {
-                    for text in title_elem.children().filter_map::<JSRef<Text>>(TextCast::to_ref) {
+                    let mut children = title_elem.children().filter_map(|n| {
+                        let t: Option<JSRef<Text>> = TextCast::to_ref(n);
+                        t
+                    });
+                    for text in children {
                         title.push_str(text.characterdata().data().as_slice());
                     }
                 });
@@ -1000,7 +1004,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Temporary::new(self.window)
     }
 
-    global_event_handlers!()
-    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange)
+    global_event_handlers!();
+    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 }
 

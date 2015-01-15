@@ -57,8 +57,9 @@ use script_task::STACK_ROOTS;
 use servo_util::smallvec::{SmallVec, SmallVec16};
 use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
-use std::kinds::marker::ContravariantLifetime;
+use std::marker::ContravariantLifetime;
 use std::mem;
+use std::ops::Deref;
 
 /// A type that represents a JS-owned value that is rooted for the lifetime of this value.
 /// Importantly, it requires explicit rooting in order to interact with the inner value.
@@ -176,6 +177,7 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
+#[old_impl_check]
 impl<T: Assignable<U>, U: Reflectable> JS<U> {
     /// Create a `JS<T>` from any JS-managed pointer.
     pub fn from_rooted(root: T) -> JS<U> {
@@ -246,6 +248,7 @@ pub struct MutNullableJS<T: Reflectable> {
     ptr: Cell<Option<JS<T>>>
 }
 
+#[old_impl_check]
 impl<T: Assignable<U>, U: Reflectable> MutNullableJS<U> {
     /// Create a new `MutNullableJS`
     pub fn new(initial: Option<T>) -> MutNullableJS<U> {
@@ -295,7 +298,9 @@ impl<T: Reflectable> MutNullableJS<T> {
 
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
-    pub fn or_init(&self, cb: || -> Temporary<T>) -> Temporary<T> {
+    pub fn or_init<F>(&self, cb: F) -> Temporary<T>
+        where F: FnOnce() -> Temporary<T>
+    {
         match self.get() {
             Some(inner) => inner,
             None => {
@@ -323,6 +328,7 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
+#[old_impl_check]
 impl<From, To> JS<From> {
     /// Return `self` as a `JS` of another type.
     //XXXjdm It would be lovely if this could be private.
@@ -500,7 +506,7 @@ impl RootCollection {
         unsafe {
             let roots = self.roots.get();
             (*roots).push(untracked.js_ptr);
-            debug!("  rooting {}", untracked.js_ptr);
+            debug!("  rooting {:?}", untracked.js_ptr);
         }
     }
 
@@ -508,7 +514,7 @@ impl RootCollection {
     fn unroot<'b, T: Reflectable>(&self, rooted: &Root<T>) {
         unsafe {
             let roots = self.roots.get();
-            debug!("unrooting {} (expecting {}",
+            debug!("unrooting {:?} (expecting {:?}",
                    (*roots).as_slice().last().unwrap(),
                    rooted.js_ptr);
             assert!(*(*roots).as_slice().last().unwrap() == rooted.js_ptr);
@@ -565,13 +571,15 @@ impl<T: Reflectable> Drop for Root<T> {
     }
 }
 
-impl<'b, T: Reflectable> Deref<JSRef<'b, T>> for Root<T> {
+impl<'b, T: Reflectable> Deref for Root<T> {
+    type Target = JSRef<'b, T>;
     fn deref<'c>(&'c self) -> &'c JSRef<'b, T> {
         &self.jsref
     }
 }
 
-impl<'a, T: Reflectable> Deref<T> for JSRef<'a, T> {
+impl<'a, T: Reflectable> Deref for JSRef<'a, T> {
+    type Target = T;
     fn deref<'b>(&'b self) -> &'b T {
         unsafe {
             &*self.ptr

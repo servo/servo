@@ -12,15 +12,15 @@ use url::{Url, UrlParser};
 use parser::ParserContext;
 
 
-pub fn iter_font_face_rules_inner(rules: &[CSSRule], device: &Device,
-                                    callback: |family: &str, source: &Source|) {
+pub fn iter_font_face_rules_inner<F>(rules: &[CSSRule], device: &Device,
+                                     callback: &F) where F: Fn(&str, &Source) {
     for rule in rules.iter() {
         match *rule {
             CSSRule::Style(..) |
             CSSRule::Charset(..) |
             CSSRule::Namespace(..) => {},
             CSSRule::Media(ref rule) => if rule.media_queries.evaluate(device) {
-                iter_font_face_rules_inner(rule.rules.as_slice(), device, |f, s| callback(f, s))
+                iter_font_face_rules_inner(rule.rules.as_slice(), device, callback)
             },
             CSSRule::FontFace(ref rule) => {
                 for source in rule.sources.iter() {
@@ -31,19 +31,19 @@ pub fn iter_font_face_rules_inner(rules: &[CSSRule], device: &Device,
     }
 }
 
-#[deriving(Clone, Show, PartialEq, Eq)]
+#[derive(Clone, Show, PartialEq, Eq)]
 pub enum Source {
     Url(UrlSource),
     Local(String),
 }
 
-#[deriving(Clone, Show, PartialEq, Eq)]
+#[derive(Clone, Show, PartialEq, Eq)]
 pub struct UrlSource {
     pub url: Url,
     pub format_hints: Vec<String>,
 }
 
-#[deriving(Show, PartialEq, Eq)]
+#[derive(Show, PartialEq, Eq)]
 pub struct FontFaceRule {
     pub family: String,
     pub sources: Vec<Source>,
@@ -82,7 +82,7 @@ impl<'a, 'b> AtRuleParser<(), ()> for FontFaceRuleParser<'a, 'b> {}
 
 impl<'a, 'b> DeclarationParser<()> for FontFaceRuleParser<'a, 'b> {
     fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
-        match_ignore_ascii_case! { name:
+        match_ignore_ascii_case! { name,
             "font-family" => {
                 self.family = Some(try!(parse_one_non_generic_family_name(input)));
                 Ok(())

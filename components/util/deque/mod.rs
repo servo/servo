@@ -54,12 +54,13 @@ pub use self::Stolen::{Empty, Abort, Data};
 
 use alloc::arc::Arc;
 use alloc::heap::{allocate, deallocate};
-use std::kinds::marker;
+use std::marker;
 use std::mem::{forget, min_align_of, size_of, transmute};
 use std::ptr;
 
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicInt, AtomicPtr, SeqCst};
+use std::sync::atomic::{AtomicInt, AtomicPtr};
+use std::sync::atomic::Ordering::SeqCst;
 
 // Once the queue is less than 1/K full, then it will be downsized. Note that
 // the deque requires that this number be less than 2.
@@ -97,7 +98,7 @@ pub struct Stealer<T> {
 }
 
 /// When stealing some data, this is an enumeration of the possible outcomes.
-#[deriving(PartialEq, Show)]
+#[derive(PartialEq, Show)]
 pub enum Stolen<T> {
     /// The deque was empty at the time of stealing
     Empty,
@@ -141,6 +142,8 @@ struct Buffer<T> {
     log_size: uint,
 }
 
+unsafe impl<T: 'static> Send for Buffer<T> { }
+
 impl<T: Send> BufferPool<T> {
     /// Allocates a new buffer pool which in turn can be used to allocate new
     /// deques.
@@ -159,16 +162,16 @@ impl<T: Send> BufferPool<T> {
 
     fn alloc(&mut self, bits: uint) -> Box<Buffer<T>> {
         unsafe {
-            let mut pool = self.pool.lock();
+            let mut pool = self.pool.lock().unwrap();
             match pool.iter().position(|x| x.size() >= (1 << bits)) {
-                Some(i) => pool.remove(i).unwrap(),
+                Some(i) => pool.remove(i),
                 None => box Buffer::new(bits)
             }
         }
     }
 
     fn free(&self, buf: Box<Buffer<T>>) {
-        let mut pool = self.pool.lock();
+        let mut pool = self.pool.lock().unwrap();
         match pool.iter().position(|v| v.size() > buf.size()) {
             Some(i) => pool.insert(i, buf),
             None => pool.push(buf),
@@ -409,11 +412,11 @@ mod tests {
     use super::{Data, BufferPool, Abort, Empty, Worker, Stealer};
 
     use std::mem;
-    use rustrt::thread::Thread;
+    use std::thread::Thread;
     use std::rand;
     use std::rand::Rng;
-    use std::sync::atomic::{AtomicBool, INIT_ATOMIC_BOOL, SeqCst,
-                       AtomicUint, INIT_ATOMIC_UINT};
+    use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering,
+                            AtomicUint, ATOMIC_UINT_INIT};
     use std::vec;
 
     #[test]
@@ -435,7 +438,7 @@ mod tests {
         static AMT: int = 100000;
         let pool = BufferPool::<int>::new();
         let (w, s) = pool.deque();
-        let t = Thread::start(proc() {
+        let t = Thread::scoped(move || {
             let mut left = AMT;
             while left > 0 {
                 match s.steal() {
@@ -460,7 +463,7 @@ mod tests {
         static AMT: int = 100000;
         let pool = BufferPool::<(int, int)>::new();
         let (w, s) = pool.deque();
-        let t = Thread::start(proc() {
+        let t = Thread::scoped(move || {
             let mut left = AMT;
             while left > 0 {
                 match s.steal() {
@@ -488,12 +491,12 @@ mod tests {
 
         let threads = range(0, nthreads).map(|_| {
             let s = s.clone();
-            Thread::start(proc() {
+            Thread::scoped(move || {
                 unsafe {
-                    while (*unsafe_remaining).load(SeqCst) > 0 {
+                    while (*unsafe_remaining).load(Ordering::SeqCst) > 0 {
                         match s.steal() {
                             Data(box 20) => {
-                                (*unsafe_remaining).fetch_sub(1, SeqCst);
+                                (*unsafe_remaining).fetch_sub(1, Ordering::SeqCst);
                             }
                             Data(..) => panic!(),
                             Abort | Empty => {}
@@ -501,11 +504,11 @@ mod tests {
                     }
                 }
             })
-        }).collect::<Vec<Thread<()>>>();
+        }).collect::<Vec<_>>();
 
-        while remaining.load(SeqCst) > 0 {
+        while remaining.load(Ordering::SeqCst) > 0 {
             match w.pop() {
-                Some(box 20) => { remaining.fetch_sub(1, SeqCst); }
+                Some(box 20) => { remaining.fetch_sub(1, Ordering::SeqCst); }
                 Some(..) => panic!(),
                 None => {}
             }
@@ -529,10 +532,10 @@ mod tests {
         let pool = BufferPool::<Box<int>>::new();
         let threads = range(0, AMT).map(|_| {
             let (w, s) = pool.deque();
-            Thread::start(proc() {
+            Thread::scoped(move || {
                 stampede(w, s, 4, 10000);
             })
-        }).collect::<Vec<Thread<()>>>();
+        }).collect::<Vec<_>>();
 
         for thread in threads.into_iter() {
             thread.join();
@@ -543,32 +546,32 @@ mod tests {
     fn stress() {
         static AMT: int = 100000;
         static NTHREADS: int = 8;
-        static DONE: AtomicBool = INIT_ATOMIC_BOOL;
-        static HITS: AtomicUint = INIT_ATOMIC_UINT;
+        static DONE: AtomicBool = ATOMIC_BOOL_INIT;
+        static HITS: AtomicUint = ATOMIC_UINT_INIT;
         let pool = BufferPool::<int>::new();
         let (w, s) = pool.deque();
 
         let threads = range(0, NTHREADS).map(|_| {
             let s = s.clone();
-            Thread::start(proc() {
+            Thread::scoped(move || {
                 loop {
                     match s.steal() {
-                        Data(2) => { HITS.fetch_add(1, SeqCst); }
+                        Data(2) => { HITS.fetch_add(1, Ordering::SeqCst); }
                         Data(..) => panic!(),
-                        _ if DONE.load(SeqCst) => break,
+                        _ if DONE.load(Ordering::SeqCst) => break,
                         _ => {}
                     }
                 }
             })
-        }).collect::<Vec<Thread<()>>>();
+        }).collect::<Vec<_>>();
 
-        let mut rng = rand::task_rng();
+        let mut rng = rand::thread_rng();
         let mut expected = 0;
         while expected < AMT {
             if rng.gen_range(0i, 3) == 2 {
                 match w.pop() {
                     None => {}
-                    Some(2) => { HITS.fetch_add(1, SeqCst); },
+                    Some(2) => { HITS.fetch_add(1, Ordering::SeqCst); },
                     Some(_) => panic!(),
                 }
             } else {
@@ -577,20 +580,20 @@ mod tests {
             }
         }
 
-        while HITS.load(SeqCst) < AMT as uint {
+        while HITS.load(Ordering::SeqCst) < AMT as uint {
             match w.pop() {
                 None => {}
-                Some(2) => { HITS.fetch_add(1, SeqCst); },
+                Some(2) => { HITS.fetch_add(1, Ordering::SeqCst); },
                 Some(_) => panic!(),
             }
         }
-        DONE.store(true, SeqCst);
+        DONE.store(true, Ordering::SeqCst);
 
         for thread in threads.into_iter() {
             thread.join();
         }
 
-        assert_eq!(HITS.load(SeqCst), expected as uint);
+        assert_eq!(HITS.load(Ordering::SeqCst), expected as uint);
     }
 
     #[test]
@@ -598,34 +601,34 @@ mod tests {
     fn no_starvation() {
         static AMT: int = 10000;
         static NTHREADS: int = 4;
-        static DONE: AtomicBool = INIT_ATOMIC_BOOL;
+        static DONE: AtomicBool = ATOMIC_BOOL_INIT;
         let pool = BufferPool::<(int, uint)>::new();
         let (w, s) = pool.deque();
 
-        let (threads, hits) = vec::unzip(range(0, NTHREADS).map(|_| {
+        let (threads, hits) = (0..NTHREADS).map(|_| {
             let s = s.clone();
             let unique_box = box AtomicUint::new(0);
             let thread_box = unsafe {
                 *mem::transmute::<&Box<AtomicUint>,
                                   *const *mut AtomicUint>(&unique_box)
             };
-            (Thread::start(proc() {
+            (Thread::scoped(move || {
                 unsafe {
                     loop {
                         match s.steal() {
                             Data((1, 2)) => {
-                                (*thread_box).fetch_add(1, SeqCst);
+                                (*thread_box).fetch_add(1, Ordering::SeqCst);
                             }
                             Data(..) => panic!(),
-                            _ if DONE.load(SeqCst) => break,
+                            _ if DONE.load(Ordering::SeqCst) => break,
                             _ => {}
                         }
                     }
                 }
             }), unique_box)
-        }));
+        }).unzip();
 
-        let mut rng = rand::task_rng();
+        let mut rng = rand::thread_rng();
         let mut myhit = false;
         'outer: loop {
             for _ in range(0, rng.gen_range(0, AMT)) {
@@ -641,7 +644,7 @@ mod tests {
             }
 
             for slot in hits.iter() {
-                let amt = slot.load(SeqCst);
+                let amt = slot.load(Ordering::SeqCst);
                 if amt == 0 { continue 'outer; }
             }
             if myhit {
@@ -649,7 +652,7 @@ mod tests {
             }
         }
 
-        DONE.store(true, SeqCst);
+        DONE.store(true, Ordering::SeqCst);
 
         for thread in threads.into_iter() {
             thread.join();

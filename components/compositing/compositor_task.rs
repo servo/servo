@@ -15,6 +15,7 @@ use azure::azure_hl::{SourceSurfaceMethods, Color};
 use geom::point::Point2D;
 use geom::rect::{Rect, TypedRect};
 use geom::size::Size2D;
+use gfx::paint_task::NativeGraphicsMetadataWrapper;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
 use pipeline::CompositionPipeline;
@@ -26,7 +27,7 @@ use servo_util::cursor::Cursor;
 use servo_util::geometry::PagePx;
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
-use std::comm::{channel, Sender, Receiver};
+use std::sync::mpsc::{channel, Sender, Receiver};
 use std::fmt::{Error, Formatter, Show};
 use std::rc::Rc;
 
@@ -42,7 +43,7 @@ pub trait CompositorProxy : 'static + Send {
 
 /// The port that the compositor receives messages on. As above, this is a trait supplied by the
 /// Servo port.
-pub trait CompositorReceiver for Sized? : 'static {
+pub trait CompositorReceiver : 'static {
     /// Receives the next message inbound for the compositor. This must not block.
     fn try_recv_compositor_msg(&mut self) -> Option<Msg>;
     /// Synchronously waits for, and returns, the next message inbound for the compositor.
@@ -58,7 +59,7 @@ impl CompositorReceiver for Receiver<Msg> {
         }
     }
     fn recv_compositor_msg(&mut self) -> Msg {
-        self.recv()
+        self.recv().unwrap()
     }
 }
 
@@ -79,7 +80,7 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
     fn close(&mut self) {
         let (chan, port) = channel();
         self.send(Msg::Exit(chan));
-        port.recv();
+        port.recv().unwrap();
     }
 
     fn dup(&mut self) -> Box<ScriptListener+'static> {
@@ -98,7 +99,7 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
 }
 
 /// Information about each layer that the compositor keeps.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct LayerProperties {
     pub pipeline_id: PipelineId,
     pub epoch: Epoch,
@@ -129,7 +130,7 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
         let (chan, port) = channel();
         self.send(Msg::GetGraphicsMetadata(chan));
-        port.recv()
+        port.recv().unwrap().map(|NativeGraphicsMetadataWrapper(meta)| meta)
     }
 
     fn assign_painted_buffers(&mut self,
@@ -182,7 +183,7 @@ pub enum Msg {
     /// is the pixel format.
     ///
     /// The headless compositor returns `None`.
-    GetGraphicsMetadata(Sender<Option<NativeGraphicsMetadata>>),
+    GetGraphicsMetadata(Sender<Option<NativeGraphicsMetadataWrapper>>),
 
     /// Tells the compositor to create the root layer for a pipeline if necessary (i.e. if no layer
     /// with that ID exists).

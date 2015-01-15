@@ -33,7 +33,7 @@ use std::rc::Rc;
 use std::ptr;
 
 /// The type of an off-screen window.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
 }
