@@ -10,8 +10,8 @@ use font_cache_task::FontCacheTask;
 use font_context::FontContext;
 use paint_context::PaintContext;
 
-use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType, StolenGLResources};
-use azure::{AzFloat, AzGLNativeContextRef};
+use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType};
+use azure::AzFloat;
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
@@ -25,6 +25,7 @@ use servo_msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use servo_msg::constellation_msg::PipelineExitType;
+use skia::SkiaGrGLNativeContextRef;
 use util::geometry::{Au, ZERO_POINT};
 use util::opts;
 use util::smallvec::SmallVec;
@@ -518,7 +519,7 @@ impl WorkerThread {
             // FIXME(pcwalton): Cache the components of draw targets (texture color buffer,
             // paintbuffers) instead of recreating them.
             let native_graphics_context =
-                native_graphics_context!(self) as *const _ as AzGLNativeContextRef;
+                native_graphics_context!(self) as *const _ as SkiaGrGLNativeContextRef;
             let draw_target = DrawTarget::new_with_fbo(BackendType::Skia,
                                                        native_graphics_context,
                                                        size,
@@ -591,13 +592,11 @@ impl WorkerThread {
 
         // GPU painting path:
         draw_target.make_current();
-        let StolenGLResources {
-            surface: azure_surface
-        } = draw_target.steal_gl_resources().unwrap();
 
         // We mark the native surface as not leaking in case the surfaces
         // die on their way to the compositor task.
-        let mut native_surface: NativeSurface = NativeSurface::from_azure_surface(azure_surface);
+        let mut native_surface: NativeSurface =
+            NativeSurface::from_draw_target_backing(draw_target.steal_draw_target_backing());
         native_surface.mark_wont_leak();
 
         box LayerBuffer {

@@ -29,6 +29,7 @@ extern crate "net" as servo_net;
 extern crate util;
 extern crate "msg" as servo_msg;
 extern crate style;
+extern crate skia;
 extern crate time;
 extern crate url;
 
