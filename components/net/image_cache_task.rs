@@ -555,13 +555,6 @@ mod tests {
     }
 
     fn mock_resource_task<T: Closure+Send>(on_load: Box<T>) -> ResourceTask {
-        let cookie_chan = spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
-            loop {
-                match port.recv() {
-                    _ => { continue }
-                }
-            }
-        });
         spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
             loop {
                 match port.recv().unwrap() {
@@ -572,11 +565,11 @@ mod tests {
                             eventual_consumer: response.consumer.clone(),
                         };
                         let chan = start_sending(senders, Metadata::default(
-                            Url::parse("file:///fake", cookie_chan.clone()).unwrap()));
+                            Url::parse("file:///fake").unwrap()));
                         on_load.invoke(chan);
                     }
-                    resource_task::ControlMsg::Cookies(_) => {}
-                    resource_task::ControlMsg::Exit => break
+                    resource_task::ControlMsg::Exit => break,
+                    _ => {}
                 }
             }
         })
@@ -718,13 +711,6 @@ mod tests {
         let (image_bin_sent_chan, image_bin_sent) = channel();
 
         let (resource_task_exited_chan, resource_task_exited) = channel();
-        let cookie_chan = spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
-            loop {
-                match port.recv() {
-                    _ => { continue }
-                }
-            }
-        });
 
         let mock_resource_task = spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
             loop {
@@ -736,16 +722,16 @@ mod tests {
                             eventual_consumer: response.consumer.clone(),
                         };
                         let chan = start_sending(senders, Metadata::default(
-                            Url::parse("file:///fake").unwrap()), cookie_chan.clone());
+                            Url::parse("file:///fake").unwrap()));
                         chan.send(Payload(test_image_bin()));
                         chan.send(Done(Ok(())));
                         image_bin_sent_chan.send(());
                     }
-                    resource_task::ControlMsg::Cookies(_) => {}
                     resource_task::ControlMsg::Exit => {
                         resource_task_exited_chan.send(());
                         break
                     }
+                    _ => {}
                 }
             }
         });
@@ -778,13 +764,6 @@ mod tests {
         let (image_bin_sent_chan, image_bin_sent) = channel();
 
         let (resource_task_exited_chan, resource_task_exited) = channel();
-        let cookie_chan = spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
-            loop {
-                match port.recv() {
-                    _ => { continue }
-                }
-            }
-        });
         let mock_resource_task = spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
             loop {
                 match port.recv().unwrap() {
@@ -795,16 +774,16 @@ mod tests {
                             eventual_consumer: response.consumer.clone(),
                         };
                         let chan = start_sending(senders, Metadata::default(
-                            Url::parse("file:///fake").unwrap()), cookie_chan.clone());
+                            Url::parse("file:///fake").unwrap()));
                         chan.send(Payload(test_image_bin()));
                         chan.send(Done(Err("".to_string())));
                         image_bin_sent_chan.send(());
                     }
-                    resource_task::ControlMsg::Cookies(_) => {}
                     resource_task::ControlMsg::Exit => {
                         resource_task_exited_chan.send(());
                         break
                     }
+                    _ => {}
                 }
             }
         });

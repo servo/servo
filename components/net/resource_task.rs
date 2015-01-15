@@ -11,7 +11,7 @@ use http_loader;
 use sniffer_task;
 use sniffer_task::SnifferTask;
 use cookie_rs::Cookie;
-use cookie_storage::CookieStorage;
+use cookie_storage::{CookieStorage, CookieSource};
 use cookie;
 
 use util::task::spawn_named;
@@ -31,9 +31,9 @@ pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(LoadData),
     /// Store a set of cookies for a given originating URL
-    SetCookies(Vec<Cookie>, Url),
+    SetCookies(Vec<Cookie>, Url, CookieSource),
     /// Retrieve the stored cookies for a given URL
-    GetCookiesForUrl(Url, Sender<Option<String>>),
+    GetCookiesForUrl(Url, Sender<Option<String>>, CookieSource),
     Exit
 }
 
@@ -205,17 +205,18 @@ struct ResourceManager {
     user_agent: Option<String>,
     sniffer_task: SnifferTask,
     cookie_storage: CookieStorage,
-    cookies_chan: Sender<ControlMsg>,
+    resource_task: Sender<ControlMsg>,
 }
 
 impl ResourceManager {
-    fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>, sniffer_task: SnifferTask, cookies_chan: Sender<ControlMsg>) -> ResourceManager {
+    fn new(from_client: Receiver<ControlMsg>, user_agent: Option<String>, sniffer_task: SnifferTask,
+           resource_task: Sender<ControlMsg>) -> ResourceManager {
         ResourceManager {
             from_client: from_client,
             user_agent: user_agent,
             sniffer_task: sniffer_task,
             cookie_storage: CookieStorage::new(),
-            cookies_chan: cookies_chan,
+            resource_task: resource_task,
         }
     }
 }
@@ -228,19 +229,15 @@ impl ResourceManager {
               ControlMsg::Load(load_data) => {
                 self.load(load_data)
               }
-              ControlMsg::SetCookies(vector, request) => {
+              ControlMsg::SetCookies(vector, request, source) => {
                 for cookie in vector.into_iter() {
-                    if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request) {
-                        if cookie.cookie.value.is_empty() {
-                            self.cookie_storage.remove(&cookie);
-                        } else {
-                            self.cookie_storage.push(cookie, &request);
-                        }
+                    if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
+                        self.cookie_storage.push(cookie, source);
                     }
                 }
               }
-              ControlMsg::GetCookiesForUrl(url, consumer) => {
-                consumer.send(self.cookie_storage.cookies_for_url(url));
+              ControlMsg::GetCookiesForUrl(url, consumer, source) => {
+                consumer.send(self.cookie_storage.cookies_for_url(&url, source));
               }
               ControlMsg::Exit => {
                 break
@@ -266,7 +263,7 @@ impl ResourceManager {
 
         let loader = match load_data.url.scheme.as_slice() {
             "file" => from_factory(file_loader::factory),
-            "http" | "https" => http_loader::factory(self.cookies_chan.clone()),
+            "http" | "https" => http_loader::factory(self.resource_task.clone()),
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {

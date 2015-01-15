@@ -5,6 +5,7 @@
 //! Implementation of cookie creation and matching as specified by
 //! http://tools.ietf.org/html/rfc6265
 
+use cookie_storage::CookieSource;
 use pub_domains::PUB_DOMAINS;
 
 use cookie_rs;
@@ -23,15 +24,15 @@ pub struct Cookie {
     pub cookie: cookie_rs::Cookie,
     pub host_only: bool,
     pub persistent: bool,
-    pub created_at: Tm,
+    pub creation_time: Tm,
     pub last_access: Tm,
-    pub scheme: String,
     pub expiry_time: Tm,
 }
 
 impl Cookie {
     /// http://tools.ietf.org/html/rfc6265#section-5.3
-    pub fn new_wrapped(mut cookie: cookie_rs::Cookie, request: &Url) -> Option<Cookie> {
+    pub fn new_wrapped(mut cookie: cookie_rs::Cookie, request: &Url, source: CookieSource)
+                       -> Option<Cookie> {
         // Step 3
         let (persistent, expiry_time) = match (&cookie.max_age, &cookie.expires) {
             (&Some(max_age), _) => (true, at(now().to_timespec() + Duration::seconds(max_age as i64))),
@@ -67,19 +68,15 @@ impl Cookie {
         // Step 7
         let mut path = cookie.path.unwrap_or("".to_owned());
         if path.is_empty() || path.char_at(0) != '/' {
-            let mut url_path: String = "".to_owned();
-            if let Some(paths) = request.path() {
-                for path in paths.iter() {
-                    url_path.extend(path.chars());
-                }
-            }
-            path = Cookie::default_path(url_path.as_slice());
+            let url_path = request.serialize_path();
+            let url_path = url_path.as_ref().map(|path| path.as_slice());
+            path = Cookie::default_path(url_path.unwrap_or(""));
         }
         cookie.path = Some(path);
 
 
         // Step 10
-        if cookie.httponly && !request.scheme.as_slice().starts_with("http") {
+        if cookie.httponly && source != CookieSource::HTTP {
             return None;
         }
 
@@ -87,9 +84,8 @@ impl Cookie {
             cookie: cookie,
             host_only: host_only,
             persistent: persistent,
-            created_at: now(),
+            creation_time: now(),
             last_access: now(),
-            scheme: request.scheme.clone(),
             expiry_time: expiry_time,
         })
     }
@@ -100,13 +96,14 @@ impl Cookie {
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
     fn default_path(request_path: &str) -> String {
-        if request_path == "" || request_path.char_at(0) != '/' || request_path == "/" {
-            return "/".to_owned();
+        if request_path == "" || request_path.char_at(0) != '/' ||
+           request_path.chars().filter(|&c| c == '/').count() == 1 {
+            "/".to_owned()
+        } else if request_path.ends_with("/") {
+            request_path.slice_to(request_path.len()-1).to_owned()
+        } else {
+            request_path.to_owned()
         }
-        if request_path.ends_with("/") {
-            return request_path.slice_to(request_path.len()-1).to_string();
-        }
-        return request_path.to_owned();
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
@@ -131,7 +128,7 @@ impl Cookie {
     }
 
     // http://tools.ietf.org/html/rfc6265#section-5.4 step 1
-    pub fn appropriate_for_url(&self, url: Url) -> bool {
+    pub fn appropriate_for_url(&self, url: &Url, source: CookieSource) -> bool {
         let domain = url.host().map(|host| host.serialize());
         if self.host_only {
             if self.cookie.domain != domain {
@@ -154,7 +151,7 @@ impl Cookie {
         if self.cookie.secure && url.scheme != "https".to_string() {
             return false;
         }
-        if self.cookie.httponly && !url.scheme.as_slice().starts_with("http") {
+        if self.cookie.httponly && source == CookieSource::NonHTTP {
             return false;
         }
 
@@ -171,77 +168,67 @@ fn test_domain_match() {
     assert!(!Cookie::domain_match("bar.foo.com", "bar.com"));
     assert!(!Cookie::domain_match("bar.com", "baz.bar.com"));
     assert!(!Cookie::domain_match("foo.com", "bar.com"));
+
+    assert!(!Cookie::domain_match("bar.com", "bbar.com"));
+    assert!(Cookie::domain_match("235.132.2.3", "235.132.2.3"));
+    assert!(!Cookie::domain_match("235.132.2.3", "1.1.1.1"));
+    assert!(!Cookie::domain_match("235.132.2.3", ".2.3"));
 }
 
 #[test]
 fn test_default_path() {
     assert!(Cookie::default_path("/foo/bar/baz/").as_slice() == "/foo/bar/baz");
-    assert!(Cookie::default_path("/foo").as_slice() == "/foo");
+    assert!(Cookie::default_path("/foo/").as_slice() == "/foo");
+    assert!(Cookie::default_path("/foo").as_slice() == "/");
     assert!(Cookie::default_path("/").as_slice() == "/");
     assert!(Cookie::default_path("").as_slice() == "/");
+    assert!(Cookie::default_path("foo").as_slice() == "/");
 }
 
 #[test]
 fn fn_cookie_constructor() {
+    use cookie_storage::CookieSource;
+
     let url = &Url::parse("http://example.com/foo").unwrap();
 
     let gov_url = &Url::parse("http://gov.ac/foo").unwrap();
     // cookie name/value test
-    assert!(Cookie::new(" baz ".to_string(), url).is_none());
-    assert!(Cookie::new(" = bar  ".to_string(), url).is_none());
-    assert!(Cookie::new(" baz = ".to_string(), url).is_some());
+    assert!(cookie_rs::Cookie::parse(" baz ").is_err());
+    assert!(cookie_rs::Cookie::parse(" = bar  ").is_err());
+    assert!(cookie_rs::Cookie::parse(" baz = ").is_ok());
 
     // cookie domains test
-    assert!(Cookie::new(" baz = bar; Domain =  ".to_string(), url).is_some());
-    assert!(Cookie::new(" baz = bar; Domain =  ".to_string(), url).unwrap().domain.as_slice() == "example.com");
+    let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  ").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_some());
+    let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  ").unwrap();
+    let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
+    assert!(cookie.cookie.domain.as_ref().unwrap().as_slice() == "example.com");
 
     // cookie public domains test
-    assert!(Cookie::new(" baz = bar; Domain =  gov.ac".to_string(), url).is_none());
-    assert!(Cookie::new(" baz = bar; Domain =  gov.ac".to_string(), gov_url).is_some());
+    let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  gov.ac").unwrap();
+    assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP).is_none());
+    assert!(Cookie::new_wrapped(cookie, gov_url, CookieSource::HTTP).is_some());
 
     // cookie domain matching test
-    assert!(Cookie::new(" baz = bar ; Secure; Domain = bazample.com".to_string(), url).is_none());
+    let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Domain = bazample.com").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_none());
 
-    assert!(Cookie::new(" baz = bar ; Secure; Path = /foo/bar/".to_string(), url).is_some());
+    let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Path = /foo/bar/").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_some());
 
-    let cookie = Cookie::new(" baz = bar ; Secure; Path = /foo/bar/".to_string(), url).unwrap();
-    assert!(cookie.value.as_slice() == "bar");
-    assert!(cookie.name.as_slice() == "baz");
-    assert!(cookie.secure);
-    assert!(cookie.path.as_slice() == "/foo/bar/");
-    assert!(cookie.domain.as_slice() == "example.com");
+    let cookie = cookie_rs::Cookie::parse(" baz = bar ; HttpOnly").unwrap();
+    assert!(Cookie::new_wrapped(cookie, url, CookieSource::NonHTTP).is_none());
+
+    let cookie = cookie_rs::Cookie::parse(" baz = bar ; Secure; Path = /foo/bar/").unwrap();
+    let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
+    assert!(cookie.cookie.value.as_slice() == "bar");
+    assert!(cookie.cookie.name.as_slice() == "baz");
+    assert!(cookie.cookie.secure);
+    assert!(cookie.cookie.path.as_ref().unwrap().as_slice() == "/foo/bar/");
+    assert!(cookie.cookie.domain.as_ref().unwrap().as_slice() == "example.com");
     assert!(cookie.host_only);
 
     let u = &Url::parse("http://example.com/foobar").unwrap();
-    assert!(Cookie::new("foobar=value;path=/".to_string(), u).is_some());
-}
-
-#[deriving(Clone)]
-pub struct CookieManager {
-    cookies: Vec<Cookie>,
-}
-
-impl CookieManager {
-    pub fn new() -> CookieManager {
-        CookieManager {
-            cookies: Vec::new()
-        }
-    }
-
-    pub fn add(&mut self, cookie: &Cookie) -> bool {
-        match self.cookies.iter().find(|x| {
-            x.cookie.domain == cookie.cookie.domain &&
-            x.cookie.name == cookie.cookie.name &&
-            x.cookie.path == cookie.cookie.path
-        }) {
-            Some(c) => {
-                if c.cookie.httponly && !cookie.scheme.as_slice().starts_with("http") {
-                    return false
-                }
-            }
-            None => {}
-        }
-        self.cookies.push(cookie.clone());
-        true
-    }
+    let cookie = cookie_rs::Cookie::parse("foobar=value;path=/").unwrap();
+    assert!(Cookie::new_wrapped(cookie, u, CookieSource::HTTP).is_some());
 }
