@@ -5,6 +5,7 @@
 use std::iter::range_step;
 use stb_image::image as stb_image;
 use png;
+use util::vec::byte_swap;
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
@@ -15,16 +16,6 @@ static TEST_IMAGE: &'static [u8] = include_bytes!("test.jpeg");
 
 pub fn test_image_bin() -> Vec<u8> {
     TEST_IMAGE.iter().map(|&x| x).collect()
-}
-
-// TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
-fn byte_swap(data: &mut [u8]) {
-    let length = data.len();
-    for i in range_step(0, length, 4) {
-        let r = data[i + 2];
-        data[i + 2] = data[i + 0];
-        data[i + 0] = r;
-    }
 }
 
 // TODO(pcwalton): Speed up with SIMD, or better yet, find some way to not do this.
