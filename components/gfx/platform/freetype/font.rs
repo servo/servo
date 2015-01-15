@@ -8,6 +8,7 @@ use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
 use servo_util::geometry::Au;
 use servo_util::geometry;
+use servo_util::str::c_str_to_string;
 use platform::font_context::FontContextHandle;
 use text::glyph::GlyphId;
 use text::util::{float_to_fixed, fixed_to_float};
@@ -25,11 +26,10 @@ use freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics, struct_FT_Vector_
 use freetype::freetype::{ft_sfnt_os2};
 use freetype::tt_os2::TT_OS2;
 
+use libc::c_char;
 use std::mem;
 use std::num::Float;
 use std::ptr;
-use std::string::String;
-
 use std::sync::Arc;
 
 fn float_to_fixed_ft(f: f64) -> i32 {
@@ -43,7 +43,7 @@ fn fixed_to_float_ft(f: i32) -> f64 {
 pub struct FontTable;
 
 impl FontTableMethods for FontTable {
-    fn with_buffer(&self, _blk: |*const u8, uint|) {
+    fn with_buffer<F>(&self, _blk: F) where F: FnOnce(*const u8, uint) {
         panic!()
     }
 }
@@ -121,10 +121,14 @@ impl FontHandleMethods for FontHandle {
         self.font_data.clone()
     }
     fn family_name(&self) -> String {
-        unsafe { String::from_raw_buf(&*(*self.face).family_name as *const i8 as *const u8) }
+        unsafe {
+            c_str_to_string((*self.face).family_name as *const c_char)
+        }
     }
     fn face_name(&self) -> String {
-        unsafe { String::from_raw_buf(&*FT_Get_Postscript_Name(self.face) as *const i8 as *const u8) }
+        unsafe {
+            c_str_to_string(FT_Get_Postscript_Name(self.face) as *const c_char)
+        }
     }
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
@@ -253,7 +257,7 @@ impl FontHandleMethods for FontHandle {
             line_gap:         height,
         };
 
-        debug!("Font metrics (@{} pt): {}", geometry::to_pt(em_size), metrics);
+        debug!("Font metrics (@{} pt): {:?}", geometry::to_pt(em_size), metrics);
         return metrics;
     }
 

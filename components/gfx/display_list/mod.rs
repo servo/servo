@@ -38,7 +38,7 @@ use servo_util::geometry::{mod, Au, MAX_RECT, ZERO_RECT};
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
-use std::slice::Items;
+use std::slice::Iter;
 use std::sync::Arc;
 use style::ComputedValues;
 use style::computed_values::{border_style, cursor, filter, mix_blend_mode, pointer_events};
@@ -60,7 +60,7 @@ pub static BOX_SHADOW_INFLATION_FACTOR: i32 = 3;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[deriving(Clone, PartialEq, Copy)]
+#[derive(Clone, PartialEq, Copy)]
 pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {
@@ -356,7 +356,7 @@ impl StackingContext {
                                   result: &mut Vec<DisplayItemMetadata>,
                                   topmost_only: bool,
                                   mut iterator: I)
-                                  where I: Iterator<&'a DisplayItem> {
+                                  where I: Iterator<Item=&'a DisplayItem> {
             for item in iterator {
                 // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
                 // test elements with `border-radius`, for example.
@@ -473,7 +473,7 @@ pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id
 }
 
 /// One drawing command in the list.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum DisplayItem {
     SolidColorClass(Box<SolidColorDisplayItem>),
     TextClass(Box<TextDisplayItem>),
@@ -485,7 +485,7 @@ pub enum DisplayItem {
 }
 
 /// Information common to all display items.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
     pub bounds: Rect<Au>,
@@ -512,7 +512,7 @@ impl BaseDisplayItem {
 /// A clipping region for a display item. Currently, this can describe rectangles, rounded
 /// rectangles (for `border-radius`), or arbitrary intersections of the two. Arbitrary transforms
 /// are not supported because those are handled by the higher-level `StackingContext` abstraction.
-#[deriving(Clone, PartialEq, Show)]
+#[derive(Clone, PartialEq, Show)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
     pub main: Rect<Au>,
@@ -526,7 +526,7 @@ pub struct ClippingRegion {
 /// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
 /// they're stored in a list over to the side. Currently a complex clipping region is just a
 /// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
-#[deriving(Clone, PartialEq, Show)]
+#[derive(Clone, PartialEq, Show)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
     pub rect: Rect<Au>,
@@ -637,7 +637,7 @@ impl ClippingRegion {
 /// Metadata attached to each display item. This is useful for performing auxiliary tasks with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
-#[deriving(Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct DisplayItemMetadata {
     /// The DOM node from which this display item originated.
     pub node: OpaqueNode,
@@ -666,14 +666,14 @@ impl DisplayItemMetadata {
 }
 
 /// Paints a solid color.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct SolidColorDisplayItem {
     pub base: BaseDisplayItem,
     pub color: Color,
 }
 
 /// Paints text.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct TextDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -691,7 +691,7 @@ pub struct TextDisplayItem {
     pub orientation: TextOrientation,
 }
 
-#[deriving(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum TextOrientation {
     Upright,
     SidewaysLeft,
@@ -699,7 +699,7 @@ pub enum TextOrientation {
 }
 
 /// Paints an image.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
     pub image: Arc<Box<Image>>,
@@ -711,7 +711,7 @@ pub struct ImageDisplayItem {
 }
 
 /// Paints a gradient.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct GradientDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -727,7 +727,7 @@ pub struct GradientDisplayItem {
 }
 
 /// Paints a border.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct BorderDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -750,7 +750,7 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[deriving(Clone, Default, PartialEq, Show, Copy)]
+#[derive(Clone, Default, PartialEq, Show, Copy)]
 pub struct BorderRadii<T> {
     pub top_left: T,
     pub top_right: T,
@@ -768,7 +768,7 @@ impl<T> BorderRadii<T> where T: PartialEq + Zero {
 }
 
 /// Paints a line segment.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct LineDisplayItem {
     pub base: BaseDisplayItem,
 
@@ -780,7 +780,7 @@ pub struct LineDisplayItem {
 }
 
 /// Paints a box shadow per CSS-BACKGROUNDS.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct BoxShadowDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -806,10 +806,11 @@ pub struct BoxShadowDisplayItem {
 
 pub enum DisplayItemIterator<'a> {
     Empty,
-    Parent(dlist::Items<'a,DisplayItem>),
+    Parent(dlist::Iter<'a,DisplayItem>),
 }
 
-impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
+impl<'a> Iterator for DisplayItemIterator<'a> {
+    type Item = &'a DisplayItem;
     #[inline]
     fn next(&mut self) -> Option<&'a DisplayItem> {
         match *self {
@@ -836,14 +837,14 @@ impl DisplayItem {
             }
 
             DisplayItem::TextClass(ref text) => {
-                debug!("Drawing text at {}.", text.base.bounds);
+                debug!("Drawing text at {:?}.", text.base.bounds);
                 paint_context.draw_text(&**text);
             }
 
             DisplayItem::ImageClass(ref image_item) => {
                 // FIXME(pcwalton): This is a really inefficient way to draw a tiled image; use a
                 // brush instead.
-                debug!("Drawing image at {}.", image_item.base.bounds);
+                debug!("Drawing image at {:?}.", image_item.base.bounds);
 
                 let mut y_offset = Au(0);
                 while y_offset < image_item.base.bounds.size.height {
@@ -926,13 +927,13 @@ impl DisplayItem {
         for _ in range(0, level) {
             indent.push_str("| ")
         }
-        println!("{}+ {}", indent, self);
+        println!("{}+ {:?}", indent, self);
     }
 }
 
 impl fmt::Show for DisplayItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} @ {} ({:x})",
+        write!(f, "{} @ {:?} ({:x})",
             match *self {
                 DisplayItem::SolidColorClass(_) => "SolidColor",
                 DisplayItem::TextClass(_) => "Text",

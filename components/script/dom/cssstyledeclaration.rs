@@ -30,7 +30,7 @@ pub struct CSSStyleDeclaration {
     readonly: bool,
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum CSSModificationAccess {
     ReadWrite,
     Readonly
@@ -47,7 +47,7 @@ macro_rules! css_properties(
             }
         )*
     );
-)
+);
 
 fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
     let mut result = String::new();
@@ -116,11 +116,11 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
             if index as uint > declarations.normal.len() {
                 declarations.important
                             .get(index as uint - declarations.normal.len())
-                            .map(|decl| format!("{} !important", decl))
+                            .map(|decl| format!("{:?} !important", decl))
             } else {
                 declarations.normal
                             .get(index as uint)
-                            .map(|decl| format!("{}", decl))
+                            .map(|decl| format!("{:?}", decl))
             }
         });
 
@@ -130,7 +130,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
     fn GetPropertyValue(self, property: DOMString) -> DOMString {
         // Step 1
-        let property = Atom::from_slice(property.as_slice().to_ascii_lower().as_slice());
+        let property = Atom::from_slice(property.as_slice().to_ascii_lowercase().as_slice());
 
         // Step 2
         let longhand_properties = longhands_from_shorthand(property.as_slice());
@@ -165,7 +165,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertypriority
     fn GetPropertyPriority(self, property: DOMString) -> DOMString {
         // Step 1
-        let property = Atom::from_slice(property.as_slice().to_ascii_lower().as_slice());
+        let property = Atom::from_slice(property.as_slice().to_ascii_lowercase().as_slice());
 
         // Step 2
         let longhand_properties = longhands_from_shorthand(property.as_slice());
@@ -195,7 +195,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 2
-        let property = property.as_slice().to_ascii_lower();
+        let property = property.as_slice().to_ascii_lowercase();
 
         // Step 3
         if !is_supported_property(property.as_slice()) {
@@ -208,7 +208,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 5
-        let priority = priority.as_slice().to_ascii_lower();
+        let priority = priority.as_slice().to_ascii_lowercase();
         if priority.as_slice() != "!important" && !priority.is_empty() {
             return Ok(());
         }
@@ -254,7 +254,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 2
-        let property = property.as_slice().to_ascii_lower();
+        let property = property.as_slice().to_ascii_lowercase();
 
         // Step 3
         if !is_supported_property(property.as_slice()) {
@@ -262,7 +262,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 4
-        let priority = priority.as_slice().to_ascii_lower();
+        let priority = priority.as_slice().to_ascii_lowercase();
         if priority.as_slice() != "important" && !priority.is_empty() {
             return Ok(());
         }
@@ -301,7 +301,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         }
 
         // Step 2
-        let property = property.as_slice().to_ascii_lower();
+        let property = property.as_slice().to_ascii_lowercase();
 
         // Step 3
         let value = self.GetPropertyValue(property.clone());
@@ -343,5 +343,5 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         rval
     }
 
-    css_properties_accessors!(css_properties)
+    css_properties_accessors!(css_properties);
 }

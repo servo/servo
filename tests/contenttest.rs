@@ -21,9 +21,10 @@ use std::{os, str};
 use std::io::fs;
 use std::io::Reader;
 use std::io::process::{Command, Ignored, CreatePipe, InheritFd, ExitStatus};
+use std::thunk::Thunk;
 use regex::Regex;
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct Config {
     source_dir: String,
     filter: Option<Regex>
@@ -51,7 +52,7 @@ fn parse_config(args: Vec<String>) -> Config {
 
     Config {
         source_dir: matches.opt_str("source-dir").unwrap(),
-        filter: matches.free.as_slice().head().map(|s| Regex::new(s.as_slice()).unwrap())
+        filter: matches.free.as_slice().first().map(|&:s| Regex::new(s.as_slice()).unwrap())
     }
 }
 
@@ -91,7 +92,7 @@ fn make_test(file: String) -> TestDescAndFn {
             ignore: false,
             should_fail: ShouldFail::No,
         },
-        testfn: DynTestFn(proc() { run_test(file) })
+        testfn: DynTestFn(Thunk::new(move |:| { run_test(file) }))
     }
 }
 
@@ -135,6 +136,6 @@ fn run_test(file: String) {
 
     let retval = prc.wait();
     if retval != Ok(ExitStatus(0)) {
-        panic!("Servo exited with non-zero status {}", retval);
+        panic!("Servo exited with non-zero status {:?}", retval);
     }
 }

@@ -55,15 +55,15 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled")
+    make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
     fn Type(self) -> DOMString {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
-        let ty = elem.get_string_attribute(&atom!("type")).into_ascii_lower();
+        let ty = elem.get_string_attribute(&atom!("type")).into_ascii_lowercase();
         // https://html.spec.whatwg.org/multipage/forms.html#attr-button-type
         match ty.as_slice() {
             "reset" | "button" | "menu" => ty,
@@ -72,7 +72,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
-    make_setter!(SetType, "type")
+    make_setter!(SetType, "type");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {

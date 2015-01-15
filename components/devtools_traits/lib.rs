@@ -27,6 +27,8 @@ use servo_msg::constellation_msg::PipelineId;
 use servo_util::str::DOMString;
 use url::Url;
 
+use std::sync::mpsc::{Sender, Receiver};
+
 pub type DevtoolsControlChan = Sender<DevtoolsControlMsg>;
 pub type DevtoolsControlPort = Receiver<DevtoolScriptControlMsg>;
 
@@ -99,14 +101,14 @@ pub enum ScriptDevtoolControlMsg {
     ReportConsoleMsg(String),
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub struct Modification{
     pub attributeName: String,
     pub newValue: Option<String>,
 }
 
-impl<D:Decoder<E>, E> Decodable<D, E> for Modification {
-    fn decode(d: &mut D) -> Result<Modification, E> {
+impl Decodable for Modification {
+    fn decode<D: Decoder>(d: &mut D) -> Result<Modification, D::Error> {
         d.read_struct("Modification", 2u, |d|
             Ok(Modification {
                 attributeName: try!(d.read_struct_field("attributeName", 0u, |d| Decodable::decode(d))),

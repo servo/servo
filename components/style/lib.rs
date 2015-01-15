@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(globs, macro_rules)]
+#![feature(plugin)]
+#![feature(int_uint)]
+#![feature(box_syntax)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
+#![allow(unstable)]
 
-#![feature(phase)]
-#[phase(plugin, link)] extern crate log;
-#[phase(plugin)] extern crate string_cache_macros;
+#[macro_use] extern crate log;
+#[no_link] #[macro_use] #[plugin] extern crate string_cache_macros;
 
 extern crate collections;
 extern crate geom;
@@ -18,22 +20,16 @@ extern crate serialize;
 extern crate text_writer;
 extern crate url;
 
-#[phase(plugin, link)]
+#[macro_use]
 extern crate cssparser;
 
-#[phase(plugin)]
+#[macro_use]
 extern crate matches;
 
 extern crate encoding;
 extern crate string_cache;
 
-#[phase(plugin)]
-extern crate string_cache_macros;
-
-#[phase(plugin)]
-extern crate plugins;
-
-#[phase(plugin)]
+#[macro_use]
 extern crate lazy_static;
 
 extern crate "util" as servo_util;
@@ -70,7 +66,7 @@ pub mod stylesheets;
 pub mod parser;
 pub mod selectors;
 pub mod selector_matching;
-pub mod values;
+#[macro_use] pub mod values;
 pub mod properties;
 pub mod namespaces;
 pub mod node;

@@ -18,6 +18,7 @@ use dom::window;
 use libc;
 use libc::c_uint;
 use std::cell::Cell;
+use std::ffi::CString;
 use std::mem;
 use std::ptr;
 use js::glue::UnwrapObject;
@@ -84,7 +85,7 @@ pub const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 pub const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
 /// Representation of an IDL constant value.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum ConstantVal {
     /// `long` constant.
     IntVal(i32),
@@ -99,7 +100,7 @@ pub enum ConstantVal {
 }
 
 /// Representation of an IDL constant.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ConstantSpec {
     /// name of the constant.
     pub name: &'static [u8],
@@ -130,24 +131,26 @@ pub struct NativePropertyHooks {
 }
 
 /// The struct that holds inheritance information for DOM object reflectors.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
-    pub interface_chain: [PrototypeList::ID, ..MAX_PROTO_CHAIN_LENGTH],
+    pub interface_chain: [PrototypeList::ID; MAX_PROTO_CHAIN_LENGTH],
 
     /// The NativePropertyHooks for the interface associated with this class.
     pub native_hooks: &'static NativePropertyHooks,
 }
+unsafe impl Sync for DOMClass {}
 
 /// The JSClass used for DOM object reflectors.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct DOMJSClass {
     /// The actual JSClass.
     pub base: js::Class,
     /// Associated data for DOM object reflectors.
     pub dom_class: DOMClass
 }
+unsafe impl Sync for DOMJSClass {}
 
 /// Returns the ProtoOrIfaceArray for the given global object.
 /// Fails if `global` is not a DOM global object.
@@ -172,6 +175,7 @@ pub struct NativeProperties {
     /// Static attributes for the interface.
     pub staticAttrs: Option<&'static [JSPropertySpec]>,
 }
+unsafe impl Sync for NativeProperties {}
 
 /// A JSNative that cannot be null.
 pub type NonNullJSNative =
@@ -196,7 +200,7 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
 
     match constructor {
         Some((native, name, nargs)) => {
-            let s = name.to_c_str();
+            let s = CString::from_slice(name.as_bytes());
             CreateInterfaceObject(cx, global, receiver,
                                   native, nargs, proto,
                                   members, s.as_ptr())
@@ -322,7 +326,7 @@ pub unsafe extern fn ThrowingConstructor(cx: *mut JSContext, _argc: c_uint, _vp:
 /// Construct and cache the ProtoOrIfaceArray for the given global.
 /// Fails if the argument is not a DOM global.
 pub fn initialize_global(global: *mut JSObject) {
-    let protoArray = box () ([0 as *mut JSObject, ..PrototypeList::ID::Count as uint]);
+    let protoArray = box () ([0 as *mut JSObject; PrototypeList::ID::Count as uint]);
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
         let box_ = squirrel_away_unique(protoArray);
@@ -351,7 +355,7 @@ pub fn reflect_dom_object<T: Reflectable>
 /// A struct to store a reference to the reflector of a DOM object.
 // Allowing unused_attribute because the lint sometimes doesn't run in order
 #[allow(raw_pointer_deriving, unrooted_must_root, unused_attributes)]
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 #[must_root]
 #[servo_lang = "reflector"]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
@@ -495,7 +499,7 @@ pub fn IsPlatformObject(obj: *mut JSObject) -> bool {
 pub fn get_dictionary_property(cx: *mut JSContext,
                                object: *mut JSObject,
                                property: &str) -> Result<Option<JSVal>, ()> {
-    use std::c_str::CString;
+    use std::ffi::CString;
     fn has_property(cx: *mut JSContext, object: *mut JSObject, property: &CString,
                     found: &mut JSBool) -> bool {
         unsafe {
@@ -509,7 +513,7 @@ pub fn get_dictionary_property(cx: *mut JSContext,
         }
     }
 
-    let property = property.to_c_str();
+    let property = CString::from_slice(property.as_bytes());
     if object.is_null() {
         return Ok(None);
     }
@@ -594,7 +598,7 @@ pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
 }
 
 /// Results of `xml_name_type`.
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 #[allow(missing_docs)]
 pub enum XMLName {
     QName,

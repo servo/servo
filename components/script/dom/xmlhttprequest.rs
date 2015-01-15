@@ -34,6 +34,7 @@ use encoding::types::{DecoderTrap, Encoding, EncodingRef, EncoderTrap};
 
 use hyper::header::Headers;
 use hyper::header::common::{Accept, ContentLength, ContentType};
+use hyper::header::quality_item::QualityItem;
 use hyper::http::RawStatus;
 use hyper::mime::{mod, Mime};
 use hyper::method::Method;
@@ -52,7 +53,7 @@ use servo_util::task::spawn_named;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::comm::{Sender, Receiver, channel};
+use std::sync::mpsc::{Sender, Receiver, channel};
 use std::default::Default;
 use std::io::Timer;
 use std::str::FromStr;
@@ -64,7 +65,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 pub type SendParam = StringOrURLSearchParams;
 
-#[deriving(PartialEq, Copy)]
+#[derive(PartialEq, Copy)]
 #[jstraceable]
 enum XMLHttpRequestState {
     Unsent = 0,
@@ -92,11 +93,11 @@ impl Runnable for XHRProgressHandler {
     }
 }
 
-#[deriving(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy)]
 #[jstraceable]
 pub struct GenerationId(uint);
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum XHRProgress {
     /// Notify that headers have been received
     HeadersReceived(GenerationId, Option<Headers>, Option<RawStatus>),
@@ -230,7 +231,7 @@ impl XMLHttpRequest {
                 notify_partial_progress(fetch_type, XHRProgress::Errored(gen_id, $err));
                 return Err($err)
             });
-        )
+        );
 
         macro_rules! terminate(
             ($reason:expr) => (
@@ -243,7 +244,7 @@ impl XMLHttpRequest {
                     }
                 }
             );
-        )
+        );
 
 
         match cors_request {
@@ -257,13 +258,14 @@ impl XMLHttpRequest {
                 let req2 = req.clone();
                 // TODO: this exists only to make preflight check non-blocking
                 // perhaps should be handled by the resource_loader?
-                spawn_named("XHR:Cors".to_owned(), proc() {
+                spawn_named("XHR:Cors".to_owned(), move || {
                     let response = req2.http_fetch();
                     chan.send(response);
                 });
 
                 select! (
                     response = cors_port.recv() => {
+                        let response = response.unwrap();
                         if response.network_error {
                             notify_error_and_return!(Network);
                         } else {
@@ -273,8 +275,8 @@ impl XMLHttpRequest {
                             });
                         }
                     },
-                    reason = terminate_receiver.recv() => terminate!(reason)
-                )
+                    reason = terminate_receiver.recv() => terminate!(reason.unwrap())
+                );
             }
             _ => {}
         }
@@ -286,6 +288,7 @@ impl XMLHttpRequest {
         let progress_port;
         select! (
             response = start_port.recv() => {
+                let response = response.unwrap();
                 match cors_request {
                     Ok(Some(ref req)) => {
                         match response.metadata.headers {
@@ -302,8 +305,8 @@ impl XMLHttpRequest {
 
                 progress_port = response.progress_port;
             },
-            reason = terminate_receiver.recv() => terminate!(reason)
-        )
+            reason = terminate_receiver.recv() => terminate!(reason.unwrap())
+        );
 
         let mut buf = vec!();
         loop {
@@ -319,7 +322,7 @@ impl XMLHttpRequest {
             };
 
             select! (
-                progress = progress_port.recv() => match progress {
+                progress = progress_port.recv() => match progress.unwrap() {
                     Payload(data) => {
                         buf.push_all(data.as_slice());
                         notify_partial_progress(fetch_type,
@@ -333,14 +336,14 @@ impl XMLHttpRequest {
                         notify_error_and_return!(Network);
                     }
                 },
-                reason = terminate_receiver.recv() => terminate!(reason)
-            )
+                reason = terminate_receiver.recv() => terminate!(reason.unwrap())
+            );
         }
     }
 }
 
 impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
-    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange)
+    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 
     fn ReadyState(self) -> u16 {
         self.ready_state.get() as u16
@@ -354,12 +357,12 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             // without changing capitalization, this will actually sidestep rust-http's type system
             // since methods like "patch" or "PaTcH" will be considered extension methods
             // despite the there being a rust-http method variant for them
-            let upper = s.to_ascii_upper();
+            let upper = s.to_ascii_uppercase();
             match upper.as_slice() {
                 "DELETE" | "GET" | "HEAD" | "OPTIONS" |
                 "POST" | "PUT" | "CONNECT" | "TRACE" |
-                "TRACK" => from_str(upper.as_slice()),
-                _ => from_str(s)
+                "TRACK" => upper.parse(),
+                _ => s.parse()
             }
         });
         // Step 2
@@ -438,18 +441,18 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             None => return Err(Syntax)
         };
 
-        debug!("SetRequestHeader: name={}, value={}", name.as_str(), value.as_str());
+        debug!("SetRequestHeader: name={:?}, value={:?}", name.as_str(), value.as_str());
         let mut headers = self.request_headers.borrow_mut();
 
 
         // Steps 6,7
         match headers.get_raw(name_str) {
             Some(raw) => {
-                debug!("SetRequestHeader: old value = {}", raw[0]);
+                debug!("SetRequestHeader: old value = {:?}", raw[0]);
                 let mut buf = raw[0].clone();
                 buf.push_all(b", ");
                 buf.push_all(value.as_slice());
-                debug!("SetRequestHeader: new value = {}", buf);
+                debug!("SetRequestHeader: new value = {:?}", buf);
                 value = ByteString::new(buf);
             },
             None => {}
@@ -573,8 +576,9 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
 
             if !request_headers.has::<Accept>() {
+                let mime = Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![]);
                 request_headers.set(
-                    Accept(vec![Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![])]));
+                    Accept(vec![QualityItem::new(mime, 1.0)]));
             }
         } // drops the borrow_mut
 
@@ -610,7 +614,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             _ => {}
         }
 
-        debug!("request_headers = {}", *self.request_headers.borrow());
+        debug!("request_headers = {:?}", *self.request_headers.borrow());
 
         let gen_id = self.generation_id.get();
         if self.sync.get() {
@@ -624,7 +628,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             // inflight events queued up in the script task's port.
             let addr = Trusted::new(self.global.root().r().get_cx(), self,
                                     script_chan.clone());
-            spawn_named("XHRTask".to_owned(), proc() {
+            spawn_named("XHRTask".to_owned(), move || {
                 let _ = XMLHttpRequest::fetch(&mut SyncOrAsync::Async(addr, script_chan),
                                               resource_task,
                                               load_data,
@@ -767,7 +771,7 @@ trait PrivateXMLHttpRequestHelpers {
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn change_ready_state(self, rs: XMLHttpRequestState) {
-        assert!(self.ready_state.get() != rs)
+        assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
         let global = self.global.root();
         let event = Event::new(global.r(),
@@ -789,7 +793,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                     return
                 }
             );
-        )
+        );
 
         // Ignore message if it belongs to a terminated fetch
         return_if_fetch_was_terminated!();
@@ -893,7 +897,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn terminate_ongoing_fetch(self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
-        self.terminate_sender.borrow().as_ref().map(|s| s.send_opt(TerminateReason::AbortedOrReopened));
+        self.terminate_sender.borrow().as_ref().map(|s| s.send(TerminateReason::AbortedOrReopened));
     }
 
     fn insert_trusted_header(self, name: String, value: String) {
@@ -936,10 +940,10 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let oneshot = self.timer.borrow_mut()
                           .oneshot(Duration::milliseconds(timeout as i64));
         let terminate_sender = (*self.terminate_sender.borrow()).clone();
-        spawn_named("XHR:Timer".to_owned(), proc () {
-            match oneshot.recv_opt() {
+        spawn_named("XHR:Timer".to_owned(), move || {
+            match oneshot.recv() {
                 Ok(_) => {
-                    terminate_sender.map(|s| s.send_opt(TerminateReason::TimedOut));
+                    terminate_sender.map(|s| s.send(TerminateReason::TimedOut));
                 },
                 Err(_) => {
                     // This occurs if xhr.timeout (the sender) goes out of scope (i.e, xhr went out of scope)
@@ -980,7 +984,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         use hyper::header::common::SetCookie;
 
         // a dummy header so we can use headers.remove::<SetCookie2>()
-        #[deriving(Clone)]
+        #[derive(Clone)]
         struct SetCookie2;
         impl Header for SetCookie2 {
             fn header_name(_: Option<SetCookie2>) -> &'static str {

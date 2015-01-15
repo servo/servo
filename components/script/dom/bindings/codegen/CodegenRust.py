@@ -679,7 +679,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                 value = "Some(%s)" % value
 
             default = (
-                "const data: [u8, ..%s] = [ %s ];\n"
+                "const data: [u8; %s] = [ %s ];\n"
                 "%s" %
                 (len(defaultValue.value) + 1,
                  ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
@@ -1189,14 +1189,16 @@ class MethodDefiner(PropertyDefiner):
         def specData(m):
             if m.get("methodInfo", True):
                 jitinfo = ("&%s_methodinfo" % m["name"])
-                accessor = "genericMethod"
+                accessor = "genericMethod as NonNullJSNative"
             else:
                 jitinfo = "0 as *const JSJitInfo"
                 accessor = m.get("nativeName", m["name"])
+                if accessor[0:3] != 'JS_':
+                    accessor = "%s as NonNullJSNative" % accessor
             return (m["name"], accessor, jitinfo, m["length"], m["flags"])
 
         def stringDecl(m):
-            return "const %s_name: [u8, ..%i] = %s;\n" % (m["name"], len(m["name"]) + 1,
+            return "const %s_name: [u8; %i] = %s;\n" % (m["name"], len(m["name"]) + 1,
                                                          str_to_const_array(m["name"]))
 
         decls = ''.join([stringDecl(m) for m in array])
@@ -1236,7 +1238,7 @@ class AttrDefiner(PropertyDefiner):
                     accessor = "genericGetter"
                 jitinfo = "&%s_getterinfo" % attr.identifier.name
 
-            return ("JSPropertyOpWrapper {op: Some(%(native)s), info: %(info)s as *const JSJitInfo}"
+            return ("JSPropertyOpWrapper {op: Some(%(native)s as NonNullJSNative), info: %(info)s as *const JSJitInfo}"
                     % {"info" : jitinfo,
                        "native" : accessor})
 
@@ -1254,7 +1256,7 @@ class AttrDefiner(PropertyDefiner):
                     accessor = "genericSetter"
                 jitinfo = "&%s_setterinfo" % attr.identifier.name
 
-            return ("JSStrictPropertyOpWrapper {op: Some(%(native)s), info: %(info)s as *const JSJitInfo}"
+            return ("JSStrictPropertyOpWrapper {op: Some(%(native)s as NonNullJSNative), info: %(info)s as *const JSJitInfo}"
                     % {"info" : jitinfo,
                        "native" : accessor})
 
@@ -1264,7 +1266,7 @@ class AttrDefiner(PropertyDefiner):
 
         def stringDecl(attr):
             name = attr.identifier.name
-            return "const %s_name: [u8, ..%i] = %s;\n" % (name, len(name) + 1,
+            return "const %s_name: [u8; %i] = %s;\n" % (name, len(name) + 1,
                                                           str_to_const_array(name))
 
         decls = ''.join([stringDecl(m) for m in array])
@@ -1434,7 +1436,7 @@ class CGDOMJSClass(CGThing):
         self.descriptor = descriptor
 
     def define(self):
-        traceHook = "Some(%s)" % TRACE_HOOK_NAME
+        traceHook = 'Some(%s as unsafe extern "C" fn(*mut JSTracer, *mut JSObject))' % TRACE_HOOK_NAME
         if self.descriptor.isGlobal():
             flags = "JSCLASS_IS_GLOBAL | JSCLASS_DOM_GLOBAL"
             slots = "JSCLASS_GLOBAL_SLOT_COUNT + 1"
@@ -1442,7 +1444,7 @@ class CGDOMJSClass(CGThing):
             flags = "0"
             slots = "1"
         return """\
-const Class_name: [u8, ..%i] = %s;
+const Class_name: [u8; %i] = %s;
 static Class: DOMJSClass = DOMJSClass {
     base: js::Class {
         name: &Class_name as *const u8 as *const libc::c_char,
@@ -1454,7 +1456,7 @@ static Class: DOMJSClass = DOMJSClass {
         enumerate: Some(JS_EnumerateStub),
         resolve: Some(JS_ResolveStub),
         convert: Some(JS_ConvertStub),
-        finalize: Some(%s),
+        finalize: Some(%s as unsafe extern "C" fn(*mut JSFreeOp, *mut JSObject)),
         checkAccess: None,
         call: None,
         hasInstance: None,
@@ -1526,7 +1528,7 @@ class CGPrototypeJSClass(CGThing):
 
     def define(self):
         return """\
-const PrototypeClassName__: [u8, ..%s] = %s;
+const PrototypeClassName__: [u8; %s] = %s;
 static PrototypeClass: JSClass = JSClass {
     name: &PrototypeClassName__ as *const u8 as *const libc::c_char,
     flags: (1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT as uint, //JSCLASS_HAS_RESERVED_SLOTS(1)
@@ -1543,7 +1545,7 @@ static PrototypeClass: JSClass = JSClass {
     hasInstance: None,
     construct: None,
     trace: None,
-    reserved: [0 as *mut libc::c_void, ..40]
+    reserved: [0 as *mut libc::c_void; 40]
 };
 """ % (len(self.descriptor.interface.identifier.name + "Prototype") + 1,
        str_to_const_array(self.descriptor.interface.identifier.name + "Prototype"))
@@ -1992,7 +1994,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 constructHook = "ThrowingConstructor"
                 constructArgs = 0
 
-            constructor = 'Some((%s, "%s", %d))' % (
+            constructor = 'Some((%s as NonNullJSNative, "%s", %d))' % (
                 constructHook, self.descriptor.interface.identifier.name,
                 constructArgs)
         else:
@@ -2096,16 +2098,16 @@ class CGDefineProxyHandler(CGAbstractMethod):
 
         body = """\
 let traps = ProxyTraps {
-    getPropertyDescriptor: Some(getPropertyDescriptor),
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
-    defineProperty: Some(%s),
-    getOwnPropertyNames: Some(getOwnPropertyNames_),
-    delete_: Some(%s),
-    enumerate: Some(enumerate_),
+    getPropertyDescriptor: Some(getPropertyDescriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
+    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
+    defineProperty: Some(%s as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut JSPropertyDescriptor) -> bool),
+    getOwnPropertyNames: Some(getOwnPropertyNames_ as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut AutoIdVector) -> bool),
+    delete_: Some(%s as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut bool) -> bool),
+    enumerate: Some(enumerate_ as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut AutoIdVector) -> bool),
 
     has: None,
-    hasOwn: Some(hasOwn),
-    get: Some(get),
+    hasOwn: Some(hasOwn as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut bool) -> bool),
+    get: Some(get as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut JSObject, jsid, *mut JSVal) -> bool),
     set: None,
     keys: None,
     iterate: None,
@@ -2116,15 +2118,15 @@ let traps = ProxyTraps {
     hasInstance: None,
     typeOf: None,
     objectClassIs: None,
-    obj_toString: Some(obj_toString),
+    obj_toString: Some(obj_toString as unsafe extern "C" fn(*mut JSContext, *mut JSObject) -> *mut js::jsapi::JSString),
     fun_toString: None,
     //regexp_toShared: ptr::null(),
     defaultValue: None,
     iteratorNext: None,
-    finalize: Some(%s),
+    finalize: Some(%s as unsafe extern "C" fn(*mut JSFreeOp, *mut JSObject)),
     getElementIfPresent: None,
     getPrototypeOf: None,
-    trace: Some(%s)
+    trace: Some(%s as unsafe extern "C" fn(*mut JSTracer, *mut JSObject))
 };
 
 CreateProxyHandler(&traps, &Class as *const _ as *const _)\
@@ -2763,7 +2765,7 @@ class CGEnum(CGThing):
 
         decl = """\
 #[repr(uint)]
-#[deriving(PartialEq, Copy)]
+#[derive(PartialEq, Copy)]
 #[jstraceable]
 pub enum %s {
     %s
@@ -4256,7 +4258,7 @@ class CGNonNamespacedEnum(CGThing):
         # Build the enum body.
         enumstr = comment + 'pub enum %s {\n%s\n}\n' % (enumName, ',\n'.join(entries))
         if deriving:
-            enumstr = ('#[deriving(%s)]\n' % deriving) + enumstr
+            enumstr = ('#[derive(%s)]\n' % deriving) + enumstr
         curr = CGGeneric(enumstr)
 
         # Add some whitespace padding.
@@ -4458,7 +4460,7 @@ class CGRegisterProxyHandlers(CGThing):
         descriptors = config.getDescriptors(proxy=True)
         length = len(descriptors)
         self.root = CGList([
-            CGGeneric("pub static mut proxy_handlers: [*const libc::c_void, ..%d] = [0 as *const libc::c_void, ..%d];" % (length, length)),
+            CGGeneric("pub static mut proxy_handlers: [*const libc::c_void; %d] = [0 as *const libc::c_void; %d];" % (length, length)),
             CGRegisterProxyHandlersMethod(descriptors),
         ], "\n")
 
@@ -4530,11 +4532,12 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JSPropertyOpWrapper, JSPropertySpec, JS_PropertyStub}',
             'js::jsapi::{JSStrictPropertyOpWrapper, JSString, JSTracer, JS_ConvertStub}',
             'js::jsapi::{JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub}',
+            'js::jsapi::{JSMutableHandleValue, JSHandleId, JSType}',
             'js::jsval::JSVal',
             'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
             'js::jsval::{NullValue, UndefinedValue}',
             'js::glue::{CallJitMethodOp, CallJitPropertyOp, CreateProxyHandler}',
-            'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps}',
+            'js::glue::{GetProxyPrivate, NewProxyObject, ProxyTraps, AutoIdVector}',
             'js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO}',
             'js::glue::{RUST_JS_NumberValue, RUST_JSID_IS_STRING}',
             'js::rust::with_compartment',
@@ -4559,6 +4562,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
             'dom::bindings::utils::ConstantVal::{IntVal, UintVal}',
+            'dom::bindings::utils::NonNullJSNative',
             'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
@@ -4696,7 +4700,7 @@ class CGCallback(CGClass):
                          bases=[ClassBase(baseName)],
                          constructors=self.getConstructors(),
                          methods=realMethods+getters+setters,
-                         decorators="#[deriving(PartialEq,Copy,Clone)]#[jstraceable]")
+                         decorators="#[derive(PartialEq,Copy,Clone)]#[jstraceable]")
 
     def getConstructors(self):
         return [ClassConstructor(
@@ -5225,11 +5229,11 @@ class GlobalGenRoots():
                      CGGeneric("use std::mem;\n\n")]
         for descriptor in descriptors:
             name = descriptor.name
-            protos = [CGGeneric('pub trait %s {}\n' % (name + 'Base'))]
+            protos = [CGGeneric('pub trait %s : Sized {}\n' % (name + 'Base'))]
             for proto in descriptor.prototypeChain:
                 protos += [CGGeneric('impl %s for %s {}\n' % (proto + 'Base',
                                                                       descriptor.concreteType))]
-            derived = [CGGeneric('pub trait %s { fn %s(&self) -> bool; }\n' %
+            derived = [CGGeneric('pub trait %s : Sized { fn %s(&self) -> bool; }\n' %
                                  (name + 'Derived', 'is_' + name.lower()))]
             for protoName in descriptor.prototypeChain[1:-1]:
                 protoDescriptor = config.getDescriptor(protoName)
@@ -5237,7 +5241,8 @@ class GlobalGenRoots():
 impl ${selfName} for ${baseName} {
     #[inline]
     fn ${fname}(&self) -> bool {
-        ${parentName}Cast::from_actual(self).${fname}()
+let base: &${parentName} = ${parentName}Cast::from_actual(self);
+        base.${fname}()
     }
 }\
 """).substitute({'fname': 'is_' + name.lower(),
@@ -5248,7 +5253,7 @@ impl ${selfName} for ${baseName} {
             derived += [CGGeneric('\n')]
 
             cast = [CGGeneric(string.Template("""\
-pub trait ${castTraitName} {
+pub trait ${castTraitName} : Sized {
     #[inline(always)]
     fn to_ref<'a, T: ${toBound}+Reflectable>(base: JSRef<'a, T>) -> Option<JSRef<'a, Self>> {
         match base.${checkFn}() {

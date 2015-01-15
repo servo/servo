@@ -14,7 +14,7 @@ pub extern "C" fn cef_currently_on(_tid: cef_thread_id_t) -> c_int {
 }
 
 cef_stub_static_method_impls! {
-    fn cef_task_runner_get_for_current_thread() -> *mut cef_task_runner_t;
-    fn cef_task_runner_get_for_thread(thread_id: cef_thread_id_t) -> *mut cef_task_runner_t;
+    fn cef_task_runner_get_for_current_thread() -> *mut cef_task_runner_t
+    fn cef_task_runner_get_for_thread(thread_id: cef_thread_id_t) -> *mut cef_task_runner_t
 }
 

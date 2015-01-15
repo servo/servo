@@ -51,7 +51,7 @@ macro_rules! cef_noop_wrapper(
             }
         }
     )
-)
+);
 
 macro_rules! cef_pointer_wrapper(
     ($ty:ty) => (
@@ -71,10 +71,10 @@ macro_rules! cef_pointer_wrapper(
                 mem::transmute::<*mut $ty,&'a mut $ty>(c_object)
             }
         }
-        cef_noop_wrapper!(*const $ty)
-        cef_noop_wrapper!(*mut $ty)
+        cef_noop_wrapper!(*const $ty);
+        cef_noop_wrapper!(*mut $ty);
     )
-)
+);
 
 macro_rules! cef_unimplemented_wrapper(
     ($c_type:ty, $rust_type:ty) => (
@@ -87,95 +87,95 @@ macro_rules! cef_unimplemented_wrapper(
             }
         }
     )
-)
+);
 
-cef_pointer_wrapper!(())
-cef_pointer_wrapper!(*mut ())
-cef_pointer_wrapper!(*mut c_void)
-cef_pointer_wrapper!(c_void)
-cef_pointer_wrapper!(cef_base_t)
-cef_pointer_wrapper!(cef_browser_settings_t)
-cef_pointer_wrapper!(cef_cookie_t)
-cef_pointer_wrapper!(cef_geoposition_t)
-cef_pointer_wrapper!(cef_key_event)
-cef_pointer_wrapper!(cef_mouse_event)
-cef_pointer_wrapper!(cef_page_range_t)
-cef_pointer_wrapper!(cef_point_t)
-cef_pointer_wrapper!(cef_popup_features_t)
-cef_pointer_wrapper!(cef_rect_t)
-cef_pointer_wrapper!(cef_screen_info_t)
-cef_pointer_wrapper!(cef_size_t)
-cef_pointer_wrapper!(cef_time_t)
-cef_pointer_wrapper!(cef_window_info_t)
-cef_pointer_wrapper!(i32)
-cef_pointer_wrapper!(i64)
-cef_pointer_wrapper!(u32)
-cef_pointer_wrapper!(u64)
+cef_pointer_wrapper!(());
+cef_pointer_wrapper!(*mut ());
+cef_pointer_wrapper!(*mut c_void);
+cef_pointer_wrapper!(c_void);
+cef_pointer_wrapper!(cef_base_t);
+cef_pointer_wrapper!(cef_browser_settings_t);
+cef_pointer_wrapper!(cef_cookie_t);
+cef_pointer_wrapper!(cef_geoposition_t);
+cef_pointer_wrapper!(cef_key_event);
+cef_pointer_wrapper!(cef_mouse_event);
+cef_pointer_wrapper!(cef_page_range_t);
+cef_pointer_wrapper!(cef_point_t);
+cef_pointer_wrapper!(cef_popup_features_t);
+cef_pointer_wrapper!(cef_rect_t);
+cef_pointer_wrapper!(cef_screen_info_t);
+cef_pointer_wrapper!(cef_size_t);
+cef_pointer_wrapper!(cef_time_t);
+cef_pointer_wrapper!(cef_window_info_t);
+cef_pointer_wrapper!(i32);
+cef_pointer_wrapper!(i64);
+cef_pointer_wrapper!(u32);
+cef_pointer_wrapper!(u64);
 
-cef_noop_wrapper!(())
-cef_noop_wrapper!(*const cef_geolocation_handler_t)
-cef_noop_wrapper!(*const cef_string_utf16)
-cef_noop_wrapper!(*mut cef_context_menu_handler_t)
-cef_noop_wrapper!(*mut cef_dialog_handler_t)
-cef_noop_wrapper!(*mut cef_download_handler_t)
-cef_noop_wrapper!(*mut cef_drag_data_t)
-cef_noop_wrapper!(*mut cef_drag_handler_t)
-cef_noop_wrapper!(*mut cef_event_handle_t)
-cef_noop_wrapper!(*mut cef_focus_handler_t)
-cef_noop_wrapper!(*mut cef_geolocation_handler_t)
-cef_noop_wrapper!(*mut cef_jsdialog_handler_t)
-cef_noop_wrapper!(*mut cef_keyboard_handler_t)
-cef_noop_wrapper!(*mut cef_load_handler_t)
-cef_noop_wrapper!(*mut cef_request_handler_t)
-cef_noop_wrapper!(*mut cef_string_list_t)
-cef_noop_wrapper!(*mut cef_string_utf16)
-cef_noop_wrapper!(c_int)
-cef_noop_wrapper!(cef_color_model_t)
-cef_noop_wrapper!(cef_context_menu_edit_state_flags_t)
-cef_noop_wrapper!(cef_context_menu_media_state_flags_t)
-cef_noop_wrapper!(cef_context_menu_media_type_t)
-cef_noop_wrapper!(cef_context_menu_type_flags_t)
-cef_noop_wrapper!(cef_dom_document_type_t)
-cef_noop_wrapper!(cef_dom_node_type_t)
-cef_noop_wrapper!(cef_drag_operations_mask_t)
-cef_noop_wrapper!(cef_duplex_mode_t)
-cef_noop_wrapper!(cef_errorcode_t)
-cef_noop_wrapper!(cef_event_flags_t)
-cef_noop_wrapper!(cef_event_handle_t)
-cef_noop_wrapper!(cef_file_dialog_mode_t)
-cef_noop_wrapper!(cef_focus_source_t)
-cef_noop_wrapper!(cef_jsdialog_handler_t)
-cef_noop_wrapper!(cef_jsdialog_type_t)
-cef_noop_wrapper!(cef_key_event)
-cef_noop_wrapper!(cef_menu_item_type_t)
-cef_noop_wrapper!(cef_mouse_button_type_t)
-cef_noop_wrapper!(cef_navigation_type_t)
-cef_noop_wrapper!(cef_paint_element_type_t)
-cef_noop_wrapper!(cef_postdataelement_type_t)
-cef_noop_wrapper!(cef_process_id_t)
-cef_noop_wrapper!(cef_resource_type_t)
-cef_noop_wrapper!(cef_termination_status_t)
-cef_noop_wrapper!(cef_text_input_context_t)
-cef_noop_wrapper!(cef_thread_id_t)
-cef_noop_wrapper!(cef_time_t)
-cef_noop_wrapper!(cef_transition_type_t)
-cef_noop_wrapper!(cef_urlrequest_status_t)
-cef_noop_wrapper!(cef_v8_accesscontrol_t)
-cef_noop_wrapper!(cef_v8_propertyattribute_t)
-cef_noop_wrapper!(cef_value_type_t)
-cef_noop_wrapper!(cef_xml_encoding_type_t)
-cef_noop_wrapper!(cef_xml_node_type_t)
-cef_noop_wrapper!(f64)
-cef_noop_wrapper!(i64)
-cef_noop_wrapper!(u32)
-cef_noop_wrapper!(u64)
+cef_noop_wrapper!(());
+cef_noop_wrapper!(*const cef_geolocation_handler_t);
+cef_noop_wrapper!(*const cef_string_utf16);
+cef_noop_wrapper!(*mut cef_context_menu_handler_t);
+cef_noop_wrapper!(*mut cef_dialog_handler_t);
+cef_noop_wrapper!(*mut cef_download_handler_t);
+cef_noop_wrapper!(*mut cef_drag_data_t);
+cef_noop_wrapper!(*mut cef_drag_handler_t);
+cef_noop_wrapper!(*mut cef_event_handle_t);
+cef_noop_wrapper!(*mut cef_focus_handler_t);
+cef_noop_wrapper!(*mut cef_geolocation_handler_t);
+cef_noop_wrapper!(*mut cef_jsdialog_handler_t);
+cef_noop_wrapper!(*mut cef_keyboard_handler_t);
+cef_noop_wrapper!(*mut cef_load_handler_t);
+cef_noop_wrapper!(*mut cef_request_handler_t);
+cef_noop_wrapper!(*mut cef_string_list_t);
+cef_noop_wrapper!(*mut cef_string_utf16);
+cef_noop_wrapper!(c_int);
+cef_noop_wrapper!(cef_color_model_t);
+cef_noop_wrapper!(cef_context_menu_edit_state_flags_t);
+cef_noop_wrapper!(cef_context_menu_media_state_flags_t);
+cef_noop_wrapper!(cef_context_menu_media_type_t);
+cef_noop_wrapper!(cef_context_menu_type_flags_t);
+cef_noop_wrapper!(cef_dom_document_type_t);
+cef_noop_wrapper!(cef_dom_node_type_t);
+cef_noop_wrapper!(cef_drag_operations_mask_t);
+cef_noop_wrapper!(cef_duplex_mode_t);
+cef_noop_wrapper!(cef_errorcode_t);
+cef_noop_wrapper!(cef_event_flags_t);
+cef_noop_wrapper!(cef_event_handle_t);
+cef_noop_wrapper!(cef_file_dialog_mode_t);
+cef_noop_wrapper!(cef_focus_source_t);
+cef_noop_wrapper!(cef_jsdialog_handler_t);
+cef_noop_wrapper!(cef_jsdialog_type_t);
+cef_noop_wrapper!(cef_key_event);
+cef_noop_wrapper!(cef_menu_item_type_t);
+cef_noop_wrapper!(cef_mouse_button_type_t);
+cef_noop_wrapper!(cef_navigation_type_t);
+cef_noop_wrapper!(cef_paint_element_type_t);
+cef_noop_wrapper!(cef_postdataelement_type_t);
+cef_noop_wrapper!(cef_process_id_t);
+cef_noop_wrapper!(cef_resource_type_t);
+cef_noop_wrapper!(cef_termination_status_t);
+cef_noop_wrapper!(cef_text_input_context_t);
+cef_noop_wrapper!(cef_thread_id_t);
+cef_noop_wrapper!(cef_time_t);
+cef_noop_wrapper!(cef_transition_type_t);
+cef_noop_wrapper!(cef_urlrequest_status_t);
+cef_noop_wrapper!(cef_v8_accesscontrol_t);
+cef_noop_wrapper!(cef_v8_propertyattribute_t);
+cef_noop_wrapper!(cef_value_type_t);
+cef_noop_wrapper!(cef_xml_encoding_type_t);
+cef_noop_wrapper!(cef_xml_node_type_t);
+cef_noop_wrapper!(f64);
+cef_noop_wrapper!(i64);
+cef_noop_wrapper!(u32);
+cef_noop_wrapper!(u64);
 
-cef_unimplemented_wrapper!(*const *mut cef_v8value_t, *const CefV8Value)
-cef_unimplemented_wrapper!(*mut *mut cef_post_data_element_t, *mut CefPostDataElement)
-cef_unimplemented_wrapper!(cef_string_list_t, Vec<String>)
-cef_unimplemented_wrapper!(cef_string_map_t, HashMap<String,String>)
-cef_unimplemented_wrapper!(cef_string_multimap_t, HashMap<String,Vec<String>>)
-cef_unimplemented_wrapper!(cef_string_t, String)
+cef_unimplemented_wrapper!(*const *mut cef_v8value_t, *const CefV8Value);
+cef_unimplemented_wrapper!(*mut *mut cef_post_data_element_t, *mut CefPostDataElement);
+cef_unimplemented_wrapper!(cef_string_list_t, Vec<String>);
+cef_unimplemented_wrapper!(cef_string_map_t, HashMap<String,String>);
+cef_unimplemented_wrapper!(cef_string_multimap_t, HashMap<String,Vec<String>>);
+cef_unimplemented_wrapper!(cef_string_t, String);
 
 impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
     fn to_c(buffer: &'a [u16]) -> *const cef_string_t {
@@ -189,7 +189,7 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
             let boxed_string = box cef_string_utf16 {
                 str: ptr,
                 length: buffer.len() as u64,
-                dtor: Some(free_boxed_utf16_string),
+                dtor: Some(free_boxed_utf16_string as extern "C" fn(*mut c_ushort)),
             };
             let result: *const cef_string_utf16 = &*boxed_string;
             mem::forget(boxed_string);
@@ -255,7 +255,7 @@ impl<'a> CefWrap<cef_string_userfree_t> for String {
                 *mut cef_string_utf16;
             ptr::write(&mut (*boxed_string).str, buffer);
             ptr::write(&mut (*boxed_string).length, utf16_chars.len() as u64);
-            ptr::write(&mut (*boxed_string).dtor, Some(free_utf16_buffer));
+            ptr::write(&mut (*boxed_string).dtor, Some(free_utf16_buffer as extern "C" fn(*mut c_ushort)));
             mem::forget(utf16_chars);
         }
         boxed_string
@@ -278,7 +278,7 @@ pub struct Utf16Encoder<I> {
 }
 
 impl<I> Utf16Encoder<I> {
-    pub fn new(chars: I) -> Utf16Encoder<I> where I: Iterator<char> {
+    pub fn new(chars: I) -> Utf16Encoder<I> where I: Iterator<Item=char> {
         Utf16Encoder {
             chars: chars,
             extra: 0,
@@ -286,13 +286,14 @@ impl<I> Utf16Encoder<I> {
     }
 }
 
-impl<I> Iterator<u16> for Utf16Encoder<I> where I: Iterator<char> {
+impl<I> Iterator for Utf16Encoder<I> where I: Iterator<Item=char> {
+    type Item = u16;
     fn next(&mut self) -> Option<u16> {
         if self.extra != 0 {
             return Some(mem::replace(&mut self.extra, 0))
         }
 
-        let mut buf = [0u16, ..2];
+        let mut buf = [0u16; 2];
         self.chars.next().map(|ch| {
             let n = ch.encode_utf16(buf.as_mut_slice()).unwrap_or(0);
             if n == 2 {
@@ -305,10 +306,10 @@ impl<I> Iterator<u16> for Utf16Encoder<I> where I: Iterator<char> {
 
 impl<'a> CefWrap<cef_string_t> for &'a mut String {
     fn to_c(_: &'a mut String) -> cef_string_t {
-        panic!("unimplemented CEF type conversion: &'a mut String")
+        panic!("unimplemented CEF type conversion: &'a mut String");
     }
     unsafe fn to_rust(_: cef_string_t) -> &'a mut String {
-        panic!("unimplemented CEF type conversion: cef_string_t")
+        panic!("unimplemented CEF type conversion: cef_string_t");
     }
 }
 
