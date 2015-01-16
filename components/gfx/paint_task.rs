@@ -11,13 +11,13 @@ use font_context::FontContext;
 use paint_context::PaintContext;
 
 use azure::azure_hl::{SurfaceFormat, Color, DrawTarget, BackendType, StolenGLResources};
-use azure::AzFloat;
+use azure::{AzFloat, AzGLNativeContextRef};
 use geom::matrix2d::Matrix2D;
 use geom::point::Point2D;
 use geom::rect::Rect;
 use geom::size::Size2D;
 use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsContext};
-use layers::platform::surface::{NativeSurface, NativeSurfaceMethods};
+use layers::platform::surface::NativeSurface;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
 use servo_msg::compositor_msg::{Epoch, PaintState, LayerId};
@@ -25,7 +25,6 @@ use servo_msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use servo_msg::constellation_msg::PipelineExitType;
-use servo_msg::platform::surface::NativeSurfaceAzureMethods;
 use servo_util::geometry::{Au, ZERO_POINT};
 use servo_util::opts;
 use servo_util::smallvec::SmallVec;
@@ -315,10 +314,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
         // Create an empty native surface. We mark it as not leaking
         // in case it dies in transit to the compositor task.
         let mut native_surface: NativeSurface =
-            layers::platform::surface::NativeSurfaceMethods::new(native_graphics_context!(self),
-                                                                 Size2D(width as i32,
-                                                                        height as i32),
-                                                                 width as i32 * 4);
+            layers::platform::surface::NativeSurface::new(native_graphics_context!(self),
+                                                          Size2D(width as i32, height as i32),
+                                                          width as i32 * 4);
         native_surface.mark_wont_leak();
 
         Some(box LayerBuffer {
@@ -520,10 +518,13 @@ impl WorkerThread {
         } else {
             // FIXME(pcwalton): Cache the components of draw targets (texture color buffer,
             // paintbuffers) instead of recreating them.
+            let native_graphics_context =
+                native_graphics_context!(self) as *const _ as AzGLNativeContextRef;
             let draw_target = DrawTarget::new_with_fbo(BackendType::Skia,
-                                                       native_graphics_context!(self),
+                                                       native_graphics_context,
                                                        size,
                                                        SurfaceFormat::B8G8R8A8);
+
             draw_target.make_current();
             draw_target
         };
@@ -592,13 +593,12 @@ impl WorkerThread {
         // GPU painting path:
         draw_target.make_current();
         let StolenGLResources {
-            surface: native_surface
+            surface: azure_surface
         } = draw_target.steal_gl_resources().unwrap();
 
         // We mark the native surface as not leaking in case the surfaces
         // die on their way to the compositor task.
-        let mut native_surface: NativeSurface =
-            NativeSurfaceAzureMethods::from_azure_surface(native_surface);
+        let mut native_surface: NativeSurface = NativeSurface::from_azure_surface(azure_surface);
         native_surface.mark_wont_leak();
 
         box LayerBuffer {
