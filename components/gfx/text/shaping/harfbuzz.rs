@@ -47,13 +47,17 @@ use std::mem;
 use std::cmp;
 use std::ptr;
 
+macro_rules! hb_tag {
+    ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => (
+        (($t1 as u32) << 24) | (($t2 as u32) << 16) | (($t3 as u32) << 8) | ($t4 as u32)
+    );
+}
+
 static NO_GLYPH: i32 = -1;
 static CONTINUATION_BYTE: i32 = -2;
 
-static KERN: u32 = ((b'k' as u32) << 24) | ((b'e' as u32) << 16) | ((b'r' as u32) << 8) |
-    (b'n' as u32);
-static LIGA: u32 = ((b'l' as u32) << 24) | ((b'i' as u32) << 16) | ((b'g' as u32) << 8) |
-    (b'a' as u32);
+static KERN: u32 = hb_tag!('k', 'e', 'r', 'n');
+static LIGA: u32 = hb_tag!('l', 'i', 'g', 'a');
 
 pub struct ShapedGlyphData {
     count: int,
