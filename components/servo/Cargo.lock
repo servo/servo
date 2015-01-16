@@ -123,10 +123,10 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-cssparser#110bf3052d016bf6eda0689fb21cf971e2c23dc8"
+source = "git+https://github.com/servo/rust-cssparser#e14de8cd941089b5f864fa763529aced5da11956"
 dependencies = [
  "encoding 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
- "text_writer 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "text_writer 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -252,7 +252,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#9cc3c74e5adb57bdcc44a58737ab5370b1bf968a"
+source = "git+https://github.com/servo/rust-geom#ae31880a538245e0a5e23c04b17a1efbf1a81136"
 
 [[package]]
 name = "gfx"
@@ -601,7 +601,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "png"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-png#aceef51fab02351ab15fe38bae4d3a9b2c152e08"
+source = "git+https://github.com/servo/rust-png#2804379427ced963466d19132b816bb06a8a4006"
 dependencies = [
  "gcc 0.1.4 (git+https://github.com/alexcrichton/gcc-rs)",
  "png-sys 1.6.16 (git+https://github.com/servo/rust-png)",
@@ -610,7 +610,7 @@ dependencies = [
 [[package]]
 name = "png-sys"
 version = "1.6.16"
-source = "git+https://github.com/servo/rust-png#aceef51fab02351ab15fe38bae4d3a9b2c152e08"
+source = "git+https://github.com/servo/rust-png#2804379427ced963466d19132b816bb06a8a4006"
 
 [[package]]
 name = "regex"
@@ -710,7 +710,7 @@ dependencies = [
  "plugins 0.0.1",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
- "text_writer 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "text_writer 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.16 (git+https://github.com/servo/rust-url)",
  "util 0.0.1",
 ]
@@ -721,7 +721,7 @@ version = "0.0.1"
 
 [[package]]
 name = "text_writer"
-version = "0.1.4"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -765,7 +765,7 @@ dependencies = [
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
  "task_info 0.0.1",
- "text_writer 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "text_writer 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.12 (git+https://github.com/rust-lang/time)",
  "url 0.2.16 (git+https://github.com/servo/rust-url)",
 ]
