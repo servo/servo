@@ -84,7 +84,7 @@ impl LintPass for UnrootedPass {
                 return;
             },
             visit::FkItemFn(_, _, style, _) => match style {
-                ast::UnsafeFn => return,
+                ast::Unsafety::Unsafe => return,
                 _ => ()
             },
             _ => ()
