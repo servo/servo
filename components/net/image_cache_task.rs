@@ -4,8 +4,9 @@
 
 use image::base::{Image, load_from_memory};
 use resource_task;
-use resource_task::{LoadData, ResourceTask};
+use resource_task::{LoadData, ResourceTask, PendingAsyncLoad};
 use resource_task::ProgressMsg::{Payload, Done};
+use servo_msg::constellation_msg::PipelineId;
 
 use servo_util::task::spawn_named;
 use servo_util::taskpool::TaskPool;
@@ -17,10 +18,31 @@ use std::sync::{Arc, Mutex};
 use serialize::{Encoder, Encodable};
 use url::Url;
 
+pub struct ImageCacheChannel {
+    task: ImageCacheTask,
+    pipeline: PipelineId,
+    notifier: Sender<ImageNotification>,
+}
+
+impl ImageCacheChannel {
+    pub fn new(task: ImageCacheTask, pipeline: PipelineId, notifier: Sender<ImageNotification>)
+        -> ImageCacheChannel {
+        ImageCacheChannel {
+            task: task,
+            pipeline: pipeline,
+            notifier: notifier,
+        }
+    }
+    pub fn load(&self, load: PendingAsyncLoad) {
+        self.task.send(Msg::Prefetch(load.url().clone(),
+                                     Some((self.notifier.clone(), self.pipeline))));
+    }
+}
+
 pub enum Msg {
     /// Tell the cache that we may need a particular image soon. Must be posted
     /// before Decode
-    Prefetch(Url),
+    Prefetch(Url, Option<(Sender<ImageNotification>, PipelineId)>),
 
     /// Tell the cache to decode an image. Must be posted before GetImage/WaitForImage
     Decode(Url),
@@ -162,21 +184,52 @@ enum AfterPrefetch {
     DoNotDecode
 }
 
+pub enum ImageNotification {
+    ImageLoadComplete(PipelineId, Url)
+}
+
 impl ImageCache {
     pub fn run(&mut self) {
         let mut store_chan: Option<Sender<()>> = None;
         let mut store_prefetched_chan: Option<Sender<()>> = None;
+        let mut pending_clients: HashMap<Url, Vec<(Sender<ImageNotification>, PipelineId)>> = HashMap::new();
 
         loop {
             let msg = self.port.recv();
 
             match msg {
-                Msg::Prefetch(url) => self.prefetch(url),
+                Msg::Prefetch(url, notifier) => {
+                    let pending_request = self.prefetch(url.clone());
+                    notifier.map(|(notifier, pipeline)| {
+                        if pending_request {
+                            let new_client = (notifier, pipeline);
+                            match pending_clients.entry(url.clone()) {
+                                Occupied(mut clients) => {
+                                    clients.get_mut().push(new_client);
+                                }
+                                Vacant(entry) => {
+                                    entry.set(vec!(new_client));
+                                }
+                            }
+                        } else {
+                            notifier.send(ImageNotification::ImageLoadComplete(pipeline,
+                                                                               url.clone()));
+                        }
+                    });
+                }
                 Msg::StorePrefetchedImageData(url, data) => {
                     store_prefetched_chan.map(|chan| {
                         chan.send(());
                     });
                     store_prefetched_chan = None;
+
+                    pending_clients.get(&url).map(|clients| {
+                        for &(ref chan, ref pipeline) in clients.iter() {
+                            chan.send(ImageNotification::ImageLoadComplete(pipeline.clone(),
+                                                                           url.clone()));
+                        }
+                    });
+                    pending_clients.remove(&url);
 
                     self.store_prefetched_image_data(url, data);
                 }
@@ -241,7 +294,8 @@ impl ImageCache {
         self.state_map.insert(url, state);
     }
 
-    fn prefetch(&mut self, url: Url) {
+    // returns true if a network request is in progress, false otherwise
+    fn prefetch(&mut self, url: Url) -> bool {
         match self.get_state(&url) {
             ImageState::Init => {
                 let to_cache = self.chan.clone();
@@ -258,11 +312,15 @@ impl ImageCache {
                 });
 
                 self.set_state(url, ImageState::Prefetching(AfterPrefetch::DoNotDecode));
+                true
             }
 
-            ImageState::Prefetching(..) | ImageState::Prefetched(..) |
-            ImageState::Decoding | ImageState::Decoded(..) | ImageState::Failed => {
+            ImageState::Prefetching(..) => true,
+
+            ImageState::Prefetched(..) | ImageState::Decoding | ImageState::Decoded(..) |
+            ImageState::Failed => {
                 // We've already begun working on this image
+                false
             }
         }
     }

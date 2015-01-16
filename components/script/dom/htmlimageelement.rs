@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::attr::{AttrHelpers, AttrValue};
 use dom::bindings::cell::DOMRefCell;
@@ -17,7 +18,6 @@ use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use servo_net::image_cache_task;
 use servo_util::geometry::to_px;
 use servo_util::str::DOMString;
 use string_cache::Atom;
@@ -47,8 +47,6 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         let document = node.owner_doc().root();
         let window = document.r().window().root();
-        let window = window.r();
-        let image_cache = window.image_cache_task();
         match value {
             None => {
                 *self.image.borrow_mut() = None;
@@ -61,7 +59,8 @@ impl<'a> PrivateHTMLImageElementHelpers for JSRef<'a, HTMLImageElement> {
 
                 // inform the image cache to load this, but don't store a
                 // handle.
-                image_cache.send(image_cache_task::Msg::Prefetch(img_url));
+                let load = document.prep_async_load(LoadType::Image(img_url));
+                window.r().image_cache_task().load(load);
             }
         }
     }

@@ -4,6 +4,7 @@
 
 #![allow(unsafe_blocks)]
 
+use document_loader::LoadType;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLScriptElementCast};
@@ -196,7 +197,10 @@ pub fn parse_html(document: JSRef<Document>,
                             ProgressMsg::Done(Err(err)) => {
                                 panic!("Failed to load page URL {}, error: {}", url.serialize(), err);
                             }
-                            ProgressMsg::Done(Ok(())) => break,
+                            ProgressMsg::Done(Ok(())) => {
+                                document.finish_load(LoadType::PageSource(url.clone()));
+                                break;
+                            }
                         }
                     }
                 }

@@ -24,7 +24,6 @@ use js::rust::Cx;
 use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
-use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
 use servo_util::geometry::{Au, MAX_RECT};
 use servo_util::geometry;
@@ -80,9 +79,6 @@ pub struct Page {
     /// Pending scroll to fragment event, if any
     pub fragment_name: DOMRefCell<Option<String>>,
 
-    /// Associated resource task for use by DOM objects like XMLHttpRequest
-    pub resource_task: ResourceTask,
-
     /// A handle for communicating messages to the storage task.
     pub storage_task: StorageTask,
 
@@ -127,7 +123,6 @@ impl Page {
     pub fn new(id: PipelineId, subpage_id: Option<SubpageId>,
            layout_chan: LayoutChan,
            window_size: WindowSizeData,
-           resource_task: ResourceTask,
            storage_task: StorageTask,
            constellation_chan: ConstellationChan,
            js_context: Rc<Cx>) -> Page {
@@ -155,7 +150,6 @@ impl Page {
             resize_event: Cell::new(None),
             fragment_name: DOMRefCell::new(None),
             last_reflow_id: Cell::new(0),
-            resource_task: resource_task,
             storage_task: storage_task,
             constellation_chan: constellation_chan,
             children: DOMRefCell::new(vec!()),

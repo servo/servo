@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::LoadType;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
@@ -13,7 +14,7 @@ use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::error::Error::{InvalidState, InvalidAccess};
 use dom::bindings::error::Error::{Network, Syntax, Security, Abort, Timeout};
-use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot};
+use dom::bindings::global::{GlobalField, GlobalRef, GlobalRoot, global_object_for_js_object};
 use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalRootedRootable};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::ByteString;
@@ -42,10 +43,10 @@ use js::jsapi::{JS_ParseJSON, JSContext};
 use js::jsapi::JS_ClearPendingException;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 
-use net::resource_task::{ResourceTask, ResourceCORSData, LoadData, LoadResponse};
-use net::resource_task::ControlMsg::Load;
+use net::resource_task::{PendingAsyncLoad, ResourceCORSData};
 use net::resource_task::ProgressMsg::{Payload, Done};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode};
+use servo_msg::constellation_msg::PipelineId;
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 
@@ -120,7 +121,7 @@ impl XHRProgress {
 
 enum SyncOrAsync<'a> {
     Sync(JSRef<'a, XMLHttpRequest>),
-    Async(TrustedXHRAddress, Box<ScriptChan+Send>)
+    Async(TrustedXHRAddress, Box<ScriptChan+Send>, Option<PipelineId>)
 }
 
 enum TerminateReason {
@@ -208,21 +209,49 @@ impl XMLHttpRequest {
     }
 
     #[allow(unsafe_blocks)]
-    fn fetch(fetch_type: &SyncOrAsync, resource_task: ResourceTask,
-             mut load_data: LoadData, terminate_receiver: Receiver<TerminateReason>,
-             cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId,
-             start_port: Receiver<LoadResponse>) -> ErrorResult {
+    fn fetch(fetch_type: &SyncOrAsync, mut pending: PendingAsyncLoad,
+             terminate_receiver: Receiver<TerminateReason>,
+             cors_request: Result<Option<CORSRequest>,()>, gen_id: GenerationId)
+             -> ErrorResult {
 
         fn notify_partial_progress(fetch_type: &SyncOrAsync, msg: XHRProgress) {
             match *fetch_type {
                 SyncOrAsync::Sync(xhr) => {
                     xhr.process_partial_response(msg);
                 },
-                SyncOrAsync::Async(ref addr, ref script_chan) => {
+                SyncOrAsync::Async(ref addr, ref script_chan, _) => {
                     script_chan.send(ScriptMsg::RunnableMsg(box XHRProgressHandler::new(addr.clone(), msg)));
                 }
             }
         }
+
+        enum AutoFinishLoad<'a> {
+            AsyncFinish(LoadType, Option<PipelineId>, Box<ScriptChan+Send>),
+            SyncFinish(JSRef<'a, XMLHttpRequest>, Url)
+        }
+        #[unsafe_destructor]
+        impl<'a> Drop for AutoFinishLoad<'a> {
+            fn drop(&mut self) {
+                match *self {
+                    AutoFinishLoad::SyncFinish(ref xhr, ref url) => {
+                        let reflector = xhr.reflector().get_jsobject();
+                        global_object_for_js_object(reflector)
+                            .root()
+                            .r()
+                            .finish_load(LoadType::XHR(url.clone()));
+                    }
+                    AutoFinishLoad::AsyncFinish(ref load, ref pipeline, ref chan) => {
+                        chan.send(ScriptMsg::PageResourceLoaded(pipeline.clone(), load.clone()));
+                    }
+                }
+            }
+        }
+        let _auto_finish = match fetch_type {
+            &SyncOrAsync::Sync(xhr) => AutoFinishLoad::SyncFinish(xhr, pending.url().clone()),
+            &SyncOrAsync::Async(_, ref script_chan, ref pipeline) =>
+                AutoFinishLoad::AsyncFinish(LoadType::XHR(pending.url().clone()),
+                                            pipeline.clone(), (*script_chan).clone())
+        };
 
         macro_rules! notify_error_and_return(
             ($err:expr) => ({
@@ -243,7 +272,6 @@ impl XMLHttpRequest {
                 }
             );
         )
-
 
         match cors_request {
             Err(_) => {
@@ -266,7 +294,7 @@ impl XMLHttpRequest {
                         if response.network_error {
                             notify_error_and_return!(Network);
                         } else {
-                            load_data.cors = Some(ResourceCORSData {
+                            pending.load_data.cors = Some(ResourceCORSData {
                                 preflight: req.preflight_flag,
                                 origin: req.origin.clone()
                             });
@@ -279,8 +307,7 @@ impl XMLHttpRequest {
         }
 
         // Step 10, 13
-        resource_task.send(Load(load_data));
-
+        let start_port = pending.load();
 
         let progress_port;
         select! (
@@ -539,10 +566,6 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         }
 
         let global = self.global.root();
-        let resource_task = global.r().resource_task();
-        let (start_chan, start_port) = channel();
-        let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap(), start_chan);
-        load_data.data = extracted;
 
         // Default headers
         {
@@ -577,20 +600,27 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             }
         } // drops the borrow_mut
 
-        load_data.headers = (*self.request_headers.borrow()).clone();
-        load_data.method = (*self.request_method.borrow()).clone();
+        let url = self.request_url.borrow().as_ref().unwrap().clone();
+        let mut pending = global.r().prep_async_load(LoadType::XHR(url));
+        pending.load_data.data = extracted;
+        pending.load_data.headers = (*self.request_headers.borrow()).clone();
+        pending.load_data.method = (*self.request_method.borrow()).clone();
+
         let (terminate_sender, terminate_receiver) = channel();
         *self.terminate_sender.borrow_mut() = Some(terminate_sender);
 
         // CORS stuff
-        let referer_url = self.global.root().r().get_url();
+        let referer_url = global.r().get_url();
         let mode = if self.upload_events.get() {
             RequestMode::ForcedPreflight
         } else {
             RequestMode::CORS
         };
-        let cors_request = CORSRequest::maybe_new(referer_url.clone(), load_data.url.clone(), mode,
-                                                  load_data.method.clone(), load_data.headers.clone());
+        let cors_request = CORSRequest::maybe_new(referer_url.clone(),
+                                                  pending.load_data.url.clone(),
+                                                  mode,
+                                                  pending.load_data.method.clone(),
+                                                  pending.load_data.headers.clone());
         match cors_request {
             Ok(None) => {
                 let mut buf = String::new();
@@ -613,24 +643,22 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
         let gen_id = self.generation_id.get();
         if self.sync.get() {
-            return XMLHttpRequest::fetch(&mut SyncOrAsync::Sync(self), resource_task, load_data,
-                                         terminate_receiver, cors_request, gen_id, start_port);
+            return XMLHttpRequest::fetch(&mut SyncOrAsync::Sync(self), pending,
+                                         terminate_receiver, cors_request, gen_id);
         } else {
             self.fetch_time.set(time::now().to_timespec().sec);
             let script_chan = global.r().script_chan();
             // Pin the object before launching the fetch task. This is to ensure that
             // the object will stay alive as long as there are (possibly cancelled)
             // inflight events queued up in the script task's port.
-            let addr = Trusted::new(self.global.root().r().get_cx(), self,
-                                    script_chan.clone());
+            let addr = Trusted::new(global.r().get_cx(), self, script_chan.clone());
+            let pipeline = global.r().pipeline();
             spawn_named("XHRTask", proc() {
-                let _ = XMLHttpRequest::fetch(&mut SyncOrAsync::Async(addr, script_chan),
-                                              resource_task,
-                                              load_data,
+                let _ = XMLHttpRequest::fetch(&mut SyncOrAsync::Async(addr, script_chan, pipeline),
+                                              pending,
                                               terminate_receiver,
                                               cors_request,
-                                              gen_id,
-                                              start_port);
+                                              gen_id);
             });
             let timeout = self.timeout.get();
             if timeout > 0 {

@@ -214,6 +214,9 @@ impl<'a> PrivateDedicatedWorkerGlobalScopeHelpers for JSRef<'a, DedicatedWorkerG
                 let scope: JSRef<WorkerGlobalScope> = WorkerGlobalScopeCast::from_ref(self);
                 scope.handle_fire_timer(timer_id);
             }
+            ScriptMsg::PageResourceLoaded(..) => {
+                // workers don't track loads right now
+            }
             _ => panic!("Unexpected message"),
         }
     }

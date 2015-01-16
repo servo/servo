@@ -7,14 +7,18 @@
 //! This module contains smart pointers to global scopes, to simplify writing
 //! code that works in workers as well as window scopes.
 
+use document_loader::LoadType;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
+use dom::document::DocumentHelpers;
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window;
 use script_task::ScriptChan;
 
-use servo_net::resource_task::ResourceTask;
+use servo_msg::constellation_msg::PipelineId;
+use servo_net::resource_task::{ResourceTask, PendingAsyncLoad};
 
 use js::{JSCLASS_IS_GLOBAL, JSCLASS_IS_DOMJSCLASS};
 use js::glue::{GetGlobalForObjectCrossCompartment};
@@ -68,8 +72,33 @@ impl<'a> GlobalRef<'a> {
 
     pub fn resource_task(&self) -> ResourceTask {
         match *self {
-            GlobalRef::Window(ref window) => window.page().resource_task.clone(),
+            GlobalRef::Window(ref window) => {
+                let doc = window.Document().root();
+                doc.r().loader().resource_task.clone()
+            }
             GlobalRef::Worker(ref worker) => worker.resource_task().clone(),
+        }
+    }
+
+    pub fn prep_async_load(&self, load: LoadType) -> PendingAsyncLoad {
+        match *self {
+            GlobalRef::Window(ref window) => {
+                let doc = window.Document().root();
+                doc.prep_async_load(load)
+            }
+            GlobalRef::Worker(ref worker) => {
+                worker.prep_async_load(load.url().clone())
+            }
+        }
+    }
+
+    pub fn finish_load(&self, load: LoadType) {
+        match *self {
+            GlobalRef::Window(ref window) => {
+                let doc = window.Document().root();
+                doc.finish_load(load)
+            }
+            GlobalRef::Worker(_) => {}
         }
     }
 
@@ -86,6 +115,13 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(ref window) => window.script_chan(),
             GlobalRef::Worker(ref worker) => worker.script_chan(),
+        }
+    }
+
+    pub fn pipeline(&self) -> Option<PipelineId> {
+        match *self {
+            GlobalRef::Window(ref window) => Some(window.page().id),
+            GlobalRef::Worker(_) => None,
         }
     }
 }

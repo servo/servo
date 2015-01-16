@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use document_loader::LoadType;
 use dom::attr::{Attr, AttrValue};
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
@@ -9,13 +10,13 @@ use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMet
 use dom::bindings::codegen::InheritTypes::HTMLLinkElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary, OptionalRootable};
-use dom::document::Document;
+use dom::document::{Document, DocumentHelpers};
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeHandlers, Element};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
+use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -131,8 +132,10 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
         let window = window.r();
         match UrlParser::new().base_url(&window.page().get_url()).parse(href) {
             Ok(url) => {
+                let doc = document_from_node(self).root();
+                let pending = doc.prep_async_load(LoadType::Stylesheet(url.clone()));
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;
-                layout_chan.send(Msg::LoadStylesheet(url));
+                layout_chan.send(Msg::LoadStylesheet(url, pending));
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }

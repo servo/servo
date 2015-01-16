@@ -38,6 +38,17 @@ extern crate encoding;
 extern crate libc;
 extern crate url;
 
+#[allow(non_snake_case)]
+mod ICE_workaround {
+    use super::script::layout_interface::Msg;
+
+    #[allow(dead_code)]
+    fn ice_workaround() {
+        let (tx, _rx) = channel();
+        tx.send(Msg::SetQuirksMode);
+    }
+}
+
 // Listed first because of macro definitions
 pub mod layout_debug;
 

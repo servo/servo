@@ -19,7 +19,7 @@ use dom::window::{base64_atob, base64_btoa};
 use script_task::{ScriptChan, TimerSource};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use servo_net::resource_task::{ResourceTask, load_whole_resource};
+use servo_net::resource_task::{ResourceTask, load_whole_resource, PendingAsyncLoad};
 use servo_util::str::DOMString;
 
 use js::jsapi::JSContext;
@@ -75,7 +75,11 @@ impl WorkerGlobalScope {
     }
 
     pub fn resource_task<'a>(&'a self) -> &'a ResourceTask {
-        &   self.resource_task
+        &self.resource_task
+    }
+
+    pub fn prep_async_load(&self, url: Url) -> PendingAsyncLoad {
+        PendingAsyncLoad::new(self.resource_task.clone(), url)
     }
 
     pub fn get_url<'a>(&'a self) -> &'a Url {

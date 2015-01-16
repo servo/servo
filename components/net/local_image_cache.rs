@@ -64,7 +64,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
             state.prefetched = true;
         }
 
-        self.image_cache_task.send(Msg::Prefetch((*url).clone()));
+        self.image_cache_task.send(Msg::Prefetch((*url).clone(), None));
     }
 
     pub fn decode(&mut self, url: &Url) {

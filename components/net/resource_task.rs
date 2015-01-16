@@ -106,6 +106,39 @@ impl Metadata {
     }
 }
 
+/// Initialized but unsent request. Encapsulates everything necessary to instruct
+/// the resource task to make a new request.
+pub struct PendingAsyncLoad {
+    resource_task: ResourceTask,
+    pub load_data: LoadData,
+    input_port: Receiver<LoadResponse>,
+}
+
+impl PendingAsyncLoad {
+    pub fn new(resource_task: ResourceTask, url: Url) -> PendingAsyncLoad {
+        let (tx, rx) = channel();
+        PendingAsyncLoad {
+            resource_task: resource_task,
+            load_data: LoadData::new(url, tx),
+            input_port: rx,
+        }
+    }
+
+    pub fn load(self) -> Receiver<LoadResponse> {
+        self.load_with(|_| {})
+    }
+
+    pub fn load_with(mut self, cb: |load_data: &mut LoadData|) -> Receiver<LoadResponse> {
+        cb(&mut self.load_data);
+        self.resource_task.send(ControlMsg::Load(self.load_data));
+        self.input_port
+    }
+
+    pub fn url(&self) -> &Url {
+        &self.load_data.url
+    }
+}
+
 /// Message sent in response to `Load`.  Contains metadata, and a port
 /// for receiving the data.
 ///
@@ -247,10 +280,8 @@ impl ResourceManager {
 }
 
 /// Load a URL asynchronously and iterate over chunks of bytes from the response.
-pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, ProgressMsgPortIterator) {
-    let (input_chan, input_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, input_chan)));
-
+pub fn load_bytes_iter(pending: PendingAsyncLoad) -> (Metadata, ProgressMsgPortIterator) {
+    let input_port = pending.load();
     let response = input_port.recv();
     let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
     (response.metadata, iter)
