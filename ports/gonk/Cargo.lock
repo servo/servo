@@ -231,7 +231,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#ae31880a538245e0a5e23c04b17a1efbf1a81136"
+source = "git+https://github.com/servo/rust-geom#a4a4a03aa024412bf3f4e093c0198b433c6ad63f"
 
 [[package]]
 name = "gfx"
