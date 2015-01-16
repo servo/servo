@@ -288,7 +288,7 @@ dependencies = [
 [[package]]
 name = "glx"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-glx#063abe034273358a8de94d6c9163ff6357d240c6"
+source = "git+https://github.com/servo/rust-glx#f056a8998987f6f081f9ad7fa396beb1b2988c02"
 dependencies = [
  "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs.git)",
  "gl_generator 0.0.12 (git+https://github.com/bjz/gl-rs.git)",
