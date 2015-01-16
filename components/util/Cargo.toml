@@ -7,6 +7,14 @@ authors = ["The Servo Project Developers"]
 name = "util"
 path = "lib.rs"
 
+# Disable doctests, because of linking issues with rustdoc. rustdoc compiles
+# documentation tests with prefer-dynamic. This causes issues because rustc
+# looks for -lazure, which does not exist (rust-azure is a dependency of
+# rust-layers). This crate only has one documentation example anyway and it's
+# imported from the rust-lang codebase.
+# See https://github.com/rust-lang/rust/issues/21246
+doctest = false
+
 [dependencies.plugins]
 path = "../plugins"
 
