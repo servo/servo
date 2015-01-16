@@ -278,16 +278,18 @@ dependencies = [
 [[package]]
 name = "gleam"
 version = "0.0.1"
-source = "git+https://github.com/servo/gleam#c54eb9ad6d4b62b7effbe9c79a1b3720845b45b4"
+source = "git+https://github.com/servo/gleam#8a23e963c5b8e1a727a80fb009d71e2f9efb6a89"
 dependencies = [
+ "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs.git)",
  "gl_generator 0.0.12 (git+https://github.com/bjz/gl-rs.git)",
 ]
 
 [[package]]
 name = "glx"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-glx#7126ffa09fcfcc9f85f1406f3b5db729f5fdb7c3"
+source = "git+https://github.com/servo/rust-glx#063abe034273358a8de94d6c9163ff6357d240c6"
 dependencies = [
+ "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs.git)",
  "gl_generator 0.0.12 (git+https://github.com/bjz/gl-rs.git)",
 ]
 
