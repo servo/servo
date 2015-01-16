@@ -91,12 +91,13 @@ dependencies = [
 
 [[package]]
 name = "cookie"
-version = "0.1.0"
-source = "git+https://github.com/alexcrichton/cookie-rs#8d1b4bb8d5ed06e58c162eb235a4ccd210b68108"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "openssl 0.2.4 (git+https://github.com/sfackler/rust-openssl)",
- "time 0.1.12 (git+https://github.com/rust-lang/time)",
- "url 0.2.16 (git+https://github.com/servo/rust-url)",
+ "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -395,16 +396,19 @@ source = "git+https://github.com/servo/html5ever#d35dfaaf0d85007057a299afc370d07
 
 [[package]]
 name = "hyper"
-version = "0.0.1"
-source = "git+https://github.com/servo/hyper?branch=servo#43becc919c24939b8b84fe541b0e0898a4827836"
+version = "0.1.0"
+source = "git+https://github.com/servo/hyper?branch=servo#248a6f29086baa841eb30c88540dca3196accae4"
 dependencies = [
- "cookie 0.1.0 (git+https://github.com/alexcrichton/cookie-rs)",
- "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
- "mucell 0.1.2 (git+https://github.com/chris-morgan/mucell)",
- "openssl 0.2.4 (git+https://github.com/sfackler/rust-openssl)",
- "time 0.1.12 (git+https://github.com/rust-lang/time)",
- "unsafe-any 0.1.1 (git+https://github.com/reem/rust-unsafe-any)",
- "url 0.2.16 (git+https://github.com/servo/rust-url)",
+ "cookie 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mime 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mucell 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicase 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unsafe-any 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -505,8 +509,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "mime"
-version = "0.0.1"
-source = "git+https://github.com/hyperium/mime.rs#7898f1c29c7f5d35d0c3c7aed37ebcfc95a40873"
+version = "0.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "mozjs-sys"
@@ -520,7 +527,7 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "hyper 0.0.1 (git+https://github.com/servo/hyper?branch=servo)",
+ "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "style 0.0.1",
@@ -530,15 +537,15 @@ dependencies = [
 
 [[package]]
 name = "mucell"
-version = "0.1.2"
-source = "git+https://github.com/chris-morgan/mucell#d198c6605b3e688719db168db0939051c803b1ea"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "net"
 version = "0.0.1"
 dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "hyper 0.0.1 (git+https://github.com/servo/hyper?branch=servo)",
+ "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "time 0.1.12 (git+https://github.com/rust-lang/time)",
@@ -548,16 +555,16 @@ dependencies = [
 
 [[package]]
 name = "openssl"
-version = "0.2.4"
-source = "git+https://github.com/sfackler/rust-openssl#f299e336d06a85438c3ee90aa06235510f3f5dbe"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "openssl-sys 0.2.4 (git+https://github.com/sfackler/rust-openssl)",
+ "openssl-sys 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "openssl-sys"
-version = "0.2.4"
-source = "git+https://github.com/sfackler/rust-openssl#f299e336d06a85438c3ee90aa06235510f3f5dbe"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libressl-pnacl-sys 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -633,7 +640,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "html5ever 0.0.0 (git+https://github.com/servo/html5ever)",
- "hyper 0.0.1 (git+https://github.com/servo/hyper?branch=servo)",
+ "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "msg 0.0.1",
  "net 0.0.1",
@@ -741,14 +748,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "unicase"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "unsafe-any"
-version = "0.1.1"
-source = "git+https://github.com/reem/rust-unsafe-any#eb3fe87bea85f375b8fcefa0cdecfd131fae9624"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "url"
 version = "0.2.16"
 source = "git+https://github.com/servo/rust-url#1168a4de5de96d8ac57d096fd5de1f93f2b6c80c"
+dependencies = [
+ "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "url"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
