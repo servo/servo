@@ -25,7 +25,7 @@ macro_rules! define_css_keyword_enum {
             pub fn parse(component_value: &::cssparser::ast::ComponentValue) -> Result<$name, ()> {
                 match component_value {
                     &::cssparser::ast::ComponentValue::Ident(ref value) => {
-                        match_ignore_ascii_case! { value:
+                        match_ignore_ascii_case! { value=>
                             $( $css => Ok($name::$variant) ),+
                             _ => Err(())
                         }

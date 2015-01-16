@@ -19,7 +19,7 @@ macro_rules! define_cursor {
 
         impl Cursor {
             pub fn from_css_keyword(keyword: &str) -> Result<Cursor, ()> {
-                match_ignore_ascii_case! { keyword:
+                match_ignore_ascii_case! { keyword=>
                     $( concat!($css) => Ok(Cursor::$variant) ),+
                     _ => Err(())
                 }
