@@ -17,7 +17,7 @@ bitflags!(
         const FLAG_VERTICAL_LR = 1 << 2,
         const FLAG_SIDEWAYS_LEFT = 1 << 3
     }
-)
+);
 
 impl WritingMode {
     #[inline]
@@ -950,7 +950,7 @@ impl<T: Add<T, T> + Sub<T, T>> Sub<LogicalMargin<T>, LogicalRect<T>> for Logical
 }
 
 #[cfg(test)]
-fn modes() -> [WritingMode, ..10] {
+fn modes() -> [WritingMode; 10] {
     [
         WritingMode::empty(),
         FLAG_VERTICAL,

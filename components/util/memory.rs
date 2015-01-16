@@ -163,7 +163,7 @@ fn get_jemalloc_stat(name: &'static str) -> Option<u64> {
 // Like std::macros::try!, but for Option<>.
 macro_rules! option_try(
     ($e:expr) => (match $e { Some(e) => e, None => return None })
-)
+);
 
 #[cfg(target_os="linux")]
 fn get_proc_self_statm_field(field: uint) -> Option<u64> {
