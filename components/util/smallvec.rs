@@ -458,13 +458,13 @@ macro_rules! def_small_vector(
     )
 )
 
-def_small_vector!(SmallVec1, 1)
-def_small_vector!(SmallVec2, 2)
-def_small_vector!(SmallVec4, 4)
-def_small_vector!(SmallVec8, 8)
-def_small_vector!(SmallVec16, 16)
-def_small_vector!(SmallVec24, 24)
-def_small_vector!(SmallVec32, 32)
+def_small_vector!(SmallVec1, 1);
+def_small_vector!(SmallVec2, 2);
+def_small_vector!(SmallVec4, 4);
+def_small_vector!(SmallVec8, 8);
+def_small_vector!(SmallVec16, 16);
+def_small_vector!(SmallVec24, 24);
+def_small_vector!(SmallVec32, 32);
 
 macro_rules! def_small_vector_drop_impl(
     ($name:ident, $size:expr) => (
@@ -488,15 +488,15 @@ macro_rules! def_small_vector_drop_impl(
             }
         }
     )
-)
+);
 
-def_small_vector_drop_impl!(SmallVec1, 1)
-def_small_vector_drop_impl!(SmallVec2, 2)
-def_small_vector_drop_impl!(SmallVec4, 4)
-def_small_vector_drop_impl!(SmallVec8, 8)
-def_small_vector_drop_impl!(SmallVec16, 16)
-def_small_vector_drop_impl!(SmallVec24, 24)
-def_small_vector_drop_impl!(SmallVec32, 32)
+def_small_vector_drop_impl!(SmallVec1, 1);
+def_small_vector_drop_impl!(SmallVec2, 2);
+def_small_vector_drop_impl!(SmallVec4, 4);
+def_small_vector_drop_impl!(SmallVec8, 8);
+def_small_vector_drop_impl!(SmallVec16, 16);
+def_small_vector_drop_impl!(SmallVec24, 24);
+def_small_vector_drop_impl!(SmallVec32, 32);
 
 macro_rules! def_small_vector_clone_impl(
     ($name:ident) => (
@@ -510,15 +510,15 @@ macro_rules! def_small_vector_clone_impl(
             }
         }
     )
-)
+);
 
-def_small_vector_clone_impl!(SmallVec1)
-def_small_vector_clone_impl!(SmallVec2)
-def_small_vector_clone_impl!(SmallVec4)
-def_small_vector_clone_impl!(SmallVec8)
-def_small_vector_clone_impl!(SmallVec16)
-def_small_vector_clone_impl!(SmallVec24)
-def_small_vector_clone_impl!(SmallVec32)
+def_small_vector_clone_impl!(SmallVec1);
+def_small_vector_clone_impl!(SmallVec2);
+def_small_vector_clone_impl!(SmallVec4);
+def_small_vector_clone_impl!(SmallVec8);
+def_small_vector_clone_impl!(SmallVec16);
+def_small_vector_clone_impl!(SmallVec24);
+def_small_vector_clone_impl!(SmallVec32);
 
 #[cfg(test)]
 pub mod tests {

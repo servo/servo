@@ -435,7 +435,7 @@ mod tests {
         static AMT: int = 100000;
         let pool = BufferPool::<int>::new();
         let (w, s) = pool.deque();
-        let t = Thread::start(proc() {
+        let t = Thread::start(move || {
             let mut left = AMT;
             while left > 0 {
                 match s.steal() {
@@ -460,7 +460,7 @@ mod tests {
         static AMT: int = 100000;
         let pool = BufferPool::<(int, int)>::new();
         let (w, s) = pool.deque();
-        let t = Thread::start(proc() {
+        let t = Thread::start(move || {
             let mut left = AMT;
             while left > 0 {
                 match s.steal() {
@@ -488,7 +488,7 @@ mod tests {
 
         let threads = range(0, nthreads).map(|_| {
             let s = s.clone();
-            Thread::start(proc() {
+            Thread::start(move || {
                 unsafe {
                     while (*unsafe_remaining).load(SeqCst) > 0 {
                         match s.steal() {
@@ -529,7 +529,7 @@ mod tests {
         let pool = BufferPool::<Box<int>>::new();
         let threads = range(0, AMT).map(|_| {
             let (w, s) = pool.deque();
-            Thread::start(proc() {
+            Thread::start(move || {
                 stampede(w, s, 4, 10000);
             })
         }).collect::<Vec<Thread<()>>>();
@@ -550,7 +550,7 @@ mod tests {
 
         let threads = range(0, NTHREADS).map(|_| {
             let s = s.clone();
-            Thread::start(proc() {
+            Thread::start(move || {
                 loop {
                     match s.steal() {
                         Data(2) => { HITS.fetch_add(1, SeqCst); }
@@ -609,7 +609,7 @@ mod tests {
                 *mem::transmute::<&Box<AtomicUint>,
                                   *const *mut AtomicUint>(&unique_box)
             };
-            (Thread::start(proc() {
+            (Thread::start(move || {
                 unsafe {
                     loop {
                         match s.steal() {

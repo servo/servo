@@ -15,7 +15,7 @@ use std::cell::Cell;
 pub trait Cache<K: PartialEq, V: Clone> {
     fn insert(&mut self, key: K, value: V);
     fn find(&mut self, key: &K) -> Option<V>;
-    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V;
+    fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V;
     fn evict_all(&mut self);
 }
 
@@ -43,7 +43,7 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
+    fn find_or_create(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
         match self.entries.entry(key.clone()) {
             Occupied(occupied) => {
                 (*occupied.get()).clone()
@@ -61,7 +61,7 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
 }
 
 impl<K,V> HashCache<K,V> where K: Clone + PartialEq + Eq + Hash, V: Clone {
-    pub fn find_equiv<'a,Sized? Q>(&'a self, key: &Q) -> Option<&'a V> where Q: Hash + Equiv<K> {
+    pub fn find_equiv<'a, Q>(&'a self, key: &Q) -> Option<&'a V> where Q: Hash + Equiv<K> {
         self.entries.find_equiv(key)
     }
 }
@@ -122,7 +122,7 @@ impl<K: Clone + PartialEq, V: Clone> Cache<K,V> for LRUCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
+    fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
         match self.entries.iter().position(|&(ref k, _)| *k == *key) {
             Some(pos) => self.touch(pos),
             None => {
@@ -188,7 +188,7 @@ impl<K:Clone+PartialEq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: |&K| -> V) -> V {
+    fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
         match self.find(key) {
             Some(value) => return value,
             None => {}

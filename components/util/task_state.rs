@@ -35,7 +35,7 @@ macro_rules! task_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
     #[cfg(not(ndebug))]
     static TYPES: &'static [TaskState]
         = &[ $( $flag ),* ];
-))
+));
 
 task_types! {
     is_script = SCRIPT;
@@ -48,7 +48,7 @@ mod imp {
     use super::{TaskState, TYPES};
     use std::cell::RefCell;
 
-    thread_local!(static STATE: RefCell<Option<TaskState>> = RefCell::new(None))
+    thread_local!(static STATE: RefCell<Option<TaskState>> = RefCell::new(None));
 
     pub fn initialize(x: TaskState) {
         STATE.with(|ref k| {
