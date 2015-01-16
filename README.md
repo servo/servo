@@ -49,7 +49,7 @@ popd
 On Arch Linux:
 
 ``` sh
-sudo pacman -S base-devel git python2 python2-virtualenv mesa ttf-font cmake bzip2
+sudo pacman -S --needed base-devel git python2 python2-virtualenv mesa ttf-font cmake bzip2
 ```
 
 Cross-compilation for Android:
