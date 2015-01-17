@@ -1120,6 +1120,23 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             }
         }
     }
+
+    // https://dom.spec.whatwg.org/#dom-element-closest
+    fn Closest(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+        let parser_context = ParserContext {
+            origin: StylesheetOrigin::Author,
+        };
+        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
+            Err(()) => Err(Syntax),
+            Ok(ref selectors) => {
+                let root: JSRef<Node> = NodeCast::from_ref(self);
+                Ok(root.inclusive_ancestors()
+                       .filter_map(ElementCast::to_ref)
+                       .find(|element| matches(selectors, &NodeCast::from_ref(*element), &mut None))
+                       .map(Temporary::from_rooted))
+            }
+        }
+    }
 }
 
 pub fn get_attribute_parts<'a>(name: &'a str) -> (Option<&'a str>, &'a str) {

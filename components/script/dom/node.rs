@@ -397,6 +397,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for QuerySelectorIterator<'a> {
 
 pub trait NodeHelpers<'a> {
     fn ancestors(self) -> AncestorIterator<'a>;
+    fn inclusive_ancestors(self) -> AncestorIterator<'a>;
     fn children(self) -> NodeChildrenIterator<'a>;
     fn rev_children(self) -> ReverseChildrenIterator;
     fn child_elements(self) -> ChildElementIterator<'a>;
@@ -795,6 +796,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     fn ancestors(self) -> AncestorIterator<'a> {
         AncestorIterator {
             current: self.parent_node.get().map(|node| (*node.root()).clone()),
+        }
+    }
+
+    fn inclusive_ancestors(self) -> AncestorIterator<'a> {
+        AncestorIterator {
+            current: Some(self.clone())
         }
     }
 
