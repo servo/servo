@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(unsafe_destructor)]
+#![feature(plugin)]
 #![feature(int_uint)]
 
 #![deny(unused_imports)]
@@ -20,7 +21,7 @@ extern crate layers;
 extern crate libc;
 #[macro_use] extern crate plugins;
 extern crate rand;
-extern crate serialize;
+extern crate "serialize" as rustc_serialize;
 #[cfg(target_os="macos")]
 extern crate task_info;
 extern crate "time" as std_time;
@@ -29,6 +30,7 @@ extern crate string_cache;
 extern crate unicode;
 extern crate url;
 
+#[plugin]
 extern crate string_cache_macros;
 extern crate lazy_static;
 

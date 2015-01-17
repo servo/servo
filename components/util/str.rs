@@ -130,7 +130,7 @@ pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     })
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum LengthOrPercentageOrAuto {
     Auto,
     Percentage(f64),
@@ -319,7 +319,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
 }
 
 
-#[deriving(Clone, Eq, PartialEq, Hash, Show)]
+#[derive(Clone, Eq, PartialEq, Hash, Show)]
 pub struct LowercaseString {
     inner: String,
 }

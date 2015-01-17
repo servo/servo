@@ -19,14 +19,14 @@ use std::os;
 use std::ptr;
 use std::rt;
 
-#[deriving(Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum RenderApi {
     OpenGL,
     Mesa,
 }
 
 /// Global flags for Servo, currently set on the command line.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Opts {
     /// The initial URLs to load.
     pub urls: Vec<String>,

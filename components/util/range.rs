@@ -29,7 +29,7 @@ impl RangeIndex for int {
 #[macro_export]
 macro_rules! int_range_index {
     ($(#[$attr:meta])* struct $Self:ident($T:ty)) => (
-        #[deriving(Clone, PartialEq, PartialOrd, Eq, Ord, Show, Copy)]
+        #[derive(Clone, PartialEq, PartialOrd, Eq, Ord, Show, Copy)]
         $(#[$attr])*
         pub struct $Self(pub $T);
 
@@ -188,7 +188,7 @@ macro_rules! int_range_index {
 }
 
 /// A range of indices
-#[deriving(Clone, Encodable, Copy)]
+#[derive(Clone, RustcEncodable, Copy)]
 pub struct Range<I> {
     begin: I,
     length: I,
