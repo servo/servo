@@ -2,10 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![old_impl_check]
+
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use rand::Rng;
-use std::hash::{Hash, sip};
+use std::hash::{Hash, Hasher, SipHasher};
 use std::iter::repeat;
 use std::rand;
 use std::slice::Iter;
@@ -24,7 +26,11 @@ pub struct HashCache<K, V> {
     entries: HashMap<K, V>,
 }
 
-impl<K: Clone + PartialEq + Eq + Hash, V: Clone> HashCache<K,V> {
+impl<H, K, V> HashCache<K,V>
+    where H: Hasher<Output=u64>,
+          K: Clone + PartialEq + Eq + Hash<H>,
+          V: Clone
+{
     pub fn new() -> HashCache<K, V> {
         HashCache {
           entries: HashMap::new(),
@@ -32,7 +38,11 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> HashCache<K,V> {
     }
 }
 
-impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
+impl<H, K, V> Cache<K,V> for HashCache<K,V>
+    where H: Hasher,
+          K: Clone + PartialEq + Eq + Hash<H>,
+          V: Clone
+{
     fn insert(&mut self, key: K, value: V) {
         self.entries.insert(key, value);
     }
@@ -61,11 +71,11 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
 
 }
 
-impl<K,V> HashCache<K,V> where K: Clone + PartialEq + Eq + Hash, V: Clone {
+/*impl<K,V> HashCache<K,V> where K: Clone + PartialEq + Eq + Hash, V: Clone {
     pub fn find_equiv<'a, Q>(&'a self, key: &Q) -> Option<&'a V> where Q: Hash + Equiv<K> {
         self.entries.find_equiv(key)
     }
-}
+}*/
 
 #[test]
 fn test_hashcache() {
@@ -162,9 +172,11 @@ impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
 
     #[inline]
     fn bucket_for_key<Q:Hash>(&self, key: &Q) -> uint {
-        self.to_bucket(sip::hash_with_keys(self.k0, self.k1, key) as uint)
+        let mut hasher = SipHasher::new_with_keys(self.k0, self.k1);
+        key.hash(&mut hasher);
+        self.to_bucket(hasher.finish() as uint)
     }
-
+/*
     #[inline]
     pub fn find_equiv<'a,Q:Hash+Equiv<K>>(&'a self, key: &Q) -> Option<&'a V> {
         let bucket_index = self.bucket_for_key(key);
@@ -172,7 +184,7 @@ impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
             Some((ref existing_key, ref value)) if key.equiv(existing_key) => Some(value),
             _ => None,
         }
-    }
+    }*/
 }
 
 impl<K:Clone+PartialEq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
