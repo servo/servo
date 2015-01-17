@@ -4,7 +4,7 @@
 
 //! Timing functions.
 
-use collections::TreeMap;
+use collections::BTreeMap;
 use std::sync::mpsc::{Sender, channel, Receiver};
 use std::f64;
 use std::io::timer::sleep;
@@ -127,7 +127,7 @@ impl Formatable for TimeProfilerCategory {
     }
 }
 
-type TimeProfilerBuckets = TreeMap<(TimeProfilerCategory, Option<TimerMetadata>), Vec<f64>>;
+type TimeProfilerBuckets = BTreeMap<(TimeProfilerCategory, Option<TimerMetadata>), Vec<f64>>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct TimeProfiler {
