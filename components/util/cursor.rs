@@ -8,7 +8,6 @@ use cssparser::ToCss;
 use std::ascii::AsciiExt;
 use text_writer::TextWriter;
 
-
 macro_rules! define_cursor {
     ($( $css: expr => $variant: ident = $value: expr, )+) => {
         #[deriving(Clone, Copy, PartialEq, Eq, FromPrimitive, Show)]

@@ -8,7 +8,7 @@
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
 
-extern crate log;
+#[macro_use] extern crate log;
 
 extern crate alloc;
 extern crate collections;
@@ -17,8 +17,8 @@ extern crate geom;
 extern crate getopts;
 extern crate layers;
 extern crate libc;
+#[macro_use] extern crate plugins;
 extern crate rand;
-extern crate rustrt;
 extern crate serialize;
 #[cfg(target_os="macos")]
 extern crate task_info;
@@ -28,7 +28,6 @@ extern crate string_cache;
 extern crate unicode;
 extern crate url;
 
-extern crate plugins;
 extern crate string_cache_macros;
 extern crate lazy_static;
 
