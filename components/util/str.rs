@@ -4,7 +4,7 @@
 
 use geometry::Au;
 
-use cssparser::{mod, RGBA, Color};
+use cssparser::{self, RGBA, Color};
 use std::ascii::AsciiExt;
 use std::iter::Filter;
 use std::num::Int;

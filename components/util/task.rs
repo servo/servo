@@ -5,12 +5,13 @@
 use std::task;
 use std::comm::Sender;
 use std::task::TaskBuilder;
+use std::thunk::Thunk;
 // use rtinstrument;
 use task_state;
 
-pub fn spawn_named<S: IntoCow<'static, String, str>>(name: S, f: proc():Send) {
+pub fn spawn_named<S: IntoCow<'static, String, str>>(name: S, f: Thunk) {
     let builder = task::TaskBuilder::new().named(name);
-    builder.spawn(proc() {
+    builder.spawn(move || {
         // rtinstrument::instrument(f);
         f();
     });
@@ -19,10 +20,10 @@ pub fn spawn_named<S: IntoCow<'static, String, str>>(name: S, f: proc():Send) {
 /// Arrange to send a particular message to a channel if the task fails.
 pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
                                                  state: task_state::TaskState,
-                                                 f: proc(): Send,
+                                                 f: Thunk,
                                                  msg: T,
                                                  dest: Sender<T>) {
-    let future_result = TaskBuilder::new().named(name).try_future(proc() {
+    let future_result = TaskBuilder::new().named(name).try_future(move || {
         task_state::initialize(state);
         // FIXME: Find replacement for this post-runtime removal
         // rtinstrument::instrument(f);
@@ -31,8 +32,8 @@ pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
 
     let watched_name = name.into_string();
     let watcher_name = format!("{}Watcher", watched_name);
-    TaskBuilder::new().named(watcher_name).spawn(proc() {
-        //rtinstrument::instrument(proc() {
+    TaskBuilder::new().named(watcher_name).spawn(move || {
+        //rtinstrument::instrument(move || {
             match future_result.into_inner() {
                 Ok(()) => (),
                 Err(..) => {

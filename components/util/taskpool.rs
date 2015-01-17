@@ -17,9 +17,10 @@
 
 use task::spawn_named;
 use std::sync::{Arc, Mutex};
+use std::thunk::Thunk;
 
 pub struct TaskPool {
-    tx: Sender<proc():Send>,
+    tx: Sender<Thunk>,
 }
 
 impl TaskPool {
@@ -33,12 +34,12 @@ impl TaskPool {
             let state = state.clone();
             spawn_named(
                 format!("TaskPoolWorker {}/{}", i+1, tasks),
-                proc() worker(&*state));
+                Thunk::new(move || worker(&*state)));
         }
 
         return TaskPool { tx: tx };
 
-        fn worker(rx: &Mutex<Receiver<proc():Send>>) {
+        fn worker(rx: &Mutex<Receiver<Thunk>>) {
             loop {
                 let job = rx.lock().recv_opt();
                 match job {
@@ -49,7 +50,7 @@ impl TaskPool {
         }
     }
 
-    pub fn execute(&self, job: proc():Send) {
+    pub fn execute(&self, job: F) {
         self.tx.send(job);
     }
 }

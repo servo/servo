@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(default_type_params,macro_rules,unsafe_destructor)]
+#![feature(unsafe_destructor)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
 
-#![feature(phase)]
-#[phase(plugin, link)]
 extern crate log;
 
 extern crate alloc;
@@ -30,9 +28,9 @@ extern crate string_cache;
 extern crate unicode;
 extern crate url;
 
-#[phase(plugin)] extern crate plugins;
-#[phase(plugin)] extern crate string_cache_macros;
-#[phase(plugin)] extern crate lazy_static;
+extern crate plugins;
+extern crate string_cache_macros;
+extern crate lazy_static;
 
 use std::sync::Arc;
 
