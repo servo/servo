@@ -360,7 +360,7 @@ source = "git+https://github.com/bjz/gl-rs.git#230e6c9ed611cddfcb6682dee9686471d
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#2fa355efe6a89c8e80d4aefbd2eb5440124080cb"
+source = "git+https://github.com/servo/rust-layers#6129a797d19d33857759390f8587f8e357f5249b"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
