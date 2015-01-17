@@ -11,8 +11,9 @@ use geom::num::Zero;
 use serialize::{Encodable, Encoder};
 use std::default::Default;
 use std::i32;
-use std::num::{Float, NumCast};
+use std::num::{Float, NumCast, ToPrimitive};
 use std::fmt;
+use std::ops::{Add, Sub, Neg, Mul, Div, Rem};
 
 // Units for use with geom::length and geom::scale_factor.
 

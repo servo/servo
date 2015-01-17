@@ -5,10 +5,11 @@
 //! Timing functions.
 
 use collections::BTreeMap;
-use std::sync::mpsc::{Sender, channel, Receiver};
+use std::cmp::Ordering;
 use std::f64;
 use std::io::timer::sleep;
 use std::iter::AdditiveIterator;
+use std::sync::mpsc::{Sender, channel, Receiver};
 use std::time::duration::Duration;
 use std_time::precise_time_ns;
 use task::{spawn_named};
@@ -176,7 +177,7 @@ impl TimeProfiler {
     pub fn new(port: Receiver<TimeProfilerMsg>) -> TimeProfiler {
         TimeProfiler {
             port: port,
-            buckets: TreeMap::new(),
+            buckets: BTreeMap::new(),
             last_msg: None,
         }
     }
@@ -226,9 +227,9 @@ impl TimeProfiler {
         for (&(ref category, ref meta), ref mut data) in self.buckets.iter_mut() {
             data.sort_by(|a, b| {
                 if a < b {
-                    Less
+                    Ordering::Less
                 } else {
-                    Greater
+                    Ordering::Greater
                 }
             });
             let data_len = data.len();

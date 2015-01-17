@@ -14,16 +14,17 @@ pub use std::hash::{Hash, Hasher, Writer};
 /// This uses FNV hashing, as described here:
 /// http://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
 #[deriving(Clone)]
-pub struct FnvHasher;
+pub struct FnvHasher<'a, T>(pub &'a T);
 
 pub struct FnvState(u64);
 
-impl Hasher<FnvState> for FnvHasher {
-    fn hash<T: Hash<FnvState>>(&self, t: &T) -> u64 {
+impl<'a, T: Hash<FnvState>> Hasher<FnvState> for FnvHasher<'a, T> {
+    type Output = u64;
+    fn reset(&mut self) {}
+    fn finish(&self) -> u64 {
         let mut state = FnvState(0xcbf29ce484222325);
-        t.hash(&mut state);
-        let FnvState(ret) = state;
-        return ret;
+        self.0.hash(&mut state);
+        state.0
     }
 }
 

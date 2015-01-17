@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::collections::hash_map::{OccupiedEntry, VacantEntry};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use rand::Rng;
 use std::hash::{Hash, sip};
 use std::iter::repeat;
@@ -44,7 +44,7 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
+    fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
         match self.entries.entry(key.clone()) {
             Occupied(occupied) => {
                 (*occupied.get()).clone()

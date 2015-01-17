@@ -9,6 +9,7 @@ use std::mem::zeroed as i;
 use std::cmp;
 use std::fmt;
 use std::intrinsics;
+use std::iter::FromIterator;
 use std::marker::ContravariantLifetime;
 use std::mem;
 use std::ptr;

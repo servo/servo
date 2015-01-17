@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::borrow::IntoCow;
 use std::thread;
 use std::sync::mpsc::Sender;
 use std::thread::Builder;
