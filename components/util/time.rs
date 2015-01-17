@@ -16,7 +16,7 @@ use task::{spawn_named};
 use url::Url;
 
 // front-end representation of the profiler used to communicate with the profiler
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct TimeProfilerChan(pub Sender<TimeProfilerMsg>);
 
 impl TimeProfilerChan {
@@ -26,7 +26,7 @@ impl TimeProfilerChan {
     }
 }
 
-#[deriving(PartialEq, Clone, PartialOrd, Eq, Ord)]
+#[derive(PartialEq, Clone, PartialOrd, Eq, Ord)]
 pub struct TimerMetadata {
     url:         String,
     iframe:      bool,
@@ -58,7 +58,7 @@ impl Formatable for Option<TimerMetadata> {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum TimeProfilerMsg {
     /// Normal message used for reporting time
     Time((TimeProfilerCategory, Option<TimerMetadata>), f64),
@@ -69,7 +69,7 @@ pub enum TimeProfilerMsg {
 }
 
 #[repr(u32)]
-#[deriving(PartialEq, Clone, PartialOrd, Eq, Ord)]
+#[derive(PartialEq, Clone, PartialOrd, Eq, Ord)]
 pub enum TimeProfilerCategory {
     Compositing,
     LayoutPerform,
@@ -247,13 +247,13 @@ impl TimeProfiler {
     }
 }
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub enum TimerMetadataFrameType {
     RootWindow,
     IFrame,
 }
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub enum TimerMetadataReflowType {
     Incremental,
     FirstReflow,

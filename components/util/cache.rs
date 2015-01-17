@@ -71,12 +71,6 @@ impl<H, K, V> Cache<K,V> for HashCache<K,V>
 
 }
 
-/*impl<K,V> HashCache<K,V> where K: Clone + PartialEq + Eq + Hash, V: Clone {
-    pub fn find_equiv<'a, Q>(&'a self, key: &Q) -> Option<&'a V> where Q: Hash + Equiv<K> {
-        self.entries.find_equiv(key)
-    }
-}*/
-
 #[test]
 fn test_hashcache() {
     let mut cache: HashCache<uint, Cell<&str>> = HashCache::new();
@@ -155,7 +149,7 @@ pub struct SimpleHashCache<K,V> {
     k1: u64,
 }
 
-impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
+impl<K:Clone+PartialEq+Hash<H>,H:Hasher,V:Clone> SimpleHashCache<K,V> {
     pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
         let mut r = rand::thread_rng();
         SimpleHashCache {
@@ -171,23 +165,14 @@ impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
     }
 
     #[inline]
-    fn bucket_for_key<Q:Hash>(&self, key: &Q) -> uint {
+    fn bucket_for_key<Q:Hash<H>>(&self, key: &Q) -> uint {
         let mut hasher = SipHasher::new_with_keys(self.k0, self.k1);
         key.hash(&mut hasher);
         self.to_bucket(hasher.finish() as uint)
     }
-/*
-    #[inline]
-    pub fn find_equiv<'a,Q:Hash+Equiv<K>>(&'a self, key: &Q) -> Option<&'a V> {
-        let bucket_index = self.bucket_for_key(key);
-        match self.entries[bucket_index] {
-            Some((ref existing_key, ref value)) if key.equiv(existing_key) => Some(value),
-            _ => None,
-        }
-    }*/
 }
 
-impl<K:Clone+PartialEq+Hash,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
+impl<K:Clone+PartialEq+Hash<H>,H:Hasher,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
     fn insert(&mut self, key: K, value: V) {
         let bucket_index = self.bucket_for_key(&key);
         self.entries[bucket_index] = Some((key, value));
