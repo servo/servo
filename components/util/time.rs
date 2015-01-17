@@ -4,12 +4,11 @@
 
 //! Timing functions.
 
-use collections::TreeMap;
-use std::comm::{Sender, channel, Receiver};
+use collections::BTreeMap;
+use std::sync::mpsc::{Sender, channel, Receiver};
 use std::f64;
 use std::io::timer::sleep;
 use std::iter::AdditiveIterator;
-use std::num::FloatMath;
 use std::time::duration::Duration;
 use std_time::precise_time_ns;
 use task::{spawn_named};
@@ -128,7 +127,7 @@ impl Formatable for TimeProfilerCategory {
     }
 }
 
-type TimeProfilerBuckets = TreeMap<(TimeProfilerCategory, Option<TimerMetadata>), Vec<f64>>;
+type TimeProfilerBuckets = BTreeMap<(TimeProfilerCategory, Option<TimerMetadata>), Vec<f64>>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct TimeProfiler {
@@ -144,7 +143,7 @@ impl TimeProfiler {
             Some(period) => {
                 let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
-                spawn_named("Time profiler timer", proc() {
+                spawn_named("Time profiler timer", move || {
                     loop {
                         sleep(period);
                         if chan.send_opt(TimeProfilerMsg::Print).is_err() {
@@ -153,14 +152,14 @@ impl TimeProfiler {
                     }
                 });
                 // Spawn the time profiler.
-                spawn_named("Time profiler", proc() {
+                spawn_named("Time profiler", move || {
                     let mut profiler = TimeProfiler::new(port);
                     profiler.start();
                 });
             }
             None => {
                 // No-op to handle messages when the time profiler is inactive.
-                spawn_named("Time profiler", proc() {
+                spawn_named("Time profiler", move || {
                     loop {
                         match port.recv_opt() {
                             Err(_) | Ok(TimeProfilerMsg::Exit) => break,
@@ -264,7 +263,7 @@ pub type ProfilerMetadata<'a> = Option<(&'a Url, TimerMetadataFrameType, TimerMe
 pub fn profile<T>(category: TimeProfilerCategory,
                   meta: ProfilerMetadata,
                   time_profiler_chan: TimeProfilerChan,
-                  callback: || -> T)
+                  callback: Fn() -> T)
                   -> T {
     let start_time = precise_time_ns();
     let val = callback();
@@ -280,7 +279,7 @@ pub fn profile<T>(category: TimeProfilerCategory,
     return val;
 }
 
-pub fn time<T>(msg: &str, callback: || -> T) -> T{
+pub fn time<T>(msg: &str, callback: Fn() -> T) -> T{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();

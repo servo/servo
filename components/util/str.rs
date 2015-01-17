@@ -4,12 +4,11 @@
 
 use geometry::Au;
 
-use cssparser::{mod, RGBA, Color};
+use cssparser::{self, RGBA, Color};
 use std::ascii::AsciiExt;
 use std::iter::Filter;
 use std::num::Int;
-use std::str::{CharEq, CharSplits, FromStr};
-use unicode::char::UnicodeChar;
+use std::str::{CharEq, FromStr, SplitStr};
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
@@ -65,7 +64,7 @@ pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
 ];
 
 pub fn split_html_space_chars<'a>(s: &'a str)
-                                  -> Filter<'a, &'a str, CharSplits<'a, StaticCharVec>> {
+                                  -> Filter<'a, &'a str, SplitStr<'a>> {
     s.split(HTML_SPACE_CHARACTERS).filter(|&split| !split.is_empty())
 }
 

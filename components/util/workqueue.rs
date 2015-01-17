@@ -14,7 +14,7 @@ use libc::funcs::posix88::unistd::usleep;
 use rand::{Rng, XorShiftRng};
 use std::mem;
 use std::rand::weak_rng;
-use std::sync::atomic::{AtomicUint, SeqCst};
+use std::sync::atomic::{AtomicUint, Ordering};
 use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 
 /// A unit of work.
@@ -250,7 +250,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
 
             spawn_named(
                 format!("{} worker {}/{}", task_name, i+1, thread_count),
-                proc() {
+                move || {
                     task_state::initialize(state | task_state::IN_WORKER);
                     let mut thread = thread;
                     thread.start()

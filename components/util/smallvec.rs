@@ -9,7 +9,7 @@ use std::mem::zeroed as i;
 use std::cmp;
 use std::fmt;
 use std::intrinsics;
-use std::kinds::marker::ContravariantLifetime;
+use std::marker::ContravariantLifetime;
 use std::mem;
 use std::ptr;
 use std::raw::Slice;
@@ -341,7 +341,7 @@ macro_rules! def_small_vector(
             len: uint,
             cap: uint,
             ptr: *const T,
-            data: [T, ..$size],
+            data: [T],
         }
 
         impl<T> SmallVecPrivate<T> for $name<T> {
@@ -456,7 +456,7 @@ macro_rules! def_small_vector(
             }
         }
     )
-)
+);
 
 def_small_vector!(SmallVec1, 1);
 def_small_vector!(SmallVec2, 2);

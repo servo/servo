@@ -7,7 +7,7 @@ use string_cache::{Atom, Namespace};
 
 pub fn from_domstring(url: Option<DOMString>) -> Namespace {
     match url {
-        None => ns!(""),
+        None => Namespace(""),
         Some(ref s) => Namespace(Atom::from_slice(s.as_slice())),
     }
 }

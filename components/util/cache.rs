@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::collections::hash_map::{Occupied, Vacant};
+use std::collections::hash_map::{OccupiedEntry, VacantEntry};
 use rand::Rng;
 use std::hash::{Hash, sip};
-use std::rand::task_rng;
-use std::slice::Items;
+use std::rand;
+use std::slice::Iter;
 
 #[cfg(test)]
 use std::cell::Cell;
@@ -102,7 +102,7 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
         self.entries[last_index].ref1().clone()
     }
 
-    pub fn iter<'a>(&'a self) -> Items<'a,(K,V)> {
+    pub fn iter<'a>(&'a self) -> Iter<'a,(K,V)> {
         self.entries.iter()
     }
 }
@@ -146,7 +146,7 @@ pub struct SimpleHashCache<K,V> {
 
 impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
     pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
-        let mut r = task_rng();
+        let mut r = rand::thread_rng();
         SimpleHashCache {
             entries: Vec::from_elem(cache_size, None),
             k0: r.gen(),

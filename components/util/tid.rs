@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::sync::atomic::{AtomicUint, INIT_ATOMIC_UINT, SeqCst};
+use std::sync::atomic::{AtomicUint, Ordering};
 use std::rc::Rc;
 use std::cell::RefCell;
 
-static mut next_tid: AtomicUint = INIT_ATOMIC_UINT;
+static mut next_tid: AtomicUint = AtomicUint::new(0);
 
 thread_local!(static TASK_LOCAL_TID: Rc<RefCell<Option<uint>>> = Rc::new(RefCell::new(None)));
 
