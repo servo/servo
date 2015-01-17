@@ -147,7 +147,7 @@ impl TimeProfiler {
                 spawn_named("Time profiler timer", move || {
                     loop {
                         sleep(period);
-                        if chan.send_opt(TimeProfilerMsg::Print).is_err() {
+                        if chan.send(TimeProfilerMsg::Print).is_err() {
                             break;
                         }
                     }
@@ -162,7 +162,7 @@ impl TimeProfiler {
                 // No-op to handle messages when the time profiler is inactive.
                 spawn_named("Time profiler", move || {
                     loop {
-                        match port.recv_opt() {
+                        match port.recv() {
                             Err(_) | Ok(TimeProfilerMsg::Exit) => break,
                             _ => {}
                         }
@@ -184,7 +184,7 @@ impl TimeProfiler {
 
     pub fn start(&mut self) {
         loop {
-            let msg = self.port.recv_opt();
+            let msg = self.port.recv();
             match msg {
                Ok(msg) => {
                    if !self.handle_msg(msg) {
