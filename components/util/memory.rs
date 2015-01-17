@@ -12,6 +12,7 @@ use std::mem::size_of;
 #[cfg(target_os="linux")]
 use std::os::page_size;
 use std::ptr::null_mut;
+use std::sync::mpsc::{Sender, channel, Receiver};
 use std::time::duration::Duration;
 use task::spawn_named;
 #[cfg(target_os="macos")]
@@ -171,7 +172,7 @@ fn get_proc_self_statm_field(field: uint) -> Option<u64> {
     match f.read_to_string() {
         Ok(contents) => {
             let s = option_try!(contents.as_slice().words().nth(field));
-            let npages: u64 = option_try!(from_str(s));
+            let npages: u64 = option_try!(s.parse());
             Some(npages * (page_size() as u64))
         }
         Err(_) => None

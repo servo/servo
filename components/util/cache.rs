@@ -3,9 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::collections::hash_map::{OccupiedEntry, VacantEntry};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use rand::Rng;
 use std::hash::{Hash, sip};
+use std::iter::repeat;
 use std::rand;
 use std::slice::Iter;
 
@@ -43,7 +44,7 @@ impl<K: Clone + PartialEq + Eq + Hash, V: Clone> Cache<K,V> for HashCache<K,V> {
         }
     }
 
-    fn find_or_create(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
+    fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
         match self.entries.entry(key.clone()) {
             Occupied(occupied) => {
                 (*occupied.get()).clone()
@@ -148,7 +149,7 @@ impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
     pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
         let mut r = rand::thread_rng();
         SimpleHashCache {
-            entries: Vec::from_elem(cache_size, None),
+            entries: repeat(None).take(cache_size).collect(),
             k0: r.gen(),
             k1: r.gen(),
         }

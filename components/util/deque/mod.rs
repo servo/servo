@@ -60,6 +60,7 @@ use std::ptr;
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicInt, AtomicPtr, Ordering};
+use std::sync::atomic::Ordering::SeqCst;
 
 // Once the queue is less than 1/K full, then it will be downsized. Note that
 // the deque requires that this number be less than 2.

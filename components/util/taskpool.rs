@@ -17,6 +17,7 @@
 
 use task::spawn_named;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thunk::Thunk;
 
 pub struct TaskPool {
@@ -50,7 +51,10 @@ impl TaskPool {
         }
     }
 
-    pub fn execute(&self, job: F) {
-        self.tx.send(job);
+    pub fn execute<F, R>(&self, job: F)
+        where F: FnOnce() -> R,
+              F: Send
+    {
+        self.tx.send(Thunk::new(job));
     }
 }

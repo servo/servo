@@ -8,6 +8,7 @@ use geom::{Size2D, Point2D, SideOffsets2D, Rect};
 use geom::num::Zero;
 use std::cmp::{min, max};
 use std::fmt::{Show, Formatter, Error};
+use std::ops::{Add, Sub};
 
 bitflags!(
     #[deriving(Encodable, Copy)]
