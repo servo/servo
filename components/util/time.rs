@@ -144,7 +144,7 @@ impl TimeProfiler {
             Some(period) => {
                 let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
-                spawn_named("Time profiler timer", proc() {
+                spawn_named("Time profiler timer", move || {
                     loop {
                         sleep(period);
                         if chan.send_opt(TimeProfilerMsg::Print).is_err() {
@@ -153,14 +153,14 @@ impl TimeProfiler {
                     }
                 });
                 // Spawn the time profiler.
-                spawn_named("Time profiler", proc() {
+                spawn_named("Time profiler", move || {
                     let mut profiler = TimeProfiler::new(port);
                     profiler.start();
                 });
             }
             None => {
                 // No-op to handle messages when the time profiler is inactive.
-                spawn_named("Time profiler", proc() {
+                spawn_named("Time profiler", move || {
                     loop {
                         match port.recv_opt() {
                             Err(_) | Ok(TimeProfilerMsg::Exit) => break,
@@ -264,7 +264,7 @@ pub type ProfilerMetadata<'a> = Option<(&'a Url, TimerMetadataFrameType, TimerMe
 pub fn profile<T>(category: TimeProfilerCategory,
                   meta: ProfilerMetadata,
                   time_profiler_chan: TimeProfilerChan,
-                  callback: || -> T)
+                  callback: Fn() -> T)
                   -> T {
     let start_time = precise_time_ns();
     let val = callback();
@@ -280,7 +280,7 @@ pub fn profile<T>(category: TimeProfilerCategory,
     return val;
 }
 
-pub fn time<T>(msg: &str, callback: || -> T) -> T{
+pub fn time<T>(msg: &str, callback: Fn() -> T) -> T{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();

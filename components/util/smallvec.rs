@@ -456,7 +456,7 @@ macro_rules! def_small_vector(
             }
         }
     )
-)
+);
 
 def_small_vector!(SmallVec1, 1);
 def_small_vector!(SmallVec2, 2);

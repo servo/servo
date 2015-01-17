@@ -250,7 +250,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
 
             spawn_named(
                 format!("{} worker {}/{}", task_name, i+1, thread_count),
-                proc() {
+                move || {
                     task_state::initialize(state | task_state::IN_WORKER);
                     let mut thread = thread;
                     thread.start()
