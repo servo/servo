@@ -75,7 +75,7 @@ impl BloomFilter {
     #[inline]
     pub fn new() -> BloomFilter {
         BloomFilter {
-            counters: [0, ..ARRAY_SIZE],
+            counters: [0; ARRAY_SIZE],
         }
     }
 
@@ -101,7 +101,7 @@ impl BloomFilter {
 
     #[inline]
     pub fn clear(&mut self) {
-        self.counters = [0, ..ARRAY_SIZE]
+        self.counters = [0; ARRAY_SIZE]
     }
 
     #[inline]
