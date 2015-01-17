@@ -341,7 +341,7 @@ macro_rules! def_small_vector(
             len: uint,
             cap: uint,
             ptr: *const T,
-            data: [T, ..$size],
+            data: [T],
         }
 
         impl<T> SmallVecPrivate<T> for $name<T> {

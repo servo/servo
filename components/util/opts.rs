@@ -365,7 +365,7 @@ static mut OPTIONS: *mut Opts = 0 as *mut Opts;
 
 pub fn set_opts(opts: Opts) {
     unsafe {
-        let box_opts = box opts;
+        let box_opts = Box::new(opts);
         OPTIONS = mem::transmute(box_opts);
     }
 }

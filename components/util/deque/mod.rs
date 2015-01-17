@@ -162,7 +162,7 @@ impl<T: Send> BufferPool<T> {
             let mut pool = self.pool.lock();
             match pool.iter().position(|x| x.size() >= (1 << bits)) {
                 Some(i) => pool.remove(i).unwrap(),
-                None => box Buffer::new(bits)
+                None => Box::new(Buffer::new(bits))
             }
         }
     }
@@ -313,7 +313,7 @@ impl<T: Send> Deque<T> {
     // continue to be read after we flag this buffer for reclamation.
     unsafe fn swap_buffer(&self, b: int, old: *mut Buffer<T>,
                           buf: Buffer<T>) -> *mut Buffer<T> {
-        let newbuf: *mut Buffer<T> = transmute(box buf);
+        let newbuf: *mut Buffer<T> = transmute(Box::new(buf));
         self.array.store(newbuf, SeqCst);
         let ss = (*newbuf).size();
         self.bottom.store(b + ss, SeqCst);
