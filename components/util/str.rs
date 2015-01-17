@@ -9,7 +9,6 @@ use std::ascii::AsciiExt;
 use std::iter::Filter;
 use std::num::Int;
 use std::str::{CharEq, CharSplits, FromStr};
-use unicode::char::UnicodeChar;
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];

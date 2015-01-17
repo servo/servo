@@ -5,11 +5,10 @@
 //! Timing functions.
 
 use collections::TreeMap;
-use std::comm::{Sender, channel, Receiver};
+use std::sync::mpsc::{Sender, channel, Receiver};
 use std::f64;
 use std::io::timer::sleep;
 use std::iter::AdditiveIterator;
-use std::num::FloatMath;
 use std::time::duration::Duration;
 use std_time::precise_time_ns;
 use task::{spawn_named};
