@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::task;
-use std::comm::Sender;
+use std::sync::mpsc::Sender;
 use std::task::TaskBuilder;
 use std::thunk::Thunk;
 // use rtinstrument;
