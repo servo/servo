@@ -7,7 +7,7 @@ use std::collections::hash_map::{OccupiedEntry, VacantEntry};
 use rand::Rng;
 use std::hash::{Hash, sip};
 use std::rand;
-use std::slice::Items;
+use std::slice::Iter;
 
 #[cfg(test)]
 use std::cell::Cell;
@@ -102,7 +102,7 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
         self.entries[last_index].ref1().clone()
     }
 
-    pub fn iter<'a>(&'a self) -> Items<'a,(K,V)> {
+    pub fn iter<'a>(&'a self) -> Iter<'a,(K,V)> {
         self.entries.iter()
     }
 }

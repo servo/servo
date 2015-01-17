@@ -54,7 +54,7 @@ pub use self::Stolen::{Empty, Abort, Data};
 
 use alloc::arc::Arc;
 use alloc::heap::{allocate, deallocate};
-use std::kinds::marker;
+use std::marker;
 use std::mem::{forget, min_align_of, size_of, transmute};
 use std::ptr;
 

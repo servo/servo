@@ -9,7 +9,7 @@ use std::mem::zeroed as i;
 use std::cmp;
 use std::fmt;
 use std::intrinsics;
-use std::kinds::marker::ContravariantLifetime;
+use std::marker::ContravariantLifetime;
 use std::mem;
 use std::ptr;
 use std::raw::Slice;
