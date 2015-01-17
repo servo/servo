@@ -43,7 +43,7 @@ impl Writer for FnvHasher {
             hash = hash ^ (*byte as u64);
             hash = hash * 0x100000001b3;
         }
-        *self.0 = hash;
+        *self = FnvHasher(hash);
     }
 }
 
