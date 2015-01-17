@@ -250,7 +250,9 @@ pub struct SmallVecIterator<'a,T> {
     lifetime: ContravariantLifetime<'a>
 }
 
-impl<'a,T> Iterator<&'a T> for SmallVecIterator<'a,T> {
+impl<'a,T> Iterator for SmallVecIterator<'a,T> {
+    type Item = &'a T;
+
     #[inline]
     fn next(&mut self) -> Option<&'a T> {
         unsafe {
@@ -274,7 +276,9 @@ pub struct SmallVecMutIterator<'a,T> {
     lifetime: ContravariantLifetime<'a>,
 }
 
-impl<'a,T> Iterator<&'a mut T> for SmallVecMutIterator<'a,T> {
+impl<'a,T> Iterator for SmallVecMutIterator<'a,T> {
+    type Item = &'a mut T;
+
     #[inline]
     fn next(&mut self) -> Option<&'a mut T> {
         unsafe {
@@ -299,7 +303,9 @@ pub struct SmallVecMoveIterator<'a,T> {
     lifetime: ContravariantLifetime<'a>,
 }
 
-impl<'a, T: 'a> Iterator<T> for SmallVecMoveIterator<'a,T> {
+impl<'a, T: 'a> Iterator for SmallVecMoveIterator<'a,T> {
+    type Item = T;
+
     #[inline]
     fn next(&mut self) -> Option<T> {
         unsafe {
@@ -404,7 +410,7 @@ macro_rules! def_small_vector(
         }
 
         impl<T> FromIterator<T> for $name<T> {
-            fn from_iter<I: Iterator<T>>(mut iter: I) -> $name<T> {
+            fn from_iter<I: Iterator<Item=T>>(mut iter: I) -> $name<T> {
                 let mut v = $name::new();
 
                 let (lower_size_bound, _) = iter.size_hint();
@@ -422,7 +428,7 @@ macro_rules! def_small_vector(
         }
 
         impl<T> $name<T> {
-            pub fn extend<I: Iterator<T>>(&mut self, mut iter: I) {
+            pub fn extend<I: Iterator<Item=T>>(&mut self, mut iter: I) {
                 let (lower_size_bound, _) = iter.size_hint();
 
                 let target_len = self.len() + lower_size_bound;

@@ -241,7 +241,7 @@ impl<T: Copy> LogicalSize<T> {
     }
 }
 
-impl<T: Add<T, T>> Add<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
+impl<T: Add<T>> Add<LogicalSize<T>> for LogicalSize<T> {
     #[inline]
     fn add(&self, other: &LogicalSize<T>) -> LogicalSize<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
@@ -253,7 +253,7 @@ impl<T: Add<T, T>> Add<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
     }
 }
 
-impl<T: Sub<T, T>> Sub<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
+impl<T: Sub<T>> Sub<LogicalSize<T>> for LogicalSize<T> {
     #[inline]
     fn sub(&self, other: &LogicalSize<T>) -> LogicalSize<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
@@ -304,7 +304,7 @@ impl<T: Copy> LogicalPoint<T> {
     }
 }
 
-impl<T: Copy + Sub<T, T>> LogicalPoint<T> {
+impl<T: Copy + Sub<T>> LogicalPoint<T> {
     #[inline]
     pub fn from_physical(mode: WritingMode, point: Point2D<T>, container_size: Size2D<T>)
                          -> LogicalPoint<T> {
@@ -392,7 +392,7 @@ impl<T: Copy + Sub<T, T>> LogicalPoint<T> {
     }
 }
 
-impl<T: Add<T,T>> LogicalPoint<T> {
+impl<T: Add<T>> LogicalPoint<T> {
     /// This doesn’t really makes sense,
     /// but happens when dealing with multiple origins.
     #[inline]
@@ -406,7 +406,7 @@ impl<T: Add<T,T>> LogicalPoint<T> {
     }
 }
 
-impl<T: Add<T,T>> Add<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
+impl<T: Add<T>> Add<LogicalSize<T>> for LogicalPoint<T> {
     #[inline]
     fn add(&self, other: &LogicalSize<T>) -> LogicalPoint<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
@@ -418,7 +418,7 @@ impl<T: Add<T,T>> Add<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
     }
 }
 
-impl<T: Sub<T,T>> Sub<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
+impl<T: Sub<T>> Sub<LogicalSize<T>> for LogicalPoint<T> {
     #[inline]
     fn sub(&self, other: &LogicalSize<T>) -> LogicalPoint<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
@@ -657,7 +657,7 @@ impl<T: PartialEq + Zero> LogicalMargin<T> {
     }
 }
 
-impl<T: Add<T, T>> LogicalMargin<T> {
+impl<T: Add<T>> LogicalMargin<T> {
     #[inline]
     pub fn inline_start_end(&self) -> T {
         self.inline_start + self.inline_end
@@ -689,7 +689,7 @@ impl<T: Add<T, T>> LogicalMargin<T> {
     }
 }
 
-impl<T: Add<T, T>> Add<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> {
+impl<T: Add<T>> Add<LogicalMargin<T>> for LogicalMargin<T> {
     #[inline]
     fn add(&self, other: &LogicalMargin<T>) -> LogicalMargin<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
@@ -703,7 +703,7 @@ impl<T: Add<T, T>> Add<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> 
     }
 }
 
-impl<T: Sub<T, T>> Sub<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> {
+impl<T: Sub<T>> Sub<LogicalMargin<T>> for LogicalMargin<T> {
     #[inline]
     fn sub(&self, other: &LogicalMargin<T>) -> LogicalMargin<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
@@ -773,7 +773,7 @@ impl<T: Copy> LogicalRect<T> {
     }
 }
 
-impl<T: Copy + Add<T, T> + Sub<T, T>> LogicalRect<T> {
+impl<T: Copy + Add<T> + Sub<T>> LogicalRect<T> {
     #[inline]
     pub fn from_physical(mode: WritingMode, rect: Rect<T>, container_size: Size2D<T>)
                          -> LogicalRect<T> {
@@ -882,7 +882,7 @@ impl<T: Copy + Add<T, T> + Sub<T, T>> LogicalRect<T> {
     }
 }
 
-impl<T: Copy + Ord + Add<T, T> + Sub<T, T>> LogicalRect<T> {
+impl<T: Copy + Ord + Add<T> + Sub<T>> LogicalRect<T> {
     #[inline]
     pub fn union(&self, other: &LogicalRect<T>) -> LogicalRect<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
@@ -905,7 +905,7 @@ impl<T: Copy + Ord + Add<T, T> + Sub<T, T>> LogicalRect<T> {
     }
 }
 
-impl<T: Add<T, T> + Sub<T, T>> Add<LogicalMargin<T>, LogicalRect<T>> for LogicalRect<T> {
+impl<T: Add<T> + Sub<T>> Add<LogicalMargin<T>> for LogicalRect<T> {
     #[inline]
     fn add(&self, other: &LogicalMargin<T>) -> LogicalRect<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
@@ -928,7 +928,7 @@ impl<T: Add<T, T> + Sub<T, T>> Add<LogicalMargin<T>, LogicalRect<T>> for Logical
 }
 
 
-impl<T: Add<T, T> + Sub<T, T>> Sub<LogicalMargin<T>, LogicalRect<T>> for LogicalRect<T> {
+impl<T: Add<T> + Sub<T>> Sub<LogicalMargin<T>> for LogicalRect<T> {
     #[inline]
     fn sub(&self, other: &LogicalMargin<T>) -> LogicalRect<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);

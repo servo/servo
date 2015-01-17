@@ -63,15 +63,15 @@ pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
     '\u{000d}',
 ];
 
-pub fn split_html_space_chars<'a>(s: &'a str)
-                                  -> Filter<'a, &'a str, SplitStr<'a>> {
+/*pub fn split_html_space_chars<'a>(s: &'a str)
+                                  -> Filter<&'a str, SplitStr<'a>> {
     s.split(HTML_SPACE_CHARACTERS).filter(|&split| !split.is_empty())
-}
+}*/
 
 /// Shared implementation to parse an integer according to
 /// <http://www.whatwg.org/html/#rules-for-parsing-integers> or
 /// <http://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
-fn do_parse_integer<T: Iterator<char>>(input: T) -> Option<i64> {
+fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
     fn is_ascii_digit(c: &char) -> bool {
         match *c {
             '0'...'9' => true,
@@ -116,7 +116,7 @@ fn do_parse_integer<T: Iterator<char>>(input: T) -> Option<i64> {
 
 /// Parse an integer according to
 /// <http://www.whatwg.org/html/#rules-for-parsing-integers>.
-pub fn parse_integer<T: Iterator<char>>(input: T) -> Option<i32> {
+pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
     do_parse_integer(input).and_then(|result| {
         result.to_i32()
     })
@@ -124,7 +124,7 @@ pub fn parse_integer<T: Iterator<char>>(input: T) -> Option<i32> {
 
 /// Parse an integer according to
 /// <http://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
-pub fn parse_unsigned_integer<T: Iterator<char>>(input: T) -> Option<u32> {
+pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     do_parse_integer(input).and_then(|result| {
         result.to_u32()
     })
