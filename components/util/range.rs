@@ -9,12 +9,15 @@ use std::num;
 use std::num::Int;
 
 /// An index type to be used by a `Range`
-pub trait RangeIndex<T>: Int + fmt::Show {
-    fn new(x: T) -> Self;
-    fn get(self) -> T;
+pub trait RangeIndex: Int + fmt::Show {
+    type Item;
+    fn new(x: Self::Item) -> Self;
+    fn get(self) -> Self::Item;
 }
 
-impl RangeIndex<int> for int {
+impl RangeIndex for int {
+    type Item = int;
+
     #[inline]
     fn new(x: int) -> int { x }
 
@@ -37,7 +40,9 @@ macro_rules! int_range_index {
             }
         }
 
-        impl RangeIndex<$T> for $Self {
+        impl RangeIndex for $Self {
+            type Item = $T;
+
             #[inline]
             fn new(x: $T) -> $Self {
                 $Self(x)
@@ -74,28 +79,36 @@ macro_rules! int_range_index {
             }
         }
 
-        impl Add<$Self, $Self> for $Self {
+        impl Add<$Self> for $Self {
+            type Output = $Self;
+
             #[inline]
             fn add(&self, other: &$Self) -> $Self {
                 $Self(self.get() + other.get())
             }
         }
 
-        impl Sub<$Self, $Self> for $Self {
+        impl Sub<$Self> for $Self {
+            type Output = $Self;
+
             #[inline]
             fn sub(&self, other: &$Self) -> $Self {
                 $Self(self.get() - other.get())
             }
         }
 
-        impl Mul<$Self, $Self> for $Self {
+        impl Mul<$Self> for $Self {
+            type Output = $Self;
+
             #[inline]
             fn mul(&self, other: &$Self) -> $Self {
                 $Self(self.get() * other.get())
             }
         }
 
-        impl Neg<$Self> for $Self {
+        impl Neg for $Self {
+            type Output = $Self;
+
             #[inline]
             fn neg(&self) -> $Self {
                 $Self(-self.get())
@@ -181,7 +194,9 @@ pub struct Range<I> {
     length: I,
 }
 
-impl<I: RangeIndex<T>, T> fmt::Show for Range<I> {
+impl<I> fmt::Show for Range<I>
+    where I: RangeIndex
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{} .. {})", self.begin(), self.end())
     }
@@ -192,11 +207,14 @@ pub struct EachIndex<T, I> {
     it: iter::Range<T>,
 }
 
-pub fn each_index<T: Int, I: RangeIndex<T>>(start: I, stop: I) -> EachIndex<T, I> {
+pub fn each_index<I: RangeIndex>(start: I, stop: I) -> EachIndex<I::Item, I>
+{
     EachIndex { it: iter::range(start.get(), stop.get()) }
 }
 
-impl<T: Int, I: RangeIndex<T>> Iterator<I> for EachIndex<T, I> {
+impl<I: RangeIndex> Iterator for EachIndex<I::Item, I> {
+    type Item = I;
+
     #[inline]
     fn next(&mut self) -> Option<I> {
         self.it.next().map(|i| RangeIndex::new(i))
@@ -208,7 +226,7 @@ impl<T: Int, I: RangeIndex<T>> Iterator<I> for EachIndex<T, I> {
     }
 }
 
-impl<I: RangeIndex<T>, T> Range<I> {
+impl<I: RangeIndex> Range<I> {
     /// Create a new range from beginning and length offsets. This could be
     /// denoted as `[begin, begin + length)`.
     ///
@@ -345,17 +363,17 @@ impl<I: RangeIndex<T>, T> Range<I> {
 }
 
 /// Methods for `Range`s with indices based on integer values
-impl<T: Int, I: RangeIndex<T>> Range<I> {
+impl<I: RangeIndex> Range<I> {
     /// Returns an iterater that increments over `[begin, end)`.
     #[inline]
-    pub fn each_index(&self) -> EachIndex<T, I> {
+    pub fn each_index(&self) -> EachIndex<I::Item, I> {
         each_index(self.begin(), self.end())
     }
 
     #[inline]
     pub fn is_valid_for_string(&self, s: &str) -> bool {
         let s_len = s.len();
-        match num::cast::<uint, T>(s_len) {
+        match num::cast::<uint, I::Item>(s_len) {
             Some(len) => {
                 let len = RangeIndex::new(len);
                 self.begin() < len
@@ -366,7 +384,7 @@ impl<T: Int, I: RangeIndex<T>> Range<I> {
                 debug!("Range<T>::is_valid_for_string: string length (len={}) is longer than the \
                         max value for the range index (max={})", s_len,
                         {
-                            let max: T = Int::max_value();
+                            let max: I::Item = Int::max_value();
                             let val: I = RangeIndex::new(max);
                             val
                         });
