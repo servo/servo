@@ -85,7 +85,7 @@ impl ImageCacheTask {
         let (chan, port) = channel();
         let chan_clone = chan.clone();
 
-        spawn_named("ImageCacheTask", move || {
+        spawn_named("ImageCacheTask".to_string(), move || {
             let mut cache = ImageCache {
                 resource_task: resource_task,
                 port: port,

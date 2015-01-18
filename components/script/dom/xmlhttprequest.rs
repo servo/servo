@@ -623,7 +623,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             // inflight events queued up in the script task's port.
             let addr = Trusted::new(self.global.root().r().get_cx(), self,
                                     script_chan.clone());
-            spawn_named("XHRTask", move || {
+            spawn_named("XHRTask".to_string(), move || {
                 let _ = XMLHttpRequest::fetch(&mut SyncOrAsync::Async(addr, script_chan),
                                               resource_task,
                                               load_data,

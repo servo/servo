@@ -349,7 +349,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
-        spawn_named("Constellation", move || {
+        spawn_named("Constellation".to_string(), move || {
             let mut constellation: Constellation<LTF, STF> = Constellation {
                 chan: constellation_chan_clone,
                 request_port: constellation_port,

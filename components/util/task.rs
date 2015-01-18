@@ -34,7 +34,7 @@ pub fn spawn_named_with_send_on_failure<F:FnOnce()+Send,T: Send>(name: String,
 
 #[test]
 fn spawn_named_test(){
-    spawn_named("Test", move || {
+    spawn_named("Test".to_string(), move || {
         debug!("I can run!");
     });
 }
