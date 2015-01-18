@@ -45,6 +45,9 @@ interface Element : Node {
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 
   [Throws]
+  Element? closest(DOMString selectors);
+
+  [Throws]
   boolean matches(DOMString selectors);
 
   HTMLCollection getElementsByTagName(DOMString localName);
