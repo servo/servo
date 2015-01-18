@@ -8,7 +8,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use servo_util::task::spawn_named;
 
-use std::comm;
+use std::sync::mpsc::{channel, Sender};
 
 #[derive(Clone)]
 pub enum CanvasMsg {
@@ -38,12 +38,12 @@ impl CanvasPaintTask {
     }
 
     pub fn start(size: Size2D<i32>) -> Sender<CanvasMsg> {
-        let (chan, port) = comm::channel::<CanvasMsg>();
-        spawn_named("CanvasTask", move || {
+        let (chan, port) = channel::<CanvasMsg>();
+        spawn_named("CanvasTask".to_string(), move || {
             let mut painter = CanvasPaintTask::new(size);
 
             loop {
-                match port.recv() {
+                match port.recv().unwrap() {
                     CanvasMsg::FillRect(ref rect) => painter.fill_rect(rect),
                     CanvasMsg::StrokeRect(ref rect) => painter.stroke_rect(rect),
                     CanvasMsg::ClearRect(ref rect) => painter.clear_rect(rect),
@@ -80,7 +80,7 @@ impl CanvasPaintTask {
 
     fn send_pixel_contents(&mut self, chan: Sender<Vec<u8>>) {
         self.drawtarget.snapshot().get_data_surface().with_data(|element| {
-            chan.send(element.to_vec());
+            chan.send(element.to_vec()).unwrap();
         })
     }
 }
