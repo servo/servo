@@ -302,7 +302,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         }
     };
 
-    let render_api = match opt_match.opt_str("r").unwrap_or("gl".into_string()).as_slice() {
+    let render_api = match opt_match.opt_str("r").map(|s| s.as_slice()).unwrap_or("gl") {
         "mesa" => RenderApi::Mesa,
         "gl" => RenderApi::OpenGL,
         _ => {

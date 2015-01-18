@@ -19,7 +19,7 @@ pub fn null_str_as_empty(s: &Option<DOMString>) -> DOMString {
     // for Some.
     match *s {
         Some(ref s) => s.clone(),
-        None => "".into_string()
+        None => "".to_string()
     }
 }
 
