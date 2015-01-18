@@ -357,13 +357,7 @@ impl TextInput {
             vec!(content)
         };
         self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
-
-        if self.current_line_length() == 0 {
-            self.edit_point.index = 0;
-        }
-        else {
-            self.edit_point.index = min(self.edit_point.index, self.current_line_length() - 1);
-        }
+        self.edit_point.index = min(self.edit_point.index, self.current_line_length());
     }
 }
 
@@ -519,7 +513,6 @@ fn test_textinput_set_content() {
     textinput.set_content("de".into_string());
     assert_eq!(textinput.get_content().as_slice(), "de");
     assert_eq!(textinput.edit_point.line, 0);
-    // FIXME: https://github.com/servo/servo/issues/4622.
-    assert_eq!(textinput.edit_point.index, 1);
+    assert_eq!(textinput.edit_point.index, 2);
 }
 
