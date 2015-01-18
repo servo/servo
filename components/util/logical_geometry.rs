@@ -396,7 +396,7 @@ impl<T: Copy + Sub<T, Output=T>> LogicalPoint<T> {
     }
 }
 
-impl<T: Add<T, Output=T>> LogicalPoint<T> {
+impl<T: Copy + Add<T, Output=T>> LogicalPoint<T> {
     /// This doesn’t really makes sense,
     /// but happens when dealing with multiple origins.
     #[inline]
@@ -410,7 +410,7 @@ impl<T: Add<T, Output=T>> LogicalPoint<T> {
     }
 }
 
-impl<T: Add<T,Output=T>> Add<LogicalSize<T>> for LogicalPoint<T> {
+impl<T: Copy + Add<T,Output=T>> Add<LogicalSize<T>> for LogicalPoint<T> {
     type Output = LogicalPoint<T>;
 
     #[inline]
@@ -424,7 +424,7 @@ impl<T: Add<T,Output=T>> Add<LogicalSize<T>> for LogicalPoint<T> {
     }
 }
 
-impl<T: Sub<T,Output=T>> Sub<LogicalSize<T>> for LogicalPoint<T> {
+impl<T: Copy + Sub<T,Output=T>> Sub<LogicalSize<T>> for LogicalPoint<T> {
     type Output = LogicalPoint<T>;
 
     #[inline]
@@ -665,7 +665,7 @@ impl<T: PartialEq + Zero> LogicalMargin<T> {
     }
 }
 
-impl<T: Add<T, Output=T>> LogicalMargin<T> {
+impl<T: Copy + Add<T, Output=T>> LogicalMargin<T> {
     #[inline]
     pub fn inline_start_end(&self) -> T {
         self.inline_start + self.inline_end
@@ -917,7 +917,7 @@ impl<T: Copy + Ord + Add<T, Output=T> + Sub<T, Output=T>> LogicalRect<T> {
     }
 }
 
-impl<T: Add<T, Output=T> + Sub<T, Output=T>> Add<LogicalMargin<T>> for LogicalRect<T> {
+impl<T: Copy + Add<T, Output=T> + Sub<T, Output=T>> Add<LogicalMargin<T>> for LogicalRect<T> {
     type Output = LogicalRect<T>;
 
     #[inline]
@@ -942,7 +942,7 @@ impl<T: Add<T, Output=T> + Sub<T, Output=T>> Add<LogicalMargin<T>> for LogicalRe
 }
 
 
-impl<T: Add<T, Output=T> + Sub<T, Output=T>> Sub<LogicalMargin<T>> for LogicalRect<T> {
+impl<T: Copy + Add<T, Output=T> + Sub<T, Output=T>> Sub<LogicalMargin<T>> for LogicalRect<T> {
     type Output = LogicalRect<T>;
 
     #[inline]

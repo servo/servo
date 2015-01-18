@@ -16,7 +16,6 @@ use std::mem;
 use std::rand::weak_rng;
 use std::sync::atomic::{AtomicUint, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
-use std::thunk::Thunk;
 use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 
 /// A unit of work.

@@ -159,8 +159,8 @@ fn get_jemalloc_stat(name: &'static str) -> Option<u64> {
     let rv: c_int;
     unsafe {
         rv = je_mallctl(c_name.as_ptr(), oldp, &mut oldlen, null_mut(), 0);
+        mem::forget(c_name); // XXX correct?
     }
-    mem::forget(c_name); // XXX correct?
     if rv == 0 { Some(old as u64) } else { None }
 }
 

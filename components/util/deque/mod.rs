@@ -59,7 +59,7 @@ use std::mem::{forget, min_align_of, size_of, transmute};
 use std::ptr;
 
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicInt, AtomicPtr, Ordering};
+use std::sync::atomic::{AtomicInt, AtomicPtr};
 use std::sync::atomic::Ordering::SeqCst;
 
 // Once the queue is less than 1/K full, then it will be downsized. Note that
@@ -142,6 +142,8 @@ struct Buffer<T> {
     log_size: uint,
 }
 
+unsafe impl<T: 'static> Send for Buffer<T> { }
+
 impl<T: Send> BufferPool<T> {
     /// Allocates a new buffer pool which in turn can be used to allocate new
     /// deques.
@@ -160,16 +162,16 @@ impl<T: Send> BufferPool<T> {
 
     fn alloc(&mut self, bits: uint) -> Box<Buffer<T>> {
         unsafe {
-            let mut pool = self.pool.lock();
+            let mut pool = self.pool.lock().unwrap();
             match pool.iter().position(|x| x.size() >= (1 << bits)) {
-                Some(i) => pool.remove(i).unwrap(),
+                Some(i) => pool.remove(i),
                 None => Box::new(Buffer::new(bits))
             }
         }
     }
 
     fn free(&self, buf: Box<Buffer<T>>) {
-        let mut pool = self.pool.lock();
+        let mut pool = self.pool.lock().unwrap();
         match pool.iter().position(|v| v.size() > buf.size()) {
             Some(i) => pool.insert(i, buf),
             None => pool.push(buf),

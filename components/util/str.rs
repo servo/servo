@@ -6,9 +6,9 @@ use geometry::Au;
 
 use cssparser::{self, RGBA, Color};
 use std::ascii::AsciiExt;
-use std::iter::Filter;
+//use std::iter::Filter;
 use std::num::{Int, ToPrimitive};
-use std::str::{CharEq, FromStr, SplitStr};
+use std::str::{CharEq, FromStr/*, SplitStr*/};
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];

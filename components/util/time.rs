@@ -11,7 +11,6 @@ use std::io::timer::sleep;
 use std::iter::AdditiveIterator;
 use std::num::Float;
 use std::sync::mpsc::{Sender, channel, Receiver};
-use std::thunk::Thunk;
 use std::time::duration::Duration;
 use std_time::precise_time_ns;
 use task::{spawn_named};

@@ -18,7 +18,7 @@ pub fn spawn_named_with_send_on_failure<F:FnOnce()+Send,T: Send>(name: String,
                                                  f: F,
                                                  msg: T,
                                                  dest: Sender<T>) {
-    let future_handle = thread::Builder::new().name(name).scoped(move || {
+    let future_handle = thread::Builder::new().name(name.clone()).scoped(move || {
         f()
     });
 
