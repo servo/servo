@@ -47,7 +47,7 @@ impl MemoryProfiler {
             Some(period) => {
                 let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
-                spawn_named("Memory profiler timer", move || {
+                spawn_named("Memory profiler timer".to_string(), move || {
                     loop {
                         sleep(period);
                         if chan.send(MemoryProfilerMsg::Print).is_err() {
@@ -56,7 +56,7 @@ impl MemoryProfiler {
                     }
                 });
                 // Spawn the memory profiler.
-                spawn_named("Memory profiler", move || {
+                spawn_named("Memory profiler".to_string(), move || {
                     let memory_profiler = MemoryProfiler::new(port);
                     memory_profiler.start();
                 });
@@ -64,7 +64,7 @@ impl MemoryProfiler {
             None => {
                 // No-op to handle messages when the memory profiler is
                 // inactive.
-                spawn_named("Memory profiler", move || {
+                spawn_named("Memory profiler".to_string(), move || {
                     loop {
                         match port.recv() {
                             Err(_) | Ok(MemoryProfilerMsg::Exit) => break,

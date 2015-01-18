@@ -6,8 +6,8 @@ use std::thread;
 use std::sync::mpsc::Sender;
 use std::thread::Builder;
 
-pub fn spawn_named<F:FnOnce()+Send>(name: &'static str, f: F) {
-    let builder = thread::Builder::new().name(name.to_string());
+pub fn spawn_named<F:FnOnce()+Send>(name: String, f: F) {
+    let builder = thread::Builder::new().name(name);
     builder.spawn(move || {
         f()
     });

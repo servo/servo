@@ -76,6 +76,8 @@ struct WorkerThread<QueueData: 'static, WorkData: 'static> {
     rng: XorShiftRng,
 }
 
+unsafe impl<QueueData: 'static, WorkData: 'static> Send for WorkerThread<QueueData, WorkData> {}
+
 static SPIN_COUNT: u32 = 128;
 static SPINS_UNTIL_BACKOFF: u32 = 100;
 static BACKOFF_INCREMENT_IN_US: u32 = 5;
@@ -256,11 +258,11 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
 
             spawn_named(
                 format!("{} worker {}/{}", task_name, i+1, thread_count),
-                Thunk::new(move || {
+                move || {
                     task_state::initialize(state | task_state::IN_WORKER);
                     let mut thread = thread;
                     thread.start()
-                }))
+                })
         }
 
         WorkQueue {

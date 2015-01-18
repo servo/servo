@@ -7,7 +7,7 @@ use geometry::Au;
 use cssparser::{self, RGBA, Color};
 use std::ascii::AsciiExt;
 use std::iter::Filter;
-use std::num::Int;
+use std::num::{Int, ToPrimitive};
 use std::str::{CharEq, FromStr, SplitStr};
 
 pub type DOMString = String;

@@ -146,30 +146,30 @@ impl TimeProfiler {
             Some(period) => {
                 let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
-                spawn_named("Time profiler timer", Thunk::new(move || {
+                spawn_named("Time profiler timer".to_string(), move || {
                     loop {
                         sleep(period);
                         if chan.send(TimeProfilerMsg::Print).is_err() {
                             break;
                         }
                     }
-                }));
+                });
                 // Spawn the time profiler.
-                spawn_named("Time profiler", Thunk::new(move || {
+                spawn_named("Time profiler".to_string(), move || {
                     let mut profiler = TimeProfiler::new(port);
                     profiler.start();
-                }));
+                });
             }
             None => {
                 // No-op to handle messages when the time profiler is inactive.
-                spawn_named("Time profiler", Thunk::new(move || {
+                spawn_named("Time profiler".to_string(), move || {
                     loop {
                         match port.recv() {
                             Err(_) | Ok(TimeProfilerMsg::Exit) => break,
                             _ => {}
                         }
                     }
-                }));
+                });
             }
         }
 

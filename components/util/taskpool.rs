@@ -35,7 +35,7 @@ impl TaskPool {
             let state = state.clone();
             spawn_named(
                 format!("TaskPoolWorker {}/{}", i+1, tasks),
-                Thunk::new(move || worker(&*state)));
+                move || worker(&*state));
         }
 
         return TaskPool { tx: tx };
@@ -44,7 +44,7 @@ impl TaskPool {
             loop {
                 let job = rx.lock().unwrap().recv();
                 match job {
-                    Ok(job) => job(),
+                    Ok(job) => job.invoke(()),
                     Err(..) => break,
                 }
             }
