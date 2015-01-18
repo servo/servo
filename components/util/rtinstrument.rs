@@ -183,7 +183,7 @@ impl Runtime for InstrumentedRuntime {
                      f: proc():Send) {
         // Be sure to install an instrumented runtime for the spawned sibling by
         // specifying a new runtime.
-        self.inner.take().unwrap().spawn_sibling(cur_task, opts, proc() {
+        self.inner.take().unwrap().spawn_sibling(cur_task, opts, move || {
             install();
             f();
             drop(uninstall());

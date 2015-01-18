@@ -184,7 +184,7 @@ impl LayoutTaskFactory for LayoutTask {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, proc() {
+        spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
                 let layout =

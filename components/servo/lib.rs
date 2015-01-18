@@ -87,7 +87,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         let (result_chan, result_port) = channel();
         let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
         TaskBuilder::new()
-            .spawn(proc() {
+            .spawn(move || {
             let opts = &opts_clone;
             // Create a Servo instance.
             let resource_task = new_resource_task(opts.user_agent.clone());

@@ -39,7 +39,7 @@ impl CanvasPaintTask {
 
     pub fn start(size: Size2D<i32>) -> Sender<CanvasMsg> {
         let (chan, port) = comm::channel::<CanvasMsg>();
-        spawn_named("CanvasTask", proc() {
+        spawn_named("CanvasTask", move || {
             let mut painter = CanvasPaintTask::new(size);
 
             loop {

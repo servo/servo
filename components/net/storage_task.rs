@@ -46,7 +46,7 @@ impl StorageTaskFactory for StorageTask {
     /// Create a StorageTask
     fn new() -> StorageTask {
         let (chan, port) = channel();
-        spawn_named("StorageManager", proc() {
+        spawn_named("StorageManager", move || {
             StorageManager::new(port).start();
         });
         chan

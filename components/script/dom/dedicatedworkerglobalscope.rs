@@ -133,7 +133,7 @@ impl DedicatedWorkerGlobalScope {
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
-        spawn_named(format!("WebWorker for {}", worker_url.serialize()), proc() {
+        spawn_named(format!("WebWorker for {}", worker_url.serialize()), move || {
             task_state::initialize(SCRIPT | IN_WORKER);
 
             let roots = RootCollection::new();

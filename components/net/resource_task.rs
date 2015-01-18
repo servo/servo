@@ -183,7 +183,7 @@ pub type ResourceTask = Sender<ControlMsg>;
 pub fn new_resource_task(user_agent: Option<String>) -> ResourceTask {
     let (setup_chan, setup_port) = channel();
     let sniffer_task = sniffer_task::new_sniffer_task();
-    spawn_named("ResourceManager", proc() {
+    spawn_named("ResourceManager", move || {
         ResourceManager::new(setup_port, user_agent, sniffer_task).start();
     });
     setup_chan

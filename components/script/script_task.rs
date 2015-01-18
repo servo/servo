@@ -302,7 +302,7 @@ impl ScriptTaskFactory for ScriptTask {
         let ConstellationChan(const_chan) = constellation_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
-        spawn_named_with_send_on_failure("ScriptTask", task_state::SCRIPT, proc() {
+        spawn_named_with_send_on_failure("ScriptTask", task_state::SCRIPT, move || {
             let script_task = ScriptTask::new(id,
                                               box compositor as Box<ScriptListener>,
                                               layout_chan,

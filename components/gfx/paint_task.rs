@@ -144,7 +144,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("PaintTask", task_state::PAINT, proc() {
+        spawn_named_with_send_on_failure("PaintTask", task_state::PAINT, move || {
             {
                 // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.
@@ -431,7 +431,7 @@ impl WorkerThreadProxy {
             let native_graphics_metadata = native_graphics_metadata.clone();
             let font_cache_task = font_cache_task.clone();
             let time_profiler_chan = time_profiler_chan.clone();
-            TaskBuilder::new().spawn(proc() {
+            TaskBuilder::new().spawn(move || {
                 let mut worker_thread = WorkerThread::new(from_worker_sender,
                                                           to_worker_receiver,
                                                           native_graphics_metadata,

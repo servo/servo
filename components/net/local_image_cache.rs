@@ -130,7 +130,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
                 let on_image_available: proc(ImageResponseMsg, NodeAddress):Send =
                     self.on_image_available.as_ref().unwrap().respond();
                 let url = (*url).clone();
-                spawn_named("LocalImageCache", proc() {
+                spawn_named("LocalImageCache", move || {
                     let (response_chan, response_port) = channel();
                     image_cache_task.send(Msg::WaitForImage(url, response_chan));
                     on_image_available(response_port.recv(), node_address);

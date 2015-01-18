@@ -254,7 +254,7 @@ impl CORSCache for CORSCacheSender {
 /// let task = CORSCacheTask::new();
 /// let builder = TaskBuilder::new().named("XHRTask");
 /// let mut sender = task.get_sender();
-/// builder.spawn(proc() { task.run() });
+/// builder.spawn(move || { task.run() });
 /// sender.insert(CORSCacheEntry::new(/* parameters here */));
 /// ```
 pub struct CORSCacheTask {

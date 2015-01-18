@@ -57,7 +57,7 @@ mod protocol;
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
     let (sender, receiver) = comm::channel();
-    spawn_named("Devtools", proc() {
+    spawn_named("Devtools", move || {
         run_server(receiver, port)
     });
     sender
@@ -184,7 +184,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Ok(stream) => {
                 let actors = actors.clone();
                 accepted_connections.push(stream.clone());
-                spawn_named("DevtoolsClientHandler", proc() {
+                spawn_named("DevtoolsClientHandler", move || {
                     // connection succeeded
                     handle_client(actors, stream.clone())
                 })

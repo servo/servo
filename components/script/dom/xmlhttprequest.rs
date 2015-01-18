@@ -256,7 +256,7 @@ impl XMLHttpRequest {
                 let req2 = req.clone();
                 // TODO: this exists only to make preflight check non-blocking
                 // perhaps should be handled by the resource_loader?
-                spawn_named("XHR:Cors", proc() {
+                spawn_named("XHR:Cors", move || {
                     let response = req2.http_fetch();
                     chan.send(response);
                 });
@@ -623,7 +623,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             // inflight events queued up in the script task's port.
             let addr = Trusted::new(self.global.root().r().get_cx(), self,
                                     script_chan.clone());
-            spawn_named("XHRTask", proc() {
+            spawn_named("XHRTask", move || {
                 let _ = XMLHttpRequest::fetch(&mut SyncOrAsync::Async(addr, script_chan),
                                               resource_task,
                                               load_data,

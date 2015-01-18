@@ -128,7 +128,7 @@ impl TimerManager {
             TimerSource::FromWindow(_) => "Window:SetTimeout",
             TimerSource::FromWorker => "Worker:SetTimeout",
         };
-        spawn_named(spawn_name, proc() {
+        spawn_named(spawn_name, move || {
             let mut tm = tm;
             let duration = Duration::milliseconds(timeout as i64);
             let timeout_port = if is_interval == IsInterval::Interval {
