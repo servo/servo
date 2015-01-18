@@ -57,10 +57,10 @@ impl Worker {
     }
 
     // http://www.whatwg.org/html/#dom-worker
-    pub fn Constructor(global: GlobalRef, scriptURL: DOMString) -> Fallible<Temporary<Worker>> {
+    pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Temporary<Worker>> {
         // Step 2-4.
         let worker_url = match UrlParser::new().base_url(&global.get_url())
-                .parse(scriptURL.as_slice()) {
+                .parse(script_url.as_slice()) {
             Ok(url) => url,
             Err(_) => return Err(Syntax),
         };
