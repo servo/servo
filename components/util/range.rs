@@ -194,11 +194,11 @@ pub struct Range<I> {
     length: I,
 }
 
-impl<I> fmt::Show for Range<I>
-    where I: RangeIndex
+impl<I: RangeIndex> fmt::Show for Range<I>
+    where I::Item: Int
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "[{} .. {})", self.begin(), self.end())
+        write!(f, "[{:?} .. {:?})", self.begin(), self.end())
     }
 }
 
@@ -208,11 +208,14 @@ pub struct EachIndex<T, I> {
 }
 
 pub fn each_index<I: RangeIndex>(start: I, stop: I) -> EachIndex<I::Item, I>
+    where I::Item: Int
 {
     EachIndex { it: iter::range(start.get(), stop.get()) }
 }
 
-impl<I: RangeIndex> Iterator for EachIndex<I::Item, I> {
+impl<I: RangeIndex> Iterator for EachIndex<I::Item, I>
+    where I::Item: Int
+{
     type Item = I;
 
     #[inline]
@@ -363,7 +366,9 @@ impl<I: RangeIndex> Range<I> {
 }
 
 /// Methods for `Range`s with indices based on integer values
-impl<I: RangeIndex> Range<I> {
+impl<I: RangeIndex> Range<I>
+    where I::Item: Int
+{
     /// Returns an iterater that increments over `[begin, end)`.
     #[inline]
     pub fn each_index(&self) -> EachIndex<I::Item, I> {
@@ -381,8 +386,9 @@ impl<I: RangeIndex> Range<I> {
                 && self.length() <= len
             },
             None => {
-                debug!("Range<T>::is_valid_for_string: string length (len={}) is longer than the \
-                        max value for the range index (max={})", s_len,
+                debug!("Range<T>::is_valid_for_string: string length \
+                        (len={:?}) is longer than the max value for the range \
+                        index (max={:?})", s_len,
                         {
                             let max: I::Item = Int::max_value();
                             let val: I = RangeIndex::new(max);

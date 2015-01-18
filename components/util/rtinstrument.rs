@@ -17,7 +17,7 @@ use std::sync::Mutex;
 #[cfg(not(test))]
 use serialize::json;
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub enum Event {
     Spawn,
     Schedule,
@@ -25,13 +25,13 @@ pub enum Event {
     Death,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub struct Message {
     timestamp: u64,
     event: Event,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub struct TaskStats {
     pub name: String,
     pub messages: Vec<Message>,
@@ -43,7 +43,7 @@ struct InstrumentedRuntime {
     messages: Vec<Message>,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub struct GlobalState {
     task_stats: Vec<TaskStats>,
 }

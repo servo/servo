@@ -98,7 +98,7 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
 }
 
 /// Information about each layer that the compositor keeps.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct LayerProperties {
     pub pipeline_id: PipelineId,
     pub epoch: Epoch,

@@ -37,7 +37,7 @@ use std::task::TaskBuilder;
 use std::sync::Arc;
 
 /// Information about a hardware graphics layer that layout sends to the painting task.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct PaintLayer {
     /// A per-pipeline ID describing this layer that should be stable across reflows.
     pub id: LayerId,
@@ -74,7 +74,7 @@ pub enum Msg {
     Exit(Option<Sender<()>>, PipelineExitType),
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct PaintChan(Sender<Msg>);
 
 impl PaintChan {
@@ -85,12 +85,12 @@ impl PaintChan {
 
     pub fn send(&self, msg: Msg) {
         let &PaintChan(ref chan) = self;
-        assert!(chan.send_opt(msg).is_ok(), "PaintChan.send: paint port closed")
+        assert!(chan.send(msg).is_ok(), "PaintChan.send: paint port closed")
     }
 
-    pub fn send_opt(&self, msg: Msg) -> Result<(), Msg> {
+    pub fn send(&self, msg: Msg) -> Result<(), Msg> {
         let &PaintChan(ref chan) = self;
-        chan.send_opt(msg)
+        chan.send(msg)
     }
 }
 

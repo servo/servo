@@ -16,7 +16,7 @@ macro_rules! define_css_keyword_enum {
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
         #[allow(non_camel_case_types)]
-        #[deriving(Clone, Eq, PartialEq, FromPrimitive, Copy)]
+        #[derive(Clone, Eq, PartialEq, FromPrimitive, Copy)]
         pub enum $name {
             $( $variant ),+
         }
@@ -70,7 +70,7 @@ pub mod specified {
     use parsing_utils::{mod, BufferedIter, ParserIter};
     use super::{Au, CSSFloat};
 
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct CSSColor {
         pub parsed: cssparser::Color,
         pub authored: Option<String>,
@@ -104,7 +104,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone)]
+    #[derive(Clone)]
     pub struct CSSRGBA {
         pub parsed: cssparser::RGBA,
         pub authored: Option<String>,
@@ -122,7 +122,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct CSSImage(pub Option<Image>);
 
     impl fmt::Show for CSSImage {
@@ -138,7 +138,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum Length {
         Au(Au),  // application units
         Em(CSSFloat),
@@ -219,7 +219,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentage {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -263,7 +263,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentageOrAuto {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -309,7 +309,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentageOrNone {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -355,7 +355,7 @@ pub mod specified {
     }
 
     // http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum PositionComponent {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -395,7 +395,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, PartialOrd, Copy)]
+    #[derive(Clone, PartialEq, PartialOrd, Copy)]
     pub struct Angle(pub CSSFloat);
 
     impl fmt::Show for Angle {
@@ -446,7 +446,7 @@ pub mod specified {
     }
 
     /// Specified values for an image according to CSS-IMAGES.
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub enum Image {
         Url(Url),
         LinearGradient(LinearGradient),
@@ -504,7 +504,7 @@ pub mod specified {
     }
 
     /// Specified values for a CSS linear gradient.
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct LinearGradient {
         /// The angle or corner of the gradient.
         pub angle_or_corner: AngleOrCorner,
@@ -531,7 +531,7 @@ pub mod specified {
     }
 
     /// Specified values for an angle or a corner in a linear gradient.
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum AngleOrCorner {
         Angle(Angle),
         Corner(HorizontalDirection, VerticalDirection),
@@ -557,7 +557,7 @@ pub mod specified {
     }
 
     /// Specified values for one color stop in a linear gradient.
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct ColorStop {
         /// The color of this stop.
         pub color: CSSColor,
@@ -784,7 +784,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone, Copy)]
+    #[derive(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentage {
         Length(Au),
         Percentage(CSSFloat),
@@ -809,7 +809,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone, Copy)]
+    #[derive(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentageOrAuto {
         Length(Au),
         Percentage(CSSFloat),
@@ -837,7 +837,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone, Copy)]
+    #[derive(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentageOrNone {
         Length(Au),
         Percentage(CSSFloat),
@@ -866,7 +866,7 @@ pub mod computed {
     }
 
     /// Computed values for an image according to CSS-IMAGES.
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub enum Image {
         Url(Url),
         LinearGradient(LinearGradient),
@@ -882,7 +882,7 @@ pub mod computed {
     }
 
     /// Computed values for a CSS linear gradient.
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct LinearGradient {
         /// The angle or corner of the gradient.
         pub angle_or_corner: AngleOrCorner,
@@ -902,7 +902,7 @@ pub mod computed {
     }
 
     /// Computed values for one color stop in a linear gradient.
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub struct ColorStop {
         /// The color of this stop.
         pub color: CSSColor,

@@ -64,7 +64,7 @@ use style::computed_values::{overflow, position};
 use std::sync::Arc;
 
 /// Information specific to floated blocks.
-#[deriving(Clone, Encodable)]
+#[derive(Clone, Encodable)]
 pub struct FloatedBlockInfo {
     /// The amount of inline size that is available for the float.
     pub containing_inline_size: Au,
@@ -92,7 +92,7 @@ impl FloatedBlockInfo {
 }
 
 /// The solutions for the block-size-and-margins constraint equation.
-#[deriving(Copy)]
+#[derive(Copy)]
 struct BSizeConstraintSolution {
     block_start: Au,
     _block_end: Au,
@@ -487,13 +487,13 @@ pub enum BlockType {
     FloatNonReplaced,
 }
 
-#[deriving(Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum MarginsMayCollapseFlag {
     MarginsMayCollapse,
     MarginsMayNotCollapse,
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 enum FormattingContextType {
     None,
     Block,
@@ -525,7 +525,7 @@ fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid
 }
 
 // A block formatting context.
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub struct BlockFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -1914,7 +1914,7 @@ impl fmt::Show for BlockFlow {
 }
 
 /// The inputs for the inline-sizes-and-margins constraint equation.
-#[deriving(Show, Copy)]
+#[derive(Show, Copy)]
 pub struct ISizeConstraintInput {
     pub computed_inline_size: MaybeAuto,
     pub inline_start_margin: MaybeAuto,
@@ -1947,7 +1947,7 @@ impl ISizeConstraintInput {
 }
 
 /// The solutions for the inline-size-and-margins constraint equation.
-#[deriving(Copy, Show)]
+#[derive(Copy, Show)]
 pub struct ISizeConstraintSolution {
     pub inline_start: Au,
     pub inline_end: Au,

@@ -35,7 +35,7 @@ pub struct Pipeline {
 }
 
 /// The subset of the pipeline that is needed for layer composition.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct CompositionPipeline {
     pub id: PipelineId,
     pub script_chan: ScriptControlChan,
@@ -165,12 +165,12 @@ impl Pipeline {
     }
 
     pub fn grant_paint_permission(&self) {
-        let _ = self.paint_chan.send_opt(PaintMsg::PaintPermissionGranted);
+        let _ = self.paint_chan.send(PaintMsg::PaintPermissionGranted);
     }
 
     pub fn revoke_paint_permission(&self) {
         debug!("pipeline revoking paint channel paint permission");
-        let _ = self.paint_chan.send_opt(PaintMsg::PaintPermissionRevoked);
+        let _ = self.paint_chan.send(PaintMsg::PaintPermissionRevoked);
     }
 
     pub fn exit(&self, exit_type: PipelineExitType) {
@@ -179,23 +179,23 @@ impl Pipeline {
         // Script task handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script task has failed, we give up on clean shutdown.
         let ScriptControlChan(ref chan) = self.script_chan;
-        if chan.send_opt(ConstellationControlMsg::ExitPipeline(self.id, exit_type)).is_ok() {
+        if chan.send(ConstellationControlMsg::ExitPipeline(self.id, exit_type)).is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
-            let _ = self.paint_shutdown_port.recv_opt();
-            let _ = self.layout_shutdown_port.recv_opt();
+            let _ = self.paint_shutdown_port.recv();
+            let _ = self.layout_shutdown_port.recv();
         }
 
     }
 
     pub fn force_exit(&self) {
         let ScriptControlChan(ref script_channel) = self.script_chan;
-        let _ = script_channel.send_opt(
+        let _ = script_channel.send(
             ConstellationControlMsg::ExitPipeline(self.id,
                                                   PipelineExitType::PipelineOnly));
-        let _ = self.paint_chan.send_opt(PaintMsg::Exit(None, PipelineExitType::PipelineOnly));
+        let _ = self.paint_chan.send(PaintMsg::Exit(None, PipelineExitType::PipelineOnly));
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
-        let _ = layout_channel.send_opt(LayoutControlMsg::ExitNowMsg(PipelineExitType::PipelineOnly));
+        let _ = layout_channel.send(LayoutControlMsg::ExitNowMsg(PipelineExitType::PipelineOnly));
     }
 
     pub fn to_sendable(&self) -> CompositionPipeline {

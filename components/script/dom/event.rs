@@ -17,7 +17,7 @@ use std::default::Default;
 use time;
 
 #[jstraceable]
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum EventPhase {
     None      = EventConstants::NONE as int,
     Capturing = EventConstants::CAPTURING_PHASE as int,
@@ -25,7 +25,7 @@ pub enum EventPhase {
     Bubbling  = EventConstants::BUBBLING_PHASE as int,
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 #[jstraceable]
 pub enum EventTypeId {
     CustomEvent,
@@ -38,13 +38,13 @@ pub enum EventTypeId {
     ErrorEvent
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum EventBubbles {
     Bubbles,
     DoesNotBubble
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum EventCancelable {
     Cancelable,
     NotCancelable

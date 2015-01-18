@@ -144,7 +144,7 @@ pub struct LogicalSize<T> {
 
 impl<T: Show> Show for LogicalSize<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        write!(formatter, "LogicalSize({}, i{}×b{})",
+        write!(formatter, "LogicalSize({:?}, i{:?}×b{:?})",
                self.debug_writing_mode, self.inline, self.block)
     }
 }
@@ -280,7 +280,7 @@ pub struct LogicalPoint<T> {
 
 impl<T: Show> Show for LogicalPoint<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        write!(formatter, "LogicalPoint({} (i{}, b{}))",
+        write!(formatter, "LogicalPoint({:?} (i{:?}, b{:?}))",
                self.debug_writing_mode, self.i, self.b)
     }
 }
@@ -455,7 +455,7 @@ pub struct LogicalMargin<T> {
 impl<T: Show> Show for LogicalMargin<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter,
-               "LogicalMargin({}, inline: {}..{} block: {}..{})",
+               "LogicalMargin({:?}, inline: {:?}..{:?} block: {:?}..{:?})",
                self.debug_writing_mode,
                self.inline_start,
                self.inline_end,
@@ -714,6 +714,7 @@ impl<T: Add<T, Output=T>> Add for LogicalMargin<T> {
 }
 
 impl<T: Sub<T, Output=T>> Sub for LogicalMargin<T> {
+    type Output = LogicalMargin<T>;
 
     #[inline]
     fn sub(self, other: LogicalMargin<T>) -> LogicalMargin<T> {
@@ -740,7 +741,7 @@ pub struct LogicalRect<T> {
 impl<T: Show> Show for LogicalRect<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter,
-               "LogicalRect({}, i{}×b{}, @ (i{},b{}))",
+               "LogicalRect({:?}, i{:?}×b{:?}, @ (i{:?},b{:?}))",
                self.debug_writing_mode,
                self.size.inline,
                self.size.block,
@@ -943,6 +944,7 @@ impl<T: Add<T, Output=T> + Sub<T, Output=T>> Add<LogicalMargin<T>> for LogicalRe
 
 impl<T: Add<T, Output=T> + Sub<T, Output=T>> Sub<LogicalMargin<T>> for LogicalRect<T> {
     type Output = LogicalRect<T>;
+
     #[inline]
     fn sub(self, other: LogicalMargin<T>) -> LogicalRect<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);

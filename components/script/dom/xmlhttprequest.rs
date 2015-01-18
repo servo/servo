@@ -63,7 +63,7 @@ use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams;
 use dom::bindings::codegen::UnionTypes::StringOrURLSearchParams::{eString, eURLSearchParams};
 pub type SendParam = StringOrURLSearchParams;
 
-#[deriving(PartialEq, Copy)]
+#[derive(PartialEq, Copy)]
 #[jstraceable]
 enum XMLHttpRequestState {
     Unsent = 0,
@@ -91,11 +91,11 @@ impl Runnable for XHRProgressHandler {
     }
 }
 
-#[deriving(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy)]
 #[jstraceable]
 pub struct GenerationId(uint);
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum XHRProgress {
     /// Notify that headers have been received
     HeadersReceived(GenerationId, Option<Headers>, Option<RawStatus>),
@@ -892,7 +892,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn terminate_ongoing_fetch(self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
-        self.terminate_sender.borrow().as_ref().map(|s| s.send_opt(TerminateReason::AbortedOrReopened));
+        self.terminate_sender.borrow().as_ref().map(|s| s.send(TerminateReason::AbortedOrReopened));
     }
 
     fn insert_trusted_header(self, name: String, value: String) {
@@ -936,9 +936,9 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                           .oneshot(Duration::milliseconds(timeout as i64));
         let terminate_sender = (*self.terminate_sender.borrow()).clone();
         spawn_named("XHR:Timer", proc () {
-            match oneshot.recv_opt() {
+            match oneshot.recv() {
                 Ok(_) => {
-                    terminate_sender.map(|s| s.send_opt(TerminateReason::TimedOut));
+                    terminate_sender.map(|s| s.send(TerminateReason::TimedOut));
                 },
                 Err(_) => {
                     // This occurs if xhr.timeout (the sender) goes out of scope (i.e, xhr went out of scope)
@@ -979,7 +979,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         use hyper::header::common::SetCookie;
 
         // a dummy header so we can use headers.remove::<SetCookie2>()
-        #[deriving(Clone)]
+        #[derive(Clone)]
         struct SetCookie2;
         impl Header for SetCookie2 {
             fn header_name(_: Option<SetCookie2>) -> &'static str {

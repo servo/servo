@@ -31,7 +31,7 @@ macro_rules! layout_debug_scope(
     )
 )
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct ScopeData {
     name: String,
     pre: String,

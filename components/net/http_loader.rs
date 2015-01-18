@@ -187,7 +187,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
             match response.read(buf.as_mut_slice()) {
                 Ok(len) => {
                     unsafe { buf.set_len(len); }
-                    if progress_chan.send_opt(Payload(buf)).is_err() {
+                    if progress_chan.send(Payload(buf)).is_err() {
                         // The send errors when the receiver is out of scope,
                         // which will happen if the fetch has timed out (or has been aborted)
                         // so we don't need to continue with the loading of the file here.
@@ -195,7 +195,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
                     }
                 }
                 Err(_) => {
-                    let _ = progress_chan.send_opt(Done(Ok(())));
+                    let _ = progress_chan.send(Done(Ok(())));
                     break;
                 }
             }

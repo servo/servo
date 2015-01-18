@@ -18,14 +18,14 @@ use servo_util::smallvec::VecLike;
 use servo_util::str::LengthOrPercentageOrAuto;
 
 /// Legacy presentational attributes that take a length as defined in HTML5 § 2.4.4.4.
-#[deriving(Copy, PartialEq, Eq)]
+#[derive(Copy, PartialEq, Eq)]
 pub enum LengthAttribute {
     /// `<td width>`
     Width,
 }
 
 /// Legacy presentational attributes that take an integer as defined in HTML5 § 2.4.4.2.
-#[deriving(Copy, PartialEq, Eq)]
+#[derive(Copy, PartialEq, Eq)]
 pub enum IntegerAttribute {
     /// `<input size>`
     Size,
@@ -34,7 +34,7 @@ pub enum IntegerAttribute {
 }
 
 /// Legacy presentational attributes that take a nonnegative integer as defined in HTML5 § 2.4.4.2.
-#[deriving(Copy, PartialEq, Eq)]
+#[derive(Copy, PartialEq, Eq)]
 pub enum UnsignedIntegerAttribute {
     /// `<td border>`
     Border,
@@ -43,7 +43,7 @@ pub enum UnsignedIntegerAttribute {
 }
 
 /// Legacy presentational attributes that take a simple color as defined in HTML5 § 2.4.6.
-#[deriving(Copy, PartialEq, Eq)]
+#[derive(Copy, PartialEq, Eq)]
 pub enum SimpleColorAttribute {
     /// `<body bgcolor>`
     BgColor,

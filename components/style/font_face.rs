@@ -32,13 +32,13 @@ pub fn iter_font_face_rules_inner(rules: &[CSSRule], device: &Device,
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum Source {
     Url(UrlSource),
     Local(String),
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct UrlSource {
     pub url: Url,
     pub format_hints: Vec<String>,

@@ -16,7 +16,7 @@ use url::Url;
 
 /// A struct to store image data. The image will be loaded once the first time it is requested,
 /// and an Arc will be stored.  Clones of this Arc are given out on demand.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ImageHolder<NodeAddress> {
     url: Url,
     image: Option<Arc<Box<Image>>>,

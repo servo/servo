@@ -13,7 +13,7 @@ use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
 
 /// A single "paragraph" of text in one font size and style.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct TextRun {
     pub text: Arc<String>,
     pub font_template: Arc<FontTemplateData>,
@@ -24,7 +24,7 @@ pub struct TextRun {
 }
 
 /// A single series of glyphs within a text run.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct GlyphRun {
     /// The glyphs.
     pub glyph_store: Arc<GlyphStore>,

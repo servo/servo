@@ -25,7 +25,7 @@ use hyper::status::StatusClass::Success;
 
 use url::{SchemeData, Url};
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct CORSRequest {
     pub origin: Url,
     pub destination: Url,
@@ -40,7 +40,7 @@ pub struct CORSRequest {
 /// http://fetch.spec.whatwg.org/#concept-request-mode
 /// This only covers some of the request modes. The
 /// `same-origin` and `no CORS` modes are unnecessary for XHR.
-#[deriving(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum RequestMode {
     CORS, // CORS
     ForcedPreflight // CORS-with-forced-preflight
@@ -240,12 +240,12 @@ impl CORSResponse {
 // CORS Cache stuff
 
 /// A CORS cache object. Anchor it somewhere to the user agent.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct CORSCache(Vec<CORSCacheEntry>);
 
 /// Union type for CORS cache entries
 /// Each entry might pertain to a header or method
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum HeaderOrMethod {
     HeaderData(String),
     MethodData(Method)
@@ -268,7 +268,7 @@ impl HeaderOrMethod {
 }
 
 // An entry in the CORS cache
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct CORSCacheEntry {
     pub origin: Url,
     pub url: Url,
@@ -383,7 +383,7 @@ fn is_simple_method(m: &Method) -> bool {
 }
 
 //XXX(seanmonstar): worth uplifting to Hyper?
-#[deriving(Clone)]
+#[derive(Clone)]
 struct AccessControlRequestMethod(pub Method);
 
 impl Header for AccessControlRequestMethod {
@@ -404,7 +404,7 @@ impl HeaderFormat for AccessControlRequestMethod {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct AccessControlRequestHeaders(pub Vec<String>);
 
 impl Header for AccessControlRequestHeaders {
@@ -425,7 +425,7 @@ impl HeaderFormat for AccessControlRequestHeaders {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct AccessControlAllowMethods(pub Vec<Method>);
 
 impl Header for AccessControlAllowMethods {
@@ -446,7 +446,7 @@ impl HeaderFormat for AccessControlAllowMethods {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct AccessControlAllowHeaders(pub Vec<String>);
 
 impl Header for AccessControlAllowHeaders {
@@ -467,7 +467,7 @@ impl HeaderFormat for AccessControlAllowHeaders {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 enum AccessControlAllowOrigin {
     AllowStar,
     AllowOrigin(Url),
@@ -504,7 +504,7 @@ impl HeaderFormat for AccessControlAllowOrigin {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct AccessControlMaxAge(pub u32);
 
 impl Header for AccessControlMaxAge {

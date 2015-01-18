@@ -68,7 +68,7 @@ pub trait FontTableMethods {
     fn with_buffer(&self, |*const u8, uint|);
 }
 
-#[deriving(Clone, Show)]
+#[derive(Clone, Show)]
 pub struct FontMetrics {
     pub underline_size:   Au,
     pub underline_offset: Au,
@@ -100,7 +100,7 @@ pub struct Font {
 }
 
 bitflags! {
-    #[deriving(Copy)]
+    #[derive(Copy)]
     flags ShapingFlags: u8 {
         #[doc="Set if the text is entirely whitespace."]
         const IS_WHITESPACE_SHAPING_FLAG = 0x01,
@@ -112,7 +112,7 @@ bitflags! {
 }
 
 /// Various options that control text shaping.
-#[deriving(Clone, Eq, PartialEq, Hash, Copy)]
+#[derive(Clone, Eq, PartialEq, Hash, Copy)]
 pub struct ShapingOptions {
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     /// NB: You will probably want to set the `IGNORE_LIGATURES_SHAPING_FLAG` if this is non-null.
@@ -124,13 +124,13 @@ pub struct ShapingOptions {
 }
 
 /// An entry in the shape cache.
-#[deriving(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 pub struct ShapeCacheEntry {
     text: String,
     options: ShapingOptions,
 }
 
-#[deriving(Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Eq, PartialEq, Hash)]
 struct ShapeCacheEntryRef<'a> {
     text: &'a str,
     options: &'a ShapingOptions,

@@ -19,7 +19,7 @@ use servo_util::str::DOMString;
 use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
 
-#[deriving(Clone)]
+#[derive(Clone)]
 #[jstraceable]
 #[must_root]
 pub enum FormDatum {

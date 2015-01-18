@@ -243,7 +243,7 @@ impl FontCache {
 
 /// The public interface to the font cache task, used exclusively by
 /// the per-thread/task FontContext structures.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct FontCacheTask {
     chan: Sender<Command>,
 }

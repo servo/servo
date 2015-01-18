@@ -12,7 +12,7 @@ use style::ComputedValues;
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]
-    #[deriving(Copy)]
+    #[derive(Copy)]
     flags RestyleDamage: u8 {
         #[doc = "Repaint the node itself."]
         #[doc = "Currently unused; need to decide how this propagates."]

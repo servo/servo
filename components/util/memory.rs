@@ -5,9 +5,11 @@
 //! Memory profiling functions.
 
 use libc::{c_char,c_int,c_void,size_t};
+use std::ffi::CString;
 use std::io::timer::sleep;
 #[cfg(target_os="linux")]
 use std::io::File;
+use std::mem;
 use std::mem::size_of;
 #[cfg(target_os="linux")]
 use std::os::page_size;
@@ -48,7 +50,7 @@ impl MemoryProfiler {
                 spawn_named("Memory profiler timer", move || {
                     loop {
                         sleep(period);
-                        if chan.send_opt(MemoryProfilerMsg::Print).is_err() {
+                        if chan.send(MemoryProfilerMsg::Print).is_err() {
                             break;
                         }
                     }
@@ -64,7 +66,7 @@ impl MemoryProfiler {
                 // inactive.
                 spawn_named("Memory profiler", move || {
                     loop {
-                        match port.recv_opt() {
+                        match port.recv() {
                             Err(_) | Ok(MemoryProfilerMsg::Exit) => break,
                             _ => {}
                         }
@@ -84,7 +86,7 @@ impl MemoryProfiler {
 
     pub fn start(&self) {
         loop {
-            match self.port.recv_opt() {
+            match self.port.recv() {
                Ok(msg) => {
                    if !self.handle_msg(msg) {
                        break
@@ -151,13 +153,14 @@ extern {
 
 fn get_jemalloc_stat(name: &'static str) -> Option<u64> {
     let mut old: size_t = 0;
-    let c_name = name.to_c_str();
+    let c_name = CString::from_slice(name.as_bytes());
     let oldp = &mut old as *mut _ as *mut c_void;
     let mut oldlen = size_of::<size_t>() as size_t;
     let rv: c_int;
     unsafe {
-        rv = je_mallctl(c_name.into_inner(), oldp, &mut oldlen, null_mut(), 0);
+        rv = je_mallctl(c_name.as_ptr(), oldp, &mut oldlen, null_mut(), 0);
     }
+    mem::forget(c_name); // XXX correct?
     if rv == 0 { Some(old as u64) } else { None }
 }
 

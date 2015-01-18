@@ -18,21 +18,21 @@ use servo_util::geometry::ScreenPx;
 use std::fmt::{Error, Formatter, Show};
 use std::rc::Rc;
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum MouseWindowEvent {
     Click(uint, TypedPoint2D<DevicePixel, f32>),
     MouseDown(uint, TypedPoint2D<DevicePixel, f32>),
     MouseUp(uint, TypedPoint2D<DevicePixel, f32>),
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum WindowNavigateMsg {
     Forward,
     Back,
 }
 
 /// Events that the windowing system sends to Servo.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum WindowEvent {
     /// Sent when no message has arrived, but the event loop was kicked for some reason (perhaps
     /// by another Servo subsystem).

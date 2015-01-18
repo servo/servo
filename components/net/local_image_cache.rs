@@ -38,7 +38,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct ImageState {
     prefetched: bool,
     decoded: bool,

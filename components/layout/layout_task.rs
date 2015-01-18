@@ -161,7 +161,7 @@ impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
                 debug!("Dirtying {:x}", node_address as uint);
                 let mut nodes = SmallVec1::new();
                 nodes.vec_push(node_address);
-                drop(chan.send_opt(ConstellationControlMsg::SendEvent(
+                drop(chan.send(ConstellationControlMsg::SendEvent(
                     id.clone(), CompositorEvent::ReflowEvent(nodes))))
             };
         f

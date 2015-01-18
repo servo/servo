@@ -17,7 +17,7 @@ use js::rust::with_compartment;
 use std::ptr;
 
 /// The exception handling used for a call.
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
     Report,
@@ -26,7 +26,7 @@ pub enum ExceptionHandling {
 }
 
 /// A common base class for representing IDL callback function types.
-#[deriving(Copy, Clone,PartialEq)]
+#[derive(Copy, Clone,PartialEq)]
 #[jstraceable]
 pub struct CallbackFunction {
     object: CallbackObject
@@ -44,7 +44,7 @@ impl CallbackFunction {
 }
 
 /// A common base class for representing IDL callback interface types.
-#[deriving(Copy, Clone,PartialEq)]
+#[derive(Copy, Clone,PartialEq)]
 #[jstraceable]
 pub struct CallbackInterface {
     object: CallbackObject
@@ -53,7 +53,7 @@ pub struct CallbackInterface {
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[allow(raw_pointer_deriving)]
-#[deriving(Copy, Clone,PartialEq)]
+#[derive(Copy, Clone,PartialEq)]
 #[jstraceable]
 struct CallbackObject {
     /// The underlying `JSObject`.

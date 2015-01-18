@@ -10,7 +10,7 @@ use servo_util::task::spawn_named;
 
 use std::comm;
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum CanvasMsg {
     FillRect(Rect<f32>),
     ClearRect(Rect<f32>),

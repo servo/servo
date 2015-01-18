@@ -89,7 +89,7 @@ use time::{Tm, strptime};
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None))
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum TimerSource {
     FromWindow(PipelineId),
     FromWorker
@@ -1308,7 +1308,7 @@ pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
 }
 
 //FIXME(seanmonstar): uplift to Hyper
-#[deriving(Clone)]
+#[derive(Clone)]
 struct LastModified(pub Tm);
 
 impl Header for LastModified {

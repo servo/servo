@@ -48,7 +48,7 @@ pub enum Msg {
     WaitForStorePrefetched(Sender<()>),
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum ImageResponseMsg {
     ImageReady(Arc<Box<Image>>),
     ImageNotReady,
@@ -67,7 +67,7 @@ impl PartialEq for ImageResponseMsg {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ImageCacheTask {
     chan: Sender<Msg>,
 }
@@ -146,7 +146,7 @@ struct ImageCache {
     task_pool: TaskPool,
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 enum ImageState {
     Init,
     Prefetching(AfterPrefetch),
@@ -156,7 +156,7 @@ enum ImageState {
     Failed
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 enum AfterPrefetch {
     DoDecode,
     DoNotDecode

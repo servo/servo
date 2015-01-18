@@ -60,7 +60,7 @@ pub static BOX_SHADOW_INFLATION_FACTOR: i32 = 3;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[deriving(Clone, PartialEq, Copy)]
+#[derive(Clone, PartialEq, Copy)]
 pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {
@@ -473,7 +473,7 @@ pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id
 }
 
 /// One drawing command in the list.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum DisplayItem {
     SolidColorClass(Box<SolidColorDisplayItem>),
     TextClass(Box<TextDisplayItem>),
@@ -485,7 +485,7 @@ pub enum DisplayItem {
 }
 
 /// Information common to all display items.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
     pub bounds: Rect<Au>,
@@ -512,7 +512,7 @@ impl BaseDisplayItem {
 /// A clipping region for a display item. Currently, this can describe rectangles, rounded
 /// rectangles (for `border-radius`), or arbitrary intersections of the two. Arbitrary transforms
 /// are not supported because those are handled by the higher-level `StackingContext` abstraction.
-#[deriving(Clone, PartialEq, Show)]
+#[derive(Clone, PartialEq, Show)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
     pub main: Rect<Au>,
@@ -526,7 +526,7 @@ pub struct ClippingRegion {
 /// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
 /// they're stored in a list over to the side. Currently a complex clipping region is just a
 /// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
-#[deriving(Clone, PartialEq, Show)]
+#[derive(Clone, PartialEq, Show)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
     pub rect: Rect<Au>,
@@ -637,7 +637,7 @@ impl ClippingRegion {
 /// Metadata attached to each display item. This is useful for performing auxiliary tasks with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
-#[deriving(Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct DisplayItemMetadata {
     /// The DOM node from which this display item originated.
     pub node: OpaqueNode,
@@ -666,14 +666,14 @@ impl DisplayItemMetadata {
 }
 
 /// Paints a solid color.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct SolidColorDisplayItem {
     pub base: BaseDisplayItem,
     pub color: Color,
 }
 
 /// Paints text.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct TextDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -691,7 +691,7 @@ pub struct TextDisplayItem {
     pub orientation: TextOrientation,
 }
 
-#[deriving(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum TextOrientation {
     Upright,
     SidewaysLeft,
@@ -699,7 +699,7 @@ pub enum TextOrientation {
 }
 
 /// Paints an image.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ImageDisplayItem {
     pub base: BaseDisplayItem,
     pub image: Arc<Box<Image>>,
@@ -711,7 +711,7 @@ pub struct ImageDisplayItem {
 }
 
 /// Paints a gradient.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct GradientDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -727,7 +727,7 @@ pub struct GradientDisplayItem {
 }
 
 /// Paints a border.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct BorderDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -750,7 +750,7 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[deriving(Clone, Default, PartialEq, Show, Copy)]
+#[derive(Clone, Default, PartialEq, Show, Copy)]
 pub struct BorderRadii<T> {
     pub top_left: T,
     pub top_right: T,
@@ -768,7 +768,7 @@ impl<T> BorderRadii<T> where T: PartialEq + Zero {
 }
 
 /// Paints a line segment.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct LineDisplayItem {
     pub base: BaseDisplayItem,
 
@@ -780,7 +780,7 @@ pub struct LineDisplayItem {
 }
 
 /// Paints a box shadow per CSS-BACKGROUNDS.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct BoxShadowDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,

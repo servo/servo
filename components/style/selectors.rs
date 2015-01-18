@@ -16,20 +16,20 @@ use string_cache::{Atom, Namespace};
 use namespaces::NamespaceMap;
 
 /// Ambient data used by the parser.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct ParserContext {
     /// The origin of this stylesheet.
     pub origin: StylesheetOrigin,
 }
 
-#[deriving(PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct Selector {
     pub compound_selectors: Arc<CompoundSelector>,
     pub pseudo_element: Option<PseudoElement>,
     pub specificity: u32,
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash, Copy)]
+#[derive(Eq, PartialEq, Clone, Hash, Copy)]
 pub enum PseudoElement {
     Before,
     After,
@@ -38,13 +38,13 @@ pub enum PseudoElement {
 }
 
 
-#[deriving(PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct CompoundSelector {
     pub simple_selectors: Vec<SimpleSelector>,
     pub next: Option<(Box<CompoundSelector>, Combinator)>,  // c.next is left of c
 }
 
-#[deriving(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Combinator {
     Child,  //  >
     Descendant,  // space
@@ -52,7 +52,7 @@ pub enum Combinator {
     LaterSibling,  // ~
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[derive(Eq, PartialEq, Clone, Hash)]
 pub enum SimpleSelector {
     ID(Atom),
     Class(Atom),
@@ -94,27 +94,27 @@ pub enum SimpleSelector {
 }
 
 
-#[deriving(Eq, PartialEq, Clone, Hash, Copy)]
+#[derive(Eq, PartialEq, Clone, Hash, Copy)]
 pub enum CaseSensitivity {
     CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
     CaseInsensitive,
 }
 
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[derive(Eq, PartialEq, Clone, Hash)]
 pub struct LocalName {
     pub name: Atom,
     pub lower_name: Atom,
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[derive(Eq, PartialEq, Clone, Hash)]
 pub struct AttrSelector {
     pub name: Atom,
     pub lower_name: Atom,
     pub namespace: NamespaceConstraint,
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[derive(Eq, PartialEq, Clone, Hash)]
 pub enum NamespaceConstraint {
     Any,
     Specific(Namespace),

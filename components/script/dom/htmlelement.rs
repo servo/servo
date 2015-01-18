@@ -204,7 +204,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
     }
 }
 
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum HTMLElementTypeId {
     HTMLElement,

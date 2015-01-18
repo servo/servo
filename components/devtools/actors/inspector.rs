@@ -26,13 +26,13 @@ pub struct InspectorActor {
     pub pipeline: PipelineId,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct GetHighlighterReply {
     highligter: HighlighterMsg, // sic.
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct HighlighterMsg {
     actor: String,
 }
@@ -47,12 +47,12 @@ pub struct NodeActor {
     pipeline: PipelineId,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct ShowBoxModelReply {
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct HideBoxModelReply {
     from: String,
 }
@@ -89,7 +89,7 @@ impl Actor for HighlighterActor {
     }
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct ModifyAttributeReply{
     from: String,
 }
@@ -127,26 +127,26 @@ impl Actor for NodeActor {
     }
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct GetWalkerReply {
     from: String,
     walker: WalkerMsg,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct WalkerMsg {
     actor: String,
     root: NodeActorMsg,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct AttrMsg {
     namespace: String,
     name: String,
     value: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct NodeActorMsg {
     actor: String,
     baseURI: String,
@@ -243,23 +243,23 @@ struct WalkerActor {
     pipeline: PipelineId,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct QuerySelectorReply {
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct DocumentElementReply {
     from: String,
     node: NodeActorMsg,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct ClearPseudoclassesReply {
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct ChildrenReply {
     hasFirst: bool,
     hasLast: bool,
@@ -333,13 +333,13 @@ impl Actor for WalkerActor {
     }
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct GetPageStyleReply {
     from: String,
     pageStyle: PageStyleMsg,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct PageStyleMsg {
     actor: String,
 }
@@ -350,7 +350,7 @@ struct PageStyleActor {
     pipeline: PipelineId,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct GetAppliedReply {
     entries: Vec<AppliedEntry>,
     rules: Vec<AppliedRule>,
@@ -358,13 +358,13 @@ struct GetAppliedReply {
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct GetComputedReply {
     computed: Vec<uint>, //XXX all css props
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct AppliedEntry {
     rule: String,
     pseudoElement: Json,
@@ -372,7 +372,7 @@ struct AppliedEntry {
     matchedSelectors: Vec<String>,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct AppliedRule {
     actor: String,
     __type__: uint,
@@ -383,7 +383,7 @@ struct AppliedRule {
     parentStyleSheet: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct AppliedSheet {
     actor: String,
     href: String,
@@ -395,7 +395,7 @@ struct AppliedSheet {
     ruleCount: uint,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct GetLayoutReply {
     width: int,
     height: int,
@@ -403,7 +403,7 @@ struct GetLayoutReply {
     from: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 #[allow(dead_code)]
 struct AutoMargins {
     top: String,

@@ -13,28 +13,28 @@ use protocol::JsonPacketStream;
 use serialize::json;
 use std::io::TcpStream;
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct ActorTraits {
     sources: bool,
     highlightable: bool,
     customHighlighters: Vec<String>,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct ErrorReply {
     from: String,
     error: String,
     message: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct ListTabsReply {
     from: String,
     selected: uint,
     tabs: Vec<TabActorMsg>,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct RootActorMsg {
     from: String,
     applicationType: String,

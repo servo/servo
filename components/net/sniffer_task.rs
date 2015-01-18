@@ -33,9 +33,9 @@ impl SnifferManager {
 impl SnifferManager {
     fn start(self) {
         loop {
-            match self.data_receiver.recv_opt() {
+            match self.data_receiver.recv() {
                 Ok(snif_data) => {
-                    let _ = snif_data.consumer.send_opt(snif_data.load_response);
+                    let _ = snif_data.consumer.send(snif_data.load_response);
                 }
                 Err(_) => break,
             }

@@ -131,7 +131,7 @@ pub trait CompositorLayer<Window: WindowMethods> {
     fn get_pipeline_id(&self) -> PipelineId;
 }
 
-#[deriving(Copy, PartialEq, Clone)]
+#[derive(Copy, PartialEq, Clone)]
 pub enum WantsScrollEventsFlag {
     WantsScrollEvents,
     DoesntWantScrollEvents,
@@ -167,7 +167,7 @@ fn calculate_content_size_for_layer(layer: &Layer<CompositorData>)
                                  }).size
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum ScrollEventResult {
     ScrollEventUnhandled,
     ScrollPositionChanged,
@@ -210,7 +210,7 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
                    epoch,
                    self.get_pipeline_id());
             let pipeline = compositor.get_pipeline(self.get_pipeline_id());
-            let _ = pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(new_buffers.buffers));
+            let _ = pipeline.paint_chan.send(PaintMsg::UnusedBuffer(new_buffers.buffers));
             return false;
         }
 
@@ -221,7 +221,7 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
         let unused_buffers = self.collect_unused_buffers();
         if !unused_buffers.is_empty() { // send back unused buffers
             let pipeline = compositor.get_pipeline(self.get_pipeline_id());
-            let _ = pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(unused_buffers));
+            let _ = pipeline.paint_chan.send(PaintMsg::UnusedBuffer(unused_buffers));
         }
 
         return true;
@@ -239,7 +239,7 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
             }
 
             let pipeline = compositor.get_pipeline(self.get_pipeline_id());
-            let _ = pipeline.paint_chan.send_opt(PaintMsg::UnusedBuffer(buffers));
+            let _ = pipeline.paint_chan.send(PaintMsg::UnusedBuffer(buffers));
         }
     }
 
@@ -341,7 +341,7 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
 
         let pipeline = compositor.get_pipeline(self.get_pipeline_id());
         let ScriptControlChan(ref chan) = pipeline.script_chan;
-        let _ = chan.send_opt(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+        let _ = chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn send_mouse_move_event(&self,
@@ -350,7 +350,7 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
         let message = MouseMoveEvent(cursor.to_untyped());
         let pipeline = compositor.get_pipeline(self.get_pipeline_id());
         let ScriptControlChan(ref chan) = pipeline.script_chan;
-        let _ = chan.send_opt(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
+        let _ = chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
     fn scroll_layer_and_all_child_layers(&self, new_offset: TypedPoint2D<LayerPixel, f32>)

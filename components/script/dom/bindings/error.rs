@@ -21,7 +21,7 @@ use libc;
 use std::ptr;
 
 /// DOM exceptions that can be thrown by a native DOM method.
-#[deriving(Show, Clone)]
+#[derive(Show, Clone)]
 pub enum Error {
     /// IndexSizeError
     IndexSize,

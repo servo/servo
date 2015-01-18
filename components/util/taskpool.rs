@@ -21,7 +21,7 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use std::thunk::Thunk;
 
 pub struct TaskPool {
-    tx: Sender<Thunk>,
+    tx: Sender<Thunk<()>>,
 }
 
 impl TaskPool {
@@ -40,9 +40,9 @@ impl TaskPool {
 
         return TaskPool { tx: tx };
 
-        fn worker(rx: &Mutex<Receiver<Thunk>>) {
+        fn worker(rx: &Mutex<Receiver<Thunk<()>>>) {
             loop {
-                let job = rx.lock().recv_opt();
+                let job = rx.lock().unwrap().recv();
                 match job {
                     Ok(job) => job(),
                     Err(..) => break,

@@ -70,7 +70,7 @@ use std::cell::{Cell, Ref};
 use std::default::Default;
 use time;
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 #[jstraceable]
 pub enum IsHTMLDocument {
     HTMLDocument,
@@ -384,7 +384,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     }
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum DocumentSource {
     FromParser,
     NotFromParser,

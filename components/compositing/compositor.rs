@@ -134,14 +134,14 @@ pub struct ScrollEvent {
     cursor: TypedPoint2D<DevicePixel,i32>,
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 enum CompositionRequest {
     NoCompositingNecessary,
     CompositeOnScrollTimeout(u64),
     CompositeNow,
 }
 
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 enum ShutdownState {
     NotShuttingDown,
     ShuttingDown,
@@ -741,7 +741,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let pipeline = self.get_pipeline(pipeline_id);
         let message = PaintMsg::UnusedBuffer(new_layer_buffer_set.buffers);
-        let _ = pipeline.paint_chan.send_opt(message);
+        let _ = pipeline.paint_chan.send(message);
     }
 
     fn assign_painted_buffers_to_layer(&mut self,
@@ -1032,7 +1032,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let unused_buffers = self.scene.collect_unused_buffers();
                 if unused_buffers.len() != 0 {
                     let message = PaintMsg::UnusedBuffer(unused_buffers);
-                    let _ = pipeline.paint_chan.send_opt(message);
+                    let _ = pipeline.paint_chan.send(message);
                 }
             },
             None => {}
@@ -1081,7 +1081,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut num_paint_msgs_sent = 0;
         for (pipeline_id, requests) in pipeline_requests.into_iter() {
             num_paint_msgs_sent += 1;
-            let _ = self.get_pipeline(pipeline_id).paint_chan.send_opt(PaintMsg::Paint(requests));
+            let _ = self.get_pipeline(pipeline_id).paint_chan.send(PaintMsg::Paint(requests));
         }
 
         self.add_outstanding_paint_msg(num_paint_msgs_sent);

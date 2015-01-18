@@ -84,7 +84,7 @@ pub const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 pub const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
 /// Representation of an IDL constant value.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum ConstantVal {
     /// `long` constant.
     IntVal(i32),
@@ -99,7 +99,7 @@ pub enum ConstantVal {
 }
 
 /// Representation of an IDL constant.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ConstantSpec {
     /// name of the constant.
     pub name: &'static [u8],
@@ -130,7 +130,7 @@ pub struct NativePropertyHooks {
 }
 
 /// The struct that holds inheritance information for DOM object reflectors.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
@@ -141,7 +141,7 @@ pub struct DOMClass {
 }
 
 /// The JSClass used for DOM object reflectors.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct DOMJSClass {
     /// The actual JSClass.
     pub base: js::Class,
@@ -351,7 +351,7 @@ pub fn reflect_dom_object<T: Reflectable>
 /// A struct to store a reference to the reflector of a DOM object.
 // Allowing unused_attribute because the lint sometimes doesn't run in order
 #[allow(raw_pointer_deriving, unrooted_must_root, unused_attributes)]
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 #[must_root]
 #[servo_lang = "reflector"]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
@@ -594,7 +594,7 @@ pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
 }
 
 /// Results of `xml_name_type`.
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 #[allow(missing_docs)]
 pub enum XMLName {
     QName,

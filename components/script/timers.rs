@@ -26,9 +26,9 @@ use std::hash::{Hash, sip};
 use std::io::timer::Timer;
 use std::time::duration::Duration;
 
-#[deriving(PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 #[jstraceable]
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct TimerId(i32);
 
 #[jstraceable]
@@ -40,7 +40,7 @@ struct TimerHandle {
 }
 
 #[jstraceable]
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum TimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(Function)
@@ -55,7 +55,7 @@ impl Hash for TimerId {
 
 impl TimerHandle {
     fn cancel(&mut self) {
-        self.cancel_chan.as_ref().map(|chan| chan.send_opt(()).ok());
+        self.cancel_chan.as_ref().map(|chan| chan.send(()).ok());
     }
 }
 
@@ -78,7 +78,7 @@ impl Drop for TimerManager {
 
 // Enum allowing more descriptive values for the is_interval field
 #[jstraceable]
-#[deriving(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum IsInterval {
     Interval,
     NonInterval,
@@ -90,7 +90,7 @@ pub enum IsInterval {
 // TODO: Handle rooting during fire_timer when movable GC is turned on
 #[jstraceable]
 #[privatize]
-#[deriving(Clone)]
+#[derive(Clone)]
 struct TimerData {
     is_interval: IsInterval,
     callback: TimerCallback,

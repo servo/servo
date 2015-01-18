@@ -99,7 +99,7 @@ pub enum ScriptDevtoolControlMsg {
     ReportConsoleMsg(String),
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub struct Modification{
     pub attributeName: String,
     pub newValue: Option<String>,

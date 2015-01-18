@@ -86,7 +86,7 @@ pub enum CompositorEvent {
 pub struct OpaqueScriptLayoutChannel(pub (Box<Any+Send>, Box<Any+Send>));
 
 /// Encapsulates external communication with the script task.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ScriptControlChan(pub Sender<ConstellationControlMsg>);
 
 impl<S: Encoder<E>, E> Encodable<S, E> for ScriptControlChan {

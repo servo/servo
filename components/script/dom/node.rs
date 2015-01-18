@@ -121,7 +121,7 @@ impl NodeDerived for EventTarget {
 bitflags! {
     #[doc = "Flags for node items."]
     #[jstraceable]
-    #[deriving(Copy)]
+    #[derive(Copy)]
     flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
@@ -182,7 +182,7 @@ impl Drop for Node {
 /// suppress observers flag
 /// http://dom.spec.whatwg.org/#concept-node-insert
 /// http://dom.spec.whatwg.org/#concept-node-remove
-#[deriving(Copy)]
+#[derive(Copy)]
 enum SuppressObserver {
     Suppressed,
     Unsuppressed
@@ -255,7 +255,7 @@ impl LayoutDataRef {
 }
 
 /// The different types of nodes.
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum NodeTypeId {
     DocumentType,
@@ -1160,7 +1160,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
 }
 
 /// Specifies whether children must be recursively cloned or not.
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 pub enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren
@@ -2190,7 +2190,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 /// and are also used in the HTML parser interface.
 
 #[allow(raw_pointer_deriving)]
-#[deriving(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, PartialEq, Eq, Copy)]
 pub struct TrustedNodeAddress(pub *const c_void);
 
 pub fn document_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Document> {
@@ -2372,7 +2372,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
 }
 
 /// A summary of the changes that happened to a node.
-#[deriving(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum NodeDamage {
     /// The node's `style` attribute changed.
     NodeStyleDamaged,

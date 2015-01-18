@@ -90,7 +90,7 @@ pub struct Constellation<LTF, STF> {
 }
 
 /// A unique ID used to identify a frame.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct FrameId(u32);
 
 /// One frame in the hierarchy.
@@ -124,7 +124,7 @@ impl FrameTree {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct ChildFrameTree {
     frame_tree: Rc<FrameTree>,
     /// Clipping rect representing the size and position, in page coordinates, of the visible
@@ -715,7 +715,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             old_pipeline.to_sendable(),
             new_pipeline.to_sendable(),
             chan));
-        let _ = port.recv_opt();
+        let _ = port.recv();
     }
 
     fn create_or_update_child_pipeline(&mut self,
@@ -991,7 +991,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             debug!("constellation sending resize message to active frame");
             let pipeline = &*frame_tree.pipeline.borrow();;
             let ScriptControlChan(ref chan) = pipeline.script_chan;
-            let _ = chan.send_opt(ConstellationControlMsg::Resize(pipeline.id, new_size));
+            let _ = chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
             already_seen.insert(pipeline.id);
         }
         for frame_tree in self.navigation_context.previous.iter()
@@ -1000,7 +1000,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             if !already_seen.contains(&pipeline.id) {
                 debug!("constellation sending resize message to inactive frame");
                 let ScriptControlChan(ref chan) = pipeline.script_chan;
-                let _ = chan.send_opt(ConstellationControlMsg::ResizeInactive(pipeline.id, new_size));
+                let _ = chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id, new_size));
                 already_seen.insert(pipeline.id);
             }
         }
@@ -1013,7 +1013,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation sending resize message to pending outer frame ({})",
                        frame_tree.pipeline.borrow().id);
                 let ScriptControlChan(ref chan) = frame_tree.pipeline.borrow().script_chan;
-                let _ = chan.send_opt(ConstellationControlMsg::Resize(
+                let _ = chan.send(ConstellationControlMsg::Resize(
                     frame_tree.pipeline.borrow().id, new_size));
             }
         }
@@ -1070,7 +1070,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.compositor_proxy.send(CompositorMsg::SetFrameTree(frame_tree.to_sendable(),
                                                                chan,
                                                                self.chan.clone()));
-        match port.recv_opt() {
+        match port.recv() {
             Ok(()) => {
                 let mut iter = frame_tree.iter();
                 for frame in iter {
@@ -1125,7 +1125,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             child.frame_tree.pipeline.borrow().to_sendable(),
             child.rect,
             chan));
-        match port.recv_opt() {
+        match port.recv() {
             Ok(()) => {
                 child.frame_tree.has_compositor_layer.set(true);
                 child.frame_tree.pipeline.borrow().grant_paint_permission();

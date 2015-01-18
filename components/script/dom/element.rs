@@ -88,14 +88,14 @@ impl ElementDerived for EventTarget {
     }
 }
 
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum ElementTypeId {
     HTMLElement(HTMLElementTypeId),
     Element,
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum ElementCreator {
     ParserCreated,
     ScriptCreated,
@@ -387,7 +387,7 @@ impl LayoutElementHelpers for JS<Element> {
     }
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum StylePriority {
     Important,
     Normal,

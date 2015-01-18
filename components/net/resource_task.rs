@@ -28,7 +28,7 @@ pub enum ControlMsg {
     Exit
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct LoadData {
     pub url: Url,
     pub method: Method,
@@ -51,7 +51,7 @@ impl LoadData {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ResourceCORSData {
     /// CORS Preflight flag
     pub preflight: bool,
@@ -130,7 +130,7 @@ pub struct ResponseSenders {
 }
 
 /// Messages sent in response to a `Load` message
-#[deriving(PartialEq,Show)]
+#[derive(PartialEq,Show)]
 pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),
@@ -146,7 +146,7 @@ pub fn start_sending(senders: ResponseSenders, metadata: Metadata) -> Sender<Pro
 /// For use by loaders in responding to a Load message.
 pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result<Sender<ProgressMsg>, ()> {
     let (progress_chan, progress_port) = channel();
-    let result = senders.immediate_consumer.send_opt(TargetedLoadResponse {
+    let result = senders.immediate_consumer.send(TargetedLoadResponse {
         load_response: LoadResponse {
             metadata:      metadata,
             progress_port: progress_port,

@@ -22,7 +22,7 @@ use style::{UnsignedIntegerAttribute, ComputedValues};
 use std::sync::Arc;
 
 /// A table formatting context.
-#[deriving(Encodable)]
+#[derive(Encodable)]
 pub struct TableCellFlow {
     /// Data common to all block flows.
     pub block_flow: BlockFlow,

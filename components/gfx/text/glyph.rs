@@ -23,7 +23,7 @@ use geom::point::Point2D;
 /// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
-#[deriving(Clone, Show, Copy)]
+#[derive(Clone, Show, Copy)]
 struct GlyphEntry {
     value: u32,
 }
@@ -88,7 +88,7 @@ impl GlyphEntry {
 pub type GlyphId = u32;
 
 // TODO: unify with bit flags?
-#[deriving(PartialEq, Copy)]
+#[derive(PartialEq, Copy)]
 pub enum BreakType {
     None,
     Normal,
@@ -252,7 +252,7 @@ impl GlyphEntry {
 
 // Stores data for a detailed glyph, in the case that several glyphs
 // correspond to one character, or the glyph's data couldn't be packed.
-#[deriving(Clone, Show, Copy)]
+#[derive(Clone, Show, Copy)]
 struct DetailedGlyph {
     id: GlyphId,
     // glyph's advance, in the text's direction (RTL or RTL)
@@ -271,7 +271,7 @@ impl DetailedGlyph {
     }
 }
 
-#[deriving(PartialEq, Clone, Eq, Show, Copy)]
+#[derive(PartialEq, Clone, Eq, Show, Copy)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: CharIndex,
@@ -412,7 +412,7 @@ impl<'a> DetailedGlyphStore {
 
 // This struct is used by GlyphStore clients to provide new glyph data.
 // It should be allocated on the stack and passed by reference to GlyphStore.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct GlyphData {
     id: GlyphId,
     advance: Au,
@@ -445,7 +445,7 @@ impl GlyphData {
 // through glyphs (either for a particular TextRun offset, or all glyphs).
 // Rather than eagerly assembling and copying glyph data, it only retrieves
 // values as they are needed from the GlyphStore, using provided offsets.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum GlyphInfo<'a> {
     Simple(&'a GlyphStore, CharIndex),
     Detail(&'a GlyphStore, CharIndex, u16),
@@ -514,7 +514,7 @@ pub struct GlyphStore {
 }
 
 int_range_index! {
-    #[deriving(Encodable)]
+    #[derive(Encodable)]
     #[doc = "An index that refers to a character in a text run. This could \
              point to the middle of a glyph."]
     struct CharIndex(int)

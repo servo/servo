@@ -28,7 +28,7 @@ pub enum AttrSettingType {
     ReplacedAttr,
 }
 
-#[deriving(PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 #[jstraceable]
 pub enum AttrValue {
     String(DOMString),

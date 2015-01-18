@@ -9,7 +9,9 @@ use std::cmp::Ordering;
 use std::f64;
 use std::io::timer::sleep;
 use std::iter::AdditiveIterator;
+use std::num::Float;
 use std::sync::mpsc::{Sender, channel, Receiver};
+use std::thunk::Thunk;
 use std::time::duration::Duration;
 use std_time::precise_time_ns;
 use task::{spawn_named};
@@ -144,30 +146,30 @@ impl TimeProfiler {
             Some(period) => {
                 let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
-                spawn_named("Time profiler timer", move || {
+                spawn_named("Time profiler timer", Thunk::new(move || {
                     loop {
                         sleep(period);
                         if chan.send(TimeProfilerMsg::Print).is_err() {
                             break;
                         }
                     }
-                });
+                }));
                 // Spawn the time profiler.
-                spawn_named("Time profiler", move || {
+                spawn_named("Time profiler", Thunk::new(move || {
                     let mut profiler = TimeProfiler::new(port);
                     profiler.start();
-                });
+                }));
             }
             None => {
                 // No-op to handle messages when the time profiler is inactive.
-                spawn_named("Time profiler", move || {
+                spawn_named("Time profiler", Thunk::new(move || {
                     loop {
                         match port.recv() {
                             Err(_) | Ok(TimeProfilerMsg::Exit) => break,
                             _ => {}
                         }
                     }
-                });
+                }));
             }
         }
 
@@ -261,11 +263,13 @@ pub enum TimerMetadataReflowType {
 
 pub type ProfilerMetadata<'a> = Option<(&'a Url, TimerMetadataFrameType, TimerMetadataReflowType)>;
 
-pub fn profile<T>(category: TimeProfilerCategory,
-                  meta: ProfilerMetadata,
-                  time_profiler_chan: TimeProfilerChan,
-                  callback: Fn() -> T)
-                  -> T {
+pub fn profile<T, F>(category: TimeProfilerCategory,
+                     meta: ProfilerMetadata,
+                     time_profiler_chan: TimeProfilerChan,
+                     callback: F)
+                  -> T
+    where F: Fn() -> T
+{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
@@ -280,7 +284,9 @@ pub fn profile<T>(category: TimeProfilerCategory,
     return val;
 }
 
-pub fn time<T>(msg: &str, callback: Fn() -> T) -> T{
+pub fn time<T, F>(msg: &str, callback: F) -> T
+    where F: Fn() -> T
+{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();

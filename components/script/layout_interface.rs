@@ -77,7 +77,7 @@ pub struct HitTestResponse(pub UntrustedNodeAddress);
 pub struct MouseOverResponse(pub Vec<UntrustedNodeAddress>);
 
 /// Why we're doing reflow.
-#[deriving(PartialEq, Show)]
+#[derive(PartialEq, Show)]
 pub enum ReflowGoal {
     /// We're reflowing in order to send a display list to the screen.
     ForDisplay,
@@ -117,7 +117,7 @@ pub struct Reflow {
 }
 
 /// Encapsulates a channel to the layout task.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct LayoutChan(pub Sender<Msg>);
 
 impl LayoutChan {

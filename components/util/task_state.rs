@@ -11,7 +11,7 @@
 pub use self::imp::{initialize, get, enter, exit};
 
 bitflags! {
-    #[deriving(Show, Copy)]
+    #[derive(Show)]
     flags TaskState: u32 {
         const SCRIPT          = 0x01,
         const LAYOUT          = 0x02,
@@ -53,7 +53,7 @@ mod imp {
     pub fn initialize(x: TaskState) {
         STATE.with(|ref k| {
             match *k.borrow() {
-                Some(s) => panic!("Task state already initialized as {}", s),
+                Some(s) => panic!("Task state already initialized as {:?}", s),
                 None => ()
             };
             *k.borrow_mut() = Some(x);

@@ -37,7 +37,7 @@ use url::Url;
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// every message. While this SendableWorkerScriptChan is alive, the associated Worker object
 /// will remain alive.
-#[deriving(Clone)]
+#[derive(Clone)]
 #[jstraceable]
 pub struct SendableWorkerScriptChan {
     sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
@@ -165,7 +165,7 @@ impl DedicatedWorkerGlobalScope {
             }
 
             loop {
-                match global.r().receiver.recv_opt() {
+                match global.r().receiver.recv() {
                     Ok((linked_worker, msg)) => {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                         global.r().handle_event(msg);

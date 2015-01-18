@@ -11,7 +11,7 @@ use std::str;
 use std::str::FromStr;
 
 /// Encapsulates the IDL `ByteString` type.
-#[deriving(Clone,Eq,PartialEq)]
+#[derive(Clone,Eq,PartialEq)]
 #[jstraceable]
 pub struct ByteString(Vec<u8>);
 
@@ -83,7 +83,7 @@ impl ByteString {
     /// [RFC 2616](http://tools.ietf.org/html/rfc2616#page-32).
     pub fn is_field_value(&self) -> bool {
         // Classifications of characters necessary for the [CRLF] (SP|HT) rule
-        #[deriving(PartialEq)]
+        #[derive(PartialEq)]
         enum PreviousCharacter {
             Other,
             CR,

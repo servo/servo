@@ -29,7 +29,7 @@ pub struct CSSStyleDeclaration {
     readonly: bool,
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum CSSModificationAccess {
     ReadWrite,
     Readonly

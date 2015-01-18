@@ -24,7 +24,7 @@ use selectors::{PseudoElement, SelectorList, SimpleSelector};
 use selectors::{get_selector_list_selectors};
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
 
-#[deriving(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, PartialEq, Eq, Copy)]
 pub enum StylesheetOrigin {
     UserAgent,
     Author,
@@ -518,7 +518,7 @@ impl PerPseudoElementSelectorMap {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct Rule {
     // This is an Arc because Rule will essentially be cloned for every node
     // that it matches. Selector contains an owned vector (through
@@ -529,7 +529,7 @@ struct Rule {
 
 /// A property declaration together with its precedence among rules of equal specificity so that
 /// we can sort them.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct DeclarationBlock {
     pub declarations: Arc<Vec<PropertyDeclaration>>,
     source_order: uint,
@@ -624,7 +624,7 @@ fn matches_compound_selector<'a,E,N>(selector: &CompoundSelector,
 /// However since the selector "c1" raises
 /// NotMatchedAndRestartFromClosestDescendant. So the selector
 /// "b1 + c1 > b2 ~ " doesn't match and restart matching from "d1".
-#[deriving(PartialEq, Eq, Copy)]
+#[derive(PartialEq, Eq, Copy)]
 enum SelectorMatchingResult {
     Matched,
     NotMatchedAndRestartFromClosestLaterSibling,
@@ -764,7 +764,7 @@ fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
 }
 
 bitflags! {
-    #[deriving(Copy)]
+    #[derive(Copy)]
     flags CommonStyleAffectingAttributes: u8 {
         const HIDDEN_ATTRIBUTE = 0x01,
         const NO_WRAP_ATTRIBUTE = 0x02,
@@ -779,7 +779,7 @@ pub struct CommonStyleAffectingAttributeInfo {
     pub mode: CommonStyleAffectingAttributeMode,
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum CommonStyleAffectingAttributeMode {
     IsPresent(CommonStyleAffectingAttributes),
     IsEqual(&'static str, CommonStyleAffectingAttributes),

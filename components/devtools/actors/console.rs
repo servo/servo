@@ -19,12 +19,12 @@ use serialize::json::{mod, Json, ToJson};
 use std::io::TcpStream;
 use std::num::Float;
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct StartedListenersTraits {
     customNetworkRequest: bool,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct StartedListenersReply {
     from: String,
     nativeConsoleAPI: bool,
@@ -32,13 +32,13 @@ struct StartedListenersReply {
     traits: StartedListenersTraits,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 #[allow(dead_code)]
 struct ConsoleAPIMessage {
     _type: String, //FIXME: should this be __type__ instead?
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 #[allow(dead_code)]
 struct PageErrorMessage {
     _type: String, //FIXME: should this be __type__ instead?
@@ -56,7 +56,7 @@ struct PageErrorMessage {
     private: bool,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 #[allow(dead_code)]
 struct LogMessage {
     _type: String, //FIXME: should this be __type__ instead?
@@ -64,7 +64,7 @@ struct LogMessage {
     message: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 #[allow(dead_code)]
 enum ConsoleMessageType {
     ConsoleAPIType(ConsoleAPIMessage),
@@ -72,26 +72,26 @@ enum ConsoleMessageType {
     LogMessageType(LogMessage),
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct GetCachedMessagesReply {
     from: String,
     messages: Vec<json::Object>,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct StopListenersReply {
     from: String,
     stoppedListeners: Vec<String>,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct AutocompleteReply {
     from: String,
     matches: Vec<String>,
     matchProp: String,
 }
 
-#[deriving(Encodable)]
+#[derive(Encodable)]
 struct EvaluateJSReply {
     from: String,
     input: String,
@@ -223,7 +223,7 @@ impl Actor for ConsoleActor {
                 self.script_chan.send(EvaluateJS(self.pipeline, input.clone(), chan));
 
                 //TODO: extract conversion into protocol module or some other useful place
-                let result = match try!(port.recv_opt()) {
+                let result = match try!(port.recv()) {
                     VoidValue => {
                         let mut m = TreeMap::new();
                         m.insert("type".to_string(), "undefined".to_string().to_json());

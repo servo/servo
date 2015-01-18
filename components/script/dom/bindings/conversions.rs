@@ -252,7 +252,7 @@ impl ToJSValConvertible for DOMString {
 }
 
 /// Behavior for stringification of `JSVal`s.
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum StringificationBehavior {
     /// Convert `null` to the string `"null"`.
     Default,
