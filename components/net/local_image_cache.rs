@@ -118,7 +118,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
         let (response_chan, response_port) = channel();
         self.image_cache_task.send(Msg::GetImage((*url).clone(), response_chan));
 
-        let response = response_port.recv();
+        let response = response_port.recv().unwrap();
         match response {
             ImageResponseMsg::ImageNotReady => {
                 // Need to reflow when the image is available
@@ -157,7 +157,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
         match self.state_map.entry((*url).clone()) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) =>
-                entry.set(ImageState {
+                entry.insert(ImageState {
                     prefetched: false,
                     decoded: false,
                     last_request_round: 0,

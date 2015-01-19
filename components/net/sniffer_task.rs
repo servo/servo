@@ -11,7 +11,7 @@ pub type SnifferTask = Sender<TargetedLoadResponse>;
 
 pub fn new_sniffer_task() -> SnifferTask {
     let(sen, rec) = channel();
-    let builder = Builder::new().named("SnifferManager");
+    let builder = Builder::new().name("SnifferManager".to_string());
     builder.spawn(move || {
         SnifferManager::new(rec).start();
     });

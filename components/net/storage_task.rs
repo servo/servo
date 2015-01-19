@@ -70,7 +70,7 @@ impl StorageManager {
 impl StorageManager {
     fn start(&mut self) {
         loop {
-            match self.port.recv() {
+            match self.port.recv().unwrap() {
                 StorageTaskMsg::Length(sender, url) => {
                     self.length(sender, url)
                 }

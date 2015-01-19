@@ -86,7 +86,7 @@ impl Metadata {
             charset:      None,
             headers: None,
             // http://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some(RawStatus(200, "OK".into_string()))
+            status: Some(RawStatus(200, "OK".to_string()))
         }
     }
 
@@ -164,11 +164,11 @@ pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = channel();
     resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan)));
-    let response = start_port.recv();
+    let response = start_port.recv().unwrap();
 
     let mut buf = vec!();
     loop {
-        match response.progress_port.recv() {
+        match response.progress_port.recv().unwrap() {
             ProgressMsg::Payload(data) => buf.push_all(data.as_slice()),
             ProgressMsg::Done(Ok(()))  => return Ok((response.metadata, buf)),
             ProgressMsg::Done(Err(e))  => return Err(e)
@@ -209,7 +209,7 @@ impl ResourceManager {
 impl ResourceManager {
     fn start(&self) {
         loop {
-            match self.from_client.recv() {
+            match self.from_client.recv().unwrap() {
               ControlMsg::Load(load_data) => {
                 self.load(load_data)
               }
@@ -228,21 +228,19 @@ impl ResourceManager {
             eventual_consumer: load_data.consumer.clone(),
         };
 
-        let loader = match load_data.url.scheme.as_slice() {
-            "file" => file_loader::factory,
-            "http" | "https" => http_loader::factory,
-            "data" => data_loader::factory,
-            "about" => about_loader::factory,
+        debug!("resource_task: loading url: {}", load_data.url.serialize());
+        match load_data.url.scheme.as_slice() {
+            "file" => file_loader::factory(load_data, self.sniffer_task.clone()),
+            "http" | "https" => http_loader::factory(load_data, self.sniffer_task.clone()),
+            "data" => data_loader::factory(load_data, self.sniffer_task.clone()),
+            "about" => about_loader::factory(load_data, self.sniffer_task.clone()),
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
                 start_sending(senders, Metadata::default(load_data.url))
                     .send(ProgressMsg::Done(Err("no loader for scheme".to_string())));
                 return
             }
-        };
-        debug!("resource_task: loading url: {}", load_data.url.serialize());
-
-        loader(load_data, self.sniffer_task.clone());
+        }
     }
 }
 
@@ -251,7 +249,7 @@ pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, Pro
     let (input_chan, input_port) = channel();
     resource_task.send(ControlMsg::Load(LoadData::new(url, input_chan)));
 
-    let response = input_port.recv();
+    let response = input_port.recv().unwrap();
     let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
     (response.metadata, iter)
 }
@@ -265,7 +263,7 @@ impl Iterator for ProgressMsgPortIterator {
     type Item = Vec<u8>;
 
     fn next(&mut self) -> Option<Vec<u8>> {
-        match self.progress_port.recv() {
+        match self.progress_port.recv().unwrap() {
             ProgressMsg::Payload(data) => Some(data),
             ProgressMsg::Done(Ok(()))  => None,
             ProgressMsg::Done(Err(e))  => {
@@ -288,8 +286,8 @@ fn test_bad_scheme() {
     let (start_chan, start) = channel();
     let url = Url::parse("bogus://whatever").unwrap();
     resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan)));
-    let response = start.recv();
-    match response.progress_port.recv() {
+    let response = start.recv().unwrap();
+    match response.progress_port.recv().unwrap() {
       ProgressMsg::Done(result) => { assert!(result.is_err()) }
       _ => panic!("bleh")
     }

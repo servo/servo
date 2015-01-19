@@ -284,7 +284,7 @@ impl CORSCacheTask {
     /// Send ExitMsg to the associated Sender to exit
     pub fn run(&mut self) {
         loop {
-            match self.receiver.recv() {
+            match self.receiver.recv().unwrap() {
                 CORSCacheTaskMsg::Clear(request, tx) => {
                     self.cache.clear(request);
                     tx.send(());

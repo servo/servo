@@ -41,7 +41,7 @@ impl<NodeAddress: Send> ImageHolder<NodeAddress> {
         // should be done as early as possible and decode only once we
         // are sure that the image will be used.
         {
-            let val = holder.local_image_cache.lock();
+            let val = holder.local_image_cache.lock().unwrap();
             let mut local_image_cache = val;
             local_image_cache.prefetch(&holder.url);
             local_image_cache.decode(&holder.url);
@@ -81,11 +81,11 @@ impl<NodeAddress: Send> ImageHolder<NodeAddress> {
         // the image and store it for the future
         if self.image.is_none() {
             let port = {
-                let val = self.local_image_cache.lock();
+                let val = self.local_image_cache.lock().unwrap();
                 let mut local_image_cache = val;
                 local_image_cache.get_image(node_address, &self.url)
             };
-            match port.recv() {
+            match port.recv().unwrap() {
                 ImageResponseMsg::ImageReady(image) => self.image = Some(image),
                 ImageResponseMsg::ImageNotReady => debug!("image not ready for {}", self.url.serialize()),
                 ImageResponseMsg::ImageFailed => debug!("image decoding failed for {}", self.url.serialize()),
