@@ -17,8 +17,7 @@ use servo_util::task::spawn_named;
 use url::Url;
 
 pub trait ImageResponder<NodeAddress: Send> {
-    fn respond<F>(&self) -> F where F: FnOnce(ImageResponseMsg, NodeAddress),
-                                    F: Send;
+    fn respond(&self) -> Box<Fn(ImageResponseMsg, NodeAddress)+Send>
 }
 
 pub struct LocalImageCache<NodeAddress> {
@@ -129,12 +128,12 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
                 let image_cache_task = self.image_cache_task.clone();
                 assert!(self.on_image_available.is_some());
                 let on_image_available =
-                    self.on_image_available.as_ref().unwrap().respond();
+                    Box::new(self.on_image_available.as_ref().unwrap().respond());
                 let url = (*url).clone();
                 spawn_named("LocalImageCache".to_string(), move || {
                     let (response_chan, response_port) = channel();
                     image_cache_task.send(Msg::WaitForImage(url, response_chan));
-                    on_image_available(response_port.recv(), node_address);
+                    on_image_available(response_port.recv().unwrap(), node_address);
                 });
             }
             _ => ()

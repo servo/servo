@@ -22,5 +22,5 @@ path = "../devtools_traits"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
+[dependencies]
+url = "*"

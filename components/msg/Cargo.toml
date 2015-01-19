@@ -33,5 +33,5 @@ git = "https://github.com/servo/rust-core-foundation"
 [dependencies.io_surface]
 git = "https://github.com/servo/rust-io-surface"
 
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
+[dependencies]
+url = "*"

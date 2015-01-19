@@ -55,9 +55,6 @@ branch = "servo"
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
-
 [dependencies.uuid]
 git = "https://github.com/rust-lang/uuid"
 
@@ -72,3 +69,4 @@ git = "https://github.com/rust-lang/time"
 
 [dependencies]
 encoding = "0.2"
+url = "*"
