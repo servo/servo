@@ -692,7 +692,7 @@ mod tests {
 
     #[test]
     fn test_parsing() {
-        assert!(parse("") == Err(()))
+        assert!(parse("") == Err(()));
         assert!(parse("EeÉ") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::LocalName(LocalName {
@@ -702,7 +702,7 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
-        })))
+        })));
         assert!(parse(".foo") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::Class(Atom::from_slice("foo"))),
@@ -710,7 +710,7 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
-        })))
+        })));
         assert!(parse("#bar") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::ID(Atom::from_slice("bar"))),
@@ -718,7 +718,7 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(1, 0, 0),
-        })))
+        })));
         assert!(parse("e.foo#bar") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::LocalName(LocalName {
@@ -730,7 +730,7 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
-        })))
+        })));
         assert!(parse("e.foo #bar") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::ID(Atom::from_slice("bar"))),
@@ -744,7 +744,7 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
-        })))
+        })));
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
         let mut namespaces = NamespaceMap::new();
@@ -759,7 +759,7 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
-        })))
+        })));
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
         namespaces.default = Some(ns!(MathML));
@@ -774,7 +774,7 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
-        })))
+        })));
         // Default namespace does apply to type selectors
         assert!(parse_ns("e", &namespaces) == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
@@ -788,7 +788,7 @@ mod tests {
             }),
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
-        })))
+        })));
         // https://github.com/mozilla/servo/issues/1723
         assert!(parse("::before") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
@@ -797,7 +797,7 @@ mod tests {
             }),
             pseudo_element: Some(PseudoElement::Before),
             specificity: specificity(0, 0, 1),
-        })))
+        })));
         assert!(parse("div :after") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(),
@@ -810,6 +810,6 @@ mod tests {
             }),
             pseudo_element: Some(PseudoElement::After),
             specificity: specificity(0, 0, 2),
-        })))
+        })));
     }
 }

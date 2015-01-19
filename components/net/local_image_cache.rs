@@ -10,14 +10,15 @@ multiple times and thus triggering reflows multiple times.
 
 use image_cache_task::{ImageCacheTask, ImageResponseMsg, Msg};
 
-use std::comm::{Receiver, channel};
+use std::sync::mpsc::{Receiver, channel};
 use std::collections::HashMap;
-use std::collections::hash_map::{Occupied, Vacant};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use servo_util::task::spawn_named;
 use url::Url;
 
 pub trait ImageResponder<NodeAddress: Send> {
-    fn respond(&self) -> proc(ImageResponseMsg, NodeAddress):Send;
+    fn respond<F>(&self) -> F where F: FnOnce(ImageResponseMsg, NodeAddress),
+                                    F: Send;
 }
 
 pub struct LocalImageCache<NodeAddress> {
@@ -127,7 +128,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
                 assert!(self.on_image_available.is_some());
-                let on_image_available: proc(ImageResponseMsg, NodeAddress):Send =
+                let on_image_available =
                     self.on_image_available.as_ref().unwrap().respond();
                 let url = (*url).clone();
                 spawn_named("LocalImageCache".to_string(), move || {

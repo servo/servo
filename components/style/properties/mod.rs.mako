@@ -1681,7 +1681,7 @@ pub mod longhands {
         }
 
         pub fn parse_one_box_shadow(iter: ParserIter) -> Result<SpecifiedBoxShadow,()> {
-            let mut lengths = [specified::Length::Au(Au(0)), ..4];
+            let mut lengths = [specified::Length::Au(Au(0)); 4];
             let mut lengths_parsed = false;
             let mut color = None;
             let mut inset = false;
@@ -2239,9 +2239,9 @@ pub mod shorthands {
         let _ignored = base_url;
 
         fn parse_one_set_of_border_radii<'a,I>(mut input: Peekable< &'a ComponentValue,I >)
-                                         -> Result<[specified::LengthOrPercentage, ..4],()>
+                                         -> Result<[specified::LengthOrPercentage; 4],()>
                                          where I: Iterator< &'a ComponentValue > {
-            let (mut count, mut values) = (0u, [specified::LengthOrPercentage::Length(specified::Length::Au(Au(0))), ..4]);
+            let (mut count, mut values) = (0u, [specified::LengthOrPercentage::Length(specified::Length::Au(Au(0))); 4]);
             while count < 4 {
                 let token = match input.peek() {
                     None => break,
@@ -2523,7 +2523,7 @@ mod property_bit_field {
     use std::mem;
 
     pub struct PropertyBitField {
-        storage: [uint, ..(${len(LONGHANDS)} - 1 + uint::BITS) / uint::BITS]
+        storage: [uint; (${len(LONGHANDS)} - 1 + uint::BITS) / uint::BITS]
     }
 
     impl PropertyBitField {
@@ -3148,7 +3148,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                 DeclaredValue::Inherit => inherited_style.$style_struct_getter().$property.clone(),
             }
         };
-    )
+    );
 
     // Initialize `context`
     // Declarations blocks are already stored in increasing precedence order.

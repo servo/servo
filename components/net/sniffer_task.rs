@@ -3,15 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A task that sniffs data
-use std::comm::{channel, Receiver, Sender};
-use std::task::TaskBuilder;
+use std::sync::mpsc::{channel, Receiver, Sender};
+use std::thread::Builder;
 use resource_task::{TargetedLoadResponse};
 
 pub type SnifferTask = Sender<TargetedLoadResponse>;
 
 pub fn new_sniffer_task() -> SnifferTask {
     let(sen, rec) = channel();
-    let builder = TaskBuilder::new().named("SnifferManager");
+    let builder = Builder::new().named("SnifferManager");
     builder.spawn(move || {
         SnifferManager::new(rec).start();
     });

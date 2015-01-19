@@ -20,7 +20,7 @@ use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
 use url::Url;
 
-use std::comm::{channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender};
 
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
@@ -261,7 +261,9 @@ pub struct ProgressMsgPortIterator {
     progress_port: Receiver<ProgressMsg>
 }
 
-impl Iterator<Vec<u8>> for ProgressMsgPortIterator {
+impl Iterator for ProgressMsgPortIterator {
+    type Item = Vec<u8>;
+
     fn next(&mut self) -> Option<Vec<u8>> {
         match self.progress_port.recv() {
             ProgressMsg::Payload(data) => Some(data),

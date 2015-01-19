@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::comm::{channel, Receiver, Sender};
 use std::collections::HashMap;
-use std::collections::TreeMap;
+use std::collections::BTreeMap;
+use std::sync::mpsc::{channel, Receiver, Sender};
 use url::Url;
 
 use servo_util::str::DOMString;
@@ -55,7 +55,7 @@ impl StorageTaskFactory for StorageTask {
 
 struct StorageManager {
     port: Receiver<StorageTaskMsg>,
-    data: HashMap<String, TreeMap<DOMString, DOMString>>,
+    data: HashMap<String, BTreeMap<DOMString, DOMString>>,
 }
 
 impl StorageManager {
@@ -111,7 +111,7 @@ impl StorageManager {
     fn set_item(&mut self, sender: Sender<bool>, url: Url, name: DOMString, value: DOMString) {
         let origin = self.get_origin_as_string(url);
         if !self.data.contains_key(&origin) {
-            self.data.insert(origin.clone(), TreeMap::new());
+            self.data.insert(origin.clone(), BTreeMap::new());
         }
 
         let updated = self.data.get_mut(&origin).map(|entry| {

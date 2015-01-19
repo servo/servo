@@ -15,8 +15,8 @@ use media_queries::Device;
 use url::{Url, UrlParser};
 
 
-pub fn iter_font_face_rules_inner(rules: &[CSSRule], device: &Device,
-                                    callback: |family: &str, source: &Source|) {
+pub fn iter_font_face_rules_inner<F>(rules: &[CSSRule], device: &Device,
+                                     callback: F) where F: Fn(&str, &Source) {
     for rule in rules.iter() {
         match *rule {
             CSSRule::Style(_) => {},

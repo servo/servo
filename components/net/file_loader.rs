@@ -7,6 +7,7 @@ use resource_task::ProgressMsg::{Payload, Done};
 
 use std::io;
 use std::io::File;
+use std::sync::mpsc::Sender;
 use servo_util::task::spawn_named;
 
 static READ_SIZE: uint = 8192;

@@ -9,12 +9,11 @@ use resource_task::ProgressMsg::{Payload, Done};
 
 use servo_util::task::spawn_named;
 use servo_util::taskpool::TaskPool;
-use std::comm::{channel, Receiver, Sender};
 use std::collections::HashMap;
-use std::collections::hash_map::{Occupied, Vacant};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::mem::replace;
 use std::sync::{Arc, Mutex};
-use serialize::{Encoder, Encodable};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use url::Url;
 
 pub enum Msg {
@@ -71,14 +70,6 @@ impl PartialEq for ImageResponseMsg {
 pub struct ImageCacheTask {
     chan: Sender<Msg>,
 }
-
-impl<E, S: Encoder<E>> Encodable<S, E> for ImageCacheTask {
-    fn encode(&self, _: &mut S) -> Result<(), E> {
-        Ok(())
-    }
-}
-
-type DecoderFactory = fn() -> (proc(&[u8]) : 'static -> Option<Image>);
 
 impl ImageCacheTask {
     pub fn new(resource_task: ResourceTask, task_pool: TaskPool) -> ImageCacheTask {
@@ -316,7 +307,7 @@ impl ImageCache {
                     let url = url_clone;
                     debug!("image_cache_task: started image decode for {}", url.serialize());
                     let image = load_from_memory(data.as_slice());
-                    let image = image.map(|image| Arc::new(box image));
+                    let image = image.map(|image| Arc::new(Box::new(image)));
                     to_cache.send(Msg::StoreImage(url.clone(), image));
                     debug!("image_cache_task: ended image decode for {}", url.serialize());
                 });
@@ -357,7 +348,7 @@ impl ImageCache {
 
     }
 
-    fn purge_waiters(&mut self, url: Url, f: || -> ImageResponseMsg) {
+    fn purge_waiters<F>(&mut self, url: Url, f: F) where F: Fn() -> ImageResponseMsg {
         match self.wait_map.remove(&url) {
             Some(waiters) => {
                 let items = waiters.lock();
@@ -466,7 +457,9 @@ fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()>
 }
 
 
-pub fn spawn_listener<A: Send>(f: proc(Receiver<A>):Send) -> Sender<A> {
+pub fn spawn_listener<F, A>(f: F) -> Sender<A> where F: FnOnce(Receiver<A>),
+                                                     F: Send,
+                                                     A: Send {
     let (setup_chan, setup_port) = channel();
 
     spawn_named("ImageCacheTask (listener)", move || {
@@ -560,7 +553,7 @@ mod tests {
     }
 
     fn mock_resource_task<T: Closure+Send>(on_load: Box<T>) -> ResourceTask {
-        spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
+        spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
             loop {
                 match port.recv() {
                     resource_task::ControlMsg::Load(response) => {
@@ -716,7 +709,7 @@ mod tests {
 
         let (resource_task_exited_chan, resource_task_exited) = comm::channel();
 
-        let mock_resource_task = spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
+        let mock_resource_task = spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
             loop {
                 match port.recv() {
                     resource_task::ControlMsg::Load(response) => {
@@ -768,7 +761,7 @@ mod tests {
 
         let (resource_task_exited_chan, resource_task_exited) = comm::channel();
 
-        let mock_resource_task = spawn_listener(proc(port: Receiver<resource_task::ControlMsg>) {
+        let mock_resource_task = spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
             loop {
                 match port.recv() {
                     resource_task::ControlMsg::Load(response) => {

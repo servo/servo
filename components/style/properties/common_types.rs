@@ -12,7 +12,7 @@ pub use servo_util::geometry::Au;
 
 macro_rules! define_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident ),+,) => {
-        define_css_keyword_enum!($name: $( $css => $variant ),+)
+        define_css_keyword_enum!($name: $( $css => $variant ),+);
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
         #[allow(non_camel_case_types)]
@@ -63,11 +63,11 @@ pub mod specified {
     use std::fmt;
     use std::fmt::{Formatter, Show};
     use url::Url;
-    use cssparser::{mod, ToCss, CssStringWriter};
+    use cssparser::{self, ToCss, CssStringWriter};
     use cssparser::ast::*;
     use cssparser::ast::ComponentValue::*;
-    use text_writer::{mod, TextWriter};
-    use parsing_utils::{mod, BufferedIter, ParserIter};
+    use text_writer::{self, TextWriter};
+    use parsing_utils::{self, BufferedIter, ParserIter};
     use super::{Au, CSSFloat};
 
     #[derive(Clone, PartialEq)]
@@ -582,8 +582,8 @@ pub mod specified {
         }
     }
 
-    define_css_keyword_enum!(HorizontalDirection: "left" => Left, "right" => Right)
-    define_css_keyword_enum!(VerticalDirection: "top" => Top, "bottom" => Bottom)
+    define_css_keyword_enum!(HorizontalDirection: "left" => Left, "right" => Right);
+    define_css_keyword_enum!(VerticalDirection: "top" => Top, "bottom" => Bottom);
 
     fn parse_color_stop(source: ParserIter) -> Result<ColorStop,()> {
         let color = match source.next() {

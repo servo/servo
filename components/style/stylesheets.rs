@@ -10,11 +10,11 @@ use encoding::EncodingRef;
 
 use cssparser::{decode_stylesheet_bytes, tokenize, parse_stylesheet_rules, ToCss};
 use cssparser::ast::*;
-use selectors::{mod, ParserContext};
+use selectors::{self, ParserContext};
 use properties;
 use errors::{ErrorLoggerIterator, log_css_error};
 use namespaces::{NamespaceMap, parse_namespace_rule};
-use media_queries::{mod, Device, MediaRule};
+use media_queries::{self, Device, MediaRule};
 use font_face::{FontFaceRule, Source, parse_font_face_rule, iter_font_face_rules_inner};
 use selector_matching::StylesheetOrigin;
 
@@ -179,8 +179,8 @@ pub fn parse_style_rule(context: &ParserContext,
     }
 }
 
-pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
-                            callback: |&StyleRule|) {
+pub fn iter_style_rules<'a, F>(rules: &[CSSRule], device: &media_queries::Device,
+                               callback: F) where F: FnOnce(&StyleRule) {
     for rule in rules.iter() {
         match *rule {
             CSSRule::Style(ref rule) => callback(rule),
@@ -192,7 +192,7 @@ pub fn iter_style_rules<'a>(rules: &[CSSRule], device: &media_queries::Device,
     }
 }
 
-pub fn iter_stylesheet_media_rules(stylesheet: &Stylesheet, callback: |&MediaRule|) {
+pub fn iter_stylesheet_media_rules<F>(stylesheet: &Stylesheet, callback: F) where F: Fn(&MediaRule) {
     for rule in stylesheet.rules.iter() {
         match *rule {
             CSSRule::Media(ref rule) => callback(rule),
@@ -202,14 +202,14 @@ pub fn iter_stylesheet_media_rules(stylesheet: &Stylesheet, callback: |&MediaRul
 }
 
 #[inline]
-pub fn iter_stylesheet_style_rules(stylesheet: &Stylesheet, device: &media_queries::Device,
-                                   callback: |&StyleRule|) {
+pub fn iter_stylesheet_style_rules<F>(stylesheet: &Stylesheet, device: &media_queries::Device,
+                                      callback: F) where F: Fn(&StyleRule) {
     iter_style_rules(stylesheet.rules.as_slice(), device, callback)
 }
 
 
 #[inline]
-pub fn iter_font_face_rules(stylesheet: &Stylesheet, device: &Device,
-                            callback: |family: &str, source: &Source|) {
+pub fn iter_font_face_rules<F>(stylesheet: &Stylesheet, device: &Device,
+                               callback: F) where F: Fn(&str, &Source) {
     iter_font_face_rules_inner(stylesheet.rules.as_slice(), device, callback)
 }

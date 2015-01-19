@@ -329,7 +329,7 @@ mod tests {
     use super::*;
     use url::Url;
 
-    fn test_media_rule(css: &str, callback: |&MediaQueryList, &str|) {
+    fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {
         let url = Url::parse("http://localhost").unwrap();
         let stylesheet = Stylesheet::from_str(css, url,
                                               StylesheetOrigin::Author);

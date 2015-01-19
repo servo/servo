@@ -787,7 +787,7 @@ pub enum CommonStyleAffectingAttributeMode {
 
 // NB: This must match the order in `layout::css::matching::CommonStyleAffectingAttributes`.
 #[inline]
-pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo, ..5] {
+pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo; 5] {
     [
         CommonStyleAffectingAttributeInfo {
             atom: atom!("hidden"),
@@ -815,7 +815,7 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
 /// Attributes that, if present, disable style sharing. All legacy HTML attributes must be in
 /// either this list or `common_style_affecting_attributes`. See the comment in
 /// `synthesize_presentational_hints_for_legacy_attributes`.
-pub fn rare_style_affecting_attributes() -> [Atom, ..3] {
+pub fn rare_style_affecting_attributes() -> [Atom; 3] {
     [ atom!("bgcolor"), atom!("border"), atom!("colspan") ]
 }
 

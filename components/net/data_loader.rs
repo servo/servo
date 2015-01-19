@@ -10,6 +10,7 @@ use serialize::base64::FromBase64;
 use hyper::mime::Mime;
 use url::{percent_decode, SchemeData};
 
+use std::sync::mpsc::Sender;
 
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     // NB: we don't spawn a new task.
@@ -59,7 +60,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
     // Parse the content type using rust-http.
     // FIXME: this can go into an infinite loop! (rust-http #25)
-    let content_type: Option<Mime> = from_str(ct_str);
+    let content_type: Option<Mime> = ct_str.parse();
     metadata.set_content_type(content_type.as_ref());
 
     let progress_chan = start_sending(senders, metadata);

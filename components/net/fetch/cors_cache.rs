@@ -11,7 +11,7 @@
 
 use hyper::method::Method;
 use std::ascii::AsciiExt;
-use std::comm::{Sender, Receiver, channel};
+use std::sync::mpsc::{Sender, Receiver, channel};
 use time;
 use time::{now, Timespec};
 use url::Url;

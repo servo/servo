@@ -6,7 +6,7 @@ use url::Url;
 use hyper::status::StatusCode;
 use hyper::header::Headers;
 use std::ascii::AsciiExt;
-use std::comm::Receiver;
+use std::sync::mpsc::Receiver;
 
 /// [Response type](http://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, PartialEq, Copy)]
@@ -105,7 +105,7 @@ impl Response {
         }
         let old_headers = self.headers.clone();
         let mut response = self.clone();
-        response.internal_response = Some(box self);
+        response.internal_response = Some(Box::new(self));
         match filter_type {
             ResponseType::Default | ResponseType::Error => unreachable!(),
             ResponseType::Basic => {

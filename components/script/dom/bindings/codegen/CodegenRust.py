@@ -679,7 +679,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
                 value = "Some(%s)" % value
 
             default = (
-                "const data: [u8, ..%s] = [ %s ];\n"
+                "const data: [u8; %s] = [ %s ];\n"
                 "%s" %
                 (len(defaultValue.value) + 1,
                  ", ".join(["'" + char + "' as u8" for char in defaultValue.value] + ["0"]),
@@ -1196,7 +1196,7 @@ class MethodDefiner(PropertyDefiner):
             return (m["name"], accessor, jitinfo, m["length"], m["flags"])
 
         def stringDecl(m):
-            return "const %s_name: [u8, ..%i] = %s;\n" % (m["name"], len(m["name"]) + 1,
+            return "const %s_name: [u8; %i] = %s;\n" % (m["name"], len(m["name"]) + 1,
                                                          str_to_const_array(m["name"]))
 
         decls = ''.join([stringDecl(m) for m in array])
@@ -1264,7 +1264,7 @@ class AttrDefiner(PropertyDefiner):
 
         def stringDecl(attr):
             name = attr.identifier.name
-            return "const %s_name: [u8, ..%i] = %s;\n" % (name, len(name) + 1,
+            return "const %s_name: [u8; %i] = %s;\n" % (name, len(name) + 1,
                                                           str_to_const_array(name))
 
         decls = ''.join([stringDecl(m) for m in array])
@@ -1442,7 +1442,7 @@ class CGDOMJSClass(CGThing):
             flags = "0"
             slots = "1"
         return """\
-const Class_name: [u8, ..%i] = %s;
+const Class_name: [u8; %i] = %s;
 static Class: DOMJSClass = DOMJSClass {
     base: js::Class {
         name: &Class_name as *const u8 as *const libc::c_char,
@@ -1526,7 +1526,7 @@ class CGPrototypeJSClass(CGThing):
 
     def define(self):
         return """\
-const PrototypeClassName__: [u8, ..%s] = %s;
+const PrototypeClassName__: [u8; %s] = %s;
 static PrototypeClass: JSClass = JSClass {
     name: &PrototypeClassName__ as *const u8 as *const libc::c_char,
     flags: (1 & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT as uint, //JSCLASS_HAS_RESERVED_SLOTS(1)
@@ -1543,7 +1543,7 @@ static PrototypeClass: JSClass = JSClass {
     hasInstance: None,
     construct: None,
     trace: None,
-    reserved: [0 as *mut libc::c_void, ..40]
+    reserved: [0 as *mut libc::c_void; 40]
 };
 """ % (len(self.descriptor.interface.identifier.name + "Prototype") + 1,
        str_to_const_array(self.descriptor.interface.identifier.name + "Prototype"))
@@ -4458,7 +4458,7 @@ class CGRegisterProxyHandlers(CGThing):
         descriptors = config.getDescriptors(proxy=True)
         length = len(descriptors)
         self.root = CGList([
-            CGGeneric("pub static mut proxy_handlers: [*const libc::c_void, ..%d] = [0 as *const libc::c_void, ..%d];" % (length, length)),
+            CGGeneric("pub static mut proxy_handlers: [*const libc::c_void; %d] = [0 as *const libc::c_void; %d];" % (length, length)),
             CGRegisterProxyHandlersMethod(descriptors),
         ], "\n")
 

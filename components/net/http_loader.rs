@@ -12,11 +12,12 @@ use hyper::header::common::{ContentLength, ContentType, Host, Location};
 use hyper::method::Method;
 use hyper::status::StatusClass;
 use std::io::Reader;
+use std::sync::mpsc::Sender;
 use servo_util::task::spawn_named;
 use url::{Url, UrlParser};
 
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
-    spawn_named("http_loader", proc() load(load_data, start_chan))
+    spawn_named("http_loader", move || load(load_data, start_chan))
 }
 
 fn send_error(url: Url, err: String, senders: ResponseSenders) {
