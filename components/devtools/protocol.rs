@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/// Low-level wire protocol implementation. Currently only supports [JSON packets](https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport#JSON_Packets).
+//! Low-level wire protocol implementation. Currently only supports
+//! [JSON packets]
+//! (https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport#JSON_Packets).
 
 use serialize::{json, Encodable};
 use serialize::json::Json;
