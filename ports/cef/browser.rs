@@ -13,7 +13,7 @@ use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t};
 use window;
 
 use compositing::windowing::{WindowNavigateMsg, WindowEvent};
-use glfw_app;
+use glutin_app;
 use libc::c_int;
 use servo_util::opts;
 use std::cell::{Cell, RefCell};
@@ -24,7 +24,7 @@ thread_local!(pub static BROWSERS: RefCell<Vec<CefBrowser>> = RefCell::new(vec!(
 
 pub enum ServoBrowser {
     Invalid,
-    OnScreen(Browser<glfw_app::window::Window>),
+    OnScreen(Browser<glutin_app::window::Window>),
     OffScreen(Browser<window::Window>),
 }
 
@@ -96,8 +96,8 @@ impl ServoCefBrowser {
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
 
         let servo_browser = if window_info.windowless_rendering_enabled == 0 {
-            let glfw_window = glfw_app::create_window();
-            let servo_browser = Browser::new(Some(glfw_window.clone()));
+            let glutin_window = glutin_app::create_window();
+            let servo_browser = Browser::new(Some(glutin_window.clone()));
             ServoBrowser::OnScreen(servo_browser)
         } else {
             ServoBrowser::Invalid
