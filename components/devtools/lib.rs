@@ -36,8 +36,8 @@ use servo_util::task::spawn_named;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::comm;
-use std::comm::{Disconnected, Empty};
+use std::sync::mpsc;
+use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
 use std::io::{Acceptor, Listener, TimedOut};
 use std::sync::{Arc, Mutex};

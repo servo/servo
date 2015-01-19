@@ -10,7 +10,7 @@ use devtools_traits::{GetLayout, NodeInfo, ModifyAttribute};
 use actor::{Actor, ActorRegistry};
 use protocol::JsonPacketStream;
 
-use collections::TreeMap;
+use collections::BTreeMap;
 use servo_msg::constellation_msg::PipelineId;
 use serialize::json::{mod, Json, ToJson};
 use std::cell::RefCell;
@@ -463,7 +463,7 @@ impl Actor for PageStyleActor {
                     height: height.round() as int,
                     autoMargins: if auto_margins {
                         //TODO: real values like processMargins in http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
-                        let mut m = TreeMap::new();
+                        let mut m = BTreeMap::new();
                         m.insert("top".to_string(), "auto".to_string().to_json());
                         m.insert("bottom".to_string(), "auto".to_string().to_json());
                         m.insert("left".to_string(), "auto".to_string().to_json());
