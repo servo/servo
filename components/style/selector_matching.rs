@@ -301,7 +301,7 @@ impl Stylist {
         for &filename in ["user-agent.css", "servo.css", "presentational-hints.css"].iter() {
             let ua_stylesheet = Stylesheet::from_bytes(
                 read_resource_file(&[filename]).unwrap().as_slice(),
-                Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
+                Url::parse(format!("chrome:///{:?}", filename).as_slice()).unwrap(),
                 None,
                 None,
                 StylesheetOrigin::UserAgent);

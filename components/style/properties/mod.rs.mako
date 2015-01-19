@@ -2580,7 +2580,7 @@ pub fn parse_property_declaration_list<I: Iterator<Item=Node>>(input: I, base_ur
     for item in items.into_iter().rev() {
         match item {
             DeclarationListItem::AtRule(rule) => log_css_error(
-                rule.location, format!("Unsupported at-rule in declaration list: @{}", rule.name).as_slice()),
+                rule.location, format!("Unsupported at-rule in declaration list: @{:?}", rule.name).as_slice()),
             DeclarationListItem::Declaration(Declaration{ location: l, name: n, value: v, important: i}) => {
                 // TODO: only keep the last valid declaration for a given name.
                 let (list, seen) = if i {
@@ -2642,7 +2642,7 @@ pub enum DeclaredValue<T> {
 impl<T: Show> DeclaredValue<T> {
     pub fn specified_value(&self) -> Option<String> {
         match self {
-            &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{}", inner)),
+            &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{:?}", inner)),
             &DeclaredValue::Initial => None,
             &DeclaredValue::Inherit => Some("inherit".to_string()),
         }
@@ -2683,10 +2683,10 @@ impl PropertyDeclaration {
                 % if property.derived_from is None:
                     &PropertyDeclaration::${property.camel_case}Declaration(ref value) =>
                         value.specified_value()
-                             .unwrap_or_else(|| format!("{}", longhands::${property.ident}::get_initial_value())),
+                             .unwrap_or_else(|| format!("{:?}", longhands::${property.ident}::get_initial_value())),
                 % endif
             % endfor
-            decl => panic!("unsupported property declaration: {}", decl.name()),
+            decl => panic!("unsupported property declaration: {:?}", decl.name()),
         }
     }
 

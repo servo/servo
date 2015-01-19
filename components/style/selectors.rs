@@ -337,7 +337,7 @@ fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &Namespace
         // [foo|=bar]
         Some(DashMatch) => {
             let value = try!(parse_attribute_value(iter));
-            let dashing_value = format!("{}-", value);
+            let dashing_value = format!("{:?}-", value);
             SimpleSelector::AttrDashMatch(attr, value, dashing_value)
         },
 

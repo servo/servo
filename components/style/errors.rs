@@ -17,7 +17,7 @@ impl<T, I: Iterator<Item=Result<T, SyntaxError>>> Iterator for ErrorLoggerIterat
             match this.next() {
                 Some(Ok(v)) => return Some(v),
                 Some(Err(error)) => log_css_error(error.location,
-                                                  format!("{}", error.reason).as_slice()),
+                                                  format!("{:?}", error.reason).as_slice()),
                 None => return None,
             }
         }
@@ -30,5 +30,5 @@ impl<T, I: Iterator<Item=Result<T, SyntaxError>>> Iterator for ErrorLoggerIterat
 /// to log CSS parse errors to stderr.
 pub fn log_css_error(location: SourceLocation, message: &str) {
     // TODO eventually this will got into a "web console" or something.
-    info!("{}:{} {}", location.line, location.column, message)
+    info!("{:?}:{:?} {:?}", location.line, location.column, message)
 }
