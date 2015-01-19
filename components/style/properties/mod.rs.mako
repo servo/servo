@@ -6,7 +6,6 @@
 
 pub use std::ascii::AsciiExt;
 use std::fmt;
-use std::fmt::String;
 use std::sync::Arc;
 
 use servo_util::logical_geometry::{WritingMode, LogicalMargin};
