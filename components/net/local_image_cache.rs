@@ -17,7 +17,7 @@ use servo_util::task::spawn_named;
 use url::Url;
 
 pub trait ImageResponder<NodeAddress: Send> {
-    fn respond(&self) -> Box<Fn(ImageResponseMsg, NodeAddress)+Send>
+    fn respond(&self) -> Box<Fn(ImageResponseMsg, NodeAddress)+Send>;
 }
 
 pub struct LocalImageCache<NodeAddress> {
