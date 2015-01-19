@@ -6,7 +6,7 @@
 
 pub use std::ascii::AsciiExt;
 use std::fmt;
-use std::fmt::Show;
+use std::fmt::String;
 use std::sync::Arc;
 
 use servo_util::logical_geometry::{WritingMode, LogicalMargin};
@@ -458,7 +458,7 @@ pub mod longhands {
                 Auto,
                 Number(i32),
             }
-            impl fmt::Show for T {
+            impl fmt::String for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     match self {
                         &T::Auto => write!(f, "auto"),
@@ -552,7 +552,7 @@ pub mod longhands {
             Number(CSSFloat),
             Percentage(CSSFloat),
         }
-        impl fmt::Show for SpecifiedValue {
+        impl fmt::String for SpecifiedValue {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 match self {
                     &SpecifiedValue::Normal => write!(f, "normal"),
@@ -587,7 +587,7 @@ pub mod longhands {
                 Length(Au),
                 Number(CSSFloat),
             }
-            impl fmt::Show for T {
+            impl fmt::String for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     match self {
                         &T::Normal => write!(f, "normal"),
@@ -625,7 +625,7 @@ pub mod longhands {
             % endfor
             LengthOrPercentage(specified::LengthOrPercentage),
         }
-        impl fmt::Show for SpecifiedValue {
+        impl fmt::String for SpecifiedValue {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 match self {
                     % for keyword in vertical_align_keywords:
@@ -664,7 +664,7 @@ pub mod longhands {
                 Length(Au),
                 Percentage(CSSFloat),
             }
-            impl fmt::Show for T {
+            impl fmt::String for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     match self {
                         % for keyword in vertical_align_keywords:
@@ -716,7 +716,7 @@ pub mod longhands {
                 pub enum ContentItem {
                     StringContent(String),
                 }
-                impl fmt::Show for ContentItem {
+                impl fmt::String for ContentItem {
                     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                         match self {
                             &ContentItem::StringContent(ref s) => write!(f, "\"{}\"", s),
@@ -730,7 +730,7 @@ pub mod longhands {
                     none,
                     Content(Vec<ContentItem>),
                 }
-                impl fmt::Show for T {
+                impl fmt::String for T {
                     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                         match self {
                             &T::normal => write!(f, "normal"),
@@ -866,7 +866,7 @@ pub mod longhands {
                     pub horizontal: LengthOrPercentage,
                     pub vertical: LengthOrPercentage,
                 }
-                impl fmt::Show for T {
+                impl fmt::String for T {
                     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                         write!(f, "{} {}", self.horizontal, self.vertical)
                     }
@@ -878,7 +878,7 @@ pub mod longhands {
                 pub horizontal: specified::LengthOrPercentage,
                 pub vertical: specified::LengthOrPercentage,
             }
-            impl fmt::Show for SpecifiedValue {
+            impl fmt::String for SpecifiedValue {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     write!(f, "{} {}", self.horizontal, self.vertical)
                 }
@@ -1042,7 +1042,7 @@ pub mod longhands {
                     }
                 }
             }
-            impl fmt::Show for FontFamily {
+            impl fmt::String for FontFamily {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     match self {
                         &FontFamily::FamilyName(ref name) => write!(f, "{}", name),
@@ -1050,7 +1050,7 @@ pub mod longhands {
                 }
             }
             pub type T = Vec<FontFamily>;
-            /*impl fmt::Show for T {
+            /*impl fmt::String for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     for font in self.iter() {
                         write!(f, "{}", font);
@@ -1120,7 +1120,7 @@ pub mod longhands {
                 SpecifiedWeight${weight},
             % endfor
         }
-        impl fmt::Show for SpecifiedValue {
+        impl fmt::String for SpecifiedValue {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 match self {
                     &SpecifiedValue::Bolder => write!(f, "bolder"),
@@ -1167,7 +1167,7 @@ pub mod longhands {
                     Weight${weight},
                 % endfor
             }
-            impl fmt::Show for T {
+            impl fmt::String for T {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     match self {
                         % for weight in range(100, 901, 100):
@@ -1340,7 +1340,7 @@ pub mod longhands {
             // 'blink' is accepted in the parser but ignored.
             // Just not blinking the text is a conforming implementation per CSS 2.1.
         }
-        impl fmt::Show for SpecifiedValue {
+        impl fmt::String for SpecifiedValue {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 let mut space = false;
                 if self.underline {
@@ -1603,7 +1603,7 @@ pub mod longhands {
             pub inset: bool,
         }
 
-        impl fmt::Show for SpecifiedBoxShadow {
+        impl fmt::String for SpecifiedBoxShadow {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 if self.inset {
                     let _ = write!(f, "inset ");
@@ -1634,7 +1634,7 @@ pub mod longhands {
                 pub inset: bool,
             }
 
-            impl fmt::Show for BoxShadow {
+            impl fmt::String for BoxShadow {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     if self.inset {
                         let _ = write!(f, "inset ");
@@ -2639,7 +2639,7 @@ pub enum DeclaredValue<T> {
     // depending on whether the property is inherited.
 }
 
-impl<T: Show> DeclaredValue<T> {
+impl<T: fmt::String> DeclaredValue<T> {
     pub fn specified_value(&self) -> Option<String> {
         match self {
             &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{}", inner)),
@@ -2796,7 +2796,7 @@ impl PropertyDeclaration {
     }
 }
 
-impl Show for PropertyDeclaration {
+impl fmt::String for PropertyDeclaration {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}: {}", self.name(), self.value())
     }
