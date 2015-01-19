@@ -19,7 +19,7 @@ pub fn one_component_value<'a>(input: &'a [ComponentValue]) -> Result<&'a Compon
 
 pub fn get_ident_lower(component_value: &ComponentValue) -> Result<String, ()> {
     match component_value {
-        &Ident(ref value) => Ok(value.as_slice().to_ascii_lower()),
+        &Ident(ref value) => Ok(value.as_slice().to_ascii_lowercase()),
         _ => Err(()),
     }
 }
@@ -30,7 +30,7 @@ pub struct BufferedIter<E, I> {
     buffer: Option<E>,
 }
 
-impl<E, I: Iterator<E>> BufferedIter<E, I> {
+impl<E, I: Iterator<Item=E>> BufferedIter<E, I> {
     pub fn new(iter: I) -> BufferedIter<E, I> {
         BufferedIter {
             iter: iter,
@@ -64,7 +64,9 @@ impl<E, I: Iterator<E>> BufferedIter<E, I> {
     }
 }
 
-impl<E, I: Iterator<E>> Iterator<E> for BufferedIter<E, I> {
+impl<E, I: Iterator<Item=E>> Iterator for BufferedIter<E, I> {
+    type Item = E;
+
     #[inline]
     fn next(&mut self) -> Option<E> {
         if self.buffer.is_some() {

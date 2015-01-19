@@ -590,7 +590,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             return Err(InvalidCharacter);
         }
         let local_name = if self.is_html_document {
-            local_name.as_slice().to_ascii_lower()
+            local_name.as_slice().to_ascii_lowercase()
         } else {
             local_name
         };
@@ -726,7 +726,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
     fn CreateEvent(self, interface: DOMString) -> Fallible<Temporary<Event>> {
         let window = self.window.root();
 
-        match interface.as_slice().to_ascii_lower().as_slice() {
+        match interface.as_slice().to_ascii_lowercase().as_slice() {
             "uievents" | "uievent" => Ok(EventCast::from_temporary(
                 UIEvent::new_uninitialized(window.r()))),
             "mouseevents" | "mouseevent" => Ok(EventCast::from_temporary(

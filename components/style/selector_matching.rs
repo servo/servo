@@ -5,7 +5,7 @@
 use std::ascii::AsciiExt;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use url::Url;
@@ -765,7 +765,6 @@ fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
 }
 
 bitflags! {
-    #[derive(Copy)]
     flags CommonStyleAffectingAttributes: u8 {
         const HIDDEN_ATTRIBUTE = 0x01,
         const NO_WRAP_ATTRIBUTE = 0x02,
@@ -1153,7 +1152,11 @@ trait FindPush<K, V> {
     fn find_push(&mut self, key: K, value: V);
 }
 
-impl<K: Eq + Hash, V> FindPush<K, V> for HashMap<K, Vec<V>> {
+#[old_impl_check]
+impl<K, V, H> FindPush<K, V> for HashMap<K, Vec<V>>
+    where K: Eq + Hash<H>,
+          H: Hasher<Output=u64>
+{
     fn find_push(&mut self, key: K, value: V) {
         match self.get_mut(&key) {
             Some(vec) => {

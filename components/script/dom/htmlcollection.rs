@@ -96,7 +96,7 @@ impl HTMLCollection {
         }
         let filter = TagNameFilter {
             tag: Atom::from_slice(tag.as_slice()),
-            ascii_lower_tag: Atom::from_slice(tag.as_slice().to_ascii_lower().as_slice()),
+            ascii_lower_tag: Atom::from_slice(tag.as_slice().to_ascii_lowercase().as_slice()),
         };
         HTMLCollection::create(window, root, box filter)
     }

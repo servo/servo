@@ -75,7 +75,7 @@ pub fn parse_font_face_rule(rule: AtRule, parent_rules: &mut Vec<CSSRule>, base_
                     log_css_error(location, "!important is not allowed on @font-face descriptors");
                     continue
                 }
-                let name_lower = name.as_slice().to_ascii_lower();
+                let name_lower = name.as_slice().to_ascii_lowercase();
                 match name_lower.as_slice() {
                     "font-family" => {
                         let iter = &mut BufferedIter::new(value.as_slice().skip_whitespace());

@@ -87,7 +87,7 @@ impl Stylesheet {
                     parse_style_rule(&parser_context, rule, &mut rules, &namespaces, &base_url)
                 },
                 Rule::AtRule(rule) => {
-                    let lower_name = rule.name.as_slice().to_ascii_lower();
+                    let lower_name = rule.name.as_slice().to_ascii_lowercase();
                     match lower_name.as_slice() {
                         "charset" => {
                             if state > STATE_CHARSET {

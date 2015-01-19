@@ -68,7 +68,7 @@ impl Blob {
         } else {
             ""
         };
-        let typeStrLower = typeString.as_slice().to_ascii_lower();
+        let typeStrLower = typeString.as_slice().to_ascii_lowercase();
         Ok(Blob::new(global, bytes, typeStrLower.as_slice()))
     }
 }
@@ -112,7 +112,7 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
             None => "".into_string(),
             Some(str) => {
                 if is_ascii_printable(&str) {
-                    str.as_slice().to_ascii_lower().into_string()
+                    str.as_slice().to_ascii_lowercase().into_string()
                 } else {
                     "".into_string()
                 }

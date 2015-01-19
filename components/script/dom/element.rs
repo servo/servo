@@ -423,7 +423,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn parsed_name(self, name: DOMString) -> DOMString {
         if self.html_element_in_html_document() {
-            name.as_slice().to_ascii_lower()
+            name.as_slice().to_ascii_lowercase()
         } else {
             name
         }
@@ -632,7 +632,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_attribute(self, name: &Atom, value: AttrValue) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         assert!(!name.as_slice().contains(":"));
 
         self.do_set_attribute(name.clone(), value, name.clone(),
@@ -759,7 +759,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_url_attribute(self, name: &Atom) -> DOMString {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         if !self.has_attribute(name) {
             return "".into_string();
         }
@@ -784,7 +784,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_string_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::String(value));
     }
 
@@ -799,12 +799,12 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::from_serialized_tokenlist(value));
     }
 
     fn set_atomic_tokenlist_attribute(self, name: &Atom, tokens: Vec<Atom>) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::from_atomic_tokens(tokens));
     }
 
@@ -825,7 +825,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_uint_attribute(self, name: &Atom, value: u32) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::UInt(value.to_string(), value));
     }
 }

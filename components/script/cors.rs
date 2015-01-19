@@ -126,7 +126,7 @@ impl CORSRequest {
         // Step 5 - 7
         let mut header_names = vec!();
         for header in self.headers.iter() {
-            header_names.push(header.name().to_ascii_lower());
+            header_names.push(header.name().to_ascii_lowercase());
         }
         header_names.sort();
         preflight.headers.set(AccessControlRequestHeaders(header_names));
@@ -361,7 +361,7 @@ impl CORSCache {
 fn is_simple_header(h: &HeaderView) -> bool {
     //FIXME: use h.is::<HeaderType>() when AcceptLanguage and
     //ContentLanguage headers exist
-    match h.name().to_ascii_lower().as_slice() {
+    match h.name().to_ascii_lowercase().as_slice() {
         "accept" | "accept-language" | "content-language" => true,
         "content-type" => match h.value() {
             Some(&ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) |

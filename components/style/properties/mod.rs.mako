@@ -243,7 +243,7 @@ pub mod longhands {
                               -> Result<specified::Length, ()> {
         match component_value {
             &Ident(ref value) => {
-                match value.as_slice().to_ascii_lower().as_slice() {
+                match value.as_slice().to_ascii_lowercase().as_slice() {
                     "thin" => Ok(specified::Length::from_px(1.)),
                     "medium" => Ok(specified::Length::from_px(3.)),
                     "thick" => Ok(specified::Length::from_px(5.)),
@@ -279,7 +279,7 @@ pub mod longhands {
     % endfor
 
     <%self:longhand name="border-top-left-radius">
-        #[deriving(Clone, Show, PartialEq, Copy)]
+        #[derive(Clone, Show, PartialEq, Copy)]
         pub struct SpecifiedValue {
             pub radius: specified::LengthOrPercentage,
         }
@@ -287,7 +287,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::computed;
 
-            #[deriving(Clone, PartialEq, Copy, Show)]
+            #[derive(Clone, PartialEq, Copy, Show)]
             pub struct T {
                 pub radius: computed::LengthOrPercentage,
             }
@@ -453,7 +453,7 @@ pub mod longhands {
         pub mod computed_value {
             use std::fmt;
 
-            #[deriving(PartialEq, Clone, Eq, Copy)]
+            #[derive(PartialEq, Clone, Eq, Copy)]
             pub enum T {
                 Auto,
                 Number(i32),
@@ -545,7 +545,7 @@ pub mod longhands {
 
     <%self:single_component_value name="line-height">
         use std::fmt;
-        #[deriving(Clone, PartialEq, Copy)]
+        #[derive(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             Normal,
             Length(specified::Length),
@@ -581,7 +581,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::{Au, CSSFloat};
             use std::fmt;
-            #[deriving(PartialEq, Copy, Clone)]
+            #[derive(PartialEq, Copy, Clone)]
             pub enum T {
                 Normal,
                 Length(Au),
@@ -618,7 +618,7 @@ pub mod longhands {
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
         #[allow(non_camel_case_types)]
-        #[deriving(Clone, PartialEq, Copy)]
+        #[derive(Clone, PartialEq, Copy)]
         pub enum SpecifiedValue {
             % for keyword in vertical_align_keywords:
                 ${to_rust_ident(keyword)},
@@ -641,7 +641,7 @@ pub mod longhands {
                                     -> Result<SpecifiedValue, ()> {
             match input {
                 &Ident(ref value) => {
-                    match value.as_slice().to_ascii_lower().as_slice() {
+                    match value.as_slice().to_ascii_lowercase().as_slice() {
                         % for keyword in vertical_align_keywords:
                         "${keyword}" => Ok(SpecifiedValue::${to_rust_ident(keyword)}),
                         % endfor
@@ -656,7 +656,7 @@ pub mod longhands {
             use super::super::{Au, CSSFloat};
             use std::fmt;
             #[allow(non_camel_case_types)]
-            #[deriving(PartialEq, Copy, Clone)]
+            #[derive(PartialEq, Copy, Clone)]
             pub enum T {
                 % for keyword in vertical_align_keywords:
                     ${to_rust_ident(keyword)},
@@ -712,7 +712,7 @@ pub mod longhands {
             pub use super::computed_as_specified as to_computed_value;
             pub mod computed_value {
             use std::fmt;
-                #[deriving(PartialEq, Eq, Clone)]
+                #[derive(PartialEq, Eq, Clone)]
                 pub enum ContentItem {
                     StringContent(String),
                 }
@@ -724,7 +724,7 @@ pub mod longhands {
                     }
                 }
                 #[allow(non_camel_case_types)]
-                #[deriving(PartialEq, Eq, Clone)]
+                #[derive(PartialEq, Eq, Clone)]
                 pub enum T {
                     normal,
                     none,
@@ -753,7 +753,7 @@ pub mod longhands {
             pub fn parse(input: &[ComponentValue], _base_url: &Url) -> Result<SpecifiedValue, ()> {
                 match one_component_value(input) {
                     Ok(&Ident(ref keyword)) => {
-                        match keyword.as_slice().to_ascii_lower().as_slice() {
+                        match keyword.as_slice().to_ascii_lowercase().as_slice() {
                             "normal" => return Ok(T::normal),
                             "none" => return Ok(T::none),
                             _ => ()
@@ -861,7 +861,7 @@ pub mod longhands {
                 use super::super::super::common_types::computed::LengthOrPercentage;
                 use std::fmt;
 
-                #[deriving(PartialEq, Copy, Clone)]
+                #[derive(PartialEq, Copy, Clone)]
                 pub struct T {
                     pub horizontal: LengthOrPercentage,
                     pub vertical: LengthOrPercentage,
@@ -873,7 +873,7 @@ pub mod longhands {
                 }
             }
 
-            #[deriving(Clone, PartialEq, Copy)]
+            #[derive(Clone, PartialEq, Copy)]
             pub struct SpecifiedValue {
                 pub horizontal: specified::LengthOrPercentage,
                 pub vertical: specified::LengthOrPercentage,
@@ -1025,7 +1025,7 @@ pub mod longhands {
         pub use super::computed_as_specified as to_computed_value;
         pub mod computed_value {
             use std::fmt;
-            #[deriving(PartialEq, Eq, Clone)]
+            #[derive(PartialEq, Eq, Clone)]
             pub enum FontFamily {
                 FamilyName(String),
                 // Generic
@@ -1063,7 +1063,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            vec![FontFamily::FamilyName("serif".into_string())]
+            vec![FontFamily::FamilyName("serif".to_string())]
         }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
@@ -1076,7 +1076,7 @@ pub mod longhands {
             let mut idents = match iter.next() {
                 Some(&QuotedString(ref value)) => return Ok(FontFamily::FamilyName(value.clone())),
                 Some(&Ident(ref value)) => {
-//                    match value.as_slice().to_ascii_lower().as_slice() {
+//                    match value.as_slice().to_ascii_lowercase().as_slice() {
 //                        "serif" => return Ok(Serif),
 //                        "sans-serif" => return Ok(SansSerif),
 //                        "cursive" => return Ok(Cursive),
@@ -1112,7 +1112,7 @@ pub mod longhands {
 
     <%self:single_component_value name="font-weight">
         use std::fmt;
-        #[deriving(Clone, PartialEq, Eq, Copy)]
+        #[derive(Clone, PartialEq, Eq, Copy)]
         pub enum SpecifiedValue {
             Bolder,
             Lighter,
@@ -1136,7 +1136,7 @@ pub mod longhands {
                                     -> Result<SpecifiedValue, ()> {
             match input {
                 &Ident(ref value) => {
-                    match value.as_slice().to_ascii_lower().as_slice() {
+                    match value.as_slice().to_ascii_lowercase().as_slice() {
                         "bold" => Ok(SpecifiedValue::SpecifiedWeight700),
                         "normal" => Ok(SpecifiedValue::SpecifiedWeight400),
                         "bolder" => Ok(SpecifiedValue::Bolder),
@@ -1161,7 +1161,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use std::fmt;
-            #[deriving(PartialEq, Eq, Copy, Clone)]
+            #[derive(PartialEq, Eq, Copy, Clone)]
             pub enum T {
                 % for weight in range(100, 901, 100):
                     Weight${weight},
@@ -1332,7 +1332,7 @@ pub mod longhands {
     <%self:longhand name="text-decoration">
         pub use super::computed_as_specified as to_computed_value;
         use std::fmt;
-        #[deriving(PartialEq, Eq, Copy, Clone)]
+        #[derive(PartialEq, Eq, Copy, Clone)]
         pub struct SpecifiedValue {
             pub underline: bool,
             pub overline: bool,
@@ -1409,7 +1409,7 @@ pub mod longhands {
                     derived_from="display text-decoration">
         pub use super::computed_as_specified as to_computed_value;
 
-        #[deriving(Clone, PartialEq, Copy)]
+        #[derive(Clone, PartialEq, Copy)]
         pub struct SpecifiedValue {
             pub underline: Option<RGBA>,
             pub overline: Option<RGBA>,
@@ -1523,7 +1523,7 @@ pub mod longhands {
 
         pub mod computed_value {
             use servo_util::cursor::Cursor;
-            #[deriving(Clone, PartialEq, Eq, Copy, Show)]
+            #[derive(Clone, PartialEq, Eq, Copy, Show)]
             pub enum T {
                 AutoCursor,
                 SpecifiedCursor(Cursor),
@@ -1593,7 +1593,7 @@ pub mod longhands {
 
         pub type SpecifiedValue = Vec<SpecifiedBoxShadow>;
 
-        #[deriving(Clone, PartialEq)]
+        #[derive(Clone, PartialEq)]
         pub struct SpecifiedBoxShadow {
             pub offset_x: specified::Length,
             pub offset_y: specified::Length,
@@ -1624,7 +1624,7 @@ pub mod longhands {
 
             pub type T = Vec<BoxShadow>;
 
-            #[deriving(Clone, PartialEq, Copy)]
+            #[derive(Clone, PartialEq, Copy)]
             pub struct BoxShadow {
                 pub offset_x: Au,
                 pub offset_y: Au,
@@ -1767,7 +1767,7 @@ pub mod longhands {
         pub mod computed_value {
             use super::super::Au;
 
-            #[deriving(Clone, PartialEq, Eq, Copy, Show)]
+            #[derive(Clone, PartialEq, Eq, Copy, Show)]
             pub struct ClipRect {
                 pub top: Au,
                 pub right: Option<Au>,
@@ -1778,7 +1778,7 @@ pub mod longhands {
             pub type T = Option<ClipRect>;
         }
 
-        #[deriving(Clone, Show, PartialEq, Copy)]
+        #[derive(Clone, Show, PartialEq, Copy)]
         pub struct SpecifiedClipRect {
             pub top: specified::Length,
             pub right: Option<specified::Length>,
@@ -1844,7 +1844,7 @@ pub mod longhands {
             use super::super::{Angle, CSSFloat};
 
             // TODO(pcwalton): `blur`, `drop-shadow`
-            #[deriving(Clone, PartialEq, Show)]
+            #[derive(Clone, PartialEq, Show)]
             pub enum Filter {
                 Brightness(CSSFloat),
                 Contrast(CSSFloat),
@@ -1856,7 +1856,7 @@ pub mod longhands {
                 Sepia(CSSFloat),
             }
 
-            #[deriving(Clone, PartialEq, Show)]
+            #[derive(Clone, PartialEq, Show)]
             pub struct T {
                 pub filters: Vec<Filter>,
             }
@@ -1897,7 +1897,7 @@ pub mod longhands {
         }
 
         // TODO(pcwalton): `blur`, `drop-shadow`
-        #[deriving(Clone, Show)]
+        #[derive(Clone, Show)]
         pub enum SpecifiedFilter {
             Brightness(CSSFloat),
             Contrast(CSSFloat),
@@ -2239,7 +2239,7 @@ pub mod shorthands {
 
         fn parse_one_set_of_border_radii<'a,I>(mut input: Peekable< &'a ComponentValue,I >)
                                          -> Result<[specified::LengthOrPercentage; 4],()>
-                                         where I: Iterator< &'a ComponentValue > {
+                                         where I: Iterator<Item=&'a ComponentValue> {
             let (mut count, mut values) = (0u, [specified::LengthOrPercentage::Length(specified::Length::Au(Au(0))); 4]);
             while count < 4 {
                 let token = match input.peek() {
@@ -2570,7 +2570,7 @@ pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclaration
 }
 
 
-pub fn parse_property_declaration_list<I: Iterator<Node>>(input: I, base_url: &Url) -> PropertyDeclarationBlock {
+pub fn parse_property_declaration_list<I: Iterator<Item=Node>>(input: I, base_url: &Url) -> PropertyDeclarationBlock {
     let mut important_declarations = vec!();
     let mut normal_declarations = vec!();
     let mut important_seen = PropertyBitField::new();
@@ -2629,7 +2629,7 @@ impl CSSWideKeyword {
 }
 
 
-#[deriving(Clone, PartialEq, Eq, Copy)]
+#[derive(Clone, PartialEq, Eq, Copy)]
 pub enum DeclaredValue<T> {
     SpecifiedValue(T),
     Initial,
@@ -2644,12 +2644,12 @@ impl<T: Show> DeclaredValue<T> {
         match self {
             &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{}", inner)),
             &DeclaredValue::Initial => None,
-            &DeclaredValue::Inherit => Some("inherit".into_string()),
+            &DeclaredValue::Inherit => Some("inherit".to_string()),
         }
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}Declaration(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
@@ -2657,7 +2657,7 @@ pub enum PropertyDeclaration {
 }
 
 
-#[deriving(Eq, PartialEq, Copy)]
+#[derive(Eq, PartialEq, Copy)]
 pub enum PropertyDeclarationParseResult {
     UnknownProperty,
     ExperimentalProperty,
@@ -2670,10 +2670,10 @@ impl PropertyDeclaration {
         match self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".into_string(),
+                    &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".to_string(),
                 % endif
             % endfor
-            _ => "".into_string(),
+            _ => "".to_string(),
         }
     }
 
@@ -2691,7 +2691,7 @@ impl PropertyDeclaration {
     }
 
     pub fn matches(&self, name: &str) -> bool {
-        let name_lower = name.as_slice().to_ascii_lower();
+        let name_lower = name.as_slice().to_ascii_lowercase();
         match (self, name_lower.as_slice()) {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
@@ -2706,7 +2706,7 @@ impl PropertyDeclaration {
                  result_list: &mut Vec<PropertyDeclaration>,
                  base_url: &Url,
                  seen: &mut PropertyBitField) -> PropertyDeclarationParseResult {
-        match name.to_ascii_lower().as_slice() {
+        match name.to_ascii_lowercase().as_slice() {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     "${property.name}" => {
@@ -2808,7 +2808,7 @@ pub mod style_structs {
 
     % for style_struct in STYLE_STRUCTS:
         #[allow(missing_copy_implementations)]
-        #[deriving(PartialEq, Clone)]
+        #[derive(PartialEq, Clone)]
         pub struct ${style_struct.name} {
             % for longhand in style_struct.longhands:
                 pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
@@ -2817,7 +2817,7 @@ pub mod style_structs {
     % endfor
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ComputedValues {
     % for style_struct in STYLE_STRUCTS:
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
@@ -3372,7 +3372,7 @@ pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
         % for property in SHORTHANDS:
             "${property.name}" => Some(vec!(
             % for sub in property.sub_properties:
-                "${sub.name}".into_string(),
+                "${sub.name}".to_string(),
             % endfor
             )),
         % endfor

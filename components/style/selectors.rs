@@ -228,7 +228,7 @@ fn parse_type_selector<I: Iterator<Item=ComponentValue>>(
                 Some(name) => {
                     simple_selectors.push(SimpleSelector::LocalName(LocalName {
                         name: Atom::from_slice(name.as_slice()),
-                        lower_name: Atom::from_slice(name.into_ascii_lower().as_slice())
+                        lower_name: Atom::from_slice(name.into_ascii_lowercase().as_slice())
                     }))
                 }
                 None => (),
@@ -315,7 +315,7 @@ fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &Namespace
         Some((_, None)) => panic!("Implementation error, this should not happen."),
         Some((namespace, Some(local_name))) => AttrSelector {
             namespace: namespace,
-            lower_name: Atom::from_slice(local_name.as_slice().to_ascii_lower().as_slice()),
+            lower_name: Atom::from_slice(local_name.as_slice().to_ascii_lowercase().as_slice()),
             name: Atom::from_slice(local_name.as_slice()),
         },
     };
@@ -510,7 +510,7 @@ fn parse_functional_pseudo_class(context: &ParserContext,
                                  namespaces: &NamespaceMap,
                                  inside_negation: bool)
                                  -> Result<SimpleSelector,()> {
-    match name.as_slice().to_ascii_lower().as_slice() {
+    match name.as_slice().to_ascii_lowercase().as_slice() {
 //        "lang" => parse_lang(arguments),
         "nth-child"        => parse_nth(arguments.as_slice()).map(|(a, b)| SimpleSelector::NthChild(a, b)),
         "nth-last-child"   => parse_nth(arguments.as_slice()).map(|(a, b)| SimpleSelector::NthLastChild(a, b)),
@@ -562,7 +562,7 @@ fn parse_one_simple_selector<I>(context: &ParserContext,
             match iter.next() {
                 Some(Ident(name)) => match parse_simple_pseudo_class(context, name.as_slice()) {
                     Err(()) => {
-                        match name.as_slice().to_ascii_lower().as_slice() {
+                        match name.as_slice().to_ascii_lowercase().as_slice() {
                             // Supported CSS 2.1 pseudo-elements only.
                             // ** Do not add to this list! **
                             "before" => Ok(Some(SimpleSelectorParseResult::PseudoElement(PseudoElement::Before))),
@@ -598,7 +598,7 @@ fn parse_one_simple_selector<I>(context: &ParserContext,
 }
 
 fn parse_simple_pseudo_class(context: &ParserContext, name: &str) -> Result<SimpleSelector,()> {
-    match name.to_ascii_lower().as_slice() {
+    match name.to_ascii_lowercase().as_slice() {
         "any-link" => Ok(SimpleSelector::AnyLink),
         "link" => Ok(SimpleSelector::Link),
         "visited" => Ok(SimpleSelector::Visited),
@@ -621,7 +621,7 @@ fn parse_simple_pseudo_class(context: &ParserContext, name: &str) -> Result<Simp
 }
 
 fn parse_pseudo_element(name: String) -> Result<PseudoElement, ()> {
-    match name.as_slice().to_ascii_lower().as_slice() {
+    match name.as_slice().to_ascii_lowercase().as_slice() {
         // All supported pseudo-elements
         "before" => Ok(PseudoElement::Before),
         "after" => Ok(PseudoElement::After),

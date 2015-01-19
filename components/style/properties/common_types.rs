@@ -200,7 +200,7 @@ pub mod specified {
             Length::parse_internal(input, /* negative_ok = */ false)
         }
         pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
-            match unit.to_ascii_lower().as_slice() {
+            match unit.to_ascii_lowercase().as_slice() {
                 "px" => Ok(Length::from_px(value)),
                 "in" => Ok(Length::Au(Au((value * AU_PER_IN) as i32))),
                 "cm" => Ok(Length::Au(Au((value * AU_PER_CM) as i32))),

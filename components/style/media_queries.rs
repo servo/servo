@@ -120,7 +120,7 @@ pub fn parse_media_rule(context: &ParserContext,
             }
             Rule::AtRule(rule) => parse_nested_at_rule(
                 context,
-                rule.name.as_slice().to_ascii_lower().as_slice(),
+                rule.name.as_slice().to_ascii_lowercase().as_slice(),
                 rule,
                 &mut rules,
                 namespaces,
@@ -164,7 +164,7 @@ fn parse_media_query_expression(iter: ParserIter) -> Result<Expression, ()> {
             let value = try!(iter.next_as_result());
 
             // TODO: Handle other media query types
-            let expression = match variable.as_slice().to_ascii_lower().as_slice() {
+            let expression = match variable.as_slice().to_ascii_lowercase().as_slice() {
                 "min-width" => {
                     let au = try!(parse_value_as_length(value));
                     Expression::Width(Range::Min(au))
@@ -191,8 +191,8 @@ fn parse_media_query(iter: ParserIter) -> Result<MediaQuery, ()> {
 
     // Check for optional 'only' or 'not'
     let qualifier = match iter.next() {
-        Some(&Ident(ref value)) if value.as_slice().to_ascii_lower().as_slice() == "only" => Some(Qualifier::Only),
-        Some(&Ident(ref value)) if value.as_slice().to_ascii_lower().as_slice() == "not" => Some(Qualifier::Not),
+        Some(&Ident(ref value)) if value.as_slice().to_ascii_lowercase().as_slice() == "only" => Some(Qualifier::Only),
+        Some(&Ident(ref value)) if value.as_slice().to_ascii_lowercase().as_slice() == "not" => Some(Qualifier::Not),
         Some(component_value) => {
             iter.push_back(component_value);
             None
@@ -203,7 +203,7 @@ fn parse_media_query(iter: ParserIter) -> Result<MediaQuery, ()> {
     // Check for media type
     let media_type = match iter.next() {
         Some(&Ident(ref value)) => {
-            match value.as_slice().to_ascii_lower().as_slice() {
+            match value.as_slice().to_ascii_lowercase().as_slice() {
                 "screen" => MediaQueryType::MediaType(MediaType::Screen),
                 "print" => MediaQueryType::MediaType(MediaType::Print),
                 "all" => MediaQueryType::All,
@@ -231,7 +231,7 @@ fn parse_media_query(iter: ParserIter) -> Result<MediaQuery, ()> {
         // Each expression should begin with and
         match iter.next() {
             Some(&Ident(ref value)) => {
-                match value.as_slice().to_ascii_lower().as_slice() {
+                match value.as_slice().to_ascii_lowercase().as_slice() {
                     "and" => {
                         let expression = try!(parse_media_query_expression(iter));
                         expressions.push(expression);
