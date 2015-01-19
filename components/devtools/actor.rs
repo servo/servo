@@ -4,7 +4,7 @@
 
 /// General actor system infrastructure.
 
-use std::boxed::BoxAny;
+use std::any::Any;
 use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
 use std::intrinsics::TypeId;
@@ -16,53 +16,13 @@ use serialize::json;
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 /// TODO: ensure the name is immutable
-pub trait Actor : BoxAny {
+pub trait Actor : Any {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
                       msg: &json::Object,
                       stream: &mut TcpStream) -> Result<bool, ()>;
     fn name(&self) -> String;
-}
-
-impl<'a> BoxAny<> for &'a mut (Actor + 'a) {
-    fn downcast<T: 'static>(self) -> Option<&'a mut T> {
-        if self.is::<T>() {
-            unsafe {
-                // Get the raw representation of the trait object
-                let to: TraitObject = transmute_copy(&self);
-
-                // Extract the data pointer
-                Some(transmute(to.data))
-            }
-        } else {
-            None
-        }
-    }
-}
-
-impl<'a> BoxAny<'a> for &'a (Actor + 'a) {
-    fn is<T: 'static>(self) -> bool {
-        // This implementation is only needed so long as there's a Rust bug that
-        // prevents downcast_ref from giving realistic return values.
-        let t = TypeId::of::<T>();
-        let boxed: TypeId = (*self).get_type_id();
-        t == boxed
-    }
-
-    fn downcast_ref<T: 'static>(self) -> Option<&'a T> {
-        if self.is::<T>() {
-            unsafe {
-                // Get the raw representation of the trait object
-                let to: TraitObject = transmute_copy(&self);
-
-                // Extract the data pointer
-                Some(transmute(to.data))
-            }
-        } else {
-            None
-        }
-    }
 }
 
 /// A list of known, owned actors.

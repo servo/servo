@@ -12,12 +12,12 @@ use std::io::{IoError, OtherIoError, EndOfFile, TcpStream, IoResult};
 use std::num;
 
 pub trait JsonPacketStream {
-    fn write_json_packet<'a, T: Encodable<json::Encoder<'a>,IoError>>(&mut self, obj: &T);
+    fn write_json_packet<'a, T: Encodable>(&mut self, obj: &T);
     fn read_json_packet(&mut self) -> IoResult<Json>;
 }
 
 impl JsonPacketStream for TcpStream {
-    fn write_json_packet<'a, T: Encodable<json::Encoder<'a>,IoError>>(&mut self, obj: &T) {
+    fn write_json_packet<'a, T: Encodable>(&mut self, obj: &T) {
         let s = json::encode(obj).replace("__type__", "type");
         println!("<- {}", s);
         self.write_str(s.len().to_string().as_slice()).unwrap();
