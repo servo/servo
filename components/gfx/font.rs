@@ -129,33 +129,28 @@ pub struct ShapeCacheEntry {
     options: ShapingOptions,
 }
 
-#[derive(Clone, Eq, PartialEq, Hash)]
-struct ShapeCacheEntryRef<'a> {
-    text: &'a str,
-    options: &'a ShapingOptions,
-}
-
 impl Font {
     pub fn shape_text(&mut self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
         self.make_shaper(options);
 
+        //FIXME: find the equivalent of Equiv and the old ShapeCacheEntryRef
         let shaper = &self.shaper;
-        let lookup_key = ShapeCacheEntryRef {
-            text: text,
-            options: options,
+        let lookup_key = ShapeCacheEntry {
+            text: text.to_string(),
+            options: options.clone(),
         };
-        match self.shape_cache.find_equiv(&lookup_key) {
+        match self.shape_cache.find(&lookup_key) {
             None => {}
-            Some(glyphs) => return (*glyphs).clone(),
+            Some(glyphs) => return glyphs.clone(),
         }
 
-        let mut glyphs = GlyphStore::new(text.char_len() as int,
+        let mut glyphs = GlyphStore::new(text.chars().count() as int,
                                          options.flags.contains(IS_WHITESPACE_SHAPING_FLAG));
         shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
 
         let glyphs = Arc::new(glyphs);
         self.shape_cache.insert(ShapeCacheEntry {
-            text: text.into_string(),
+            text: text.to_string(),
             options: *options,
         }, glyphs.clone());
         glyphs

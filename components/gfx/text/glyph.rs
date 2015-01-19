@@ -321,7 +321,7 @@ impl<'a> DetailedGlyphStore {
             detail_offset: self.detail_buffer.len() as int,
         };
 
-        debug!("Adding entry[off={}] for detailed glyphs: {}", entry_offset, glyphs);
+        debug!("Adding entry[off={:?}] for detailed glyphs: {:?}", entry_offset, glyphs);
 
         /* TODO: don't actually assert this until asserts are compiled
         in/out based on severity, debug/release, etc. This assertion
@@ -341,7 +341,7 @@ impl<'a> DetailedGlyphStore {
 
     fn get_detailed_glyphs_for_entry(&'a self, entry_offset: CharIndex, count: u16)
                                   -> &'a [DetailedGlyph] {
-        debug!("Requesting detailed glyphs[n={}] for entry[off={}]", count, entry_offset);
+        debug!("Requesting detailed glyphs[n={}] for entry[off={:?}]", count, entry_offset);
 
         // FIXME: Is this right? --pcwalton
         // TODO: should fix this somewhere else
@@ -581,7 +581,7 @@ impl<'a> GlyphStore {
         let entry = match first_glyph_data.is_missing {
             true  => GlyphEntry::missing(glyph_count),
             false => {
-                let glyphs_vec = repeat(glyph_count as uint).enumerate(|i| {
+                let glyphs_vec: Vec<DetailedGlyph> = (0..glyph_count as uint).map(|&:i| {
                     DetailedGlyph::new(data_for_glyphs[i].id,
                                        data_for_glyphs[i].advance,
                                        data_for_glyphs[i].offset)
@@ -594,7 +594,7 @@ impl<'a> GlyphStore {
             }
         }.adapt_character_flags_of_entry(self.entry_buffer[i.to_uint()]);
 
-        debug!("Adding multiple glyphs[idx={}, count={}]: {}", i, glyph_count, entry);
+        debug!("Adding multiple glyphs[idx={:?}, count={}]: {:?}", i, glyph_count, entry);
 
         self.entry_buffer[i.to_uint()] = entry;
     }
@@ -604,7 +604,7 @@ impl<'a> GlyphStore {
         assert!(i < self.char_len());
 
         let entry = GlyphEntry::complex(cluster_start, ligature_start, 0);
-        debug!("adding spacer for chracter without associated glyph[idx={}]", i);
+        debug!("adding spacer for chracter without associated glyph[idx={:?}]", i);
 
         self.entry_buffer[i.to_uint()] = entry;
     }
@@ -743,7 +743,7 @@ impl<'a> Iterator for GlyphIterator<'a> {
             self.next_glyph_range()
         } else {
             // No glyph range. Look at next character.
-            self.char_range.next().and_then(|i| {
+            self.char_range.next().and_then(|&:i| {
                 self.char_index = i;
                 assert!(i < self.store.char_len());
                 let entry = self.store.entry_buffer[i.to_uint()];

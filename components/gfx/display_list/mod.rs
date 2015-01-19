@@ -356,7 +356,7 @@ impl StackingContext {
                                   result: &mut Vec<DisplayItemMetadata>,
                                   topmost_only: bool,
                                   mut iterator: I)
-                                  where I: Iterator<Item=DisplayItem> {
+                                  where I: Iterator<Item=&'a DisplayItem> {
             for item in iterator {
                 // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
                 // test elements with `border-radius`, for example.
@@ -810,7 +810,7 @@ pub enum DisplayItemIterator<'a> {
 }
 
 impl<'a> Iterator for DisplayItemIterator<'a> {
-    type Item = DisplayItem;
+    type Item = &'a DisplayItem;
     #[inline]
     fn next(&mut self) -> Option<&'a DisplayItem> {
         match *self {
@@ -837,14 +837,14 @@ impl DisplayItem {
             }
 
             DisplayItem::TextClass(ref text) => {
-                debug!("Drawing text at {}.", text.base.bounds);
+                debug!("Drawing text at {:?}.", text.base.bounds);
                 paint_context.draw_text(&**text);
             }
 
             DisplayItem::ImageClass(ref image_item) => {
                 // FIXME(pcwalton): This is a really inefficient way to draw a tiled image; use a
                 // brush instead.
-                debug!("Drawing image at {}.", image_item.base.bounds);
+                debug!("Drawing image at {:?}.", image_item.base.bounds);
 
                 let mut y_offset = Au(0);
                 while y_offset < image_item.base.bounds.size.height {
@@ -927,13 +927,13 @@ impl DisplayItem {
         for _ in range(0, level) {
             indent.push_str("| ")
         }
-        println!("{}+ {}", indent, self);
+        println!("{}+ {:?}", indent, self);
     }
 }
 
 impl fmt::Show for DisplayItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} @ {} ({:x})",
+        write!(f, "{} @ {:?} ({:x})",
             match *self {
                 DisplayItem::SolidColorClass(_) => "SolidColor",
                 DisplayItem::TextClass(_) => "Text",

@@ -317,9 +317,9 @@ impl<'a> TextRun {
     }
 
     pub fn min_width_for_range(&self, range: &Range<CharIndex>) -> Au {
-        debug!("iterating outer range {}", range);
+        debug!("iterating outer range {:?}", range);
         self.natural_word_slices_in_range(range).fold(Au(0), |max_piece_width, slice| {
-            debug!("iterated on {}[{}]", slice.offset, slice.range);
+            debug!("iterated on {:?}[{:?}]", slice.offset, slice.range);
             Au::max(max_piece_width, self.advance_for_range(&slice.range))
         })
     }

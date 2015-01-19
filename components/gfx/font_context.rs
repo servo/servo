@@ -168,7 +168,7 @@ impl FontContext {
 
             if !cache_hit {
                 let font_template = self.font_cache_task.get_font_template(family.name()
-                                                                                 .into_string(),
+                                                                                 .to_string(),
                                                                            desc.clone());
                 match font_template {
                     Some(font_template) => {
@@ -178,14 +178,14 @@ impl FontContext {
                                                                   style.font_variant);
                         let layout_font = Rc::new(RefCell::new(layout_font));
                         self.layout_font_cache.push(LayoutFontCacheEntry {
-                            family: family.name().into_string(),
+                            family: family.name().to_string(),
                             font: Some(layout_font.clone()),
                         });
                         fonts.push(layout_font);
                     }
                     None => {
                         self.layout_font_cache.push(LayoutFontCacheEntry {
-                            family: family.name().into_string(),
+                            family: family.name().to_string(),
                             font: None,
                         });
                     }

@@ -179,7 +179,7 @@ impl FontHandleMethods for FontHandle {
             average_advance:  average_advance,
             line_gap:         Au::from_frac_px(line_gap),
         };
-        debug!("Font metrics (@{} pt): {}", self.ctfont.pt_size() as f64, metrics);
+        debug!("Font metrics (@{} pt): {:?}", self.ctfont.pt_size() as f64, metrics);
         return metrics;
     }
 
