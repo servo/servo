@@ -4,6 +4,8 @@
 
 //! Utilities to throw exceptions from Rust bindings.
 
+#![deny(missing_docs)]
+
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
 use dom::domexception::DOMException;
@@ -21,22 +23,38 @@ use std::ptr;
 /// DOM exceptions that can be thrown by a native DOM method.
 #[deriving(Show, Clone)]
 pub enum Error {
+    /// IndexSizeError
     IndexSize,
-    FailureUnknown,
+    /// NotFoundError
     NotFound,
+    /// HierarchyRequestError
     HierarchyRequest,
+    /// InvalidCharacterError
     InvalidCharacter,
+    /// NotSupportedError
     NotSupported,
+    /// InvalidStateError
     InvalidState,
+    /// SyntaxError
     Syntax,
+    /// NamespaceError
     NamespaceError,
+    /// InvalidAccessError
     InvalidAccess,
+    /// SecurityError
     Security,
+    /// NetworkError
     Network,
+    /// AbortError
     Abort,
+    /// TimeoutError
     Timeout,
+    /// DataCloneError
     DataClone,
-    NoModificationAllowedError
+    /// NoModificationAllowedError
+    NoModificationAllowedError,
+    /// Unknown failure
+    FailureUnknown,
 }
 
 /// The return type for IDL operations that can throw DOM exceptions.
