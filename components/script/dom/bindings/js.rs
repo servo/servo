@@ -42,7 +42,6 @@
 //! - `OptionalRootable` and `OptionalRootedRootable`: make rooting `Option` values easy via a `root` method
 //! - `ResultRootable`: make rooting successful `Result` values easy
 //! - `TemporaryPushable`: allows mutating vectors of `JS<T>` with new elements of `JSRef`/`Temporary`
-//! - `OptionalSettable`: allows assigning `Option` values of `JSRef`/`Temporary` to fields of `Option<JS<T>>`
 //! - `RootedReference`: makes obtaining an `Option<JSRef<T>>` from an `Option<Root<T>>` easy
 
 use dom::bindings::trace::JSTraceable;
@@ -364,18 +363,6 @@ impl<'a, T: Reflectable> Assignable<T> for JSRef<'a, T> {
 impl<T: Reflectable> Assignable<T> for Temporary<T> {
     unsafe fn get_js(&self) -> JS<T> {
         self.inner()
-    }
-}
-
-/// Assign an optional rootable value (either of `JS<T>` or `Temporary<T>`) to an optional
-/// field of a DOM type (ie. `Option<JS<T>>`)
-pub trait OptionalSettable<T> {
-    fn assign(&self, val: Option<T>);
-}
-
-impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Cell<Option<JS<U>>> {
-    fn assign(&self, val: Option<T>) {
-        self.set(val.map(|val| unsafe { val.get_js() }));
     }
 }
 

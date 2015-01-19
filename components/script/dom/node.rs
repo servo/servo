@@ -24,7 +24,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
-use dom::bindings::js::{OptionalSettable, TemporaryPushable, OptionalRootedRootable};
+use dom::bindings::js::{TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
