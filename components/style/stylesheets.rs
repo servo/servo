@@ -41,7 +41,7 @@ pub struct StyleRule {
 
 
 impl Stylesheet {
-    pub fn from_bytes_iter<I: Iterator<Vec<u8>>>(
+    pub fn from_bytes_iter<I: Iterator<Item=Vec<u8>>>(
             mut input: I, base_url: Url, protocol_encoding_label: Option<&str>,
             environment_encoding: Option<EncodingRef>, origin: StylesheetOrigin) -> Stylesheet {
         let mut bytes = vec!();

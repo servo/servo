@@ -1987,7 +1987,6 @@ pub mod longhands {
 
 
 pub mod shorthands {
-    pub use super::*;
     pub use super::longhands::*;
 
     <%def name="shorthand(name, sub_properties)">

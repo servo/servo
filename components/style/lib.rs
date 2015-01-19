@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(macro_rules, plugin)]
+#![feature(int_uint)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]

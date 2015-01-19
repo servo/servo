@@ -82,7 +82,7 @@ pub type ParserIter<'a, 'b> = &'a mut BufferedIter<&'b ComponentValue, SkipWhite
 #[inline]
 pub fn parse_slice_comma_separated<F, T>(input: &[ComponentValue],
                                          parse_one: F) -> Result<Vec<T>, ()>
-                                         where F: Fn(ParserIterator) -> Result<T, ()> {
+                                         where F: Fn(ParserIter) -> Result<T, ()> {
     parse_comma_separated(&mut BufferedIter::new(input.skip_whitespace()), parse_one)
 }
 

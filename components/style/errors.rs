@@ -8,7 +8,9 @@ use cssparser::ast::{SyntaxError, SourceLocation};
 
 pub struct ErrorLoggerIterator<I>(pub I);
 
-impl<T, I: Iterator<Result<T, SyntaxError>>> Iterator<T> for ErrorLoggerIterator<I> {
+impl<T, I: Iterator<Item=Result<T, SyntaxError>>> Iterator for ErrorLoggerIterator<I> {
+    type Item = T;
+
     fn next(&mut self) -> Option<T> {
         let ErrorLoggerIterator(ref mut this) = *self;
         loop {

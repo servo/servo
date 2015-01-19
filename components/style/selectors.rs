@@ -210,7 +210,7 @@ fn compute_specificity(mut selector: &CompoundSelector,
 /// * `Err(())`: Invalid selector, abort
 /// * `Ok(None)`: Not a type selector, could be something else. `iter` was not consumed.
 /// * `Ok(Some(vec))`: Length 0 (`*|*`), 1 (`*|E` or `ns|*`) or 2 (`|E` or `ns|E`)
-fn parse_type_selector<I: Iterator<ComponentValue>>(
+fn parse_type_selector<I: Iterator<Item=ComponentValue>>(
                        iter: &mut Iter<I>, namespaces: &NamespaceMap)
                        -> Result<Option<Vec<SimpleSelector>>, ()> {
     skip_whitespace(iter);
@@ -248,7 +248,7 @@ enum SimpleSelectorParseResult {
 /// * `Err(())`: Invalid selector, abort
 /// * `Ok(None)`: Not a simple selector, could be something else. `iter` was not consumed.
 /// * `Ok(Some((namespace, local_name)))`: `None` for the local name means a `*` universal selector
-fn parse_qualified_name<I: Iterator<ComponentValue>>(
+fn parse_qualified_name<I: Iterator<Item=ComponentValue>>(
                         iter: &mut Iter<I>, in_attr_selector: bool, namespaces: &NamespaceMap)
                         -> Result<Option<(NamespaceConstraint, Option<String>)>, ()> {
     let default_namespace = |local_name| {
@@ -360,7 +360,7 @@ fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &Namespace
 }
 
 
-fn parse_attribute_value<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> Result<String, ()> {
+fn parse_attribute_value<I: Iterator<Item=ComponentValue>>(iter: &mut Iter<I>) -> Result<String, ()> {
     skip_whitespace(iter);
     match iter.next() {
         Some(Ident(value)) | Some(QuotedString(value)) => Ok(value),
@@ -369,7 +369,7 @@ fn parse_attribute_value<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> Res
 }
 
 
-fn parse_attribute_flags<I: Iterator<ComponentValue>>(iter: &mut Iter<I>)
+fn parse_attribute_flags<I: Iterator<Item=ComponentValue>>(iter: &mut Iter<I>)
                          -> Result<CaseSensitivity, ()> {
     skip_whitespace(iter);
     match iter.next() {
@@ -393,7 +393,7 @@ pub fn parse_selector_list_from_str(context: &ParserContext, input: &str)
 /// Return the Selectors or None if there is an invalid selector.
 pub fn parse_selector_list<I>(context: &ParserContext, iter: I, namespaces: &NamespaceMap)
                               -> Result<Vec<Selector>,()>
-                              where I: Iterator<ComponentValue> {
+                              where I: Iterator<Item=ComponentValue> {
     let iter = &mut iter.peekable();
     let mut results = vec![try!(parse_selector(context, iter, namespaces))];
 
@@ -416,7 +416,7 @@ pub fn parse_selector_list<I>(context: &ParserContext, iter: I, namespaces: &Nam
 /// `Err` means invalid selector.
 fn parse_selector<I>(context: &ParserContext, iter: &mut Iter<I>, namespaces: &NamespaceMap)
                      -> Result<Selector,()>
-                     where I: Iterator<ComponentValue> {
+                     where I: Iterator<Item=ComponentValue> {
     let (first, mut pseudo_element) = try!(parse_simple_selectors(context, iter, namespaces));
     let mut compound = CompoundSelector{ simple_selectors: first, next: None };
 
@@ -478,7 +478,7 @@ fn parse_simple_selectors<I>(context: &ParserContext,
                              iter: &mut Iter<I>,
                              namespaces: &NamespaceMap)
                              -> Result<(Vec<SimpleSelector>, Option<PseudoElement>),()>
-                             where I: Iterator<ComponentValue> {
+                             where I: Iterator<Item=ComponentValue> {
     let mut empty = true;
     let mut simple_selectors = match try!(parse_type_selector(iter, namespaces)) {
         None => vec![],
@@ -537,7 +537,7 @@ fn parse_one_simple_selector<I>(context: &ParserContext,
                                 namespaces: &NamespaceMap,
                                 inside_negation: bool)
                                 -> Result<Option<SimpleSelectorParseResult>,()>
-                                where I: Iterator<ComponentValue> {
+                                where I: Iterator<Item=ComponentValue> {
     match iter.peek() {
         Some(&IDHash(_)) => match iter.next() {
             Some(IDHash(id)) => Ok(Some(SimpleSelectorParseResult::SimpleSelector(
@@ -647,7 +647,7 @@ fn parse_pseudo_element(name: String) -> Result<PseudoElement, ()> {
 
 /// Assuming the next token is an ident, consume it and return its value
 #[inline]
-fn get_next_ident<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> String {
+fn get_next_ident<I: Iterator<Item=ComponentValue>>(iter: &mut Iter<I>) -> String {
     match iter.next() {
         Some(Ident(value)) => value,
         _ => panic!("Implementation error, this should not happen."),
@@ -656,7 +656,7 @@ fn get_next_ident<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> String {
 
 
 #[inline]
-fn skip_whitespace<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> bool {
+fn skip_whitespace<I: Iterator<Item=ComponentValue>>(iter: &mut Iter<I>) -> bool {
     let mut any_whitespace = false;
     loop {
         if iter.peek() != Some(&WhiteSpace) { return any_whitespace }
