@@ -11,13 +11,14 @@ use hyper::client::Request;
 use hyper::header::common::{ContentLength, ContentType, Host, Location};
 use hyper::method::Method;
 use hyper::status::StatusClass;
+use std::error::Error;
 use std::io::Reader;
 use std::sync::mpsc::Sender;
 use servo_util::task::spawn_named;
 use url::{Url, UrlParser};
 
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
-    spawn_named("http_loader", move || load(load_data, start_chan))
+    spawn_named("http_loader".to_string(), move || load(load_data, start_chan))
 }
 
 fn send_error(url: Url, err: String, senders: ResponseSenders) {
@@ -25,7 +26,7 @@ fn send_error(url: Url, err: String, senders: ResponseSenders) {
     metadata.status = None;
 
     match start_sending_opt(senders, metadata) {
-        Ok(p) => p.send(Done(Err(err))),
+        Ok(p) => p.send(Done(Err(err))).unwrap(),
         _ => {}
     };
 }
@@ -74,7 +75,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         let mut req = match Request::new(load_data.method.clone(), url.clone()) {
             Ok(req) => req,
             Err(e) => {
-                send_error(url, e.to_string(), senders);
+                send_error(url, e.description().to_string(), senders);
                 return;
             }
         };
@@ -86,15 +87,15 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         // FIXME(seanmonstar): use AcceptEncoding from Hyper once available
         //if !req.headers.has::<AcceptEncoding>() {
             // We currently don't support HTTP Compression (FIXME #2587)
-            req.headers_mut().set_raw("Accept-Encoding".into_string(), vec![b"identity".to_vec()]);
+            req.headers_mut().set_raw("Accept-Encoding".to_string(), vec![b"identity".to_vec()]);
         //}
         let writer = match load_data.data {
             Some(ref data) => {
-                req.headers_mut().set(ContentLength(data.len()));
+                req.headers_mut().set(ContentLength(data.len() as u64));
                 let mut writer = match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.to_string(), senders);
+                        send_error(url, e.description().to_string(), senders);
                         return;
                     }
                 };
@@ -115,7 +116,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
                 match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.to_string(), senders);
+                        send_error(url, e.description().to_string(), senders);
                         return;
                     }
                 }
@@ -124,7 +125,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         let mut response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
-                send_error(url, e.to_string(), senders);
+                send_error(url, e.description().to_string(), senders);
                 return;
             }
         };

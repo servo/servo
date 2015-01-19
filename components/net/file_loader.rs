@@ -17,11 +17,11 @@ fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
     loop {
         let mut buf = vec!();
         match reader.push_at_least(READ_SIZE, READ_SIZE, &mut buf) {
-            Ok(_) => progress_chan.send(Payload(buf)),
+            Ok(_) => progress_chan.send(Payload(buf)).unwrap(),
             Err(e) => match e.kind {
                 io::EndOfFile => {
                     if buf.len() > 0 {
-                        progress_chan.send(Payload(buf));
+                        let _ = progress_chan.send(Payload(buf));
                     }
                     return Ok(());
                 }
@@ -39,7 +39,7 @@ pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         eventual_consumer: load_data.consumer,
     };
     let progress_chan = start_sending(senders, Metadata::default(url.clone()));
-    spawn_named("file_loader", move || {
+    spawn_named("file_loader".to_string(), move || {
         let file_path: Result<Path, ()> = url.to_file_path();
         match file_path {
             Ok(file_path) => {

@@ -436,7 +436,7 @@ fn parse_selector<I>(context: &ParserContext, iter: &mut Iter<I>, namespaces: &N
         let (simple_selectors, pseudo) = try!(parse_simple_selectors(context, iter, namespaces));
         compound = CompoundSelector {
             simple_selectors: simple_selectors,
-            next: Some((box compound, combinator))
+            next: Some((Box::new(compound), combinator))
         };
         pseudo_element = pseudo;
     }
@@ -734,13 +734,13 @@ mod tests {
         assert!(parse("e.foo #bar") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::ID(Atom::from_slice("bar"))),
-                next: Some((box CompoundSelector {
+                next: Some((Box::new(CompoundSelector {
                     simple_selectors: vec!(SimpleSelector::LocalName(LocalName {
                                                 name: Atom::from_slice("e"),
                                                 lower_name: Atom::from_slice("e") }),
                                            SimpleSelector::Class(Atom::from_slice("foo"))),
                     next: None,
-                }, Combinator::Descendant)),
+                }), Combinator::Descendant)),
             }),
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
@@ -801,12 +801,12 @@ mod tests {
         assert!(parse("div :after") == Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(),
-                next: Some((box CompoundSelector {
+                next: Some((Box::new(CompoundSelector {
                     simple_selectors: vec!(SimpleSelector::LocalName(LocalName {
                         name: atom!("div"),
                         lower_name: atom!("div") })),
                     next: None,
-                }, Combinator::Descendant)),
+                }), Combinator::Descendant)),
             }),
             pseudo_element: Some(PseudoElement::After),
             specificity: specificity(0, 0, 2),

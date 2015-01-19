@@ -25,7 +25,7 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>
                 content_type: Some(("text".to_string(), "html".to_string())),
                 charset: Some("utf-8".to_string()),
                 headers: None,
-                status: Some(RawStatus(200, "OK".into_string()))
+                status: Some(RawStatus(200, "OK".to_string()))
             });
             chan.send(Done(Ok(())));
             return

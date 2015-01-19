@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(macro_rules)]
+#![feature(macro_rules, plugin)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
 
 #[macro_use] extern crate log;
-#[macro_use] extern crate string_cache_macros;
+#[macro_use] #[plugin] extern crate string_cache_macros;
 
 extern crate collections;
 extern crate geom;
@@ -20,9 +20,6 @@ extern crate url;
 extern crate cssparser;
 extern crate encoding;
 extern crate string_cache;
-
-#[plugin]
-extern crate string_cache_macros;
 
 #[macro_use]
 extern crate plugins;
