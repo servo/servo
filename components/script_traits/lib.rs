@@ -69,6 +69,9 @@ pub enum ConstellationControlMsg {
     GetTitle(PipelineId),
 }
 
+unsafe impl Send for ConstellationControlMsg {
+}
+
 /// Events from the compositor that the script task needs to know about
 pub enum CompositorEvent {
     ResizeEvent(WindowSizeData),

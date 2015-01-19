@@ -175,10 +175,10 @@ impl Drop for Shaper {
 impl Shaper {
     pub fn new(font: &mut Font, options: &ShapingOptions) -> Shaper {
         unsafe {
-            let mut font_and_shaping_options = box FontAndShapingOptions {
+            let mut font_and_shaping_options = Box::new(FontAndShapingOptions {
                 font: font,
                 options: *options,
-            };
+            });
             let hb_face: *mut hb_face_t =
                 RUST_hb_face_create_for_tables(get_font_table_func,
                                           (&mut *font_and_shaping_options)

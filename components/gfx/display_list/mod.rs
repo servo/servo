@@ -38,7 +38,7 @@ use servo_util::geometry::{mod, Au, MAX_RECT, ZERO_RECT};
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
-use std::slice::Items;
+use std::slice::Iter;
 use std::sync::Arc;
 use style::ComputedValues;
 use style::computed_values::{border_style, cursor, filter, mix_blend_mode, pointer_events};

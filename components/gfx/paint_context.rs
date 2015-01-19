@@ -32,7 +32,7 @@ use servo_util::range::Range;
 use std::default::Default;
 use std::f32;
 use std::mem;
-use std::num::{Float, FloatMath};
+use std::num::Float;
 use std::ptr;
 use style::computed_values::{border_style, filter, mix_blend_mode};
 use std::sync::Arc;
@@ -608,7 +608,7 @@ impl<'a> PaintContext<'a> {
         let rect = bounds.to_azure_rect();
         let draw_opts = DrawOptions::new(1u as AzFloat, 0 as uint16_t);
         let mut stroke_opts = StrokeOptions::new(0u as AzFloat, 10u as AzFloat);
-        let mut dash: [AzFloat, ..2] = [0u as AzFloat, 0u as AzFloat];
+        let mut dash: [AzFloat; 2] = [0u as AzFloat, 0u as AzFloat];
 
         stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
 

@@ -19,12 +19,12 @@ use serialize::json::{mod, Json, ToJson};
 use std::io::TcpStream;
 use std::num::Float;
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 struct StartedListenersTraits {
     customNetworkRequest: bool,
 }
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 struct StartedListenersReply {
     from: String,
     nativeConsoleAPI: bool,
@@ -32,13 +32,13 @@ struct StartedListenersReply {
     traits: StartedListenersTraits,
 }
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 #[allow(dead_code)]
 struct ConsoleAPIMessage {
     _type: String, //FIXME: should this be __type__ instead?
 }
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 #[allow(dead_code)]
 struct PageErrorMessage {
     _type: String, //FIXME: should this be __type__ instead?
@@ -56,7 +56,7 @@ struct PageErrorMessage {
     private: bool,
 }
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 #[allow(dead_code)]
 struct LogMessage {
     _type: String, //FIXME: should this be __type__ instead?
@@ -64,7 +64,7 @@ struct LogMessage {
     message: String,
 }
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 #[allow(dead_code)]
 enum ConsoleMessageType {
     ConsoleAPIType(ConsoleAPIMessage),
@@ -72,26 +72,26 @@ enum ConsoleMessageType {
     LogMessageType(LogMessage),
 }
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 struct GetCachedMessagesReply {
     from: String,
     messages: Vec<json::Object>,
 }
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 struct StopListenersReply {
     from: String,
     stoppedListeners: Vec<String>,
 }
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 struct AutocompleteReply {
     from: String,
     matches: Vec<String>,
     matchProp: String,
 }
 
-#[derive(Encodable)]
+#[derive(RustcEncodable)]
 struct EvaluateJSReply {
     from: String,
     input: String,

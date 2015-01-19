@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(globs, macro_rules, phase, unsafe_destructor, default_type_params)]
+#![feature(unsafe_destructor, int_uint, plugin)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
 
-#![feature(phase)]
-#[phase(plugin, link)]
+#[macro_use]
 extern crate log;
 
 extern crate azure;
@@ -17,16 +16,15 @@ extern crate collections;
 extern crate geom;
 extern crate layers;
 extern crate libc;
-extern crate rustrt;
 extern crate stb_image;
 extern crate png;
 extern crate script_traits;
 extern crate serialize;
 extern crate unicode;
-#[phase(plugin)]
+#[plugin]
 extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
-#[phase(plugin, link)]
+#[macro_use]
 extern crate "util" as servo_util;
 extern crate "msg" as servo_msg;
 extern crate style;

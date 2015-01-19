@@ -13,7 +13,7 @@ use style::computed_values::{font_variant, font_weight};
 use style::style_structs::Font as FontStyle;
 use std::sync::Arc;
 
-use collections::hash::Hash;
+use std::hash::Hash;
 use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
 use servo_util::geometry::Au;
@@ -65,7 +65,7 @@ impl FontTableTagConversions for FontTableTag {
 }
 
 pub trait FontTableMethods {
-    fn with_buffer(&self, |*const u8, uint|);
+    fn with_buffer<F>(&self, F) where F: FnOnce(*const u8, uint);
 }
 
 #[derive(Clone, Show)]

@@ -29,7 +29,7 @@ static FC_FAMILY: &'static [u8] = b"family\0";
 static FC_FILE: &'static [u8] = b"file\0";
 static FC_INDEX: &'static [u8] = b"index\0";
 
-pub fn get_available_families(callback: |String|) {
+pub fn get_available_families<F>(callback: F) where F: Fn(String) {
     unsafe {
         let config = FcConfigGetCurrent();
         let fontSet = FcConfigGetFonts(config, FcSetSystem);
@@ -46,7 +46,7 @@ pub fn get_available_families(callback: |String|) {
     }
 }
 
-pub fn get_variations_for_family(family_name: &str, callback: |String|) {
+pub fn get_variations_for_family<F>(family_name: &str, callback: F) where F: Fn(String) {
     debug!("getting variations for {}", family_name);
     unsafe {
         let config = FcConfigGetCurrent();

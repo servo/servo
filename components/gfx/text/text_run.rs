@@ -8,7 +8,7 @@ use platform::font_template::FontTemplateData;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::vec::{Comparator, FullBinarySearchMethods};
-use std::slice::Items;
+use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
 

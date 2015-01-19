@@ -31,9 +31,9 @@ use servo_util::smallvec::SmallVec;
 use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
 use servo_util::time::{TimeProfilerChan, TimeProfilerCategory, profile};
-use std::comm::{Receiver, Sender, channel};
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::mem;
-use std::task::TaskBuilder;
+use std::thread::Builder;
 use std::sync::Arc;
 
 /// Information about a hardware graphics layer that layout sends to the painting task.
@@ -83,11 +83,6 @@ impl PaintChan {
         (port, PaintChan(chan))
     }
 
-    pub fn send(&self, msg: Msg) {
-        let &PaintChan(ref chan) = self;
-        assert!(chan.send(msg).is_ok(), "PaintChan.send: paint port closed")
-    }
-
     pub fn send(&self, msg: Msg) -> Result<(), Msg> {
         let &PaintChan(ref chan) = self;
         chan.send(msg)
@@ -132,7 +127,7 @@ macro_rules! native_graphics_context(
     ($task:expr) => (
         $task.native_graphics_context.as_ref().expect("Need a graphics context to do painting")
     )
-)
+);
 
 impl<C> PaintTask<C> where C: PaintListener + Send {
     pub fn create(id: PipelineId,
@@ -319,7 +314,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                                                           width as i32 * 4);
         native_surface.mark_wont_leak();
 
-        Some(box LayerBuffer {
+        Some(Box::new(LayerBuffer {
             native_surface: native_surface,
             rect: tile.page_rect,
             screen_pos: tile.screen_rect,
@@ -327,7 +322,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
             stride: (width * 4) as uint,
             painted_with_cpu: true,
             content_age: tile.content_age,
-        })
+        }))
     }
 
     /// Paints one layer and sends the tiles back to the layer.
@@ -365,9 +360,9 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                 self.worker_threads[thread_id].get_painted_tile_buffer()
             });
 
-            let layer_buffer_set = box LayerBufferSet {
+            let layer_buffer_set = Box::new(LayerBufferSet {
                 buffers: new_buffers,
-            };
+            });
             replies.push((layer_id, layer_buffer_set));
         })
     }
@@ -431,7 +426,7 @@ impl WorkerThreadProxy {
             let native_graphics_metadata = native_graphics_metadata.clone();
             let font_cache_task = font_cache_task.clone();
             let time_profiler_chan = time_profiler_chan.clone();
-            TaskBuilder::new().spawn(move || {
+            Builder::new().spawn(move || {
                 let mut worker_thread = WorkerThread::new(from_worker_sender,
                                                           to_worker_receiver,
                                                           native_graphics_metadata,
@@ -486,7 +481,7 @@ impl WorkerThread {
             native_graphics_context: native_graphics_metadata.map(|metadata| {
                 NativePaintingGraphicsContext::from_metadata(&metadata)
             }),
-            font_context: box FontContext::new(font_cache_task.clone()),
+            font_context: Box::new(FontContext::new(font_cache_task.clone())),
             time_profiler_sender: time_profiler_sender,
         }
     }
@@ -601,7 +596,7 @@ impl WorkerThread {
         let mut native_surface: NativeSurface = NativeSurface::from_azure_surface(azure_surface);
         native_surface.mark_wont_leak();
 
-        box LayerBuffer {
+        Box::new(LayerBuffer {
             native_surface: native_surface,
             rect: tile.page_rect,
             screen_pos: tile.screen_rect,
@@ -609,7 +604,7 @@ impl WorkerThread {
             stride: (tile.screen_rect.size.width * 4) as uint,
             painted_with_cpu: false,
             content_age: tile.content_age,
-        }
+        })
     }
 }
 
