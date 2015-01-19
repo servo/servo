@@ -13,7 +13,7 @@ use devtools_traits::{EvaluateJS, NullValue, VoidValue, NumberValue, StringValue
 use devtools_traits::{ActorValue, DevtoolScriptControlMsg};
 use servo_msg::constellation_msg::PipelineId;
 
-use collections::TreeMap;
+use collections::BTreeMap;
 use core::cell::RefCell;
 use serialize::json::{mod, Json, ToJson};
 use std::io::TcpStream;
@@ -225,23 +225,23 @@ impl Actor for ConsoleActor {
                 //TODO: extract conversion into protocol module or some other useful place
                 let result = match try!(port.recv()) {
                     VoidValue => {
-                        let mut m = TreeMap::new();
+                        let mut m = BTreeMap::new();
                         m.insert("type".to_string(), "undefined".to_string().to_json());
                         Json::Object(m)
                     }
                     NullValue => {
-                        let mut m = TreeMap::new();
+                        let mut m = BTreeMap::new();
                         m.insert("type".to_string(), "null".to_string().to_json());
                         Json::Object(m)
                     }
                     BooleanValue(val) => val.to_json(),
                     NumberValue(val) => {
                         if val.is_nan() {
-                            let mut m = TreeMap::new();
+                            let mut m = BTreeMap::new();
                             m.insert("type".to_string(), "NaN".to_string().to_json());
                             Json::Object(m)
                         } else if val.is_infinite() {
-                            let mut m = TreeMap::new();
+                            let mut m = BTreeMap::new();
                             if val < 0. {
                                 m.insert("type".to_string(), "-Infinity".to_string().to_json());
                             } else {
@@ -249,7 +249,7 @@ impl Actor for ConsoleActor {
                             }
                             Json::Object(m)
                         } else if val == Float::neg_zero() {
-                            let mut m = TreeMap::new();
+                            let mut m = BTreeMap::new();
                             m.insert("type".to_string(), "-0".to_string().to_json());
                             Json::Object(m)
                         } else {
@@ -259,7 +259,7 @@ impl Actor for ConsoleActor {
                     StringValue(s) => s.to_json(),
                     ActorValue(s) => {
                         //TODO: make initial ActorValue message include these properties.
-                        let mut m = TreeMap::new();
+                        let mut m = BTreeMap::new();
                         m.insert("type".to_string(), "object".to_string().to_json());
                         m.insert("class".to_string(), "???".to_string().to_json());
                         m.insert("actor".to_string(), s.to_json());
@@ -276,9 +276,9 @@ impl Actor for ConsoleActor {
                     input: input,
                     result: result,
                     timestamp: 0,
-                    exception: Json::Object(TreeMap::new()),
+                    exception: Json::Object(BTreeMap::new()),
                     exceptionMessage: "".to_string(),
-                    helperResult: Json::Object(TreeMap::new()),
+                    helperResult: Json::Object(BTreeMap::new()),
                 };
                 stream.write_json_packet(&msg);
                 true
