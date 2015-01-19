@@ -15,9 +15,10 @@ use servo_msg::constellation_msg::PipelineId;
 
 use collections::BTreeMap;
 use core::cell::RefCell;
-use serialize::json::{mod, Json, ToJson};
+use serialize::json::{self, Json, ToJson};
 use std::io::TcpStream;
 use std::num::Float;
+use std::sync::mpsc::{channel,Sender};
 
 #[derive(RustcEncodable)]
 struct StartedListenersTraits {

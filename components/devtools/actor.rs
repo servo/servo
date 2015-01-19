@@ -4,7 +4,7 @@
 
 /// General actor system infrastructure.
 
-use std::any::Any;
+use std::boxed::BoxAny;
 use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
 use std::intrinsics::TypeId;
@@ -16,7 +16,7 @@ use serialize::json;
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 /// TODO: ensure the name is immutable
-pub trait Actor : Any {
+pub trait Actor : BoxAny {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
@@ -25,8 +25,8 @@ pub trait Actor : Any {
     fn name(&self) -> String;
 }
 
-impl<'a> Any<'a> for &'a mut (Actor + 'a) {
-    fn downcast_mut<T: 'static>(self) -> Option<&'a mut T> {
+impl<'a> BoxAny<> for &'a mut (Actor + 'a) {
+    fn downcast<T: 'static>(self) -> Option<&'a mut T> {
         if self.is::<T>() {
             unsafe {
                 // Get the raw representation of the trait object
@@ -41,7 +41,7 @@ impl<'a> Any<'a> for &'a mut (Actor + 'a) {
     }
 }
 
-impl<'a> Any<'a> for &'a (Actor + 'a) {
+impl<'a> BoxAny<'a> for &'a (Actor + 'a) {
     fn is<T: 'static>(self) -> bool {
         // This implementation is only needed so long as there's a Rust bug that
         // prevents downcast_ref from giving realistic return values.

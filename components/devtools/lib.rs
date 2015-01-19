@@ -19,6 +19,7 @@ extern crate log;
 extern crate collections;
 extern crate core;
 extern crate devtools_traits;
+extern crate "serialize" as rustc_serialize;
 extern crate serialize;
 extern crate "msg" as servo_msg;
 extern crate "util" as servo_util;
@@ -36,7 +37,7 @@ use servo_util::task::spawn_named;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::mpsc;
+use std::sync::mpsc::{self, channel, Receiver, Sender};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
 use std::io::{Acceptor, Listener, TimedOut};
@@ -54,7 +55,7 @@ mod protocol;
 
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
-    let (sender, receiver) = comm::channel();
+    let (sender, receiver) = channel();
     spawn_named("Devtools".to_string(), move || {
         run_server(receiver, port)
     });
