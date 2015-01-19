@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
 use rand::Rng;
 use std::hash::{Hash, sip};
+use std::iter::repeat;
 use std::rand::task_rng;
 use std::slice::Items;
 
@@ -148,7 +149,7 @@ impl<K:Clone+PartialEq+Hash,V:Clone> SimpleHashCache<K,V> {
     pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
         let mut r = task_rng();
         SimpleHashCache {
-            entries: Vec::from_elem(cache_size, None),
+            entries: repeat(None).take(cache_size).collect(),
             k0: r.gen(),
             k1: r.gen(),
         }

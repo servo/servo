@@ -44,6 +44,7 @@ use servo_util::geometry::{mod, Au, to_px};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::default::Default;
+use std::iter::repeat;
 use std::num::FloatMath;
 use style::computed::{AngleOrCorner, LengthOrPercentage, HorizontalDirection, VerticalDirection};
 use style::computed::{Image, LinearGradient};
@@ -881,7 +882,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         renderer.deref().lock().send(SendPixelContents(sender));
                         receiver.recv()
                     },
-                    None => Vec::from_elem(width * height * 4, 0xFFu8)
+                    None => repeat(0xFFu8).take(width * height * 4).collect(),
                 };
 
                 let canvas_display_item = box ImageDisplayItem {
