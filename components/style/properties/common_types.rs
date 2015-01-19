@@ -43,6 +43,14 @@ macro_rules! define_css_keyword_enum {
             }
         }
 
+        impl ::std::fmt::String for $name {
+            #[inline]
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                use cssparser::ToCss;
+                self.fmt_to_css(f)
+            }
+        }
+
         impl ::cssparser::ToCss for $name {
             fn to_css<W>(&self, dest: &mut W) -> ::text_writer::Result
             where W: ::text_writer::TextWriter {
