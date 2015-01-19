@@ -792,7 +792,7 @@ pub mod computed {
     impl fmt::Show for LengthOrPercentage {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
-                &LengthOrPercentage::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentage::Length(length) => write!(f, "{:?}", length),
                 &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
             }
         }
@@ -818,7 +818,7 @@ pub mod computed {
     impl fmt::Show for LengthOrPercentageOrAuto {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
-                &LengthOrPercentageOrAuto::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentageOrAuto::Length(length) => write!(f, "{:?}", length),
                 &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
             }
@@ -846,7 +846,7 @@ pub mod computed {
     impl fmt::Show for LengthOrPercentageOrNone {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
-                &LengthOrPercentageOrNone::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentageOrNone::Length(length) => write!(f, "{:?}", length),
                 &LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrNone::None => write!(f, "none"),
             }
@@ -876,7 +876,7 @@ pub mod computed {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &Image::Url(ref url) => write!(f, "url(\"{}\")", url),
-                &Image::LinearGradient(ref grad) => write!(f, "linear-gradient({})", grad),
+                &Image::LinearGradient(ref grad) => write!(f, "linear-gradient({:?})", grad),
             }
         }
     }
@@ -893,9 +893,9 @@ pub mod computed {
 
     impl fmt::Show for LinearGradient {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            let _ = write!(f, "{}", self.angle_or_corner);
+            let _ = write!(f, "{:?}", self.angle_or_corner);
             for stop in self.stops.iter() {
-                let _ = write!(f, ", {}", stop);
+                let _ = write!(f, ", {:?}", stop);
             }
             Ok(())
         }
@@ -914,9 +914,9 @@ pub mod computed {
 
     impl fmt::Show for ColorStop {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            let _ = write!(f, "{}", self.color);
+            let _ = write!(f, "{:?}", self.color);
             self.position.map(|pos| {
-                let _ = write!(f, " {}", pos);
+                let _ = write!(f, " {:?}", pos);
             });
             Ok(())
         }

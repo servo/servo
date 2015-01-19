@@ -556,7 +556,7 @@ pub mod longhands {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 match self {
                     &SpecifiedValue::Normal => write!(f, "normal"),
-                    &SpecifiedValue::Length(length) => write!(f, "{}", length),
+                    &SpecifiedValue::Length(length) => write!(f, "{:?}", length),
                     &SpecifiedValue::Number(number) => write!(f, "{}", number),
                     &SpecifiedValue::Percentage(number) => write!(f, "{}%", number * 100.),
                 }
@@ -591,7 +591,7 @@ pub mod longhands {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     match self {
                         &T::Normal => write!(f, "normal"),
-                        &T::Length(length) => write!(f, "{}%", length),
+                        &T::Length(length) => write!(f, "{:?}%", length),
                         &T::Number(number) => write!(f, "{}", number),
                     }
                 }
@@ -631,7 +631,7 @@ pub mod longhands {
                     % for keyword in vertical_align_keywords:
                         &SpecifiedValue::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
                     % endfor
-                    &SpecifiedValue::LengthOrPercentage(lop) => write!(f, "{}", lop),
+                    &SpecifiedValue::LengthOrPercentage(lop) => write!(f, "{:?}", lop),
                 }
             }
         }
@@ -670,7 +670,7 @@ pub mod longhands {
                         % for keyword in vertical_align_keywords:
                             &T::${to_rust_ident(keyword)} => write!(f, "${keyword}"),
                         % endfor
-                        &T::Length(length) => write!(f, "{}", length),
+                        &T::Length(length) => write!(f, "{:?}", length),
                         &T::Percentage(number) => write!(f, "{}%", number),
                     }
                 }
@@ -737,7 +737,7 @@ pub mod longhands {
                             &T::none => write!(f, "none"),
                             &T::Content(ref content) => {
                                 for c in content.iter() {
-                                    let _ = write!(f, "{}", c);
+                                    let _ = write!(f, "{:?}", c);
                                 }
                                 Ok(())
                             }
@@ -868,7 +868,7 @@ pub mod longhands {
                 }
                 impl fmt::Show for T {
                     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                        write!(f, "{} {}", self.horizontal, self.vertical)
+                        write!(f, "{:?} {:?}", self.horizontal, self.vertical)
                     }
                 }
             }
@@ -880,7 +880,7 @@ pub mod longhands {
             }
             impl fmt::Show for SpecifiedValue {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                    write!(f, "{} {}", self.horizontal, self.vertical)
+                    write!(f, "{:?} {:?}", self.horizontal, self.vertical)
                 }
             }
 
@@ -1608,10 +1608,10 @@ pub mod longhands {
                 if self.inset {
                     let _ = write!(f, "inset ");
                 }
-                let _ = write!(f, "{} {} {} {}", self.offset_x, self.offset_y,
+                let _ = write!(f, "{:?} {:?} {:?} {:?}", self.offset_x, self.offset_y,
                                self.blur_radius, self.spread_radius);
                 if let Some(ref color) = self.color {
-                    let _ = write!(f, "{}", color);
+                    let _ = write!(f, "{:?}", color);
                 }
                 Ok(())
             }
@@ -1639,7 +1639,7 @@ pub mod longhands {
                     if self.inset {
                         let _ = write!(f, "inset ");
                     }
-                    let _ = write!(f, "{} {} {} {} {}", self.offset_x, self.offset_y,
+                    let _ = write!(f, "{:?} {:?} {:?} {:?} {:?}", self.offset_x, self.offset_y,
                                    self.blur_radius, self.spread_radius, self.color);
                     Ok(())
                 }
