@@ -190,14 +190,14 @@ impl SelectorMap {
 
         match SelectorMap::get_id_name(&rule) {
             Some(id_name) => {
-                self.id_hash.find_push(id_name, rule);
+                find_push(&mut self.id_hash, id_name, rule);
                 return;
             }
             None => {}
         }
         match SelectorMap::get_class_name(&rule) {
             Some(class_name) => {
-                self.class_hash.find_push(class_name, rule);
+                find_push(&mut self.class_hash, class_name, rule);
                 return;
             }
             None => {}
@@ -205,8 +205,8 @@ impl SelectorMap {
 
         match SelectorMap::get_local_name(&rule) {
             Some(LocalName { name, lower_name }) => {
-                self.local_name_hash.find_push(name, rule.clone());
-                self.lower_local_name_hash.find_push(lower_name, rule);
+                find_push(&mut self.local_name_hash, name, rule.clone());
+                find_push(&mut self.lower_local_name_hash, lower_name, rule);
                 return;
             }
             None => {}
@@ -1147,26 +1147,15 @@ fn matches_last_child<'a,E,N>(element: &N) -> bool where E: TElement<'a>, N: TNo
     }
 }
 
-
-trait FindPush<K, V> {
-    fn find_push(&mut self, key: K, value: V);
-}
-
-#[old_impl_check]
-impl<K, V, H> FindPush<K, V> for HashMap<K, Vec<V>>
-    where K: Eq + Hash<H>,
-          H: Hasher<Output=u64>
-{
-    fn find_push(&mut self, key: K, value: V) {
-        match self.get_mut(&key) {
-            Some(vec) => {
-                vec.push(value);
-                return
-            }
-            None => {}
+fn find_push(map: &mut HashMap<Atom, Vec<Rule>>, key: Atom, value: Rule) {
+    match map.get_mut(&key) {
+        Some(vec) => {
+            vec.push(value);
+            return
         }
-        self.insert(key, vec![value]);
+        None => {}
     }
+    map.insert(key, vec![value]);
 }
 
 #[cfg(test)]

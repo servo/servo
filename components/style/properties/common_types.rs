@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![allow(non_camel_case_types)]
-#![macro_escape]
 
 use url::{Url, UrlParser};
 
