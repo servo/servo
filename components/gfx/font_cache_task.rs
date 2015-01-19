@@ -11,6 +11,7 @@ use platform::font_context::FontContextHandle;
 use collections::str::Str;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::mpsc::{Sender, Receiver, channel};
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use platform::font_template::FontTemplateData;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};

@@ -7,10 +7,11 @@ use servo_util::range;
 use servo_util::range::{Range, RangeIndex, EachIndex};
 use servo_util::geometry::Au;
 
-use std::cmp::PartialOrd;
+use std::cmp::{Ordering, PartialOrd};
 use std::iter::repeat;
-use std::num::NumCast;
+use std::num::{ToPrimitive, NumCast};
 use std::mem;
+use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr, BitXor, Shl, Shr, Not};
 use std::u16;
 use std::vec::Vec;
 use geom::point::Point2D;
@@ -398,9 +399,9 @@ impl<'a> DetailedGlyphStore {
         let mut mut_records : Vec<DetailedGlyphRecord> = unsorted_records;
         mut_records.sort_by(|a, b| {
             if a < b {
-                Less
+                Ordering::Less
             } else {
-                Greater
+                Ordering::Greater
             }
         });
         let mut sorted_records = mut_records;
@@ -580,11 +581,11 @@ impl<'a> GlyphStore {
         let entry = match first_glyph_data.is_missing {
             true  => GlyphEntry::missing(glyph_count),
             false => {
-                let glyphs_vec = Vec::from_fn(glyph_count as uint, |i| {
+                let glyphs_vec = repeat(glyph_count as uint).enumerate(|i| {
                     DetailedGlyph::new(data_for_glyphs[i].id,
                                        data_for_glyphs[i].advance,
                                        data_for_glyphs[i].offset)
-                });
+                }).collect();
 
                 self.detail_store.add_detailed_glyphs_for_entry(i, glyphs_vec.as_slice());
                 GlyphEntry::complex(first_glyph_data.cluster_start,
@@ -725,7 +726,9 @@ impl<'a> GlyphIterator<'a> {
     }
 }
 
-impl<'a> Iterator<(CharIndex, GlyphInfo<'a>)> for GlyphIterator<'a> {
+impl<'a> Iterator for GlyphIterator<'a> {
+    type Item  = (CharIndex, GlyphInfo<'a>);
+
     // I tried to start with something simpler and apply FlatMap, but the
     // inability to store free variables in the FlatMap struct was problematic.
     //

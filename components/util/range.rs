@@ -115,12 +115,6 @@ macro_rules! int_range_index {
             }
         }
 
-        impl ::std::num::One for $Self {
-            fn one() -> $Self {
-                $Self(1)
-            }
-        }
-
         impl ToPrimitive for $Self {
             fn to_i64(&self) -> Option<i64> {
                 Some(self.get() as i64)
@@ -137,49 +131,49 @@ macro_rules! int_range_index {
             }
         }
 
-        impl Div<$Self, $Self> for $Self {
+        impl Div<$Self> for $Self {
             fn div(&self, other: &$Self) -> $Self {
                 $Self(self.get() / other.get())
             }
         }
 
-        impl Rem<$Self, $Self> for $Self {
+        impl Rem<$Self> for $Self {
             fn rem(&self, other: &$Self) -> $Self {
                 $Self(self.get() % other.get())
             }
         }
 
-        impl Not<$Self> for $Self {
+        impl Not for $Self {
             fn not(&self) -> $Self {
                 $Self(!self.get())
             }
         }
 
-        impl BitAnd<$Self, $Self> for $Self {
+        impl BitAnd<$Self> for $Self {
             fn bitand(&self, other: &$Self) -> $Self {
                 $Self(self.get() & other.get())
             }
         }
 
-        impl BitOr<$Self, $Self> for $Self {
+        impl BitOr<$Self> for $Self {
             fn bitor(&self, other: &$Self) -> $Self {
                 $Self(self.get() | other.get())
             }
         }
 
-        impl BitXor<$Self, $Self> for $Self {
+        impl BitXor<$Self> for $Self {
             fn bitxor(&self, other: &$Self) -> $Self {
                 $Self(self.get() ^ other.get())
             }
         }
 
-        impl Shl<uint, $Self> for $Self {
+        impl Shl<uint> for $Self {
             fn shl(&self, n: &uint) -> $Self {
                 $Self(self.get() << *n)
             }
         }
 
-        impl Shr<uint, $Self> for $Self {
+        impl Shr<uint> for $Self {
             fn shr(&self, n: &uint) -> $Self {
                 $Self(self.get() >> *n)
             }

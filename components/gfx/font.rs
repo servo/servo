@@ -100,7 +100,6 @@ pub struct Font {
 }
 
 bitflags! {
-    #[derive(Copy)]
     flags ShapingFlags: u8 {
         #[doc="Set if the text is entirely whitespace."]
         const IS_WHITESPACE_SHAPING_FLAG = 0x01,
@@ -134,12 +133,6 @@ pub struct ShapeCacheEntry {
 struct ShapeCacheEntryRef<'a> {
     text: &'a str,
     options: &'a ShapingOptions,
-}
-
-impl<'a> Equiv<ShapeCacheEntry> for ShapeCacheEntryRef<'a> {
-    fn equiv(&self, other: &ShapeCacheEntry) -> bool {
-        self.text == other.text.as_slice() && *self.options == other.options
-    }
 }
 
 impl Font {

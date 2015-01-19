@@ -356,7 +356,7 @@ impl StackingContext {
                                   result: &mut Vec<DisplayItemMetadata>,
                                   topmost_only: bool,
                                   mut iterator: I)
-                                  where I: Iterator<&'a DisplayItem> {
+                                  where I: Iterator<Item=DisplayItem> {
             for item in iterator {
                 // TODO(pcwalton): Use a precise algorithm here. This will allow us to properly hit
                 // test elements with `border-radius`, for example.
@@ -806,10 +806,11 @@ pub struct BoxShadowDisplayItem {
 
 pub enum DisplayItemIterator<'a> {
     Empty,
-    Parent(dlist::Items<'a,DisplayItem>),
+    Parent(dlist::Iter<'a,DisplayItem>),
 }
 
-impl<'a> Iterator<&'a DisplayItem> for DisplayItemIterator<'a> {
+impl<'a> Iterator for DisplayItemIterator<'a> {
+    type Item = DisplayItem;
     #[inline]
     fn next(&mut self) -> Option<&'a DisplayItem> {
         match *self {

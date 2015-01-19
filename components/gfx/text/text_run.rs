@@ -8,6 +8,7 @@ use platform::font_template::FontTemplateData;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::vec::{Comparator, FullBinarySearchMethods};
+use std::cmp::Ordering;
 use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
@@ -33,7 +34,7 @@ pub struct GlyphRun {
 }
 
 pub struct NaturalWordSliceIterator<'a> {
-    glyph_iter: Items<'a, GlyphRun>,
+    glyph_iter: Iter<'a, GlyphRun>,
     range: Range<CharIndex>,
 }
 
@@ -42,11 +43,11 @@ struct CharIndexComparator;
 impl Comparator<CharIndex,GlyphRun> for CharIndexComparator {
     fn compare(&self, key: &CharIndex, value: &GlyphRun) -> Ordering {
         if *key < value.range.begin() {
-            Less
+            Ordering::Less
         } else if *key >= value.range.end() {
-            Greater
+            Ordering::Greater
         } else {
-            Equal
+            Ordering::Equal
         }
     }
 }
@@ -72,7 +73,9 @@ impl<'a> TextRunSlice<'a> {
     }
 }
 
-impl<'a> Iterator<TextRunSlice<'a>> for NaturalWordSliceIterator<'a> {
+impl<'a> Iterator for NaturalWordSliceIterator<'a> {
+    type Item = TextRunSlice<'a>;
+
     // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
     #[inline(always)]
     fn next(&mut self) -> Option<TextRunSlice<'a>> {
@@ -100,11 +103,13 @@ impl<'a> Iterator<TextRunSlice<'a>> for NaturalWordSliceIterator<'a> {
 
 pub struct CharacterSliceIterator<'a> {
     glyph_run: Option<&'a GlyphRun>,
-    glyph_run_iter: Items<'a, GlyphRun>,
+    glyph_run_iter: Iter<'a, GlyphRun>,
     range: Range<CharIndex>,
 }
 
-impl<'a> Iterator<TextRunSlice<'a>> for CharacterSliceIterator<'a> {
+impl<'a> Iterator for CharacterSliceIterator<'a> {
+    type Item = TextRunSlice<'a>;
+
     // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
     #[inline(always)]
     fn next(&mut self) -> Option<TextRunSlice<'a>> {
@@ -139,7 +144,9 @@ pub struct LineIterator<'a> {
     slices: NaturalWordSliceIterator<'a>,
 }
 
-impl<'a> Iterator<Range<CharIndex>> for LineIterator<'a> {
+impl<'a> Iterator for LineIterator<'a> {
+    type Item = Range<CharIndex>;
+
     fn next(&mut self) -> Option<Range<CharIndex>> {
         // Loop until we hit whitespace and are in a clump.
         loop {

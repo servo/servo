@@ -32,6 +32,7 @@ use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
 use servo_util::time::{TimeProfilerChan, TimeProfilerCategory, profile};
 use std::sync::mpsc::{Receiver, Sender, channel};
+use std::iter::repeat;
 use std::mem;
 use std::thread::Builder;
 use std::sync::Arc;
@@ -355,10 +356,10 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                                                           stacking_context.clone(),
                                                           scale);
             }
-            let new_buffers = Vec::from_fn(tile_count, |i| {
+            let new_buffers = repeat(tile_count).enumerate(|i| {
                 let thread_id = i % self.worker_threads.len();
                 self.worker_threads[thread_id].get_painted_tile_buffer()
-            });
+            }).collect();
 
             let layer_buffer_set = Box::new(LayerBufferSet {
                 buffers: new_buffers,
@@ -420,7 +421,7 @@ impl WorkerThreadProxy {
         } else {
             opts::get().layout_threads
         };
-        Vec::from_fn(thread_count, |_| {
+        repeat(thread_count).map(|| {
             let (from_worker_sender, from_worker_receiver) = channel();
             let (to_worker_sender, to_worker_receiver) = channel();
             let native_graphics_metadata = native_graphics_metadata.clone();
@@ -438,7 +439,7 @@ impl WorkerThreadProxy {
                 receiver: from_worker_receiver,
                 sender: to_worker_sender,
             }
-        })
+        }).collect()
     }
 
     fn paint_tile(&mut self,

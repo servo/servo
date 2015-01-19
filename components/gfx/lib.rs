@@ -19,7 +19,7 @@ extern crate libc;
 extern crate stb_image;
 extern crate png;
 extern crate script_traits;
-extern crate serialize;
+extern crate "serialize" as rustc_serialize;
 extern crate unicode;
 #[plugin]
 extern crate "plugins" as servo_plugins;
