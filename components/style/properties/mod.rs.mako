@@ -26,7 +26,7 @@ use selector_matching::DeclarationBlock;
 
 
 pub use self::property_bit_field::PropertyBitField;
-pub mod common_types;
+#[macro_use] pub mod common_types;
 
 
 <%!
