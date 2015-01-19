@@ -11,8 +11,8 @@ crate-type = ["dylib"]
 [dependencies.servo]
 path = "../../components/servo"
 
-[dependencies.glfw_app]
-path = "../glfw"
+[dependencies.glutin_app]
+path = "../glutin"
 
 [dependencies.plugins]
 path = "../../components/plugins"
@@ -43,10 +43,6 @@ git = "https://github.com/servo/rust-azure"
 
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
-
-[dependencies.glfw]
-git = "https://github.com/servo/glfw-rs"
-branch = "servo"
 
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
