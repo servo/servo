@@ -276,6 +276,9 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     if reftest.experimental {
         command.arg("--experimental");
     }
+    if cfg!(target_os = "linux") {
+        command.args(["-r", "mesa"].as_slice());
+    }
     let retval = match command.status() {
         Ok(status) => status,
         Err(e) => panic!("failed to execute process: {}", e),
