@@ -251,7 +251,7 @@ enum SimpleSelectorParseResult {
 fn parse_qualified_name<I: Iterator<Item=ComponentValue>>(
                         iter: &mut Iter<I>, in_attr_selector: bool, namespaces: &NamespaceMap)
                         -> Result<Option<(NamespaceConstraint, Option<String>)>, ()> {
-    let default_namespace = |&: local_name| {
+    let default_namespace = |local_name| {
         let namespace = match namespaces.default {
             Some(ref ns) => NamespaceConstraint::Specific(ns.clone()),
             None => NamespaceConstraint::Any,
@@ -259,7 +259,7 @@ fn parse_qualified_name<I: Iterator<Item=ComponentValue>>(
         Ok(Some((namespace, local_name)))
     };
 
-    let explicit_namespace = |&: iter: &mut Iter<I>, namespace| {
+    let explicit_namespace = |iter: &mut Iter<I>, namespace| {
         assert!(iter.next() == Some(Delim('|')),
                 "Implementation error, this should not happen.");
         match iter.peek() {
