@@ -17,7 +17,9 @@ use glfw_app;
 use libc::c_int;
 use servo_util::opts;
 use std::cell::{Cell, RefCell};
+use std::sync::atomic::{AtomicInt, SeqCst};
 
+thread_local!(pub static ID_COUNTER: AtomicInt = AtomicInt::new(0))
 thread_local!(pub static BROWSERS: RefCell<Vec<CefBrowser>> = RefCell::new(vec!()))
 
 pub enum ServoBrowser {
@@ -83,6 +85,7 @@ pub struct ServoCefBrowser {
     /// Whether the on-created callback has fired yet.
     pub callback_executed: Cell<bool>,
 
+    id: int,
     servo_browser: RefCell<ServoBrowser>,
     message_queue: RefCell<Vec<WindowEvent>>,
 }
@@ -100,6 +103,10 @@ impl ServoCefBrowser {
             ServoBrowser::Invalid
         };
 
+        let id = ID_COUNTER.with(|counter| {
+            counter.fetch_add(1, SeqCst)
+        });
+
         ServoCefBrowser {
             frame: frame,
             host: host,
@@ -107,6 +114,7 @@ impl ServoCefBrowser {
             callback_executed: Cell::new(false),
             servo_browser: RefCell::new(servo_browser),
             message_queue: RefCell::new(vec!()),
+            id: id,
         }
     }
 }
@@ -167,6 +175,15 @@ pub fn update() {
         for browser in browsers.borrow().iter() {
             browser.send_window_event(WindowEvent::Idle);
         }
+    });
+}
+
+pub fn close(browser: CefBrowser) {
+    BROWSERS.with(|browsers| {
+        let mut browsers = browsers.borrow_mut();
+        browsers.iter()
+                .position(|&ref n| n.downcast().id == browser.downcast().id)
+                .map(|e| browsers.remove(e));
     });
 }
 
