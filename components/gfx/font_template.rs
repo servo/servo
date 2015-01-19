@@ -68,7 +68,7 @@ impl FontTemplate {
         };
 
         FontTemplate {
-            identifier: identifier.into_string(),
+            identifier: identifier.to_string(),
             descriptor: None,
             weak_ref: maybe_weak_ref,
             strong_ref: maybe_strong_ref,

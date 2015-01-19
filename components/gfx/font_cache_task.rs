@@ -80,10 +80,14 @@ pub enum Command {
     Exit(Sender<()>),
 }
 
+unsafe impl Send for Command {}
+
 /// Reply messages sent from the font cache task to the FontContext caller.
 pub enum Reply {
     GetFontTemplateReply(Option<Arc<FontTemplateData>>),
 }
+
+unsafe impl Send for Reply {}
 
 /// The font cache task itself. It maintains a list of reference counted
 /// font templates that are currently in use.
@@ -109,7 +113,7 @@ fn add_generic_font(generic_fonts: &mut HashMap<LowercaseString, LowercaseString
 impl FontCache {
     fn run(&mut self) {
         loop {
-            let msg = self.port.recv();
+            let msg = self.port.recv().unwrap();
 
             match msg {
                 Command::GetFontTemplate(family, descriptor, result) => {
@@ -138,7 +142,7 @@ impl FontCache {
                                     family.add_template(url.to_string().as_slice(), Some(bytes));
                                 },
                                 Err(_) => {
-                                    debug!("Failed to load web font: family={} url={}", family_name, url);
+                                    debug!("Failed to load web font: family={:?} url={}", family_name, url);
                                 }
                             }
                         }
@@ -286,7 +290,7 @@ impl FontCacheTask {
         let (response_chan, response_port) = channel();
         self.chan.send(Command::GetFontTemplate(family, desc, response_chan));
 
-        let reply = response_port.recv();
+        let reply = response_port.recv().unwrap();
 
         match reply {
             Reply::GetFontTemplateReply(data) => {
@@ -301,7 +305,7 @@ impl FontCacheTask {
         let (response_chan, response_port) = channel();
         self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan));
 
-        let reply = response_port.recv();
+        let reply = response_port.recv().unwrap();
 
         match reply {
             Reply::GetFontTemplateReply(data) => {

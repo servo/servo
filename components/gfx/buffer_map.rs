@@ -7,7 +7,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use geom::size::Size2D;
 use layers::platform::surface::NativePaintingGraphicsContext;
 use layers::layers::LayerBuffer;
-use std::hash::{Hash, Hasher};
+use std::hash::{Hash, Hasher, Writer};
 use std::mem;
 
 /// This is a struct used to store buffers when they are not in use.
@@ -29,7 +29,7 @@ pub struct BufferMap {
 #[derive(Eq, Copy)]
 struct BufferKey([uint; 2]);
 
-impl<H: Hasher> Hash<H> for BufferKey {
+impl<H: Hasher+Writer> Hash<H> for BufferKey {
     fn hash(&self, state: &mut H) {
         let BufferKey(ref bytes) = *self;
         bytes.as_slice().hash(state);
@@ -90,7 +90,7 @@ impl BufferMap {
                 entry.into_mut().buffers.push(new_buffer);
             }
             Vacant(entry) => {
-                entry.set(BufferValue {
+                entry.insert(BufferValue {
                     buffers: vec!(new_buffer),
                     last_action: *counter,
                 });

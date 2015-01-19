@@ -32,7 +32,6 @@ use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
 use servo_util::time::{TimeProfilerChan, TimeProfilerCategory, profile};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::iter::repeat;
 use std::mem;
 use std::thread::Builder;
 use std::sync::Arc;
@@ -75,6 +74,8 @@ pub enum Msg {
     Exit(Option<Sender<()>>, PipelineExitType),
 }
 
+unsafe impl Send for Msg {}
+
 #[derive(Clone)]
 pub struct PaintChan(Sender<Msg>);
 
@@ -84,9 +85,13 @@ impl PaintChan {
         (port, PaintChan(chan))
     }
 
-    pub fn send(&self, msg: Msg) -> Result<(), Msg> {
+    pub fn send(&self, msg: Msg) {
+        assert!(self.send_opt(msg).is_ok(), "PaintChan.send: paint port closed")
+    }
+
+    pub fn send_opt(&self, msg: Msg) -> Result<(), Msg> {
         let &PaintChan(ref chan) = self;
-        chan.send(msg)
+        chan.send(msg).map_err(|e| e.0)
     }
 }
 
@@ -140,7 +145,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("PaintTask", task_state::PAINT, move || {
+        spawn_named_with_send_on_failure("PaintTask".to_string(), task_state::PAINT, move |&:| {
             {
                 // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.
@@ -192,7 +197,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
         let mut exit_response_channel : Option<Sender<()>> = None;
         let mut waiting_for_compositor_buffers_to_exit = false;
         loop {
-            match self.port.recv() {
+            match self.port.recv().unwrap() {
                 Msg::PaintInit(stacking_context) => {
                     self.root_stacking_context = Some(stacking_context.clone());
 
@@ -222,7 +227,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                         if self.epoch == epoch {
                             self.paint(&mut replies, buffer_requests, scale, layer_id);
                         } else {
-                            debug!("painter epoch mismatch: {} != {}", self.epoch, epoch);
+                            debug!("painter epoch mismatch: {:?} != {:?}", self.epoch, epoch);
                         }
                     }
 
@@ -356,7 +361,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                                                           stacking_context.clone(),
                                                           scale);
             }
-            let new_buffers = repeat(tile_count).enumerate(|i| {
+            let new_buffers = (0..tile_count).map(|&:i| {
                 let thread_id = i % self.worker_threads.len();
                 self.worker_threads[thread_id].get_painted_tile_buffer()
             }).collect();
@@ -421,7 +426,7 @@ impl WorkerThreadProxy {
         } else {
             opts::get().layout_threads
         };
-        repeat(thread_count).map(|| {
+        (0..thread_count).map(|&:_| {
             let (from_worker_sender, from_worker_receiver) = channel();
             let (to_worker_sender, to_worker_receiver) = channel();
             let native_graphics_metadata = native_graphics_metadata.clone();
@@ -447,17 +452,17 @@ impl WorkerThreadProxy {
                   layer_buffer: Option<Box<LayerBuffer>>,
                   stacking_context: Arc<StackingContext>,
                   scale: f32) {
-        self.sender.send(MsgToWorkerThread::PaintTile(tile, layer_buffer, stacking_context, scale))
+        self.sender.send(MsgToWorkerThread::PaintTile(tile, layer_buffer, stacking_context, scale)).unwrap()
     }
 
     fn get_painted_tile_buffer(&mut self) -> Box<LayerBuffer> {
-        match self.receiver.recv() {
+        match self.receiver.recv().unwrap() {
             MsgFromWorkerThread::PaintedTile(layer_buffer) => layer_buffer,
         }
     }
 
     fn exit(&mut self) {
-        self.sender.send(MsgToWorkerThread::Exit)
+        self.sender.send(MsgToWorkerThread::Exit).unwrap()
     }
 }
 
@@ -489,7 +494,7 @@ impl WorkerThread {
 
     fn main(&mut self) {
         loop {
-            match self.receiver.recv() {
+            match self.receiver.recv().unwrap() {
                 MsgToWorkerThread::Exit => break,
                 MsgToWorkerThread::PaintTile(tile, layer_buffer, stacking_context, scale) => {
                     let draw_target = self.optimize_and_paint_tile(&tile, stacking_context, scale);
@@ -497,7 +502,7 @@ impl WorkerThread {
                                                                            layer_buffer,
                                                                            draw_target,
                                                                            scale);
-                    self.sender.send(MsgFromWorkerThread::PaintedTile(buffer))
+                    self.sender.send(MsgFromWorkerThread::PaintedTile(buffer)).unwrap()
                 }
             }
         }
@@ -613,6 +618,8 @@ enum MsgToWorkerThread {
     Exit,
     PaintTile(BufferRequest, Option<Box<LayerBuffer>>, Arc<StackingContext>, f32),
 }
+
+unsafe impl Send for MsgToWorkerThread {}
 
 enum MsgFromWorkerThread {
     PaintedTile(Box<LayerBuffer>),

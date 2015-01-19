@@ -83,7 +83,7 @@ macro_rules! int_range_index {
             type Output = $Self;
 
             #[inline]
-            fn add(&self, other: &$Self) -> $Self {
+            fn add(self, other: $Self) -> $Self {
                 $Self(self.get() + other.get())
             }
         }
@@ -92,7 +92,7 @@ macro_rules! int_range_index {
             type Output = $Self;
 
             #[inline]
-            fn sub(&self, other: &$Self) -> $Self {
+            fn sub(self, other: $Self) -> $Self {
                 $Self(self.get() - other.get())
             }
         }
@@ -101,7 +101,7 @@ macro_rules! int_range_index {
             type Output = $Self;
 
             #[inline]
-            fn mul(&self, other: &$Self) -> $Self {
+            fn mul(self, other: $Self) -> $Self {
                 $Self(self.get() * other.get())
             }
         }
@@ -110,7 +110,7 @@ macro_rules! int_range_index {
             type Output = $Self;
 
             #[inline]
-            fn neg(&self) -> $Self {
+            fn neg(self) -> $Self {
                 $Self(-self.get())
             }
         }
@@ -132,50 +132,58 @@ macro_rules! int_range_index {
         }
 
         impl Div<$Self> for $Self {
-            fn div(&self, other: &$Self) -> $Self {
+            type Output = $Self;
+            fn div(self, other: $Self) -> $Self {
                 $Self(self.get() / other.get())
             }
         }
 
         impl Rem<$Self> for $Self {
-            fn rem(&self, other: &$Self) -> $Self {
+            type Output = $Self;
+            fn rem(self, other: $Self) -> $Self {
                 $Self(self.get() % other.get())
             }
         }
 
         impl Not for $Self {
-            fn not(&self) -> $Self {
+            type Output = $Self;
+            fn not(self) -> $Self {
                 $Self(!self.get())
             }
         }
 
         impl BitAnd<$Self> for $Self {
-            fn bitand(&self, other: &$Self) -> $Self {
+            type Output = $Self;
+            fn bitand(self, other: $Self) -> $Self {
                 $Self(self.get() & other.get())
             }
         }
 
         impl BitOr<$Self> for $Self {
-            fn bitor(&self, other: &$Self) -> $Self {
+            type Output = $Self;
+            fn bitor(self, other: $Self) -> $Self {
                 $Self(self.get() | other.get())
             }
         }
 
         impl BitXor<$Self> for $Self {
-            fn bitxor(&self, other: &$Self) -> $Self {
+            type Output = $Self;
+            fn bitxor(self, other: $Self) -> $Self {
                 $Self(self.get() ^ other.get())
             }
         }
 
         impl Shl<uint> for $Self {
-            fn shl(&self, n: &uint) -> $Self {
-                $Self(self.get() << *n)
+            type Output = $Self;
+            fn shl(self, n: uint) -> $Self {
+                $Self(self.get() << n)
             }
         }
 
         impl Shr<uint> for $Self {
-            fn shr(&self, n: &uint) -> $Self {
-                $Self(self.get() >> *n)
+            type Output = $Self;
+            fn shr(self, n: uint) -> $Self {
+                $Self(self.get() >> n)
             }
         }
     )
