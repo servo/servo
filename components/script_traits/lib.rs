@@ -31,11 +31,10 @@ use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
 use servo_util::smallvec::SmallVec1;
 use std::any::Any;
+use std::sync::mpsc::{Sender, Receiver};
 
 use geom::point::Point2D;
 use geom::rect::Rect;
-
-use serialize::{Encodable, Encoder};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -88,12 +87,6 @@ pub struct OpaqueScriptLayoutChannel(pub (Box<Any+Send>, Box<Any+Send>));
 /// Encapsulates external communication with the script task.
 #[derive(Clone)]
 pub struct ScriptControlChan(pub Sender<ConstellationControlMsg>);
-
-impl<S: Encoder<E>, E> Encodable<S, E> for ScriptControlChan {
-    fn encode(&self, _s: &mut S) -> Result<(), E> {
-        Ok(())
-    }
-}
 
 pub trait ScriptTaskFactory {
     fn create<C>(_phantom: Option<&mut Self>,

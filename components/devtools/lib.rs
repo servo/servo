@@ -13,9 +13,7 @@
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
 
-#![feature(phase)]
-
-#[phase(plugin, link)]
+#[macro_use]
 extern crate log;
 
 extern crate collections;

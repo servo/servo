@@ -13,7 +13,7 @@ use hyper::method::Method;
 use layers::geometry::DevicePixel;
 use servo_util::cursor::Cursor;
 use servo_util::geometry::{PagePx, ViewportPx};
-use std::comm::{channel, Sender, Receiver};
+use std::sync::mpsc::{channel, Sender, Receiver};
 use url::Url;
 
 #[derive(Clone)]
@@ -186,7 +186,6 @@ pub enum Key {
 }
 
 bitflags! {
-    #[derive(Copy)]
     flags KeyModifiers: u8 {
         const SHIFT = 0x01,
         const CONTROL = 0x02,
