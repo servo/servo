@@ -531,7 +531,10 @@ pub mod tests {
         let mut v = SmallVec16::new();
         v.push("hello".into_string());
         v.push("there".into_string());
-        assert_eq!(v.as_slice(), vec!["hello".into_string(), "there".into_string()].as_slice());
+        assert_eq!(v.as_slice(), vec![
+            "hello".into_string(),
+            "there".into_string(),
+        ].as_slice());
     }
 
     #[test]
@@ -541,7 +544,12 @@ pub mod tests {
         v.push("there".into_string());
         v.push("burma".into_string());
         v.push("shave".into_string());
-        assert_eq!(v.as_slice(), vec!["hello".into_string(), "there".into_string(), "burma".into_string(), "shave".into_string()].as_slice());
+        assert_eq!(v.as_slice(), vec![
+            "hello".into_string(),
+            "there".into_string(),
+            "burma".into_string(),
+            "shave".into_string(),
+        ].as_slice());
     }
 
     #[test]
@@ -556,7 +564,14 @@ pub mod tests {
         v.push("burma".into_string());
         v.push("shave".into_string());
         assert_eq!(v.as_slice(), vec![
-            "hello".into_string(), "there".into_string(), "burma".into_string(), "shave".into_string(), "hello".into_string(), "there".into_string(), "burma".into_string(), "shave".into_string(),
+            "hello".into_string(),
+            "there".into_string(),
+            "burma".into_string(),
+            "shave".into_string(),
+            "hello".into_string(),
+            "there".into_string(),
+            "burma".into_string(),
+            "shave".into_string(),
         ].as_slice());
     }
 }
