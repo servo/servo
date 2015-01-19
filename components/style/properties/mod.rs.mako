@@ -39,14 +39,14 @@ def to_rust_ident(name):
         name += "_"
     return name
 
+def to_camel_case(ident):
+    return re.sub("_([a-z])", lambda m: m.group(1).upper(), ident.strip("_").capitalize())
+
 class Longhand(object):
     def __init__(self, name, derived_from=None, experimental=False):
         self.name = name
         self.ident = to_rust_ident(name)
-        self.camel_case, _ = re.subn(
-            "_([a-z])",
-            lambda m: m.group(1).upper(),
-            self.ident.strip("_").capitalize())
+        self.camel_case = to_camel_case(self.ident)
         self.style_struct = THIS_STYLE_STRUCT
         self.experimental = experimental
         if derived_from is None:
@@ -58,6 +58,8 @@ class Shorthand(object):
     def __init__(self, name, sub_properties):
         self.name = name
         self.ident = to_rust_ident(name)
+        self.camel_case = to_camel_case(self.ident)
+        self.derived_from = None
         self.sub_properties = [LONGHANDS_BY_NAME[s] for s in sub_properties]
 
 class StyleStruct(object):
@@ -3358,15 +3360,31 @@ pub fn make_inline(style: &ComputedValues) -> ComputedValues {
 
 pub fn is_supported_property(property: &str) -> bool {
     match property {
-        % for property in SHORTHANDS:
-            "${property.name}" => true,
-        % endfor
-        % for property in LONGHANDS:
+        % for property in SHORTHANDS + LONGHANDS:
             "${property.name}" => true,
         % endfor
         _ => false,
     }
 }
+
+#[macro_export]
+macro_rules! css_properties_accessors(
+    ($macro: ident) => (
+        $macro!(
+            % for property in SHORTHANDS + LONGHANDS:
+                ## Servo internal CSS properties are not accessible.
+                ## FIXME: Add BinaryName WebIDL annotation (#4435).
+                % if property.derived_from is None and property.name != "float":
+                    % if property != LONGHANDS[-1]:
+                        [${property.camel_case}, Set${property.camel_case}, "${property.name}"],
+                    % else:
+                        [${property.camel_case}, Set${property.camel_case}, "${property.name}"]
+                    % endif
+                % endif
+            % endfor
+        )
+    )
+)
 
 pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
     match shorthand {
