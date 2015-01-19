@@ -56,6 +56,13 @@ def check_license(contents):
         yield (1, "incorrect license")
 
 
+def check_length(contents):
+    lines = contents.splitlines(True)
+    for idx, line in enumerate(lines):
+        if len(line) >= 160:
+            yield (idx + 1, "(much) overlong line")
+
+
 def check_whitespace(contents):
     lines = contents.splitlines(True)
     for idx, line in enumerate(lines):
@@ -88,7 +95,7 @@ def scan():
     all_files = collect_file_names(directories_to_check)
     files_to_check = filter(should_check, all_files)
 
-    checking_functions = [check_license, check_whitespace]
+    checking_functions = [check_license, check_length, check_whitespace]
     errors = collect_errors_for_files(files_to_check, checking_functions)
     errors = list(errors)
 
