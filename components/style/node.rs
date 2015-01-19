@@ -55,7 +55,7 @@ pub trait TElement<'a> : Copy {
     // really messy, since there is a `JSRef` and a `RefCell` involved. Maybe
     // in the future when we have associated types and/or a more convenient
     // JS GC story... --pcwalton
-    fn each_class<F>(self, callback: F) where F: Fn(&Atom);
+    fn each_class<F>(self, callback: F) where F: FnMut(&Atom);
 }
 
 pub trait TElementAttributes : Copy {

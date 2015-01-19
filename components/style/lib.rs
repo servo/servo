@@ -8,6 +8,7 @@
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
+#![allow(unstable)]
 
 #[macro_use] extern crate log;
 #[macro_use] #[plugin] extern crate string_cache_macros;
