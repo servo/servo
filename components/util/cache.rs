@@ -5,9 +5,10 @@
 #![old_impl_check]
 
 use std::collections::HashMap;
+use std::collections::hash_map::Hasher;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use rand::Rng;
-use std::hash::{Hash, Hasher, SipHasher};
+use std::hash::{Hash, SipHasher};
 use std::iter::repeat;
 use std::rand;
 use std::slice::Iter;
@@ -26,21 +27,19 @@ pub struct HashCache<K, V> {
     entries: HashMap<K, V>,
 }
 
-impl<H, K, V> HashCache<K,V>
-    where H: Hasher<Output=u64>,
-          K: Clone + PartialEq + Eq + Hash<H>,
-          V: Clone
+impl<K, V> HashCache<K,V>
+    where K: Clone + PartialEq + Eq + Hash<Hasher>,
+          V: Clone,
 {
-    pub fn new() -> HashCache<K, V> {
+    pub fn new() -> HashCache<K,V> {
         HashCache {
           entries: HashMap::new(),
         }
     }
 }
 
-impl<H, K, V> Cache<K,V> for HashCache<K,V>
-    where H: Hasher,
-          K: Clone + PartialEq + Eq + Hash<H>,
+impl<K, V> Cache<K,V> for HashCache<K,V>
+    where K: Clone + PartialEq + Eq + Hash<Hasher>,
           V: Clone
 {
     fn insert(&mut self, key: K, value: V) {
@@ -60,7 +59,7 @@ impl<H, K, V> Cache<K,V> for HashCache<K,V>
                 (*occupied.get()).clone()
             }
             Vacant(vacant) => {
-                (*vacant.set(blk(key))).clone()
+                (*vacant.insert(blk(key))).clone()
             }
         }
     }
@@ -102,9 +101,9 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K,V> {
         let last_index = self.entries.len() - 1;
         if pos != last_index {
             let entry = self.entries.remove(pos);
-            self.entries.push(entry.unwrap());
+            self.entries.push(entry);
         }
-        self.entries[last_index].ref1().clone()
+        self.entries[last_index].1.clone()
     }
 
     pub fn iter<'a>(&'a self) -> Iter<'a,(K,V)> {
@@ -149,7 +148,7 @@ pub struct SimpleHashCache<K,V> {
     k1: u64,
 }
 
-impl<K:Clone+PartialEq+Hash<H>,H:Hasher,V:Clone> SimpleHashCache<K,V> {
+impl<K:Clone+PartialEq+Hash<SipHasher>,V:Clone> SimpleHashCache<K,V> {
     pub fn new(cache_size: uint) -> SimpleHashCache<K,V> {
         let mut r = rand::thread_rng();
         SimpleHashCache {
@@ -165,14 +164,14 @@ impl<K:Clone+PartialEq+Hash<H>,H:Hasher,V:Clone> SimpleHashCache<K,V> {
     }
 
     #[inline]
-    fn bucket_for_key<Q:Hash<H>>(&self, key: &Q) -> uint {
+    fn bucket_for_key<Q:Hash<SipHasher>>(&self, key: &Q) -> uint {
         let mut hasher = SipHasher::new_with_keys(self.k0, self.k1);
         key.hash(&mut hasher);
-        self.to_bucket(hasher.finish() as uint)
+        self.to_bucket(hasher.result() as uint)
     }
 }
 
-impl<K:Clone+PartialEq+Hash<H>,H:Hasher,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
+impl<K:Clone+PartialEq+Hash<SipHasher>,V:Clone> Cache<K,V> for SimpleHashCache<K,V> {
     fn insert(&mut self, key: K, value: V) {
         let bucket_index = self.bucket_for_key(&key);
         self.entries[bucket_index] = Some((key, value));
