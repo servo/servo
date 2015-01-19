@@ -72,9 +72,9 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
 
     let mut registry = ActorRegistry::new();
 
-    let root = box RootActor {
+    let root = Box::new(RootActor {
         tabs: vec!(),
-    };
+    });
 
     registry.register(root);
     registry.find::<RootActor>("root");
@@ -158,9 +158,9 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         };
 
         actor_pipelines.insert(pipeline, tab.name.clone());
-        actors.register(box tab);
-        actors.register(box console);
-        actors.register(box inspector);
+        actors.register(Box::new(tab));
+        actors.register(Box::new(console));
+        actors.register(Box::new(inspector));
     }
 
     //TODO: figure out some system that allows us to watch for new connections,
