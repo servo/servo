@@ -43,6 +43,7 @@ use libc::{c_uint, c_int, c_void, c_char};
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use std::char;
+use std::iter::repeat;
 use std::mem;
 use std::cmp;
 use std::ptr;
@@ -295,9 +296,10 @@ impl Shaper {
 
         // fast path: all chars are single-byte.
         if byte_max == char_max {
-            byte_to_glyph = Vec::from_elem(byte_max as uint, NO_GLYPH);
+            byte_to_glyph = repeat(NO_GLYPH).take(byte_max as uint).collect();
         } else {
-            byte_to_glyph = Vec::from_elem(byte_max as uint, CONTINUATION_BYTE);
+            byte_to_glyph = repeat(CONTINUATION_BYTE).take(byte_max as uint)
+                                                     .collect();
             for (i, _) in text.char_indices() {
                 byte_to_glyph[i] = NO_GLYPH;
             }
