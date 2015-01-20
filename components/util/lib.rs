@@ -5,6 +5,7 @@
 #![feature(unsafe_destructor)]
 #![feature(plugin)]
 #![feature(int_uint)]
+#![feature(old_impl_check)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]

@@ -9,14 +9,12 @@ use std::num;
 use std::num::Int;
 
 /// An index type to be used by a `Range`
-pub trait RangeIndex: Int + fmt::Show {
-    type Item;
-    fn new(x: Self::Item) -> Self;
-    fn get(self) -> Self::Item;
+pub trait RangeIndex<T>: Int + fmt::Show {
+    fn new(x: T) -> Self;
+    fn get(self) -> T;
 }
 
-impl RangeIndex for int {
-    type Item = int;
+impl RangeIndex<int> for int {
 
     #[inline]
     fn new(x: int) -> int { x }
@@ -40,9 +38,7 @@ macro_rules! int_range_index {
             }
         }
 
-        impl RangeIndex for $Self {
-            type Item = $T;
-
+        impl RangeIndex<$T> for $Self {
             #[inline]
             fn new(x: $T) -> $Self {
                 $Self(x)
@@ -196,8 +192,8 @@ pub struct Range<I> {
     length: I,
 }
 
-impl<I: RangeIndex> fmt::Show for Range<I>
-    where I::Item: Int
+#[old_impl_check]
+impl<I: RangeIndex<T>, T> fmt::Show for Range<I>
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{:?} .. {:?})", self.begin(), self.end())
@@ -209,14 +205,12 @@ pub struct EachIndex<T, I> {
     it: iter::Range<T>,
 }
 
-pub fn each_index<I: RangeIndex>(start: I, stop: I) -> EachIndex<I::Item, I>
-    where I::Item: Int
+pub fn each_index<T: Int, I: RangeIndex<T>>(start: I, stop: I) -> EachIndex<T, I>
 {
     EachIndex { it: iter::range(start.get(), stop.get()) }
 }
 
-impl<I: RangeIndex> Iterator for EachIndex<I::Item, I>
-    where I::Item: Int
+impl<T: Int, I: RangeIndex<T>> Iterator for EachIndex<T, I>
 {
     type Item = I;
 
@@ -231,7 +225,8 @@ impl<I: RangeIndex> Iterator for EachIndex<I::Item, I>
     }
 }
 
-impl<I: RangeIndex> Range<I> {
+#[old_impl_check]
+impl<I: RangeIndex<T>, T> Range<I> {
     /// Create a new range from beginning and length offsets. This could be
     /// denoted as `[begin, begin + length)`.
     ///
@@ -368,19 +363,19 @@ impl<I: RangeIndex> Range<I> {
 }
 
 /// Methods for `Range`s with indices based on integer values
-impl<I: RangeIndex> Range<I>
-    where I::Item: Int
+#[old_impl_check]
+impl<T: Int, I: RangeIndex<T>> Range<I>
 {
     /// Returns an iterater that increments over `[begin, end)`.
     #[inline]
-    pub fn each_index(&self) -> EachIndex<I::Item, I> {
+    pub fn each_index(&self) -> EachIndex<T, I> {
         each_index(self.begin(), self.end())
     }
 
     #[inline]
     pub fn is_valid_for_string(&self, s: &str) -> bool {
         let s_len = s.len();
-        match num::cast::<uint, I::Item>(s_len) {
+        match num::cast::<uint, T>(s_len) {
             Some(len) => {
                 let len = RangeIndex::new(len);
                 self.begin() < len
@@ -392,7 +387,7 @@ impl<I: RangeIndex> Range<I>
                         (len={:?}) is longer than the max value for the range \
                         index (max={:?})", s_len,
                         {
-                            let max: I::Item = Int::max_value();
+                            let max: T = Int::max_value();
                             let val: I = RangeIndex::new(max);
                             val
                         });
