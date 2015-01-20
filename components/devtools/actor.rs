@@ -25,46 +25,6 @@ pub trait Actor : Any {
     fn name(&self) -> String;
 }
 
-impl<'a> Any<'a> for &'a mut (Actor + 'a) {
-    fn downcast_mut<T: 'static>(self) -> Option<&'a mut T> {
-        if self.is::<T>() {
-            unsafe {
-                // Get the raw representation of the trait object
-                let to: TraitObject = transmute_copy(&self);
-
-                // Extract the data pointer
-                Some(transmute(to.data))
-            }
-        } else {
-            None
-        }
-    }
-}
-
-impl<'a> Any<'a> for &'a (Actor + 'a) {
-    fn is<T: 'static>(self) -> bool {
-        // This implementation is only needed so long as there's a Rust bug that
-        // prevents downcast_ref from giving realistic return values.
-        let t = TypeId::of::<T>();
-        let boxed: TypeId = (*self).get_type_id();
-        t == boxed
-    }
-
-    fn downcast_ref<T: 'static>(self) -> Option<&'a T> {
-        if self.is::<T>() {
-            unsafe {
-                // Get the raw representation of the trait object
-                let to: TraitObject = transmute_copy(&self);
-
-                // Extract the data pointer
-                Some(transmute(to.data))
-            }
-        } else {
-            None
-        }
-    }
-}
-
 /// A list of known, owned actors.
 pub struct ActorRegistry {
     actors: HashMap<String, Box<Actor+Send+Sized>>,
