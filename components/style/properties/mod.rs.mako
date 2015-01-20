@@ -3367,9 +3367,9 @@ pub fn is_supported_property(property: &str) -> bool {
 }
 
 #[macro_export]
-macro_rules! css_properties_accessors(
-    ($macro: ident) => (
-        $macro!(
+macro_rules! css_properties_accessors {
+    ($macro_name: ident) => {
+        $macro_name! {
             % for property in SHORTHANDS + LONGHANDS:
                 ## Servo internal CSS properties are not accessible.
                 ## FIXME: Add BinaryName WebIDL annotation (#4435).
@@ -3381,9 +3381,9 @@ macro_rules! css_properties_accessors(
                     % endif
                 % endif
             % endfor
-        )
-    )
-)
+        }
+    }
+}
 
 pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
     match shorthand {

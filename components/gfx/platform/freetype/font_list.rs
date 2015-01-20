@@ -22,20 +22,21 @@ use fontconfig::fontconfig::{
 
 use libc;
 use libc::c_int;
-use std::ffi::c_str_to_bytes;
+use std::borrow::ToOwned;
+use std::ffi::{c_str_to_bytes, CString};
 use std::ptr;
 use std::string::String;
 
 
-pub unsafe fn c_str_to_string(s: &*const u8) -> String {
-    String::from_utf8(c_str_to_bytes(&s).to_vec()).unwrap()
+unsafe fn c_str_to_string(s: *mut u8) -> String {
+    String::from_utf8(c_str_to_bytes(&(s as *const i8)).to_vec()).unwrap()
 }
 
 static FC_FAMILY: &'static [u8] = b"family\0";
 static FC_FILE: &'static [u8] = b"file\0";
 static FC_INDEX: &'static [u8] = b"index\0";
 
-pub fn get_available_families<F>(callback: F) where F: Fn(String) {
+pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
     unsafe {
         let config = FcConfigGetCurrent();
         let fontSet = FcConfigGetFonts(config, FcSetSystem);
@@ -44,7 +45,7 @@ pub fn get_available_families<F>(callback: F) where F: Fn(String) {
             let mut family: *mut FcChar8 = ptr::null_mut();
             let mut v: c_int = 0;
             while FcPatternGetString(*font, FC_FAMILY.as_ptr() as *mut i8, v, &mut family) == FcResultMatch {
-                let family_name = c_str_to_string(&family);
+                let family_name = c_str_to_string(family);
                 callback(family_name);
                 v += 1;
             }
@@ -52,21 +53,21 @@ pub fn get_available_families<F>(callback: F) where F: Fn(String) {
     }
 }
 
-pub fn get_variations_for_family<F>(family_name: &str, callback: F) where F: Fn(String) {
+pub fn get_variations_for_family<F>(family_name: &str, mut callback: F) where F: FnMut(String) {
     debug!("getting variations for {}", family_name);
     unsafe {
         let config = FcConfigGetCurrent();
         let mut font_set = FcConfigGetFonts(config, FcSetSystem);
         let font_set_array_ptr = &mut font_set;
         let pattern = FcPatternCreate();
-        assert!(pattern.is_not_null());
-        let mut family_name_c = family_name.to_c_str();
-        let family_name = family_name_c.as_mut_ptr();
+        assert!(!pattern.is_null());
+        let mut family_name_c = CString::from_slice(family_name.as_bytes());
+        let family_name = family_name_c.as_ptr();
         let ok = FcPatternAddString(pattern, FC_FAMILY.as_ptr() as *mut i8, family_name as *mut FcChar8);
         assert!(ok != 0);
 
         let object_set = FcObjectSetCreate();
-        assert!(object_set.is_not_null());
+        assert!(!object_set.is_null());
 
         FcObjectSetAdd(object_set, FC_FILE.as_ptr() as *mut i8);
         FcObjectSetAdd(object_set, FC_INDEX.as_ptr() as *mut i8);
@@ -79,7 +80,7 @@ pub fn get_variations_for_family<F>(family_name: &str, callback: F) where F: Fn(
             let font = (*matches).fonts.offset(i);
             let mut file: *mut FcChar8 = ptr::null_mut();
             let file = if FcPatternGetString(*font, FC_FILE.as_ptr() as *mut i8, 0, &mut file) == FcResultMatch {
-                c_str_to_string(&file)
+                c_str_to_string(file)
             } else {
                 panic!();
             };
@@ -103,8 +104,8 @@ pub fn get_variations_for_family<F>(family_name: &str, callback: F) where F: Fn(
 }
 
 pub fn get_system_default_family(generic_name: &str) -> Option<String> {
-    let mut generic_name_c = generic_name.to_c_str();
-    let generic_name_ptr = generic_name_c.as_mut_ptr();
+    let mut generic_name_c = CString::from_slice(generic_name.as_bytes());
+    let generic_name_ptr = generic_name_c.as_ptr();
 
     unsafe {
         let pattern = FcNameParse(generic_name_ptr as *mut FcChar8);
@@ -118,7 +119,7 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
         let family_name = if result == FcResultMatch {
             let mut match_string: *mut FcChar8 = ptr::null_mut();
             FcPatternGetString(family_match, FC_FAMILY.as_ptr() as *mut i8, 0, &mut match_string);
-            let result = c_str_to_string(&match_string);
+            let result = c_str_to_string(match_string);
             FcPatternDestroy(family_match);
             Some(result)
         } else {
@@ -133,13 +134,13 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
 #[cfg(target_os="linux")]
 pub fn get_last_resort_font_families() -> Vec<String> {
     vec!(
-        "Fira Sans".into_string(),
-        "DejaVu Sans".into_string(),
-        "Arial".into_string()
+        "Fira Sans".to_owned(),
+        "DejaVu Sans".to_owned(),
+        "Arial".to_owned()
     )
 }
 
 #[cfg(target_os="android")]
 pub fn get_last_resort_font_families() -> Vec<String> {
-    vec!("Roboto".into_string())
+    vec!("Roboto".to_owned())
 }
