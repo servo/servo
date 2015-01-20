@@ -56,7 +56,7 @@ fn nested_window_resize(width: uint, height: uint) {
     }
 }
 
-bitflags!(
+bitflags! {
     #[deriving(Show, Copy)]
     flags KeyModifiers: u8 {
         const LEFT_CONTROL = 1,
@@ -66,7 +66,7 @@ bitflags!(
         const LEFT_ALT = 16,
         const RIGHT_ALT = 32,
     }
-)
+}
 
 /// The type of a window.
 pub struct Window {
