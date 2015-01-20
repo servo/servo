@@ -9,6 +9,7 @@ use font::{FontTableTag, FractionalPixel};
 use servo_util::geometry::Au;
 use servo_util::geometry;
 use platform::font_context::FontContextHandle;
+use platform::freetype::font_list::c_str_to_string;
 use text::glyph::GlyphId;
 use text::util::{float_to_fixed, fixed_to_float};
 use style::computed_values::font_weight;
@@ -121,10 +122,10 @@ impl FontHandleMethods for FontHandle {
         self.font_data.clone()
     }
     fn family_name(&self) -> String {
-        unsafe { String::from_raw_buf(&*(*self.face).family_name as *const i8 as *const u8) }
+        unsafe { c_str_to_string((*self.face).family_name) }
     }
     fn face_name(&self) -> String {
-        unsafe { String::from_raw_buf(&*FT_Get_Postscript_Name(self.face) as *const i8 as *const u8) }
+        unsafe { c_str_to_string(FT_Get_Postscript_Name(self.face)) }
     }
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
