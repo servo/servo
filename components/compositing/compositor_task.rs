@@ -15,6 +15,7 @@ use azure::azure_hl::{SourceSurfaceMethods, Color};
 use geom::point::Point2D;
 use geom::rect::{Rect, TypedRect};
 use geom::size::Size2D;
+use gfx::paint_task::NativeGraphicsMetadataWrapper;
 use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphicsMetadata};
 use layers::layers::LayerBufferSet;
 use pipeline::CompositionPipeline;
@@ -58,7 +59,7 @@ impl CompositorReceiver for Receiver<Msg> {
         }
     }
     fn recv_compositor_msg(&mut self) -> Msg {
-        self.recv()
+        self.recv().unwrap()
     }
 }
 
@@ -129,7 +130,7 @@ impl PaintListener for Box<CompositorProxy+'static+Send> {
     fn get_graphics_metadata(&mut self) -> Option<NativeGraphicsMetadata> {
         let (chan, port) = channel();
         self.send(Msg::GetGraphicsMetadata(chan));
-        port.recv()
+        port.recv().unwrap().map(|NativeGraphicsMetadataWrapper(meta)| meta)
     }
 
     fn assign_painted_buffers(&mut self,
@@ -182,7 +183,7 @@ pub enum Msg {
     /// is the pixel format.
     ///
     /// The headless compositor returns `None`.
-    GetGraphicsMetadata(Sender<Option<NativeGraphicsMetadata>>),
+    GetGraphicsMetadata(Sender<Option<NativeGraphicsMetadataWrapper>>),
 
     /// Tells the compositor to create the root layer for a pipeline if necessary (i.e. if no layer
     /// with that ID exists).

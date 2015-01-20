@@ -19,7 +19,7 @@ use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
 use gfx::paint_task::Msg as PaintMsg;
-use gfx::paint_task::PaintRequest;
+use gfx::paint_task::{PaintRequest, NativeGraphicsMetadataWrapper};
 use layers::geometry::{DevicePixel, LayerPixel};
 use layers::layers::{BufferRequest, Layer, LayerBufferSet};
 use layers::rendergl;
@@ -251,8 +251,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::Exit(chan), _) => {
                 debug!("shutting down the constellation");
                 let ConstellationChan(ref con_chan) = self.constellation_chan;
-                con_chan.send(ConstellationMsg::Exit);
-                chan.send(());
+                con_chan.send(ConstellationMsg::Exit).unwrap();
+                chan.send(()).unwrap();
                 self.shutdown_state = ShutdownState::ShuttingDown;
             }
 
@@ -293,13 +293,13 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::ChangeLayerPipelineAndRemoveChildren(old_pipeline, new_pipeline, response_channel),
              ShutdownState::NotShuttingDown) => {
                 self.handle_change_layer_pipeline_and_remove_children(old_pipeline, new_pipeline);
-                response_channel.send(());
+                response_channel.send(()).unwrap();
             }
 
             (Msg::CreateRootLayerForPipeline(parent_pipeline, pipeline, rect, response_channel),
              ShutdownState::NotShuttingDown) => {
                 self.handle_create_root_layer_for_pipeline(parent_pipeline, pipeline, rect);
-                response_channel.send(());
+                response_channel.send(()).unwrap();
             }
 
             (Msg::CreateOrUpdateBaseLayer(layer_properties), ShutdownState::NotShuttingDown) => {
@@ -312,7 +312,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::GetGraphicsMetadata(chan), ShutdownState::NotShuttingDown) => {
-                chan.send(Some(self.window.native_metadata()));
+                chan.send(Some(NativeGraphicsMetadataWrapper(self.window.native_metadata()))).unwrap();
             }
 
             (Msg::SetLayerOrigin(pipeline_id, layer_id, origin),
@@ -420,12 +420,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(ref details) => {
                 match details.pipeline {
                     Some(ref pipeline) => pipeline,
-                    None => panic!("Compositor layer has an unitialized pipeline ({}).",
+                    None => panic!("Compositor layer has an unitialized pipeline ({:?}).",
                                    pipeline_id),
 
                 }
             }
-            None => panic!("Compositor layer has an unknown pipeline ({}).", pipeline_id),
+            None => panic!("Compositor layer has an unknown pipeline ({:?}).", pipeline_id),
         }
     }
 
@@ -460,7 +460,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if !self.has_paint_msg_tracking() {
             return;
         }
-        debug!("add_outstanding_paint_msg {}", self.outstanding_paint_msgs);
+        debug!("add_outstanding_paint_msg {:?}", self.outstanding_paint_msgs);
         self.outstanding_paint_msgs += count;
     }
 
@@ -479,7 +479,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                       frame_tree: &SendableFrameTree,
                       response_chan: Sender<()>,
                       new_constellation_chan: ConstellationChan) {
-        response_chan.send(());
+        response_chan.send(()).unwrap();
 
         self.root_pipeline = Some(frame_tree.pipeline.clone());
 
@@ -547,7 +547,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let root_layer = match self.find_pipeline_root_layer(old_pipeline.id) {
             Some(root_layer) => root_layer,
             None => {
-                debug!("Ignoring ChangeLayerPipelineAndRemoveChildren message for pipeline ({}) shutting down.",
+                debug!("Ignoring ChangeLayerPipelineAndRemoveChildren message \
+                        for pipeline ({:?}) shutting down.",
                        old_pipeline.id);
                 return;
             }
@@ -582,7 +583,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let parent_layer = match self.find_pipeline_root_layer(pipeline_id) {
             Some(root_layer) => root_layer,
             None => {
-                debug!("Ignoring FrameTreeUpdate message for pipeline ({}) shutting down.",
+                debug!("Ignoring FrameTreeUpdate message for pipeline ({:?}) \
+                        shutting down.",
                        pipeline_id);
                 return;
             }
@@ -612,7 +614,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let root_layer = match self.find_pipeline_root_layer(pipeline_id) {
             Some(root_layer) => root_layer,
             None => {
-                debug!("Ignoring CreateOrUpdateBaseLayer message for pipeline ({}) shutting down.",
+                debug!("Ignoring CreateOrUpdateBaseLayer message for pipeline \
+                        ({:?}) shutting down.",
                        pipeline_id);
                 return;
             }
@@ -670,7 +673,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
             visible_viewport: visible_viewport,
-        }));
+        })).unwrap()
     }
 
     pub fn move_layer(&self,
@@ -724,7 +727,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(ref layer) => {
                 layer.bounds.borrow_mut().origin = Point2D::from_untyped(&new_origin)
             }
-            None => panic!("Compositor received SetLayerOrigin for nonexistent layer: {}", pipeline_id),
+            None => panic!("Compositor received SetLayerOrigin for nonexistent \
+                            layer: {:?}", pipeline_id),
         };
 
         self.send_buffer_requests_for_all_layers();
@@ -752,7 +756,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                        layer: Rc<Layer<CompositorData>>,
                                        new_layer_buffer_set: Box<LayerBufferSet>,
                                        epoch: Epoch) {
-        debug!("compositor received new frame at size {}x{}",
+        debug!("compositor received new frame at size {:?}x{:?}",
                self.window_size.width.get(),
                self.window_size.height.get());
 
@@ -830,14 +834,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             WindowEvent::Quit => {
                 debug!("shutting down the constellation for WindowEvent::Quit");
                 let ConstellationChan(ref chan) = self.constellation_chan;
-                chan.send(ConstellationMsg::Exit);
+                chan.send(ConstellationMsg::Exit).unwrap();
                 self.shutdown_state = ShutdownState::ShuttingDown;
             }
         }
     }
 
     fn on_resize_window_event(&mut self, new_size: TypedSize2D<DevicePixel, uint>) {
-        debug!("compositor resizing to {}", new_size.to_untyped());
+        debug!("compositor resizing to {:?}", new_size.to_untyped());
 
         // A size change could also mean a resolution change.
         let new_hidpi_factor = self.window.hidpi_factor();
@@ -868,7 +872,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let msg = ConstellationMsg::LoadUrl(root_pipeline_id,
             LoadData::new(Url::parse(url_string.as_slice()).unwrap()));
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(msg);
+        chan.send(msg).unwrap()
     }
 
     fn on_mouse_window_event_class(&self, mouse_window_event: MouseWindowEvent) {
@@ -987,12 +991,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
         };
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::Navigate(direction))
+        chan.send(ConstellationMsg::Navigate(direction)).unwrap()
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::KeyEvent(key, state, modifiers))
+        chan.send(ConstellationMsg::KeyEvent(key, state, modifiers)).unwrap()
     }
 
     fn convert_buffer_requests_to_pipeline_requests_map(&self,
@@ -1009,7 +1013,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     entry.into_mut()
                 }
                 Vacant(entry) => {
-                    entry.set(Vec::new())
+                    entry.insert(Vec::new())
                 }
             };
 
@@ -1049,7 +1053,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                   layer.bounds.borrow().size.to_untyped());
             let pipeline = self.get_pipeline(layer.get_pipeline_id());
             let ScriptControlChan(ref chan) = pipeline.script_chan;
-            chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect));
+            chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect)).unwrap();
         }
 
         for kid in layer.children().iter() {
@@ -1202,7 +1206,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             debug!("shutting down the constellation after generating an output file");
             let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ConstellationMsg::Exit);
+            chan.send(ConstellationMsg::Exit).unwrap();
             self.shutdown_state = ShutdownState::ShuttingDown;
         }
 
@@ -1394,10 +1398,10 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
         let TimeProfilerChan(ref time_profiler_chan) = self.time_profiler_chan;
-        time_profiler_chan.send(time::TimeProfilerMsg::Exit);
+        time_profiler_chan.send(time::TimeProfilerMsg::Exit).unwrap();
 
         let MemoryProfilerChan(ref memory_profiler_chan) = self.memory_profiler_chan;
-        memory_profiler_chan.send(memory::MemoryProfilerMsg::Exit);
+        memory_profiler_chan.send(memory::MemoryProfilerMsg::Exit).unwrap();
 
         self.scrolling_timer.shutdown();
     }
@@ -1412,6 +1416,6 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             Some(ref root_pipeline) => root_pipeline.id,
         };
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id));
+        chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id)).unwrap();
     }
 }

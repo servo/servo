@@ -21,11 +21,11 @@ use fontconfig::fontconfig::{
 };
 
 use libc;
-use libc::c_int;
+use libc::{c_int, c_char};
 use std::borrow::ToOwned;
 use std::ffi::{c_str_to_bytes, CString};
 use std::ptr;
-use std::string::String;
+use std::str;
 
 
 unsafe fn c_str_to_string(s: *mut u8) -> String {
@@ -44,7 +44,7 @@ pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
             let font = (*fontSet).fonts.offset(i);
             let mut family: *mut FcChar8 = ptr::null_mut();
             let mut v: c_int = 0;
-            while FcPatternGetString(*font, FC_FAMILY.as_ptr() as *mut i8, v, &mut family) == FcResultMatch {
+            while FcPatternGetString(*font, FC_FAMILY.as_ptr() as *mut c_char, v, &mut family) == FcResultMatch {
                 let family_name = c_str_to_string(family);
                 callback(family_name);
                 v += 1;
@@ -53,7 +53,9 @@ pub fn get_available_families<F>(mut callback: F) where F: FnMut(String) {
     }
 }
 
-pub fn get_variations_for_family<F>(family_name: &str, mut callback: F) where F: FnMut(String) {
+pub fn get_variations_for_family<F>(family_name: &str, mut callback: F)
+    where F: FnMut(String)
+{
     debug!("getting variations for {}", family_name);
     unsafe {
         let config = FcConfigGetCurrent();
@@ -61,16 +63,16 @@ pub fn get_variations_for_family<F>(family_name: &str, mut callback: F) where F:
         let font_set_array_ptr = &mut font_set;
         let pattern = FcPatternCreate();
         assert!(!pattern.is_null());
-        let mut family_name_c = CString::from_slice(family_name.as_bytes());
-        let family_name = family_name_c.as_ptr();
-        let ok = FcPatternAddString(pattern, FC_FAMILY.as_ptr() as *mut i8, family_name as *mut FcChar8);
+        let family_name_c = CString::from_slice(family_name.as_bytes());
+        let family_name = family_name_c.as_ptr() as *const i8;
+        let ok = FcPatternAddString(pattern, FC_FAMILY.as_ptr() as *mut c_char, family_name as *mut FcChar8);
         assert!(ok != 0);
 
         let object_set = FcObjectSetCreate();
         assert!(!object_set.is_null());
 
-        FcObjectSetAdd(object_set, FC_FILE.as_ptr() as *mut i8);
-        FcObjectSetAdd(object_set, FC_INDEX.as_ptr() as *mut i8);
+        FcObjectSetAdd(object_set, FC_FILE.as_ptr() as *mut c_char);
+        FcObjectSetAdd(object_set, FC_INDEX.as_ptr() as *mut c_char);
 
         let matches = FcFontSetList(config, font_set_array_ptr, 1, pattern, object_set);
 
@@ -79,13 +81,13 @@ pub fn get_variations_for_family<F>(family_name: &str, mut callback: F) where F:
         for i in range(0, (*matches).nfont as int) {
             let font = (*matches).fonts.offset(i);
             let mut file: *mut FcChar8 = ptr::null_mut();
-            let file = if FcPatternGetString(*font, FC_FILE.as_ptr() as *mut i8, 0, &mut file) == FcResultMatch {
+            let file = if FcPatternGetString(*font, FC_FILE.as_ptr() as *mut c_char, 0, &mut file) == FcResultMatch {
                 c_str_to_string(file)
             } else {
                 panic!();
             };
             let mut index: libc::c_int = 0;
-            let index = if FcPatternGetInteger(*font, FC_INDEX.as_ptr() as *mut i8, 0, &mut index) == FcResultMatch {
+            let index = if FcPatternGetInteger(*font, FC_INDEX.as_ptr() as *mut c_char, 0, &mut index) == FcResultMatch {
                 index
             } else {
                 panic!();
@@ -104,8 +106,8 @@ pub fn get_variations_for_family<F>(family_name: &str, mut callback: F) where F:
 }
 
 pub fn get_system_default_family(generic_name: &str) -> Option<String> {
-    let mut generic_name_c = CString::from_slice(generic_name.as_bytes());
-    let generic_name_ptr = generic_name_c.as_ptr();
+    let generic_name_c = CString::from_slice(generic_name.as_bytes());
+    let generic_name_ptr = generic_name_c.as_ptr() as *const FcChar8;
 
     unsafe {
         let pattern = FcNameParse(generic_name_ptr as *mut FcChar8);
@@ -118,8 +120,10 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
 
         let family_name = if result == FcResultMatch {
             let mut match_string: *mut FcChar8 = ptr::null_mut();
-            FcPatternGetString(family_match, FC_FAMILY.as_ptr() as *mut i8, 0, &mut match_string);
-            let result = c_str_to_string(match_string);
+            FcPatternGetString(family_match, FC_FAMILY.as_ptr() as *mut c_char, 0, &mut match_string);
+            let family_name = match_string as *const c_char;
+            let family_name = ffi::c_str_to_bytes(&family_name);
+            let result = str::from_utf8(family_name).unwrap().to_owned();
             FcPatternDestroy(family_match);
             Some(result)
         } else {

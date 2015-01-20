@@ -26,11 +26,13 @@ use freetype::freetype::{ft_sfnt_os2};
 use freetype::tt_os2::TT_OS2;
 
 use std::ffi::c_str_to_bytes;
+use libc::c_char;
+use std::borrow::ToOwned;
+use std::ffi;
 use std::mem;
 use std::num::Float;
 use std::ptr;
-use std::string::String;
-
+use std::str;
 use std::sync::Arc;
 
 
@@ -164,8 +166,7 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    fn glyph_index(&self,
-                       codepoint: char) -> Option<GlyphId> {
+    fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
         assert!(!self.face.is_null());
         unsafe {
             let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
@@ -179,7 +180,7 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId)
-                        -> FractionalPixel {
+                       -> FractionalPixel {
         assert!(!self.face.is_null());
         let mut delta = struct_FT_Vector_ { x: 0, y: 0 };
         unsafe {
@@ -188,8 +189,7 @@ impl FontHandleMethods for FontHandle {
         fixed_to_float_ft(delta.x as i32)
     }
 
-    fn glyph_h_advance(&self,
-                           glyph: GlyphId) -> Option<FractionalPixel> {
+    fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
         assert!(!self.face.is_null());
         unsafe {
             let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);

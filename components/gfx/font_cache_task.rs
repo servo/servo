@@ -148,7 +148,7 @@ impl FontCache {
                         }
                         Source::Local(ref local_family_name) => {
                             let family = &mut self.web_families[family_name];
-                            get_variations_for_family(local_family_name.as_slice(), |path| {
+                            get_variations_for_family(local_family_name.as_slice(), |&mut:path| {
                                 family.add_template(path.as_slice(), None);
                             });
                         }

@@ -474,7 +474,8 @@ struct WorkerThread {
     time_profiler_sender: TimeProfilerChan,
 }
 
-struct NativeGraphicsMetadataWrapper(NativeGraphicsMetadata);
+// XXX is this the right place for this?
+pub struct NativeGraphicsMetadataWrapper(pub NativeGraphicsMetadata);
 unsafe impl Send for NativeGraphicsMetadataWrapper {}
 
 impl WorkerThread {
