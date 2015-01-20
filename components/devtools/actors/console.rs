@@ -224,7 +224,7 @@ impl Actor for ConsoleActor {
                 self.script_chan.send(EvaluateJS(self.pipeline, input.clone(), chan));
 
                 //TODO: extract conversion into protocol module or some other useful place
-                let result = match try!(port.recv()) {
+                let result = match try!(port.recv().map_err(|_| ())) {
                     VoidValue => {
                         let mut m = BTreeMap::new();
                         m.insert("type".to_string(), "undefined".to_string().to_json());

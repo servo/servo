@@ -90,7 +90,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
         println!("connection established to {}", stream.peer_name().unwrap());
         {
-            let actors = actors.lock();
+            let actors = actors.lock().unwrap();
             let msg = actors.find::<RootActor>("root").encodable();
             stream.write_json_packet(&msg);
         }
@@ -98,8 +98,9 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         'outer: loop {
             match stream.read_json_packet() {
                 Ok(json_packet) => {
-                    match actors.lock().handle_message(json_packet.as_object().unwrap(),
-                                                       &mut stream) {
+                    let actors = actors.lock().unwrap();
+                    match actors.handle_message(json_packet.as_object().unwrap(),
+                                                &mut stream) {
                         Ok(()) => {},
                         Err(()) => {
                             println!("error: devtools actor stopped responding");
@@ -125,7 +126,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
                          sender: Sender<DevtoolScriptControlMsg>,
                          actor_pipelines: &mut HashMap<PipelineId, String>,
                          page_info: DevtoolsPageInfo) {
-        let mut actors = actors.lock();
+        let mut actors = actors.lock().unwrap();
 
         //TODO: move all this actor creation into a constructor method on TabActor
         let (tab, console, inspector) = {
