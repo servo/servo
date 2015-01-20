@@ -1149,7 +1149,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
         let target = rctx.get_draw_target();
         let pattern = ColorPattern::new(color);
         let azure_pattern = pattern.azure_color_pattern;
-        assert!(azure_pattern.is_not_null());
+        assert!(!azure_pattern.is_null());
 
         let fields = if antialias {
             0x0200

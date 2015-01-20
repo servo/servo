@@ -78,11 +78,11 @@ impl ShapedGlyphData {
             let mut glyph_count = 0;
             let glyph_infos = RUST_hb_buffer_get_glyph_infos(buffer, &mut glyph_count);
             let glyph_count = glyph_count as int;
-            assert!(glyph_infos.is_not_null());
+            assert!(!glyph_infos.is_null());
             let mut pos_count = 0;
             let pos_infos = RUST_hb_buffer_get_glyph_positions(buffer, &mut pos_count);
             let pos_count = pos_count as int;
-            assert!(pos_infos.is_not_null());
+            assert!(!pos_infos.is_null());
             assert!(glyph_count == pos_count);
 
             ShapedGlyphData {
@@ -160,13 +160,13 @@ pub struct Shaper {
 impl Drop for Shaper {
     fn drop(&mut self) {
         unsafe {
-            assert!(self.hb_face.is_not_null());
+            assert!(!self.hb_face.is_null());
             RUST_hb_face_destroy(self.hb_face);
 
-            assert!(self.hb_font.is_not_null());
+            assert!(!self.hb_font.is_null());
             RUST_hb_font_destroy(self.hb_font);
 
-            assert!(self.hb_funcs.is_not_null());
+            assert!(!self.hb_funcs.is_null());
             RUST_hb_font_funcs_destroy(self.hb_funcs);
         }
     }
@@ -536,7 +536,7 @@ extern fn glyph_func(_: *mut hb_font_t,
                      _: *mut c_void)
                   -> hb_bool_t {
     let font: *const Font = font_data as *const Font;
-    assert!(font.is_not_null());
+    assert!(!font.is_null());
 
     unsafe {
         match (*font).glyph_index(char::from_u32(unicode).unwrap()) {
@@ -555,7 +555,7 @@ extern fn glyph_h_advance_func(_: *mut hb_font_t,
                                _: *mut c_void)
                             -> hb_position_t {
     let font: *mut Font = font_data as *mut Font;
-    assert!(font.is_not_null());
+    assert!(!font.is_null());
 
     unsafe {
         let advance = (*font).glyph_h_advance(glyph as GlyphId);
@@ -570,7 +570,7 @@ extern fn glyph_h_kerning_func(_: *mut hb_font_t,
                                _: *mut c_void)
                             -> hb_position_t {
     let font: *mut Font = font_data as *mut Font;
-    assert!(font.is_not_null());
+    assert!(!font.is_null());
 
     unsafe {
         let advance = (*font).glyph_h_kerning(first_glyph as GlyphId, second_glyph as GlyphId);
@@ -587,8 +587,8 @@ extern fn get_font_table_func(_: *mut hb_face_t,
         // NB: These asserts have security implications.
         let font_and_shaping_options: *const FontAndShapingOptions =
             user_data as *const FontAndShapingOptions;
-        assert!(font_and_shaping_options.is_not_null());
-        assert!((*font_and_shaping_options).font.is_not_null());
+        assert!(!font_and_shaping_options.is_null());
+        assert!(!(*font_and_shaping_options).font.is_null());
 
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
         match (*(*font_and_shaping_options).font).get_table_for_tag(tag as FontTableTag) {
@@ -606,7 +606,7 @@ extern fn get_font_table_func(_: *mut hb_face_t,
                                                destroy_blob_func);
                 });
 
-                assert!(blob.is_not_null());
+                assert!(!blob.is_null());
                 blob
             }
         }
