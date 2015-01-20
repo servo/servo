@@ -4,7 +4,7 @@
 
 //! A simple application that uses GLFW to open a window for Servo to display in.
 
-#![feature(macro_rules)]
+#![feature(box_syntax)]
 #![deny(unused_imports, unused_variables)]
 
 #[cfg(target_os="macos")]
