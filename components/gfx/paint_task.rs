@@ -429,13 +429,13 @@ impl WorkerThreadProxy {
         (0..thread_count).map(|&:_| {
             let (from_worker_sender, from_worker_receiver) = channel();
             let (to_worker_sender, to_worker_receiver) = channel();
-            let native_graphics_metadata = native_graphics_metadata.clone();
+            let native_graphics_metadata = native_graphics_metadata.clone().map(|a| NativeGraphicsMetadataWrapper(a));
             let font_cache_task = font_cache_task.clone();
             let time_profiler_chan = time_profiler_chan.clone();
             Builder::new().spawn(move || {
                 let mut worker_thread = WorkerThread::new(from_worker_sender,
                                                           to_worker_receiver,
-                                                          native_graphics_metadata,
+                                                          native_graphics_metadata.map(|a| a.0),
                                                           font_cache_task,
                                                           time_profiler_chan);
                 worker_thread.main();
@@ -473,6 +473,9 @@ struct WorkerThread {
     font_context: Box<FontContext>,
     time_profiler_sender: TimeProfilerChan,
 }
+
+struct NativeGraphicsMetadataWrapper(NativeGraphicsMetadata);
+unsafe impl Send for NativeGraphicsMetadataWrapper {}
 
 impl WorkerThread {
     fn new(sender: Sender<MsgFromWorkerThread>,
