@@ -7,7 +7,7 @@ use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty::expr_ty;
 use rustc::middle::ty;
 
-declare_lint!(STR_TO_STRING, Deny,
+declare_lint!(STR_TO_STRING, Allow,
               "Warn when a String could use into_string() instead of to_string()");
 
 /// Prefer str.into_string() over str.to_string()

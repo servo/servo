@@ -743,7 +743,7 @@ impl<'a> Iterator for GlyphIterator<'a> {
             self.next_glyph_range()
         } else {
             // No glyph range. Look at next character.
-            self.char_range.next().and_then(|&:i| {
+            self.char_range.next().and_then(|:i| {
                 self.char_index = i;
                 assert!(i < self.store.char_len());
                 let entry = self.store.entry_buffer[i.to_uint()];

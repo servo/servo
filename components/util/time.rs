@@ -267,7 +267,7 @@ pub fn profile<T, F>(category: TimeProfilerCategory,
                      time_profiler_chan: TimeProfilerChan,
                      callback: F)
                   -> T
-    where F: Fn() -> T
+    where F: FnOnce() -> T
 {
     let start_time = precise_time_ns();
     let val = callback();
