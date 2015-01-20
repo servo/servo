@@ -50,6 +50,7 @@ use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 
 use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::comm::{Sender, Receiver, channel};
 use std::default::Default;
@@ -168,7 +169,7 @@ impl XMLHttpRequest {
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
             upload: JS::from_rooted(XMLHttpRequestUpload::new(global)),
-            response_url: "".into_string(),
+            response_url: "".to_owned(),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
             response: DOMRefCell::new(ByteString::new(vec!())),
@@ -454,7 +455,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             None => {}
         }
 
-        headers.set_raw(name_str.into_string(), vec![value.as_slice().to_vec()]);
+        headers.set_raw(name_str.to_owned(), vec![value.as_slice().to_vec()]);
         Ok(())
     }
     fn Timeout(self) -> u32 {
@@ -525,12 +526,12 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             // If one of the event handlers below aborts the fetch by calling
             // abort or open we will need the current generation id to detect it.
             let gen_id = self.generation_id.get();
-            self.dispatch_response_progress_event("loadstart".into_string());
+            self.dispatch_response_progress_event("loadstart".to_owned());
             if self.generation_id.get() != gen_id {
                 return Ok(());
             }
             if !self.upload_complete.get() {
-                self.dispatch_upload_progress_event("loadstart".into_string(), Some(0));
+                self.dispatch_upload_progress_event("loadstart".to_owned(), Some(0));
                 if self.generation_id.get() != gen_id {
                     return Ok(());
                 }
@@ -562,10 +563,10 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                 let n = "content-type";
                 match data {
                     Some(eString(_)) =>
-                        request_headers.set_raw(n.into_string(), vec![join_raw("text/plain", params)]),
+                        request_headers.set_raw(n.to_owned(), vec![join_raw("text/plain", params)]),
                     Some(eURLSearchParams(_)) =>
                         request_headers.set_raw(
-                            n.into_string(), vec![join_raw("application/x-www-form-urlencoded", params)]),
+                            n.to_owned(), vec![join_raw("application/x-www-form-urlencoded", params)]),
                     None => ()
                 }
             }
@@ -602,9 +603,9 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
                     buf.push_str(format!("{}", p).as_slice());
                 });
                 referer_url.serialize_path().map(|ref h| buf.push_str(h.as_slice()));
-                self.request_headers.borrow_mut().set_raw("Referer".into_string(), vec![buf.into_bytes()]);
+                self.request_headers.borrow_mut().set_raw("Referer".to_owned(), vec![buf.into_bytes()]);
             },
-            Ok(Some(ref req)) => self.insert_trusted_header("origin".into_string(),
+            Ok(Some(ref req)) => self.insert_trusted_header("origin".to_owned(),
                                                             format!("{}", req.origin)),
             _ => {}
         }
@@ -705,7 +706,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             },
             _ if self.ready_state.get() != XMLHttpRequestState::XHRDone => NullValue(),
             Json => {
-                let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().into_string();
+                let decoded = UTF_8.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_owned();
                 let decoded: Vec<u16> = decoded.as_slice().utf16_units().collect();
                 let mut vp = UndefinedValue();
                 unsafe {
@@ -727,7 +728,7 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
             _empty | Text => {
                 match self.ready_state.get() {
                     XMLHttpRequestState::Loading | XMLHttpRequestState::XHRDone => Ok(self.text_response()),
-                    _ => Ok("".into_string())
+                    _ => Ok("".to_owned())
                 }
             },
             _ => Err(InvalidState)
@@ -770,7 +771,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         self.ready_state.set(rs);
         let global = self.global.root();
         let event = Event::new(global.r(),
-                               "readystatechange".into_string(),
+                               "readystatechange".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
@@ -804,11 +805,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 self.upload_complete.set(true);
                 // Substeps 2-4
                 if !self.sync.get() {
-                    self.dispatch_upload_progress_event("progress".into_string(), None);
+                    self.dispatch_upload_progress_event("progress".to_owned(), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event("load".into_string(), None);
+                    self.dispatch_upload_progress_event("load".to_owned(), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event("loadend".into_string(), None);
+                    self.dispatch_upload_progress_event("loadend".to_owned(), None);
                     return_if_fetch_was_terminated!();
                 }
                 // Part of step 13, send() (processing response)
@@ -836,7 +837,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                         self.change_ready_state(XMLHttpRequestState::Loading);
                         return_if_fetch_was_terminated!();
                     }
-                    self.dispatch_response_progress_event("progress".into_string());
+                    self.dispatch_response_progress_event("progress".to_owned());
                 }
             },
             XHRProgress::Done(_) => {
@@ -852,11 +853,11 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 self.change_ready_state(XMLHttpRequestState::XHRDone);
                 return_if_fetch_was_terminated!();
                 // Subsubsteps 10-12
-                self.dispatch_response_progress_event("progress".into_string());
+                self.dispatch_response_progress_event("progress".to_owned());
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event("load".into_string());
+                self.dispatch_response_progress_event("load".to_owned());
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event("loadend".into_string());
+                self.dispatch_response_progress_event("loadend".to_owned());
             },
             XHRProgress::Errored(_, e) => {
                 self.send_flag.set(false);
@@ -873,18 +874,18 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                 let upload_complete: &Cell<bool> = &self.upload_complete;
                 if !upload_complete.get() {
                     upload_complete.set(true);
-                    self.dispatch_upload_progress_event("progress".into_string(), None);
+                    self.dispatch_upload_progress_event("progress".to_owned(), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event(errormsg.into_string(), None);
+                    self.dispatch_upload_progress_event(errormsg.to_owned(), None);
                     return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event("loadend".into_string(), None);
+                    self.dispatch_upload_progress_event("loadend".to_owned(), None);
                     return_if_fetch_was_terminated!();
                 }
-                self.dispatch_response_progress_event("progress".into_string());
+                self.dispatch_response_progress_event("progress".to_owned());
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event(errormsg.into_string());
+                self.dispatch_response_progress_event(errormsg.to_owned());
                 return_if_fetch_was_terminated!();
-                self.dispatch_response_progress_event("loadend".into_string());
+                self.dispatch_response_progress_event("loadend".to_owned());
             }
         }
     }
@@ -970,7 +971,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
 
         // According to Simon, decode() should never return an error, so unwrap()ing
         // the result should be fine. XXXManishearth have a closer look at this later
-        encoding.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().into_string()
+        encoding.decode(self.response.borrow().as_slice(), DecoderTrap::Replace).unwrap().to_owned()
     }
     fn filter_response_headers(self) -> Headers {
         // http://fetch.spec.whatwg.org/#concept-response-header-list

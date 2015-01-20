@@ -31,6 +31,7 @@ use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
 use servo_net::resource_task::load_whole_resource;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
+use std::borrow::ToOwned;
 use std::cell::Cell;
 use string_cache::Atom;
 use url::UrlParser;
@@ -239,7 +240,7 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
         let window = window_from_node(self).root();
         let window = window.r();
         let event = Event::new(GlobalRef::Window(window),
-                               "load".into_string(),
+                               "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         event.r().set_trusted(true);

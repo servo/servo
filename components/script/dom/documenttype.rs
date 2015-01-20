@@ -11,6 +11,8 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 use servo_util::str::DOMString;
 
+use std::borrow::ToOwned;
+
 /// The `DOCTYPE` tag.
 #[dom_struct]
 pub struct DocumentType {
@@ -35,8 +37,8 @@ impl DocumentType {
         DocumentType {
             node: Node::new_inherited(NodeTypeId::DocumentType, document),
             name: name,
-            public_id: public_id.unwrap_or("".into_string()),
-            system_id: system_id.unwrap_or("".into_string())
+            public_id: public_id.unwrap_or("".to_owned()),
+            system_id: system_id.unwrap_or("".to_owned())
         }
     }
     #[allow(unrooted_must_root)]

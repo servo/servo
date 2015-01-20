@@ -23,6 +23,8 @@ use dom::virtualmethods::VirtualMethods;
 use servo_util::str::DOMString;
 use string_cache::Atom;
 
+use std::borrow::ToOwned;
+
 #[dom_struct]
 pub struct HTMLSelectElement {
     htmlelement: HTMLElement
@@ -68,9 +70,9 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     fn Type(self) -> DOMString {
         let elem: JSRef<Element> = ElementCast::from_ref(self);
         if elem.has_attribute(&atom!("multiple")) {
-            "select-multiple".into_string()
+            "select-multiple".to_owned()
         } else {
-            "select-one".into_string()
+            "select-one".to_owned()
         }
     }
 }

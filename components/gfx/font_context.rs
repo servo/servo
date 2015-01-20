@@ -17,6 +17,7 @@ use servo_util::smallvec::{SmallVec, SmallVec8};
 use servo_util::geometry::Au;
 use servo_util::arc_ptr_eq;
 
+use std::borrow::ToOwned;
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -168,7 +169,7 @@ impl FontContext {
 
             if !cache_hit {
                 let font_template = self.font_cache_task.get_font_template(family.name()
-                                                                                 .into_string(),
+                                                                                 .to_owned(),
                                                                            desc.clone());
                 match font_template {
                     Some(font_template) => {
@@ -178,14 +179,14 @@ impl FontContext {
                                                                   style.font_variant);
                         let layout_font = Rc::new(RefCell::new(layout_font));
                         self.layout_font_cache.push(LayoutFontCacheEntry {
-                            family: family.name().into_string(),
+                            family: family.name().to_owned(),
                             font: Some(layout_font.clone()),
                         });
                         fonts.push(layout_font);
                     }
                     None => {
                         self.layout_font_cache.push(LayoutFontCacheEntry {
-                            family: family.name().into_string(),
+                            family: family.name().to_owned(),
                             font: None,
                         });
                     }

@@ -15,6 +15,8 @@ use dom::uievent::UIEvent;
 use dom::window::Window;
 use servo_msg::constellation_msg;
 use servo_util::str::DOMString;
+
+use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
 
 #[jstraceable]
@@ -44,8 +46,8 @@ impl KeyboardEvent {
     fn new_inherited() -> KeyboardEvent {
         KeyboardEvent {
             uievent: UIEvent::new_inherited(EventTypeId::KeyboardEvent),
-            key: RefCell::new("".into_string()),
-            code: RefCell::new("".into_string()),
+            key: RefCell::new("".to_owned()),
+            code: RefCell::new("".to_owned()),
             location: Cell::new(0),
             ctrl: Cell::new(false),
             alt: Cell::new(false),
@@ -83,7 +85,7 @@ impl KeyboardEvent {
                key_code: u32) -> Temporary<KeyboardEvent> {
         let ev = KeyboardEvent::new_uninitialized(window).root();
         ev.r().InitKeyboardEvent(type_, canBubble, cancelable, view, key, location,
-                                 "".into_string(), repeat, "".into_string());
+                                 "".to_owned(), repeat, "".to_owned());
         *ev.r().code.borrow_mut() = code;
         ev.r().ctrl.set(ctrlKey);
         ev.r().alt.set(altKey);

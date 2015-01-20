@@ -5,6 +5,8 @@
 use servo_util::str::DOMString;
 use url::Url;
 
+use std::borrow::ToOwned;
+
 pub struct UrlHelper;
 
 impl UrlHelper {
@@ -14,16 +16,16 @@ impl UrlHelper {
 
     pub fn Search(url: &Url) -> DOMString {
         match url.query {
-            None => "".into_string(),
-            Some(ref query) if query.as_slice() == "" => "".into_string(),
+            None => "".to_owned(),
+            Some(ref query) if query.as_slice() == "" => "".to_owned(),
             Some(ref query) => format!("?{}", query)
         }
     }
 
     pub fn Hash(url: &Url) -> DOMString {
         match url.fragment {
-            None => "".into_string(),
-            Some(ref hash) if hash.as_slice() == "" => "".into_string(),
+            None => "".to_owned(),
+            Some(ref hash) if hash.as_slice() == "" => "".to_owned(),
             Some(ref hash) => format!("#{}", hash)
         }
     }

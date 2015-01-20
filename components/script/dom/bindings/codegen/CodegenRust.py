@@ -674,7 +674,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             default = "None"
         else:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
-            value = "str::from_utf8(&data).unwrap().into_string()"
+            value = "str::from_utf8(&data).unwrap().to_owned()"
             if type.nullable():
                 value = "Some(%s)" % value
 
@@ -4584,6 +4584,7 @@ class CGBindingRoot(CGThing):
             'page::JSPageInfo',
             'libc',
             'servo_util::str::DOMString',
+            'std::borrow::ToOwned',
             'std::cmp',
             'std::iter::repeat',
             'std::mem',

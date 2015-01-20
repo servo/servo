@@ -5,6 +5,7 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 pub use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
 use std::fmt;
 use std::fmt::Show;
 use std::sync::Arc;
@@ -1025,6 +1026,7 @@ pub mod longhands {
 
     <%self:longhand name="font-family">
         pub use super::computed_as_specified as to_computed_value;
+        use std::borrow::ToOwned;
         pub mod computed_value {
             use std::fmt;
             #[deriving(PartialEq, Eq, Clone)]
@@ -1065,7 +1067,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            vec![FontFamily::FamilyName("serif".into_string())]
+            vec![FontFamily::FamilyName("serif".to_owned())]
         }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
@@ -2647,7 +2649,7 @@ impl<T: Show> DeclaredValue<T> {
         match self {
             &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{}", inner)),
             &DeclaredValue::Initial => None,
-            &DeclaredValue::Inherit => Some("inherit".into_string()),
+            &DeclaredValue::Inherit => Some("inherit".to_owned()),
         }
     }
 }
@@ -2673,10 +2675,10 @@ impl PropertyDeclaration {
         match self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".into_string(),
+                    &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".to_owned(),
                 % endif
             % endfor
-            _ => "".into_string(),
+            _ => "".to_owned(),
         }
     }
 
@@ -3391,7 +3393,7 @@ pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
         % for property in SHORTHANDS:
             "${property.name}" => Some(vec!(
             % for sub in property.sub_properties:
-                "${sub.name}".into_string(),
+                "${sub.name}".to_owned(),
             % endfor
             )),
         % endfor

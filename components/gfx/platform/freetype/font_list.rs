@@ -22,6 +22,7 @@ use fontconfig::fontconfig::{
 
 use libc;
 use libc::c_int;
+use std::borrow::ToOwned;
 use std::ptr;
 use std::string::String;
 
@@ -127,13 +128,13 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
 #[cfg(target_os="linux")]
 pub fn get_last_resort_font_families() -> Vec<String> {
     vec!(
-        "Fira Sans".into_string(),
-        "DejaVu Sans".into_string(),
-        "Arial".into_string()
+        "Fira Sans".to_owned(),
+        "DejaVu Sans".to_owned(),
+        "Arial".to_owned()
     )
 }
 
 #[cfg(target_os="android")]
 pub fn get_last_resort_font_families() -> Vec<String> {
-    vec!("Roboto".into_string())
+    vec!("Roboto".to_owned())
 }

@@ -9,6 +9,7 @@ use dom::bindings::js::JSRef;
 use dom::keyboardevent::KeyboardEvent;
 use servo_util::str::DOMString;
 
+use std::borrow::ToOwned;
 use std::cmp::{min, max};
 use std::default::Default;
 use std::num::SignedInt;
@@ -106,7 +107,7 @@ impl TextInput {
                 -1
             }, Selection::Selected);
         }
-        self.replace_selection("".into_string());
+        self.replace_selection("".to_owned());
     }
 
     /// Insert a character at the current editing point
@@ -139,12 +140,12 @@ impl TextInput {
             let lines_suffix = self.lines.slice(end.line + 1, self.lines.len());
 
             let mut insert_lines = if self.multiline {
-                insert.as_slice().split('\n').map(|s| s.into_string()).collect()
+                insert.as_slice().split('\n').map(|s| s.to_owned()).collect()
             } else {
                 vec!(insert)
             };
 
-            let mut new_line = prefix.into_string();
+            let mut new_line = prefix.to_owned();
             new_line.push_str(insert_lines[0].as_slice());
             insert_lines[0] = new_line;
 
@@ -338,7 +339,7 @@ impl TextInput {
 
     /// Get the current contents of the text input. Multiple lines are joined by \n.
     pub fn get_content(&self) -> DOMString {
-        let mut content = "".into_string();
+        let mut content = "".to_owned();
         for (i, line) in self.lines.iter().enumerate() {
             content.push_str(line.as_slice());
             if i < self.lines.len() - 1 {
@@ -352,7 +353,7 @@ impl TextInput {
     /// any \n encountered will be stripped and force a new logical line.
     pub fn set_content(&mut self, content: DOMString) {
         self.lines = if self.multiline {
-            content.as_slice().split('\n').map(|s| s.into_string()).collect()
+            content.as_slice().split('\n').map(|s| s.to_owned()).collect()
         } else {
             vec!(content)
         };
@@ -363,7 +364,7 @@ impl TextInput {
 
 #[test]
 fn test_textinput_delete_char() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".into_string());
+    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.delete_char(DeleteDir::Backward);
     assert_eq!(textinput.get_content().as_slice(), "acdefg");
@@ -378,7 +379,7 @@ fn test_textinput_delete_char() {
 
 #[test]
 fn test_textinput_insert_char() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".into_string());
+    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.insert_char('a');
     assert_eq!(textinput.get_content().as_slice(), "abacdefg");
@@ -390,7 +391,7 @@ fn test_textinput_insert_char() {
 
 #[test]
 fn test_textinput_get_sorted_selection() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".into_string());
+    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.adjust_horizontal(2, Selection::Selected);
     let (begin, end) = textinput.get_sorted_selection();
@@ -407,17 +408,17 @@ fn test_textinput_get_sorted_selection() {
 
 #[test]
 fn test_textinput_replace_selection() {
-    let mut textinput = TextInput::new(Lines::Single, "abcdefg".into_string());
+    let mut textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
     textinput.adjust_horizontal(2, Selection::NotSelected);
     textinput.adjust_horizontal(2, Selection::Selected);
 
-    textinput.replace_selection("xyz".into_string());
+    textinput.replace_selection("xyz".to_owned());
     assert_eq!(textinput.get_content().as_slice(), "abxyzefg");
 }
 
 #[test]
 fn test_textinput_current_line_length() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".into_string());
+    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
     assert_eq!(textinput.current_line_length(), 3);
 
     textinput.adjust_vertical(1, Selection::NotSelected);
@@ -429,7 +430,7 @@ fn test_textinput_current_line_length() {
 
 #[test]
 fn test_textinput_adjust_vertical() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".into_string());
+    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
     textinput.adjust_horizontal(3, Selection::NotSelected);
     textinput.adjust_vertical(1, Selection::NotSelected);
     assert_eq!(textinput.edit_point.line, 1);
@@ -446,7 +447,7 @@ fn test_textinput_adjust_vertical() {
 
 #[test]
 fn test_textinput_adjust_horizontal() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".into_string());
+    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
     textinput.adjust_horizontal(4, Selection::NotSelected);
     assert_eq!(textinput.edit_point.line, 1);
     assert_eq!(textinput.edit_point.index, 0);
@@ -466,12 +467,12 @@ fn test_textinput_adjust_horizontal() {
 
 #[test]
 fn test_textinput_handle_return() {
-    let mut single_line_textinput = TextInput::new(Lines::Single, "abcdef".into_string());
+    let mut single_line_textinput = TextInput::new(Lines::Single, "abcdef".to_owned());
     single_line_textinput.adjust_horizontal(3, Selection::NotSelected);
     single_line_textinput.handle_return();
     assert_eq!(single_line_textinput.get_content().as_slice(), "abcdef");
 
-    let mut multi_line_textinput = TextInput::new(Lines::Multiple, "abcdef".into_string());
+    let mut multi_line_textinput = TextInput::new(Lines::Multiple, "abcdef".to_owned());
     multi_line_textinput.adjust_horizontal(3, Selection::NotSelected);
     multi_line_textinput.handle_return();
     assert_eq!(multi_line_textinput.get_content().as_slice(), "abc\ndef");
@@ -479,7 +480,7 @@ fn test_textinput_handle_return() {
 
 #[test]
 fn test_textinput_select_all() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".into_string());
+    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 0);
 
@@ -490,19 +491,19 @@ fn test_textinput_select_all() {
 
 #[test]
 fn test_textinput_get_content() {
-    let single_line_textinput = TextInput::new(Lines::Single, "abcdefg".into_string());
+    let single_line_textinput = TextInput::new(Lines::Single, "abcdefg".to_owned());
     assert_eq!(single_line_textinput.get_content().as_slice(), "abcdefg");
 
-    let multi_line_textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".into_string());
+    let multi_line_textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
     assert_eq!(multi_line_textinput.get_content().as_slice(), "abc\nde\nf");
 }
 
 #[test]
 fn test_textinput_set_content() {
-    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".into_string());
+    let mut textinput = TextInput::new(Lines::Multiple, "abc\nde\nf".to_owned());
     assert_eq!(textinput.get_content().as_slice(), "abc\nde\nf");
 
-    textinput.set_content("abc\nf".into_string());
+    textinput.set_content("abc\nf".to_owned());
     assert_eq!(textinput.get_content().as_slice(), "abc\nf");
 
     assert_eq!(textinput.edit_point.line, 0);
@@ -510,7 +511,7 @@ fn test_textinput_set_content() {
     textinput.adjust_horizontal(3, Selection::Selected);
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 3);
-    textinput.set_content("de".into_string());
+    textinput.set_content("de".to_owned());
     assert_eq!(textinput.get_content().as_slice(), "de");
     assert_eq!(textinput.edit_point.line, 0);
     assert_eq!(textinput.edit_point.index, 2);

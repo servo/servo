@@ -10,6 +10,8 @@
 use flow_ref::FlowRef;
 use flow;
 use serialize::json;
+
+use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::io::File;
 use std::sync::atomic::{AtomicUint, SeqCst, INIT_ATOMIC_UINT};
@@ -105,7 +107,7 @@ pub fn begin_trace(flow_root: FlowRef) {
     STATE_KEY.with(|ref r| {
         let flow_trace = json::encode(&flow::base(flow_root.deref()));
         let state = State {
-            scope_stack: vec![box ScopeData::new("root".into_string(), flow_trace)],
+            scope_stack: vec![box ScopeData::new("root".to_owned(), flow_trace)],
             flow_root: flow_root.clone(),
         };
         *r.borrow_mut() = Some(state);
