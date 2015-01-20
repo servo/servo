@@ -25,7 +25,6 @@ use libc::{c_int, c_char};
 use std::borrow::ToOwned;
 use std::ffi::{c_str_to_bytes, CString};
 use std::ptr;
-use std::str;
 
 
 unsafe fn c_str_to_string(s: *mut u8) -> String {
@@ -121,9 +120,7 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
         let family_name = if result == FcResultMatch {
             let mut match_string: *mut FcChar8 = ptr::null_mut();
             FcPatternGetString(family_match, FC_FAMILY.as_ptr() as *mut c_char, 0, &mut match_string);
-            let family_name = match_string as *const c_char;
-            let family_name = ffi::c_str_to_bytes(&family_name);
-            let result = str::from_utf8(family_name).unwrap().to_owned();
+            let result = c_str_to_string(match_string);
             FcPatternDestroy(family_match);
             Some(result)
         } else {
