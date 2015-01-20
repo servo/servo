@@ -59,7 +59,7 @@ pub struct FontHandle {
 #[unsafe_destructor]
 impl Drop for FontHandle {
     fn drop(&mut self) {
-        assert!(self.face.is_not_null());
+        assert!(!self.face.is_null());
         unsafe {
             if !FT_Done_Face(self.face).succeeded() {
                 panic!("FT_Done_Face failed");
@@ -136,7 +136,7 @@ impl FontHandleMethods for FontHandle {
         } else {
             unsafe {
                 let os2 = FT_Get_Sfnt_Table(self.face, ft_sfnt_os2) as *mut TT_OS2;
-                let valid = os2.is_not_null() && (*os2).version != 0xffff;
+                let valid = !os2.is_null() && (*os2).version != 0xffff;
                 if valid {
                     let weight =(*os2).usWeightClass;
                     match weight {
@@ -158,9 +158,8 @@ impl FontHandleMethods for FontHandle {
         }
     }
 
-    fn glyph_index(&self,
-                       codepoint: char) -> Option<GlyphId> {
-        assert!(self.face.is_not_null());
+    fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
+        assert!(!self.face.is_null());
         unsafe {
             let idx = FT_Get_Char_Index(self.face, codepoint as FT_ULong);
             return if idx != 0 as FT_UInt {
@@ -173,8 +172,8 @@ impl FontHandleMethods for FontHandle {
     }
 
     fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId)
-                        -> FractionalPixel {
-        assert!(self.face.is_not_null());
+                       -> FractionalPixel {
+        assert!(!self.face.is_null());
         let mut delta = struct_FT_Vector_ { x: 0, y: 0 };
         unsafe {
             FT_Get_Kerning(self.face, first_glyph, second_glyph, FT_KERNING_DEFAULT, &mut delta);
@@ -182,15 +181,14 @@ impl FontHandleMethods for FontHandle {
         fixed_to_float_ft(delta.x as i32)
     }
 
-    fn glyph_h_advance(&self,
-                           glyph: GlyphId) -> Option<FractionalPixel> {
-        assert!(self.face.is_not_null());
+    fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
+        assert!(!self.face.is_null());
         unsafe {
             let res =  FT_Load_Glyph(self.face, glyph as FT_UInt, 0);
             if res.succeeded() {
                 let void_glyph = (*self.face).glyph;
                 let slot: FT_GlyphSlot = mem::transmute(void_glyph);
-                assert!(slot.is_not_null());
+                assert!(!slot.is_null());
                 let advance = (*slot).metrics.horiAdvance;
                 debug!("h_advance for {} is {}", glyph, advance);
                 let advance = advance as i32;
@@ -227,7 +225,7 @@ impl FontHandleMethods for FontHandle {
         let mut x_height = geometry::from_pt(0.0);
         unsafe {
             let os2 = FT_Get_Sfnt_Table(face, ft_sfnt_os2) as *mut TT_OS2;
-            let valid = os2.is_not_null() && (*os2).version != 0xffff;
+            let valid = !os2.is_null() && (*os2).version != 0xffff;
             if valid {
                strikeout_size = self.font_units_to_au((*os2).yStrikeoutSize as f64);
                strikeout_offset = self.font_units_to_au((*os2).yStrikeoutPosition as f64);
