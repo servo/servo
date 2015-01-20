@@ -23,7 +23,7 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::error::Error::{NotSupported, InvalidCharacter};
 use dom::bindings::error::Error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, OptionalSettable, TemporaryPushable};
+use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary, TemporaryPushable};
 use dom::bindings::js::{OptionalRootable, RootedReference};
 use dom::bindings::utils::reflect_dom_object;
 use dom::bindings::utils::xml_name_type;
