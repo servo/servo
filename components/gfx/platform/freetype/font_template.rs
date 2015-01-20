@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::borrow::ToOwned;
 use std::io;
 use std::io::File;
 
@@ -29,7 +30,7 @@ impl FontTemplateData {
 
         FontTemplateData {
             bytes: bytes,
-            identifier: identifier.into_string(),
+            identifier: identifier.to_owned(),
         }
     }
 }

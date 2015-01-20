@@ -45,7 +45,7 @@ fn fixed_to_float_ft(f: i32) -> f64 {
 pub struct FontTable;
 
 impl FontTableMethods for FontTable {
-    fn with_buffer<F>(&self, blk: F) where F: FnOnce(*const u8, uint) {
+    fn with_buffer<F>(&self, _blk: F) where F: FnOnce(*const u8, uint) {
         panic!()
     }
 }
@@ -129,7 +129,7 @@ impl FontHandleMethods for FontHandle {
         let family_name = unsafe {
             ffi::c_str_to_bytes(&family_name)
         };
-        str::from_utf8(family_name).unwrap().to_owned();
+        str::from_utf8(family_name).unwrap().to_owned()
     }
     fn face_name(&self) -> String {
         let face_name = unsafe {
@@ -138,7 +138,7 @@ impl FontHandleMethods for FontHandle {
         let face_name = unsafe {
             ffi::c_str_to_bytes(&face_name)
         };
-        str::from_utf8(face_name).unwrap().to_owned();
+        str::from_utf8(face_name).unwrap().to_owned()
     }
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
@@ -267,7 +267,7 @@ impl FontHandleMethods for FontHandle {
             line_gap:         height,
         };
 
-        debug!("Font metrics (@{} pt): {}", geometry::to_pt(em_size), metrics);
+        debug!("Font metrics (@{} pt): {:?}", geometry::to_pt(em_size), metrics);
         return metrics;
     }
 
