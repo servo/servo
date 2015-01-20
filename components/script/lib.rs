@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(unsafe_destructor, plugin, box_syntax)]
+#![feature(unsafe_destructor, plugin, box_syntax, int_uint)]
 
 #![deny(unsafe_blocks)]
 #![deny(unused_imports)]
