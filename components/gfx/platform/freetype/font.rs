@@ -25,11 +25,12 @@ use freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics, struct_FT_Vector_
 use freetype::freetype::{ft_sfnt_os2};
 use freetype::tt_os2::TT_OS2;
 
+use libc::c_char;
+use std::ffi;
 use std::mem;
 use std::num::Float;
 use std::ptr;
-use std::string::String;
-
+use std::str;
 use std::sync::Arc;
 
 fn float_to_fixed_ft(f: f64) -> i32 {
@@ -121,10 +122,22 @@ impl FontHandleMethods for FontHandle {
         self.font_data.clone()
     }
     fn family_name(&self) -> String {
-        unsafe { String::from_raw_buf(&*(*self.face).family_name as *const i8 as *const u8) }
+        let family_name = unsafe {
+            &*(*self.face).family_name as *const c_char
+        };
+        let family_name = unsafe {
+            ffi::c_str_to_bytes(&family_name)
+        };
+        str::from_utf8(family_name).unwrap().to_owned();
     }
     fn face_name(&self) -> String {
-        unsafe { String::from_raw_buf(&*FT_Get_Postscript_Name(self.face) as *const i8 as *const u8) }
+        let face_name = unsafe {
+            &*FT_Get_Postscript_Name(self.face) as *const c_char
+        };
+        let face_name = unsafe {
+            ffi::c_str_to_bytes(&face_name)
+        };
+        str::from_utf8(face_name).unwrap().to_owned();
     }
     fn is_italic(&self) -> bool {
         unsafe { (*self.face).style_flags & FT_STYLE_FLAG_ITALIC != 0 }
