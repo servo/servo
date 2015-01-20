@@ -511,7 +511,7 @@ pub trait FormControl<'a> : Copy {
                                             input: InputFn,
                                             owner: OwnerFn)
                                             -> DOMString
-                                            where InputFn: Fn(Self) -> DOMString
+                                            where InputFn: Fn(Self) -> DOMString,
                                                   OwnerFn: Fn(JSRef<HTMLFormElement>) -> DOMString {
         if self.to_element().has_attribute(attr) {
             input(self)
