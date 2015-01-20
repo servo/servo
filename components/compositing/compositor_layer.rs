@@ -204,7 +204,7 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
                    epoch: Epoch)
                    -> bool {
         if self.extra_data.borrow().epoch != epoch {
-            debug!("add_buffers: compositor epoch mismatch: {} != {}, id: {}",
+            debug!("add_buffers: compositor epoch mismatch: {:?} != {:?}, id: {:?}",
                    self.extra_data.borrow().epoch,
                    epoch,
                    self.get_pipeline_id());

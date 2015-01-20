@@ -47,11 +47,11 @@ impl ScrollingTimerProxy {
     }
 
     pub fn scroll_event_processed(&mut self, timestamp: u64) {
-        self.sender.send(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp))
+        self.sender.send(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp)).unwrap()
     }
 
     pub fn shutdown(&mut self) {
-        self.sender.send(ToScrollingTimerMsg::ExitMsg);
+        self.sender.send(ToScrollingTimerMsg::ExitMsg).unwrap()
     }
 }
 
