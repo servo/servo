@@ -7,6 +7,7 @@ use platform::font_context::FontContextHandle;
 use platform::font::FontHandle;
 use platform::font_template::FontTemplateData;
 
+use std::borrow::ToOwned;
 use std::sync::{Arc, Weak};
 use font::FontHandleMethods;
 
@@ -68,7 +69,7 @@ impl FontTemplate {
         };
 
         FontTemplate {
-            identifier: identifier.into_string(),
+            identifier: identifier.to_owned(),
             descriptor: None,
             weak_ref: maybe_weak_ref,
             strong_ref: maybe_strong_ref,

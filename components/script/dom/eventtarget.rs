@@ -22,6 +22,7 @@ use js::jsapi::{JSContext, JSObject};
 use servo_util::fnv::FnvHasher;
 use servo_util::str::DOMString;
 use libc::{c_char, size_t};
+use std::borrow::ToOwned;
 use std::collections::hash_map::{Occupied, Vacant};
 use std::ptr;
 use url::Url;
@@ -231,11 +232,11 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
     {
         let event_listener = listener.map(|listener|
                                           EventListener::new(listener.callback()));
-        self.set_inline_event_listener(ty.into_string(), event_listener);
+        self.set_inline_event_listener(ty.to_owned(), event_listener);
     }
 
     fn get_event_handler_common<T: CallbackContainer>(self, ty: &str) -> Option<T> {
-        let listener = self.get_inline_event_listener(ty.into_string());
+        let listener = self.get_inline_event_listener(ty.to_owned());
         listener.map(|listener| CallbackContainer::new(listener.parent.callback()))
     }
 

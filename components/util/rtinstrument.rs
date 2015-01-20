@@ -4,6 +4,7 @@
 
 use opts;
 use std::any::Any;
+use std::borrow::ToOwned;
 #[cfg(not(test))]
 use std::io::File;
 //use std::mem;
@@ -83,7 +84,7 @@ pub fn instrument(f: proc()) {
             let task = Local::borrow(None::<Task>);
             match task.name {
                 Some(ref name) => name.to_string(),
-                None => "unknown".into_string(),
+                None => "unknown".to_owned(),
             }
         };
         let stats = TaskStats {

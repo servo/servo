@@ -11,6 +11,8 @@ use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::eventtarget::EventTarget;
 use servo_util::str::DOMString;
+
+use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
 
@@ -77,7 +79,7 @@ impl Event {
             current_target: Default::default(),
             target: Default::default(),
             phase: Cell::new(EventPhase::None),
-            type_: DOMRefCell::new("".into_string()),
+            type_: DOMRefCell::new("".to_owned()),
             canceled: Cell::new(false),
             cancelable: Cell::new(false),
             bubbles: Cell::new(false),

@@ -21,6 +21,7 @@ use layout_interface::{LayoutChan, Msg};
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
 use std::default::Default;
 use url::UrlParser;
 use string_cache::Atom;
@@ -54,7 +55,7 @@ impl HTMLLinkElement {
 
 fn get_attr(element: JSRef<Element>, name: &Atom) -> Option<String> {
     let elem = element.get_attribute(ns!(""), name).root();
-    elem.map(|e| e.r().value().as_slice().into_string())
+    elem.map(|e| e.r().value().as_slice().to_owned())
 }
 
 fn is_stylesheet(value: &Option<String>) -> bool {

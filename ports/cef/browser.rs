@@ -16,6 +16,7 @@ use compositing::windowing::{WindowNavigateMsg, WindowEvent};
 use glutin_app;
 use libc::c_int;
 use servo_util::opts;
+use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::sync::atomic::{AtomicInt, SeqCst};
 
@@ -204,7 +205,7 @@ fn browser_host_create(window_info: &cef_window_info_t,
                        callback_executed: bool)
                        -> CefBrowser {
     let mut urls = Vec::new();
-    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".into_string());
+    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".to_owned());
     let mut opts = opts::default_opts();
     opts.urls = urls;
     let browser = ServoCefBrowser::new(window_info, client).as_cef_interface();

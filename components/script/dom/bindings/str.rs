@@ -6,6 +6,7 @@
 
 //! The `ByteString` struct.
 
+use std::borrow::ToOwned;
 use std::hash::{Hash, sip};
 use std::str;
 use std::str::FromStr;
@@ -154,6 +155,6 @@ impl Hash for ByteString {
 
 impl FromStr for ByteString {
     fn from_str(s: &str) -> Option<ByteString> {
-        Some(ByteString::new(s.into_string().into_bytes()))
+        Some(ByteString::new(s.to_owned().into_bytes()))
     }
 }

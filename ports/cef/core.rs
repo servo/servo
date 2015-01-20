@@ -12,6 +12,7 @@ use rustrt::local::Local;
 use rustrt::task;
 use servo_util::opts;
 use servo_util::opts::RenderApi;
+use std::borrow::ToOwned;
 use std::c_str::CString;
 use std::rt;
 use browser;
@@ -31,7 +32,7 @@ static CEF_API_HASH_PLATFORM: &'static [u8] = b"2bc564c3871965ef3a2531b528bda3e1
 
 #[cfg(target_os="linux")]
 fn resources_path() -> Option<String> {
-    Some("../../servo/resources".into_string())
+    Some("../../servo/resources".to_owned())
 }
 
 #[cfg(not(target_os="linux"))]
@@ -70,7 +71,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
 
     create_rust_task();
 
-    let urls = vec![HOME_URL.into_string()];
+    let urls = vec![HOME_URL.to_owned()];
     opts::set_opts(opts::Opts {
         urls: urls,
         n_paint_threads: 1,

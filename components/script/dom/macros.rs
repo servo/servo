@@ -106,13 +106,14 @@ macro_rules! make_enumerated_getter(
             use dom::bindings::codegen::InheritTypes::ElementCast;
             #[allow(unused_imports)]
             use std::ascii::AsciiExt;
+            use std::borrow::ToOwned;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             let val = element.get_string_attribute(&Atom::from_slice($htmlname))
                              .into_ascii_lower();
             // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-method
             match val.as_slice() {
                 $($choices)|+ => val,
-                _ => $default.into_string()
+                _ => $default.to_owned()
             }
         }
     );

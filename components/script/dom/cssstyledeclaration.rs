@@ -21,6 +21,7 @@ use style::{is_supported_property, longhands_from_shorthand, parse_style_attribu
 use style::PropertyDeclaration;
 
 use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
 
 #[dom_struct]
 pub struct CSSStyleDeclaration {
@@ -39,10 +40,10 @@ macro_rules! css_properties(
     ( $([$getter:ident, $setter:ident, $cssprop:expr]),* ) => (
         $(
             fn $getter(self) -> DOMString {
-                self.GetPropertyValue($cssprop.into_string())
+                self.GetPropertyValue($cssprop.to_owned())
             }
             fn $setter(self, value: DOMString) {
-                self.SetPropertyValue($cssprop.into_string(), value).unwrap();
+                self.SetPropertyValue($cssprop.to_owned(), value).unwrap();
             }
         )*
     );
@@ -123,7 +124,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
             }
         });
 
-        result.unwrap_or("".into_string())
+        result.unwrap_or("".to_owned())
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
@@ -145,7 +146,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
                 // Step 2.2.2 & 2.2.3
                 match declaration {
                     Some(declaration) => list.push(declaration),
-                    None => return "".into_string(),
+                    None => return "".to_owned(),
                 }
             }
 
@@ -157,7 +158,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         if let Some(ref declaration) = self.get_declaration(&property) {
             serialize_value(declaration)
         } else {
-            "".into_string()
+            "".to_owned()
         }
     }
 
@@ -174,15 +175,15 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
                                   .map(|longhand| self.GetPropertyPriority(longhand.clone()))
                                   .all(|priority| priority.as_slice() == "important") {
 
-                return "important".into_string();
+                return "important".to_owned();
             }
         // Step 3
         } else if self.get_important_declaration(&property).is_some() {
-            return "important".into_string();
+            return "important".to_owned();
         }
 
         // Step 4
-        "".into_string()
+        "".to_owned()
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
@@ -289,7 +290,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
     fn SetPropertyValue(self, property: DOMString, value: DOMString) -> ErrorResult {
-        self.SetProperty(property, value, "".into_string())
+        self.SetProperty(property, value, "".to_owned())
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
@@ -328,12 +329,12 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn CssFloat(self) -> DOMString {
-        self.GetPropertyValue("float".into_string())
+        self.GetPropertyValue("float".to_owned())
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn SetCssFloat(self, value: DOMString) -> ErrorResult {
-        self.SetPropertyValue("float".into_string(), value)
+        self.SetPropertyValue("float".to_owned(), value)
     }
 
     fn IndexedGetter(self, index: u32, found: &mut bool) -> DOMString {

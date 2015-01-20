@@ -54,6 +54,7 @@ use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
 use libc;
 use libc::{uintptr_t, c_void};
+use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{FilterMap, Peekable};
@@ -854,17 +855,17 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
         NodeInfo {
             uniqueId: self.unique_id.borrow().clone(),
-            baseURI: self.GetBaseURI().unwrap_or("".into_string()),
-            parent: self.GetParentNode().root().map(|node| node.r().get_unique_id()).unwrap_or("".into_string()),
+            baseURI: self.GetBaseURI().unwrap_or("".to_owned()),
+            parent: self.GetParentNode().root().map(|node| node.r().get_unique_id()).unwrap_or("".to_owned()),
             nodeType: self.NodeType() as uint,
-            namespaceURI: "".into_string(), //FIXME
+            namespaceURI: "".to_owned(), //FIXME
             nodeName: self.NodeName(),
             numChildren: self.ChildNodes().root().r().Length() as uint,
 
             //FIXME doctype nodes only
-            name: "".into_string(),
-            publicId: "".into_string(),
-            systemId: "".into_string(),
+            name: "".to_owned(),
+            publicId: "".to_owned(),
+            systemId: "".to_owned(),
 
             attrs: match ElementCast::to_ref(self) {
                 Some(element) => element.summarize(),
@@ -878,7 +879,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
                     .map(|elem| NodeCast::from_ref(elem.root().r()) == self)
                     .unwrap_or(false),
 
-            shortValue: self.GetNodeValue().unwrap_or("".into_string()), //FIXME: truncate
+            shortValue: self.GetNodeValue().unwrap_or("".to_owned()), //FIXME: truncate
             incompleteValue: false, //FIXME: reflect truncation
         }
     }
@@ -1567,7 +1568,7 @@ impl Node {
                     local: element.local_name().clone()
                 };
                 let element = Element::create(name,
-                    element.prefix().as_ref().map(|p| p.as_slice().into_string()),
+                    element.prefix().as_ref().map(|p| p.as_slice().to_owned()),
                     document.r(), ElementCreator::ScriptCreated);
                 NodeCast::from_temporary(element)
             },
@@ -1680,19 +1681,19 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
                 let elem: JSRef<Element> = ElementCast::to_ref(self).unwrap();
                 elem.TagName()
             }
-            NodeTypeId::Text => "#text".into_string(),
+            NodeTypeId::Text => "#text".to_owned(),
             NodeTypeId::ProcessingInstruction => {
                 let processing_instruction: JSRef<ProcessingInstruction> =
                     ProcessingInstructionCast::to_ref(self).unwrap();
                 processing_instruction.Target()
             }
-            NodeTypeId::Comment => "#comment".into_string(),
+            NodeTypeId::Comment => "#comment".to_owned(),
             NodeTypeId::DocumentType => {
                 let doctype: JSRef<DocumentType> = DocumentTypeCast::to_ref(self).unwrap();
                 doctype.name().clone()
             },
-            NodeTypeId::DocumentFragment => "#document-fragment".into_string(),
-            NodeTypeId::Document => "#document".into_string()
+            NodeTypeId::DocumentFragment => "#document-fragment".to_owned(),
+            NodeTypeId::Document => "#document".to_owned()
         }
     }
 
