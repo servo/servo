@@ -269,15 +269,15 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     // CPU rendering is the default
     if reftest.render_mode.contains(CPU_RENDERING) {
         command.arg("-c");
+        if cfg!(target_os = "linux") {
+            command.args(["-r", "mesa"].as_slice());
+        }
     }
     if reftest.render_mode.contains(GPU_RENDERING) {
         command.arg("-g");
     }
     if reftest.experimental {
         command.arg("--experimental");
-    }
-    if cfg!(target_os = "linux") {
-        command.args(["-r", "mesa"].as_slice());
     }
     let retval = match command.status() {
         Ok(status) => status,
