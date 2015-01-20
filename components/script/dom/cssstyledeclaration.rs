@@ -20,6 +20,7 @@ use string_cache::Atom;
 use style::{is_supported_property, longhands_from_shorthand, parse_style_attribute};
 use style::PropertyDeclaration;
 
+use cssparser::ToCss;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 
@@ -48,19 +49,6 @@ macro_rules! css_properties(
         )*
     );
 )
-
-fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
-    let mut result = String::new();
-    for declaration in list.iter() {
-        result.push_str(serialize_value(declaration).as_slice());
-        result.push_str(" ");
-    }
-    result
-}
-
-fn serialize_value(declaration: &PropertyDeclaration) -> DOMString {
-    declaration.value()
-}
 
 impl CSSStyleDeclaration {
     pub fn new_inherited(owner: JSRef<HTMLElement>, modification_access: CSSModificationAccess) -> CSSStyleDeclaration {
@@ -145,18 +133,18 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
-                    Some(declaration) => list.push(declaration),
+                    Some(declaration) => list.push(declaration.to_css_string()),
                     None => return "".to_owned(),
                 }
             }
 
             // Step 2.3
-            return serialize_list(&list);
+            return list.connect(" ");
         }
 
         // Step 3 & 4
         if let Some(ref declaration) = self.get_declaration(&property) {
-            serialize_value(declaration)
+            declaration.to_css_string()
         } else {
             "".to_owned()
         }
