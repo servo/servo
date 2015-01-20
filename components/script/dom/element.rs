@@ -50,7 +50,7 @@ use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
-use style::{mod, StylesheetOrigin, SimpleColorAttribute, UnsignedIntegerAttribute};
+use style::{self, StylesheetOrigin, SimpleColorAttribute, UnsignedIntegerAttribute};
 use style::{IntegerAttribute, LengthAttribute, ParserContext, matches};
 use servo_util::namespace;
 use servo_util::str::{DOMString, LengthOrPercentageOrAuto};

@@ -58,7 +58,7 @@ use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{FilterMap, Peekable};
 use std::mem;
-use style::{mod, ComputedValues};
+use style::{self, ComputedValues};
 use std::sync::Arc;
 use uuid;
 use string_cache::QualName;
