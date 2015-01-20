@@ -100,7 +100,7 @@ impl Pipeline {
                 };
 
                 let ScriptControlChan(ref chan) = spipe.script_chan;
-                chan.send(ConstellationControlMsg::AttachLayout(new_layout_info));
+                chan.send(ConstellationControlMsg::AttachLayout(new_layout_info)).unwrap();
                 spipe.script_chan.clone()
             }
         };
@@ -162,7 +162,7 @@ impl Pipeline {
 
     pub fn load(&self) {
         let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(ConstellationControlMsg::Load(self.id, self.load_data.clone()));
+        chan.send(ConstellationControlMsg::Load(self.id, self.load_data.clone())).unwrap();
     }
 
     pub fn grant_paint_permission(&self) {
@@ -193,10 +193,11 @@ impl Pipeline {
         let ScriptControlChan(ref script_channel) = self.script_chan;
         let _ = script_channel.send(
             ConstellationControlMsg::ExitPipeline(self.id,
-                                                  PipelineExitType::PipelineOnly));
+                                                  PipelineExitType::PipelineOnly)).unwrap();
         let _ = self.paint_chan.send(PaintMsg::Exit(None, PipelineExitType::PipelineOnly));
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
-        let _ = layout_channel.send(LayoutControlMsg::ExitNowMsg(PipelineExitType::PipelineOnly));
+        let _ = layout_channel.send(
+            LayoutControlMsg::ExitNowMsg(PipelineExitType::PipelineOnly)).unwrap();
     }
 
     pub fn to_sendable(&self) -> CompositionPipeline {

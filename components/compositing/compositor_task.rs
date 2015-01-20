@@ -80,7 +80,7 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
     fn close(&mut self) {
         let (chan, port) = channel();
         self.send(Msg::Exit(chan));
-        port.recv();
+        port.recv().unwrap();
     }
 
     fn dup(&mut self) -> Box<ScriptListener+'static> {

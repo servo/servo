@@ -518,11 +518,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             pipeline.exit(PipelineExitType::Complete);
         }
         self.image_cache_task.exit();
-        self.resource_task.send(resource_task::ControlMsg::Exit);
+        self.resource_task.send(resource_task::ControlMsg::Exit).unwrap();
         self.devtools_chan.as_ref().map(|chan| {
-            chan.send(devtools_traits::ServerExitMsg);
+            chan.send(devtools_traits::ServerExitMsg).unwrap();
         });
-        self.storage_task.send(StorageTaskMsg::Exit);
+        self.storage_task.send(StorageTaskMsg::Exit).unwrap();
         self.font_cache_task.exit();
         self.compositor_proxy.send(CompositorMsg::ShutdownComplete);
     }
@@ -680,7 +680,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                         visible_viewport: rect.size,
                         initial_viewport: rect.size * ScaleFactor(1.0),
                         device_pixel_ratio: device_pixel_ratio,
-                    }));
+                    })).unwrap();
                     compositor_proxy.send(CompositorMsg::SetLayerOrigin(
                         pipeline.id,
                         LayerId::null(),
@@ -887,7 +887,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.current_frame().as_ref().map(|frame| {
             let ScriptControlChan(ref chan) = frame.pipeline.borrow().script_chan;
             chan.send(ConstellationControlMsg::SendEvent(
-                frame.pipeline.borrow().id, CompositorEvent::KeyEvent(key, state, mods)));
+                frame.pipeline.borrow().id, CompositorEvent::KeyEvent(key, state, mods))).unwrap();
         });
     }
 
@@ -896,7 +896,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
             None => self.compositor_proxy.send(CompositorMsg::ChangePageTitle(pipeline_id, None)),
             Some(pipeline) => {
                 let ScriptControlChan(ref script_channel) = pipeline.script_chan;
-                script_channel.send(ConstellationControlMsg::GetTitle(pipeline_id));
+                script_channel.send(ConstellationControlMsg::GetTitle(pipeline_id)).unwrap();
             }
         }
     }
@@ -1072,7 +1072,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.compositor_proxy.send(CompositorMsg::SetFrameTree(frame_tree.to_sendable(),
                                                                chan,
                                                                self.chan.clone()));
-        if port.recv_opt().is_err() {
+        if port.recv().is_err() {
             debug!("Compositor has discarded SetFrameTree");
             return; // Our message has been discarded, probably shutting down.
         }
