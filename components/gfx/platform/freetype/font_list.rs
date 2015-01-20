@@ -53,14 +53,14 @@ pub fn get_variations_for_family(family_name: &str, callback: |String|) {
         let mut font_set = FcConfigGetFonts(config, FcSetSystem);
         let font_set_array_ptr = &mut font_set;
         let pattern = FcPatternCreate();
-        assert!(pattern.is_not_null());
+        assert!(!pattern.is_null());
         let mut family_name_c = family_name.to_c_str();
         let family_name = family_name_c.as_mut_ptr();
         let ok = FcPatternAddString(pattern, FC_FAMILY.as_ptr() as *mut i8, family_name as *mut FcChar8);
         assert!(ok != 0);
 
         let object_set = FcObjectSetCreate();
-        assert!(object_set.is_not_null());
+        assert!(!object_set.is_null());
 
         FcObjectSetAdd(object_set, FC_FILE.as_ptr() as *mut i8);
         FcObjectSetAdd(object_set, FC_INDEX.as_ptr() as *mut i8);

@@ -61,7 +61,7 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
         if !application.is_null() {
             (*application).get_browser_process_handler.map(|cb| {
                     let handler = cb(application);
-                    if handler.is_not_null() {
+                    if !handler.is_null() {
                         (*handler).on_context_initialized.map(|hcb| hcb(handler));
                     }
             });
