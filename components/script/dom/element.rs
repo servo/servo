@@ -656,9 +656,13 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         Ok(())
     }
 
-    fn do_set_attribute(self, local_name: Atom, value: AttrValue,
-                        name: Atom, namespace: Namespace,
-                        prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool) {
+    fn do_set_attribute<F: Fn(JSRef<Attr>) -> bool>(self,
+                                                    local_name: Atom,
+                                                    value: AttrValue,
+                                                    name: Atom,
+                                                    namespace: Namespace,
+                                                    prefix: Option<DOMString>,
+                                                    cb: F) {
         let idx = self.attrs.borrow().iter()
                                      .map(|attr| attr.root())
                                      .position(|attr| cb(attr.r()));
@@ -1399,7 +1403,7 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
 
         has_class(self, name)
     }
-    fn each_class(self, callback: |&Atom|) {
+    fn each_class<F: Fn(&Atom)>(self, callback: F) {
         match self.get_attribute(ns!(""), &atom!("class")).root() {
             None => {}
             Some(ref attr) => {

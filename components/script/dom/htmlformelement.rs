@@ -506,16 +506,20 @@ pub trait FormControl<'a> : Copy {
             .map(Temporary::from_rooted)
     }
 
-    fn get_form_attribute(self,
-                          attr: &Atom,
-                          input: |Self| -> DOMString,
-                          owner: |JSRef<HTMLFormElement>| -> DOMString) -> DOMString {
+    fn get_form_attribute<InputFn, OwnerFn>(self,
+                                            attr: &Atom,
+                                            input: InputFn,
+                                            owner: OwnerFn)
+                                            -> DOMString
+                                            where InputFn: Fn(Self) -> DOMString
+                                                  OwnerFn: Fn(JSRef<HTMLFormElement>) -> DOMString {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
             self.form_owner().map_or("".into_string(), |t| owner(t.root().r()))
         }
     }
+
     fn to_element(self) -> JSRef<'a, Element>;
     // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
     fn mutable(self) -> bool;

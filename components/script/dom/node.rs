@@ -2285,7 +2285,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
         ElementCast::to_ref(self).unwrap()
     }
 
-    fn match_attr(self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
+    fn match_attr<F: Fn(&str) -> bool>(self, attr: &style::AttrSelector, test: F) -> bool {
         let name = {
             if self.is_html_element_in_html_document() {
                 &attr.lower_name
