@@ -49,7 +49,7 @@ pub struct FontContextHandle {
 
 impl Drop for FreeTypeLibraryHandle {
     fn drop(&mut self) {
-        assert!(self.ctx.is_not_null());
+        assert!(!self.ctx.is_null());
         unsafe { FT_Done_FreeType(self.ctx) };
     }
 }
