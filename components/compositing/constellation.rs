@@ -17,7 +17,7 @@ use libc;
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
 use servo_msg::compositor_msg::LayerId;
-use servo_msg::constellation_msg::{mod, ConstellationChan, Failure};
+use servo_msg::constellation_msg::{self, ConstellationChan, Failure};
 use servo_msg::constellation_msg::{IFrameSandboxState, NavigationDirection};
 use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers};
 use servo_msg::constellation_msg::{LoadData, NavigationType};
@@ -38,7 +38,7 @@ use std::collections::{HashMap, HashSet};
 use std::io;
 use std::mem::replace;
 use std::rc::Rc;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Receiver, channel};
 use url::Url;
 
 /// Maintains the pipelines and navigation context and grants permission to composite.

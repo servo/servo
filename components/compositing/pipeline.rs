@@ -18,7 +18,7 @@ use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
 use servo_util::time::TimeProfilerChan;
 use std::rc::Rc;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Receiver, channel};
 
 /// A uniquely-identifiable pipeline of script task, layout task, and paint task.
 pub struct Pipeline {
