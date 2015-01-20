@@ -15,7 +15,7 @@ macro_rules! make_getter(
         }
     );
     ($attr:ident) => {
-        make_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice())
+        make_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
     }
 );
 
@@ -33,7 +33,7 @@ macro_rules! make_bool_getter(
         }
     );
     ($attr:ident) => {
-        make_bool_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice())
+        make_bool_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
     }
 );
 
@@ -51,7 +51,7 @@ macro_rules! make_uint_getter(
         }
     );
     ($attr:ident) => {
-        make_uint_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice())
+        make_uint_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
     }
 );
 
@@ -70,7 +70,7 @@ macro_rules! make_url_getter(
     );
     ($attr:ident) => {
         // FIXME(pcwalton): Do this at compile time, not runtime.
-        make_url_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice())
+        make_url_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
     }
 );
 
@@ -94,13 +94,13 @@ macro_rules! make_url_or_base_getter(
         }
     );
     ($attr:ident) => {
-        make_url_or_base_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice())
+        make_url_or_base_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
     }
 );
 
 #[macro_export]
 macro_rules! make_enumerated_getter(
-    ( $attr:ident, $htmlname:expr, $default:expr, $($choices: pat)|+) => (
+    ( $attr:ident, $htmlname:expr, $default:expr, $(($choices: pat))|+) => (
         fn $attr(self) -> DOMString {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
@@ -116,8 +116,8 @@ macro_rules! make_enumerated_getter(
             }
         }
     );
-    ($attr:ident, $default:expr, $($choices: pat)|+) => {
-        make_enumerated_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice(), $default, $($choices)|+)
+    ($attr:ident, $default:expr, $(($choices: pat))|+) => {
+        make_enumerated_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice(), $default, $(($choices))|+);
     }
 );
 
@@ -202,13 +202,13 @@ macro_rules! define_event_handler(
 
 macro_rules! event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(EventHandlerNonNull, $event_type, $getter, $setter)
+        define_event_handler!(EventHandlerNonNull, $event_type, $getter, $setter);
     )
 );
 
 macro_rules! error_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter)
+        define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter);
     )
 );
 
@@ -217,13 +217,13 @@ macro_rules! error_event_handler(
 // As more methods get added, just update them here.
 macro_rules! global_event_handlers(
     () => (
-        event_handler!(load, GetOnload, SetOnload)
-        global_event_handlers!(NoOnload)
+        event_handler!(load, GetOnload, SetOnload);
+        global_event_handlers!(NoOnload);
 
     );
     (NoOnload) => (
-        event_handler!(click, GetOnclick, SetOnclick)
-        event_handler!(input, GetOninput, SetOninput)
-        event_handler!(change, GetOnchange, SetOnchange)
+        event_handler!(click, GetOnclick, SetOnclick);
+        event_handler!(input, GetOninput, SetOninput);
+        event_handler!(change, GetOnchange, SetOnchange);
     )
 );

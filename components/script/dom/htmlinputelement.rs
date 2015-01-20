@@ -225,13 +225,13 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_uint_setter!(SetSize, "size");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
-    make_enumerated_getter!(Type, "text", "hidden" | "search" | "tel" |
-                                  "url" | "email" | "password" |
-                                  "datetime" | "date" | "month" |
-                                  "week" | "time" | "datetime-local" |
-                                  "number" | "range" | "color" |
-                                  "checkbox" | "radio" | "file" |
-                                  "submit" | "image" | "reset" | "button");
+    make_enumerated_getter!(Type, "text", ("hidden") | ("search") | ("tel") |
+                                  ("url") | ("email") | ("password") |
+                                  ("datetime") | ("date") | ("month") |
+                                  ("week") | ("time") | ("datetime-local") |
+                                  ("number") | ("range") | ("color") |
+                                  ("checkbox") | ("radio") | ("file") |
+                                  ("submit") | ("image") | ("reset") | ("button"));
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
     make_setter!(SetType, "type");
@@ -267,13 +267,13 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     make_setter!(SetFormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
-    make_enumerated_getter!(FormEnctype, "application/x-www-form-urlencoded", "text/plain" | "multipart/form-data");
+    make_enumerated_getter!(FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
     make_setter!(SetFormEnctype, "formenctype");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
-    make_enumerated_getter!(FormMethod, "get", "post" | "dialog");
+    make_enumerated_getter!(FormMethod, "get", ("post") | ("dialog"));
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
     make_setter!(SetFormMethod, "formmethod");
