@@ -67,24 +67,25 @@ impl CompositorData {
     }
 }
 
-pub trait CompositorLayer<Window: WindowMethods> {
+pub trait CompositorLayer {
     fn update_layer_except_bounds(&self, layer_properties: LayerProperties);
 
     fn update_layer(&self, layer_properties: LayerProperties);
 
-    fn add_buffers(&self,
-                   compositor: &IOCompositor<Window>,
-                   new_buffers: Box<LayerBufferSet>,
-                   epoch: Epoch)
-                   -> bool;
+    fn add_buffers<Window>(&self,
+                           compositor: &IOCompositor<Window>,
+                           new_buffers: Box<LayerBufferSet>,
+                           epoch: Epoch)
+                           -> bool
+                           where Window: WindowMethods;
 
     /// Destroys all layer tiles, sending the buffers back to the painter to be destroyed or
     /// reused.
-    fn clear(&self, compositor: &IOCompositor<Window>);
+    fn clear<Window>(&self, compositor: &IOCompositor<Window>) where Window: WindowMethods;
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
     /// painter to be destroyed or reused.
-    fn clear_all_tiles(&self, compositor: &IOCompositor<Window>);
+    fn clear_all_tiles<Window>(&self, compositor: &IOCompositor<Window>) where Window: WindowMethods;
 
     /// Destroys all tiles of all layers, including children, *without* sending them back to the
     /// painter. You must call this only when the paint task is destined to be going down;
@@ -106,14 +107,16 @@ pub trait CompositorLayer<Window: WindowMethods> {
     // Takes in a MouseWindowEvent, determines if it should be passed to children, and
     // sends the event off to the appropriate pipeline. NB: the cursor position is in
     // page coordinates.
-    fn send_mouse_event(&self,
-                        compositor: &IOCompositor<Window>,
-                        event: MouseWindowEvent,
-                        cursor: TypedPoint2D<LayerPixel, f32>);
+    fn send_mouse_event<Window>(&self,
+                                compositor: &IOCompositor<Window>,
+                                event: MouseWindowEvent,
+                                cursor: TypedPoint2D<LayerPixel, f32>)
+                                where Window: WindowMethods;
 
-    fn send_mouse_move_event(&self,
-                             compositor: &IOCompositor<Window>,
-                             cursor: TypedPoint2D<LayerPixel, f32>);
+    fn send_mouse_move_event<Window>(&self,
+                                     compositor: &IOCompositor<Window>,
+                                     cursor: TypedPoint2D<LayerPixel, f32>)
+                                     where Window: WindowMethods;
 
     fn clamp_scroll_offset_and_scroll_layer(&self,
                                             new_offset: TypedPoint2D<LayerPixel, f32>)
@@ -173,7 +176,7 @@ pub enum ScrollEventResult {
     ScrollPositionUnchanged,
 }
 
-impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
+impl CompositorLayer for Layer<CompositorData> {
     fn update_layer_except_bounds(&self, layer_properties: LayerProperties) {
         self.extra_data.borrow_mut().epoch = layer_properties.epoch;
         self.extra_data.borrow_mut().scroll_policy = layer_properties.scroll_policy;
@@ -198,11 +201,12 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
     //
     // If the epoch of the message does not match the layer's epoch, the message is ignored, the
     // layer buffer set is consumed, and None is returned.
-    fn add_buffers(&self,
-                   compositor: &IOCompositor<Window>,
-                   new_buffers: Box<LayerBufferSet>,
-                   epoch: Epoch)
-                   -> bool {
+    fn add_buffers<Window>(&self,
+                           compositor: &IOCompositor<Window>,
+                           new_buffers: Box<LayerBufferSet>,
+                           epoch: Epoch)
+                           -> bool
+                           where Window: WindowMethods {
         if self.extra_data.borrow().epoch != epoch {
             debug!("add_buffers: compositor epoch mismatch: {:?} != {:?}, id: {:?}",
                    self.extra_data.borrow().epoch,
@@ -226,7 +230,7 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
         return true;
     }
 
-    fn clear(&self, compositor: &IOCompositor<Window>) {
+    fn clear<Window>(&self, compositor: &IOCompositor<Window>) where Window: WindowMethods {
         let mut buffers = self.collect_buffers();
 
         if !buffers.is_empty() {
@@ -244,7 +248,9 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
 
     /// Destroys tiles for this layer and all descendent layers, sending the buffers back to the
     /// painter to be destroyed or reused.
-    fn clear_all_tiles(&self, compositor: &IOCompositor<Window>) {
+    fn clear_all_tiles<Window>(&self,
+                               compositor: &IOCompositor<Window>)
+                               where Window: WindowMethods {
         self.clear(compositor);
         for kid in self.children().iter() {
             kid.clear_all_tiles(compositor);
@@ -324,10 +330,11 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
         }
     }
 
-    fn send_mouse_event(&self,
-                        compositor: &IOCompositor<Window>,
-                        event: MouseWindowEvent,
-                        cursor: TypedPoint2D<LayerPixel, f32>) {
+    fn send_mouse_event<Window>(&self,
+                                compositor: &IOCompositor<Window>,
+                                event: MouseWindowEvent,
+                                cursor: TypedPoint2D<LayerPixel, f32>)
+                                where Window: WindowMethods {
         let event_point = cursor.to_untyped();
         let message = match event {
             MouseWindowEvent::Click(button, _) =>
@@ -343,9 +350,10 @@ impl<Window: WindowMethods> CompositorLayer<Window> for Layer<CompositorData> {
         let _ = chan.send(ConstellationControlMsg::SendEvent(pipeline.id.clone(), message));
     }
 
-    fn send_mouse_move_event(&self,
-                             compositor: &IOCompositor<Window>,
-                             cursor: TypedPoint2D<LayerPixel, f32>) {
+    fn send_mouse_move_event<Window>(&self,
+                                     compositor: &IOCompositor<Window>,
+                                     cursor: TypedPoint2D<LayerPixel, f32>)
+                                     where Window: WindowMethods {
         let message = MouseMoveEvent(cursor.to_untyped());
         let pipeline = compositor.get_pipeline(self.get_pipeline_id());
         let ScriptControlChan(ref chan) = pipeline.script_chan;
