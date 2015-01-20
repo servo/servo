@@ -18,7 +18,7 @@ use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
-use servo_util::str::{mod, DOMString, LengthOrPercentageOrAuto};
+use servo_util::str::{self, DOMString, LengthOrPercentageOrAuto};
 use std::cell::Cell;
 
 #[dom_struct]
