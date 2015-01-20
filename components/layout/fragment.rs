@@ -32,7 +32,7 @@ use serialize::{Encodable, Encoder};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::image::holder::ImageHolder;
 use servo_net::local_image_cache::LocalImageCache;
-use servo_util::geometry::{mod, Au, ZERO_POINT};
+use servo_util::geometry::{self, Au, ZERO_POINT};
 use servo_util::logical_geometry::{LogicalRect, LogicalSize, LogicalMargin};
 use servo_util::range::*;
 use servo_util::smallvec::SmallVec;

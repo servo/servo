@@ -4,7 +4,7 @@
 
 use types::cef_base_t;
 
-use libc::{mod, c_int, c_void, size_t};
+use libc::{self, c_int, c_void, size_t};
 use std::mem;
 use std::slice;
 use std::str;

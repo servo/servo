@@ -8,7 +8,7 @@ use display_list::{DisplayItem, DisplayList, StackingContext};
 
 use collections::dlist::DList;
 use geom::rect::Rect;
-use servo_util::geometry::{mod, Au};
+use servo_util::geometry::{self, Au};
 use std::sync::Arc;
 
 /// Transforms a display list to produce a visually-equivalent, but cheaper-to-paint, one.
