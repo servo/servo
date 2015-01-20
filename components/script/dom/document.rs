@@ -474,12 +474,12 @@ impl Document {
 }
 
 trait PrivateDocumentHelpers {
-    fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList>;
+    fn createNodeList<F: Fn(JSRef<Node>) -> bool>(self, callback: F) -> Temporary<NodeList>;
     fn get_html_element(self) -> Option<Temporary<HTMLHtmlElement>>;
 }
 
 impl<'a> PrivateDocumentHelpers for JSRef<'a, Document> {
-    fn createNodeList(self, callback: |node: JSRef<Node>| -> bool) -> Temporary<NodeList> {
+    fn createNodeList<F: Fn(JSRef<Node>) -> bool>(self, callback: F) -> Temporary<NodeList> {
         let window = self.window.root();
         let document_element = self.GetDocumentElement().root();
         let nodes = match document_element {
