@@ -36,6 +36,7 @@ extern crate script_traits;
 extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
 extern crate "util" as servo_util;
+#[phase(plugin, link)]
 extern crate style;
 extern crate "msg" as servo_msg;
 extern crate url;
