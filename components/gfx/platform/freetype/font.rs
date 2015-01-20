@@ -26,6 +26,7 @@ use freetype::freetype::{ft_sfnt_os2};
 use freetype::tt_os2::TT_OS2;
 
 use libc::c_char;
+use std::borrow::ToOwned;
 use std::ffi;
 use std::mem;
 use std::num::Float;

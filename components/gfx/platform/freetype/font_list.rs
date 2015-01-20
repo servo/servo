@@ -22,6 +22,7 @@ use fontconfig::fontconfig::{
 
 use libc;
 use libc::{c_int, c_char};
+use std::borrow::ToOwned;
 use std::ffi;
 use std::ptr;
 use std::str;
