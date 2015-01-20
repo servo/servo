@@ -28,7 +28,7 @@ use std::ptr;
 
 
 unsafe fn c_str_to_string(s: *mut u8) -> String {
-    String::from_utf8(c_str_to_bytes(&(s as *const i8)).to_vec()).unwrap()
+    String::from_utf8(c_str_to_bytes(&(s as *const c_char)).to_vec()).unwrap()
 }
 
 static FC_FAMILY: &'static [u8] = b"family\0";

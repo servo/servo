@@ -25,6 +25,7 @@ use freetype::freetype::{FT_SizeRec, FT_UInt, FT_Size_Metrics, struct_FT_Vector_
 use freetype::freetype::{ft_sfnt_os2};
 use freetype::tt_os2::TT_OS2;
 
+use libc::c_char;
 use std::ffi::c_str_to_bytes;
 use std::mem;
 use std::num::Float;
@@ -32,8 +33,8 @@ use std::ptr;
 use std::sync::Arc;
 
 
-unsafe fn c_str_to_string(s: *mut i8) -> String {
-    String::from_utf8(c_str_to_bytes(&(s as *const i8)).to_vec()).unwrap()
+unsafe fn c_str_to_string(s: *mut c_char) -> String {
+    String::from_utf8(c_str_to_bytes(&(s as *const c_char)).to_vec()).unwrap()
 }
 
 fn float_to_fixed_ft(f: f64) -> i32 {
