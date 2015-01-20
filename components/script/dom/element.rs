@@ -111,7 +111,9 @@ impl Element {
         create_element(name, prefix, document, creator)
     }
 
-    pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JSRef<Document>) -> Element {
+    pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString,
+                         namespace: Namespace, prefix: Option<DOMString>,
+                         document: JSRef<Document>) -> Element {
         Element {
             node: Node::new_inherited(NodeTypeId::Element(type_id), document),
             local_name: Atom::from_slice(local_name.as_slice()),

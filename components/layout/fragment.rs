@@ -1256,11 +1256,24 @@ impl Fragment {
     pub fn find_split_info_by_new_line(&self)
             -> Option<(SplitInfo, Option<SplitInfo>, Arc<Box<TextRun>> /* TODO(bjz): remove */)> {
         match self.specific {
-            SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper => None,
-            SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not need to split"),
-            SpecificFragmentInfo::UnscannedText(_) => panic!("Unscanned text fragments should have been scanned by now!"),
-            SpecificFragmentInfo::InlineBlock(_) | SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
+            SpecificFragmentInfo::Canvas(_) |
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper => {
+                None
+            }
+            SpecificFragmentInfo::TableColumn(_) => {
+                panic!("Table column fragments do not need to split")
+            }
+            SpecificFragmentInfo::UnscannedText(_) => {
+                panic!("Unscanned text fragments should have been scanned by now!")
+            }
+            SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {
                 panic!("Inline blocks or inline absolute hypothetical fragments do not get split")
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment_info) => {

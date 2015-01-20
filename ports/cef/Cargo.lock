@@ -9,8 +9,7 @@ dependencies = [
  "devtools 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo)",
- "glfw_app 0.0.1",
+ "glutin_app 0.0.1",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
@@ -22,6 +21,14 @@ dependencies = [
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "style 0.0.1",
  "util 0.0.1",
+]
+
+[[package]]
+name = "android_glue"
+version = "0.0.1"
+source = "git+https://github.com/servo/android-rs-glue?ref=servo#122bc28545b5e59a923c466a484c403fa691bd55"
+dependencies = [
+ "compile_msg 0.1.3 (git+https://github.com/huonw/compile_msg)",
 ]
 
 [[package]]
@@ -60,6 +67,11 @@ dependencies = [
 name = "cocoa"
 version = "0.1.1"
 source = "git+https://github.com/servo/rust-cocoa#bf53a53ce306279fc1cae0d56fdd5e7216696420"
+
+[[package]]
+name = "compile_msg"
+version = "0.1.3"
+source = "git+https://github.com/huonw/compile_msg#b19da50cacf5b11bbc065da6b449f6b4fe7c019a"
 
 [[package]]
 name = "compositing"
@@ -321,6 +333,34 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
  "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "msg 0.0.1",
+ "time 0.1.0 (git+https://github.com/rust-lang/time)",
+ "util 0.0.1",
+]
+
+[[package]]
+name = "glutin"
+version = "0.0.2"
+source = "git+https://github.com/servo/glutin?ref=servo#db27370a1cbafcbfcaeee52a44076a61b3e0573c"
+dependencies = [
+ "android_glue 0.0.1 (git+https://github.com/servo/android-rs-glue?ref=servo)",
+ "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
+ "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
+ "gl_common 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "winapi 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "glutin_app"
+version = "0.0.1"
+dependencies = [
+ "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
+ "compositing 0.0.1",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "glutin 0.0.2 (git+https://github.com/servo/glutin?ref=servo)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
  "time 0.1.0 (git+https://github.com/rust-lang/time)",
@@ -725,6 +765,11 @@ dependencies = [
 name = "uuid"
 version = "0.1.1"
 source = "git+https://github.com/rust-lang/uuid#fc793c974a25c126c5cf5daa3b18973512a7a6a0"
+
+[[package]]
+name = "winapi"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "xlib"

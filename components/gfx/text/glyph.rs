@@ -8,6 +8,7 @@ use servo_util::range::{Range, RangeIndex, EachIndex};
 use servo_util::geometry::Au;
 
 use std::cmp::PartialOrd;
+use std::iter::repeat;
 use std::num::NumCast;
 use std::mem;
 use std::u16;
@@ -526,7 +527,8 @@ impl<'a> GlyphStore {
         assert!(length > 0);
 
         GlyphStore {
-            entry_buffer: Vec::from_elem(length as uint, GlyphEntry::initial()),
+            entry_buffer: repeat(GlyphEntry::initial()).take(length as uint)
+                                                       .collect(),
             detail_store: DetailedGlyphStore::new(),
             is_whitespace: is_whitespace,
         }
