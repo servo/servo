@@ -102,9 +102,10 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-cssparser#110bf3052d016bf6eda0689fb21cf971e2c23dc8"
+source = "git+https://github.com/servo/rust-cssparser#83b7cc8392d095aaacbe051841b81d86630bb0eb"
 dependencies = [
  "encoding 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "matches 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "text_writer 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -409,6 +410,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "pnacl-build-helper 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "matches"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "mime"
