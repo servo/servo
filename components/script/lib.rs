@@ -2,17 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(macro_rules, unsafe_destructor)]
+#![feature(unsafe_destructor, plugin, box_syntax)]
 
 #![deny(unsafe_blocks)]
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
+#![allow(unstable)]
 
 #![doc="The script crate contains all matters DOM."]
 
-#[phase(plugin, link)]
+#[macro_use]
 extern crate log;
 
 extern crate devtools_traits;
@@ -31,7 +32,7 @@ extern crate serialize;
 extern crate time;
 extern crate canvas;
 extern crate script_traits;
-#[phase(plugin)]
+#[plugin] #[macro_use]
 extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
 extern crate "util" as servo_util;
@@ -40,7 +41,7 @@ extern crate "msg" as servo_msg;
 extern crate url;
 extern crate uuid;
 extern crate string_cache;
-#[phase(plugin)]
+#[macro_use]
 extern crate string_cache_macros;
 
 pub mod cors;

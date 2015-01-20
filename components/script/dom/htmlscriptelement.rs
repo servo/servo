@@ -341,9 +341,9 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLScriptElement> {
 }
 
 impl<'a> HTMLScriptElementMethods for JSRef<'a, HTMLScriptElement> {
-    make_url_getter!(Src)
+    make_url_getter!(Src);
 
-    make_setter!(SetSrc, "src")
+    make_setter!(SetSrc, "src");
 
     // http://www.whatwg.org/html/#dom-script-text
     fn Text(self) -> DOMString {

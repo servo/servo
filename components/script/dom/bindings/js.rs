@@ -280,7 +280,7 @@ impl<T: Reflectable> MutNullableJS<T> {
         self.ptr.get()
     }
 
-    pub fn or_init(&self, cb: || -> Temporary<T>) -> Temporary<T> {
+    pub fn or_init<F>(&self, cb: F) -> Temporary<T> where F: FnOnce() -> Temporary<T> {
         match self.get() {
             Some(inner) => inner,
             None => {

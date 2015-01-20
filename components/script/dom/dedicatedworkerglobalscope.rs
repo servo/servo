@@ -228,7 +228,7 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
         Ok(())
     }
 
-    event_handler!(message, GetOnmessage, SetOnmessage)
+    event_handler!(message, GetOnmessage, SetOnmessage);
 }
 
 impl DedicatedWorkerGlobalScopeDerived for EventTarget {

@@ -229,7 +229,7 @@ impl XMLHttpRequest {
                 notify_partial_progress(fetch_type, XHRProgress::Errored(gen_id, $err));
                 return Err($err)
             });
-        )
+        );
 
         macro_rules! terminate(
             ($reason:expr) => (
@@ -242,7 +242,7 @@ impl XMLHttpRequest {
                     }
                 }
             );
-        )
+        );
 
 
         match cors_request {
@@ -273,7 +273,7 @@ impl XMLHttpRequest {
                         }
                     },
                     reason = terminate_receiver.recv() => terminate!(reason)
-                )
+                );
             }
             _ => {}
         }
@@ -302,7 +302,7 @@ impl XMLHttpRequest {
                 progress_port = response.progress_port;
             },
             reason = terminate_receiver.recv() => terminate!(reason)
-        )
+        );
 
         let mut buf = vec!();
         loop {
@@ -333,13 +333,13 @@ impl XMLHttpRequest {
                     }
                 },
                 reason = terminate_receiver.recv() => terminate!(reason)
-            )
+            );
         }
     }
 }
 
 impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
-    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange)
+    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 
     fn ReadyState(self) -> u16 {
         self.ready_state.get() as u16
@@ -766,7 +766,7 @@ trait PrivateXMLHttpRequestHelpers {
 
 impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
     fn change_ready_state(self, rs: XMLHttpRequestState) {
-        assert!(self.ready_state.get() != rs)
+        assert!(self.ready_state.get() != rs);
         self.ready_state.set(rs);
         let global = self.global.root();
         let event = Event::new(global.r(),
@@ -788,7 +788,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                     return
                 }
             );
-        )
+        );
 
         // Ignore message if it belongs to a terminated fetch
         return_if_fetch_was_terminated!();
@@ -935,7 +935,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
         let oneshot = self.timer.borrow_mut()
                           .oneshot(Duration::milliseconds(timeout as i64));
         let terminate_sender = (*self.terminate_sender.borrow()).clone();
-        spawn_named("XHR:Timer", proc () {
+        spawn_named("XHR:Timer".to_string(), move || {
             match oneshot.recv() {
                 Ok(_) => {
                     terminate_sender.map(|s| s.send(TerminateReason::TimedOut));

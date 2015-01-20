@@ -54,10 +54,10 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled")
+    make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
     fn Type(self) -> DOMString {
@@ -71,7 +71,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
-    make_setter!(SetType, "type")
+    make_setter!(SetType, "type");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {

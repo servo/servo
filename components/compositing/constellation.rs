@@ -38,6 +38,7 @@ use std::collections::{HashMap, HashSet};
 use std::io;
 use std::mem::replace;
 use std::rc::Rc;
+use std::sync::mpsc::{Receiver, Sender, channel};
 use url::Url;
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
@@ -233,7 +234,8 @@ struct FrameTreeIterator {
     stack: Vec<Rc<FrameTree>>,
 }
 
-impl Iterator<Rc<FrameTree>> for FrameTreeIterator {
+impl Iterator for FrameTreeIterator {
+    type Item = Rc<FrameTree>;
     fn next(&mut self) -> Option<Rc<FrameTree>> {
         match self.stack.pop() {
             Some(next) => {

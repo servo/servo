@@ -46,7 +46,7 @@ macro_rules! css_properties(
             }
         )*
     );
-)
+);
 
 fn serialize_list(list: &Vec<PropertyDeclaration>) -> DOMString {
     let mut result = String::new();
@@ -430,5 +430,5 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         [Right, SetRight, "right"],
         [Top, SetTop, "top"],
         [ZIndex, SetZIndex, "z-index"]
-    )
+    );
 }

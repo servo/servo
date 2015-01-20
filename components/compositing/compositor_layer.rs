@@ -21,7 +21,6 @@ use script_traits::{ScriptControlChan, ConstellationControlMsg};
 use servo_msg::compositor_msg::{Epoch, LayerId, ScrollPolicy};
 use servo_msg::constellation_msg::PipelineId;
 use std::num::Float;
-use std::num::FloatMath;
 use std::rc::Rc;
 
 pub struct CompositorData {

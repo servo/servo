@@ -97,7 +97,7 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
         Ok(())
     }
 
-    event_handler!(message, GetOnmessage, SetOnmessage)
+    event_handler!(message, GetOnmessage, SetOnmessage);
 }
 
 pub struct WorkerMessageHandler {

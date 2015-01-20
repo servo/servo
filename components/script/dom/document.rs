@@ -999,7 +999,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Temporary::new(self.window)
     }
 
-    global_event_handlers!()
-    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange)
+    global_event_handlers!();
+    event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 }
 

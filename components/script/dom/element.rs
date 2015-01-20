@@ -568,9 +568,9 @@ pub trait AttributeHandlers {
                                  prefix: Option<DOMString>);
     fn set_attribute(self, name: &Atom, value: AttrValue);
     fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult;
-    fn do_set_attribute(self, local_name: Atom, value: AttrValue,
-                        name: Atom, namespace: Namespace,
-                        prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool);
+    fn do_set_attribute<F>(self, local_name: Atom, value: AttrValue,
+                           name: Atom, namespace: Namespace,
+                           prefix: Option<DOMString>, cb: F) where F: Fn(JSRef<Attr>) -> bool;
     fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue;
 

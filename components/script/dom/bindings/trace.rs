@@ -74,7 +74,7 @@ impl<T: Reflectable> JSTraceable for JS<T> {
     }
 }
 
-no_jsmanaged_fields!(Reflector)
+no_jsmanaged_fields!(Reflector);
 
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: JSVal) {
@@ -197,28 +197,28 @@ impl<A: JSTraceable, B: JSTraceable> JSTraceable for (A, B) {
 }
 
 
-no_jsmanaged_fields!(bool, f32, f64, String, Url)
-no_jsmanaged_fields!(uint, u8, u16, u32, u64)
-no_jsmanaged_fields!(int, i8, i16, i32, i64)
-no_jsmanaged_fields!(Sender<T>)
-no_jsmanaged_fields!(Receiver<T>)
-no_jsmanaged_fields!(Rect<T>)
-no_jsmanaged_fields!(ImageCacheTask, ScriptControlChan)
-no_jsmanaged_fields!(Atom, Namespace, Timer)
-no_jsmanaged_fields!(Trusted<T>)
-no_jsmanaged_fields!(PropertyDeclarationBlock)
+no_jsmanaged_fields!(bool, f32, f64, String, Url);
+no_jsmanaged_fields!(uint, u8, u16, u32, u64);
+no_jsmanaged_fields!(int, i8, i16, i32, i64);
+no_jsmanaged_fields!(Sender<T>);
+no_jsmanaged_fields!(Receiver<T>);
+no_jsmanaged_fields!(Rect<T>);
+no_jsmanaged_fields!(ImageCacheTask, ScriptControlChan);
+no_jsmanaged_fields!(Atom, Namespace, Timer);
+no_jsmanaged_fields!(Trusted<T>);
+no_jsmanaged_fields!(PropertyDeclarationBlock);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId)
-no_jsmanaged_fields!(QuirksMode)
-no_jsmanaged_fields!(Cx)
-no_jsmanaged_fields!(Headers, Method)
-no_jsmanaged_fields!(ConstellationChan)
-no_jsmanaged_fields!(LayoutChan)
-no_jsmanaged_fields!(WindowProxyHandler)
-no_jsmanaged_fields!(UntrustedNodeAddress)
-no_jsmanaged_fields!(LengthOrPercentageOrAuto)
-no_jsmanaged_fields!(RGBA)
+no_jsmanaged_fields!(SubpageId, WindowSizeData, PipelineId);
+no_jsmanaged_fields!(QuirksMode);
+no_jsmanaged_fields!(Cx);
+no_jsmanaged_fields!(Headers, Method);
+no_jsmanaged_fields!(ConstellationChan);
+no_jsmanaged_fields!(LayoutChan);
+no_jsmanaged_fields!(WindowProxyHandler);
+no_jsmanaged_fields!(UntrustedNodeAddress);
+no_jsmanaged_fields!(LengthOrPercentageOrAuto);
+no_jsmanaged_fields!(RGBA);
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]

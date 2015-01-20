@@ -36,7 +36,7 @@ use std::collections::hash_map::{HashMap, Vacant, Occupied};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
-thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> = Rc::new(RefCell::new(None)))
+thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> = Rc::new(RefCell::new(None)));
 
 
 /// A safe wrapper around a raw pointer to a DOM object that can be

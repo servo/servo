@@ -44,7 +44,7 @@ pub trait IDLInterface {
 }
 
 /// A trait to convert Rust types to `JSVal`s.
-pub trait ToJSValConvertible for Sized? {
+pub trait ToJSValConvertible {
     /// Convert `self` to a `JSVal`. JSAPI failure causes a task failure.
     fn to_jsval(&self, cx: *mut JSContext) -> JSVal;
 }

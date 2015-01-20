@@ -87,7 +87,7 @@ use std::rc::Rc;
 use std::u32;
 use time::{Tm, strptime};
 
-thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None))
+thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 
 #[derive(Copy)]
 pub enum TimerSource {

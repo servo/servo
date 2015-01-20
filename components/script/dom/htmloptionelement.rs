@@ -69,7 +69,7 @@ fn collect_text(node: &JSRef<Node>, value: &mut DOMString) {
 
 impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     // http://www.whatwg.org/html/#dom-option-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html/#dom-option-disabled
     fn SetDisabled(self, disabled: bool) {
@@ -104,7 +104,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-option-value
-    make_setter!(SetValue, "value")
+    make_setter!(SetValue, "value");
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-option-label
     fn Label(self) -> DOMString {
@@ -118,7 +118,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-option-label
-    make_setter!(SetLabel, "label")
+    make_setter!(SetLabel, "label");
 
 }
 

@@ -134,7 +134,7 @@ pub struct NativePropertyHooks {
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
-    pub interface_chain: [PrototypeList::ID, ..MAX_PROTO_CHAIN_LENGTH],
+    pub interface_chain: [PrototypeList::ID ;MAX_PROTO_CHAIN_LENGTH],
 
     /// The NativePropertyHooks for the interface associated with this class.
     pub native_hooks: &'static NativePropertyHooks,
@@ -322,7 +322,7 @@ pub unsafe extern fn ThrowingConstructor(cx: *mut JSContext, _argc: c_uint, _vp:
 /// Construct and cache the ProtoOrIfaceArray for the given global.
 /// Fails if the argument is not a DOM global.
 pub fn initialize_global(global: *mut JSObject) {
-    let protoArray = box () ([0 as *mut JSObject, ..PrototypeList::ID::Count as uint]);
+    let protoArray = box () ([0 as *mut JSObject; PrototypeList::ID::Count as uint]);
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
         let box_ = squirrel_away_unique(protoArray);

@@ -26,7 +26,7 @@ use servo_util::cursor::Cursor;
 use servo_util::geometry::PagePx;
 use servo_util::memory::MemoryProfilerChan;
 use servo_util::time::TimeProfilerChan;
-use std::comm::{channel, Sender, Receiver};
+use std::sync::mpsc::{channel, Sender, Receiver};
 use std::fmt::{Error, Formatter, Show};
 use std::rc::Rc;
 
@@ -42,7 +42,7 @@ pub trait CompositorProxy : 'static + Send {
 
 /// The port that the compositor receives messages on. As above, this is a trait supplied by the
 /// Servo port.
-pub trait CompositorReceiver for Sized? : 'static {
+pub trait CompositorReceiver : 'static {
     /// Receives the next message inbound for the compositor. This must not block.
     fn try_recv_compositor_msg(&mut self) -> Option<Msg>;
     /// Synchronously waits for, and returns, the next message inbound for the compositor.

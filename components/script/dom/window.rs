@@ -283,9 +283,9 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         })
     }
 
-    global_event_handlers!()
-    event_handler!(unload, GetOnunload, SetOnunload)
-    error_event_handler!(error, GetOnerror, SetOnerror)
+    global_event_handlers!();
+    event_handler!(unload, GetOnunload, SetOnunload);
+    error_event_handler!(error, GetOnerror, SetOnerror);
 
     fn Screen(self) -> Temporary<Screen> {
         self.screen.or_init(|| Screen::new(self))

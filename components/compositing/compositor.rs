@@ -41,11 +41,12 @@ use servo_util::opts;
 use servo_util::time::{TimeProfilerCategory, profile, TimeProfilerChan};
 use servo_util::{memory, time};
 use std::collections::HashMap;
-use std::collections::hash_map::{Occupied, Vacant};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::path::Path;
-use std::num::FloatMath;
+use std::num::Float;
 use std::rc::Rc;
 use std::slice::bytes::copy_memory;
+use std::sync::mpsc::Sender;
 use time::{precise_time_ns, precise_time_s};
 use url::Url;
 
@@ -1166,8 +1167,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         });
 
         if output_image {
-            let path =
-                from_str::<Path>(opts::get().output_file.as_ref().unwrap().as_slice()).unwrap();
+            let path: Path =
+                opts::get().output_file.as_ref().unwrap().as_slice().parse().unwrap();
             let mut pixels = gl::read_pixels(0, 0,
                                              width as gl::GLsizei,
                                              height as gl::GLsizei,

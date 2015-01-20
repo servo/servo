@@ -91,7 +91,7 @@ pub fn create_element(name: QualName, prefix: Option<DOMString>,
             let obj = $ctor::new(name.local.as_slice().into_string(), prefix, document $(, $arg)*);
             ElementCast::from_temporary(obj)
         })
-    )
+    );
 
     // This is a big match, and the IDs for inline-interned atoms are not very structured.
     // Perhaps we should build a perfect hash from those IDs instead.

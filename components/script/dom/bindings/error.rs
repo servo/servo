@@ -102,7 +102,7 @@ pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) -> JSBool {
 }
 
 /// Format string used to throw `TypeError`s.
-static ERROR_FORMAT_STRING_STRING: [libc::c_char, ..4] = [
+static ERROR_FORMAT_STRING_STRING: [libc::c_char; 4] = [
     '{' as libc::c_char,
     '0' as libc::c_char,
     '}' as libc::c_char,
