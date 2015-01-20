@@ -6,6 +6,8 @@ use core_foundation::base::TCFType;
 use core_foundation::string::{CFString, CFStringRef};
 use core_text::font_descriptor::{CTFontDescriptor, CTFontDescriptorRef};
 use core_text;
+
+use std::borrow::ToOwned;
 use std::mem;
 
 pub fn get_available_families(callback: |String|) {
@@ -42,5 +44,5 @@ pub fn get_system_default_family(_generic_name: &str) -> Option<String> {
 }
 
 pub fn get_last_resort_font_families() -> Vec<String> {
-    vec!("Arial Unicode MS".into_string(), "Arial".into_string())
+    vec!("Arial Unicode MS".to_owned(), "Arial".to_owned())
 }

@@ -17,6 +17,7 @@ use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
 use servo_util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
+use std::borrow::ToOwned;
 use std::cell::{Cell};
 use js::jsval::{JSVal, NullValue};
 
@@ -40,8 +41,8 @@ impl ErrorEvent {
     fn new_inherited(type_id: EventTypeId) -> ErrorEvent {
         ErrorEvent {
             event: Event::new_inherited(type_id),
-            message: DOMRefCell::new("".into_string()),
-            filename: DOMRefCell::new("".into_string()),
+            message: DOMRefCell::new("".to_owned()),
+            filename: DOMRefCell::new("".to_owned()),
             lineno: Cell::new(0),
             colno: Cell::new(0),
             error: MutHeap::new(NullValue())
@@ -80,11 +81,11 @@ impl ErrorEvent {
                        init: &ErrorEventBinding::ErrorEventInit) -> Fallible<Temporary<ErrorEvent>>{
         let msg = match init.message.as_ref() {
             Some(message) => message.clone(),
-            None => "".into_string(),
+            None => "".to_owned(),
         };
 
         let file_name = match init.filename.as_ref() {
-            None => "".into_string(),
+            None => "".to_owned(),
             Some(filename) => filename.clone(),
         };
 

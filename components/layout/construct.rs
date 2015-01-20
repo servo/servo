@@ -50,6 +50,7 @@ use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlobjectelement::is_image_data;
 use script::dom::node::NodeTypeId;
 use servo_util::opts;
+use std::borrow::ToOwned;
 use std::collections::DList;
 use std::mem;
 use std::sync::atomic::Relaxed;
@@ -455,7 +456,7 @@ impl<'a> FlowConstructor<'a> {
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info =
-                    SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(" ".into_string()));
+                    SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(" ".to_owned()));
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_style,
                                                                     whitespace_damage,
@@ -652,7 +653,7 @@ impl<'a> FlowConstructor<'a> {
                         whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(
-                            " ".into_string()));
+                            " ".to_owned()));
                     let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_style,
                                                                         whitespace_damage,
@@ -986,7 +987,7 @@ impl<'a> FlowConstructor<'a> {
                                                                      .list_style_type) {
                     None => None,
                     Some(text) => {
-                        let text = text.into_string();
+                        let text = text.to_owned();
                         let mut unscanned_marker_fragments = DList::new();
                         unscanned_marker_fragments.push_back(Fragment::new_from_specific_info(
                             node,

@@ -20,6 +20,7 @@ use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
 use url::Url;
 
+use std::borrow::ToOwned;
 use std::comm::{channel, Receiver, Sender};
 
 pub enum ControlMsg {
@@ -86,7 +87,7 @@ impl Metadata {
             charset:      None,
             headers: None,
             // http://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some(RawStatus(200, "OK".into_string()))
+            status: Some(RawStatus(200, "OK".to_owned()))
         }
     }
 

@@ -5,8 +5,10 @@
 use servo_util::str::DOMString;
 use servo_util::opts;
 
+use std::borrow::ToOwned;
+
 pub fn Product() -> DOMString {
-    "Gecko".into_string()
+    "Gecko".to_owned()
 }
 
 pub fn TaintEnabled() -> bool {
@@ -14,20 +16,20 @@ pub fn TaintEnabled() -> bool {
 }
 
 pub fn AppName() -> DOMString {
-    "Netscape".into_string() // Like Gecko/Webkit
+    "Netscape".to_owned() // Like Gecko/Webkit
 }
 
 pub fn AppCodeName() -> DOMString {
-    "Mozilla".into_string()
+    "Mozilla".to_owned()
 }
 
 pub fn Platform() -> DOMString {
-    "".into_string()
+    "".to_owned()
 }
 
 pub fn UserAgent() -> DOMString {
     match opts::get().user_agent {
         Some(ref user_agent) => user_agent.clone(),
-        None => "".into_string(),
+        None => "".to_owned(),
     }
 }

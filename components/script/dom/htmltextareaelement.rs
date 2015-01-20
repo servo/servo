@@ -29,6 +29,7 @@ use dom::virtualmethods::VirtualMethods;
 use servo_util::str::DOMString;
 use string_cache::Atom;
 
+use std::borrow::ToOwned;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -83,7 +84,7 @@ impl HTMLTextAreaElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLTextAreaElement {
         HTMLTextAreaElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLTextAreaElement, localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".into_string())),
+            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, "".to_owned())),
             cols: Cell::new(DEFAULT_COLS),
             rows: Cell::new(DEFAULT_ROWS),
             value_changed: Cell::new(false),
@@ -151,7 +152,7 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-type
     fn Type(self) -> DOMString {
-        "textarea".into_string()
+        "textarea".to_owned()
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-defaultvalue

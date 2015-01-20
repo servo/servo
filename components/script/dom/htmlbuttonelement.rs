@@ -19,6 +19,7 @@ use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
 use std::ascii::OwnedAsciiExt;
+use std::borrow::ToOwned;
 use servo_util::str::DOMString;
 use string_cache::Atom;
 
@@ -66,7 +67,7 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
         // https://html.spec.whatwg.org/multipage/forms.html#attr-button-type
         match ty.as_slice() {
             "reset" | "button" | "menu" => ty,
-            _ => "submit".into_string()
+            _ => "submit".to_owned()
         }
     }
 

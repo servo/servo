@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::borrow::ToOwned;
 use std::task;
 use std::comm::Sender;
 use std::task::TaskBuilder;
@@ -29,7 +30,7 @@ pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
         f();
     });
 
-    let watched_name = name.into_string();
+    let watched_name = name.to_owned();
     let watcher_name = format!("{}Watcher", watched_name);
     TaskBuilder::new().named(watcher_name).spawn(proc() {
         //rtinstrument::instrument(proc() {

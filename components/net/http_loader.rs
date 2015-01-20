@@ -15,6 +15,8 @@ use std::io::Reader;
 use servo_util::task::spawn_named;
 use url::{Url, UrlParser};
 
+use std::borrow::ToOwned;
+
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     spawn_named("http_loader", proc() load(load_data, start_chan))
 }
@@ -85,7 +87,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         // FIXME(seanmonstar): use AcceptEncoding from Hyper once available
         //if !req.headers.has::<AcceptEncoding>() {
             // We currently don't support HTTP Compression (FIXME #2587)
-            req.headers_mut().set_raw("Accept-Encoding".into_string(), vec![b"identity".to_vec()]);
+            req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"identity".to_vec()]);
         //}
         let writer = match load_data.data {
             Some(ref data) => {

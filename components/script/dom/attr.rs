@@ -20,6 +20,7 @@ use servo_util::str::{DOMString, split_html_space_chars};
 
 use string_cache::{Atom, Namespace};
 
+use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
 
@@ -138,11 +139,11 @@ impl Attr {
 
 impl<'a> AttrMethods for JSRef<'a, Attr> {
     fn LocalName(self) -> DOMString {
-        self.local_name().as_slice().into_string()
+        self.local_name().as_slice().to_owned()
     }
 
     fn Value(self) -> DOMString {
-        self.value().as_slice().into_string()
+        self.value().as_slice().to_owned()
     }
 
     fn SetValue(self, value: DOMString) {
@@ -175,14 +176,14 @@ impl<'a> AttrMethods for JSRef<'a, Attr> {
     }
 
     fn Name(self) -> DOMString {
-        self.name.as_slice().into_string()
+        self.name.as_slice().to_owned()
     }
 
     fn GetNamespaceURI(self) -> Option<DOMString> {
         let Namespace(ref atom) = self.namespace;
         match atom.as_slice() {
             "" => None,
-            url => Some(url.into_string()),
+            url => Some(url.to_owned()),
         }
     }
 
@@ -237,7 +238,7 @@ impl<'a> AttrHelpers<'a> for JSRef<'a, Attr> {
     fn summarize(self) -> AttrInfo {
         let Namespace(ref ns) = self.namespace;
         AttrInfo {
-            namespace: ns.as_slice().into_string(),
+            namespace: ns.as_slice().to_owned(),
             name: self.Name(),
             value: self.Value(),
         }

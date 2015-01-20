@@ -30,6 +30,7 @@ use servo_util::str::DOMString;
 
 use string_cache::Atom;
 
+use std::borrow::ToOwned;
 use std::default::Default;
 
 #[dom_struct]
@@ -141,7 +142,7 @@ pub trait HTMLElementCustomAttributeHelpers {
 }
 
 fn to_snake_case(name: DOMString) -> DOMString {
-    let mut attr_name = "data-".into_string();
+    let mut attr_name = "data-".to_owned();
     for ch in name.as_slice().chars() {
         if ch.is_uppercase() {
             attr_name.push('\x2d');
@@ -168,7 +169,7 @@ impl<'a> HTMLElementCustomAttributeHelpers for JSRef<'a, HTMLElement> {
         let element: JSRef<Element> = ElementCast::from_ref(self);
         element.get_attribute(ns!(""), &Atom::from_slice(to_snake_case(name).as_slice())).map(|attr| {
             let attr = attr.root();
-            attr.r().value().as_slice().into_string()
+            attr.r().value().as_slice().to_owned()
         })
     }
 
@@ -199,7 +200,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLElement> {
             let evtarget: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.slice_from(2),
-                                                  attr.value().as_slice().into_string());
+                                                  attr.value().as_slice().to_owned());
         }
     }
 }

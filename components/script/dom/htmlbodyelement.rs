@@ -19,6 +19,8 @@ use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
 use servo_util::str::{mod, DOMString};
+
+use std::borrow::ToOwned;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -106,7 +108,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
                 };
             evtarget.set_event_handler_uncompiled(cx, url, reflector,
                                                   name.slice_from(2),
-                                                  attr.value().as_slice().into_string());
+                                                  attr.value().as_slice().to_owned());
         }
 
         match attr.local_name() {
