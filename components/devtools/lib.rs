@@ -12,6 +12,7 @@
 
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
+#![allow(unstable)]
 
 #[macro_use]
 extern crate log;
@@ -37,7 +38,7 @@ use servo_util::task::spawn_named;
 
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::mpsc::{self, channel, Receiver, Sender};
+use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
 use std::io::{Acceptor, Listener, TimedOut};
@@ -98,7 +99,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         'outer: loop {
             match stream.read_json_packet() {
                 Ok(json_packet) => {
-                    let actors = actors.lock().unwrap();
+                    let mut actors = actors.lock().unwrap();
                     match actors.handle_message(json_packet.as_object().unwrap(),
                                                 &mut stream) {
                         Ok(()) => {},

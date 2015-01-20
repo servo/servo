@@ -7,10 +7,8 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
-use std::intrinsics::TypeId;
 use std::io::TcpStream;
-use std::mem::{transmute, transmute_copy, replace};
-use std::raw::TraitObject;
+use std::mem::replace;
 use serialize::json;
 
 /// A common trait for all devtools actors that encompasses an immutable name
@@ -90,20 +88,14 @@ impl ActorRegistry {
 
     /// Find an actor by registered name
     pub fn find<'a, T: 'static>(&'a self, name: &str) -> &'a T {
-        //FIXME: Rust bug forces us to implement bogus Any for Actor since downcast_ref currently
-        //       fails for unknown reasons.
-        /*let actor: &Actor+Send+Sized = *self.actors.find(&name.to_string()).unwrap();
-        (actor as &Any).downcast_ref::<T>().unwrap()*/
-        self.actors.get(&name.to_string()).unwrap().downcast_ref::<T>().unwrap()
+        let actor: &Any = self.actors.get(&name.to_string()).unwrap();
+        actor.downcast_ref::<T>().unwrap()
     }
 
     /// Find an actor by registered name
     pub fn find_mut<'a, T: 'static>(&'a mut self, name: &str) -> &'a mut T {
-        //FIXME: Rust bug forces us to implement bogus Any for Actor since downcast_ref currently
-        //       fails for unknown reasons.
-        /*let actor: &mut Actor+Send+Sized = *self.actors.find_mut(&name.to_string()).unwrap();
-        (actor as &mut Any).downcast_mut::<T>().unwrap()*/
-        self.actors.get_mut(&name.to_string()).unwrap().downcast_mut::<T>().unwrap()
+        let actor: &mut Any = self.actors.get_mut(&name.to_string()).unwrap();
+        actor.downcast_mut::<T>().unwrap()
     }
 
     /// Attempt to process a message as directed by its `to` property. If the actor is not

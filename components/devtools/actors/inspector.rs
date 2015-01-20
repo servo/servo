@@ -113,9 +113,10 @@ impl Actor for NodeActor {
                     json::decode(json_mod.to_string().as_slice()).unwrap()
                 }).collect();
 
-                self.script_chan.send(ModifyAttribute(self.pipeline,
-                                                      registry.actor_to_script(target.to_string()),
-                                                      modifications));
+                let _ = self.script_chan.send(ModifyAttribute(
+                    self.pipeline,
+                    registry.actor_to_script(target.to_string()),
+                    modifications));
                 let reply = ModifyAttributeReply{
                     from: self.name(),
                 };
@@ -289,7 +290,7 @@ impl Actor for WalkerActor {
 
             "documentElement" => {
                 let (tx, rx) = channel();
-                self.script_chan.send(GetDocumentElement(self.pipeline, tx));
+                let _ = self.script_chan.send(GetDocumentElement(self.pipeline, tx));
                 let doc_elem_info = rx.recv().unwrap();
                 let node = doc_elem_info.encode(registry, true, self.script_chan.clone(), self.pipeline);
 
@@ -312,9 +313,10 @@ impl Actor for WalkerActor {
             "children" => {
                 let target = msg.get(&"node".to_string()).unwrap().as_string().unwrap();
                 let (tx, rx) = channel();
-                self.script_chan.send(GetChildren(self.pipeline,
-                                                  registry.actor_to_script(target.to_string()),
-                                                  tx));
+                let _ = self.script_chan.send(GetChildren(
+                    self.pipeline,
+                    registry.actor_to_script(target.to_string()),
+                    tx));
                 let children = rx.recv().unwrap();
 
                 let msg = ChildrenReply {
@@ -450,9 +452,10 @@ impl Actor for PageStyleActor {
             "getLayout" => {
                 let target = msg.get(&"node".to_string()).unwrap().as_string().unwrap();
                 let (tx, rx) = channel();
-                self.script_chan.send(GetLayout(self.pipeline,
-                                                registry.actor_to_script(target.to_string()),
-                                                tx));
+                let _ = self.script_chan.send(GetLayout(
+                    self.pipeline,
+                    registry.actor_to_script(target.to_string()),
+                    tx));
                 let (width, height) = rx.recv().unwrap();
 
                 let auto_margins = msg.get(&"autoMargins".to_string()).unwrap().as_boolean().unwrap();
@@ -508,7 +511,7 @@ impl Actor for InspectorActor {
                 }
 
                 let (tx, rx) = channel();
-                self.script_chan.send(GetRootNode(self.pipeline, tx));
+                let _ = self.script_chan.send(GetRootNode(self.pipeline, tx));
                 let root_info = rx.recv().unwrap();
 
                 let node = root_info.encode(registry, false, self.script_chan.clone(), self.pipeline);
