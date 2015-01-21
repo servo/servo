@@ -9,7 +9,7 @@ use std::task::TaskBuilder;
 // use rtinstrument;
 use task_state;
 
-pub fn spawn_named<S: IntoCow<'static, String, str>>(name: S, f: proc():Send) {
+pub fn spawn_named(name: String, f: proc():Send) {
     let builder = task::TaskBuilder::new().named(name);
     builder.spawn(proc() {
         // rtinstrument::instrument(f);

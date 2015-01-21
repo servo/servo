@@ -5,6 +5,7 @@
 use resource_task::{ProgressMsg, Metadata, LoadData, start_sending, TargetedLoadResponse, ResponseSenders};
 use resource_task::ProgressMsg::{Payload, Done};
 
+use std::borrow::ToOwned;
 use std::io;
 use std::io::File;
 use servo_util::task::spawn_named;
@@ -38,7 +39,7 @@ pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         eventual_consumer: load_data.consumer,
     };
     let progress_chan = start_sending(senders, Metadata::default(url.clone()));
-    spawn_named("file_loader", proc() {
+    spawn_named("file_loader".to_owned(), proc() {
         let file_path: Result<Path, ()> = url.to_file_path();
         match file_path {
             Ok(file_path) => {

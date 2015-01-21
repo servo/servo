@@ -5,6 +5,7 @@
 //! Timing functions.
 
 use collections::TreeMap;
+use std::borrow::ToOwned;
 use std::comm::{Sender, channel, Receiver};
 use std::f64;
 use std::io::timer::sleep;
@@ -144,7 +145,7 @@ impl TimeProfiler {
             Some(period) => {
                 let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
-                spawn_named("Time profiler timer", proc() {
+                spawn_named("Time profiler timer".to_owned(), proc() {
                     loop {
                         sleep(period);
                         if chan.send_opt(TimeProfilerMsg::Print).is_err() {
@@ -153,14 +154,14 @@ impl TimeProfiler {
                     }
                 });
                 // Spawn the time profiler.
-                spawn_named("Time profiler", proc() {
+                spawn_named("Time profiler".to_owned(), proc() {
                     let mut profiler = TimeProfiler::new(port);
                     profiler.start();
                 });
             }
             None => {
                 // No-op to handle messages when the time profiler is inactive.
-                spawn_named("Time profiler", proc() {
+                spawn_named("Time profiler".to_owned(), proc() {
                     loop {
                         match port.recv_opt() {
                             Err(_) | Ok(TimeProfilerMsg::Exit) => break,
