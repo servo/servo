@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use devtools_traits::{SendConsoleMessage, ConsoleMessage/*, LogMessage*/};
+use devtools_traits::{SendConsoleMessage, ConsoleMessage};
 use servo_util::str::DOMString;
 
 #[dom_struct]

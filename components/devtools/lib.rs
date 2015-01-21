@@ -59,6 +59,13 @@ mod protocol;
 
 #[deriving(Encodable)]
 struct ConsoleAPICall {
+    from: String,
+    __type__: String,
+    message: ConsoleMsg,
+}
+
+#[deriving(Encodable)]
+struct ConsoleMsg {
     logLevel: u32,
     timestamp: u64,
     message: String,
@@ -185,9 +192,13 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         match console_message {
             ConsoleMessage::LogMessage(message) => {
                 let msg = ConsoleAPICall {
-                    logLevel: 0,
-                    timestamp: precise_time_ns(),
-                    message: message,
+                    from: console_actor.name.clone(),
+                    __type__: "consoleAPICall".to_string(),
+                    message: ConsoleMsg {
+                        logLevel: 0,
+                        timestamp: precise_time_ns(),
+                        message: message,
+                    },
                 };
                 for stream in console_actor.streams.borrow_mut().iter_mut() {
                     stream.write_json_packet(&msg);
