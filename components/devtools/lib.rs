@@ -24,6 +24,7 @@ extern crate devtools_traits;
 extern crate serialize;
 extern crate "msg" as servo_msg;
 extern crate "util" as servo_util;
+extern crate time;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
@@ -33,10 +34,11 @@ use actors::tab::TabActor;
 use protocol::JsonPacketStream;
 
 use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg, DevtoolsPageInfo};
-use devtools_traits::{SendConsoleMessage, ConsoleMessage, LogMessage};
+use devtools_traits::{SendConsoleMessage, ConsoleMessage};
 use servo_msg::constellation_msg::PipelineId;
 use servo_util::task::spawn_named;
 
+use time::precise_time_ns;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::comm;
@@ -56,10 +58,10 @@ mod actors {
 mod protocol;
 
 #[deriving(Encodable)]
-pub struct ConsoleAPICall {
-    pub from: String,
-    pub __type__: String,
-    pub message: String,
+struct ConsoleAPICall {
+    logLevel: u32,
+    timestamp: u64,
+    message: String,
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
@@ -174,36 +176,34 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
     }
 
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
-                          id: PipelineId,
-                          console_message: ConsoleMessage,
-                          actor_pipelines: &HashMap<PipelineId, String>) {
+                              id: PipelineId,
+                              console_message: ConsoleMessage,
+                              actor_pipelines: &HashMap<PipelineId, String>) {
         let console_actor_name = find_console_actor(actors.clone(), id, actor_pipelines);
         let mut actors = actors.lock();
         let console_actor = actors.find::<ConsoleActor>(console_actor_name.as_slice());
         match console_message {
-            LogMessage(message) => handle_console_log_message(message, console_actor),
+            ConsoleMessage::LogMessage(message) => {
+                let msg = ConsoleAPICall {
+                    logLevel: 0,
+                    timestamp: precise_time_ns(),
+                    message: message,
+                };
+                for stream in console_actor.streams.borrow_mut().iter_mut() {
+                    stream.write_json_packet(&msg);
+                }
+            }
         }
     }
 
     fn find_console_actor(actors: Arc<Mutex<ActorRegistry>>,
-                      id: PipelineId,
-                      actor_pipelines: &HashMap<PipelineId, String>) -> String {
+                          id: PipelineId,
+                          actor_pipelines: &HashMap<PipelineId, String>) -> String {
         let mut actors = actors.lock();
         let ref tab_actor_name = (*actor_pipelines)[id];
         let tab_actor = actors.find::<TabActor>(tab_actor_name.as_slice());
         let console_actor_name = tab_actor.console.clone();
         return console_actor_name;
-    }
-
-    fn handle_console_log_message(message: String, console_actor: &ConsoleActor) {
-        let msg = ConsoleAPICall {
-            from: console_actor.name.clone(),
-            __type__: "consoleAPICall".to_string(),
-            message: message,
-        };
-        for stream in console_actor.streams.borrow_mut().iter_mut() {
-            stream.write_json_packet(&msg);
-        }
     }
 
     //TODO: figure out some system that allows us to watch for new connections,
