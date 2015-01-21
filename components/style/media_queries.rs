@@ -3,31 +3,20 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::ascii::AsciiExt;
-use cssparser::parse_rule_list;
-use cssparser::ast::*;
-use cssparser::ast::ComponentValue::*;
+use cssparser::{Token, Parser, Delimiter};
 
-use errors::{ErrorLoggerIterator, log_css_error};
 use geom::size::TypedSize2D;
-use selectors::ParserContext;
-use stylesheets::{CSSRule, parse_style_rule, parse_nested_at_rule};
-use namespaces::NamespaceMap;
-use parsing_utils::{BufferedIter, ParserIter};
-use properties::common_types::*;
 use properties::longhands;
-use servo_util::geometry::ViewportPx;
-use url::Url;
+use servo_util::geometry::{Au, ViewportPx};
+use values::{computed, specified};
 
-pub struct MediaRule {
-    pub media_queries: MediaQueryList,
-    pub rules: Vec<CSSRule>,
-}
 
+#[deriving(Show, PartialEq)]
 pub struct MediaQueryList {
     media_queries: Vec<MediaQuery>
 }
 
-#[deriving(PartialEq, Eq, Copy)]
+#[deriving(PartialEq, Eq, Copy, Show)]
 pub enum Range<T> {
     Min(T),
     Max(T),
@@ -44,17 +33,18 @@ impl<T: Ord> Range<T> {
     }
 }
 
-#[deriving(PartialEq, Eq, Copy)]
+#[deriving(PartialEq, Eq, Copy, Show)]
 pub enum Expression {
     Width(Range<Au>),
 }
 
-#[deriving(PartialEq, Eq, Copy)]
+#[deriving(PartialEq, Eq, Copy, Show)]
 pub enum Qualifier {
     Only,
     Not,
 }
 
+#[deriving(Show, PartialEq)]
 pub struct MediaQuery {
     qualifier: Option<Qualifier>,
     media_type: MediaQueryType,
@@ -72,19 +62,21 @@ impl MediaQuery {
     }
 }
 
-#[deriving(PartialEq, Eq, Copy)]
+#[deriving(PartialEq, Eq, Copy, Show)]
 pub enum MediaQueryType {
     All,  // Always true
     MediaType(MediaType),
 }
 
-#[deriving(PartialEq, Eq, Copy)]
+#[deriving(PartialEq, Eq, Copy, Show)]
 pub enum MediaType {
     Screen,
     Print,
     Unknown,
 }
 
+#[allow(missing_copy_implementations)]
+#[deriving(Show)]
 pub struct Device {
     pub media_type: MediaType,
     pub viewport_size: TypedSize2D<ViewportPx, f32>,
@@ -99,42 +91,9 @@ impl Device {
     }
 }
 
-pub fn parse_media_rule(context: &ParserContext,
-                        rule: AtRule,
-                        parent_rules: &mut Vec<CSSRule>,
-                        namespaces: &NamespaceMap,
-                        base_url: &Url) {
-    let media_queries = parse_media_query_list(rule.prelude.as_slice());
-    let block = match rule.block {
-        Some(block) => block,
-        None => {
-            log_css_error(rule.location, "Invalid @media rule");
-            return
-        }
-    };
-    let mut rules = vec!();
-    for rule in ErrorLoggerIterator(parse_rule_list(block.into_iter())) {
-        match rule {
-            Rule::QualifiedRule(rule) => {
-                parse_style_rule(context, rule, &mut rules, namespaces, base_url)
-            }
-            Rule::AtRule(rule) => parse_nested_at_rule(
-                context,
-                rule.name.as_slice().to_ascii_lower().as_slice(),
-                rule,
-                &mut rules,
-                namespaces,
-                base_url),
-        }
-    }
-    parent_rules.push(CSSRule::Media(MediaRule {
-        media_queries: media_queries,
-        rules: rules,
-    }))
-}
 
-fn parse_value_as_length(value: &ComponentValue) -> Result<Au, ()> {
-    let length = try!(specified::Length::parse_non_negative(value));
+fn parse_non_negative_length(input: &mut Parser) -> Result<Au, ()> {
+    let length = try!(specified::Length::parse_non_negative(input));
 
     // http://dev.w3.org/csswg/mediaqueries3/ - Section 6
     // em units are relative to the initial font-size.
@@ -142,154 +101,87 @@ fn parse_value_as_length(value: &ComponentValue) -> Result<Au, ()> {
     Ok(computed::compute_Au_with_font_size(length, initial_font_size, initial_font_size))
 }
 
-fn parse_media_query_expression(iter: ParserIter) -> Result<Expression, ()> {
-    // Expect a parenthesis block with the condition
-    match iter.next() {
-        Some(&ParenthesisBlock(ref block)) => {
-            let iter = &mut BufferedIter::new(block.as_slice().skip_whitespace());
 
-            // Parse the variable (e.g. min-width)
-            let variable = match iter.next() {
-                Some(&Ident(ref value)) => value,
-                _ => return Err(())
-            };
-
-            // Ensure a colon follows
-            match iter.next() {
-                Some(&Colon) => {},
-                _ => return Err(())
-            }
-
-            // Retrieve the value
-            let value = try!(iter.next_as_result());
-
-            // TODO: Handle other media query types
-            let expression = match variable.as_slice().to_ascii_lower().as_slice() {
+impl Expression {
+    fn parse(input: &mut Parser) -> Result<Expression, ()> {
+        try!(input.expect_parenthesis_block());
+        input.parse_nested_block(|input| {
+            let name = try!(input.expect_ident());
+            try!(input.expect_colon());
+            // TODO: Handle other media features
+            match_ignore_ascii_case! { name:
                 "min-width" => {
-                    let au = try!(parse_value_as_length(value));
-                    Expression::Width(Range::Min(au))
-                }
+                    Ok(Expression::Width(Range::Min(try!(parse_non_negative_length(input)))))
+                },
                 "max-width" => {
-                    let au = try!(parse_value_as_length(value));
-                    Expression::Width(Range::Max(au))
+                    Ok(Expression::Width(Range::Max(try!(parse_non_negative_length(input)))))
                 }
-                _ => return Err(())
-            };
-
-            if iter.is_eof() {
-                Ok(expression)
-            } else {
-                Err(())
+                _ => Err(())
             }
-        }
-        _ => Err(())
+        })
     }
 }
 
-fn parse_media_query(iter: ParserIter) -> Result<MediaQuery, ()> {
-    let mut expressions = vec!();
+impl MediaQuery {
+    fn parse(input: &mut Parser) -> Result<MediaQuery, ()> {
+        let mut expressions = vec![];
 
-    // Check for optional 'only' or 'not'
-    let qualifier = match iter.next() {
-        Some(&Ident(ref value)) if value.as_slice().to_ascii_lower().as_slice() == "only" => Some(Qualifier::Only),
-        Some(&Ident(ref value)) if value.as_slice().to_ascii_lower().as_slice() == "not" => Some(Qualifier::Not),
-        Some(component_value) => {
-            iter.push_back(component_value);
+        let qualifier = if input.try(|input| input.expect_ident_matching("only")).is_ok() {
+            Some(Qualifier::Only)
+        } else if input.try(|input| input.expect_ident_matching("not")).is_ok() {
+            Some(Qualifier::Not)
+        } else {
             None
-        }
-        None => return Err(()),        // Empty queries are invalid
-    };
+        };
 
-    // Check for media type
-    let media_type = match iter.next() {
-        Some(&Ident(ref value)) => {
-            match value.as_slice().to_ascii_lower().as_slice() {
+        let media_type;
+        if let Ok(ident) = input.try(|input| input.expect_ident()) {
+            media_type = match_ignore_ascii_case! { ident:
                 "screen" => MediaQueryType::MediaType(MediaType::Screen),
                 "print" => MediaQueryType::MediaType(MediaType::Print),
-                "all" => MediaQueryType::All,
-                _ => MediaQueryType::MediaType(MediaType::Unknown),       // Unknown media types never match
+                "all" => MediaQueryType::All
+                _ => MediaQueryType::MediaType(MediaType::Unknown)
             }
-        }
-        Some(component_value) => {
+        } else {
             // Media type is only optional if qualifier is not specified.
             if qualifier.is_some() {
-                return Err(());
+                return Err(())
             }
-            iter.push_back(component_value);
-
-            // If no qualifier and media type present, an expression should exist here
-            let expression = try!(parse_media_query_expression(iter));
-            expressions.push(expression);
-
-            MediaQueryType::All
+            media_type = MediaQueryType::All;
+            // Without a media type, require at least one expression
+            expressions.push(try!(Expression::parse(input)));
         }
-        None => return Err(()),
-    };
 
-    // Parse any subsequent expressions
-    loop {
-        // Each expression should begin with and
-        match iter.next() {
-            Some(&Ident(ref value)) => {
-                match value.as_slice().to_ascii_lower().as_slice() {
-                    "and" => {
-                        let expression = try!(parse_media_query_expression(iter));
-                        expressions.push(expression);
-                    }
-                    _ => return Err(()),
-                }
+        // Parse any subsequent expressions
+        loop {
+            if input.try(|input| input.expect_ident_matching("and")).is_err() {
+                return Ok(MediaQuery::new(qualifier, media_type, expressions))
             }
-            Some(component_value) => {
-                iter.push_back(component_value);
-                break;
-            }
-            None => break,
+            expressions.push(try!(Expression::parse(input)))
         }
     }
-
-    Ok(MediaQuery::new(qualifier, media_type, expressions))
 }
 
-pub fn parse_media_query_list(input: &[ComponentValue]) -> MediaQueryList {
-    let iter = &mut BufferedIter::new(input.skip_whitespace());
-    let mut media_queries = vec!();
-
-    if iter.is_eof() {
-        media_queries.push(MediaQuery::new(None, MediaQueryType::All, vec!()));
+pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
+    let queries = if input.is_exhausted() {
+        vec![MediaQuery::new(None, MediaQueryType::All, vec!())]
     } else {
+        let mut media_queries = vec![];
         loop {
-            // Attempt to parse a media query.
-            let media_query_result = parse_media_query(iter);
-
-            // Skip until next query or end
-            let mut trailing_tokens = false;
-            let mut more_queries = false;
-            loop {
-                match iter.next() {
-                    Some(&Comma) => {
-                        more_queries = true;
-                        break;
-                    }
-                    Some(_) => trailing_tokens = true,
-                    None => break,
-                }
-            }
-
-            // Add the media query if it was valid and no trailing tokens were found.
-            // Otherwise, create a 'not all' media query, that will never match.
-            let media_query = match (media_query_result, trailing_tokens) {
-                (Ok(media_query), false) => media_query,
-                _ => MediaQuery::new(Some(Qualifier::Not), MediaQueryType::All, vec!()),
-            };
-            media_queries.push(media_query);
-
-            if !more_queries {
-                break;
+            media_queries.push(
+                input.parse_until_before(Delimiter::Comma, MediaQuery::parse)
+                     .unwrap_or(MediaQuery::new(Some(Qualifier::Not),
+                                                MediaQueryType::All,
+                                                vec!())));
+            match input.next() {
+                Ok(Token::Comma) => continue,
+                Ok(_) => unreachable!(),
+                Err(()) => break,
             }
         }
-    }
-
-    MediaQueryList { media_queries: media_queries }
+        media_queries
+    };
+    MediaQueryList { media_queries: queries }
 }
 
 impl MediaQueryList {
@@ -323,17 +215,16 @@ impl MediaQueryList {
 #[cfg(test)]
 mod tests {
     use geom::size::TypedSize2D;
-    use properties::common_types::*;
+    use servo_util::geometry::Au;
     use stylesheets::{iter_stylesheet_media_rules, iter_stylesheet_style_rules, Stylesheet};
-    use selector_matching::StylesheetOrigin;
+    use stylesheets::Origin;
     use super::*;
     use url::Url;
     use std::borrow::ToOwned;
 
     fn test_media_rule(css: &str, callback: |&MediaQueryList, &str|) {
         let url = Url::parse("http://localhost").unwrap();
-        let stylesheet = Stylesheet::from_str(css, url,
-                                              StylesheetOrigin::Author);
+        let stylesheet = Stylesheet::from_str(css, url, Origin::Author);
         let mut rule_count: int = 0;
         iter_stylesheet_media_rules(&stylesheet, |rule| {
             rule_count += 1;
@@ -344,7 +235,7 @@ mod tests {
 
     fn media_query_test(device: &Device, css: &str, expected_rule_count: int) {
         let url = Url::parse("http://localhost").unwrap();
-        let ss = Stylesheet::from_str(css, url, StylesheetOrigin::Author);
+        let ss = Stylesheet::from_str(css, url, Origin::Author);
         let mut rule_count: int = 0;
         iter_stylesheet_style_rules(&ss, device, |_| rule_count += 1);
         assert!(rule_count == expected_rule_count, css.to_owned());
@@ -629,8 +520,12 @@ mod tests {
         });
 
         test_media_rule("@media , {}", |list, css| {
-            assert!(list.media_queries.len() == 1, css.to_owned());
+            assert!(list.media_queries.len() == 2, css.to_owned());
             let q = &list.media_queries[0];
+            assert!(q.qualifier == Some(Qualifier::Not), css.to_owned());
+            assert!(q.media_type == MediaQueryType::All, css.to_owned());
+            assert!(q.expressions.len() == 0, css.to_owned());
+            let q = &list.media_queries[1];
             assert!(q.qualifier == Some(Qualifier::Not), css.to_owned());
             assert!(q.media_type == MediaQueryType::All, css.to_owned());
             assert!(q.expressions.len() == 0, css.to_owned());

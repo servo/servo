@@ -6,10 +6,10 @@
 //! `<input size>`, and so forth.
 
 use node::{TElement, TElementAttributes, TNode};
-use properties::common_types::specified::CSSColor;
+use values::specified::CSSColor;
+use values::{CSSFloat, specified};
 use properties::DeclaredValue::SpecifiedValue;
-use properties::PropertyDeclaration::*;
-use properties::{CSSFloat, specified};
+use properties::PropertyDeclaration;
 use selector_matching::{DeclarationBlock, Stylist};
 
 use cssparser::Color;
@@ -110,13 +110,13 @@ impl PresentationalHintSynthesis for Stylist {
                     LengthOrPercentageOrAuto::Percentage(percentage) => {
                         let width_value = specified::LengthOrPercentageOrAuto::Percentage(percentage);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(width_value))));
+                                PropertyDeclaration::Width(SpecifiedValue(width_value))));
                         *shareable = false
                     }
                     LengthOrPercentageOrAuto::Length(length) => {
                         let width_value = specified::LengthOrPercentageOrAuto::Length(specified::Length::Au(length));
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(width_value))));
+                                PropertyDeclaration::Width(SpecifiedValue(width_value))));
                         *shareable = false
                     }
                 }
@@ -160,8 +160,8 @@ impl PresentationalHintSynthesis for Stylist {
                             _ => specified::Length::Au(Au::from_px(value as int)),
                         };
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(specified::LengthOrPercentageOrAuto::Length(
-                                            value)))));
+                                PropertyDeclaration::Width(SpecifiedValue(
+                                    specified::LengthOrPercentageOrAuto::Length(value)))));
                         *shareable = false
                     }
                     Some(_) | None => {}
@@ -177,8 +177,8 @@ impl PresentationalHintSynthesis for Stylist {
                         // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-width
                         let value = specified::Length::ServoCharacterWidth(value);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                WidthDeclaration(SpecifiedValue(specified::LengthOrPercentageOrAuto::Length(
-                                            value)))));
+                                PropertyDeclaration::Width(SpecifiedValue(
+                                    specified::LengthOrPercentageOrAuto::Length(value)))));
                         *shareable = false
                     }
                     Some(_) | None => {}
@@ -190,8 +190,8 @@ impl PresentationalHintSynthesis for Stylist {
                         // https://html.spec.whatwg.org/multipage/rendering.html#textarea-effective-height
                         let value = specified::Length::Em(value as CSSFloat);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                                HeightDeclaration(SpecifiedValue(specified::LengthOrPercentageOrAuto::Length(
-                                            value)))));
+                                PropertyDeclaration::Height(SpecifiedValue(
+                                    specified::LengthOrPercentageOrAuto::Length(value)))));
                         *shareable = false
                     }
                     Some(_) | None => {}
@@ -216,7 +216,8 @@ impl PresentationalHintSynthesis for Stylist {
             None => {}
             Some(color) => {
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        BackgroundColorDeclaration(SpecifiedValue(CSSColor { parsed: Color::RGBA(color), authored: None }))));
+                        PropertyDeclaration::BackgroundColor(SpecifiedValue(
+                            CSSColor { parsed: Color::RGBA(color), authored: None }))));
                 *shareable = false
             }
         }
@@ -236,13 +237,13 @@ impl PresentationalHintSynthesis for Stylist {
             Some(length) => {
                 let width_value = specified::Length::Au(Au::from_px(length as int));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        BorderTopWidthDeclaration(SpecifiedValue(width_value))));
+                        PropertyDeclaration::BorderTopWidth(SpecifiedValue(width_value))));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        BorderLeftWidthDeclaration(SpecifiedValue(width_value))));
+                        PropertyDeclaration::BorderLeftWidth(SpecifiedValue(width_value))));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        BorderBottomWidthDeclaration(SpecifiedValue(width_value))));
+                        PropertyDeclaration::BorderBottomWidth(SpecifiedValue(width_value))));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        BorderRightWidthDeclaration(SpecifiedValue(width_value))));
+                        PropertyDeclaration::BorderRightWidth(SpecifiedValue(width_value))));
                 *shareable = false
             }
         }
