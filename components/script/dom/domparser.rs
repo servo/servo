@@ -17,6 +17,8 @@ use dom::window::Window;
 use parse::html::{HTMLInput, parse_html};
 use servo_util::str::DOMString;
 
+use std::borrow::ToOwned;
+
 #[dom_struct]
 pub struct DOMParser {
     reflector_: Reflector,
@@ -49,7 +51,7 @@ impl<'a> DOMParserMethods for JSRef<'a, DOMParser> {
                        -> Fallible<Temporary<Document>> {
         let window = self.window.root();
         let url = window.r().get_url();
-        let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as uint].into_string();
+        let content_type = DOMParserBinding::SupportedTypeValues::strings[ty as uint].to_owned();
         match ty {
             Text_html => {
                 let document = Document::new(window.r(), Some(url.clone()),

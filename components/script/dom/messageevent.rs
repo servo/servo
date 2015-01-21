@@ -18,6 +18,8 @@ use servo_util::str::DOMString;
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, UndefinedValue};
 
+use std::borrow::ToOwned;
+
 #[dom_struct]
 pub struct MessageEvent {
     event: Event,
@@ -44,7 +46,7 @@ impl MessageEvent {
     }
 
     pub fn new_uninitialized(global: GlobalRef) -> Temporary<MessageEvent> {
-        MessageEvent::new_initialized(global, UndefinedValue(), "".into_string(), "".into_string())
+        MessageEvent::new_initialized(global, UndefinedValue(), "".to_owned(), "".to_owned())
     }
 
     pub fn new_initialized(global: GlobalRef, data: JSVal, origin: DOMString, lastEventId: DOMString) -> Temporary<MessageEvent> {
@@ -78,8 +80,8 @@ impl MessageEvent {
                           scope: GlobalRef,
                           message: JSVal) {
         let messageevent = MessageEvent::new(
-            scope, "message".into_string(), false, false, message,
-            "".into_string(), "".into_string()).root();
+            scope, "message".to_owned(), false, false, message,
+            "".to_owned(), "".to_owned()).root();
         let event: JSRef<Event> = EventCast::from_ref(messageevent.r());
         target.dispatch_event(event);
     }

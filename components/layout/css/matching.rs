@@ -14,6 +14,7 @@ use servo_util::bloom::BloomFilter;
 use servo_util::cache::{Cache, LRUCache, SimpleHashCache};
 use servo_util::smallvec::{SmallVec, SmallVec16};
 use servo_util::arc_ptr_eq;
+use std::borrow::ToOwned;
 use std::mem;
 use std::hash::{Hash, sip};
 use std::slice::Items;
@@ -237,7 +238,7 @@ impl StyleSharingCandidate {
             parent_style: parent_style,
             local_name: element.get_local_name().clone(),
             class: element.get_attr(&ns!(""), &atom!("class"))
-                          .map(|string| string.into_string()),
+                          .map(|string| string.to_owned()),
             link: element.get_link().is_some(),
             namespace: (*element.get_namespace()).clone(),
             common_style_affecting_attributes:

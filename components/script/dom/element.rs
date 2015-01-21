@@ -59,6 +59,7 @@ use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
 
 use cssparser::RGBA;
 use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
@@ -111,7 +112,9 @@ impl Element {
         create_element(name, prefix, document, creator)
     }
 
-    pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString, namespace: Namespace, prefix: Option<DOMString>, document: JSRef<Document>) -> Element {
+    pub fn new_inherited(type_id: ElementTypeId, local_name: DOMString,
+                         namespace: Namespace, prefix: Option<DOMString>,
+                         document: JSRef<Document>) -> Element {
         Element {
             node: Node::new_inherited(NodeTypeId::Element(type_id), document),
             local_name: Atom::from_slice(local_name.as_slice()),
@@ -759,7 +762,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_url_attribute(self, name: &Atom) -> DOMString {
         assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
         if !self.has_attribute(name) {
-            return "".into_string();
+            return "".to_owned();
         }
         let url = self.get_string_attribute(name);
         let doc = document_from_node(self).root();
@@ -768,7 +771,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         // XXXManishearth this doesn't handle `javascript:` urls properly
         match UrlParser::new().base_url(base).parse(url.as_slice()) {
             Ok(parsed) => parsed.serialize(),
-            Err(_) => "".into_string()
+            Err(_) => "".to_owned()
         }
     }
     fn set_url_attribute(self, name: &Atom, value: DOMString) {
@@ -778,7 +781,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     fn get_string_attribute(self, name: &Atom) -> DOMString {
         match self.get_attribute(ns!(""), name) {
             Some(x) => x.root().r().Value(),
-            None => "".into_string()
+            None => "".to_owned()
         }
     }
     fn set_string_attribute(self, name: &Atom, value: DOMString) {
@@ -833,12 +836,12 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
     fn GetNamespaceURI(self) -> Option<DOMString> {
         match self.namespace {
             ns!("") => None,
-            Namespace(ref ns) => Some(ns.as_slice().into_string())
+            Namespace(ref ns) => Some(ns.as_slice().to_owned())
         }
     }
 
     fn LocalName(self) -> DOMString {
-        self.local_name.as_slice().into_string()
+        self.local_name.as_slice().to_owned()
     }
 
     // http://dom.spec.whatwg.org/#dom-element-prefix
@@ -994,7 +997,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
         // Step 9.
         let value = self.parse_attribute(&namespace, &local_name, value);
         self.do_set_attribute(local_name.clone(), value, name,
-                              namespace.clone(), prefix.map(|s| s.into_string()),
+                              namespace.clone(), prefix.map(|s| s.to_owned()),
                               |attr| {
             *attr.local_name() == local_name &&
             *attr.namespace() == namespace
@@ -1117,6 +1120,23 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             Ok(ref selectors) => {
                 let root: JSRef<Node> = NodeCast::from_ref(self);
                 Ok(matches(selectors, &root, &mut None))
+            }
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-closest
+    fn Closest(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
+        let parser_context = ParserContext {
+            origin: StylesheetOrigin::Author,
+        };
+        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
+            Err(()) => Err(Syntax),
+            Ok(ref selectors) => {
+                let root: JSRef<Node> = NodeCast::from_ref(self);
+                Ok(root.inclusive_ancestors()
+                       .filter_map(ElementCast::to_ref)
+                       .find(|element| matches(selectors, &NodeCast::from_ref(*element), &mut None))
+                       .map(Temporary::from_rooted))
             }
         }
     }

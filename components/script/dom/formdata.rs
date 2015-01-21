@@ -16,6 +16,8 @@ use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
 use servo_util::str::DOMString;
+
+use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
 
@@ -115,7 +117,7 @@ impl PrivateFormDataHelpers for FormData {
     fn get_file_from_blob(&self, value: JSRef<Blob>, filename: Option<DOMString>) -> Temporary<File> {
         let global = self.global.root();
         let f: Option<JSRef<File>> = FileCast::to_ref(value);
-        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".into_string()));
+        let name = filename.unwrap_or(f.map(|inner| inner.name().clone()).unwrap_or("blob".to_owned()));
         File::new(global.r(), value, name)
     }
 }

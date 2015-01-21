@@ -11,6 +11,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use dom::mouseevent::MouseEvent;
 use dom::node::window_from_node;
 
+use std::borrow::ToOwned;
 
 /// Trait for elements with defined activation behavior
 pub trait Activatable : Copy {
@@ -44,7 +45,7 @@ pub trait Activatable : Copy {
         // https://html.spec.whatwg.org/multipage/webappapis.html#fire-a-synthetic-mouse-event
         let win = window_from_node(element.r()).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(element.r());
-        let mouse = MouseEvent::new(win.r(), "click".into_string(),
+        let mouse = MouseEvent::new(win.r(), "click".to_owned(),
                                     false, false, Some(win.r()), 1,
                                     0, 0, 0, 0, ctrlKey, shiftKey, altKey, metaKey,
                                     0, None).root();

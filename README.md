@@ -28,7 +28,7 @@ On Debian-based Linuxes:
 sudo apt-get install curl freeglut3-dev \
     libfreetype6-dev libgl1-mesa-dri libglib2.0-dev xorg-dev \
     msttcorefonts gperf g++ cmake python-virtualenv \
-    libssl-dev libbz2-dev
+    libssl-dev libbz2-dev libosmesa6-dev
 ```
 
 On Fedora:
@@ -49,7 +49,7 @@ popd
 On Arch Linux:
 
 ``` sh
-sudo pacman -S base-devel git python2 python2-virtualenv mesa ttf-font cmake bzip2
+sudo pacman -S --needed base-devel git python2 python2-virtualenv mesa ttf-font cmake bzip2
 ```
 
 Cross-compilation for Android:

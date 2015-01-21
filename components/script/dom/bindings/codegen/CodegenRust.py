@@ -674,7 +674,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             default = "None"
         else:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
-            value = "str::from_utf8(&data).unwrap().into_string()"
+            value = "str::from_utf8(&data).unwrap().to_owned()"
             if type.nullable():
                 value = "Some(%s)" % value
 
@@ -4584,11 +4584,13 @@ class CGBindingRoot(CGThing):
             'page::JSPageInfo',
             'libc',
             'servo_util::str::DOMString',
-            'std::mem',
+            'std::borrow::ToOwned',
             'std::cmp',
+            'std::iter::repeat',
+            'std::mem',
+            'std::num',
             'std::ptr',
             'std::str',
-            'std::num',
         ])
 
         # Add the auto-generated comment.
@@ -4885,7 +4887,7 @@ class CallbackMember(CGNativeMember):
         if self.argCount > 0:
             replacements["argCount"] = self.argCountStr
             replacements["argvDecl"] = string.Template(
-                "let mut argv = Vec::from_elem(${argCount}, UndefinedValue());\n"
+                "let mut argv = repeat(UndefinedValue()).take(${argCount}).collect::<Vec<_>>();\n"
                 ).substitute(replacements)
         else:
             # Avoid weird 0-sized arrays

@@ -79,16 +79,18 @@ use servo_util::str::DOMString;
 
 use string_cache::QualName;
 
+use std::borrow::ToOwned;
+
 pub fn create_element(name: QualName, prefix: Option<DOMString>,
                       document: JSRef<Document>, creator: ElementCreator)
                       -> Temporary<Element> {
     if name.ns != ns!(HTML) {
-        return Element::new(name.local.as_slice().into_string(), name.ns, prefix, document);
+        return Element::new(name.local.as_slice().to_owned(), name.ns, prefix, document);
     }
 
     macro_rules! make(
         ($ctor:ident $(, $arg:expr)*) => ({
-            let obj = $ctor::new(name.local.as_slice().into_string(), prefix, document $(, $arg)*);
+            let obj = $ctor::new(name.local.as_slice().to_owned(), prefix, document $(, $arg)*);
             ElementCast::from_temporary(obj)
         })
     )

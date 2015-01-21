@@ -67,6 +67,7 @@ use style::{LengthAttribute, PropertyDeclarationBlock, SimpleColorAttribute};
 use style::{TElement, TElementAttributes, TNode, UnsignedIntegerAttribute};
 use url::Url;
 
+use std::borrow::ToOwned;
 use std::cell::{Ref, RefMut};
 
 /// Allows some convenience methods on generic layout nodes.
@@ -212,7 +213,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
     fn text(&self) -> String {
         unsafe {
             if let Some(text) = TextCast::to_js(self.get_jsmanaged()) {
-                (*text.unsafe_get()).characterdata().data_for_layout().into_string()
+                (*text.unsafe_get()).characterdata().data_for_layout().to_owned()
             } else if let Some(input) = HTMLInputElementCast::to_js(self.get_jsmanaged()) {
                 input.get_value_for_layout()
             } else if let Some(area) = HTMLTextAreaElementCast::to_js(self.get_jsmanaged()) {
@@ -652,10 +653,10 @@ fn get_content(content_list: &content::T) -> String {
             let iter = &mut value.clone().into_iter().peekable();
             match iter.next() {
                 Some(content::ContentItem::StringContent(content)) => content,
-                _ => "".into_string(),
+                _ => "".to_owned(),
             }
         }
-        _ => "".into_string(),
+        _ => "".to_owned(),
     }
 }
 

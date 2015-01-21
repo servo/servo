@@ -13,16 +13,19 @@ use types::{cef_browser_settings_t, cef_string_t, cef_window_info_t};
 use window;
 
 use compositing::windowing::{WindowNavigateMsg, WindowEvent};
-use glfw_app;
+use glutin_app;
 use libc::c_int;
 use servo_util::opts;
+use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
+use std::sync::atomic::{AtomicInt, SeqCst};
 
+thread_local!(pub static ID_COUNTER: AtomicInt = AtomicInt::new(0))
 thread_local!(pub static BROWSERS: RefCell<Vec<CefBrowser>> = RefCell::new(vec!()))
 
 pub enum ServoBrowser {
     Invalid,
-    OnScreen(Browser<glfw_app::window::Window>),
+    OnScreen(Browser<glutin_app::window::Window>),
     OffScreen(Browser<window::Window>),
 }
 
@@ -83,6 +86,7 @@ pub struct ServoCefBrowser {
     /// Whether the on-created callback has fired yet.
     pub callback_executed: Cell<bool>,
 
+    id: int,
     servo_browser: RefCell<ServoBrowser>,
     message_queue: RefCell<Vec<WindowEvent>>,
 }
@@ -93,12 +97,16 @@ impl ServoCefBrowser {
         let host = ServoCefBrowserHost::new(client.clone()).as_cef_interface();
 
         let servo_browser = if window_info.windowless_rendering_enabled == 0 {
-            let glfw_window = glfw_app::create_window();
-            let servo_browser = Browser::new(Some(glfw_window.clone()));
+            let glutin_window = glutin_app::create_window();
+            let servo_browser = Browser::new(Some(glutin_window.clone()));
             ServoBrowser::OnScreen(servo_browser)
         } else {
             ServoBrowser::Invalid
         };
+
+        let id = ID_COUNTER.with(|counter| {
+            counter.fetch_add(1, SeqCst)
+        });
 
         ServoCefBrowser {
             frame: frame,
@@ -107,6 +115,7 @@ impl ServoCefBrowser {
             callback_executed: Cell::new(false),
             servo_browser: RefCell::new(servo_browser),
             message_queue: RefCell::new(vec!()),
+            id: id,
         }
     }
 }
@@ -170,6 +179,15 @@ pub fn update() {
     });
 }
 
+pub fn close(browser: CefBrowser) {
+    BROWSERS.with(|browsers| {
+        let mut browsers = browsers.borrow_mut();
+        browsers.iter()
+                .position(|&ref n| n.downcast().id == browser.downcast().id)
+                .map(|e| browsers.remove(e));
+    });
+}
+
 pub fn browser_callback_after_created(browser: CefBrowser) {
     if browser.downcast().client.is_null_cef_object() {
         return
@@ -187,7 +205,7 @@ fn browser_host_create(window_info: &cef_window_info_t,
                        callback_executed: bool)
                        -> CefBrowser {
     let mut urls = Vec::new();
-    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".into_string());
+    urls.push("http://s27.postimg.org/vqbtrolyr/servo.jpg".to_owned());
     let mut opts = opts::default_opts();
     opts.urls = urls;
     let browser = ServoCefBrowser::new(window_info, client).as_cef_interface();

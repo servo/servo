@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 
 use servo_util::str::DOMString;
+use std::borrow::ToOwned;
 use std::cmp::{min, max};
 use std::ascii::AsciiExt;
 
@@ -43,7 +44,7 @@ impl Blob {
             reflector_: Reflector::new(),
             type_: type_,
             bytes: bytes,
-            typeString: typeString.into_string(),
+            typeString: typeString.to_owned(),
             global: GlobalField::from_rooted(&global)
             //isClosed_: false
         }
@@ -109,12 +110,12 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
             }
         };
         let relativeContentType = match contentType {
-            None => "".into_string(),
+            None => "".to_owned(),
             Some(str) => {
                 if is_ascii_printable(&str) {
-                    str.as_slice().to_ascii_lower().into_string()
+                    str.as_slice().to_ascii_lower().to_owned()
                 } else {
-                    "".into_string()
+                    "".to_owned()
                 }
             }
         };

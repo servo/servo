@@ -28,6 +28,7 @@ use js::jsval::{UndefinedValue, NullValue, BooleanValue, Int32Value, UInt32Value
 use js::jsval::{StringValue, ObjectValue, ObjectOrNullValue};
 
 use libc;
+use std::borrow::ToOwned;
 use std::default;
 use std::slice;
 
@@ -289,7 +290,7 @@ pub fn jsid_to_str(cx: *mut JSContext, id: jsid) -> DOMString {
 impl FromJSValConvertible<StringificationBehavior> for DOMString {
     fn from_jsval(cx: *mut JSContext, value: JSVal, nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
         if nullBehavior == StringificationBehavior::Empty && value.is_null() {
-            Ok("".into_string())
+            Ok("".to_owned())
         } else {
             let jsstr = unsafe { JS_ValueToString(cx, value) };
             if jsstr.is_null() {

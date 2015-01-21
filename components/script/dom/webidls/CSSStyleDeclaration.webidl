@@ -46,6 +46,8 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString borderWidth;
   [TreatNullAs=EmptyString] attribute DOMString borderBottom;
   [TreatNullAs=EmptyString] attribute DOMString borderBottomColor;
+  [TreatNullAs=EmptyString] attribute DOMString borderBottomLeftRadius;
+  [TreatNullAs=EmptyString] attribute DOMString borderBottomRightRadius;
   [TreatNullAs=EmptyString] attribute DOMString borderBottomStyle;
   [TreatNullAs=EmptyString] attribute DOMString borderBottomWidth;
   [TreatNullAs=EmptyString] attribute DOMString borderLeft;
@@ -58,6 +60,8 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString borderRightWidth;
   [TreatNullAs=EmptyString] attribute DOMString borderTop;
   [TreatNullAs=EmptyString] attribute DOMString borderTopColor;
+  [TreatNullAs=EmptyString] attribute DOMString borderTopLeftRadius;
+  [TreatNullAs=EmptyString] attribute DOMString borderTopRightRadius;
   [TreatNullAs=EmptyString] attribute DOMString borderTopStyle;
   [TreatNullAs=EmptyString] attribute DOMString borderTopWidth;
 
@@ -80,9 +84,15 @@ partial interface CSSStyleDeclaration {
 
   [TreatNullAs=EmptyString] attribute DOMString clear;
 
+  [TreatNullAs=EmptyString] attribute DOMString clip;
+
   [TreatNullAs=EmptyString] attribute DOMString direction;
 
+  [TreatNullAs=EmptyString] attribute DOMString filter;
+
   [TreatNullAs=EmptyString] attribute DOMString lineHeight;
+
+  [TreatNullAs=EmptyString] attribute DOMString mixBlendMode;
 
   [TreatNullAs=EmptyString] attribute DOMString verticalAlign;
 
@@ -103,6 +113,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString writingMode;
 
   [TreatNullAs=EmptyString] attribute DOMString letterSpacing;
+  [TreatNullAs=EmptyString] attribute DOMString wordBreak;
   [TreatNullAs=EmptyString] attribute DOMString wordSpacing;
   [TreatNullAs=EmptyString] attribute DOMString wordWrap;
 
@@ -110,6 +121,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString textDecoration;
   [TreatNullAs=EmptyString] attribute DOMString textIndent;
   [TreatNullAs=EmptyString] attribute DOMString textOrientation;
+  [TreatNullAs=EmptyString] attribute DOMString textRendering;
   [TreatNullAs=EmptyString] attribute DOMString textTransform;
 
   [TreatNullAs=EmptyString] attribute DOMString font;
@@ -132,8 +144,14 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString paddingTop;
 
   [TreatNullAs=EmptyString] attribute DOMString outline;
+  [TreatNullAs=EmptyString] attribute DOMString outlineColor;
+  [TreatNullAs=EmptyString] attribute DOMString outlineStyle;
+  [TreatNullAs=EmptyString] attribute DOMString outlineWidth;
+  [TreatNullAs=EmptyString] attribute DOMString outlineOffset;
 
   [TreatNullAs=EmptyString] attribute DOMString position;
+
+  [TreatNullAs=EmptyString] attribute DOMString pointerEvents;
 
   [TreatNullAs=EmptyString] attribute DOMString top;
   [TreatNullAs=EmptyString] attribute DOMString right;
