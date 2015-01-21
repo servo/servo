@@ -36,6 +36,7 @@ use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScrip
 use servo_msg::constellation_msg::PipelineId;
 use servo_util::task::spawn_named;
 
+use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::comm;
@@ -57,7 +58,7 @@ mod protocol;
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
     let (sender, receiver) = comm::channel();
-    spawn_named("Devtools", proc() {
+    spawn_named("Devtools".to_owned(), proc() {
         run_server(receiver, port)
     });
     sender
@@ -184,7 +185,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Ok(stream) => {
                 let actors = actors.clone();
                 accepted_connections.push(stream.clone());
-                spawn_named("DevtoolsClientHandler", proc() {
+                spawn_named("DevtoolsClientHandler".to_owned(), proc() {
                     // connection succeeded
                     handle_client(actors, stream.clone())
                 })
