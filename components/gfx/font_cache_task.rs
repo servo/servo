@@ -9,6 +9,7 @@ use platform::font_list::get_last_resort_font_families;
 use platform::font_context::FontContextHandle;
 
 use collections::str::Str;
+use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::sync::Arc;
 use font_template::{FontTemplate, FontTemplateDescriptor};
@@ -252,7 +253,7 @@ impl FontCacheTask {
     pub fn new(resource_task: ResourceTask) -> FontCacheTask {
         let (chan, port) = channel();
 
-        spawn_named("FontCacheTask", proc() {
+        spawn_named("FontCacheTask".to_owned(), proc() {
             // TODO: Allow users to specify these.
             let mut generic_fonts = HashMap::with_capacity(5);
             add_generic_font(&mut generic_fonts, "serif", "Times New Roman");

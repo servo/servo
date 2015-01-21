@@ -5,6 +5,7 @@
 //! Memory profiling functions.
 
 use libc::{c_char,c_int,c_void,size_t};
+use std::borrow::ToOwned;
 use std::io::timer::sleep;
 #[cfg(target_os="linux")]
 use std::io::File;
@@ -44,7 +45,7 @@ impl MemoryProfiler {
             Some(period) => {
                 let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
-                spawn_named("Memory profiler timer", proc() {
+                spawn_named("Memory profiler timer".to_owned(), proc() {
                     loop {
                         sleep(period);
                         if chan.send_opt(MemoryProfilerMsg::Print).is_err() {
@@ -53,7 +54,7 @@ impl MemoryProfiler {
                     }
                 });
                 // Spawn the memory profiler.
-                spawn_named("Memory profiler", proc() {
+                spawn_named("Memory profiler".to_owned(), proc() {
                     let memory_profiler = MemoryProfiler::new(port);
                     memory_profiler.start();
                 });
@@ -61,7 +62,7 @@ impl MemoryProfiler {
             None => {
                 // No-op to handle messages when the memory profiler is
                 // inactive.
-                spawn_named("Memory profiler", proc() {
+                spawn_named("Memory profiler".to_owned(), proc() {
                     loop {
                         match port.recv_opt() {
                             Err(_) | Ok(MemoryProfilerMsg::Exit) => break,
