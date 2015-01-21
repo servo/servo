@@ -11,6 +11,8 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use servo_util::str::DOMString;
 
+use std::borrow::ToOwned;
+
 #[repr(uint)]
 #[deriving(Copy, Show)]
 #[jstraceable]
@@ -125,6 +127,6 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
             DOMErrorName::EncodingError => "The encoding operation (either encoded or decoding) failed."
         };
 
-        message.into_string()
+        message.to_owned()
     }
 }

@@ -21,6 +21,7 @@ use style::{is_supported_property, longhands_from_shorthand, parse_style_attribu
 use style::PropertyDeclaration;
 
 use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
 
 #[dom_struct]
 pub struct CSSStyleDeclaration {
@@ -39,10 +40,10 @@ macro_rules! css_properties(
     ( $([$getter:ident, $setter:ident, $cssprop:expr]),* ) => (
         $(
             fn $getter(self) -> DOMString {
-                self.GetPropertyValue($cssprop.into_string())
+                self.GetPropertyValue($cssprop.to_owned())
             }
             fn $setter(self, value: DOMString) {
-                self.SetPropertyValue($cssprop.into_string(), value).unwrap();
+                self.SetPropertyValue($cssprop.to_owned(), value).unwrap();
             }
         )*
     );
@@ -123,7 +124,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
             }
         });
 
-        result.unwrap_or("".into_string())
+        result.unwrap_or("".to_owned())
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue
@@ -145,7 +146,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
                 // Step 2.2.2 & 2.2.3
                 match declaration {
                     Some(declaration) => list.push(declaration),
-                    None => return "".into_string(),
+                    None => return "".to_owned(),
                 }
             }
 
@@ -157,7 +158,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         if let Some(ref declaration) = self.get_declaration(&property) {
             serialize_value(declaration)
         } else {
-            "".into_string()
+            "".to_owned()
         }
     }
 
@@ -174,15 +175,15 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
                                   .map(|longhand| self.GetPropertyPriority(longhand.clone()))
                                   .all(|priority| priority.as_slice() == "important") {
 
-                return "important".into_string();
+                return "important".to_owned();
             }
         // Step 3
         } else if self.get_important_declaration(&property).is_some() {
-            return "important".into_string();
+            return "important".to_owned();
         }
 
         // Step 4
-        "".into_string()
+        "".to_owned()
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty
@@ -289,7 +290,7 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setpropertyvalue
     fn SetPropertyValue(self, property: DOMString, value: DOMString) -> ErrorResult {
-        self.SetProperty(property, value, "".into_string())
+        self.SetProperty(property, value, "".to_owned())
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty
@@ -328,12 +329,12 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn CssFloat(self) -> DOMString {
-        self.GetPropertyValue("float".into_string())
+        self.GetPropertyValue("float".to_owned())
     }
 
     // http://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-cssfloat
     fn SetCssFloat(self, value: DOMString) -> ErrorResult {
-        self.SetPropertyValue("float".into_string(), value)
+        self.SetPropertyValue("float".to_owned(), value)
     }
 
     fn IndexedGetter(self, index: u32, found: &mut bool) -> DOMString {
@@ -342,93 +343,5 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         rval
     }
 
-    css_properties!(
-        [Color, SetColor, "color"],
-        [Background, SetBackground, "background"],
-        [BackgroundColor, SetBackgroundColor, "background-color"],
-        [BackgroundPosition, SetBackgroundPosition, "background-position"],
-        [BackgroundImage, SetBackgroundImage, "background-image"],
-        [BackgroundRepeat, SetBackgroundRepeat, "background-repeat"],
-        [BackgroundAttachment, SetBackgroundAttachment, "background-attachment"],
-        [Border, SetBorder, "border"],
-        [BorderColor, SetBorderColor, "border-color"],
-        [BorderRadius, SetBorderRadius, "border-radius"],
-        [BorderStyle, SetBorderStyle, "border-style"],
-        [BorderWidth, SetBorderWidth, "border-width"],
-        [BorderBottom, SetBorderBottom, "border-bottom"],
-        [BorderBottomColor, SetBorderBottomColor, "border-bottom-color"],
-        [BorderBottomStyle, SetBorderBottomStyle, "border-bottom-style"],
-        [BorderBottomWidth, SetBorderBottomWidth, "border-bottom-width"],
-        [BorderLeft, SetBorderLeft, "border-left"],
-        [BorderLeftColor, SetBorderLeftColor, "border-left-color"],
-        [BorderLeftStyle, SetBorderLeftStyle, "border-left-style"],
-        [BorderLeftWidth, SetBorderLeftWidth, "border-left-width"],
-        [BorderRight, SetBorderRight, "border-right"],
-        [BorderRightColor, SetBorderRightColor, "border-right-color"],
-        [BorderRightStyle, SetBorderRightStyle, "border-right-style"],
-        [BorderRightWidth, SetBorderRightWidth, "border-right-width"],
-        [BorderTop, SetBorderTop, "border-top"],
-        [BorderTopColor, SetBorderTopColor, "border-top-color"],
-        [BorderTopStyle, SetBorderTopStyle, "border-top-style"],
-        [BorderTopWidth, SetBorderTopWidth, "border-top-width"],
-        [Content, SetContent, "content"],
-        [Display, SetDisplay, "display"],
-        [Opacity, SetOpacity, "opacity"],
-        [Width, SetWidth, "width"],
-        [MinWidth, SetMinWidth, "min-width"],
-        [MaxWidth, SetMaxWidth, "max-width"],
-        [Height, SetHeight, "height"],
-        [MinHeight, SetMinHeight, "min-height"],
-        [MaxHeight, SetMaxHeight, "max-height"],
-        [Clear, SetClear, "clear"],
-        [Direction, SetDirection, "direction"],
-        [LineHeight, SetLineHeight, "line-height"],
-        [VerticalAlign, SetVerticalAlign, "vertical-align"],
-        [ListStyle, SetListStyle, "list-style"],
-        [ListStylePosition, SetListStylePosition, "list-style-position"],
-        [ListStyleType, SetListStyleType, "list-style-type"],
-        [ListStyleImage, SetListStyleImage, "list-style-image"],
-        [Visibility, SetVisibility, "visibility"],
-        [Cursor, SetCursor, "cursor"],
-        [BoxShadow, SetBoxShadow, "box-shadow"],
-        [BoxSizing, SetBoxSizing, "box-sizing"],
-        [Overflow, SetOverflow, "overflow"],
-        [OverflowWrap, SetOverflowWrap, "overflow-wrap"],
-        [TableLayout, SetTableLayout, "table-layout"],
-        [EmptyCells, SetEmptyCells, "empty-cells"],
-        [CaptionSide, SetCaptionSide, "caption-side"],
-        [WhiteSpace, SetWhiteSpace, "white-space"],
-        [WritingMode, SetWritingMode, "writing-mode"],
-        [LetterSpacing, SetLetterSpacing, "letter-spacing"],
-        [WordSpacing, SetWordSpacing, "word-spacing"],
-        [WordWrap, SetWordWrap, "word-wrap"],
-        [TextAlign, SetTextAlign, "text-align"],
-        [TextDecoration, SetTextDecoration, "text-decoration"],
-        [TextIndent, SetTextIndent, "text-indent"],
-        [TextOrientation, SetTextOrientation, "text-orientation"],
-        [TextTransform, SetTextTransform, "text-transform"],
-        [Font, SetFont, "font"],
-        [FontFamily, SetFontFamily, "font-family"],
-        [FontSize, SetFontSize, "font-size"],
-        [FontStyle, SetFontStyle, "font-style"],
-        [FontVariant, SetFontVariant, "font-variant"],
-        [FontWeight, SetFontWeight, "font-weight"],
-        [Margin, SetMargin, "margin"],
-        [MarginBottom, SetMarginBottom, "margin-bottom"],
-        [MarginLeft, SetMarginLeft, "margin-left"],
-        [MarginRight, SetMarginRight, "margin-right"],
-        [MarginTop, SetMarginTop, "margin-top"],
-        [Padding, SetPadding, "padding"],
-        [PaddingBottom, SetPaddingBottom, "padding-bottom"],
-        [PaddingLeft, SetPaddingLeft, "padding-left"],
-        [PaddingRight, SetPaddingRight, "padding-right"],
-        [PaddingTop, SetPaddingTop, "padding-top"],
-        [Outline, SetOutline, "outline"],
-        [Position, SetPosition, "position"],
-        [Bottom, SetBottom, "bottom"],
-        [Left, SetLeft, "left"],
-        [Right, SetRight, "right"],
-        [Top, SetTop, "top"],
-        [ZIndex, SetZIndex, "z-index"]
-    )
+    css_properties_accessors!(css_properties)
 }

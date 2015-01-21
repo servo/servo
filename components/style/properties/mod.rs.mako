@@ -5,6 +5,7 @@
 // This file is a Mako template: http://www.makotemplates.org/
 
 pub use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
 use std::fmt;
 use std::fmt::Show;
 use std::sync::Arc;
@@ -39,14 +40,14 @@ def to_rust_ident(name):
         name += "_"
     return name
 
+def to_camel_case(ident):
+    return re.sub("_([a-z])", lambda m: m.group(1).upper(), ident.strip("_").capitalize())
+
 class Longhand(object):
     def __init__(self, name, derived_from=None, experimental=False):
         self.name = name
         self.ident = to_rust_ident(name)
-        self.camel_case, _ = re.subn(
-            "_([a-z])",
-            lambda m: m.group(1).upper(),
-            self.ident.strip("_").capitalize())
+        self.camel_case = to_camel_case(self.ident)
         self.style_struct = THIS_STYLE_STRUCT
         self.experimental = experimental
         if derived_from is None:
@@ -58,6 +59,8 @@ class Shorthand(object):
     def __init__(self, name, sub_properties):
         self.name = name
         self.ident = to_rust_ident(name)
+        self.camel_case = to_camel_case(self.ident)
+        self.derived_from = None
         self.sub_properties = [LONGHANDS_BY_NAME[s] for s in sub_properties]
 
 class StyleStruct(object):
@@ -1023,6 +1026,7 @@ pub mod longhands {
 
     <%self:longhand name="font-family">
         pub use super::computed_as_specified as to_computed_value;
+        use std::borrow::ToOwned;
         pub mod computed_value {
             use std::fmt;
             #[deriving(PartialEq, Eq, Clone)]
@@ -1063,7 +1067,7 @@ pub mod longhands {
 
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
-            vec![FontFamily::FamilyName("serif".into_string())]
+            vec![FontFamily::FamilyName("serif".to_owned())]
         }
         /// <familiy-name>#
         /// <familiy-name> = <string> | [ <ident>+ ]
@@ -2645,7 +2649,7 @@ impl<T: Show> DeclaredValue<T> {
         match self {
             &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{}", inner)),
             &DeclaredValue::Initial => None,
-            &DeclaredValue::Inherit => Some("inherit".into_string()),
+            &DeclaredValue::Inherit => Some("inherit".to_owned()),
         }
     }
 }
@@ -2671,10 +2675,10 @@ impl PropertyDeclaration {
         match self {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
-                    &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".into_string(),
+                    &PropertyDeclaration::${property.camel_case}Declaration(..) => "${property.name}".to_owned(),
                 % endif
             % endfor
-            _ => "".into_string(),
+            _ => "".to_owned(),
         }
     }
 
@@ -3358,22 +3362,38 @@ pub fn make_inline(style: &ComputedValues) -> ComputedValues {
 
 pub fn is_supported_property(property: &str) -> bool {
     match property {
-        % for property in SHORTHANDS:
-            "${property.name}" => true,
-        % endfor
-        % for property in LONGHANDS:
+        % for property in SHORTHANDS + LONGHANDS:
             "${property.name}" => true,
         % endfor
         _ => false,
     }
 }
 
+#[macro_export]
+macro_rules! css_properties_accessors(
+    ($macro: ident) => (
+        $macro!(
+            % for property in SHORTHANDS + LONGHANDS:
+                ## Servo internal CSS properties are not accessible.
+                ## FIXME: Add BinaryName WebIDL annotation (#4435).
+                % if property.derived_from is None and property.name != "float":
+                    % if property != LONGHANDS[-1]:
+                        [${property.camel_case}, Set${property.camel_case}, "${property.name}"],
+                    % else:
+                        [${property.camel_case}, Set${property.camel_case}, "${property.name}"]
+                    % endif
+                % endif
+            % endfor
+        )
+    )
+)
+
 pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
     match shorthand {
         % for property in SHORTHANDS:
             "${property.name}" => Some(vec!(
             % for sub in property.sub_properties:
-                "${sub.name}".into_string(),
+                "${sub.name}".to_owned(),
             % endfor
             )),
         % endfor

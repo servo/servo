@@ -16,6 +16,7 @@ use dom::node::{Node, NodeHelpers, NodeTypeId};
 
 use servo_util::str::DOMString;
 
+use std::borrow::ToOwned;
 use std::cell::Ref;
 
 #[dom_struct]
@@ -80,7 +81,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn SubstringData(self, offset: u32, count: u32) -> Fallible<DOMString> {
-        Ok(self.data.borrow().as_slice().slice(offset as uint, count as uint).into_string())
+        Ok(self.data.borrow().as_slice().slice(offset as uint, count as uint).to_owned())
     }
 
     fn AppendData(self, arg: DOMString) -> ErrorResult {
@@ -93,7 +94,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
     }
 
     fn DeleteData(self, offset: u32, count: u32) -> ErrorResult {
-        self.ReplaceData(offset, count, "".into_string())
+        self.ReplaceData(offset, count, "".to_owned())
     }
 
     fn ReplaceData(self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
@@ -106,7 +107,7 @@ impl<'a> CharacterDataMethods for JSRef<'a, CharacterData> {
         } else {
             count
         };
-        let mut data = self.data.borrow().as_slice().slice(0, offset as uint).into_string();
+        let mut data = self.data.borrow().as_slice().slice(0, offset as uint).to_owned();
         data.push_str(arg.as_slice());
         data.push_str(self.data.borrow().as_slice().slice((offset + count) as uint, length as uint));
         *self.data.borrow_mut() = data;

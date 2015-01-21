@@ -16,6 +16,8 @@ use dom::node::window_from_node;
 use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use string_cache::Atom;
 
+use std::borrow::ToOwned;
+
 #[dom_struct]
 pub struct DOMTokenList {
     reflector_: Reflector,
@@ -72,7 +74,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
     // http://dom.spec.whatwg.org/#dom-domtokenlist-item
     fn Item(self, index: u32) -> Option<DOMString> {
         self.attribute().root().and_then(|attr| attr.r().value().tokens().and_then(|tokens| {
-            tokens.get(index as uint).map(|token| token.as_slice().into_string())
+            tokens.get(index as uint).map(|token| token.as_slice().to_owned())
         }))
     }
 

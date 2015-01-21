@@ -8,9 +8,9 @@ use rustc::middle::ty::expr_ty;
 use rustc::middle::ty;
 
 declare_lint!(STR_TO_STRING, Deny,
-              "Warn when a String could use into_string() instead of to_string()")
+              "Warn when a String could use to_owned() instead of to_string()")
 
-/// Prefer str.into_string() over str.to_string()
+/// Prefer str.to_owned() over str.to_string()
 ///
 /// The latter creates a `Formatter` and is 5x slower than the former
 pub struct StrToStringPass;
@@ -26,7 +26,7 @@ impl LintPass for StrToStringPass {
                 if method.node.as_str() == "to_string"
                 && is_str(cx, &*args[0]) => {
                 cx.span_lint(STR_TO_STRING, expr.span,
-                             "str.into_string() is more efficient than str.to_string(), please use it instead");
+                             "str.to_owned() is more efficient than str.to_string(), please use it instead");
             },
             _ => ()
         }

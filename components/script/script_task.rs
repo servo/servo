@@ -79,6 +79,7 @@ use url::Url;
 
 use libc;
 use std::any::{Any, AnyRefExt};
+use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::comm::{channel, Sender, Receiver, Select};
 use std::fmt::{mod, Show};
@@ -846,7 +847,7 @@ impl ScriptTask {
             let jsval = window.r().evaluate_js_on_global_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
                                                           StringificationBehavior::Empty);
-            (HTMLInput::InputString(strval.unwrap_or("".into_string())), doc_url)
+            (HTMLInput::InputString(strval.unwrap_or("".to_owned())), doc_url)
         };
 
         parse_html(document.r(), parser_input, &final_url);
@@ -1002,13 +1003,13 @@ impl ScriptTask {
         let ev_type = match state {
             KeyState::Pressed | KeyState::Repeated => "keydown",
             KeyState::Released => "keyup",
-        }.into_string();
+        }.to_owned();
 
         let props = KeyboardEvent::key_properties(key, modifiers);
 
         let keyevent = KeyboardEvent::new(window.r(), ev_type, true, true,
                                           Some(window.r()), 0,
-                                          props.key.into_string(), props.code.into_string(),
+                                          props.key.to_owned(), props.code.to_owned(),
                                           props.location, is_repeating, is_composing,
                                           ctrl, alt, shift, meta,
                                           None, props.key_code).root();
@@ -1019,9 +1020,9 @@ impl ScriptTask {
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
         if state != KeyState::Released && props.is_printable() && !prevented {
             // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
-            let event = KeyboardEvent::new(window.r(), "keypress".into_string(),
+            let event = KeyboardEvent::new(window.r(), "keypress".to_owned(),
                                            true, true, Some(window.r()),
-                                           0, props.key.into_string(), props.code.into_string(),
+                                           0, props.key.to_owned(), props.code.to_owned(),
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,
                                            props.char_code, 0).root();
@@ -1105,7 +1106,7 @@ impl ScriptTask {
                 // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
                 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
                 let uievent = UIEvent::new(window.r(),
-                                           "resize".into_string(), false,
+                                           "resize".to_owned(), false,
                                            false, Some(window.r()),
                                            0i32).root();
                 let event: JSRef<Event> = EventCast::from_ref(uievent.r());
@@ -1156,7 +1157,7 @@ impl ScriptTask {
 
                                 let event =
                                     Event::new(GlobalRef::Window(window.r()),
-                                               "click".into_string(),
+                                               "click".to_owned(),
                                                EventBubbles::Bubbles,
                                                EventCancelable::Cancelable).root();
                                 // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
@@ -1208,7 +1209,7 @@ impl ScriptTask {
                       let y = point.y.to_i32().unwrap_or(0);
 
                       let mouse_event = MouseEvent::new(window.r(),
-                          "mousemove".into_string(),
+                          "mousemove".to_owned(),
                           true,
                           true,
                           Some(window.r()),
@@ -1360,7 +1361,7 @@ impl DocumentProgressHandler {
     fn dispatch_dom_content_loaded(&self) {
         let document = self.addr.to_temporary().root();
         let window = document.r().window().root();
-        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".into_string(),
+        let event = Event::new(GlobalRef::Window(window.r()), "DOMContentLoaded".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
@@ -1375,7 +1376,7 @@ impl DocumentProgressHandler {
     fn dispatch_load(&self) {
         let document = self.addr.to_temporary().root();
         let window = document.r().window().root();
-        let event = Event::new(GlobalRef::Window(window.r()), "load".into_string(),
+        let event = Event::new(GlobalRef::Window(window.r()), "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());

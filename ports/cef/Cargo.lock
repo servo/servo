@@ -9,8 +9,7 @@ dependencies = [
  "devtools 0.0.1",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?ref=servo)",
- "glfw_app 0.0.1",
+ "glutin_app 0.0.1",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
@@ -25,9 +24,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "android_glue"
+version = "0.0.1"
+source = "git+https://github.com/servo/android-rs-glue?ref=servo#122bc28545b5e59a923c466a484c403fa691bd55"
+dependencies = [
+ "compile_msg 0.1.3 (git+https://github.com/huonw/compile_msg)",
+]
+
+[[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#f4a02f3f621b0a994a20d42e438371a87c62f898"
+source = "git+https://github.com/servo/rust-azure#d0acabef6221e5fd6840254dc23f91c66b874629"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -35,7 +42,6 @@ dependencies = [
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "skia-sys 0.0.20130412 (git+https://github.com/servo/skia?ref=upstream-2014-06-16)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
@@ -61,6 +67,11 @@ dependencies = [
 name = "cocoa"
 version = "0.1.1"
 source = "git+https://github.com/servo/rust-cocoa#bf53a53ce306279fc1cae0d56fdd5e7216696420"
+
+[[package]]
+name = "compile_msg"
+version = "0.1.3"
+source = "git+https://github.com/huonw/compile_msg#b19da50cacf5b11bbc065da6b449f6b4fe7c019a"
 
 [[package]]
 name = "compositing"
@@ -329,6 +340,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "glutin"
+version = "0.0.2"
+source = "git+https://github.com/servo/glutin?ref=servo#db27370a1cbafcbfcaeee52a44076a61b3e0573c"
+dependencies = [
+ "android_glue 0.0.1 (git+https://github.com/servo/android-rs-glue?ref=servo)",
+ "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
+ "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
+ "gl_common 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "winapi 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "glutin_app"
+version = "0.0.1"
+dependencies = [
+ "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
+ "compositing 0.0.1",
+ "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
+ "gleam 0.0.1 (git+https://github.com/servo/gleam)",
+ "glutin 0.0.2 (git+https://github.com/servo/glutin?ref=servo)",
+ "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
+ "msg 0.0.1",
+ "time 0.1.0 (git+https://github.com/rust-lang/time)",
+ "util 0.0.1",
+]
+
+[[package]]
 name = "glx"
 version = "0.0.1"
 source = "git+https://github.com/servo/rust-glx#7126ffa09fcfcc9f85f1406f3b5db729f5fdb7c3"
@@ -339,7 +378,7 @@ dependencies = [
 [[package]]
 name = "harfbuzz"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-harfbuzz#0489e7da24497f9ec17255fa72b90d6072f0c6d8"
+source = "git+https://github.com/servo/rust-harfbuzz#59b5b18087418404d661784934c3d864386024b5"
 
 [[package]]
 name = "html5ever"
@@ -400,8 +439,9 @@ source = "git+https://github.com/bjz/gl-rs.git#b5e3f4f76c31bc1b459d5e4c10d879ffa
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#574df7e1c1dd464af930d1cc735ca8d6af46bb90"
+source = "git+https://github.com/servo/rust-layers#f20270839f8658a2b19eae6fade9325efe5f4578"
 dependencies = [
+ "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
@@ -464,7 +504,7 @@ source = "git+https://github.com/hyperium/mime.rs#7898f1c29c7f5d35d0c3c7aed37ebc
 [[package]]
 name = "mozjs-sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#0dd618fcc78fe7aa64e4e2a3b0f7f0d8a2f0f08a"
+source = "git+https://github.com/servo/mozjs#0335cc57346147851589dea04e85971f064081fd"
 
 [[package]]
 name = "msg"
@@ -725,6 +765,11 @@ dependencies = [
 name = "uuid"
 version = "0.1.1"
 source = "git+https://github.com/rust-lang/uuid#fc793c974a25c126c5cf5daa3b18973512a7a6a0"
+
+[[package]]
+name = "winapi"
+version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "xlib"

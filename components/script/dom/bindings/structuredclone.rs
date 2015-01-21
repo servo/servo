@@ -2,6 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+//! This module implements structured cloning, as defined by [HTML]
+//! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
+
+#![deny(missing_docs)]
+
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::DataClone;
 use dom::bindings::global::GlobalRef;
@@ -15,12 +20,14 @@ use js::jsval::{JSVal, UndefinedValue};
 use libc::size_t;
 use std::ptr;
 
+/// A buffer for a structured clone.
 pub struct StructuredCloneData {
     data: *mut u64,
     nbytes: size_t,
 }
 
 impl StructuredCloneData {
+    /// Writes a structured clone. Returns a `DataClone` error if that fails.
     pub fn write(cx: *mut JSContext, message: JSVal)
                  -> Fallible<StructuredCloneData> {
         let mut data = ptr::null_mut();
@@ -39,6 +46,9 @@ impl StructuredCloneData {
         })
     }
 
+    /// Reads a structured clone.
+    ///
+    /// Panics if `JS_ReadStructuredClone` fails.
     pub fn read(self, global: GlobalRef) -> JSVal {
         let mut message = UndefinedValue();
         unsafe {

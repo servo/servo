@@ -9,7 +9,6 @@ use geom::size::Size2D;
 use servo_util::task::spawn_named;
 
 use std::comm;
-use std::sync::Arc;
 
 #[deriving(Clone)]
 pub enum CanvasMsg {
@@ -17,7 +16,7 @@ pub enum CanvasMsg {
     ClearRect(Rect<f32>),
     StrokeRect(Rect<f32>),
     Recreate(Size2D<i32>),
-    SendPixelContents(Sender<Arc<Vec<u8>>>),
+    SendPixelContents(Sender<Vec<u8>>),
     Close,
 }
 
@@ -31,7 +30,7 @@ pub struct CanvasPaintTask {
 impl CanvasPaintTask {
     fn new(size: Size2D<i32>) -> CanvasPaintTask {
         CanvasPaintTask {
-            drawtarget: CanvasPaintTask::create_with_data(size),
+            drawtarget: CanvasPaintTask::create(size),
             fill_color: ColorPattern::new(Color::new(0., 0., 0., 1.)),
             stroke_color: ColorPattern::new(Color::new(0., 0., 0., 1.)),
             stroke_opts: StrokeOptions::new(1.0, 1.0),
@@ -71,20 +70,17 @@ impl CanvasPaintTask {
         self.drawtarget.stroke_rect(rect, &self.stroke_color, &self.stroke_opts, &drawopts);
     }
 
-    fn create_with_data(size: Size2D<i32>) -> DrawTarget {
-        DrawTarget::new_with_data(BackendType::Skia,
-                                  Vec::from_elem((size.width * size.height * 4) as uint, 0u8),
-                                  0,
-                                  size,
-                                  size.width * 4,
-                                  SurfaceFormat::B8G8R8A8)
+    fn create(size: Size2D<i32>) -> DrawTarget {
+        DrawTarget::new(BackendType::Skia, size, SurfaceFormat::B8G8R8A8)
     }
 
     fn recreate(&mut self, size: Size2D<i32>) {
-        self.drawtarget = CanvasPaintTask::create_with_data(size);
+        self.drawtarget = CanvasPaintTask::create(size);
     }
 
-    fn send_pixel_contents(&mut self, chan: Sender<Arc<Vec<u8>>>) {
-        chan.send(self.drawtarget.data.clone().unwrap());
+    fn send_pixel_contents(&mut self, chan: Sender<Vec<u8>>) {
+        self.drawtarget.snapshot().get_data_surface().with_data(|element| {
+            chan.send(element.to_vec());
+        })
     }
 }

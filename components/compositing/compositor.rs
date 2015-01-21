@@ -555,6 +555,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         root_layer.clear_all_tiles(self);
         root_layer.children().clear();
 
+        debug_assert!(root_layer.extra_data.borrow().pipeline_id == old_pipeline.id);
+        root_layer.extra_data.borrow_mut().pipeline_id = new_pipeline.id;
+
         let new_pipeline_id = new_pipeline.id;
         self.get_or_create_pipeline_details(new_pipeline_id).pipeline = Some(new_pipeline);
     }

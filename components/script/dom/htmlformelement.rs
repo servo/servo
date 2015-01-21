@@ -30,6 +30,7 @@ use url::UrlParser;
 use url::form_urlencoded::serialize;
 use string_cache::Atom;
 
+use std::borrow::ToOwned;
 use std::cell::Cell;
 
 #[dom_struct]
@@ -159,7 +160,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         // TODO: Handle browsing contexts
         // TODO: Handle validation
         let event = Event::new(GlobalRef::Window(win.r()),
-                               "submit".into_string(),
+                               "submit".to_owned(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
         event.r().set_trusted(true);
@@ -187,7 +188,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
 
         let parsed_data = match enctype {
             FormEncType::UrlEncoded => serialize(form_data.iter().map(|d| (d.name.as_slice(), d.value.as_slice()))),
-            _ => "".into_string() // TODO: Add serializers for the other encoding types
+            _ => "".to_owned() // TODO: Add serializers for the other encoding types
         };
 
         let mut load_data = LoadData::new(action_components);
@@ -214,7 +215,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         fn clean_crlf(s: &str) -> DOMString {
             // https://html.spec.whatwg.org/multipage/forms.html#constructing-the-form-data-set
             // Step 4
-            let mut buf = "".into_string();
+            let mut buf = "".to_owned();
             let mut prev = ' ';
             for ch in s.chars() {
                 match ch {
@@ -284,7 +285,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                         "image" => None, // Unimplemented
                         "radio" | "checkbox" => {
                             if value.is_empty() {
-                                value = "on".into_string();
+                                value = "on".to_owned();
                             }
                             Some(FormDatum {
                                 ty: ty,
@@ -346,7 +347,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
 
         let win = window_from_node(self).root();
         let event = Event::new(GlobalRef::Window(win.r()),
-                               "reset".into_string(),
+                               "reset".to_owned(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
@@ -513,7 +514,7 @@ pub trait FormControl<'a> : Copy {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or("".into_string(), |t| owner(t.root().r()))
+            self.form_owner().map_or("".to_owned(), |t| owner(t.root().r()))
         }
     }
     fn to_element(self) -> JSRef<'a, Element>;

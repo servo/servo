@@ -15,6 +15,8 @@ use dom::node::{Node, NodeHelpers, NodeTypeId, NodeIterator};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 
+use std::borrow::ToOwned;
+
 #[allow(unrooted_must_root)]
 pub fn serialize(iterator: &mut NodeIterator) -> String {
     let mut html = String::new();
@@ -126,7 +128,7 @@ fn serialize_elem(elem: JSRef<Element>, open_elements: &mut Vec<String>, html: &
     }
 
     if !(elem.is_void()) {
-        open_elements.push(elem.local_name().as_slice().into_string());
+        open_elements.push(elem.local_name().as_slice().to_owned());
     }
 }
 

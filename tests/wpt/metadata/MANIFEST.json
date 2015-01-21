@@ -482,7 +482,13 @@
         "url": "/DOMEvents/tests/submissions/Microsoft/support/style01.css"
       },
       {
-        "url": "/FileAPI/FileReader-interface/support/blue-100x100.png"
+        "url": "/FileAPI/BlobURL/support/file_test1.js"
+      },
+      {
+        "url": "/FileAPI/BlobURL/support/file_test2.txt"
+      },
+      {
+        "url": "/FileAPI/FileReader/support/file_test1.txt"
       },
       {
         "url": "/FileAPI/filelist-section/support/upload.txt"
@@ -491,10 +497,16 @@
         "url": "/FileAPI/filelist-section/support/upload.zip"
       },
       {
+        "url": "/FileAPI/reading-data-section/support/blue-100x100.png"
+      },
+      {
         "url": "/FileAPI/support/Blob.js"
       },
       {
         "url": "/FileAPI/support/upload.txt"
+      },
+      {
+        "url": "/FileAPI/url/url_xmlhttprequest_img-ref.html"
       },
       {
         "url": "/IndexedDB/README.md"
@@ -509,328 +521,334 @@
         "url": "/WebCryptoAPI/README.md"
       },
       {
+        "url": "/WebIDL/invalid/idl/enum.widl"
+      },
+      {
+        "url": "/WebIDL/invalid/idl/module.widl"
+      },
+      {
+        "url": "/WebIDL/invalid/idl/nonnullableany.widl"
+      },
+      {
+        "url": "/WebIDL/invalid/idl/nonnullableobjects.widl"
+      },
+      {
+        "url": "/WebIDL/invalid/idl/raises.widl"
+      },
+      {
+        "url": "/WebIDL/invalid/idl/scopedname.widl"
+      },
+      {
+        "url": "/WebIDL/invalid/idl/scopedname.widl~"
+      },
+      {
+        "url": "/WebIDL/invalid/idl/sequenceAsAttribute.widl"
+      },
+      {
+        "url": "/WebIDL/invalid/idl/special-omittable.widl"
+      },
+      {
+        "url": "/WebIDL/invalid/idl/stringconstants.idl"
+      },
+      {
+        "url": "/WebIDL/readme.txt"
+      },
+      {
         "url": "/WebIDL/testable_assertions.txt"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/invalid/idl/enum.widl"
+        "url": "/WebIDL/valid/idl/allowany.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/invalid/idl/module.widl"
+        "url": "/WebIDL/valid/idl/array.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/invalid/idl/nonnullableany.widl"
+        "url": "/WebIDL/valid/idl/attributes.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/invalid/idl/nonnullableobjects.widl"
+        "url": "/WebIDL/valid/idl/callback.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/invalid/idl/raises.widl"
+        "url": "/WebIDL/valid/idl/caller.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/invalid/idl/scopedname.widl"
+        "url": "/WebIDL/valid/idl/constants.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/invalid/idl/sequenceAsAttribute.widl"
+        "url": "/WebIDL/valid/idl/constructor.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/invalid/idl/special-omittable.widl"
+        "url": "/WebIDL/valid/idl/dictionary-inherits.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/invalid/idl/stringconstants.idl"
+        "url": "/WebIDL/valid/idl/dictionary.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/readme.txt"
+        "url": "/WebIDL/valid/idl/documentation-dos.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/allowany.widl"
+        "url": "/WebIDL/valid/idl/documentation.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/array.widl"
+        "url": "/WebIDL/valid/idl/enum.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/attributes.widl"
+        "url": "/WebIDL/valid/idl/equivalent-decl.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/callback.widl"
+        "url": "/WebIDL/valid/idl/exception-inheritance.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/caller.widl"
+        "url": "/WebIDL/valid/idl/exception.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/constants.widl"
+        "url": "/WebIDL/valid/idl/getter-setter.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/constructor.widl"
+        "url": "/WebIDL/valid/idl/identifier-qualified-names.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/dictionary-inherits.widl"
+        "url": "/WebIDL/valid/idl/implements.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/dictionary.widl"
+        "url": "/WebIDL/valid/idl/indexed-properties.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/documentation-dos.widl"
+        "url": "/WebIDL/valid/idl/inherits-getter.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/documentation.widl"
+        "url": "/WebIDL/valid/idl/interface-inherits.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/enum.widl"
+        "url": "/WebIDL/valid/idl/iterator.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/equivalent-decl.widl"
+        "url": "/WebIDL/valid/idl/namedconstructor.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/exception-inheritance.widl"
+        "url": "/WebIDL/valid/idl/nointerfaceobject.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/exception.widl"
+        "url": "/WebIDL/valid/idl/nullable.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/getter-setter.widl"
+        "url": "/WebIDL/valid/idl/nullableobjects.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/identifier-qualified-names.widl"
+        "url": "/WebIDL/valid/idl/operation-optional-arg.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/implements.widl"
+        "url": "/WebIDL/valid/idl/overloading.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/indexed-properties.widl"
+        "url": "/WebIDL/valid/idl/overridebuiltins.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/inherits-getter.widl"
+        "url": "/WebIDL/valid/idl/partial-interface.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/interface-inherits.widl"
+        "url": "/WebIDL/valid/idl/primitives.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/iterator.widl"
+        "url": "/WebIDL/valid/idl/prototyperoot.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/namedconstructor.widl"
+        "url": "/WebIDL/valid/idl/putforwards.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/nointerfaceobject.widl"
+        "url": "/WebIDL/valid/idl/reg-operations.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/nullable.widl"
+        "url": "/WebIDL/valid/idl/replaceable.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/nullableobjects.widl"
+        "url": "/WebIDL/valid/idl/sequence.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/operation-optional-arg.widl"
+        "url": "/WebIDL/valid/idl/serializer.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/overloading.widl"
+        "url": "/WebIDL/valid/idl/static.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/overridebuiltins.widl"
+        "url": "/WebIDL/valid/idl/stringifier-attribute.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/partial-interface.widl"
+        "url": "/WebIDL/valid/idl/stringifier-custom.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/primitives.widl"
+        "url": "/WebIDL/valid/idl/stringifier.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/prototyperoot.widl"
+        "url": "/WebIDL/valid/idl/treatasnull.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/putforwards.widl"
+        "url": "/WebIDL/valid/idl/treatasundefined.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/reg-operations.widl"
+        "url": "/WebIDL/valid/idl/typedef.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/replaceable.widl"
+        "url": "/WebIDL/valid/idl/typesuffixes.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/sequence.widl"
+        "url": "/WebIDL/valid/idl/uniontype.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/serializer.widl"
+        "url": "/WebIDL/valid/idl/variadic-operations.widl"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/static.widl"
+        "url": "/WebIDL/valid/xml/allowany.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/stringifier-attribute.widl"
+        "url": "/WebIDL/valid/xml/array.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/stringifier-custom.widl"
+        "url": "/WebIDL/valid/xml/attributes.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/stringifier.widl"
+        "url": "/WebIDL/valid/xml/callback.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/treatasnull.widl"
+        "url": "/WebIDL/valid/xml/caller.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/treatasundefined.widl"
+        "url": "/WebIDL/valid/xml/constants.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/typedef.widl"
+        "url": "/WebIDL/valid/xml/constructor.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/typesuffixes.widl"
+        "url": "/WebIDL/valid/xml/dictionary-inherits.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/uniontype.widl"
+        "url": "/WebIDL/valid/xml/dictionary.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/idl/variadic-operations.widl"
+        "url": "/WebIDL/valid/xml/documentation-dos.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/allowany.widlprocxml"
+        "url": "/WebIDL/valid/xml/documentation.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/array.widlprocxml"
+        "url": "/WebIDL/valid/xml/enum.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/attributes.widlprocxml"
+        "url": "/WebIDL/valid/xml/equivalent-decl.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/callback.widlprocxml"
+        "url": "/WebIDL/valid/xml/exception-inheritance.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/caller.widlprocxml"
+        "url": "/WebIDL/valid/xml/exception.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/constants.widlprocxml"
+        "url": "/WebIDL/valid/xml/getter-setter.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/constructor.widlprocxml"
+        "url": "/WebIDL/valid/xml/identifier-qualified-names.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/dictionary-inherits.widlprocxml"
+        "url": "/WebIDL/valid/xml/implements.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/dictionary.widlprocxml"
+        "url": "/WebIDL/valid/xml/indexed-properties.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/documentation-dos.widlprocxml"
+        "url": "/WebIDL/valid/xml/inherits-getter.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/documentation.widlprocxml"
+        "url": "/WebIDL/valid/xml/interface-inherits.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/enum.widlprocxml"
+        "url": "/WebIDL/valid/xml/iterator.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/equivalent-decl.widlprocxml"
+        "url": "/WebIDL/valid/xml/module.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/exception-inheritance.widlprocxml"
+        "url": "/WebIDL/valid/xml/namedconstructor.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/exception.widlprocxml"
+        "url": "/WebIDL/valid/xml/namespaceobject.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/getter-setter.widlprocxml"
+        "url": "/WebIDL/valid/xml/nointerfaceobject.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/identifier-qualified-names.widlprocxml"
+        "url": "/WebIDL/valid/xml/nullable.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/implements.widlprocxml"
+        "url": "/WebIDL/valid/xml/nullableobjects.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/indexed-properties.widlprocxml"
+        "url": "/WebIDL/valid/xml/operation-optional-arg.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/inherits-getter.widlprocxml"
+        "url": "/WebIDL/valid/xml/overloading.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/interface-inherits.widlprocxml"
+        "url": "/WebIDL/valid/xml/overridebuiltins.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/iterator.widlprocxml"
+        "url": "/WebIDL/valid/xml/partial-interface.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/module.widlprocxml"
+        "url": "/WebIDL/valid/xml/primitives.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/namedconstructor.widlprocxml"
+        "url": "/WebIDL/valid/xml/prototyperoot.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/namespaceobject.widlprocxml"
+        "url": "/WebIDL/valid/xml/putforwards.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/nointerfaceobject.widlprocxml"
+        "url": "/WebIDL/valid/xml/reg-operations.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/nullable.widlprocxml"
+        "url": "/WebIDL/valid/xml/replaceable.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/nullableobjects.widlprocxml"
+        "url": "/WebIDL/valid/xml/sequence.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/operation-optional-arg.widlprocxml"
+        "url": "/WebIDL/valid/xml/serializer.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/overloading.widlprocxml"
+        "url": "/WebIDL/valid/xml/special-omittable.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/overridebuiltins.widlprocxml"
+        "url": "/WebIDL/valid/xml/static.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/partial-interface.widlprocxml"
+        "url": "/WebIDL/valid/xml/stringifier-attribute.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/primitives.widlprocxml"
+        "url": "/WebIDL/valid/xml/stringifier-custom.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/prototyperoot.widlprocxml"
+        "url": "/WebIDL/valid/xml/stringifier.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/putforwards.widlprocxml"
+        "url": "/WebIDL/valid/xml/treatasnull.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/reg-operations.widlprocxml"
+        "url": "/WebIDL/valid/xml/treatasundefined.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/replaceable.widlprocxml"
+        "url": "/WebIDL/valid/xml/typedef.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/sequence.widlprocxml"
+        "url": "/WebIDL/valid/xml/typesuffixes.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/serializer.widlprocxml"
+        "url": "/WebIDL/valid/xml/uniontype.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/special-omittable.widlprocxml"
+        "url": "/WebIDL/valid/xml/variadic-operations.widlprocxml"
       },
       {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/static.widlprocxml"
-      },
-      {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/stringifier-attribute.widlprocxml"
-      },
-      {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/stringifier-custom.widlprocxml"
-      },
-      {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/stringifier.widlprocxml"
-      },
-      {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/treatasnull.widlprocxml"
-      },
-      {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/treatasundefined.widlprocxml"
-      },
-      {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/typedef.widlprocxml"
-      },
-      {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/typesuffixes.widlprocxml"
-      },
-      {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/uniontype.widlprocxml"
-      },
-      {
-        "url": "/WebIDL/tests/submissions/W3C/valid/xml/variadic-operations.widlprocxml"
+        "url": "/XMLHttpRequest/XMLHttpRequest-withCredentials.js"
       },
       {
         "url": "/XMLHttpRequest/folder.txt"
@@ -1347,6 +1365,9 @@
       },
       {
         "url": "/dom/nodes/Document-createProcessingInstruction.js"
+      },
+      {
+        "url": "/dom/nodes/Element-matches.js"
       },
       {
         "url": "/dom/nodes/Node-contains.xml"
@@ -2498,6 +2519,9 @@
         "url": "/images/blue.png"
       },
       {
+        "url": "/images/blue96x96.png"
+      },
+      {
         "url": "/images/broken.png"
       },
       {
@@ -2906,13 +2930,7 @@
         "url": "/resource-timing/test_resource_timing.js"
       },
       {
-        "url": "/selectors-api/tests/submissions/Opera/Element-matches.js"
-      },
-      {
-        "url": "/selectors-api/tests/submissions/Opera/ParentNode-find-findAll.js"
-      },
-      {
-        "url": "/selectors-api/tests/submissions/Opera/level2-lib.js"
+        "url": "/selectors-api/tests/submissions/Opera/ParentNode-query-queryAll.js"
       },
       {
         "url": "/service-workers/specgen.json"
@@ -3087,6 +3105,9 @@
       },
       {
         "url": "/webmessaging/README.md"
+      },
+      {
+        "url": "/webmessaging/support/compare.js"
       },
       {
         "url": "/webmessaging/without-ports/025-1.js"
@@ -4331,12 +4352,6 @@
         "url": "/workers/support/WorkerText.txt"
       },
       {
-        "url": "/workers/support/XMLHttpRequest.js"
-      },
-      {
-        "url": "/workers/support/XMLHttpRequest.txt"
-      },
-      {
         "url": "/workers/workers.js"
       }
     ],
@@ -4369,10 +4384,16 @@
         "url": "/2dcontext/shadows/2d.shadow.blur.low-manual.html"
       },
       {
-        "url": "/FileAPI/FileReader-interface/filereader_file-manual.html"
+        "url": "/FileAPI/BlobURL/test1-manual.html"
       },
       {
-        "url": "/FileAPI/FileReader-interface/filereader_file_img-manual.html"
+        "url": "/FileAPI/BlobURL/test2-manual.html"
+      },
+      {
+        "url": "/FileAPI/BlobURL/test3-manual.html"
+      },
+      {
+        "url": "/FileAPI/FileReader/test_errors-manual.html"
       },
       {
         "url": "/FileAPI/filelist-section/filelist_multiple_selected_files-manual.html"
@@ -4382,6 +4403,18 @@
       },
       {
         "url": "/FileAPI/idlharness-manual.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/filereader_file-manual.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/filereader_file_img-manual.html"
+      },
+      {
+        "url": "/FileAPI/url/url_createobjecturl_file-manual.html"
+      },
+      {
+        "url": "/FileAPI/url/url_createobjecturl_file_img-manual.html"
       },
       {
         "url": "/XMLHttpRequest/send-authentication-existing-session-manual.htm"
@@ -5153,6 +5186,11 @@
         "ref_type": "==",
         "ref_url": "/2dcontext/transformations/canvas_transformations_scale_001-ref.htm",
         "url": "/2dcontext/transformations/canvas_transformations_scale_001.htm"
+      },
+      {
+        "ref_type": "==",
+        "ref_url": "/FileAPI/url/url_xmlhttprequest_img-ref.html",
+        "url": "/FileAPI/url/url_xmlhttprequest_img.html"
       },
       {
         "ref_type": "==",
@@ -9386,46 +9424,25 @@
         "url": "/DOMEvents/throwing-in-listener-when-all-have-not-run-yet.html"
       },
       {
-        "url": "/FileAPI/Blob-XHR-revoke.html"
-      },
-      {
-        "url": "/FileAPI/Blob-close.html"
-      },
-      {
-        "url": "/FileAPI/Blob-constructor.html"
-      },
-      {
-        "url": "/FileAPI/Blob-slice.html"
-      },
-      {
-        "url": "/FileAPI/File-constructor.html"
-      },
-      {
-        "url": "/FileAPI/FileReader-interface/filereader_abort.html"
-      },
-      {
-        "url": "/FileAPI/FileReader-interface/filereader_error.html"
-      },
-      {
-        "url": "/FileAPI/FileReader-interface/filereader_readAsArrayBuffer.html"
-      },
-      {
-        "url": "/FileAPI/FileReader-interface/filereader_readAsDataURL.html"
-      },
-      {
-        "url": "/FileAPI/FileReader-interface/filereader_readAsText.html"
-      },
-      {
-        "url": "/FileAPI/FileReader-interface/filereader_readystate.html"
-      },
-      {
-        "url": "/FileAPI/FileReader-interface/filereader_result.html"
-      },
-      {
-        "url": "/FileAPI/FileReader/Determining-Encoding.html"
-      },
-      {
         "url": "/FileAPI/FileReaderSync.worker"
+      },
+      {
+        "url": "/FileAPI/blob/Blob-XHR-revoke.html"
+      },
+      {
+        "url": "/FileAPI/blob/Blob-close.html"
+      },
+      {
+        "url": "/FileAPI/blob/Blob-constructor.html"
+      },
+      {
+        "url": "/FileAPI/blob/Blob-slice.html"
+      },
+      {
+        "url": "/FileAPI/file/File-constructor.html"
+      },
+      {
+        "url": "/FileAPI/fileReader.html"
       },
       {
         "url": "/FileAPI/filelist-section/filelist.html"
@@ -9435,6 +9452,36 @@
       },
       {
         "url": "/FileAPI/idlharness.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/Determining-Encoding.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/filereader_abort.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/filereader_error.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/filereader_readAsArrayBuffer.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/filereader_readAsDataURL.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/filereader_readAsText.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/filereader_readystate.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/filereader_result.html"
+      },
+      {
+        "url": "/FileAPI/url/url_createobjecturl_blob.html"
+      },
+      {
+        "url": "/FileAPI/url/url_xmlhttprequest.html"
       },
       {
         "url": "/IndexedDB/abort-in-initial-upgradeneeded.html"
@@ -10175,6 +10222,12 @@
         "url": "/XMLHttpRequest/FormData-append.html"
       },
       {
+        "url": "/XMLHttpRequest/XMLHttpRequest-withCredentials.html"
+      },
+      {
+        "url": "/XMLHttpRequest/XMLHttpRequest-withCredentials.worker"
+      },
+      {
         "url": "/XMLHttpRequest/abort-after-receive.htm"
       },
       {
@@ -10632,12 +10685,6 @@
       },
       {
         "url": "/XMLHttpRequest/timeout-sync.htm"
-      },
-      {
-        "url": "/XMLHttpRequest/withcredentials-set.htm"
-      },
-      {
-        "url": "/XMLHttpRequest/withcredentials-wrong-state.htm"
       },
       {
         "url": "/XMLHttpRequest/xmlhttprequest-basic.htm"
@@ -11316,6 +11363,9 @@
       },
       {
         "url": "/dom/nodes/Element-lastElementChild.xhtml"
+      },
+      {
+        "url": "/dom/nodes/Element-matches.html"
       },
       {
         "url": "/dom/nodes/Element-nextElementSibling.html"
@@ -13607,6 +13657,9 @@
         "url": "/html/semantics/forms/attributes-common-to-form-controls/dirname-ltr.html"
       },
       {
+        "url": "/html/semantics/forms/attributes-common-to-form-controls/disabled-elements-01.html"
+      },
+      {
         "url": "/html/semantics/forms/attributes-common-to-form-controls/formAction_document_address.html"
       },
       {
@@ -14399,10 +14452,19 @@
         "url": "/js/builtins/Math.min.html"
       },
       {
+        "url": "/js/builtins/Object.prototype.freeze.html"
+      },
+      {
         "url": "/js/builtins/Object.prototype.hasOwnProperty-order.html"
       },
       {
         "url": "/js/builtins/Object.prototype.hasOwnProperty-prototype-chain.html"
+      },
+      {
+        "url": "/js/builtins/Object.prototype.preventExtensions.html"
+      },
+      {
+        "url": "/js/builtins/Object.prototype.seal.html"
       },
       {
         "url": "/js/builtins/WeakMap.prototype-properties.html"
@@ -15281,10 +15343,7 @@
         "url": "/resource-timing/test_resource_timing.html"
       },
       {
-        "url": "/selectors-api/tests/submissions/Opera/Element-matches.html"
-      },
-      {
-        "url": "/selectors-api/tests/submissions/Opera/ParentNode-find-findAll.html"
+        "url": "/selectors-api/tests/submissions/Opera/ParentNode-query-queryAll.html"
       },
       {
         "url": "/selectors/attribute-selectors/attribute-case/cssom.html"
@@ -16877,9 +16936,6 @@
         "url": "/workers/WorkerGlobalScope_EventTarget.htm"
       },
       {
-        "url": "/workers/WorkerGlobalScope_XMLHttpRequest.htm"
-      },
-      {
         "url": "/workers/WorkerGlobalScope_addEventListener.htm"
       },
       {
@@ -17081,7 +17137,7 @@
         "url": "/workers/interfaces.worker"
       },
       {
-        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/onmessage.html"
+        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/onmessage.worker"
       },
       {
         "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/event-ports-dedicated.html"
@@ -17093,7 +17149,7 @@
         "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/message-event.html"
       },
       {
-        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/return-value.html"
+        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/return-value.worker"
       },
       {
         "url": "/workers/interfaces/DedicatedWorkerGlobalScope/postMessage/second-argument-null-in-array.html"
@@ -17831,6 +17887,10 @@
       },
       {
         "timeout": "long",
+        "url": "/websockets/extended-payload-length.html"
+      },
+      {
+        "timeout": "long",
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-large.html"
       },
       {
@@ -17916,6 +17976,6 @@
     "deleted": [],
     "items": {}
   },
-  "rev": "34eea70476fb2a9e5f5b3cfc6e3dbad441790056",
+  "rev": "68c7ce132cc91eab73bad13c69225d79fe97a3ec",
   "url_base": "/"
 }

@@ -872,7 +872,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         for frame in destination_frame.iter() {
             frame.pipeline.borrow().load();
         }
-        self.grant_paint_permission(destination_frame, NavigationType::Navigate);
+        self.send_frame_tree_and_grant_paint_permission(destination_frame);
 
     }
 
@@ -978,7 +978,9 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     }
                 }
 
-                self.grant_paint_permission(next_frame_tree, frame_change.navigation_type);
+                self.send_frame_tree_and_grant_paint_permission(next_frame_tree.clone());
+                self.handle_evicted_frames_for_load_navigation(next_frame_tree,
+                                                               frame_change.navigation_type);
             },
             None => (),
         }
@@ -1032,8 +1034,8 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
-    fn handle_evicted_frames(&mut self, evicted: Vec<Rc<FrameTree>>) {
-        for frame_tree in evicted.into_iter() {
+    fn handle_evicted_frames(&mut self, evicted_frames: Vec<Rc<FrameTree>>) {
+        for frame_tree in evicted_frames.into_iter() {
             if !self.navigation_context.contains(frame_tree.pipeline.borrow().id) {
                 self.close_pipelines(frame_tree);
             } else {
@@ -1044,41 +1046,39 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         }
     }
 
-    // Grants a frame tree permission to paint; optionally updates navigation to reflect a new page
-    fn grant_paint_permission(&mut self, frame_tree: Rc<FrameTree>, navigation_type: NavigationType) {
-        // Give permission to paint to the new frame and all child frames
-        self.set_ids(&frame_tree);
 
+    fn handle_evicted_frames_for_load_navigation(&mut self,
+                                                 frame_tree: Rc<FrameTree>,
+                                                 navigation_type: NavigationType) {
         // Don't call navigation_context.load() on a Navigate type (or None, as in the case of
-        // parsed iframes that finish loading)
+        // parsed iframes that finish loading).
         match navigation_type {
             NavigationType::Load => {
-                debug!("evicting old frames due to load");
-                let evicted = self.navigation_context.load(frame_tree,
-                                                           &mut *self.compositor_proxy);
-                self.handle_evicted_frames(evicted);
+                debug!("Evicting frames for NavigationType::Load");
+                let evicted_frames = self.navigation_context.load(frame_tree,
+                                                                  &mut *self.compositor_proxy);
+                self.handle_evicted_frames(evicted_frames);
             }
-            _ => {
-                debug!("ignoring non-load navigation type");
-            }
+            _ => {}
         }
     }
 
-    fn set_ids(&mut self, frame_tree: &Rc<FrameTree>) {
-        let (chan, port) = channel();
+    // Grants a frame tree permission to paint; optionally updates navigation to reflect a new page
+    fn send_frame_tree_and_grant_paint_permission(&mut self, frame_tree: Rc<FrameTree>) {
         debug!("Constellation sending SetFrameTree");
+        let (chan, port) = channel();
         self.compositor_proxy.send(CompositorMsg::SetFrameTree(frame_tree.to_sendable(),
                                                                chan,
                                                                self.chan.clone()));
-        match port.recv_opt() {
-            Ok(()) => {
-                let mut iter = frame_tree.iter();
-                for frame in iter {
-                    frame.has_compositor_layer.set(true);
-                    frame.pipeline.borrow().grant_paint_permission();
-                }
-            }
-            Err(()) => {} // message has been discarded, probably shutting down
+        if port.recv_opt().is_err() {
+            debug!("Compositor has discarded SetFrameTree");
+            return; // Our message has been discarded, probably shutting down.
+        }
+
+        let mut iter = frame_tree.iter();
+        for frame in iter {
+            frame.has_compositor_layer.set(true);
+            frame.pipeline.borrow().grant_paint_permission();
         }
     }
 

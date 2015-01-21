@@ -44,6 +44,7 @@ use servo_util::geometry::{mod, Au, to_px};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::default::Default;
+use std::iter::repeat;
 use std::num::FloatMath;
 use style::computed::{AngleOrCorner, LengthOrPercentage, HorizontalDirection, VerticalDirection};
 use style::computed::{Image, LinearGradient};
@@ -875,13 +876,13 @@ impl FragmentDisplayListBuilding for Fragment {
                 let height = canvas_fragment_info.replaced_image_fragment_info
                     .computed_block_size.map_or(0, |h| to_px(h) as uint);
 
-                let (sender, receiver) = channel::<Arc<Vec<u8>>>();
+                let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
                     Some(ref renderer) =>  {
                         renderer.deref().lock().send(SendPixelContents(sender));
-                        (*receiver.recv()).clone()
+                        receiver.recv()
                     },
-                    None => Vec::from_elem(width * height * 4, 0xFFu8)
+                    None => repeat(0xFFu8).take(width * height * 4).collect(),
                 };
 
                 let canvas_display_item = box ImageDisplayItem {

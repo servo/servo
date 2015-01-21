@@ -42,8 +42,9 @@
 //! - `OptionalRootable` and `OptionalRootedRootable`: make rooting `Option` values easy via a `root` method
 //! - `ResultRootable`: make rooting successful `Result` values easy
 //! - `TemporaryPushable`: allows mutating vectors of `JS<T>` with new elements of `JSRef`/`Temporary`
-//! - `OptionalSettable`: allows assigning `Option` values of `JSRef`/`Temporary` to fields of `Option<JS<T>>`
 //! - `RootedReference`: makes obtaining an `Option<JSRef<T>>` from an `Option<Root<T>>` easy
+
+#![deny(missing_docs)]
 
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, Reflectable};
@@ -113,6 +114,8 @@ impl<T: Reflectable> Temporary<T> {
         self.inner.clone()
     }
 
+    /// Returns `self` as a `Temporary` of another type. For use by
+    /// `InheritTypes` only.
     //XXXjdm It would be lovely if this could be private.
     pub unsafe fn transmute<To>(self) -> Temporary<To> {
         mem::transmute(self)
@@ -174,6 +177,7 @@ impl<T: Reflectable> JS<T> {
 }
 
 impl<T: Assignable<U>, U: Reflectable> JS<U> {
+    /// Create a `JS<T>` from any JS-managed pointer.
     pub fn from_rooted(root: T) -> JS<U> {
         unsafe {
             root.get_js()
@@ -191,6 +195,10 @@ impl<T: Reflectable> Reflectable for JS<T> {
     }
 }
 
+/// A trait to be implemented for JS-managed types that can be stored in
+/// mutable member fields.
+///
+/// Do not implement this trait yourself.
 pub trait HeapGCValue: JSTraceable {
 }
 
@@ -210,16 +218,20 @@ pub struct MutHeap<T: HeapGCValue+Copy> {
 }
 
 impl<T: HeapGCValue+Copy> MutHeap<T> {
+    /// Create a new `MutHeap`.
     pub fn new(initial: T) -> MutHeap<T> {
         MutHeap {
             val: Cell::new(initial),
         }
     }
 
+    /// Set this `MutHeap` to the given value, calling write barriers as
+    /// appropriate.
     pub fn set(&self, val: T) {
         self.val.set(val)
     }
 
+    /// Set the value in this `MutHeap`, calling read barriers as appropriate.
     pub fn get(&self) -> T {
         self.val.get()
     }
@@ -235,6 +247,7 @@ pub struct MutNullableJS<T: Reflectable> {
 }
 
 impl<T: Assignable<U>, U: Reflectable> MutNullableJS<U> {
+    /// Create a new `MutNullableJS`
     pub fn new(initial: Option<T>) -> MutNullableJS<U> {
         MutNullableJS {
             ptr: Cell::new(initial.map(|initial| {
@@ -280,6 +293,8 @@ impl<T: Reflectable> MutNullableJS<T> {
         self.ptr.get()
     }
 
+    /// Retrieve a copy of the current inner value. If it is `None`, it is
+    /// initialized with the result of `cb` first.
     pub fn or_init(&self, cb: || -> Temporary<T>) -> Temporary<T> {
         match self.get() {
             Some(inner) => inner,
@@ -309,11 +324,13 @@ impl<T: Reflectable> JS<T> {
 }
 
 impl<From, To> JS<From> {
+    /// Return `self` as a `JS` of another type.
     //XXXjdm It would be lovely if this could be private.
     pub unsafe fn transmute(self) -> JS<To> {
         mem::transmute(self)
     }
 
+    /// Return `self` as a `JS` of another type.
     pub unsafe fn transmute_copy(&self) -> JS<To> {
         mem::transmute_copy(self)
     }
@@ -322,6 +339,8 @@ impl<From, To> JS<From> {
 
 /// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
+    /// Obtain a safe optional reference to the wrapped JS owned-value that
+    /// cannot outlive the lifetime of this root.
     fn r<'a>(&'a self) -> Option<JSRef<'a, T>>;
 }
 
@@ -333,6 +352,8 @@ impl<T: Reflectable> RootedReference<T> for Option<Root<T>> {
 
 /// Get an `Option<Option<JSRef<T>>>` out of an `Option<Option<Root<T>>>`
 pub trait OptionalRootedReference<T> {
+    /// Obtain a safe optional optional reference to the wrapped JS owned-value
+    /// that cannot outlive the lifetime of this root.
     fn r<'a>(&'a self) -> Option<Option<JSRef<'a, T>>>;
 }
 
@@ -346,6 +367,7 @@ impl<T: Reflectable> OptionalRootedReference<T> for Option<Option<Root<T>>> {
 /// which in general is an unsafe operation since they can outlive the rooted lifetime of the
 /// original value.
 pub trait Assignable<T> {
+    /// Extract an unrooted `JS<T>`.
     unsafe fn get_js(&self) -> JS<T>;
 }
 
@@ -367,21 +389,10 @@ impl<T: Reflectable> Assignable<T> for Temporary<T> {
     }
 }
 
-/// Assign an optional rootable value (either of `JS<T>` or `Temporary<T>`) to an optional
-/// field of a DOM type (ie. `Option<JS<T>>`)
-pub trait OptionalSettable<T> {
-    fn assign(&self, val: Option<T>);
-}
-
-impl<T: Assignable<U>, U: Reflectable> OptionalSettable<T> for Cell<Option<JS<U>>> {
-    fn assign(&self, val: Option<T>) {
-        self.set(val.map(|val| unsafe { val.get_js() }));
-    }
-}
-
 
 /// Root a rootable `Option` type (used for `Option<Temporary<T>>`)
 pub trait OptionalRootable<T> {
+    /// Root the inner value, if it exists.
     fn root(self) -> Option<Root<T>>;
 }
 
@@ -393,6 +404,7 @@ impl<T: Reflectable> OptionalRootable<T> for Option<Temporary<T>> {
 
 /// Return an unrooted type for storing in optional DOM fields
 pub trait OptionalUnrootable<T> {
+    /// Returns a `JS<T>` for the inner value, if it exists.
     fn unrooted(&self) -> Option<JS<T>>;
 }
 
@@ -404,6 +416,7 @@ impl<'a, T: Reflectable> OptionalUnrootable<T> for Option<JSRef<'a, T>> {
 
 /// Root a rootable `Option` type (used for `Option<JS<T>>`)
 pub trait OptionalRootedRootable<T> {
+    /// Root the inner value, if it exists.
     fn root(&self) -> Option<Root<T>>;
 }
 
@@ -415,6 +428,7 @@ impl<T: Reflectable> OptionalRootedRootable<T> for Option<JS<T>> {
 
 /// Root a rootable `Option<Option>` type (used for `Option<Option<JS<T>>>`)
 pub trait OptionalOptionalRootedRootable<T> {
+    /// Root the inner value, if it exists.
     fn root(&self) -> Option<Option<Root<T>>>;
 }
 
@@ -427,6 +441,7 @@ impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<JS<T>>>
 
 /// Root a rootable `Result` type (any of `Temporary<T>` or `JS<T>`)
 pub trait ResultRootable<T,U> {
+    /// Root the inner value, if it exists.
     fn root(self) -> Result<Root<T>, U>;
 }
 
@@ -446,7 +461,9 @@ impl<T: Reflectable, U> ResultRootable<T, U> for Result<JS<T>, U> {
 /// under the assumption that said lists are reachable via the GC graph, and therefore the
 /// new values are transitively rooted for the lifetime of their new owner.
 pub trait TemporaryPushable<T> {
+    /// Push a new value onto this container.
     fn push_unrooted(&mut self, val: &T);
+    /// Insert a new value into this container.
     fn insert_unrooted(&mut self, index: uint, val: &T);
 }
 
@@ -465,6 +482,7 @@ pub struct RootCollection {
     roots: UnsafeCell<SmallVec16<*mut JSObject>>,
 }
 
+/// A pointer to a RootCollection, for use in global variables.
 pub struct RootCollectionPtr(pub *const RootCollection);
 
 impl Copy for RootCollectionPtr {}
@@ -585,16 +603,19 @@ impl<'a, T> PartialEq for JSRef<'a, T> {
 }
 
 impl<'a,T> JSRef<'a,T> {
+    /// Return `self` as a `JSRef` of another type.
     //XXXjdm It would be lovely if this could be private.
     pub unsafe fn transmute<To>(self) -> JSRef<'a, To> {
         mem::transmute(self)
     }
 
+    /// Return `self` as a borrowed reference to a `JSRef` of another type.
     // FIXME(zwarich): It would be nice to get rid of this entirely.
     pub unsafe fn transmute_borrowed<'b, To>(&'b self) -> &'b JSRef<'a, To> {
         mem::transmute(self)
     }
 
+    /// Return an unrooted `JS<T>` for the inner pointer.
     pub fn unrooted(&self) -> JS<T> {
         JS {
             ptr: self.ptr
@@ -603,6 +624,7 @@ impl<'a,T> JSRef<'a,T> {
 }
 
 impl<'a, T: Reflectable> JSRef<'a, T> {
+    /// Returns the inner pointer directly.
     pub fn extended_deref(self) -> &'a T {
         unsafe {
             &*self.ptr
@@ -618,6 +640,7 @@ impl<'a, T: Reflectable> Reflectable for JSRef<'a, T> {
 
 /// A trait for comparing smart pointers ignoring the lifetimes
 pub trait Comparable<T> {
+    /// Returns whether the other value points to the same object.
     fn equals(&self, other: T) -> bool;
 }
 

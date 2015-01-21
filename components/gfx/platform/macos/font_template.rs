@@ -7,6 +7,8 @@ use core_graphics::font::CGFont;
 use core_text::font::CTFont;
 use core_text;
 
+use std::borrow::ToOwned;
+
 /// Platform specific font representation for mac.
 /// The identifier is a PostScript font name. The
 /// CTFont object is cached here for use by the
@@ -34,7 +36,7 @@ impl FontTemplateData {
 
         FontTemplateData {
             ctfont: ctfont,
-            identifier: identifier.into_string(),
+            identifier: identifier.to_owned(),
         }
     }
 }

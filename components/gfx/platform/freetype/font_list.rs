@@ -22,6 +22,7 @@ use fontconfig::fontconfig::{
 
 use libc;
 use libc::c_int;
+use std::borrow::ToOwned;
 use std::ptr;
 use std::string::String;
 
@@ -53,14 +54,14 @@ pub fn get_variations_for_family(family_name: &str, callback: |String|) {
         let mut font_set = FcConfigGetFonts(config, FcSetSystem);
         let font_set_array_ptr = &mut font_set;
         let pattern = FcPatternCreate();
-        assert!(pattern.is_not_null());
+        assert!(!pattern.is_null());
         let mut family_name_c = family_name.to_c_str();
         let family_name = family_name_c.as_mut_ptr();
         let ok = FcPatternAddString(pattern, FC_FAMILY.as_ptr() as *mut i8, family_name as *mut FcChar8);
         assert!(ok != 0);
 
         let object_set = FcObjectSetCreate();
-        assert!(object_set.is_not_null());
+        assert!(!object_set.is_null());
 
         FcObjectSetAdd(object_set, FC_FILE.as_ptr() as *mut i8);
         FcObjectSetAdd(object_set, FC_INDEX.as_ptr() as *mut i8);
@@ -127,13 +128,13 @@ pub fn get_system_default_family(generic_name: &str) -> Option<String> {
 #[cfg(target_os="linux")]
 pub fn get_last_resort_font_families() -> Vec<String> {
     vec!(
-        "Fira Sans".into_string(),
-        "DejaVu Sans".into_string(),
-        "Arial".into_string()
+        "Fira Sans".to_owned(),
+        "DejaVu Sans".to_owned(),
+        "Arial".to_owned()
     )
 }
 
 #[cfg(target_os="android")]
 pub fn get_last_resort_font_families() -> Vec<String> {
-    vec!("Roboto".into_string())
+    vec!("Roboto".to_owned())
 }

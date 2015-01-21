@@ -14,9 +14,9 @@ extern crate servo;
 extern crate time;
 extern crate "util" as servo_util;
 
-#[cfg(all(feature = "glutin",not(test)))]
+#[cfg(all(feature = "glutin_app",not(test)))]
 extern crate "glutin_app" as app;
-#[cfg(all(feature = "glfw_app",not(test)))]
+#[cfg(all(feature = "glfw",not(test)))]
 extern crate "glfw_app" as app;
 
 #[cfg(not(test))]
@@ -41,6 +41,9 @@ use servo::Browser;
 #[cfg(not(test))]
 use compositing::windowing::WindowEvent;
 
+#[cfg(target_os="android")]
+use std::borrow::ToOwned;
+
 #[cfg(not(any(test,target_os="android")))]
 use std::os;
 
@@ -55,8 +58,8 @@ android_start!(main)
 #[cfg(target_os="android")]
 fn get_args() -> Vec<String> {
     vec![
-        "servo".into_string(),
-        "http://en.wikipedia.org/wiki/Rust".into_string()
+        "servo".to_owned(),
+        "http://en.wikipedia.org/wiki/Rust".to_owned()
     ]
 }
 

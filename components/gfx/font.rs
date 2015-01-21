@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use geom::{Point2D, Rect, Size2D};
+use std::borrow::ToOwned;
 use std::mem;
 use std::slice;
 use std::rc::Rc;
@@ -162,7 +163,7 @@ impl Font {
 
         let glyphs = Arc::new(glyphs);
         self.shape_cache.insert(ShapeCacheEntry {
-            text: text.into_string(),
+            text: text.to_owned(),
             options: *options,
         }, glyphs.clone());
         glyphs
