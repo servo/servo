@@ -18,7 +18,7 @@ use dom::bindings::conversions::StringificationBehavior;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
 use dom::bindings::js::{RootCollection, RootCollectionPtr};
-use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
+use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{wrap_for_same_compartment, pre_wrap};
@@ -77,7 +77,6 @@ use js::rust::{Cx, RtUtils};
 use js;
 use url::Url;
 
-use libc;
 use std::any::{Any, AnyRefExt};
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -125,7 +124,7 @@ pub enum ScriptMsg {
     /// Generic message that encapsulates event handling.
     RunnableMsg(Box<Runnable+Send>),
     /// A DOM object's last pinned reference was removed (dispatched to all tasks).
-    RefcountCleanup(*const libc::c_void),
+    RefcountCleanup(TrustedReference),
 }
 
 /// A cloneable interface for communicating with an event loop.
