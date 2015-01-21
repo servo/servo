@@ -18,7 +18,7 @@ use url::{Url, UrlParser};
 use std::borrow::ToOwned;
 
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
-    spawn_named("http_loader", proc() load(load_data, start_chan))
+    spawn_named("http_loader".to_owned(), proc() load(load_data, start_chan))
 }
 
 fn send_error(url: Url, err: String, senders: ResponseSenders) {

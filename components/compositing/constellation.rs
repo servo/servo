@@ -33,6 +33,7 @@ use servo_util::geometry::{PagePx, ViewportPx};
 use servo_util::opts;
 use servo_util::task::spawn_named;
 use servo_util::time::TimeProfilerChan;
+use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::io;
@@ -349,7 +350,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  -> ConstellationChan {
         let (constellation_port, constellation_chan) = ConstellationChan::new();
         let constellation_chan_clone = constellation_chan.clone();
-        spawn_named("Constellation", proc() {
+        spawn_named("Constellation".to_owned(), proc() {
             let mut constellation: Constellation<LTF, STF> = Constellation {
                 chan: constellation_chan_clone,
                 request_port: constellation_port,

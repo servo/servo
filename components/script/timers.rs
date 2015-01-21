@@ -17,6 +17,7 @@ use servo_util::str::DOMString;
 
 use js::jsval::JSVal;
 
+use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::cmp;
 use std::collections::HashMap;
@@ -127,7 +128,7 @@ impl TimerManager {
             TimerSource::FromWorker if is_interval == IsInterval::Interval => "Worker:SetInterval",
             TimerSource::FromWindow(_) => "Window:SetTimeout",
             TimerSource::FromWorker => "Worker:SetTimeout",
-        };
+        }.to_owned();
         spawn_named(spawn_name, proc() {
             let mut tm = tm;
             let duration = Duration::milliseconds(timeout as i64);

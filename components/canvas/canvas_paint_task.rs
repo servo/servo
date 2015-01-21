@@ -8,6 +8,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use servo_util::task::spawn_named;
 
+use std::borrow::ToOwned;
 use std::comm;
 
 #[deriving(Clone)]
@@ -39,7 +40,7 @@ impl CanvasPaintTask {
 
     pub fn start(size: Size2D<i32>) -> Sender<CanvasMsg> {
         let (chan, port) = comm::channel::<CanvasMsg>();
-        spawn_named("CanvasTask", proc() {
+        spawn_named("CanvasTask".to_owned(), proc() {
             let mut painter = CanvasPaintTask::new(size);
 
             loop {

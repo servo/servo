@@ -10,6 +10,7 @@ multiple times and thus triggering reflows multiple times.
 
 use image_cache_task::{ImageCacheTask, ImageResponseMsg, Msg};
 
+use std::borrow::ToOwned;
 use std::comm::{Receiver, channel};
 use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
@@ -130,7 +131,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
                 let on_image_available: proc(ImageResponseMsg, NodeAddress):Send =
                     self.on_image_available.as_ref().unwrap().respond();
                 let url = (*url).clone();
-                spawn_named("LocalImageCache", proc() {
+                spawn_named("LocalImageCache".to_owned(), proc() {
                     let (response_chan, response_port) = channel();
                     image_cache_task.send(Msg::WaitForImage(url, response_chan));
                     on_image_available(response_port.recv(), node_address);
