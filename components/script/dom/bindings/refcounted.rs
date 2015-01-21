@@ -39,6 +39,9 @@ use std::sync::{Arc, Mutex};
 thread_local!(pub static LIVE_REFERENCES: Rc<RefCell<Option<LiveDOMReferences>>> = Rc::new(RefCell::new(None)))
 
 
+/// A pointer to a Rust DOM object that needs to be destroyed.
+pub struct TrustedReference(*const libc::c_void);
+
 /// A safe wrapper around a raw pointer to a DOM object that can be
 /// shared among tasks for use in asynchronous operations. The underlying
 /// DOM object is guaranteed to live at least as long as the last outstanding
@@ -108,7 +111,8 @@ impl<T: Reflectable> Drop for Trusted<T> {
         assert!(*refcount > 0);
         *refcount -= 1;
         if *refcount == 0 {
-            self.script_chan.send(ScriptMsg::RefcountCleanup(self.ptr));
+            self.script_chan.send(
+                ScriptMsg::RefcountCleanup(TrustedReference(self.ptr)));
         }
     }
 }
@@ -151,7 +155,8 @@ impl LiveDOMReferences {
     }
 
     /// Unpin the given DOM object if its refcount is 0.
-    pub fn cleanup(cx: *mut JSContext, raw_reflectable: *const libc::c_void) {
+    pub fn cleanup(cx: *mut JSContext, raw_reflectable: TrustedReference) {
+        let TrustedReference(raw_reflectable) = raw_reflectable;
         LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();
