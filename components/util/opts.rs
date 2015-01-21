@@ -214,6 +214,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optflag("h", "help", "Print this message"),
         getopts::optopt("r", "render-api", "Set the rendering API to use", "gl|mesa"),
         getopts::optopt("", "resources-path", "Path to find static resources", "/home/servo/resources"),
+        getopts::optopt("", "test", "Set the test mode for servo", "wpt|ref|content"),
     );
 
     let opt_match = match getopts::getopts(args, opts.as_slice()) {
@@ -311,6 +312,21 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
             return false;
         }
     };
+
+    // GWTODO: Add --test param so we can update wptrunner to pass the
+    // correct parameter through. Once that is done, we can change the
+    // code below to set the appropriate values and test locally that
+    // WPT works.
+    match opt_match.opt_str("test").unwrap_or("none".to_owned()).as_slice() {
+        "none" => {}
+        "content" => {}
+        "ref" => {}
+        "wpt" => {}
+        _ => {
+            args_fail("Unknown test mode specified");
+            return false;
+        }
+    }
 
     let opts = Opts {
         urls: urls,
