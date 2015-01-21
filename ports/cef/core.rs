@@ -11,7 +11,6 @@ use libc::{c_char, c_int, c_void};
 use rustrt::local::Local;
 use rustrt::task;
 use servo_util::opts;
-use servo_util::opts::RenderApi;
 use std::borrow::ToOwned;
 use std::c_str::CString;
 use std::rt;
@@ -105,7 +104,6 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
         user_agent: None,
         dump_flow_tree: false,
         validate_display_list_geometry: false,
-        render_api: RenderApi::OpenGL,
         resources_path: resources_path(),
     });
 

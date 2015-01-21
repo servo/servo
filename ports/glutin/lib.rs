@@ -40,5 +40,5 @@ pub fn create_window() -> Rc<Window> {
     let size = opts.initial_window_size.as_f32() * scale_factor;
 
     // Open a window.
-    Window::new(foreground, size.as_uint(), opts.render_api)
+    Window::new(foreground, size.as_uint())
 }
