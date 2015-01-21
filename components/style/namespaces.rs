@@ -2,13 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cssparser::ast::*;
-use cssparser::ast::ComponentValue::*;
+use cssparser::Parser;
 use std::collections::HashMap;
-use servo_util::namespace;
-use errors::log_css_error;
-use string_cache::Namespace;
+use string_cache::{Atom, Namespace};
+use parser::ParserContext;
 
+
+#[deriving(Clone)]
 pub struct NamespaceMap {
     pub default: Option<Namespace>,
     pub prefix_map: HashMap<String, Namespace>,
@@ -22,45 +22,28 @@ impl NamespaceMap {
 }
 
 
-pub fn parse_namespace_rule(rule: AtRule, namespaces: &mut NamespaceMap) {
-    let location = rule.location;
-    macro_rules! syntax_error(
-        () => {{
-            log_css_error(location, "Invalid @namespace rule");
-            return
-        }};
-    );
-    if rule.block.is_some() { syntax_error!() }
-    let mut prefix: Option<String> = None;
-    let mut ns: Option<Namespace> = None;
-    let mut iter = rule.prelude.move_skip_whitespace();
-    for component_value in iter {
-        match component_value {
-            Ident(value) => {
-                if prefix.is_some() { syntax_error!() }
-                prefix = Some(value);
-            },
-            URL(value) | QuotedString(value) => {
-                if ns.is_some() { syntax_error!() }
-                ns = Some(namespace::from_domstring(Some(value)));
-                break
-            },
-            _ => syntax_error!(),
+pub fn parse_namespace_rule(context: &mut ParserContext, input: &mut Parser)
+                            -> Result<(Option<String>, Namespace), ()> {
+    let prefix = input.try(|input| input.expect_ident()).ok().map(|p| p.into_owned());
+    let url = try!(input.expect_url_or_string());
+    try!(input.expect_exhausted());
+
+    let namespace = Namespace(Atom::from_slice(url.as_slice()));
+    let is_duplicate = match prefix {
+        Some(ref prefix) => {
+            context.namespaces.prefix_map.insert(prefix.clone(), namespace.clone()).is_some()
         }
-    }
-    if iter.next().is_some() { syntax_error!() }
-    match (prefix, ns) {
-        (Some(prefix), Some(ns)) => {
-            if namespaces.prefix_map.insert(prefix, ns).is_some() {
-                log_css_error(location, "Duplicate @namespace rule");
+        None => {
+            let has_default = context.namespaces.default.is_some();
+            if !has_default {
+                context.namespaces.default = Some(namespace.clone());
             }
-        },
-        (None, Some(ns)) => {
-            if namespaces.default.is_some() {
-                log_css_error(location, "Duplicate @namespace rule");
-            }
-            namespaces.default = Some(ns);
-        },
-        _ => syntax_error!()
+            has_default
+        }
+    };
+    if is_duplicate {
+        Err(())  // "Duplicate @namespace rule"
+    } else {
+        Ok((prefix, namespace))
     }
 }

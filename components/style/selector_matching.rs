@@ -22,14 +22,8 @@ use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::{CaseSensitivity, Combinator, CompoundSelector, LocalName};
 use selectors::{PseudoElement, SelectorList, SimpleSelector};
 use selectors::{get_selector_list_selectors};
-use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules};
+use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules, Origin};
 
-#[deriving(Clone, PartialEq, Eq, Copy)]
-pub enum StylesheetOrigin {
-    UserAgent,
-    Author,
-    User,
-}
 
 /// The definition of whitespace per CSS Selectors Level 3 § 4.
 pub static SELECTOR_WHITESPACE: &'static [char] = &[' ', '\t', '\n', '\r', '\x0C'];
@@ -303,7 +297,7 @@ impl Stylist {
                 Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
                 None,
                 None,
-                StylesheetOrigin::UserAgent);
+                Origin::UserAgent);
             stylist.add_stylesheet(ua_stylesheet);
         }
         stylist
@@ -318,17 +312,17 @@ impl Stylist {
 
             for stylesheet in self.stylesheets.iter() {
                 let (mut element_map, mut before_map, mut after_map) = match stylesheet.origin {
-                    StylesheetOrigin::UserAgent => (
+                    Origin::UserAgent => (
                         &mut self.element_map.user_agent,
                         &mut self.before_map.user_agent,
                         &mut self.after_map.user_agent,
                     ),
-                    StylesheetOrigin::Author => (
+                    Origin::Author => (
                         &mut self.element_map.author,
                         &mut self.before_map.author,
                         &mut self.after_map.author,
                     ),
-                    StylesheetOrigin::User => (
+                    Origin::User => (
                         &mut self.element_map.user,
                         &mut self.before_map.user,
                         &mut self.after_map.user,
@@ -395,7 +389,7 @@ impl Stylist {
             Url::parse("chrome:///quirks-mode.css").unwrap(),
             None,
             None,
-            StylesheetOrigin::UserAgent))
+            Origin::UserAgent))
     }
 
     pub fn add_stylesheet(&mut self, stylesheet: Stylesheet) {
@@ -529,7 +523,7 @@ struct Rule {
 
 /// A property declaration together with its precedence among rules of equal specificity so that
 /// we can sort them.
-#[deriving(Clone)]
+#[deriving(Clone, Show)]
 pub struct DeclarationBlock {
     pub declarations: Arc<Vec<PropertyDeclaration>>,
     source_order: uint,
@@ -1171,21 +1165,24 @@ mod tests {
     use super::{DeclarationBlock, Rule, SelectorMap};
     use selectors::LocalName;
     use string_cache::Atom;
+    use cssparser::Parser;
+    use parser::ParserContext;
+    use url::Url;
 
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
     fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
         use namespaces::NamespaceMap;
-        use selectors::{ParserContext, parse_selector_list};
-        use selector_matching::StylesheetOrigin;
-        use cssparser::tokenize;
+        use selectors::parse_selector_list;
+        use stylesheets::Origin;
 
-        let namespaces = NamespaceMap::new();
         css_selectors.iter().enumerate().map(|(i, selectors)| {
             let context = ParserContext {
-                origin: StylesheetOrigin::Author,
+                stylesheet_origin: Origin::Author,
+                namespaces: NamespaceMap::new(),
+                base_url: &Url::parse("about:blank").unwrap(),
             };
-            parse_selector_list(&context, tokenize(*selectors).map(|(c, _)| c), &namespaces)
+            parse_selector_list(&context, &mut Parser::new(*selectors))
             .unwrap().into_iter().map(|s| {
                 Rule {
                     selector: s.compound_selectors.clone(),

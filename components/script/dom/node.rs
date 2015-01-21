@@ -48,7 +48,7 @@ use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
-use style::{matches, StylesheetOrigin, ParserContext, SelectorList};
+use style::{matches, SelectorList};
 
 use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
@@ -742,10 +742,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
-        let parser_context = ParserContext {
-            origin: StylesheetOrigin::Author,
-        };
-        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
+        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
@@ -767,10 +764,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         // Step 1.
         let nodes;
         let root = self.ancestors().last().unwrap_or(self.clone());
-        let parser_context = ParserContext {
-            origin: StylesheetOrigin::Author,
-        };
-        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
+        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
