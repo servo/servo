@@ -24,7 +24,7 @@ use errors::{ErrorLoggerIterator, log_css_error};
 pub use parsing_utils::*;
 pub use self::common_types::*;
 use selector_matching::DeclarationBlock;
-
+use text_writer::{mod, TextWriter};
 
 pub use self::property_bit_field::PropertyBitField;
 pub mod common_types;
@@ -2802,11 +2802,17 @@ impl PropertyDeclaration {
 }
 
 impl Show for PropertyDeclaration {
+    #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}: {}", self.name(), self.value())
+        self.fmt_to_css(f)
     }
 }
 
+impl ToCss for PropertyDeclaration {
+    fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+        dest.write_str(self.value().as_slice())
+    }
+}
 
 pub mod style_structs {
     use super::longhands;
