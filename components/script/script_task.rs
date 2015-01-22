@@ -1145,14 +1145,15 @@ impl ScriptTask {
                         node::from_untrusted_node_address(
                             self.js_runtime.ptr, node_address).root();
 
-                let maybe_node = match ElementCast::to_ref(temp_node.r()) {
+                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(temp_node.r());
+                let maybe_node = match maybe_elem {
                     Some(element) => Some(element),
                     None => temp_node.r().ancestors().filter_map(ElementCast::to_ref).next(),
                 };
 
                 match maybe_node {
                     Some(el) => {
-                        let node = NodeCast::from_ref(el);
+                        let node: JSRef<Node> = NodeCast::from_ref(el);
                         debug!("clicked on {:?}", node.debug_str());
                         // Prevent click event if form control element is disabled.
                         if node.click_event_filter_by_disabled_state() { return; }

@@ -828,8 +828,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn child_elements(self) -> ChildElementIterator<'a> {
+        fn cast(n: JSRef<Node>) -> Option<JSRef<Element>> {
+            ElementCast::to_ref(n)
+        }
+
         self.children()
-            .filter_map::<JSRef<Element>>(ElementCast::to_ref)
+            .filter_map(cast as fn(JSRef<Node>) -> Option<JSRef<Element>>)
             .peekable()
     }
 
@@ -864,9 +868,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             publicId: "".to_owned(),
             systemId: "".to_owned(),
 
-            attrs: match ElementCast::to_ref(self) {
-                Some(element) => element.summarize(),
-                None => vec!(),
+            attrs: {
+                let e: Option<JSRef<Element>> = ElementCast::to_ref(self);
+                match e {
+                    Some(element) => element.summarize(),
+                    None => vec!(),
+                }
             },
 
             isDocumentElement:
@@ -1107,7 +1114,7 @@ impl NodeIterator {
     }
 
     fn next_child<'b>(&self, node: JSRef<'b, Node>) -> Option<JSRef<'b, Node>> {
-        let skip = |element: JSRef<Element>| {
+        let skip = |&:element: JSRef<Element>| {
             !self.include_descendants_of_void && element.is_void()
         };
 
@@ -2002,7 +2009,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     fn Normalize(self) {
         let mut prev_text = None;
         for child in self.children() {
-            match TextCast::to_ref(child) {
+            let t: Option<JSRef<Text>> = TextCast::to_ref(child);
+            match t {
                 Some(text) => {
                     let characterdata: JSRef<CharacterData> = CharacterDataCast::from_ref(text);
                     if characterdata.Length() == 0 {

@@ -98,7 +98,7 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
 
     // http://dom.spec.whatwg.org/#error-names-0
     fn Name(self) -> DOMString {
-        self.code.to_string()
+        format!("{:?}", self.code)
     }
 
     // http://dom.spec.whatwg.org/#error-names-0

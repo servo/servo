@@ -59,7 +59,7 @@ use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
 
 use cssparser::RGBA;
 use std::ascii::AsciiExt;
-use std::borrow::ToOwned;
+use std::borrow::{IntoCow, ToOwned};
 use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
@@ -505,7 +505,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 
     fn update_inline_style(self, property_decl: style::PropertyDeclaration, style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
-        if let &Some(ref mut declarations) = &mut *inline_declarations {
+        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
                 declarations.important.make_unique()
             } else {
@@ -731,7 +731,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             let owner_doc = node.owner_doc().root();
             owner_doc.r().quirks_mode()
         };
-        let is_equal = |lhs: &Atom, rhs: &Atom| match quirks_mode {
+        let is_equal = |&:lhs: &Atom, rhs: &Atom| match quirks_mode {
             NoQuirks | LimitedQuirks => lhs == rhs,
             Quirks => lhs.as_slice().eq_ignore_ascii_case(rhs.as_slice())
         };
@@ -749,7 +749,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn has_attribute(self, name: &Atom) -> bool {
-        assert!(name.bytes().all(|b| b.to_ascii_lowercase() == b));
+        assert!(name.as_slice().bytes().all(|&:b| b.to_ascii_lowercase() == b));
         self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
             *attr.r().local_name() == *name && *attr.r().namespace() == ns!("")
         })
@@ -816,7 +816,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
 
     fn get_uint_attribute(self, name: &Atom) -> u32 {
         assert!(name.as_slice().chars().all(|ch| {
-            !ch.is_ascii() || ch.to_ascii().to_lowercase() == ch.to_ascii()
+            !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
         let attribute = self.get_attribute(ns!(""), name).root();
         match attribute {
@@ -865,9 +865,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             None => self.local_name.as_slice().into_cow()
         };
         if self.html_element_in_html_document() {
-            qualified_name.as_slice().to_ascii_upper()
+            qualified_name.as_slice().to_ascii_uppercase()
         } else {
-            qualified_name.into_string()
+            qualified_name.into_owned()
         }
     }
 
@@ -1379,13 +1379,15 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         node.get_enabled_state()
     }
     fn get_checked_state(self) -> bool {
-        match HTMLInputElementCast::to_ref(self) {
+        let input_element: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
+        match input_element {
             Some(input) => input.Checked(),
             None => false,
         }
     }
     fn get_indeterminate_state(self) -> bool {
-        match HTMLInputElementCast::to_ref(self) {
+        let input_element: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
+        match input_element {
             Some(input) => input.get_indeterminate_state(),
             None => false,
         }
@@ -1417,7 +1419,8 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         }
     }
     fn has_nonzero_border(self) -> bool {
-        match HTMLTableElementCast::to_ref(self) {
+        let table_element: Option<JSRef<HTMLTableElement>> = HTMLTableElementCast::to_ref(self);
+        match table_element {
             None => false,
             Some(this) => {
                 match this.get_border() {
@@ -1468,7 +1471,10 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
             None => {
                 let node: JSRef<Node> = NodeCast::from_ref(self);
                 node.ancestors()
-                    .filter_map(|node| ElementCast::to_ref(node))
+                    .filter_map(|node| {
+                        let e: Option<JSRef<Element>> = ElementCast::to_ref(node);
+                        e
+                    })
                     .filter(|e| e.as_maybe_activatable().is_some()).next()
                     .map(|r| Temporary::from_rooted(r))
             }

@@ -767,16 +767,20 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         let doc = document_from_node(*self).root();
         let node: JSRef<Node> = NodeCast::from_ref(doc.r());
         let owner = self.form_owner();
-        if owner.is_none() || ElementCast::from_ref(*self).click_in_progress() {
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+        if owner.is_none() || elem.click_in_progress() {
             return;
         }
         // This is safe because we are stopping after finding the first element
         // and only then performing actions which may modify the DOM tree
         unsafe {
             node.query_selector_iter("input[type=submit]".to_owned()).unwrap()
-                .filter_map(|t| HTMLInputElementCast::to_ref(t))
+                .filter_map(|t| {
+                    let h: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(t);
+                    h
+                })
                 .find(|r| r.form_owner() == owner)
-                .map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+                .map(|&:s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
         }
     }
 }

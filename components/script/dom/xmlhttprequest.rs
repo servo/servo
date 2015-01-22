@@ -34,6 +34,7 @@ use encoding::types::{DecoderTrap, Encoding, EncodingRef, EncoderTrap};
 
 use hyper::header::Headers;
 use hyper::header::common::{Accept, ContentLength, ContentType};
+use hyper::header::quality_item::QualityItem;
 use hyper::http::RawStatus;
 use hyper::mime::{mod, Mime};
 use hyper::method::Method;
@@ -575,8 +576,9 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
 
 
             if !request_headers.has::<Accept>() {
+                let mime = Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![]);
                 request_headers.set(
-                    Accept(vec![Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![])]));
+                    Accept(vec![QualityItem::new(mime, 1.0)]));
             }
         } // drops the borrow_mut
 

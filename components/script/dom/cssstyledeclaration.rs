@@ -116,11 +116,11 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
             if index as uint > declarations.normal.len() {
                 declarations.important
                             .get(index as uint - declarations.normal.len())
-                            .map(|decl| format!("{} !important", decl))
+                            .map(|decl| format!("{:?} !important", decl))
             } else {
                 declarations.normal
                             .get(index as uint)
-                            .map(|decl| format!("{}", decl))
+                            .map(|decl| format!("{:?}", decl))
             }
         });
 

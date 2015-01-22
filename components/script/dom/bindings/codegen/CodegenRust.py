@@ -1193,6 +1193,8 @@ class MethodDefiner(PropertyDefiner):
             else:
                 jitinfo = "0 as *const JSJitInfo"
                 accessor = m.get("nativeName", m["name"])
+                if accessor[0:3] != 'JS_':
+                    accessor = "%s as NonNullJSNative" % accessor
             return (m["name"], accessor, jitinfo, m["length"], m["flags"])
 
         def stringDecl(m):
@@ -5239,7 +5241,8 @@ class GlobalGenRoots():
 impl ${selfName} for ${baseName} {
     #[inline]
     fn ${fname}(&self) -> bool {
-        ${parentName}Cast::from_actual(self).${fname}()
+let base: &${parentName} = ${parentName}Cast::from_actual(self);
+        base.${fname}()
     }
 }\
 """).substitute({'fname': 'is_' + name.lower(),

@@ -21,6 +21,7 @@ use dom::document::Document;
 use dom::domstringmap::DOMStringMap;
 use dom::element::{Element, ElementTypeId, ActivationElementHelpers, AttributeHandlers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
+use dom::htmlinputelement::HTMLInputElement;
 use dom::htmlmediaelement::HTMLMediaElementTypeId;
 use dom::htmltablecellelement::HTMLTableCellElementTypeId;
 use dom::node::{Node, NodeTypeId, window_from_node};
@@ -123,7 +124,7 @@ impl<'a> HTMLElementMethods for JSRef<'a, HTMLElement> {
 
     // https://html.spec.whatwg.org/multipage/interaction.html#dom-click
     fn Click(self) {
-        let maybe_input = HTMLInputElementCast::to_ref(self);
+        let maybe_input: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
         match maybe_input {
             Some(i) if i.Disabled() => return,
             _ => ()

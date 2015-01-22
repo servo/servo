@@ -321,7 +321,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     /// https://html.spec.whatwg.org/multipage/#the-indicated-part-of-the-document
     fn find_fragment_node(self, fragid: DOMString) -> Option<Temporary<Element>> {
         self.GetElementById(fragid.clone()).or_else(|| {
-            let check_anchor = |&node: &JSRef<HTMLAnchorElement>| {
+            let check_anchor = |&:&node: &JSRef<HTMLAnchorElement>| {
                 let elem: JSRef<Element> = ElementCast::from_ref(node);
                 elem.get_attribute(ns!(""), &atom!("name")).root().map_or(false, |attr| {
                     attr.r().value().as_slice() == fragid.as_slice()
@@ -771,7 +771,11 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             root.traverse_preorder()
                 .find(|node| node.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
                 .map(|title_elem| {
-                    for text in title_elem.children().filter_map::<JSRef<Text>>(TextCast::to_ref) {
+                    let children = title_elem.children().filter_map(|n| {
+                        let t: Option<JSRef<Text>> = TextCast::to_ref(n);
+                        t
+                    });
+                    for text in children {
                         title.push_str(text.characterdata().data().as_slice());
                     }
                 });
