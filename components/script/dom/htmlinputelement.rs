@@ -41,7 +41,6 @@ use std::ascii::OwnedAsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
-use std::iter::repeat;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -313,17 +312,22 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
     let doc = document_from_node(broadcaster).root();
     let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
 
-    // There is no DOM tree manipulation here, so this is safe
-    let mut iter = unsafe {
-        doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
+    fn do_stuff<'a>(doc_node: JSRef<'a, Node>, broadcaster: JSRef<'a, HTMLInputElement>,
+                    owner: Option<JSRef<'a, HTMLFormElement>>, group: Option<&str>) {
+        // There is no DOM tree manipulation here, so this is safe
+        let mut iter = unsafe {
+            doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
-                .filter(|&r| in_same_group(r, owner.r(), group) && broadcaster != r)
-    };
-    for r in iter {
-        if r.Checked() {
-            r.SetChecked(false);
+                .filter(|&r| in_same_group(r, owner, group) && broadcaster != r)
+        };
+        for r in iter {
+            if r.Checked() {
+                r.SetChecked(false);
+            }
         }
     }
+
+    do_stuff(doc_node, broadcaster, owner.r(), group)
 }
 
 fn in_same_group<'a,'b>(other: JSRef<'a, HTMLInputElement>,
