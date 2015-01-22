@@ -19,7 +19,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::document::Document;
-use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::progressevent::ProgressEvent;
 use dom::urlsearchparams::URLSearchParamsHelpers;
@@ -792,7 +792,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.dispatch_event(event.r());
+        event.r().fire(target);
     }
 
     fn process_partial_response(self, progress: XHRProgress) {
@@ -932,7 +932,7 @@ impl<'a> PrivateXMLHttpRequestHelpers for JSRef<'a, XMLHttpRequest> {
             EventTargetCast::from_ref(self)
         };
         let event: JSRef<Event> = EventCast::from_ref(progressevent.r());
-        target.dispatch_event(event);
+        event.fire(target);
     }
 
     fn dispatch_upload_progress_event(self, type_: DOMString, partial_load: Option<u64>) {

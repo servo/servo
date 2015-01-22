@@ -7,7 +7,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::element::{Element, ActivationElementHelpers};
 use dom::event::{Event, EventHelpers};
-use dom::eventtarget::{EventTarget, EventTargetHelpers};
+use dom::eventtarget::EventTarget;
 use dom::mouseevent::MouseEvent;
 use dom::node::window_from_node;
 
@@ -53,8 +53,7 @@ pub trait Activatable : Copy {
                                     0, 0, 0, 0, ctrlKey, shiftKey, altKey, metaKey,
                                     0, None).root();
         let event: JSRef<Event> = EventCast::from_ref(mouse.r());
-        event.set_trusted(true);
-        target.dispatch_event(event);
+        event.fire(target);
 
         // Step 5
         if event.DefaultPrevented() {

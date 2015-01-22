@@ -9,7 +9,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use dom::eventtarget::EventTarget;
+use dom::eventtarget::{EventTarget, EventTargetHelpers};
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
@@ -245,10 +245,17 @@ impl<'a> EventMethods for JSRef<'a, Event> {
 
 pub trait EventHelpers {
     fn set_trusted(self, trusted: bool);
+    fn fire(self, target: JSRef<EventTarget>);
 }
 
 impl<'a> EventHelpers for JSRef<'a, Event> {
     fn set_trusted(self, trusted: bool) {
         self.trusted.set(trusted);
+    }
+
+    // https://html.spec.whatwg.org/multipage/webappapis.html#fire-a-simple-event
+    fn fire(self, target: JSRef<EventTarget>) {
+        self.set_trusted(true);
+        target.dispatch_event(self);
     }
 }

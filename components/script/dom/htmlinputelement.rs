@@ -8,7 +8,6 @@ use dom::attr::AttrHelpers;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLInputElementCast, NodeCast};
@@ -763,17 +762,15 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
                                            "input".to_owned(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable).root();
-                    event.r().set_trusted(true);
                     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
-                    target.DispatchEvent(event.r()).ok();
+                    event.r().fire(target);
 
                     let event = Event::new(GlobalRef::Window(win.r()),
                                            "change".to_owned(),
                                            EventBubbles::Bubbles,
                                            EventCancelable::NotCancelable).root();
-                    event.r().set_trusted(true);
                     let target: JSRef<EventTarget> = EventTargetCast::from_ref(*self);
-                    target.DispatchEvent(event.r()).ok();
+                    event.r().fire(target);
                 }
             },
             _ => ()

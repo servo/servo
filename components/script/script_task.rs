@@ -1121,7 +1121,7 @@ impl ScriptTask {
                 let event: JSRef<Event> = EventCast::from_ref(uievent.r());
 
                 let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
-                wintarget.dispatch_event(event);
+                event.fire(wintarget);
             }
             None => ()
         }
@@ -1231,7 +1231,7 @@ impl ScriptTask {
 
                       let event: JSRef<Event> = EventCast::from_ref(mouse_event.r());
                       let target: JSRef<EventTarget> = EventTargetCast::from_ref(top_most_node.r());
-                      target.dispatch_event(event);
+                      event.fire(target);
                   }
                 }
 
@@ -1391,6 +1391,7 @@ impl DocumentProgressHandler {
                                EventCancelable::NotCancelable).root();
         let wintarget: JSRef<EventTarget> = EventTargetCast::from_ref(window.r());
         let doctarget: JSRef<EventTarget> = EventTargetCast::from_ref(document.r());
+        event.set_trusted(true);
         let _ = wintarget.dispatch_event_with_target(doctarget, event.r());
     }
 }

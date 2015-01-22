@@ -10,8 +10,8 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::reflect_dom_object;
-use dom::event::{Event, EventTypeId};
-use dom::eventtarget::{EventTarget, EventTargetHelpers};
+use dom::event::{Event, EventHelpers, EventTypeId};
+use dom::eventtarget::EventTarget;
 
 use util::str::DOMString;
 
@@ -83,7 +83,7 @@ impl MessageEvent {
             scope, "message".to_owned(), false, false, message,
             "".to_owned(), "".to_owned()).root();
         let event: JSRef<Event> = EventCast::from_ref(messageevent.r());
-        target.dispatch_event(event);
+        event.fire(target);
     }
 }
 

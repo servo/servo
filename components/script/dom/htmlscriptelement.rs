@@ -18,7 +18,7 @@ use dom::bindings::js::{JSRef, Temporary, OptionalRootable};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::{Element, AttributeHandlers, ElementCreator};
-use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
+use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
@@ -243,9 +243,8 @@ impl<'a> HTMLScriptElementHelpers for JSRef<'a, HTMLScriptElement> {
                                "load".to_owned(),
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
-        event.r().set_trusted(true);
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.dispatch_event(event.r());
+        event.r().fire(target);
     }
 
     fn is_javascript(self) -> bool {
