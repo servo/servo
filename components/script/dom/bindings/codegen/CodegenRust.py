@@ -4530,6 +4530,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JSPropertyOpWrapper, JSPropertySpec, JS_PropertyStub}',
             'js::jsapi::{JSStrictPropertyOpWrapper, JSString, JSTracer, JS_ConvertStub}',
             'js::jsapi::{JS_StrictPropertyStub, JS_EnumerateStub, JS_ResolveStub}',
+            'js::jsapi::{JSMutableHandleValue, JSHandleId, JSType}',
             'js::jsval::JSVal',
             'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
             'js::jsval::{NullValue, UndefinedValue}',

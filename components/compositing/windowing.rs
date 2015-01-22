@@ -48,7 +48,7 @@ pub enum WindowEvent {
     /// context when this message is sent.
     InitializeCompositing,
     /// Sent when the window is resized.
-    Resize(TypedSize2D<DevicePixel, uint>),
+    Resize(TypedSize2D<DevicePixel, u32>),
     /// Sent when a new URL is to be loaded.
     LoadUrl(String),
     /// Sent when a mouse hit test is to be performed.
@@ -92,7 +92,7 @@ impl Show for WindowEvent {
 
 pub trait WindowMethods {
     /// Returns the size of the window in hardware pixels.
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint>;
+    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32>;
     /// Returns the size of the window in density-independent "px" units.
     fn size(&self) -> TypedSize2D<ScreenPx, f32>;
     /// Presents the window to the screen (perhaps by page flipping).

@@ -23,7 +23,7 @@ path = "../../components/msg"
 path = "../../components/util"
 
 [dependencies.glutin]
-git = "https://github.com/jdm/glutin"
+git = "https://github.com/tomaka/glutin"
 features = ["window", "headless"]
 
 [dependencies.gleam]

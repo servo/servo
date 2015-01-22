@@ -72,7 +72,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     scene: Scene<CompositorData>,
 
     /// The application window size.
-    window_size: TypedSize2D<DevicePixel, uint>,
+    window_size: TypedSize2D<DevicePixel, u32>,
 
     /// "Mobile-style" zoom that does not reflow the page.
     viewport_zoom: ScaleFactor<PagePx, ViewportPx, f32>,
@@ -840,7 +840,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    fn on_resize_window_event(&mut self, new_size: TypedSize2D<DevicePixel, uint>) {
+    fn on_resize_window_event(&mut self, new_size: TypedSize2D<DevicePixel, u32>) {
         debug!("compositor resizing to {:?}", new_size.to_untyped());
 
         // A size change could also mean a resolution change.
@@ -1130,7 +1130,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         let mut framebuffer_ids = vec!();
         let mut texture_ids = vec!();
-        let (width, height) = (self.window_size.width.get(), self.window_size.height.get());
+        let (width, height) = (self.window_size.width.get() as usize, self.window_size.height.get() as usize);
 
         if output_image {
             framebuffer_ids = gl::gen_framebuffers(1);
