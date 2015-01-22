@@ -14,7 +14,7 @@ use libc::funcs::posix88::unistd::usleep;
 use rand::{Rng, XorShiftRng};
 use std::mem;
 use std::rand::weak_rng;
-use std::sync::atomic::{AtomicUint, SeqCst};
+use std::sync::atomic::{AtomicUint, Ordering};
 use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 
 /// A unit of work.
@@ -157,7 +157,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                 // The work is done. Now decrement the count of outstanding work items. If this was
                 // the last work unit in the queue, then send a message on the channel.
                 unsafe {
-                    if (*ref_count).fetch_sub(1, SeqCst) == 1 {
+                    if (*ref_count).fetch_sub(1, Ordering::SeqCst) == 1 {
                         self.chan.send(SupervisorMsg::Finished)
                     }
                 }
@@ -181,7 +181,7 @@ impl<'a, QueueData: 'static, WorkData: Send> WorkerProxy<'a, QueueData, WorkData
     #[inline]
     pub fn push(&mut self, work_unit: WorkUnit<QueueData, WorkData>) {
         unsafe {
-            drop((*self.ref_count).fetch_add(1, SeqCst));
+            drop((*self.ref_count).fetch_add(1, Ordering::SeqCst));
         }
         self.worker.push(work_unit);
     }

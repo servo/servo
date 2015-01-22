@@ -18,7 +18,7 @@ use libc::c_int;
 use servo_util::opts;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::sync::atomic::{AtomicInt, SeqCst};
+use std::sync::atomic::{AtomicInt, Ordering};
 
 thread_local!(pub static ID_COUNTER: AtomicInt = AtomicInt::new(0))
 thread_local!(pub static BROWSERS: RefCell<Vec<CefBrowser>> = RefCell::new(vec!()))
@@ -105,7 +105,7 @@ impl ServoCefBrowser {
         };
 
         let id = ID_COUNTER.with(|counter| {
-            counter.fetch_add(1, SeqCst)
+            counter.fetch_add(1, Ordering::SeqCst)
         });
 
         ServoCefBrowser {

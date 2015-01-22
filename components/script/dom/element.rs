@@ -505,7 +505,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 
     fn update_inline_style(self, property_decl: style::PropertyDeclaration, style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
-        if let Some(ref mut declarations) = *inline_declarations.deref_mut() {
+        if let &Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
                 declarations.important.make_unique()
             } else {

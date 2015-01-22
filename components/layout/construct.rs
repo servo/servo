@@ -53,7 +53,7 @@ use servo_util::opts;
 use std::borrow::ToOwned;
 use std::collections::DList;
 use std::mem;
-use std::sync::atomic::Relaxed;
+use std::sync::atomic::Ordering;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
 use style::{mod, ComputedValues};
@@ -90,7 +90,7 @@ impl ConstructionResult {
         match self {
             &ConstructionResult::None => 0u,
             &ConstructionResult::ConstructionItem(_) => 0u,
-            &ConstructionResult::Flow(ref flow_ref, _) => flow::base(flow_ref.deref()).debug_id(),
+            &ConstructionResult::Flow(ref flow_ref, _) => flow::base(&**flow_ref).debug_id(),
         }
     }
 }
@@ -376,7 +376,7 @@ impl<'a> FlowConstructor<'a> {
             ConstructionResult::Flow(kid_flow, kid_abs_descendants) => {
                 // If kid_flow is TableCaptionFlow, kid_flow should be added under
                 // TableWrapperFlow.
-                if flow.is_table() && kid_flow.deref().is_table_caption() {
+                if flow.is_table() && kid_flow.is_table_caption() {
                     kid.set_flow_construction_result(ConstructionResult::Flow(kid_flow,
                                                                             Descendants::new()))
                 } else if flow.need_anonymous_flow(&*kid_flow) {
@@ -815,7 +815,7 @@ impl<'a> FlowConstructor<'a> {
         for kid in node.children() {
             match kid.swap_out_construction_result() {
                 ConstructionResult::Flow(mut kid_flow, _) => {
-                    if kid_flow.deref().is_table_caption() &&
+                    if kid_flow.is_table_caption() &&
                         kid_flow.as_block()
                                 .fragment
                                 .style()
@@ -1377,15 +1377,15 @@ impl FlowConstructionUtils for FlowRef {
     ///
     /// This must not be public because only the layout constructor can do this.
     fn add_new_child(&mut self, mut new_child: FlowRef) {
-        let base = flow::mut_base(self.deref_mut());
+        let base = flow::mut_base(&mut **self);
 
         {
-            let kid_base = flow::mut_base(new_child.deref_mut());
+            let kid_base = flow::mut_base(&mut *new_child);
             kid_base.parallel.parent = parallel::mut_owned_flow_to_unsafe_flow(self);
         }
 
         base.children.push_back(new_child);
-        let _ = base.parallel.children_count.fetch_add(1, Relaxed);
+        let _ = base.parallel.children_count.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Finishes a flow. Once a flow is finished, no more child flows or fragments may be added to

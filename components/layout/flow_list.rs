@@ -26,25 +26,25 @@ impl FlowList {
     /// Provide a reference to the front element, or None if the list is empty
     #[inline]
     pub fn front<'a>(&'a self) -> Option<&'a Flow> {
-        self.flows.front().map(|head| head.deref())
+        self.flows.front().map(|head| &**head)
     }
 
     /// Provide a mutable reference to the front element, or None if the list is empty
     #[inline]
     pub unsafe fn front_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
-        self.flows.front_mut().map(|head| head.deref_mut())
+        self.flows.front_mut().map(|head| &mut **head)
     }
 
     /// Provide a reference to the back element, or None if the list is empty
     #[inline]
     pub fn back<'a>(&'a self) -> Option<&'a Flow> {
-        self.flows.back().map(|tail| tail.deref())
+        self.flows.back().map(|tail| &**tail)
     }
 
     /// Provide a mutable reference to the back element, or None if the list is empty
     #[inline]
     pub unsafe fn back_mut<'a>(&'a mut self) -> Option<&'a mut Flow> {
-        self.flows.back_mut().map(|tail| tail.deref_mut())
+        self.flows.back_mut().map(|tail| &mut **tail)
     }
 
     /// Add an element first in the list
@@ -108,7 +108,7 @@ impl FlowList {
 impl<'a> Iterator<&'a (Flow + 'a)> for FlowListIterator<'a> {
     #[inline]
     fn next(&mut self) -> Option<&'a (Flow + 'a)> {
-        self.it.next().map(|x| x.deref())
+        self.it.next().map(|x| &**x)
     }
 
     #[inline]
@@ -120,7 +120,7 @@ impl<'a> Iterator<&'a (Flow + 'a)> for FlowListIterator<'a> {
 impl<'a> Iterator<&'a mut (Flow + 'a)> for MutFlowListIterator<'a> {
     #[inline]
     fn next(&mut self) -> Option<&'a mut (Flow + 'a)> {
-        self.it.next().map(|x| x.deref_mut())
+        self.it.next().map(|x| &mut **x)
     }
 
     #[inline]

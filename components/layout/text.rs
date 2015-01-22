@@ -138,7 +138,7 @@ impl TextRunScanner {
                 };
 
                 let mut new_line_pos = Vec::new();
-                let old_length = CharIndex(run_text.as_slice().char_len() as int);
+                let old_length = CharIndex(run_text.chars().count() as int);
                 last_whitespace = util::transform_text(in_fragment.as_slice(),
                                                        compression,
                                                        last_whitespace,
@@ -146,7 +146,7 @@ impl TextRunScanner {
                                                        &mut new_line_pos);
                 new_line_positions.push(NewLinePositions(new_line_pos));
 
-                let added_chars = CharIndex(run_text.as_slice().char_len() as int) - old_length;
+                let added_chars = CharIndex(run_text.chars().count() as int) - old_length;
                 new_ranges.push(Range::new(char_total, added_chars));
                 char_total = char_total + added_chars;
             }
