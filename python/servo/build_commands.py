@@ -1,5 +1,6 @@
 from __future__ import print_function, unicode_literals
 
+import os
 import os.path as path
 import subprocess
 from time import time
@@ -12,6 +13,8 @@ from mach.decorators import (
 
 from servo.command_base import CommandBase, cd
 
+def is_headless_build():
+    return int(os.getenv('SERVO_HEADLESS', 0)) == 1
 
 @CommandProvider
 class MachCommands(CommandBase):
@@ -68,6 +71,10 @@ class MachCommands(CommandBase):
 
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
+
+        if is_headless_build():
+            opts += ["--no-default-features"]
+            features += ["glutin_app", "headless"]
 
         if features:
             opts += ["--features", "%s" % ' '.join(features)]
@@ -132,11 +139,11 @@ class MachCommands(CommandBase):
                      help='Number of jobs to run in parallel')
     def build_tests(self, jobs=None):
         self.ensure_bootstrapped()
-        opts = []
-        if jobs is not None:
-            opts += ["-j", jobs]
+        args = ["cargo", "test", "--no-run"]
+        if is_headless_build():
+            args += ["--no-default-features", "--features", "glutin_app headless"]
         return subprocess.call(
-            ["cargo", "test", "--no-run"],
+            args,
             env=self.build_env(), cwd=self.servo_crate())
 
     @Command('clean',
