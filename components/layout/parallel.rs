@@ -223,12 +223,12 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                 let flow: &mut FlowRef = mem::transmute(&unsafe_flow);
 
                 // Perform the appropriate traversal.
-                if self.should_process(flow.deref_mut()) {
-                    self.process(flow.deref_mut());
+                if self.should_process(&mut **flow) {
+                    self.process(&mut **flow);
                 }
 
 
-                let base = flow::mut_base(flow.deref_mut());
+                let base = flow::mut_base(&mut **flow);
 
                 // Reset the count of children for the next layout traversal.
                 base.parallel.children_count.store(base.children.len() as int, Ordering::Relaxed);
@@ -244,7 +244,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                 // of our parent to finish processing? If so, we can continue
                 // on with our parent; otherwise, we've gotta wait.
                 let parent: &mut FlowRef = mem::transmute(&unsafe_parent);
-                let parent_base = flow::mut_base(parent.deref_mut());
+                let parent_base = flow::mut_base(&mut **parent);
                 if parent_base.parallel.children_count.fetch_sub(1, Ordering::SeqCst) == 1 {
                     // We were the last child of our parent. Reflow our parent.
                     unsafe_flow = unsafe_parent
@@ -278,13 +278,13 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
             // Get a real flow.
             let flow: &mut FlowRef = mem::transmute(&unsafe_flow);
 
-            if self.should_process(flow.deref_mut()) {
+            if self.should_process(&mut **flow) {
                 // Perform the appropriate traversal.
-                self.process(flow.deref_mut());
+                self.process(&mut **flow);
             }
 
             // Possibly enqueue the children.
-            for kid in flow::child_iter(flow.deref_mut()) {
+            for kid in flow::child_iter(&mut **flow) {
                 had_children = true;
                 proxy.push(WorkUnit {
                     fun: top_down_func,
@@ -427,7 +427,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
     if opts::get().bubble_inline_sizes_separately {
         let layout_context = LayoutContext::new(shared_layout_context);
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
-        root.deref_mut().traverse_postorder(&bubble_inline_sizes);
+        root.traverse_postorder(&bubble_inline_sizes);
     }
 
     queue.data = shared_layout_context as *const _;

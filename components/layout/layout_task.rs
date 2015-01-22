@@ -222,8 +222,8 @@ enum RWGuard<'a> {
 impl<'a> Deref<LayoutTaskData> for RWGuard<'a> {
     fn deref(&self) -> &LayoutTaskData {
         match *self {
-            RWGuard::Held(ref x) => x.deref(),
-            RWGuard::Used(ref x) => x.deref(),
+            RWGuard::Held(ref x) => &**x,
+            RWGuard::Used(ref x) => &**x,
         }
     }
 }
@@ -231,8 +231,8 @@ impl<'a> Deref<LayoutTaskData> for RWGuard<'a> {
 impl<'a> DerefMut<LayoutTaskData> for RWGuard<'a> {
     fn deref_mut(&mut self) -> &mut LayoutTaskData {
         match *self {
-            RWGuard::Held(ref mut x) => x.deref_mut(),
-            RWGuard::Used(ref mut x) => x.deref_mut(),
+            RWGuard::Held(ref mut x) => &mut **x,
+            RWGuard::Used(ref mut x) => &mut **x,
         }
     }
 }
@@ -462,7 +462,7 @@ impl LayoutTask {
 
         {
             let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-            match rw_data.deref_mut().parallel_traversal {
+            match (&mut *rw_data).parallel_traversal {
                 None => {}
                 Some(ref mut traversal) => traversal.shutdown(),
             }
@@ -644,7 +644,7 @@ impl LayoutTask {
             flow::mut_base(&mut **layout_root).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
-            let rw_data = rw_data.deref_mut();
+            let rw_data = &mut **rw_data;
             match rw_data.parallel_traversal {
                 None => {
                     sequential::build_display_list_for_subtree(layout_root, shared_layout_context);
@@ -688,8 +688,8 @@ impl LayoutTask {
                 root_flow.position.size.to_physical(root_flow.writing_mode)
             };
             let mut display_list = box DisplayList::new();
-            flow::mut_base(layout_root.deref_mut()).display_list_building_result
-                                                   .add_to(&mut *display_list);
+            flow::mut_base(&mut **layout_root).display_list_building_result
+                                              .add_to(&mut *display_list);
             let paint_layer = Arc::new(PaintLayer::new(layout_root.layer_id(0),
                                                        color,
                                                        ScrollPolicy::Scrollable));
@@ -748,7 +748,7 @@ impl LayoutTask {
         rw_data.screen_size = current_screen_size;
 
         // Create a layout context for use throughout the following passes.
-        let mut shared_layout_context = self.build_shared_layout_context(rw_data.deref(),
+        let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          node,
                                                                          &data.url);
 
@@ -773,7 +773,7 @@ impl LayoutTask {
 
         if needs_reflow {
             self.try_get_layout_root(*node).map(
-                |mut flow| LayoutTask::reflow_all_nodes(flow.deref_mut()));
+                |mut flow| LayoutTask::reflow_all_nodes(&mut *flow));
         }
 
         let mut layout_root = profile(TimeProfilerCategory::LayoutStyleRecalc,
@@ -781,7 +781,7 @@ impl LayoutTask {
                                       self.time_profiler_chan.clone(),
                                       || {
             // Perform CSS selector matching and flow construction.
-            let rw_data = rw_data.deref_mut();
+            let rw_data = &mut *rw_data;
             match rw_data.parallel_traversal {
                 None => {
                     sequential::traverse_dom_preorder(*node, &shared_layout_context);
@@ -798,10 +798,9 @@ impl LayoutTask {
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
-            if opts::get().nonincremental_layout || layout_root.deref_mut()
-                                                               .compute_layout_damage()
+            if opts::get().nonincremental_layout || layout_root.compute_layout_damage()
                                                                .contains(REFLOW_ENTIRE_DOCUMENT) {
-                layout_root.deref_mut().reflow_entire_document()
+                layout_root.reflow_entire_document()
             }
         });
 
@@ -820,7 +819,7 @@ impl LayoutTask {
                 self.profiler_metadata(data),
                 self.time_profiler_chan.clone(),
                 || {
-            let rw_data = rw_data.deref_mut();
+            let rw_data = &mut *rw_data;
             match rw_data.parallel_traversal {
                 None => {
                     // Sequential mode.

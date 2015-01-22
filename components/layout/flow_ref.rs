@@ -75,7 +75,7 @@ impl Drop for FlowRef {
 impl Clone for FlowRef {
     fn clone(&self) -> FlowRef {
         unsafe {
-            drop(flow::base(self.deref()).ref_count().fetch_add(1, Ordering::SeqCst));
+            drop(flow::base(&**self).ref_count().fetch_add(1, Ordering::SeqCst));
             FlowRef {
                 object: raw::TraitObject {
                     vtable: self.object.vtable,

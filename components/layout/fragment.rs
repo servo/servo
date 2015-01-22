@@ -164,7 +164,7 @@ impl SpecificFragmentInfo {
                 SpecificFragmentInfo::InlineBlock(ref info) => &info.flow_ref,
             };
 
-        flow::base(flow.deref()).restyle_damage
+        flow::base(&**flow).restyle_damage
     }
 
     pub fn get_type(&self) -> &'static str {
@@ -1610,7 +1610,7 @@ impl Fragment {
             }
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 // See CSS 2.1 § 10.8.1.
-                let block_flow = info.flow_ref.deref().as_immutable_block();
+                let block_flow = info.flow_ref.as_immutable_block();
                 let font_style = self.style.get_font_arc();
                 let font_metrics = text::font_metrics_for_style(layout_context.font_context(),
                                                                 font_style);
