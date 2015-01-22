@@ -135,7 +135,7 @@ impl TextInput {
 
         let new_lines = {
             let prefix = self.lines[begin.line].slice_chars(0, begin.index);
-            let suffix = self.lines[end.line].slice_chars(end.index, self.lines[end.line].char_len());
+            let suffix = self.lines[end.line].slice_chars(end.index, self.lines[end.line].chars().count());
             let lines_prefix = self.lines.slice(0, begin.line);
             let lines_suffix = self.lines.slice(end.line + 1, self.lines.len());
 
@@ -150,7 +150,7 @@ impl TextInput {
             insert_lines[0] = new_line;
 
             let last_insert_lines_index = insert_lines.len() - 1;
-            self.edit_point.index = insert_lines[last_insert_lines_index].char_len();
+            self.edit_point.index = insert_lines[last_insert_lines_index].chars().count();
             self.edit_point.line = begin.line + last_insert_lines_index;
 
             insert_lines[last_insert_lines_index].push_str(suffix);
@@ -167,7 +167,7 @@ impl TextInput {
 
     /// Return the length of the current line under the editing point.
     fn current_line_length(&self) -> uint {
-        self.lines[self.edit_point.line].char_len()
+        self.lines[self.edit_point.line].chars().count()
     }
 
     /// Adjust the editing point position by a given of lines. The resulting column is
@@ -260,7 +260,7 @@ impl TextInput {
         });
         let last_line = self.lines.len() - 1;
         self.edit_point.line = last_line;
-        self.edit_point.index = self.lines[last_line].char_len();
+        self.edit_point.index = self.lines[last_line].chars().count();
     }
 
     /// Remove the current selection.

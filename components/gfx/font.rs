@@ -157,7 +157,7 @@ impl Font {
             Some(glyphs) => return (*glyphs).clone(),
         }
 
-        let mut glyphs = GlyphStore::new(text.char_len() as int,
+        let mut glyphs = GlyphStore::new(text.chars().count() as int,
                                          options.flags.contains(IS_WHITESPACE_SHAPING_FLAG));
         shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
 
