@@ -6,6 +6,7 @@
 
 use collections::TreeMap;
 use std::borrow::ToOwned;
+use std::cmp::Ordering;
 use std::comm::{Sender, channel, Receiver};
 use std::f64;
 use std::io::timer::sleep;
@@ -228,9 +229,9 @@ impl TimeProfiler {
         for (&(ref category, ref meta), ref mut data) in self.buckets.iter_mut() {
             data.sort_by(|a, b| {
                 if a < b {
-                    Less
+                    Ordering::Less
                 } else {
-                    Greater
+                    Ordering::Greater
                 }
             });
             let data_len = data.len();

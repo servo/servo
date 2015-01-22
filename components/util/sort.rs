@@ -4,6 +4,8 @@
 
 //! In-place sorting.
 
+use std::cmp::Ordering;
+
 fn quicksort_helper<T>(arr: &mut [T], left: int, right: int, compare: fn(&T, &T) -> Ordering) {
     if right <= left {
         return
@@ -17,11 +19,11 @@ fn quicksort_helper<T>(arr: &mut [T], left: int, right: int, compare: fn(&T, &T)
         let v: *mut T = &mut arr[right as uint];
         loop {
             i += 1;
-            while compare(&arr[i as uint], &*v) == Less {
+            while compare(&arr[i as uint], &*v) == Ordering::Less {
                 i += 1
             }
             j -= 1;
-            while compare(&*v, &arr[j as uint]) == Less {
+            while compare(&*v, &arr[j as uint]) == Ordering::Less {
                 if j == left {
                     break
                 }
@@ -31,11 +33,11 @@ fn quicksort_helper<T>(arr: &mut [T], left: int, right: int, compare: fn(&T, &T)
                 break
             }
             arr.swap(i as uint, j as uint);
-            if compare(&arr[i as uint], &*v) == Equal {
+            if compare(&arr[i as uint], &*v) == Ordering::Equal {
                 p += 1;
                 arr.swap(p as uint, i as uint)
             }
-            if compare(&*v, &arr[j as uint]) == Equal {
+            if compare(&*v, &arr[j as uint]) == Ordering::Equal {
                 q -= 1;
                 arr.swap(j as uint, q as uint)
             }
