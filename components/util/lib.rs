@@ -4,7 +4,6 @@
 
 #![feature(unsafe_destructor)]
 #![feature(plugin)]
-#![feature(int_uint)]
 #![feature(old_impl_check)]
 #![feature(box_syntax)]
 
