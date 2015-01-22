@@ -19,13 +19,13 @@ use alloc::heap;
 // Generic code for all small vectors
 
 pub trait VecLike<T> {
-    fn vec_len(&self) -> uint;
+    fn vec_len(&self) -> usize;
     fn vec_push(&mut self, value: T);
 
-    fn vec_slice_mut<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T];
+    fn vec_slice_mut<'a>(&'a mut self, start: usize, end: usize) -> &'a mut [T];
 
     #[inline]
-    fn vec_slice_from_mut<'a>(&'a mut self, start: uint) -> &'a mut [T] {
+    fn vec_slice_from_mut<'a>(&'a mut self, start: usize) -> &'a mut [T] {
         let len = self.vec_len();
         self.vec_slice_mut(start, len)
     }
@@ -33,7 +33,7 @@ pub trait VecLike<T> {
 
 impl<T> VecLike<T> for Vec<T> {
     #[inline]
-    fn vec_len(&self) -> uint {
+    fn vec_len(&self) -> usize {
         self.len()
     }
 
@@ -43,26 +43,26 @@ impl<T> VecLike<T> for Vec<T> {
     }
 
     #[inline]
-    fn vec_slice_mut<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
+    fn vec_slice_mut<'a>(&'a mut self, start: usize, end: usize) -> &'a mut [T] {
         self.slice_mut(start, end)
     }
 }
 
 pub trait SmallVecPrivate<T> {
-    unsafe fn set_len(&mut self, new_len: uint);
-    unsafe fn set_cap(&mut self, new_cap: uint);
-    fn data(&self, index: uint) -> *const T;
-    fn mut_data(&mut self, index: uint) -> *mut T;
+    unsafe fn set_len(&mut self, new_len: usize);
+    unsafe fn set_cap(&mut self, new_cap: usize);
+    fn data(&self, index: usize) -> *const T;
+    fn mut_data(&mut self, index: usize) -> *mut T;
     unsafe fn ptr(&self) -> *const T;
     unsafe fn mut_ptr(&mut self) -> *mut T;
     unsafe fn set_ptr(&mut self, new_ptr: *mut T);
 }
 
 pub trait SmallVec<T> : SmallVecPrivate<T> {
-    fn inline_size(&self) -> uint;
-    fn len(&self) -> uint;
+    fn inline_size(&self) -> usize;
+    fn len(&self) -> usize;
     fn is_empty(&self) -> bool;
-    fn cap(&self) -> uint;
+    fn cap(&self) -> usize;
 
     fn spilled(&self) -> bool {
         self.cap() > self.inline_size()
@@ -80,7 +80,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
 
     fn end(&self) -> *const T {
         unsafe {
-            self.begin().offset(self.len() as int)
+            self.begin().offset(self.len() as isize)
         }
     }
 
@@ -153,7 +153,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
             let mut value: T = mem::uninitialized();
             let last_index = self.len() - 1;
 
-            if (last_index as int) < 0 {
+            if (last_index as isize) < 0 {
                 panic!("overflow")
             }
             let end_ptr = self.begin().offset(last_index as int);
@@ -164,7 +164,7 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         }
     }
 
-    fn grow(&mut self, new_cap: uint) {
+    fn grow(&mut self, new_cap: usize) {
         unsafe {
             let new_alloc: *mut T = mem::transmute(heap::allocate(mem::size_of::<T>() *
                                                                             new_cap,
@@ -185,30 +185,30 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         }
     }
 
-    fn get<'a>(&'a self, index: uint) -> &'a T {
+    fn get<'a>(&'a self, index: usize) -> &'a T {
         if index >= self.len() {
             self.fail_bounds_check(index)
         }
         unsafe {
-            mem::transmute(self.begin().offset(index as int))
+            mem::transmute(self.begin().offset(index as isize))
         }
     }
 
-    fn get_mut<'a>(&'a mut self, index: uint) -> &'a mut T {
+    fn get_mut<'a>(&'a mut self, index: usize) -> &'a mut T {
         if index >= self.len() {
             self.fail_bounds_check(index)
         }
         unsafe {
-            mem::transmute(self.begin().offset(index as int))
+            mem::transmute(self.begin().offset(index as isize))
         }
     }
 
-    fn slice<'a>(&'a self, start: uint, end: uint) -> &'a [T] {
+    fn slice<'a>(&'a self, start: usize, end: usize) -> &'a [T] {
         assert!(start <= end);
         assert!(end <= self.len());
         unsafe {
             mem::transmute(Slice {
-                data: self.begin().offset(start as int),
+                data: self.begin().offset(start as isize),
                 len: (end - start)
             })
         }
@@ -223,23 +223,23 @@ pub trait SmallVec<T> : SmallVecPrivate<T> {
         self.slice_mut(0, len)
     }
 
-    fn slice_mut<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
+    fn slice_mut<'a>(&'a mut self, start: usize, end: usize) -> &'a mut [T] {
         assert!(start <= end);
         assert!(end <= self.len());
         unsafe {
             mem::transmute(Slice {
-                data: self.begin().offset(start as int),
+                data: self.begin().offset(start as isize),
                 len: (end - start)
             })
         }
     }
 
-    fn slice_from_mut<'a>(&'a mut self, start: uint) -> &'a mut [T] {
+    fn slice_from_mut<'a>(&'a mut self, start: usize) -> &'a mut [T] {
         let len = self.len();
         self.slice_mut(start, len)
     }
 
-    fn fail_bounds_check(&self, index: uint) {
+    fn fail_bounds_check(&self, index: usize) {
         panic!("index {} beyond length ({})", index, self.len())
     }
 }
@@ -261,7 +261,7 @@ impl<'a,T> Iterator for SmallVecIterator<'a,T> {
             }
             let old = self.ptr;
             self.ptr = if mem::size_of::<T>() == 0 {
-                mem::transmute(self.ptr as uint + 1)
+                mem::transmute(self.ptr as usize + 1)
             } else {
                 self.ptr.offset(1)
             };
@@ -287,7 +287,7 @@ impl<'a,T> Iterator for SmallVecMutIterator<'a,T> {
             }
             let old = self.ptr;
             self.ptr = if mem::size_of::<T>() == 0 {
-                mem::transmute(self.ptr as uint + 1)
+                mem::transmute(self.ptr as usize + 1)
             } else {
                 self.ptr.offset(1)
             };
@@ -298,7 +298,7 @@ impl<'a,T> Iterator for SmallVecMutIterator<'a,T> {
 
 pub struct SmallVecMoveIterator<'a,T> {
     allocation: Option<*mut u8>,
-    cap: uint,
+    cap: usize,
     iter: SmallVecIterator<'a,T>,
     lifetime: ContravariantLifetime<'a>,
 }
@@ -345,24 +345,24 @@ impl<'a, T: 'a> Drop for SmallVecMoveIterator<'a,T> {
 macro_rules! def_small_vector(
     ($name:ident, $size:expr) => (
         pub struct $name<T> {
-            len: uint,
-            cap: uint,
+            len: usize,
+            cap: usize,
             ptr: *const T,
             data: [T; $size],
         }
 
         impl<T> SmallVecPrivate<T> for $name<T> {
-            unsafe fn set_len(&mut self, new_len: uint) {
+            unsafe fn set_len(&mut self, new_len: usize) {
                 self.len = new_len
             }
-            unsafe fn set_cap(&mut self, new_cap: uint) {
+            unsafe fn set_cap(&mut self, new_cap: usize) {
                 self.cap = new_cap
             }
-            fn data(&self, index: uint) -> *const T {
+            fn data(&self, index: usize) -> *const T {
                 let ptr: *const T = &self.data[index];
                 ptr
             }
-            fn mut_data(&mut self, index: uint) -> *mut T {
+            fn mut_data(&mut self, index: usize) -> *mut T {
                 let ptr: *mut T = &mut self.data[index];
                 ptr
             }
@@ -378,23 +378,23 @@ macro_rules! def_small_vector(
         }
 
         impl<T> SmallVec<T> for $name<T> {
-            fn inline_size(&self) -> uint {
+            fn inline_size(&self) -> usize {
                 $size
             }
-            fn len(&self) -> uint {
+            fn len(&self) -> usize {
                 self.len
             }
             fn is_empty(&self) -> bool {
                 self.len == 0
             }
-            fn cap(&self) -> uint {
+            fn cap(&self) -> usize {
                 self.cap
             }
         }
 
         impl<T> VecLike<T> for $name<T> {
             #[inline]
-            fn vec_len(&self) -> uint {
+            fn vec_len(&self) -> usize {
                 self.len()
             }
 
@@ -404,7 +404,7 @@ macro_rules! def_small_vector(
             }
 
             #[inline]
-            fn vec_slice_mut<'a>(&'a mut self, start: uint, end: uint) -> &'a mut [T] {
+            fn vec_slice_mut<'a>(&'a mut self, start: usize, end: usize) -> &'a mut [T] {
                 self.slice_mut(start, end)
             }
         }
@@ -485,7 +485,7 @@ macro_rules! def_small_vector_drop_impl(
                 unsafe {
                     let ptr = self.mut_ptr();
                     for i in range(0, self.len()) {
-                        *ptr.offset(i as int) = mem::uninitialized();
+                        *ptr.offset(i as isize) = mem::uninitialized();
                     }
 
                     heap::deallocate(self.mut_ptr() as *mut u8,
