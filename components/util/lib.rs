@@ -51,8 +51,6 @@ pub mod opts;
 pub mod persistent_list;
 pub mod range;
 pub mod resource_files;
-// FIXME: Find replacement for this post-runtime removal
-// pub mod rtinstrument;
 pub mod smallvec;
 pub mod sort;
 pub mod str;
