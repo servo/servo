@@ -515,7 +515,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn is_in_doc(self) -> bool {
-        self.deref().flags.get().contains(IS_IN_DOC)
+        self.flags.get().contains(IS_IN_DOC)
     }
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
@@ -728,7 +728,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress {
-        TrustedNodeAddress(self.deref() as *const Node as *const libc::c_void)
+        TrustedNodeAddress(&*self as *const Node as *const libc::c_void)
     }
 
     fn get_bounding_content_box(self) -> Rect<Au> {
@@ -1019,7 +1019,7 @@ pub struct NodeChildrenIterator<'a> {
 impl<'a> Iterator<JSRef<'a, Node>> for NodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current;
-        self.current = node.and_then(|node| node.next_sibling().map(|node| *node.root().deref()));
+        self.current = node.and_then(|node| node.next_sibling().map(|node| *node.root()));
         node
     }
 }
@@ -1043,7 +1043,7 @@ pub struct AncestorIterator<'a> {
 impl<'a> Iterator<JSRef<'a, Node>> for AncestorIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current;
-        self.current = node.and_then(|node| node.parent_node().map(|node| *node.root().deref()));
+        self.current = node.and_then(|node| node.parent_node().map(|node| *node.root()));
         node
     }
 }

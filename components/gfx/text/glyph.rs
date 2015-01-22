@@ -7,7 +7,7 @@ use servo_util::range;
 use servo_util::range::{Range, RangeIndex, EachIndex};
 use servo_util::geometry::Au;
 
-use std::cmp::PartialOrd;
+use std::cmp::{Ordering, PartialOrd};
 use std::iter::repeat;
 use std::num::NumCast;
 use std::mem;
@@ -398,9 +398,9 @@ impl<'a> DetailedGlyphStore {
         let mut mut_records : Vec<DetailedGlyphRecord> = unsorted_records;
         mut_records.sort_by(|a, b| {
             if a < b {
-                Less
+                Ordering::Less
             } else {
-                Greater
+                Ordering::Greater
             }
         });
         let mut sorted_records = mut_records;

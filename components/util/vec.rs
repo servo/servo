@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::cmp::{PartialOrd, PartialEq};
+use std::cmp::{PartialOrd, PartialEq, Ordering};
 
 #[cfg(test)]
 use std::fmt::Show;
@@ -47,9 +47,9 @@ impl<'a, T> FullBinarySearchMethods<T> for &'a [T] {
             let midv = &self[mid];
 
             match cmp.compare(key, midv) {
-                Greater => low = (mid as int) + 1,
-                Less => high = (mid as int) - 1,
-                Equal => return Some(mid),
+                Ordering::Greater => low = (mid as int) + 1,
+                Ordering::Less => high = (mid as int) - 1,
+                Ordering::Equal => return Some(mid),
             }
         }
         return None;

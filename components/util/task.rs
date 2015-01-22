@@ -6,13 +6,11 @@ use std::borrow::ToOwned;
 use std::task;
 use std::comm::Sender;
 use std::task::TaskBuilder;
-// use rtinstrument;
 use task_state;
 
 pub fn spawn_named(name: String, f: proc():Send) {
     let builder = task::TaskBuilder::new().named(name);
     builder.spawn(proc() {
-        // rtinstrument::instrument(f);
         f();
     });
 }
@@ -25,22 +23,18 @@ pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
                                                  dest: Sender<T>) {
     let future_result = TaskBuilder::new().named(name).try_future(proc() {
         task_state::initialize(state);
-        // FIXME: Find replacement for this post-runtime removal
-        // rtinstrument::instrument(f);
         f();
     });
 
     let watched_name = name.to_owned();
     let watcher_name = format!("{}Watcher", watched_name);
     TaskBuilder::new().named(watcher_name).spawn(proc() {
-        //rtinstrument::instrument(proc() {
-            match future_result.into_inner() {
-                Ok(()) => (),
-                Err(..) => {
-                    debug!("{} failed, notifying constellation", name);
-                    dest.send(msg);
-                }
+        match future_result.into_inner() {
+            Ok(()) => (),
+            Err(..) => {
+                debug!("{} failed, notifying constellation", name);
+                dest.send(msg);
             }
-        //});
+        }
     });
 }

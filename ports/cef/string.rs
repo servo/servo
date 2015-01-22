@@ -7,6 +7,7 @@ use eutil::slice_to_str;
 use libc::{mod, size_t, c_int, c_ushort, c_void};
 use libc::types::os::arch::c95::wchar_t;
 use std::char;
+use std::cmp::Ordering;
 use std::mem;
 use std::ptr;
 use std::slice;
@@ -106,15 +107,15 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
 #[no_mangle]
 pub extern "C" fn cef_string_utf8_cmp(a: *const cef_string_utf8_t, b: *const cef_string_utf8_t) -> c_int {
     unsafe {
-       slice::raw::buf_as_slice((*a).str as *const u8, (*a).length as uint, |astr:&[u8]| {
+        slice::raw::buf_as_slice((*a).str as *const u8, (*a).length as uint, |astr:&[u8]| {
             slice::raw::buf_as_slice((*b).str as *const u8, (*b).length as uint, |bstr:&[u8]| {
-                  match astr.cmp(bstr) {
-                       Less => -1,
-                       Equal => 0,
-                       Greater => 1
-                  }
+                match astr.cmp(bstr) {
+                    Ordering::Less => -1,
+                    Ordering::Equal => 0,
+                    Ordering::Greater => 1
+                }
             })
-       })
+        })
     }
 }
 
@@ -188,15 +189,15 @@ pub extern "C" fn cef_string_utf16_set(src: *const c_ushort, src_len: size_t, ou
 #[no_mangle]
 pub extern "C" fn cef_string_utf16_cmp(a: *const cef_string_utf16_t, b: *const cef_string_utf16_t) -> c_int {
     unsafe {
-       slice::raw::buf_as_slice(mem::transmute((*a).str), (*a).length as uint, |astr:&[u16]| {
+        slice::raw::buf_as_slice(mem::transmute((*a).str), (*a).length as uint, |astr:&[u16]| {
             slice::raw::buf_as_slice(mem::transmute((*b).str), (*b).length as uint, |bstr:&[u16]| {
-                  match astr.cmp(bstr) {
-                       Less => -1,
-                       Equal => 0,
-                       Greater => 1
-                  }
+                match astr.cmp(bstr) {
+                    Ordering::Less => -1,
+                    Ordering::Equal => 0,
+                    Ordering::Greater => 1
+                }
             })
-       })
+        })
     }
 }
 
@@ -246,15 +247,15 @@ pub extern "C" fn cef_string_wide_set(src: *const wchar_t, src_len: size_t, outp
 #[no_mangle]
 pub extern "C" fn cef_string_wide_cmp(a: *const cef_string_wide_t, b: *const cef_string_wide_t) -> c_int {
     unsafe {
-       slice::raw::buf_as_slice((*a).str as *const wchar_t, (*a).length as uint, |astr:&[wchar_t]| {
+        slice::raw::buf_as_slice((*a).str as *const wchar_t, (*a).length as uint, |astr:&[wchar_t]| {
             slice::raw::buf_as_slice((*b).str as *const wchar_t, (*b).length as uint, |bstr:&[wchar_t]| {
-                  match astr.cmp(bstr) {
-                       Less => -1,
-                       Equal => 0,
-                       Greater => 1
-                  }
+                match astr.cmp(bstr) {
+                    Ordering::Less => -1,
+                    Ordering::Equal => 0,
+                    Ordering::Greater => 1
+                }
             })
-       })
+        })
     }
 }
 
