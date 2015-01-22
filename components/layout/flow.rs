@@ -56,7 +56,7 @@ use std::mem;
 use std::fmt;
 use std::iter::Zip;
 use std::raw;
-use std::sync::atomic::{AtomicUint, SeqCst};
+use std::sync::atomic::{AtomicUint, Ordering};
 use std::slice::MutItems;
 use style::computed_values::{clear, empty_cells, float, position, text_align};
 use style::ComputedValues;
@@ -781,7 +781,7 @@ impl fmt::Show for BaseFlow {
         write!(f,
                "@ {}, CC {}, ADC {}",
                self.position,
-               self.parallel.children_count.load(SeqCst),
+               self.parallel.children_count.load(Ordering::SeqCst),
                self.abs_descendants.len())
     }
 }
@@ -830,7 +830,7 @@ impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
 #[unsafe_destructor]
 impl Drop for BaseFlow {
     fn drop(&mut self) {
-        if self.ref_count.load(SeqCst) != 0 {
+        if self.ref_count.load(Ordering::SeqCst) != 0 {
             panic!("Flow destroyed before its ref count hit zero—this is unsafe!")
         }
     }

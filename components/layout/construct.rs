@@ -53,7 +53,7 @@ use servo_util::opts;
 use std::borrow::ToOwned;
 use std::collections::DList;
 use std::mem;
-use std::sync::atomic::Relaxed;
+use std::sync::atomic::Ordering;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
 use style::{mod, ComputedValues};
@@ -1385,7 +1385,7 @@ impl FlowConstructionUtils for FlowRef {
         }
 
         base.children.push_back(new_child);
-        let _ = base.parallel.children_count.fetch_add(1, Relaxed);
+        let _ = base.parallel.children_count.fetch_add(1, Ordering::Relaxed);
     }
 
     /// Finishes a flow. Once a flow is finished, no more child flows or fragments may be added to

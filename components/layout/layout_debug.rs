@@ -14,7 +14,7 @@ use serialize::json;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::io::File;
-use std::sync::atomic::{AtomicUint, SeqCst, INIT_ATOMIC_UINT};
+use std::sync::atomic::{AtomicUint, Ordering, INIT_ATOMIC_UINT};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None))
 
@@ -96,7 +96,7 @@ impl Drop for Scope {
 /// which are often reallocated but represent essentially the
 /// same data.
 pub fn generate_unique_debug_id() -> u16 {
-    unsafe { DEBUG_ID_COUNTER.fetch_add(1, SeqCst) as u16 }
+    unsafe { DEBUG_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u16 }
 }
 
 /// Begin a layout debug trace. If this has not been called,

@@ -23,7 +23,7 @@ use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan,
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::mem;
 use std::ptr;
-use std::sync::atomic::{AtomicInt, Relaxed, SeqCst};
+use std::sync::atomic::{AtomicInt, Ordering};
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {
@@ -108,7 +108,7 @@ pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
         {
             let mut layout_data_ref = node.mutate_layout_data();
             let layout_data = layout_data_ref.as_mut().expect("no layout data");
-            layout_data.data.parallel.children_count.store(child_count as int, Relaxed);
+            layout_data.data.parallel.children_count.store(child_count as int, Ordering::Relaxed);
         }
 
         // Possibly enqueue the children.
@@ -173,7 +173,7 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
                     .data
                     .parallel
                     .children_count
-                    .fetch_sub(1, SeqCst) == 1 {
+                    .fetch_sub(1, Ordering::SeqCst) == 1 {
                     // We were the last child of our parent. Construct flows for our parent.
                 } else {
                     // Get out of here and find another node to work on.
@@ -231,7 +231,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                 let base = flow::mut_base(flow.deref_mut());
 
                 // Reset the count of children for the next layout traversal.
-                base.parallel.children_count.store(base.children.len() as int, Relaxed);
+                base.parallel.children_count.store(base.children.len() as int, Ordering::Relaxed);
 
                 // Possibly enqueue the parent.
                 let unsafe_parent = base.parallel.parent;
@@ -245,7 +245,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                 // on with our parent; otherwise, we've gotta wait.
                 let parent: &mut FlowRef = mem::transmute(&unsafe_parent);
                 let parent_base = flow::mut_base(parent.deref_mut());
-                if parent_base.parallel.children_count.fetch_sub(1, SeqCst) == 1 {
+                if parent_base.parallel.children_count.fetch_sub(1, Ordering::SeqCst) == 1 {
                     // We were the last child of our parent. Reflow our parent.
                     unsafe_flow = unsafe_parent
                 } else {

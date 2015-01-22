@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::sync::atomic::{AtomicUint, INIT_ATOMIC_UINT, SeqCst};
+use std::sync::atomic::{AtomicUint, INIT_ATOMIC_UINT, Ordering};
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -15,7 +15,7 @@ pub fn tid() -> uint {
     TASK_LOCAL_TID.with(|ref k| {
         let ret =
             match *k.borrow() {
-                None => unsafe { next_tid.fetch_add(1, SeqCst) },
+                None => unsafe { next_tid.fetch_add(1, Ordering::SeqCst) },
                 Some(x) => x,
             };
 
