@@ -153,19 +153,17 @@ struct LayoutImageResponder {
 }
 
 impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
-    fn respond(&self) -> proc(ImageResponseMsg, UntrustedNodeAddress):Send {
+    fn respond(&self) -> Box<Fn(ImageResponseMsg, UntrustedNodeAddress)+Send> {
         let id = self.id.clone();
         let script_chan = self.script_chan.clone();
-        let f: proc(ImageResponseMsg, UntrustedNodeAddress):Send =
-            proc(_, node_address) {
-                let ScriptControlChan(chan) = script_chan;
-                debug!("Dirtying {:x}", node_address as uint);
-                let mut nodes = SmallVec1::new();
-                nodes.vec_push(node_address);
-                drop(chan.send(ConstellationControlMsg::SendEvent(
-                    id.clone(), CompositorEvent::ReflowEvent(nodes))))
-            };
-        f
+        box |_, node_address| {
+            let ScriptControlChan(chan) = script_chan;
+            debug!("Dirtying {:x}", node_address as uint);
+            let mut nodes = SmallVec1::new();
+            nodes.vec_push(node_address);
+            drop(chan.send(ConstellationControlMsg::SendEvent(
+                id.clone(), CompositorEvent::ReflowEvent(nodes))))
+        }
     }
 }
 

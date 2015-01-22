@@ -385,8 +385,8 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
         self.node_is_document()
     }
 
-    fn match_attr(self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
-        assert!(self.is_element())
+    fn match_attr<F>(self, attr: &AttrSelector, test: F) -> bool where F: FnOnce(&str) -> bool {
+        assert!(self.is_element());
         let name = if self.is_html_element_in_html_document() {
             &attr.lower_name
         } else {
@@ -596,7 +596,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline(always)]
-    fn each_class(self, callback: |&Atom|) {
+    fn each_class<F>(self, callback: F) where F: Fn(Atom) {
         unsafe {
             match self.element.get_classes_for_layout() {
                 None => {}

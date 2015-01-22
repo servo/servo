@@ -16,7 +16,7 @@ use std::cell::RefCell;
 use std::io::File;
 use std::sync::atomic::{AtomicUint, Ordering, INIT_ATOMIC_UINT};
 
-thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None))
+thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
 
 static mut DEBUG_ID_COUNTER: AtomicUint = INIT_ATOMIC_UINT;
 
@@ -31,7 +31,7 @@ macro_rules! layout_debug_scope(
             layout_debug::Scope
         }
     )
-)
+);
 
 #[derive(Encodable)]
 struct ScopeData {

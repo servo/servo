@@ -540,7 +540,7 @@ impl FlowFlags {
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
         *self = (*self & !TEXT_ALIGN) |
-            FlowFlags::from_bits(value as u16 << TEXT_ALIGN_SHIFT).unwrap();
+            FlowFlags::from_bits((value as u16) << TEXT_ALIGN_SHIFT).unwrap();
     }
 
     #[inline]
@@ -789,20 +789,20 @@ impl fmt::Show for BaseFlow {
 impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
     fn encode(&self, e: &mut S) -> Result<(), E> {
         e.emit_struct("base", 0, |e| {
-            try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)))
+            try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)));
             try!(e.emit_struct_field("stacking_relative_position",
                                      1,
-                                     |e| self.stacking_relative_position.encode(e)))
+                                     |e| self.stacking_relative_position.encode(e)));
             try!(e.emit_struct_field("intrinsic_inline_sizes",
                                      2,
-                                     |e| self.intrinsic_inline_sizes.encode(e)))
-            try!(e.emit_struct_field("position", 3, |e| self.position.encode(e)))
+                                     |e| self.intrinsic_inline_sizes.encode(e)));
+            try!(e.emit_struct_field("position", 3, |e| self.position.encode(e)));
             e.emit_struct_field("children", 4, |e| {
                 e.emit_seq(self.children.len(), |e| {
                     for (i, c) in self.children.iter().enumerate() {
                         try!(e.emit_seq_elt(i, |e| {
                             try!(e.emit_struct("flow", 0, |e| {
-                                try!(e.emit_struct_field("class", 0, |e| c.class().encode(e)))
+                                try!(e.emit_struct_field("class", 0, |e| c.class().encode(e)));
                                 e.emit_struct_field("data", 1, |e| {
                                     match c.class() {
                                         FlowClass::Block => c.as_immutable_block().encode(e),
@@ -815,9 +815,9 @@ impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
                                         _ => { Ok(()) }     // TODO: Support captions
                                     }
                                 })
-                            }))
+                            }));
                             Ok(())
-                        }))
+                        }));
                     }
                     Ok(())
                 })

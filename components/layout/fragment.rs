@@ -114,8 +114,8 @@ pub struct Fragment {
 impl<E, S: Encoder<E>> Encodable<S, E> for Fragment {
     fn encode(&self, e: &mut S) -> Result<(), E> {
         e.emit_struct("fragment", 0, |e| {
-            try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)))
-            try!(e.emit_struct_field("border_box", 1, |e| self.border_box.encode(e)))
+            try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)));
+            try!(e.emit_struct_field("border_box", 1, |e| self.border_box.encode(e)));
             e.emit_struct_field("margin", 2, |e| self.margin.encode(e))
         })
     }

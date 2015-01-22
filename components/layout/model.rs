@@ -358,7 +358,7 @@ impl MaybeAuto {
     }
 
     #[inline]
-    pub fn map(&self, mapper: |Au| -> Au) -> MaybeAuto {
+    pub fn map<F>(&self, mapper: F) -> MaybeAuto where F: FnOnce(Au) -> Au {
         match *self {
             MaybeAuto::Auto => MaybeAuto::Auto,
             MaybeAuto::Specified(value) => MaybeAuto::Specified(mapper(value)),
