@@ -771,7 +771,7 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
             root.traverse_preorder()
                 .find(|node| node.type_id() == NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTitleElement)))
                 .map(|title_elem| {
-                    let children = title_elem.children().filter_map(|n| {
+                    let mut children = title_elem.children().filter_map(|n| {
                         let t: Option<JSRef<Text>> = TextCast::to_ref(n);
                         t
                     });

@@ -140,6 +140,7 @@ pub struct DOMClass {
     /// The NativePropertyHooks for the interface associated with this class.
     pub native_hooks: &'static NativePropertyHooks,
 }
+unsafe impl Sync for DOMClass {}
 
 /// The JSClass used for DOM object reflectors.
 #[derive(Copy)]
@@ -149,6 +150,7 @@ pub struct DOMJSClass {
     /// Associated data for DOM object reflectors.
     pub dom_class: DOMClass
 }
+unsafe impl Sync for DOMJSClass {}
 
 /// Returns the ProtoOrIfaceArray for the given global object.
 /// Fails if `global` is not a DOM global object.
@@ -173,6 +175,7 @@ pub struct NativeProperties {
     /// Static attributes for the interface.
     pub staticAttrs: Option<&'static [JSPropertySpec]>,
 }
+unsafe impl Sync for NativeProperties {}
 
 /// A JSNative that cannot be null.
 pub type NonNullJSNative =
