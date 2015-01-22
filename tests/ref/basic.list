@@ -141,6 +141,8 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == inline_block_margin_a.html inline_block_margin_ref.html
 == inline_block_img_a.html inline_block_img_ref.html
 == inline_block_baseline_a.html inline_block_baseline_ref.html
+== inline_block_parent_width.html inline_block_parent_width_ref.html
+== inline_block_parent_width_percentage.html inline_block_parent_width_ref.html
 == float_table_a.html float_table_ref.html
 == table_containing_block_a.html table_containing_block_ref.html
 == link_style_order.html link_style_order_ref.html
