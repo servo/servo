@@ -36,3 +36,4 @@ git = "https://github.com/servo/string-cache"
 [dependencies]
 text_writer = "0.1.1"
 encoding = "0.2"
+matches = "0.1"

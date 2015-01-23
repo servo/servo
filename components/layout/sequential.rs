@@ -59,7 +59,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 
     let layout_context = LayoutContext::new(shared_layout_context);
 
-    let root = root.deref_mut();
+    let root = &mut **root;
 
     if opts::get().bubble_inline_sizes_separately {
         let bubble_inline_sizes = BubbleISizes { layout_context: &layout_context };
@@ -94,7 +94,7 @@ pub fn build_display_list_for_subtree(root: &mut FlowRef,
     let compute_absolute_positions = ComputeAbsolutePositions { layout_context: &layout_context };
     let build_display_list         = BuildDisplayList         { layout_context: &layout_context };
 
-    doit(root.deref_mut(), compute_absolute_positions, build_display_list);
+    doit(&mut **root, compute_absolute_positions, build_display_list);
 }
 
 pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
@@ -117,5 +117,5 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
         }
     }
 
-    doit(root.deref_mut(), iterator, &ZERO_POINT);
+    doit(&mut **root, iterator, &ZERO_POINT);
 }

@@ -8,6 +8,7 @@ use platform::font_template::FontTemplateData;
 use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::vec::{Comparator, FullBinarySearchMethods};
+use std::cmp::Ordering;
 use std::slice::Items;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
@@ -42,11 +43,11 @@ struct CharIndexComparator;
 impl Comparator<CharIndex,GlyphRun> for CharIndexComparator {
     fn compare(&self, key: &CharIndex, value: &GlyphRun) -> Ordering {
         if *key < value.range.begin() {
-            Less
+            Ordering::Less
         } else if *key >= value.range.end() {
-            Greater
+            Ordering::Greater
         } else {
-            Equal
+            Ordering::Equal
         }
     }
 }

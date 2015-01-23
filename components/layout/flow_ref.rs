@@ -12,7 +12,7 @@ use flow;
 use std::mem;
 use std::ptr;
 use std::raw;
-use std::sync::atomic::SeqCst;
+use std::sync::atomic::Ordering;
 
 #[unsafe_no_drop_flag]
 pub struct FlowRef {
@@ -55,7 +55,7 @@ impl Drop for FlowRef {
             if self.object.vtable.is_null() {
                 return
             }
-            if flow::base(&**self).ref_count().fetch_sub(1, SeqCst) > 1 {
+            if flow::base(&**self).ref_count().fetch_sub(1, Ordering::SeqCst) > 1 {
                 return
             }
             let flow_ref: FlowRef = mem::replace(self, FlowRef {
@@ -75,7 +75,7 @@ impl Drop for FlowRef {
 impl Clone for FlowRef {
     fn clone(&self) -> FlowRef {
         unsafe {
-            drop(flow::base(self.deref()).ref_count().fetch_add(1, SeqCst));
+            drop(flow::base(&**self).ref_count().fetch_add(1, Ordering::SeqCst));
             FlowRef {
                 object: raw::TraitObject {
                     vtable: self.object.vtable,

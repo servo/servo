@@ -274,7 +274,7 @@ impl Shaper {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
         let byte_max = text.len() as int;
-        let char_max = text.char_len() as int;
+        let char_max = text.chars().count() as int;
 
         // GlyphStore records are indexed by character, not byte offset.
         // so, we must be careful to increment this when saving glyph entries.

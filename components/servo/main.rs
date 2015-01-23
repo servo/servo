@@ -32,10 +32,6 @@ use libc::c_int;
 #[cfg(not(test))]
 use servo_util::opts;
 
-// FIXME: Find replacement for this post-runtime removal
-//#[cfg(not(test))]
-//use servo_util::rtinstrument;
-
 #[cfg(not(test))]
 use servo::Browser;
 #[cfg(not(test))]
@@ -161,8 +157,6 @@ fn main() {
             browser
         } = browser;
         browser.shutdown();
-
-        //rtinstrument::teardown();
     }
 }
 
