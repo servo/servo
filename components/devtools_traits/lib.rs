@@ -11,7 +11,6 @@
 
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
-#![feature(globs)]
 
 extern crate "msg" as servo_msg;
 extern crate serialize;
