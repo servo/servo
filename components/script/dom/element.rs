@@ -50,8 +50,8 @@ use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
-use style::{mod, StylesheetOrigin, SimpleColorAttribute, UnsignedIntegerAttribute};
-use style::{IntegerAttribute, LengthAttribute, ParserContext, matches};
+use style::{mod, SimpleColorAttribute, UnsignedIntegerAttribute};
+use style::{IntegerAttribute, LengthAttribute, matches};
 use servo_util::namespace;
 use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
 
@@ -505,7 +505,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 
     fn update_inline_style(self, property_decl: style::PropertyDeclaration, style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
-        if let Some(ref mut declarations) = *inline_declarations.deref_mut() {
+        if let &Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
                 declarations.important.make_unique()
             } else {
@@ -1112,10 +1112,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(self, selectors: DOMString) -> Fallible<bool> {
-        let parser_context = ParserContext {
-            origin: StylesheetOrigin::Author,
-        };
-        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
+        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
                 let root: JSRef<Node> = NodeCast::from_ref(self);
@@ -1126,10 +1123,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
-        let parser_context = ParserContext {
-            origin: StylesheetOrigin::Author,
-        };
-        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
+        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
                 let root: JSRef<Node> = NodeCast::from_ref(self);

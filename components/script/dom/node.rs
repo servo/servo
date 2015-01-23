@@ -48,7 +48,7 @@ use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
 use servo_util::geometry::Au;
 use servo_util::str::{DOMString, null_str_as_empty};
-use style::{matches, StylesheetOrigin, ParserContext, SelectorList};
+use style::{matches, SelectorList};
 
 use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
@@ -515,7 +515,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn is_in_doc(self) -> bool {
-        self.deref().flags.get().contains(IS_IN_DOC)
+        self.flags.get().contains(IS_IN_DOC)
     }
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably.
@@ -728,7 +728,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn to_trusted_node_address(self) -> TrustedNodeAddress {
-        TrustedNodeAddress(self.deref() as *const Node as *const libc::c_void)
+        TrustedNodeAddress(&*self as *const Node as *const libc::c_void)
     }
 
     fn get_bounding_content_box(self) -> Rect<Au> {
@@ -742,10 +742,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
-        let parser_context = ParserContext {
-            origin: StylesheetOrigin::Author,
-        };
-        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
+        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
@@ -767,10 +764,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         // Step 1.
         let nodes;
         let root = self.ancestors().last().unwrap_or(self.clone());
-        let parser_context = ParserContext {
-            origin: StylesheetOrigin::Author,
-        };
-        match style::parse_selector_list_from_str(&parser_context, selectors.as_slice()) {
+        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
@@ -1025,7 +1019,7 @@ pub struct NodeChildrenIterator<'a> {
 impl<'a> Iterator<JSRef<'a, Node>> for NodeChildrenIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current;
-        self.current = node.and_then(|node| node.next_sibling().map(|node| *node.root().deref()));
+        self.current = node.and_then(|node| node.next_sibling().map(|node| *node.root()));
         node
     }
 }
@@ -1049,7 +1043,7 @@ pub struct AncestorIterator<'a> {
 impl<'a> Iterator<JSRef<'a, Node>> for AncestorIterator<'a> {
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current;
-        self.current = node.and_then(|node| node.parent_node().map(|node| *node.root().deref()));
+        self.current = node.and_then(|node| node.parent_node().map(|node| *node.root()));
         node
     }
 }

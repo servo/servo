@@ -46,8 +46,8 @@ use servo_util::opts;
 use std::default::Default;
 use std::iter::repeat;
 use std::num::FloatMath;
-use style::computed::{AngleOrCorner, LengthOrPercentage, HorizontalDirection, VerticalDirection};
-use style::computed::{Image, LinearGradient};
+use style::values::specified::{AngleOrCorner, HorizontalDirection, VerticalDirection};
+use style::computed::{Image, LinearGradient, LengthOrPercentage};
 use style::computed_values::filter::Filter;
 use style::computed_values::{background_attachment, background_repeat, border_style, overflow};
 use style::computed_values::{position, visibility};
@@ -222,13 +222,13 @@ fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &Border) -> BorderRa
     // radii will be relative to the width.
 
     BorderRadii {
-        top_left:     model::specified(border_style.border_top_left_radius.radius,
+        top_left:     model::specified(border_style.border_top_left_radius,
                                        abs_bounds.size.width),
-        top_right:    model::specified(border_style.border_top_right_radius.radius,
+        top_right:    model::specified(border_style.border_top_right_radius,
                                        abs_bounds.size.width),
-        bottom_right: model::specified(border_style.border_bottom_right_radius.radius,
+        bottom_right: model::specified(border_style.border_bottom_right_radius,
                                        abs_bounds.size.width),
-        bottom_left:  model::specified(border_style.border_bottom_left_radius.radius,
+        bottom_left:  model::specified(border_style.border_bottom_left_radius,
                                        abs_bounds.size.width),
     }
 }
@@ -879,7 +879,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
                     Some(ref renderer) =>  {
-                        renderer.deref().lock().send(SendPixelContents(sender));
+                        renderer.lock().send(SendPixelContents(sender));
                         receiver.recv()
                     },
                     None => repeat(0xFFu8).take(width * height * 4).collect(),
@@ -1226,12 +1226,12 @@ impl InlineFlowDisplayListBuilding for InlineFlow {
                                         &self.base.clip);
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut block_flow) => {
-                    let block_flow = block_flow.flow_ref.deref_mut();
+                    let block_flow = &mut *block_flow.flow_ref;
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
                 }
                 SpecificFragmentInfo::InlineAbsoluteHypothetical(ref mut block_flow) => {
-                    let block_flow = block_flow.flow_ref.deref_mut();
+                    let block_flow = &mut *block_flow.flow_ref;
                     flow::mut_base(block_flow).display_list_building_result
                                               .add_to(&mut *display_list)
                 }

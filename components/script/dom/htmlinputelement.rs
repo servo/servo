@@ -161,7 +161,7 @@ impl LayoutHTMLInputElementHelpers for JS<HTMLInputElement> {
             InputType::InputReset => get_raw_attr_value(self).unwrap_or_else(|| DEFAULT_RESET_VALUE.to_owned()),
             InputType::InputPassword => {
                 let raw = get_raw_textinput_value(self);
-                String::from_char(raw.char_len(), '●')
+                raw.chars().map(|_| '●').collect()
             }
             _ => get_raw_textinput_value(self),
         }

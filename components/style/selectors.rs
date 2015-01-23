@@ -2,49 +2,42 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::{cmp, iter};
+use std::cmp;
 use std::ascii::{AsciiExt, OwnedAsciiExt};
 use std::sync::Arc;
+use std::str::CowString;
 
-use cssparser::ast::*;
-use cssparser::ast::ComponentValue::*;
-use cssparser::{tokenize, parse_nth};
-
-use selector_matching::StylesheetOrigin;
+use cssparser::{Token, Parser, parse_nth};
 use string_cache::{Atom, Namespace};
+use url::Url;
 
+use parser::ParserContext;
 use namespaces::NamespaceMap;
+use stylesheets::Origin;
 
-/// Ambient data used by the parser.
-#[deriving(Copy)]
-pub struct ParserContext {
-    /// The origin of this stylesheet.
-    pub origin: StylesheetOrigin,
-}
 
-#[deriving(PartialEq, Clone)]
+#[deriving(PartialEq, Clone, Show)]
 pub struct Selector {
     pub compound_selectors: Arc<CompoundSelector>,
     pub pseudo_element: Option<PseudoElement>,
     pub specificity: u32,
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash, Copy)]
+#[deriving(Eq, PartialEq, Clone, Hash, Copy, Show)]
 pub enum PseudoElement {
     Before,
     After,
-//    FirstLine,
-//    FirstLetter,
+    // ...
 }
 
 
-#[deriving(PartialEq, Clone)]
+#[deriving(PartialEq, Clone, Show)]
 pub struct CompoundSelector {
     pub simple_selectors: Vec<SimpleSelector>,
     pub next: Option<(Box<CompoundSelector>, Combinator)>,  // c.next is left of c
 }
 
-#[deriving(PartialEq, Clone, Copy)]
+#[deriving(PartialEq, Clone, Copy, Show)]
 pub enum Combinator {
     Child,  //  >
     Descendant,  // space
@@ -52,7 +45,7 @@ pub enum Combinator {
     LaterSibling,  // ~
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Show)]
 pub enum SimpleSelector {
     ID(Atom),
     Class(Atom),
@@ -79,9 +72,7 @@ pub enum SimpleSelector {
     Checked,
     Indeterminate,
     FirstChild, LastChild, OnlyChild,
-//    Empty,
     Root,
-//    Lang(String),
     NthChild(i32, i32),
     NthLastChild(i32, i32),
     NthOfType(i32, i32),
@@ -94,27 +85,27 @@ pub enum SimpleSelector {
 }
 
 
-#[deriving(Eq, PartialEq, Clone, Hash, Copy)]
+#[deriving(Eq, PartialEq, Clone, Hash, Copy, Show)]
 pub enum CaseSensitivity {
     CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
     CaseInsensitive,
 }
 
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Show)]
 pub struct LocalName {
     pub name: Atom,
     pub lower_name: Atom,
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Show)]
 pub struct AttrSelector {
     pub name: Atom,
     pub lower_name: Atom,
     pub namespace: NamespaceConstraint,
 }
 
-#[deriving(Eq, PartialEq, Clone, Hash)]
+#[deriving(Eq, PartialEq, Clone, Hash, Show)]
 pub enum NamespaceConstraint {
     Any,
     Specific(Namespace),
@@ -130,9 +121,6 @@ pub struct SelectorList {
 pub fn get_selector_list_selectors<'a>(selector_list: &'a SelectorList) -> &'a [Selector] {
     selector_list.selectors.as_slice()
 }
-
-
-type Iter<I> = iter::Peekable<ComponentValue, I>;
 
 
 fn compute_specificity(mut selector: &CompoundSelector,
@@ -183,7 +171,6 @@ fn compute_specificity(mut selector: &CompoundSelector,
                 &SimpleSelector::OnlyChild | &SimpleSelector::Root |
                 &SimpleSelector::Checked |
                 &SimpleSelector::Indeterminate |
-//                &SimpleSelector::Empty | &SimpleSelector::Lang(*) |
                 &SimpleSelector::NthChild(..) |
                 &SimpleSelector::NthLastChild(..) |
                 &SimpleSelector::NthOfType(..) |
@@ -207,233 +194,67 @@ fn compute_specificity(mut selector: &CompoundSelector,
 
 
 
-/// * `Err(())`: Invalid selector, abort
-/// * `Ok(None)`: Not a type selector, could be something else. `iter` was not consumed.
-/// * `Ok(Some(vec))`: Length 0 (`*|*`), 1 (`*|E` or `ns|*`) or 2 (`|E` or `ns|E`)
-fn parse_type_selector<I: Iterator<ComponentValue>>(
-                       iter: &mut Iter<I>, namespaces: &NamespaceMap)
-                       -> Result<Option<Vec<SimpleSelector>>, ()> {
-    skip_whitespace(iter);
-    match try!(parse_qualified_name(iter, /* in_attr_selector = */ false, namespaces)) {
-        None => Ok(None),
-        Some((namespace, local_name)) => {
-            let mut simple_selectors = vec!();
-            match namespace {
-                NamespaceConstraint::Specific(ns) => {
-                    simple_selectors.push(SimpleSelector::Namespace(ns))
-                },
-                NamespaceConstraint::Any => (),
-            }
-            match local_name {
-                Some(name) => {
-                    simple_selectors.push(SimpleSelector::LocalName(LocalName {
-                        name: Atom::from_slice(name.as_slice()),
-                        lower_name: Atom::from_slice(name.into_ascii_lower().as_slice())
-                    }))
-                }
-                None => (),
-            }
-            Ok(Some(simple_selectors))
-        }
-    }
-}
-
-
-enum SimpleSelectorParseResult {
-    SimpleSelector(SimpleSelector),
-    PseudoElement(PseudoElement),
-}
-
-
-/// * `Err(())`: Invalid selector, abort
-/// * `Ok(None)`: Not a simple selector, could be something else. `iter` was not consumed.
-/// * `Ok(Some((namespace, local_name)))`: `None` for the local name means a `*` universal selector
-fn parse_qualified_name<I: Iterator<ComponentValue>>(
-                        iter: &mut Iter<I>, in_attr_selector: bool, namespaces: &NamespaceMap)
-                        -> Result<Option<(NamespaceConstraint, Option<String>)>, ()> {
-    let default_namespace = |local_name| {
-        let namespace = match namespaces.default {
-            Some(ref ns) => NamespaceConstraint::Specific(ns.clone()),
-            None => NamespaceConstraint::Any,
-        };
-        Ok(Some((namespace, local_name)))
-    };
-
-    let explicit_namespace = |iter: &mut Iter<I>, namespace| {
-        assert!(iter.next() == Some(Delim('|')),
-                "Implementation error, this should not happen.");
-        match iter.peek() {
-            Some(&Delim('*')) if !in_attr_selector => {
-                iter.next();
-                Ok(Some((namespace, None)))
-            },
-            Some(&Ident(_)) => {
-                let local_name = get_next_ident(iter);
-                Ok(Some((namespace, Some(local_name))))
-            },
-            _ => Err(()),
-        }
-    };
-
-    match iter.peek() {
-        Some(&Ident(_)) => {
-            let value = get_next_ident(iter);
-            match iter.peek() {
-                Some(&Delim('|')) => {
-                    let namespace = match namespaces.prefix_map.get(&value) {
-                        None => return Err(()),  // Undeclared namespace prefix
-                        Some(ref ns) => (*ns).clone(),
-                    };
-                    explicit_namespace(iter, NamespaceConstraint::Specific(namespace))
-                },
-                _ if in_attr_selector => Ok(Some(
-                    (NamespaceConstraint::Specific(ns!("")), Some(value)))),
-                _ => default_namespace(Some(value)),
-            }
-        },
-        Some(&Delim('*')) => {
-            iter.next();  // Consume '*'
-            match iter.peek() {
-                Some(&Delim('|')) => explicit_namespace(iter, NamespaceConstraint::Any),
-                _ => {
-                    if !in_attr_selector { default_namespace(None) }
-                    else { Err(()) }
-                },
-            }
-        },
-        Some(&Delim('|')) => explicit_namespace(iter, NamespaceConstraint::Specific(ns!(""))),
-        _ => Ok(None),
-    }
-}
-
-
-fn parse_attribute_selector(content: Vec<ComponentValue>, namespaces: &NamespaceMap)
-                            -> Result<SimpleSelector, ()> {
-    let iter = &mut content.into_iter().peekable();
-    let attr = match try!(parse_qualified_name(iter, /* in_attr_selector = */ true, namespaces)) {
-        None => return Err(()),
-        Some((_, None)) => panic!("Implementation error, this should not happen."),
-        Some((namespace, Some(local_name))) => AttrSelector {
-            namespace: namespace,
-            lower_name: Atom::from_slice(local_name.as_slice().to_ascii_lower().as_slice()),
-            name: Atom::from_slice(local_name.as_slice()),
-        },
-    };
-    skip_whitespace(iter);
-    // TODO: deal with empty value or value containing whitespace (see spec)
-    let result = match iter.next() {
-        // [foo]
-        None => SimpleSelector::AttrExists(attr),
-
-        // [foo=bar]
-        Some(Delim('=')) =>
-            SimpleSelector::AttrEqual(attr, try!(parse_attribute_value(iter)),
-                                      try!(parse_attribute_flags(iter))),
-
-        // [foo~=bar]
-        Some(IncludeMatch) =>
-            SimpleSelector::AttrIncludes(attr, try!(parse_attribute_value(iter))),
-
-        // [foo|=bar]
-        Some(DashMatch) => {
-            let value = try!(parse_attribute_value(iter));
-            let dashing_value = format!("{}-", value);
-            SimpleSelector::AttrDashMatch(attr, value, dashing_value)
-        },
-
-        // [foo^=bar]
-        Some(PrefixMatch) =>
-            SimpleSelector::AttrPrefixMatch(attr, try!(parse_attribute_value(iter))),
-
-        // [foo*=bar]
-        Some(SubstringMatch) =>
-            SimpleSelector::AttrSubstringMatch(attr, try!(parse_attribute_value(iter))),
-
-        // [foo$=bar]
-        Some(SuffixMatch) =>
-            SimpleSelector::AttrSuffixMatch(attr, try!(parse_attribute_value(iter))),
-
-        _ => return Err(())
-    };
-    skip_whitespace(iter);
-    if iter.next().is_none() { Ok(result) } else { Err(()) }
-}
-
-
-fn parse_attribute_value<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> Result<String, ()> {
-    skip_whitespace(iter);
-    match iter.next() {
-        Some(Ident(value)) | Some(QuotedString(value)) => Ok(value),
-        _ => Err(())
-    }
-}
-
-
-fn parse_attribute_flags<I: Iterator<ComponentValue>>(iter: &mut Iter<I>)
-                         -> Result<CaseSensitivity, ()> {
-    skip_whitespace(iter);
-    match iter.next() {
-        None => Ok(CaseSensitivity::CaseSensitive),
-        Some(Ident(ref value)) if value.as_slice().eq_ignore_ascii_case("i")
-        => Ok(CaseSensitivity::CaseInsensitive),
-        _ => Err(())
-    }
-}
-
-pub fn parse_selector_list_from_str(context: &ParserContext, input: &str)
+pub fn parse_author_origin_selector_list_from_str(input: &str)
                                     -> Result<SelectorList,()> {
-    let namespaces = NamespaceMap::new();
-    let iter = tokenize(input).map(|(token, _)| token);
-    parse_selector_list(context, iter, &namespaces).map(|s| SelectorList { selectors: s })
+    let context = ParserContext {
+        stylesheet_origin: Origin::Author,
+        namespaces: NamespaceMap::new(),
+        base_url: &Url::parse("about:blank").unwrap(),
+    };
+    parse_selector_list(&context, &mut Parser::new(input))
+    .map(|s| SelectorList { selectors: s })
 }
 
 /// Parse a comma-separated list of Selectors.
 /// aka Selector Group in http://www.w3.org/TR/css3-selectors/#grouping
 ///
 /// Return the Selectors or None if there is an invalid selector.
-pub fn parse_selector_list<I>(context: &ParserContext, iter: I, namespaces: &NamespaceMap)
-                              -> Result<Vec<Selector>,()>
-                              where I: Iterator<ComponentValue> {
-    let iter = &mut iter.peekable();
-    let mut results = vec![try!(parse_selector(context, iter, namespaces))];
-
-    loop {
-        skip_whitespace(iter);
-        match iter.peek() {
-            None => break,  // EOF
-            Some(&Comma) => {
-                iter.next();
-            }
-            _ => return Err(()),
-        }
-        results.push(try!(parse_selector(context, iter, namespaces)));
-    }
-    Ok(results)
+pub fn parse_selector_list(context: &ParserContext, input: &mut Parser)
+                           -> Result<Vec<Selector>,()> {
+    input.parse_comma_separated(|input| parse_selector(context, input))
 }
+
+
 /// Build up a Selector.
 /// selector : simple_selector_sequence [ combinator simple_selector_sequence ]* ;
 ///
 /// `Err` means invalid selector.
-fn parse_selector<I>(context: &ParserContext, iter: &mut Iter<I>, namespaces: &NamespaceMap)
-                     -> Result<Selector,()>
-                     where I: Iterator<ComponentValue> {
-    let (first, mut pseudo_element) = try!(parse_simple_selectors(context, iter, namespaces));
+fn parse_selector(context: &ParserContext, input: &mut Parser) -> Result<Selector,()> {
+    let (first, mut pseudo_element) = try!(parse_simple_selectors(context, input));
     let mut compound = CompoundSelector{ simple_selectors: first, next: None };
 
-    while pseudo_element.is_none() {
-        let any_whitespace = skip_whitespace(iter);
-        let combinator = match iter.peek() {
-            None => break,  // EOF
-            Some(&Comma) => break,
-            Some(&Delim('>')) => { iter.next(); Combinator::Child },
-            Some(&Delim('+')) => { iter.next(); Combinator::NextSibling },
-            Some(&Delim('~')) => { iter.next(); Combinator::LaterSibling },
-            Some(_) => {
-                if any_whitespace { Combinator::Descendant }
-                else { return Err(()) }
+    'outer_loop: while pseudo_element.is_none() {
+        let combinator;
+        let mut any_whitespace = false;
+        loop {
+            let position = input.position();
+            match input.next_including_whitespace() {
+                Err(()) => break 'outer_loop,
+                Ok(Token::WhiteSpace(_)) => any_whitespace = true,
+                Ok(Token::Delim('>')) => {
+                    combinator = Combinator::Child;
+                    break
+                }
+                Ok(Token::Delim('+')) => {
+                    combinator = Combinator::NextSibling;
+                    break
+                }
+                Ok(Token::Delim('~')) => {
+                    combinator = Combinator::LaterSibling;
+                    break
+                }
+                Ok(_) => {
+                    input.reset(position);
+                    if any_whitespace {
+                        combinator = Combinator::Descendant;
+                        break
+                    } else {
+                        break 'outer_loop
+                    }
+                }
             }
-        };
-        let (simple_selectors, pseudo) = try!(parse_simple_selectors(context, iter, namespaces));
+        }
+        let (simple_selectors, pseudo) = try!(parse_simple_selectors(context, input));
         compound = CompoundSelector {
             simple_selectors: simple_selectors,
             next: Some((box compound, combinator))
@@ -447,18 +268,184 @@ fn parse_selector<I>(context: &ParserContext, iter: &mut Iter<I>, namespaces: &N
     })
 }
 
+
+/// * `Err(())`: Invalid selector, abort
+/// * `Ok(None)`: Not a type selector, could be something else. `input` was not consumed.
+/// * `Ok(Some(vec))`: Length 0 (`*|*`), 1 (`*|E` or `ns|*`) or 2 (`|E` or `ns|E`)
+fn parse_type_selector(context: &ParserContext, input: &mut Parser)
+                       -> Result<Option<Vec<SimpleSelector>>, ()> {
+    match try!(parse_qualified_name(context, input, /* in_attr_selector = */ false)) {
+        None => Ok(None),
+        Some((namespace, local_name)) => {
+            let mut simple_selectors = vec!();
+            match namespace {
+                NamespaceConstraint::Specific(ns) => {
+                    simple_selectors.push(SimpleSelector::Namespace(ns))
+                },
+                NamespaceConstraint::Any => (),
+            }
+            match local_name {
+                Some(name) => {
+                    simple_selectors.push(SimpleSelector::LocalName(LocalName {
+                        name: Atom::from_slice(name.as_slice()),
+                        lower_name: Atom::from_slice(name.into_owned().into_ascii_lower().as_slice())
+                    }))
+                }
+                None => (),
+            }
+            Ok(Some(simple_selectors))
+        }
+    }
+}
+
+
+#[deriving(Show)]
+enum SimpleSelectorParseResult {
+    SimpleSelector(SimpleSelector),
+    PseudoElement(PseudoElement),
+}
+
+
+/// * `Err(())`: Invalid selector, abort
+/// * `Ok(None)`: Not a simple selector, could be something else. `input` was not consumed.
+/// * `Ok(Some((namespace, local_name)))`: `None` for the local name means a `*` universal selector
+fn parse_qualified_name<'i, 't>
+                       (context: &ParserContext, input: &mut Parser<'i, 't>,
+                        in_attr_selector: bool)
+                        -> Result<Option<(NamespaceConstraint, Option<CowString<'i>>)>, ()> {
+    let default_namespace = |local_name| {
+        let namespace = match context.namespaces.default {
+            Some(ref ns) => NamespaceConstraint::Specific(ns.clone()),
+            None => NamespaceConstraint::Any,
+        };
+        Ok(Some((namespace, local_name)))
+    };
+
+    let explicit_namespace = |input: &mut Parser<'i, 't>, namespace| {
+        match input.next_including_whitespace() {
+            Ok(Token::Delim('*')) if !in_attr_selector => {
+                Ok(Some((namespace, None)))
+            },
+            Ok(Token::Ident(local_name)) => {
+                Ok(Some((namespace, Some(local_name))))
+            },
+            _ => Err(()),
+        }
+    };
+
+    let position = input.position();
+    match input.next_including_whitespace() {
+        Ok(Token::Ident(value)) => {
+            let position = input.position();
+            match input.next_including_whitespace() {
+                Ok(Token::Delim('|')) => {
+                    let result = context.namespaces.prefix_map.get(value.as_slice());
+                    let namespace = try!(result.ok_or(()));
+                    explicit_namespace(input, NamespaceConstraint::Specific(namespace.clone()))
+                },
+                _ => {
+                    input.reset(position);
+                    if in_attr_selector {
+                        Ok(Some((NamespaceConstraint::Specific(ns!("")), Some(value))))
+                    } else {
+                        default_namespace(Some(value))
+                    }
+                }
+            }
+        },
+        Ok(Token::Delim('*')) => {
+            let position = input.position();
+            match input.next_including_whitespace() {
+                Ok(Token::Delim('|')) => explicit_namespace(input, NamespaceConstraint::Any),
+                _ => {
+                    input.reset(position);
+                    if in_attr_selector {
+                        Err(())
+                    } else {
+                        default_namespace(None)
+                    }
+                },
+            }
+        },
+        Ok(Token::Delim('|')) => explicit_namespace(input, NamespaceConstraint::Specific(ns!(""))),
+        _ => {
+            input.reset(position);
+            Ok(None)
+        }
+    }
+}
+
+
+fn parse_attribute_selector(context: &ParserContext, input: &mut Parser)
+                            -> Result<SimpleSelector, ()> {
+    let attr = match try!(parse_qualified_name(context, input, /* in_attr_selector = */ true)) {
+        None => return Err(()),
+        Some((_, None)) => unreachable!(),
+        Some((namespace, Some(local_name))) => AttrSelector {
+            namespace: namespace,
+            lower_name: Atom::from_slice(local_name.as_slice().to_ascii_lower().as_slice()),
+            name: Atom::from_slice(local_name.as_slice()),
+        },
+    };
+
+    fn parse_value(input: &mut Parser) -> Result<String, ()> {
+        Ok((try!(input.expect_ident_or_string())).into_owned())
+    }
+    // TODO: deal with empty value or value containing whitespace (see spec)
+    match input.next() {
+        // [foo]
+        Err(()) => Ok(SimpleSelector::AttrExists(attr)),
+
+        // [foo=bar]
+        Ok(Token::Delim('=')) => {
+            Ok(SimpleSelector::AttrEqual(attr, try!(parse_value(input)),
+                                         try!(parse_attribute_flags(input))))
+        }
+        // [foo~=bar]
+        Ok(Token::IncludeMatch) => {
+            Ok(SimpleSelector::AttrIncludes(attr, try!(parse_value(input))))
+        }
+        // [foo|=bar]
+        Ok(Token::DashMatch) => {
+            let value = try!(parse_value(input));
+            let dashing_value = format!("{}-", value);
+            Ok(SimpleSelector::AttrDashMatch(attr, value, dashing_value))
+        }
+        // [foo^=bar]
+        Ok(Token::PrefixMatch) => {
+            Ok(SimpleSelector::AttrPrefixMatch(attr, try!(parse_value(input))))
+        }
+        // [foo*=bar]
+        Ok(Token::SubstringMatch) => {
+            Ok(SimpleSelector::AttrSubstringMatch(attr, try!(parse_value(input))))
+        }
+        // [foo$=bar]
+        Ok(Token::SuffixMatch) => {
+            Ok(SimpleSelector::AttrSuffixMatch(attr, try!(parse_value(input))))
+        }
+        _ => Err(())
+    }
+}
+
+
+fn parse_attribute_flags(input: &mut Parser) -> Result<CaseSensitivity, ()> {
+    match input.next() {
+        Err(()) => Ok(CaseSensitivity::CaseSensitive),
+        Ok(Token::Ident(ref value)) if value.eq_ignore_ascii_case("i") => {
+            Ok(CaseSensitivity::CaseInsensitive)
+        }
+        _ => Err(())
+    }
+}
+
+
 /// Level 3: Parse **one** simple_selector
-fn parse_negation(context: &ParserContext,
-                  arguments: Vec<ComponentValue>,
-                  namespaces: &NamespaceMap)
-                  -> Result<SimpleSelector,()> {
-    let iter = &mut arguments.into_iter().peekable();
-    match try!(parse_type_selector(iter, namespaces)) {
+fn parse_negation(context: &ParserContext, input: &mut Parser) -> Result<SimpleSelector,()> {
+    match try!(parse_type_selector(context, input)) {
         Some(type_selector) => Ok(SimpleSelector::Negation(type_selector)),
         None => {
             match try!(parse_one_simple_selector(context,
-                                                 iter,
-                                                 namespaces,
+                                                 input,
                                                  /* inside_negation = */ true)) {
                 Some(SimpleSelectorParseResult::SimpleSelector(simple_selector)) => {
                     Ok(SimpleSelector::Negation(vec![simple_selector]))
@@ -474,13 +461,18 @@ fn parse_negation(context: &ParserContext,
 /// | [ HASH | class | attrib | pseudo | negation ]+
 ///
 /// `Err(())` means invalid selector
-fn parse_simple_selectors<I>(context: &ParserContext,
-                             iter: &mut Iter<I>,
-                             namespaces: &NamespaceMap)
-                             -> Result<(Vec<SimpleSelector>, Option<PseudoElement>),()>
-                             where I: Iterator<ComponentValue> {
+fn parse_simple_selectors(context: &ParserContext, input: &mut Parser)
+                          -> Result<(Vec<SimpleSelector>, Option<PseudoElement>),()> {
+    // Consume any leading whitespace.
+    loop {
+        let position = input.position();
+        if !matches!(input.next_including_whitespace(), Ok(Token::WhiteSpace(_))) {
+            input.reset(position);
+            break
+        }
+    }
     let mut empty = true;
-    let mut simple_selectors = match try!(parse_type_selector(iter, namespaces)) {
+    let mut simple_selectors = match try!(parse_type_selector(context, input)) {
         None => vec![],
         Some(s) => { empty = false; s }
     };
@@ -488,12 +480,18 @@ fn parse_simple_selectors<I>(context: &ParserContext,
     let mut pseudo_element = None;
     loop {
         match try!(parse_one_simple_selector(context,
-                                             iter,
-                                             namespaces,
+                                             input,
                                              /* inside_negation = */ false)) {
             None => break,
-            Some(SimpleSelectorParseResult::SimpleSelector(s)) => { simple_selectors.push(s); empty = false },
-            Some(SimpleSelectorParseResult::PseudoElement(p)) => { pseudo_element = Some(p); empty = false; break },
+            Some(SimpleSelectorParseResult::SimpleSelector(s)) => {
+                simple_selectors.push(s);
+                empty = false
+            }
+            Some(SimpleSelectorParseResult::PseudoElement(p)) => {
+                pseudo_element = Some(p);
+                empty = false;
+                break
+            }
         }
     }
     if empty {
@@ -505,100 +503,111 @@ fn parse_simple_selectors<I>(context: &ParserContext,
 }
 
 fn parse_functional_pseudo_class(context: &ParserContext,
-                                 name: String,
-                                 arguments: Vec<ComponentValue>,
-                                 namespaces: &NamespaceMap,
+                                 input: &mut Parser,
+                                 name: &str,
                                  inside_negation: bool)
                                  -> Result<SimpleSelector,()> {
-    match name.as_slice().to_ascii_lower().as_slice() {
-//        "lang" => parse_lang(arguments),
-        "nth-child"        => parse_nth(arguments.as_slice()).map(|(a, b)| SimpleSelector::NthChild(a, b)),
-        "nth-last-child"   => parse_nth(arguments.as_slice()).map(|(a, b)| SimpleSelector::NthLastChild(a, b)),
-        "nth-of-type"      => parse_nth(arguments.as_slice()).map(|(a, b)| SimpleSelector::NthOfType(a, b)),
-        "nth-last-of-type" => parse_nth(arguments.as_slice()).map(|(a, b)| SimpleSelector::NthLastOfType(a, b)),
+    match_ignore_ascii_case! { name:
+        "nth-child" => parse_nth_pseudo_class(input, SimpleSelector::NthChild),
+        "nth-of-type" => parse_nth_pseudo_class(input, SimpleSelector::NthOfType),
+        "nth-last-child" => parse_nth_pseudo_class(input, SimpleSelector::NthLastChild),
+        "nth-last-of-type" => parse_nth_pseudo_class(input, SimpleSelector::NthLastOfType),
         "not" => {
             if inside_negation {
                 Err(())
             } else {
-                parse_negation(context, arguments, namespaces)
+                parse_negation(context, input)
             }
         }
         _ => Err(())
     }
 }
 
+
+fn parse_nth_pseudo_class(input: &mut Parser, selector: |i32, i32| -> SimpleSelector)
+                          -> Result<SimpleSelector, ()> {
+    let (a, b) = try!(parse_nth(input));
+    Ok(selector(a, b))
+}
+
+
 /// Parse a simple selector other than a type selector.
 ///
 /// * `Err(())`: Invalid selector, abort
-/// * `Ok(None)`: Not a simple selector, could be something else. `iter` was not consumed.
+/// * `Ok(None)`: Not a simple selector, could be something else. `input` was not consumed.
 /// * `Ok(Some(_))`: Parsed a simple selector or pseudo-element
-fn parse_one_simple_selector<I>(context: &ParserContext,
-                                iter: &mut Iter<I>,
-                                namespaces: &NamespaceMap,
-                                inside_negation: bool)
-                                -> Result<Option<SimpleSelectorParseResult>,()>
-                                where I: Iterator<ComponentValue> {
-    match iter.peek() {
-        Some(&IDHash(_)) => match iter.next() {
-            Some(IDHash(id)) => Ok(Some(SimpleSelectorParseResult::SimpleSelector(
-                SimpleSelector::ID(Atom::from_slice(id.as_slice()))))),
-            _ => panic!("Implementation error, this should not happen."),
-        },
-        Some(&Delim('.')) => {
-            iter.next();
-            match iter.next() {
-                Some(Ident(class)) => Ok(Some(SimpleSelectorParseResult::SimpleSelector(
-                    SimpleSelector::Class(Atom::from_slice(class.as_slice()))))),
+fn parse_one_simple_selector(context: &ParserContext,
+                             input: &mut Parser,
+                             inside_negation: bool)
+                             -> Result<Option<SimpleSelectorParseResult>,()> {
+    let start_position = input.position();
+    match input.next_including_whitespace() {
+        Ok(Token::IDHash(id)) => {
+            let id = SimpleSelector::ID(Atom::from_slice(id.as_slice()));
+            Ok(Some(SimpleSelectorParseResult::SimpleSelector(id)))
+        }
+        Ok(Token::Delim('.')) => {
+            match input.next_including_whitespace() {
+                Ok(Token::Ident(class)) => {
+                    let class = SimpleSelector::Class(Atom::from_slice(class.as_slice()));
+                    Ok(Some(SimpleSelectorParseResult::SimpleSelector(class)))
+                }
                 _ => Err(()),
             }
         }
-        Some(&SquareBracketBlock(_)) => match iter.next() {
-            Some(SquareBracketBlock(content))
-            => Ok(Some(SimpleSelectorParseResult::SimpleSelector(try!(parse_attribute_selector(content, namespaces))))),
-            _ => panic!("Implementation error, this should not happen."),
-        },
-        Some(&Colon) => {
-            iter.next();
-            match iter.next() {
-                Some(Ident(name)) => match parse_simple_pseudo_class(context, name.as_slice()) {
-                    Err(()) => {
-                        match name.as_slice().to_ascii_lower().as_slice() {
-                            // Supported CSS 2.1 pseudo-elements only.
-                            // ** Do not add to this list! **
-                            "before" => Ok(Some(SimpleSelectorParseResult::PseudoElement(PseudoElement::Before))),
-                            "after" => Ok(Some(SimpleSelectorParseResult::PseudoElement(PseudoElement::After))),
-//                            "first-line" => SimpleSelectorParseResult::PseudoElement(FirstLine),
-//                            "first-letter" => SimpleSelectorParseResult::PseudoElement(FirstLetter),
-                            _ => Err(())
-                        }
-                    },
-                    Ok(result) => Ok(Some(SimpleSelectorParseResult::SimpleSelector(result))),
-                },
-                Some(Function(name, arguments))
-                => {
-                    Ok(Some(SimpleSelectorParseResult::SimpleSelector(try!(parse_functional_pseudo_class(
-                                        context,
-                                        name,
-                                        arguments,
-                                        namespaces,
-                                        inside_negation)))))
-                }
-                Some(Colon) => {
-                    match iter.next() {
-                        Some(Ident(name))
-                        => Ok(Some(SimpleSelectorParseResult::PseudoElement(try!(parse_pseudo_element(name))))),
-                        _ => Err(()),
+        Ok(Token::SquareBracketBlock) => {
+            let attr = try!(input.parse_nested_block(|input| {
+                parse_attribute_selector(context, input)
+            }));
+            Ok(Some(SimpleSelectorParseResult::SimpleSelector(attr)))
+        }
+        Ok(Token::Colon) => {
+            match input.next_including_whitespace() {
+                Ok(Token::Ident(name)) => {
+                    match parse_simple_pseudo_class(context, name.as_slice()) {
+                        Err(()) => {
+                            let pseudo_element = match_ignore_ascii_case! { name:
+                                // Supported CSS 2.1 pseudo-elements only.
+                                // ** Do not add to this list! **
+                                "before" => PseudoElement::Before,
+                                "after" => PseudoElement::After,
+                                "first-line" => return Err(()),
+                                "first-letter" => return Err(())
+                                _ => return Err(())
+                            };
+                            Ok(Some(SimpleSelectorParseResult::PseudoElement(pseudo_element)))
+                        },
+                        Ok(result) => Ok(Some(SimpleSelectorParseResult::SimpleSelector(result))),
                     }
                 }
-                _ => Err(()),
+                Ok(Token::Function(name)) => {
+                    let name = name.as_slice();
+                    let pseudo = try!(input.parse_nested_block(|input| {
+                        parse_functional_pseudo_class(context, input, name, inside_negation)
+                    }));
+                    Ok(Some(SimpleSelectorParseResult::SimpleSelector(pseudo)))
+                }
+                Ok(Token::Colon) => {
+                    match input.next() {
+                        Ok(Token::Ident(name)) => {
+                            let pseudo = try!(parse_pseudo_element(name.as_slice()));
+                            Ok(Some(SimpleSelectorParseResult::PseudoElement(pseudo)))
+                        }
+                        _ => Err(())
+                    }
+                }
+                _ => Err(())
             }
         }
-        _ => Ok(None),
+        _ => {
+            input.reset(start_position);
+            Ok(None)
+        }
     }
 }
 
 fn parse_simple_pseudo_class(context: &ParserContext, name: &str) -> Result<SimpleSelector,()> {
-    match name.to_ascii_lower().as_slice() {
+    match_ignore_ascii_case! { name:
         "any-link" => Ok(SimpleSelector::AnyLink),
         "link" => Ok(SimpleSelector::Link),
         "visited" => Ok(SimpleSelector::Visited),
@@ -614,54 +623,22 @@ fn parse_simple_pseudo_class(context: &ParserContext, name: &str) -> Result<Simp
         "first-of-type" => Ok(SimpleSelector::FirstOfType),
         "last-of-type"  => Ok(SimpleSelector::LastOfType),
         "only-of-type"  => Ok(SimpleSelector::OnlyOfType),
-        "-servo-nonzero-border" if context.origin == StylesheetOrigin::UserAgent => Ok(SimpleSelector::ServoNonzeroBorder),
-//        "empty" => Ok(Empty),
+        "-servo-nonzero-border" => {
+            if context.in_user_agent_stylesheet() {
+                Ok(SimpleSelector::ServoNonzeroBorder)
+            } else {
+                Err(())
+            }
+        }
         _ => Err(())
     }
 }
 
-fn parse_pseudo_element(name: String) -> Result<PseudoElement, ()> {
-    match name.as_slice().to_ascii_lower().as_slice() {
-        // All supported pseudo-elements
+fn parse_pseudo_element(name: &str) -> Result<PseudoElement, ()> {
+    match_ignore_ascii_case! { name:
         "before" => Ok(PseudoElement::Before),
-        "after" => Ok(PseudoElement::After),
-//        "first-line" => Some(FirstLine),
-//        "first-letter" => Some(FirstLetter),
+        "after" => Ok(PseudoElement::After)
         _ => Err(())
-    }
-}
-
-
-//fn parse_lang(arguments: vec!(ComponentValue)) -> Result<SimpleSelector, ()> {
-//    let mut iter = arguments.move_skip_whitespace();
-//    match iter.next() {
-//        Some(Ident(value)) => {
-//            if "" == value || iter.next().is_some() { None }
-//            else { Ok(Lang(value)) }
-//        },
-//        _ => Err(()),
-//    }
-//}
-
-
-
-/// Assuming the next token is an ident, consume it and return its value
-#[inline]
-fn get_next_ident<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> String {
-    match iter.next() {
-        Some(Ident(value)) => value,
-        _ => panic!("Implementation error, this should not happen."),
-    }
-}
-
-
-#[inline]
-fn skip_whitespace<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> bool {
-    let mut any_whitespace = false;
-    loop {
-        if iter.peek() != Some(&WhiteSpace) { return any_whitespace }
-        any_whitespace = true;
-        iter.next();
     }
 }
 
@@ -669,21 +646,25 @@ fn skip_whitespace<I: Iterator<ComponentValue>>(iter: &mut Iter<I>) -> bool {
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
-    use cssparser;
+    use cssparser::Parser;
     use namespaces::NamespaceMap;
-    use selector_matching::StylesheetOrigin;
+    use stylesheets::Origin;
     use string_cache::Atom;
+    use parser::ParserContext;
+    use url::Url;
     use super::*;
 
     fn parse(input: &str) -> Result<Vec<Selector>, ()> {
-        parse_ns(input, &NamespaceMap::new())
+        parse_ns(input, NamespaceMap::new())
     }
 
-    fn parse_ns(input: &str, namespaces: &NamespaceMap) -> Result<Vec<Selector>, ()> {
+    fn parse_ns(input: &str, namespaces: NamespaceMap) -> Result<Vec<Selector>, ()> {
         let context = ParserContext {
-            origin: StylesheetOrigin::Author,
+            stylesheet_origin: Origin::Author,
+            namespaces: namespaces,
+            base_url: &Url::parse("about:blank").unwrap(),
         };
-        parse_selector_list(&context, cssparser::tokenize(input).map(|(v, _)| v), namespaces)
+        parse_selector_list(&context, &mut Parser::new(input))
     }
 
     fn specificity(a: u32, b: u32, c: u32) -> u32 {
@@ -692,8 +673,8 @@ mod tests {
 
     #[test]
     fn test_parsing() {
-        assert!(parse("") == Err(()))
-        assert!(parse("EeÉ") == Ok(vec!(Selector {
+        assert_eq!(parse(""), Err(()))
+        assert_eq!(parse("EeÉ"), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::LocalName(LocalName {
                     name: Atom::from_slice("EeÉ"),
@@ -703,7 +684,7 @@ mod tests {
             pseudo_element: None,
             specificity: specificity(0, 0, 1),
         })))
-        assert!(parse(".foo") == Ok(vec!(Selector {
+        assert_eq!(parse(".foo"), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::Class(Atom::from_slice("foo"))),
                 next: None,
@@ -711,7 +692,7 @@ mod tests {
             pseudo_element: None,
             specificity: specificity(0, 1, 0),
         })))
-        assert!(parse("#bar") == Ok(vec!(Selector {
+        assert_eq!(parse("#bar"), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::ID(Atom::from_slice("bar"))),
                 next: None,
@@ -719,7 +700,7 @@ mod tests {
             pseudo_element: None,
             specificity: specificity(1, 0, 0),
         })))
-        assert!(parse("e.foo#bar") == Ok(vec!(Selector {
+        assert_eq!(parse("e.foo#bar"), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::LocalName(LocalName {
                                             name: Atom::from_slice("e"),
@@ -731,7 +712,7 @@ mod tests {
             pseudo_element: None,
             specificity: specificity(1, 1, 1),
         })))
-        assert!(parse("e.foo #bar") == Ok(vec!(Selector {
+        assert_eq!(parse("e.foo #bar"), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::ID(Atom::from_slice("bar"))),
                 next: Some((box CompoundSelector {
@@ -748,7 +729,7 @@ mod tests {
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
         let mut namespaces = NamespaceMap::new();
-        assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
+        assert_eq!(parse_ns("[Foo]", namespaces.clone()), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::AttrExists(AttrSelector {
                     name: Atom::from_slice("Foo"),
@@ -763,7 +744,7 @@ mod tests {
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
         namespaces.default = Some(ns!(MathML));
-        assert!(parse_ns("[Foo]", &namespaces) == Ok(vec!(Selector {
+        assert_eq!(parse_ns("[Foo]", namespaces.clone()), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::AttrExists(AttrSelector {
                     name: Atom::from_slice("Foo"),
@@ -776,7 +757,7 @@ mod tests {
             specificity: specificity(0, 1, 0),
         })))
         // Default namespace does apply to type selectors
-        assert!(parse_ns("e", &namespaces) == Ok(vec!(Selector {
+        assert_eq!(parse_ns("e", namespaces), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(
                     SimpleSelector::Namespace(ns!(MathML)),
@@ -790,7 +771,7 @@ mod tests {
             specificity: specificity(0, 0, 1),
         })))
         // https://github.com/mozilla/servo/issues/1723
-        assert!(parse("::before") == Ok(vec!(Selector {
+        assert_eq!(parse("::before"), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(),
                 next: None,
@@ -798,7 +779,7 @@ mod tests {
             pseudo_element: Some(PseudoElement::Before),
             specificity: specificity(0, 0, 1),
         })))
-        assert!(parse("div :after") == Ok(vec!(Selector {
+        assert_eq!(parse("div :after"), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(),
                 next: Some((box CompoundSelector {
@@ -811,5 +792,20 @@ mod tests {
             pseudo_element: Some(PseudoElement::After),
             specificity: specificity(0, 0, 2),
         })))
+        assert_eq!(parse("#d1 > .ok"), Ok(vec![Selector {
+            compound_selectors: Arc::new(CompoundSelector {
+                simple_selectors: vec![
+                    SimpleSelector::Class(Atom::from_slice("ok")),
+                ],
+                next: Some((box CompoundSelector {
+                    simple_selectors: vec![
+                        SimpleSelector::ID(Atom::from_slice("d1")),
+                    ],
+                    next: None,
+                }, Combinator::Child)),
+            }),
+            pseudo_element: None,
+            specificity: (1 << 20) + (1 << 10) + (0 << 0),
+        }]))
     }
 }

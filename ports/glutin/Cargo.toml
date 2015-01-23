@@ -7,6 +7,10 @@ authors = ["The Servo Project Developers"]
 name = "glutin_app"
 path = "lib.rs"
 
+[features]
+window = ["glutin/window"]
+headless = ["glutin/headless"]
+
 [dependencies.compositing]
 path = "../../components/compositing"
 
@@ -25,7 +29,6 @@ path = "../../components/util"
 [dependencies.glutin]
 git = "https://github.com/servo/glutin"
 branch = "servo"
-features = ["window", "headless"]
 
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
