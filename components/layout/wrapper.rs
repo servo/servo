@@ -325,7 +325,7 @@ impl<'ln> LayoutNode<'ln> {
 
     pub fn debug_id(self) -> uint {
         let opaque: OpaqueNode = OpaqueNodeMethods::from_layout_node(&self);
-        opaque.to_untrusted_node_address() as uint
+        opaque.to_untrusted_node_address().0 as uint
     }
 }
 
