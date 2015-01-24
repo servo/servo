@@ -369,10 +369,8 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
                 None => panic!("not an element")
             };
 
-            let element = &*elem.unsafe_get();
-
             LayoutElement {
-                element: mem::transmute(element),
+                element: &*elem.unsafe_get(),
             }
         }
     }
@@ -719,7 +717,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     }
 
     unsafe fn get<'a>(&'a self) -> &'a Node { // this change.
-        mem::transmute::<*mut Node,&'a Node>(self.get_jsmanaged().unsafe_get())
+        &*self.get_jsmanaged().unsafe_get()
     }
 
     fn first_child(&self) -> Option<ThreadSafeLayoutNode<'ln>> {
@@ -819,7 +817,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
             // FIXME(pcwalton): Workaround until Rust gets multiple lifetime parameters on
             // implementations.
             ThreadSafeLayoutElement {
-                element: &mut *element,
+                element: &*element,
             }
         }
     }
