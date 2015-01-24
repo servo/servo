@@ -265,6 +265,7 @@ fn test_parse_stylesheet() {
     use selectors::*;
     use string_cache::Atom;
     use properties::{PropertyDeclaration, DeclaredValue, longhands};
+    use std::borrow::ToOwned;
 
     let css = r"
         @namespace url(http://www.w3.org/1999/xhtml);
@@ -293,7 +294,7 @@ fn test_parse_stylesheet() {
                                     name: atom!(type),
                                     lower_name: atom!(type),
                                     namespace: NamespaceConstraint::Specific(ns!("")),
-                                }, "hidden".into_string(), CaseSensitivity::CaseInsensitive)
+                                }, "hidden".to_owned(), CaseSensitivity::CaseInsensitive)
                             ],
                             next: None,
                         }),
@@ -374,7 +375,7 @@ fn test_parse_stylesheet() {
                         PropertyDeclaration::BackgroundPosition(DeclaredValue::Initial),
                         PropertyDeclaration::BackgroundColor(DeclaredValue::SpecifiedValue(
                             longhands::background_color::SpecifiedValue {
-                                authored: Some("blue".into_string()),
+                                authored: Some("blue".to_owned()),
                                 parsed: cssparser::Color::RGBA(cssparser::RGBA {
                                     red: 0., green: 0., blue: 1., alpha: 1.
                                 }),

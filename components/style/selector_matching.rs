@@ -1216,7 +1216,7 @@ mod tests {
     #[test]
     fn test_get_local_name(){
         let rules_list = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
-        let check = |i, names: Option<(&str, &str)>| {
+        let check = |&:i, names: Option<(&str, &str)>| {
             assert!(SelectorMap::get_local_name(&rules_list[i][0])
                     == names.map(|(name, lower_name)| LocalName {
                             name: Atom::from_slice(name),

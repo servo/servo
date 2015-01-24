@@ -90,19 +90,19 @@ fn assert_parse(url:          &'static str,
                 content_type: Option<(String, String)>,
                 charset:      Option<String>,
                 data:         Option<Vec<u8>>) {
-    use std::comm;
+    use std::sync::mpsc::channel;
     use url::Url;
     use sniffer_task;
 
-    let (start_chan, start_port) = comm::channel();
+    let (start_chan, start_port) = channel();
     let sniffer_task = sniffer_task::new_sniffer_task();
     load(LoadData::new(Url::parse(url).unwrap(), start_chan), sniffer_task);
 
-    let response = start_port.recv();
+    let response = start_port.recv().unwrap();
     assert_eq!(&response.metadata.content_type, &content_type);
     assert_eq!(&response.metadata.charset,      &charset);
 
-    let progress = response.progress_port.recv();
+    let progress = response.progress_port.recv().unwrap();
 
     match data {
         None => {
@@ -110,7 +110,7 @@ fn assert_parse(url:          &'static str,
         }
         Some(dat) => {
             assert_eq!(progress, Payload(dat));
-            assert_eq!(response.progress_port.recv(), Done(Ok(())));
+            assert_eq!(response.progress_port.recv().unwrap(), Done(Ok(())));
         }
     }
 }
