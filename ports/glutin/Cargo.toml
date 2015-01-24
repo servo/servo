@@ -28,7 +28,6 @@ path = "../../components/util"
 
 [dependencies.glutin]
 git = "https://github.com/tomaka/glutin"
-features = ["window", "headless"]
 
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
