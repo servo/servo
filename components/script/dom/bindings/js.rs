@@ -191,6 +191,16 @@ impl JS<Node> {
     }
 }
 
+impl LayoutJS<Node> {
+    /// Create a new JS-owned value wrapped from an address known to be a `Node` pointer.
+    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutJS<Node> {
+        let TrustedNodeAddress(addr) = inner;
+        LayoutJS {
+            ptr: NonZero::new(addr as *const Node)
+        }
+    }
+}
+
 impl<T: Reflectable> JS<T> {
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
     pub unsafe fn from_raw(raw: *const T) -> JS<T> {

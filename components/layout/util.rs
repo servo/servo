@@ -10,7 +10,7 @@ use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 use gfx::display_list::OpaqueNode;
 use gfx;
 use libc::uintptr_t;
-use script::dom::bindings::js::{JS, LayoutJS};
+use script::dom::bindings::js::LayoutJS;
 use script::dom::bindings::utils::Reflectable;
 use script::dom::node::{Node, SharedLayoutData};
 use script::layout_interface::{LayoutChan, TrustedNodeAddress};
@@ -150,7 +150,7 @@ impl OpaqueNodeMethods for OpaqueNode {
 
     fn from_script_node(node: TrustedNodeAddress) -> OpaqueNode {
         unsafe {
-            OpaqueNodeMethods::from_jsmanaged(&JS::from_trusted_node_address(node).to_layout())
+            OpaqueNodeMethods::from_jsmanaged(&LayoutJS::from_trusted_node_address(node))
         }
     }
 
