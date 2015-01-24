@@ -5220,7 +5220,7 @@ class GlobalGenRoots():
         descriptors = config.getDescriptors(register=True, isCallback=False)
         allprotos = [CGGeneric("#![allow(unused_imports)]\n"),
                      CGGeneric("use dom::types::*;\n"),
-                     CGGeneric("use dom::bindings::js::{JS, JSRef, Temporary};\n"),
+                     CGGeneric("use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};\n"),
                      CGGeneric("use dom::bindings::trace::JSTraceable;\n"),
                      CGGeneric("use dom::bindings::utils::Reflectable;\n"),
                      CGGeneric("use js::jsapi::JSTracer;\n\n"),
@@ -5271,6 +5271,17 @@ pub trait ${castTraitName} : Sized {
     #[inline(always)]
     #[allow(unrooted_must_root)]
     fn to_js<T: ${toBound}+Reflectable>(base: &JS<T>) -> Option<JS<Self>> {
+        unsafe {
+            match (*base.unsafe_get()).${checkFn}() {
+                true => Some(base.transmute_copy()),
+                false => None
+            }
+        }
+    }
+
+    #[inline(always)]
+    #[allow(unrooted_must_root)]
+    fn to_layout_js<T: ${toBound}+Reflectable>(base: &LayoutJS<T>) -> Option<LayoutJS<Self>> {
         unsafe {
             match (*base.unsafe_get()).${checkFn}() {
                 true => Some(base.transmute_copy()),
