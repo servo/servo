@@ -17,6 +17,7 @@
 #[macro_use]
 extern crate log;
 
+extern crate core;
 extern crate devtools_traits;
 extern crate cssparser;
 extern crate collections;

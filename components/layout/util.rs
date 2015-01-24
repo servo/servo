@@ -76,6 +76,14 @@ pub struct LayoutDataWrapper {
     pub data: Box<PrivateLayoutData>,
 }
 
+#[allow(dead_code)]
+fn static_assertion(x: Option<LayoutDataWrapper>) {
+    unsafe {
+        let _: Option<::script::dom::node::LayoutData> =
+            ::std::intrinsics::transmute(x);
+    }
+}
+
 /// A trait that allows access to the layout data of a DOM node.
 pub trait LayoutDataAccess {
     /// Borrows the layout data without checks.

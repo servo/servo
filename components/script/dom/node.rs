@@ -52,6 +52,7 @@ use style::{matches, SelectorList};
 
 use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
+use core::nonzero::NonZero;
 use libc;
 use libc::{uintptr_t, c_void};
 use std::borrow::ToOwned;
@@ -198,7 +199,7 @@ pub struct SharedLayoutData {
 pub struct LayoutData {
     chan: Option<LayoutChan>,
     _shared_data: SharedLayoutData,
-    _data: *const (),
+    _data: NonZero<*const ()>,
 }
 
 pub struct LayoutDataRef {
