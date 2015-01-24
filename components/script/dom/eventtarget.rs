@@ -213,7 +213,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
                                  ptr::null_mut(),
                                  name.as_ptr(),
                                  nargs,
-                                 &ARG_NAMES as *const *const i8 as *mut *const i8,
+                                 &ARG_NAMES as *const *const c_char as *mut *const c_char,
                                  source.as_ptr(),
                                  source.len() as size_t,
                                  url.as_ptr(),
