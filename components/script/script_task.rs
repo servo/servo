@@ -1131,7 +1131,7 @@ impl ScriptTask {
         let page = get_page(&*self.page.borrow(), pipeline_id);
         match page.hit_test(&point) {
             Some(node_address) => {
-                debug!("node address is {}", node_address);
+                debug!("node address is {}", node_address.0);
 
                 let temp_node =
                         node::from_untrusted_node_address(
