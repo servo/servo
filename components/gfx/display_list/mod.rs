@@ -25,7 +25,7 @@ use text::glyph::CharIndex;
 use text::TextRun;
 
 use azure::azure::AzFloat;
-use collections::dlist::{mod, DList};
+use collections::dlist::{self, DList};
 use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use geom::num::Zero;
 use libc::uintptr_t;
@@ -34,7 +34,7 @@ use servo_msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
 use servo_util::cursor::Cursor;
 use servo_util::dlist as servo_dlist;
-use servo_util::geometry::{mod, Au, MAX_RECT, ZERO_RECT};
+use servo_util::geometry::{self, Au, MAX_RECT, ZERO_RECT};
 use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;

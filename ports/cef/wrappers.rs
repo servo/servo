@@ -30,7 +30,7 @@ use types::{cef_time_t, cef_transition_type_t, cef_urlrequest_status_t};
 use types::{cef_v8_accesscontrol_t, cef_v8_propertyattribute_t, cef_value_type_t};
 use types::{cef_window_info_t, cef_xml_encoding_type_t, cef_xml_node_type_t};
 
-use libc::{mod, c_char, c_int, c_ushort, c_void};
+use libc::{self, c_char, c_int, c_ushort, c_void};
 use std::collections::HashMap;
 use std::mem;
 use std::ptr;

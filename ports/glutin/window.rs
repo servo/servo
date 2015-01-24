@@ -4,7 +4,7 @@
 
 //! A windowing implementation using glutin.
 
-use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
+use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
@@ -35,7 +35,7 @@ use std::cell::{Cell, RefCell};
 #[cfg(feature = "window")]
 use std::num::Float;
 #[cfg(feature = "window")]
-use time::{mod, Timespec};
+use time::{self, Timespec};
 #[cfg(feature = "window")]
 use util::opts;
 

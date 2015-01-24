@@ -53,9 +53,9 @@ pub mod specified {
     use std::fmt;
     use std::fmt::{Formatter, Show};
     use url::Url;
-    use cssparser::{mod, Token, Parser, ToCss, CssStringWriter};
+    use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
     use parser::ParserContext;
-    use text_writer::{mod, TextWriter};
+    use text_writer::{self, TextWriter};
     use servo_util::geometry::Au;
     use super::CSSFloat;
     use super::computed;
