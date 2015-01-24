@@ -9,6 +9,8 @@
 #![crate_name = "devtools_traits"]
 #![crate_type = "rlib"]
 
+#![feature(int_uint)]
+
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
 
