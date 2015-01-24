@@ -43,7 +43,7 @@ use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElemen
 use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLImageElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
 use script::dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
-use script::dom::bindings::js::{JS, LayoutJS};
+use script::dom::bindings::js::LayoutJS;
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlelement::HTMLElementTypeId;
@@ -110,8 +110,8 @@ pub trait TLayoutNode {
     /// FIXME(pcwalton): Don't copy URLs.
     fn image_url(&self) -> Option<Url> {
         unsafe {
-            match HTMLImageElementCast::to_js(&self.get_jsmanaged().to_script()) {
-                Some(elem) => elem.to_layout().image().as_ref().map(|url| (*url).clone()),
+            match HTMLImageElementCast::to_layout_js(self.get_jsmanaged()) {
+                Some(elem) => elem.image().as_ref().map(|url| (*url).clone()),
                 None => panic!("not an image!")
             }
         }
@@ -119,22 +119,22 @@ pub trait TLayoutNode {
 
     fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
         unsafe {
-            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(&self.get_jsmanaged().to_script());
-            canvas_element.and_then(|elem| elem.to_layout().get_renderer())
+            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.and_then(|elem| elem.get_renderer())
         }
     }
 
     fn get_canvas_width(&self) -> u32 {
         unsafe {
-            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(&self.get_jsmanaged().to_script());
-            canvas_element.unwrap().to_layout().get_canvas_width()
+            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.unwrap().get_canvas_width()
         }
     }
 
     fn get_canvas_height(&self) -> u32 {
         unsafe {
-            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(&self.get_jsmanaged().to_script());
-            canvas_element.unwrap().to_layout().get_canvas_height()
+            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
+            canvas_element.unwrap().get_canvas_height()
         }
     }
 
@@ -142,8 +142,8 @@ pub trait TLayoutNode {
     /// not an iframe element, fails.
     fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
         unsafe {
-            let iframe_element: JS<HTMLIFrameElement> =
-                match HTMLIFrameElementCast::to_js(&self.get_jsmanaged().to_script()) {
+            let iframe_element: LayoutJS<HTMLIFrameElement> =
+                match HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged()) {
                     Some(elem) => elem,
                     None => panic!("not an iframe element!")
                 };
@@ -214,15 +214,15 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     fn text(&self) -> String {
         unsafe {
-            let text: Option<JS<Text>> = TextCast::to_js(&self.get_jsmanaged().to_script());
+            let text: Option<LayoutJS<Text>> = TextCast::to_layout_js(self.get_jsmanaged());
             if let Some(text) = text {
                 return (*text.unsafe_get()).characterdata().data_for_layout().to_owned();
             }
-            let input: Option<JS<HTMLInputElement>> = HTMLInputElementCast::to_js(&self.get_jsmanaged().to_script());
+            let input: Option<LayoutJS<HTMLInputElement>> = HTMLInputElementCast::to_layout_js(self.get_jsmanaged());
             if let Some(input) = input {
                 return input.get_value_for_layout();
             }
-            let area: Option<JS<HTMLTextAreaElement>> = HTMLTextAreaElementCast::to_js(&self.get_jsmanaged().to_script());
+            let area: Option<LayoutJS<HTMLTextAreaElement>> = HTMLTextAreaElementCast::to_layout_js(self.get_jsmanaged());
             if let Some(area) = area {
                 return area.get_value_for_layout();
             }
@@ -371,8 +371,8 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
     #[inline]
     fn as_element(self) -> LayoutElement<'ln> {
         unsafe {
-            let elem: LayoutJS<Element> = match ElementCast::to_js(&self.node.to_script()) {
-                Some(elem) => elem.to_layout(),
+            let elem: LayoutJS<Element> = match ElementCast::to_layout_js(&self.node) {
+                Some(elem) => elem,
                 None => panic!("not an element")
             };
 
@@ -411,8 +411,8 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
 
     fn is_html_element_in_html_document(self) -> bool {
         unsafe {
-            match ElementCast::to_js(&self.node.to_script()) {
-                Some(elem) => elem.to_layout().html_element_in_html_document_for_layout(),
+            match ElementCast::to_layout_js(&self.node) {
+                Some(elem) => elem.html_element_in_html_document_for_layout(),
                 None => false
             }
         }
@@ -824,7 +824,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline]
     pub fn as_element(&self) -> ThreadSafeLayoutElement<'ln> {
         unsafe {
-            let element = match ElementCast::to_js(&self.get_jsmanaged().to_script()) {
+            let element = match ElementCast::to_layout_js(self.get_jsmanaged()) {
                 Some(e) => e.unsafe_get(),
                 None => panic!("not an element")
             };
@@ -936,7 +936,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn is_ignorable_whitespace(&self) -> bool {
         unsafe {
-            let text: JS<Text> = match TextCast::to_js(&self.get_jsmanaged().to_script()) {
+            let text: LayoutJS<Text> = match TextCast::to_layout_js(self.get_jsmanaged()) {
                 Some(text) => text,
                 None => return false
             };
@@ -960,9 +960,9 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn get_input_value(&self) -> String {
         unsafe {
-            let input: Option<JS<HTMLInputElement>> = HTMLInputElementCast::to_js(&self.get_jsmanaged().to_script());
+            let input: Option<LayoutJS<HTMLInputElement>> = HTMLInputElementCast::to_layout_js(self.get_jsmanaged());
             match input {
-                Some(input) => input.to_layout().get_value_for_layout(),
+                Some(input) => input.get_value_for_layout(),
                 None => panic!("not an input element!")
             }
         }
@@ -970,8 +970,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn get_input_size(&self) -> u32 {
         unsafe {
-            match HTMLInputElementCast::to_js(&self.get_jsmanaged().to_script()) {
-                Some(input) => input.to_layout().get_size_for_layout(),
+            match HTMLInputElementCast::to_layout_js(self.get_jsmanaged()) {
+                Some(input) => input.get_size_for_layout(),
                 None => panic!("not an input element!")
             }
         }
@@ -980,7 +980,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute)
                                           -> Option<u32> {
         unsafe {
-            let elem: Option<JS<Element>> = ElementCast::to_js(&self.get_jsmanaged().to_script());
+            let elem: Option<LayoutJS<Element>> = ElementCast::to_layout_js(self.get_jsmanaged());
             match elem {
                 Some(element) => {
                     (*element.unsafe_get()).get_unsigned_integer_attribute_for_layout(attribute)

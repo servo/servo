@@ -144,14 +144,6 @@ pub struct LayoutJS<T> {
     ptr: NonZero<*const T>
 }
 
-impl<T> LayoutJS<T> {
-    pub fn to_script(self) -> JS<T> {
-        JS {
-            ptr: self.ptr
-        }
-    }
-}
-
 impl<T> Copy for JS<T> {}
 
 impl<T> Copy for LayoutJS<T> {}
