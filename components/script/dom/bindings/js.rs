@@ -311,8 +311,8 @@ impl<T: Reflectable> JS<T> {
     /// Returns an unsafe pointer to the interior of this object. This is the
     /// only method that be safely accessed from layout. (The fact that this is
     /// unsafe is what necessitates the layout wrappers.)
-    pub unsafe fn unsafe_get(&self) -> *mut T {
-        self.ptr as *mut T
+    pub unsafe fn unsafe_get(&self) -> *const T {
+        self.ptr
     }
 
     /// Store an unrooted value in this field. This is safe under the assumption that JS<T>
