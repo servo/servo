@@ -308,11 +308,11 @@ impl<T: Reflectable> MutNullableJS<T> {
 }
 
 impl<T: Reflectable> JS<T> {
-    /// Returns an unsafe pointer to the interior of this JS object without touching the borrow
-    /// flags. This is the only method that be safely accessed from layout. (The fact that this
-    /// is unsafe is what necessitates the layout wrappers.)
+    /// Returns an unsafe pointer to the interior of this object. This is the
+    /// only method that be safely accessed from layout. (The fact that this is
+    /// unsafe is what necessitates the layout wrappers.)
     pub unsafe fn unsafe_get(&self) -> *mut T {
-        mem::transmute_copy(&self.ptr)
+        self.ptr as *mut T
     }
 
     /// Store an unrooted value in this field. This is safe under the assumption that JS<T>
