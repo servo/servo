@@ -22,6 +22,7 @@ use std::io::process::ExitStatus;
 use std::io::fs::PathExtensions;
 use std::os;
 use std::path::Path;
+use std::thunk::Thunk;
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldFail};
 use test::run_tests_console;
 use regex::Regex;
@@ -74,7 +75,7 @@ fn main() {
         let maybe_extension = file.extension_str();
         match maybe_extension {
             Some(extension) => {
-                if extension.to_ascii_lower().as_slice() == "list" && file.is_file() {
+                if extension.to_ascii_lowercase().as_slice() == "list" && file.is_file() {
                     let tests = parse_lists(&file, servo_args, render_mode, all_tests.len());
                     println!("\t{} [{} tests]", file.display(), tests.len());
                     all_tests.extend(tests.into_iter());
@@ -244,9 +245,9 @@ fn make_test(reftest: Reftest) -> TestDescAndFn {
             ignore: false,
             should_fail: ShouldFail::No,
         },
-        testfn: DynTestFn(move || {
+        testfn: DynTestFn(Thunk::new(move || {
             check_reftest(reftest);
-        }),
+        })),
     }
 }
 
@@ -281,7 +282,8 @@ fn capture(reftest: &Reftest, side: uint) -> (u32, u32, Vec<u8>) {
     };
     assert_eq!(retval, ExitStatus(0));
 
-    let image = png::load_png(&from_str::<Path>(png_filename.as_slice()).unwrap()).unwrap();
+    let path = png_filename.parse::<Path>().unwrap();
+    let image = png::load_png(&path).unwrap();
     let rgba8_bytes = match image.pixels {
         png::PixelsByColorType::RGBA8(pixels) => pixels,
         _ => panic!(),
@@ -318,7 +320,7 @@ fn check_reftest(reftest: Reftest) {
 
     if pixels.iter().any(|&a| a < 255) {
         let output_str = format!("/tmp/servo-reftest-{:06}-diff.png", reftest.id);
-        let output = from_str::<Path>(output_str.as_slice()).unwrap();
+        let output = output_str.parse::<Path>().unwrap();
 
         let mut img = png::Image {
             width: left_width,
