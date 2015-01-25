@@ -73,9 +73,10 @@ pub unsafe extern fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, i
 
 pub unsafe extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
                              bp: *mut bool) -> bool {
-    let expando = EnsureExpandoObject(cx, proxy);
+    let expando = GetExpandoObject(proxy);
     if expando.is_null() {
-        return false;
+        *bp = true;
+        return true;
     }
 
     return delete_property_by_id(cx, expando, id, &mut *bp);
