@@ -72,8 +72,24 @@ pub trait AsyncResponseListener {
     fn response_complete(&self, status: Result<(), String>);
 }
 
+pub enum ResponseAction {
+    HeadersAvailable(Metadata),
+    DataAvailable(Vec<u8>),
+    ResponseComplete(Result<(), String>)
+}
+
+impl ResponseAction {
+    pub fn process(self, listener: &AsyncResponseListener) {
+        match self {
+            ResponseAction::HeadersAvailable(m) => listener.headers_available(m),
+            ResponseAction::DataAvailable(d) => listener.data_available(d),
+            ResponseAction::ResponseComplete(r) => listener.response_complete(r),
+        }
+    }
+}
+
 pub trait AsyncResponseTarget {
-    fn get_listener(&self) -> &AsyncResponseListener;
+    fn invoke_with_listener(&self, action: ResponseAction);
 }
 
 pub enum LoadConsumer {
@@ -174,7 +190,7 @@ pub enum CookieSource {
 
 pub enum ResponseSenders {
     Channel(Sender<LoadResponse>),
-    Listener(Box<AsyncResponseTarget + Send>),
+    Listener(Box<AsyncResponseTarget+ Send>),
 }
 
 impl ResponseSenders {
