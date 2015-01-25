@@ -237,7 +237,7 @@ impl Au {
 
     #[inline]
     pub fn from_px(px: int) -> Au {
-        NumCast::from(px * 60).unwrap()
+        NumCast::from((px as i32) * 60).unwrap()
     }
 
     #[inline]
@@ -310,7 +310,7 @@ pub fn from_frac_px(px: f64) -> Au {
 }
 
 pub fn from_px(px: int) -> Au {
-    NumCast::from(px * 60).unwrap()
+    NumCast::from((px as i32) * 60).unwrap()
 }
 
 pub fn to_px(au: Au) -> int {
