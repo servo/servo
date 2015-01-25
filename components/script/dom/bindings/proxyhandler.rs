@@ -63,10 +63,6 @@ pub unsafe extern fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, i
     }
 
     let expando = EnsureExpandoObject(cx, proxy);
-    if expando.is_null() {
-        return false;
-    }
-
     return JS_DefinePropertyById(cx, expando, id, (*desc).value, (*desc).getter,
                                  (*desc).setter, (*desc).attrs) != 0;
 }
@@ -115,9 +111,7 @@ pub fn EnsureExpandoObject(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObj
             expando = JS_NewObjectWithGivenProto(cx, ptr::null_mut(),
                                                  ptr::null_mut(),
                                                  GetObjectParent(obj));
-            if expando.is_null() {
-                return ptr::null_mut();
-            }
+            assert!(!expando.is_null());
 
             SetProxyExtra(obj, JSPROXYSLOT_EXPANDO, ObjectValue(&*expando));
         }
