@@ -7,7 +7,7 @@ use net_traits::image_cache_task::ImageResponseMsg::*;
 use net_traits::image_cache_task::Msg::*;
 
 use net::resource_task::start_sending;
-use net_traits::{ControlMsg, Metadata, ProgressMsg, ResourceTask};
+use net_traits::{ControlMsg, Metadata, ProgressMsg, ResourceTask, ResponseSenders};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheTaskClient, ImageResponseMsg, Msg};
 use net_traits::ProgressMsg::{Payload, Done};
 use profile::time;
@@ -110,8 +110,8 @@ fn mock_resource_task<T: Closure + Send + 'static>(on_load: Box<T>) -> ResourceT
     spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response) => {
-                    let chan = start_sending(response.consumer, Metadata::default(
+                ControlMsg::Load(response, consumer) => {
+                    let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
                         Url::parse("file:///fake").unwrap()));
                     on_load.invoke(chan);
                 }
@@ -280,8 +280,8 @@ fn should_not_request_image_from_resource_task_if_image_is_already_available() {
     let mock_resource_task = spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response) => {
-                    let chan = start_sending(response.consumer, Metadata::default(
+                ControlMsg::Load(response, consumer) => {
+                    let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
                         Url::parse("file:///fake").unwrap()));
                     chan.send(Payload(test_image_bin()));
                     chan.send(Done(Ok(())));
@@ -329,8 +329,8 @@ fn should_not_request_image_from_resource_task_if_image_fetch_already_failed() {
     let mock_resource_task = spawn_listener(move |port: Receiver<ControlMsg>| {
         loop {
             match port.recv().unwrap() {
-                ControlMsg::Load(response) => {
-                    let chan = start_sending(response.consumer, Metadata::default(
+                ControlMsg::Load(response, consumer) => {
+                    let chan = start_sending(ResponseSenders::from_consumer(consumer), Metadata::default(
                         Url::parse("file:///fake").unwrap()));
                     chan.send(Payload(test_image_bin()));
                     chan.send(Done(Err("".to_string())));

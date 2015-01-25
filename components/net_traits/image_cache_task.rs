@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use image::base::Image;
+use LoadConsumer::Channel;
 use {ControlMsg, LoadData, ProgressMsg, ResourceTask};
 use url::Url;
 
@@ -84,7 +85,7 @@ impl ImageCacheTaskClient for ImageCacheTask {
 
 pub fn load_image_data(url: Url, resource_task: ResourceTask, placeholder: &[u8]) -> Result<Vec<u8>, ()> {
     let (response_chan, response_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url.clone(), response_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url.clone()), Channel(response_chan))).unwrap();
 
     let mut image_data = vec!();
 

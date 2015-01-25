@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use net::resource_task::{new_resource_task, parse_hostsfile, replace_hosts};
-use net_traits::{ControlMsg, LoadData};
+use net_traits::{ControlMsg, LoadData, LoadConsumer};
 use net_traits::ProgressMsg;
 use std::borrow::ToOwned;
 use std::boxed;
@@ -23,7 +23,7 @@ fn test_bad_scheme() {
     let resource_task = new_resource_task(None);
     let (start_chan, start) = channel();
     let url = Url::parse("bogus://whatever").unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(start_chan))).unwrap();
     let response = start.recv().unwrap();
     match response.progress_port.recv().unwrap() {
       ProgressMsg::Done(result) => { assert!(result.is_err()) }
@@ -173,7 +173,7 @@ fn test_replace_hosts() {
     let resource_task = new_resource_task(None);
     let (start_chan, _) = channel();
     let url = Url::parse(&format!("http://foo.bar.com:{}", port)).unwrap();
-    resource_task.send(ControlMsg::Load(replace_hosts(LoadData::new(url, start_chan), host_table))).unwrap();
+    resource_task.send(ControlMsg::Load(replace_hosts(LoadData::new(url), host_table), LoadConsumer::Channel(start_chan))).unwrap();
 
     match listener.accept() {
         Ok(..) => assert!(true, "received request"),
