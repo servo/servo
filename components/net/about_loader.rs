@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{TargetedLoadResponse, Metadata, LoadData, start_sending, ResponseSenders};
+use resource_task::{Metadata, LoadData, start_sending, ResponseSenders};
 use resource_task::ProgressMsg::Done;
 use file_loader;
 
@@ -12,13 +12,8 @@ use util::resource_files::resources_dir_path;
 
 use std::borrow::IntoCow;
 use std::old_io::fs::PathExtensions;
-use std::sync::mpsc::Sender;
 
-pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
-    let senders = ResponseSenders {
-        immediate_consumer: start_chan.clone(),
-        eventual_consumer: load_data.consumer.clone(),
-    };
+pub fn factory(mut load_data: LoadData, senders: ResponseSenders) {
     match load_data.url.non_relative_scheme_data().unwrap() {
         "blank" => {
             let chan = start_sending(senders, Metadata {
@@ -44,5 +39,5 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>
             return
         }
     };
-    file_loader::factory(load_data, start_chan)
+    file_loader::factory(load_data, senders)
 }

@@ -6,6 +6,7 @@ use image::base::{Image, load_from_memory};
 use resource_task;
 use resource_task::{LoadData, ResourceTask};
 use resource_task::ProgressMsg::{Payload, Done};
+use resource_task::LoadConsumer::Channel;
 
 use util::task::spawn_named;
 use util::taskpool::TaskPool;
@@ -448,7 +449,7 @@ impl ImageCacheTask {
 
 fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()> {
     let (response_chan, response_port) = channel();
-    resource_task.send(resource_task::ControlMsg::Load(LoadData::new(url, response_chan))).unwrap();
+    resource_task.send(resource_task::ControlMsg::Load(LoadData::new(url), Channel(response_chan))).unwrap();
 
     let mut image_data = vec!();
 

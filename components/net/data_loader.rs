@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{Metadata, LoadData, TargetedLoadResponse, start_sending, ResponseSenders};
+use resource_task::{Metadata, LoadData, start_sending, ResponseSenders};
 use resource_task::ProgressMsg::{Payload, Done};
 
 use rustc_serialize::base64::FromBase64;
@@ -10,26 +10,19 @@ use rustc_serialize::base64::FromBase64;
 use hyper::mime::Mime;
 use url::{percent_decode, SchemeData};
 
-use std::sync::mpsc::Sender;
-
-pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
+pub fn factory(load_data: LoadData, senders: ResponseSenders) {
     // NB: we don't spawn a new task.
     // Hypothesis: data URLs are too small for parallel base64 etc. to be worth it.
     // Should be tested at some point.
     // Left in separate function to allow easy moving to a task, if desired.
-    load(load_data, start_chan)
+    load(load_data, senders)
 }
 
-fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
+fn load(load_data: LoadData, senders: ResponseSenders) {
     let url = load_data.url;
     assert!("data" == url.scheme.as_slice());
 
     let mut metadata = Metadata::default(url.clone());
-
-    let senders = ResponseSenders {
-        immediate_consumer: start_chan,
-        eventual_consumer: load_data.consumer,
-    };
 
     // Split out content type and data.
     let mut scheme_data = match url.scheme_data {
@@ -93,10 +86,11 @@ fn assert_parse(url:          &'static str,
     use std::sync::mpsc::channel;
     use url::Url;
     use sniffer_task;
+    use resource_task::LoadConsumer::Channel;
 
     let (start_chan, start_port) = channel();
     let sniffer_task = sniffer_task::new_sniffer_task();
-    load(LoadData::new(Url::parse(url).unwrap(), start_chan), sniffer_task);
+    load(LoadData::new(Url::parse(url).unwrap(), Channel(start_chan)), sniffer_task);
 
     let response = start_port.recv().unwrap();
     assert_eq!(&response.metadata.content_type, &content_type);

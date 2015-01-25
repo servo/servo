@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cookie_storage::CookieSource;
-use resource_task::{Metadata, TargetedLoadResponse, LoadData, start_sending_opt, ResponseSenders};
+use resource_task::{Metadata, LoadData, start_sending_opt, ResponseSenders};
 use resource_task::ControlMsg;
 use resource_task::ProgressMsg::{Payload, Done};
 
@@ -28,9 +28,9 @@ use url::{Url, UrlParser};
 use std::borrow::ToOwned;
 
 pub fn factory(cookies_chan: Sender<ControlMsg>)
-               -> Box<Invoke<(LoadData, Sender<TargetedLoadResponse>)> + Send> {
-    box move |(load_data, start_chan)| {
-        spawn_named("http_loader".to_owned(), move || load(load_data, start_chan, cookies_chan))
+               -> Box<Invoke<(LoadData, ResponseSenders)> + Send> {
+    box move |(load_data, senders)| {
+        spawn_named("http_loader".to_owned(), move || load(load_data, senders, cookies_chan))
     }
 }
 
@@ -44,7 +44,7 @@ fn send_error(url: Url, err: String, senders: ResponseSenders) {
     };
 }
 
-fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
+fn load(mut load_data: LoadData, senders: ResponseSenders, cookies_chan: Sender<ControlMsg>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -52,11 +52,6 @@ fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cooki
     let mut iters = 0u;
     let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
-
-    let senders = ResponseSenders {
-        immediate_consumer: start_chan,
-        eventual_consumer: load_data.consumer
-    };
 
     // Loop to handle redirects.
     loop {
@@ -97,8 +92,8 @@ reason: \"certificate verify failed\" }]";
                                                 detail: Some(ref det)})) if det.as_slice() == ssl_err_string => {
                 let mut image = resources_dir_path();
                 image.push("badcert.html");
-                let load_data = LoadData::new(Url::from_file_path(&image).unwrap(), senders.eventual_consumer);
-                file_loader::factory(load_data, senders.immediate_consumer);
+                let load_data = LoadData::new(Url::from_file_path(&image).unwrap());
+                file_loader::factory(load_data, senders);
                 return;
             },
             Err(e) => {

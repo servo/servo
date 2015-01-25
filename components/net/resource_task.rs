@@ -51,9 +51,19 @@ pub fn global_init() {
     }
 }
 
+pub trait AsyncResponseListener {
+    fn headers_available(metadata: Metadata);
+    fn data_available(payload: Vec<u8>);
+    fn response_complete(status: Result<(), String>);
+}
+
+pub trait AsyncResponseTarget {
+    fn get_listener(&self) -> &AsyncResponseListener;
+}
+
 pub enum ControlMsg {
     /// Request the data associated with a particular URL
-    Load(LoadData),
+    Load(LoadData, LoadConsumer),
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
@@ -61,7 +71,12 @@ pub enum ControlMsg {
     Exit
 }
 
-#[derive(Clone)]
+pub enum LoadConsumer {
+    Channel(Sender<LoadResponse>),
+    Listener(Box<AsyncResponseTarget + Send>),
+}
+
+//#[derive(Clone)]
 pub struct LoadData {
     pub url: Url,
     pub method: Method,
@@ -71,11 +86,10 @@ pub struct LoadData {
     pub preserved_headers: Headers,
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
-    pub consumer: Sender<LoadResponse>,
 }
 
 impl LoadData {
-    pub fn new(url: Url, consumer: Sender<LoadResponse>) -> LoadData {
+    pub fn new(url: Url) -> LoadData {
         LoadData {
             url: url,
             method: Method::Get,
@@ -83,7 +97,6 @@ impl LoadData {
             preserved_headers: Headers::new(),
             data: None,
             cors: None,
-            consumer: consumer,
         }
     }
 }
@@ -161,8 +174,27 @@ pub struct TargetedLoadResponse {
     pub consumer: Sender<LoadResponse>,
 }
 
-// Data structure containing ports
-pub struct ResponseSenders {
+pub enum ResponseSenders {
+    Channel(ChannelResponseSenders),
+    Listener(Box<AsyncResponseTarget + Send>),
+}
+
+impl ResponseSenders {
+    fn from_consumer(consumer: LoadConsumer, sniffer_task: Sender<TargetedLoadResponse>)
+                     -> ResponseSenders {
+        match consumer {
+            LoadConsumer::Channel(c) => ResponseSenders::Channel(
+                ChannelResponseSenders {
+                    immediate_consumer: sniffer_task,
+                    eventual_consumer: c,
+                }),
+            //TODO: return a listener that chains through the sniffer
+            LoadConsumer::Listener(l) => ResponseSenders::Listener(l),
+        }
+    }
+}
+
+pub struct ChannelResponseSenders {
     pub immediate_consumer: Sender<TargetedLoadResponse>,
     pub eventual_consumer: Sender<LoadResponse>,
 }
@@ -183,17 +215,22 @@ pub fn start_sending(senders: ResponseSenders, metadata: Metadata) -> Sender<Pro
 
 /// For use by loaders in responding to a Load message.
 pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result<Sender<ProgressMsg>, ()> {
-    let (progress_chan, progress_port) = channel();
-    let result = senders.immediate_consumer.send(TargetedLoadResponse {
-        load_response: LoadResponse {
-            metadata:      metadata,
-            progress_port: progress_port,
-        },
-        consumer: senders.eventual_consumer
-    });
-    match result {
-        Ok(_) => Ok(progress_chan),
-        Err(_) => Err(())
+    match senders {
+        ResponseSenders::Channel(senders) => {
+            let (progress_chan, progress_port) = channel();
+            let result = senders.immediate_consumer.send(TargetedLoadResponse {
+                load_response: LoadResponse {
+                    metadata:      metadata,
+                    progress_port: progress_port,
+                },
+                consumer: senders.eventual_consumer
+            });
+            match result {
+                Ok(_) => Ok(progress_chan),
+                Err(_) => Err(())
+            }
+        }
+        ResponseSenders::Listener(_) => panic!(),
     }
 }
 
@@ -201,7 +238,7 @@ pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(start_chan))).unwrap();
     let response = start_port.recv().unwrap();
 
     let mut buf = vec!();
@@ -277,8 +314,8 @@ impl ResourceManager {
     fn start(&mut self) {
         loop {
             match self.from_client.recv().unwrap() {
-              ControlMsg::Load(load_data) => {
-                self.load(load_data)
+              ControlMsg::Load(load_data, consumer) => {
+                self.load(load_data, consumer)
               }
               ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
                 let header = Header::parse_header([cookie_list.into_bytes()].as_slice());
@@ -300,7 +337,7 @@ impl ResourceManager {
         }
     }
 
-    fn load(&mut self, mut load_data: LoadData) {
+    fn load(&mut self, mut load_data: LoadData, consumer: LoadConsumer) {
         unsafe {
             if let Some(host_table) = HOST_TABLE {
                 load_data = replace_hosts(load_data, host_table);
@@ -308,18 +345,15 @@ impl ResourceManager {
         }
 
         self.user_agent.as_ref().map(|ua| load_data.headers.set(UserAgent(ua.clone())));
-        let senders = ResponseSenders {
-            immediate_consumer: self.sniffer_task.clone(),
-            eventual_consumer: load_data.consumer.clone(),
-        };
 
-        fn from_factory(factory: fn(LoadData, Sender<TargetedLoadResponse>))
-                        -> Box<Invoke<(LoadData, Sender<TargetedLoadResponse>)> + Send> {
-            box move |&:(load_data, start_chan)| {
-                factory(load_data, start_chan)
+        fn from_factory(factory: fn(LoadData, ResponseSenders))
+                        -> Box<Invoke<(LoadData, ResponseSenders)> + Send> {
+            box move |&:(load_data, senders)| {
+                factory(load_data, senders)
             }
         }
 
+        let senders = ResponseSenders::from_consumer(consumer, self.sniffer_task.clone());
         let loader = match load_data.url.scheme.as_slice() {
             "file" => from_factory(file_loader::factory),
             "http" | "https" => http_loader::factory(self.resource_task.clone()),
@@ -334,14 +368,14 @@ impl ResourceManager {
         };
         debug!("resource_task: loading url: {}", load_data.url.serialize());
 
-        loader.invoke((load_data, self.sniffer_task.clone()));
+        loader.invoke((load_data, senders));
     }
 }
 
 /// Load a URL asynchronously and iterate over chunks of bytes from the response.
 pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, ProgressMsgPortIterator) {
     let (input_chan, input_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, input_chan))).unwrap();
+    resource_task.send(ControlMsg::Load(LoadData::new(url), LoadConsumer::Channel(input_chan))).unwrap();
 
     let response = input_port.recv().unwrap();
     let iter = ProgressMsgPortIterator { progress_port: response.progress_port };
@@ -379,7 +413,7 @@ fn test_bad_scheme() {
     let resource_task = new_resource_task(None);
     let (start_chan, start) = channel();
     let url = Url::parse("bogus://whatever").unwrap();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan)));
+    resource_task.send(ControlMsg::Load(LoadData::new(url, LoadConsumer::Channel(start_chan))));
     let response = start.recv().unwrap();
     match response.progress_port.recv().unwrap() {
       ProgressMsg::Done(result) => { assert!(result.is_err()) }

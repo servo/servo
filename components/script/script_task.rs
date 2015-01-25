@@ -61,7 +61,7 @@ use msg::constellation_msg::{LoadData, PipelineId, SubpageId};
 use msg::constellation_msg::{Failure, Msg, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
 use net::image_cache_task::ImageCacheTask;
-use net::resource_task::{ResourceTask, ControlMsg, LoadResponse};
+use net::resource_task::{ResourceTask, ControlMsg, LoadResponse, LoadConsumer};
 use net::resource_task::LoadData as NetLoadData;
 use net::storage_task::StorageTask;
 use string_cache::Atom;
@@ -1202,8 +1202,7 @@ impl ScriptTask {
                 preserved_headers: load_data.headers,
                 data: load_data.data,
                 cors: None,
-                consumer: input_chan,
-            })).unwrap();
+            }, LoadConsumer::Channel(input_chan))).unwrap();
 
             let load_response = input_port.recv().unwrap();
             script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).unwrap();

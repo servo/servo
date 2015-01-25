@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{ProgressMsg, Metadata, LoadData, start_sending, TargetedLoadResponse, ResponseSenders};
+use resource_task::{ProgressMsg, Metadata, LoadData, start_sending};
+use resource_task::ResponseSenders;
 use resource_task::ProgressMsg::{Payload, Done};
 
 use std::borrow::ToOwned;
@@ -32,13 +33,9 @@ fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
     }
 }
 
-pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
+pub fn factory(load_data: LoadData, senders: ResponseSenders) {
     let url = load_data.url;
     assert!("file" == url.scheme.as_slice());
-    let senders = ResponseSenders {
-        immediate_consumer: start_chan,
-        eventual_consumer: load_data.consumer,
-    };
     let progress_chan = start_sending(senders, Metadata::default(url.clone()));
     spawn_named("file_loader".to_owned(), move || {
         let file_path: Result<Path, ()> = url.to_file_path();
