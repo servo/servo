@@ -886,7 +886,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
     -> Temporary<Node> {
     unsafe {
-        let candidate: uintptr_t = mem::transmute(candidate);
+        let candidate: uintptr_t = mem::transmute(candidate.0);
         let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
                                                                                   candidate);
         if object.is_null() {
