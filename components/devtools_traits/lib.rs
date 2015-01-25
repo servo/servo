@@ -90,8 +90,7 @@ pub enum DevtoolScriptControlMsg {
     GetChildren(PipelineId, String, Sender<Vec<NodeInfo>>),
     GetLayout(PipelineId, String, Sender<(f32, f32)>),
     ModifyAttribute(PipelineId, String, Vec<Modification>),
-    RequestLiveNotifications(PipelineId),
-    StopLiveNotifications(PipelineId),
+    WantsLiveNotifications(PipelineId, bool),
 }
 
 /// Messages to instruct devtools server to update its state relating to a particular

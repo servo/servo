@@ -41,7 +41,7 @@ use devtools;
 
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, GetRootNode, DevtoolsPageInfo};
 use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, GetDocumentElement};
-use devtools_traits::{GetChildren, GetLayout, ModifyAttribute, RequestLiveNotifications, StopLiveNotifications};
+use devtools_traits::{GetChildren, GetLayout, ModifyAttribute, WantsLiveNotifications};
 use script_traits::CompositorEvent;
 use script_traits::CompositorEvent::{ResizeEvent, ReflowEvent, ClickEvent};
 use script_traits::CompositorEvent::{MouseDownEvent, MouseUpEvent};
@@ -88,11 +88,6 @@ use std::u32;
 use time::{Tm, strptime};
 
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None))
-
-enum NotificationControl {
-    StartNotifications,
-    StopNotifications
-}
 
 #[deriving(Copy)]
 pub enum TimerSource {
@@ -631,23 +626,8 @@ impl ScriptTask {
                 devtools::handle_get_layout(&*self.page.borrow(), id, node_id, reply),
             ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&*self.page.borrow(), id, node_id, modifications),
-            RequestLiveNotifications(pipeline_id) =>
-                self.handle_notifications(pipeline_id, NotificationControl::StartNotifications),
-            StopLiveNotifications(pipeline_id) =>
-                self.handle_notifications(pipeline_id, NotificationControl::StopNotifications),
-        }
-    }
-
-    fn handle_notifications(&self, pipeline_id: PipelineId, notification_type: NotificationControl) {
-        let page = get_page(&*self.page.borrow(), pipeline_id);
-        match notification_type {
-            NotificationControl::StartNotifications => {
-                page.send_notifications.set(true);
-            }
-
-            NotificationControl::StopNotifications => {
-                page.send_notifications.set(false);
-            }
+            WantsLiveNotifications(pipeline_id, to_send) =>
+                devtools::handle_wants_live_notifications(&*self.page.borrow(), pipeline_id, to_send),
         }
     }
 

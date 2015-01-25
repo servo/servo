@@ -106,3 +106,13 @@ pub fn handle_modify_attribute(page: &Rc<Page>, pipeline: PipelineId, node_id: S
         }
     }
 }
+
+pub fn handle_wants_live_notifications(page: &Rc<Page>, pipeline_id: PipelineId, send_notifications: bool) {
+    let page = get_page(&*page, pipeline_id);
+    if send_notifications {
+        page.devtools_wants_updates.set(true);
+    }
+    else {
+        page.devtools_wants_updates.set(false);
+    }
+}
