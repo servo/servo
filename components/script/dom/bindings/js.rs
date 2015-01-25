@@ -44,8 +44,6 @@
 //! - `TemporaryPushable`: allows mutating vectors of `JS<T>` with new elements of `JSRef`/`Temporary`
 //! - `RootedReference`: makes obtaining an `Option<JSRef<T>>` from an `Option<Root<T>>` easy
 
-#![deny(missing_docs)]
-
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;

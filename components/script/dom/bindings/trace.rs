@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![deny(missing_docs)]
-
 //! Utilities for tracing JS-managed values.
 //!
 //! The lifetime of DOM objects is managed by the SpiderMonkey Garbage
