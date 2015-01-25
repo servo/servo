@@ -2,17 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{LoadData, Metadata, ProgressMsg, ResponseSenders};
+use net_traits::{LoadData, Metadata, ResponseSenders};
 use net_traits::ProgressMsg::{Payload, Done};
 use mime_classifier::MIMEClassifier;
-use resource_task::{start_sending, start_sending_sniffed};
+use resource_task::{start_sending, start_sending_sniffed, ProgressSender};
 
 use std::borrow::ToOwned;
 use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::sync::mpsc::Sender;
 use util::task::spawn_named;
 
 static READ_SIZE: usize = 8192;
@@ -34,7 +33,7 @@ fn read_block(reader: &mut File) -> Result<ReadStatus, String> {
     }
 }
 
-fn read_all(reader: &mut File, progress_chan: &Sender<ProgressMsg>)
+fn read_all(reader: &mut File, progress_chan: &ProgressSender)
             -> Result<(), String> {
     loop {
         match try!(read_block(reader)) {

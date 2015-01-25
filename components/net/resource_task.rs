@@ -13,7 +13,7 @@ use cookie;
 use mime_classifier::MIMEClassifier;
 
 use net_traits::{ControlMsg, LoadData, LoadResponse, ResponseSenders, LoadConsumer};
-use net_traits::{Metadata, ProgressMsg, ResourceTask};
+use net_traits::{Metadata, ProgressMsg, ResourceTask, AsyncResponseTarget, ResponseAction};
 use net_traits::ProgressMsg::Done;
 use util::opts;
 use util::task::spawn_named;
@@ -58,22 +58,44 @@ pub fn global_init() {
     }
 }
 
+pub enum ProgressSender {
+    Channel(Sender<ProgressMsg>),
+    Listener(Box<AsyncResponseTarget>),
+}
+
+impl ProgressSender {
+    //XXXjdm return actual error
+    pub fn send(&self, msg: ProgressMsg) -> Result<(), ()> {
+        match *self {
+            ProgressSender::Channel(ref c) => c.send(msg).map_err(|_| ()),
+            ProgressSender::Listener(ref b) => {
+                let action = match msg {
+                    ProgressMsg::Payload(buf) => ResponseAction::DataAvailable(buf),
+                    ProgressMsg::Done(status) => ResponseAction::ResponseComplete(status),
+                };
+                b.invoke_with_listener(action);
+                Ok(())
+            }
+        }
+    }
+}
+
 /// For use by loaders in responding to a Load message.
-pub fn start_sending(start_chan: ResponseSenders, metadata: Metadata) -> Sender<ProgressMsg> {
+pub fn start_sending(start_chan: ResponseSenders, metadata: Metadata) -> ProgressSender {
     start_sending_opt(start_chan, metadata).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
 pub fn start_sending_sniffed(start_chan: ResponseSenders, metadata: Metadata,
                              classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
-                             -> Sender<ProgressMsg> {
+                             -> ProgressSender {
     start_sending_sniffed_opt(start_chan, metadata, classifier, partial_body).ok().unwrap()
 }
 
 /// For use by loaders in responding to a Load message that allows content sniffing.
 pub fn start_sending_sniffed_opt(start_chan: ResponseSenders, mut metadata: Metadata,
                                  classifier: Arc<MIMEClassifier>, partial_body: &Vec<u8>)
-                                 -> Result<Sender<ProgressMsg>, ()> {
+                                 -> Result<ProgressSender, ()> {
     if opts::get().sniff_mime_types {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
         let nosniff = false;
@@ -94,7 +116,7 @@ pub fn start_sending_sniffed_opt(start_chan: ResponseSenders, mut metadata: Meta
 }
 
 /// For use by loaders in responding to a Load message.
-pub fn start_sending_opt(start_chan: ResponseSenders, metadata: Metadata) -> Result<Sender<ProgressMsg>, ()> {
+pub fn start_sending_opt(start_chan: ResponseSenders, metadata: Metadata) -> Result<ProgressSender, ()> {
     match start_chan {
         ResponseSenders::Channel(start_chan) => {
             let (progress_chan, progress_port) = channel();
@@ -103,11 +125,14 @@ pub fn start_sending_opt(start_chan: ResponseSenders, metadata: Metadata) -> Res
                 progress_port: progress_port,
             });
             match result {
-                Ok(_) => Ok(progress_chan),
+                Ok(_) => Ok(ProgressSender::Channel(progress_chan)),
                 Err(_) => Err(())
             }
         }
-        ResponseSenders::Listener(_) => panic!(),
+        ResponseSenders::Listener(target) => {
+            target.invoke_with_listener(ResponseAction::HeadersAvailable(metadata));
+            Ok(ProgressSender::Listener(target))
+        }
     }
 }
 

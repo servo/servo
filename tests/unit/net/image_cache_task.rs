@@ -6,7 +6,7 @@ use net::image_cache_task::*;
 use net_traits::image_cache_task::ImageResponseMsg::*;
 use net_traits::image_cache_task::Msg::*;
 
-use net::resource_task::start_sending;
+use net::resource_task::{start_sending, ProgressSender};
 use net_traits::{ControlMsg, Metadata, ProgressMsg, ResourceTask, ResponseSenders};
 use net_traits::image_cache_task::{ImageCacheTask, ImageCacheTaskClient, ImageResponseMsg, Msg};
 use net_traits::ProgressMsg::{Payload, Done};
@@ -41,7 +41,7 @@ impl ImageCacheTaskHelper for ImageCacheTask {
 }
 
 trait Closure {
-    fn invoke(&self, _response: Sender<ProgressMsg>) { }
+    fn invoke(&self, _response: ProgressSender) { }
 }
 struct DoesNothing;
 impl Closure for DoesNothing { }
@@ -50,7 +50,7 @@ struct JustSendOK {
     url_requested_chan: Sender<()>,
 }
 impl Closure for JustSendOK {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         self.url_requested_chan.send(()).unwrap();
         response.send(Done(Ok(()))).unwrap();
     }
@@ -58,7 +58,7 @@ impl Closure for JustSendOK {
 
 struct SendTestImage;
 impl Closure for SendTestImage {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         response.send(Payload(test_image_bin())).unwrap();
         response.send(Done(Ok(()))).unwrap();
     }
@@ -66,7 +66,7 @@ impl Closure for SendTestImage {
 
 struct SendBogusImage;
 impl Closure for SendBogusImage {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         response.send(Payload(vec!())).unwrap();
         response.send(Done(Ok(()))).unwrap();
     }
@@ -74,7 +74,7 @@ impl Closure for SendBogusImage {
 
 struct SendTestImageErr;
 impl Closure for SendTestImageErr {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         response.send(Payload(test_image_bin())).unwrap();
         response.send(Done(Err("".to_string()))).unwrap();
     }
@@ -84,7 +84,7 @@ struct WaitSendTestImage {
     wait_port: Receiver<()>,
 }
 impl Closure for WaitSendTestImage {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         // Don't send the data until after the client requests
         // the image
         self.wait_port.recv().unwrap();
@@ -97,7 +97,7 @@ struct WaitSendTestImageErr {
     wait_port: Receiver<()>,
 }
 impl Closure for WaitSendTestImageErr {
-    fn invoke(&self, response: Sender<ProgressMsg>) {
+    fn invoke(&self, response: ProgressSender) {
         // Don't send the data until after the client requests
         // the image
         self.wait_port.recv().unwrap();
