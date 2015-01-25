@@ -61,7 +61,7 @@ use msg::constellation_msg::{ConstellationChan};
 use msg::constellation_msg::{LoadData, PipelineId, SubpageId, MozBrowserEvent, WorkerId};
 use msg::constellation_msg::{Failure, WindowSizeData, PipelineExitType};
 use msg::constellation_msg::Msg as ConstellationMsg;
-use net_traits::{ResourceTask, ControlMsg, LoadResponse};
+use net_traits::{ResourceTask, ControlMsg, LoadResponse, LoadConsumer};
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_task::ImageCacheTask;
 use net_traits::storage_task::StorageTask;
@@ -1331,8 +1331,7 @@ impl ScriptTask {
                 preserved_headers: load_data.headers,
                 data: load_data.data,
                 cors: None,
-                consumer: input_chan,
-            })).unwrap();
+            }, LoadConsumer::Channel(input_chan))).unwrap();
 
             let load_response = input_port.recv().unwrap();
             script_chan.send(ScriptMsg::PageFetchComplete(id, subpage, load_response)).unwrap();

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net_traits::{LoadData, Metadata};
+use net_traits::{LoadData, Metadata,ResponseSenders};
 use net_traits::ProgressMsg::Done;
 use mime_classifier::MIMEClassifier;
 use resource_task::start_sending;
@@ -18,10 +18,9 @@ use std::borrow::IntoCow;
 use std::fs::PathExt;
 use std::sync::Arc;
 
-pub fn factory(mut load_data: LoadData, classifier: Arc<MIMEClassifier>) {
+pub fn factory(mut load_data: LoadData, start_chan: ResponseSenders, classifier: Arc<MIMEClassifier>) {
     match load_data.url.non_relative_scheme_data().unwrap() {
         "blank" => {
-            let start_chan = load_data.consumer;
             let chan = start_sending(start_chan, Metadata {
                 final_url: load_data.url,
                 content_type: Some(ContentType(Mime(TopLevel::Text, SubLevel::Html, vec![]))),
@@ -40,11 +39,10 @@ pub fn factory(mut load_data: LoadData, classifier: Arc<MIMEClassifier>) {
             load_data.url = Url::from_file_path(&*path).unwrap();
         }
         _ => {
-            let start_chan = load_data.consumer;
             start_sending(start_chan, Metadata::default(load_data.url))
                 .send(Done(Err("Unknown about: URL.".to_string()))).unwrap();
             return
         }
     };
-    file_loader::factory(load_data, classifier)
+    file_loader::factory(load_data, start_chan, classifier)
 }

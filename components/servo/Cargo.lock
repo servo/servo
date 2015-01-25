@@ -932,6 +932,7 @@ dependencies = [
  "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
+ "hyper 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "net 0.0.1",
  "net_traits 0.0.1",
  "profile 0.0.1",
