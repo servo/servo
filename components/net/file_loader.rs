@@ -2,19 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use resource_task::{ProgressMsg, Metadata, LoadData, start_sending};
-use resource_task::ResponseSenders;
+use resource_task::{Metadata, LoadData, start_sending};
+use resource_task::{ResponseSenders, ProgressSender};
 use resource_task::ProgressMsg::{Payload, Done};
 
 use std::borrow::ToOwned;
 use std::old_io as io;
 use std::old_io::File;
-use std::sync::mpsc::Sender;
 use util::task::spawn_named;
 
 static READ_SIZE: uint = 8192;
 
-fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
+fn read_all(reader: &mut io::Stream, progress_chan: &ProgressSender)
         -> Result<(), String> {
     loop {
         let mut buf = vec!();
