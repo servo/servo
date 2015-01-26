@@ -29,6 +29,7 @@ impl Console {
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Log(self, message: DOMString) {
         println!("{}", message);
+        panic!("CONSOLE LOG");
     }
 
     fn Debug(self, message: DOMString) {
