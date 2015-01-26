@@ -10,6 +10,7 @@
 //! with CORSRequest being expanded into FetchRequest (etc)
 
 use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
 use time;
 use time::{now, Timespec};
 
@@ -24,6 +25,15 @@ use hyper::method::Method;
 use hyper::status::StatusClass::Success;
 
 use url::{SchemeData, Url};
+use util::task::spawn_named;
+
+pub trait AsyncCORSResponseListener {
+    fn response_available(&self, response: CORSResponse);
+}
+
+pub trait AsyncCORSResponseTarget {
+    fn invoke_with_listener(&self, response: CORSResponse);
+}
 
 #[derive(Clone)]
 pub struct CORSRequest {
@@ -88,7 +98,17 @@ impl CORSRequest {
         }
     }
 
-    /// https://fetch.spec.whatwg.org/#concept-http-fetch
+    pub fn http_fetch_async(&self, listener: Box<AsyncCORSResponseTarget + Send>) {
+        // TODO: this exists only to make preflight check non-blocking
+        // perhaps should be handled by the resource task?
+        let req = self.clone();
+        spawn_named("cors".to_owned(), move || {
+            let response = req.http_fetch();
+            listener.invoke_with_listener(response);
+        });
+    }
+
+    /// http://fetch.spec.whatwg.org/#concept-http-fetch
     /// This method assumes that the CORS flag is set
     /// This does not perform the full HTTP fetch, rather it handles part of the CORS filtering
     /// if self.mode is ForcedPreflight, then the CORS-with-forced-preflight
