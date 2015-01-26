@@ -16,6 +16,7 @@ use std::cell::{BorrowState, RefCell, Ref, RefMut};
 ///
 /// This extends the API of `core::cell::RefCell` to allow unsafe access in
 /// certain situations, with dynamic checking in debug builds.
+#[derive(Clone)]
 pub struct DOMRefCell<T> {
     value: RefCell<T>,
 }
