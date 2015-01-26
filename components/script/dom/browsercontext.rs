@@ -195,7 +195,10 @@ unsafe extern fn set(cx: *mut JSContext, proxy: *mut JSObject, _receiver: *mut J
 
 static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     getPropertyDescriptor: Some(getPropertyDescriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
+    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor
+                                   as unsafe extern "C" fn(*mut JSContext, *mut JSObject,
+                                                           jsid, bool, *mut JSPropertyDescriptor)
+                                                           -> bool),
     defineProperty: Some(defineProperty as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut JSPropertyDescriptor) -> bool),
     getOwnPropertyNames: None,
     delete_: None,
