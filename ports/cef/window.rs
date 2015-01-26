@@ -64,7 +64,7 @@ fn load_gl() {
 
     gl::load_with(|s| {
         unsafe {
-            let c_str = s.to_c_str();
+            let c_str = CString::from_slice(s.as_bytes());
             glXGetProcAddress(c_str.as_ptr()) as *const c_void
         }
     });
