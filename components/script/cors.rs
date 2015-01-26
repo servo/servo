@@ -10,6 +10,8 @@
 //! with CORSRequest being expanded into FetchRequest (etc)
 
 use std::ascii::AsciiExt;
+use std::borrow::ToOwned;
+use std::thunk::Invoke;
 use time;
 use time::{now, Timespec};
 
@@ -24,6 +26,28 @@ use hyper::method::Method;
 use hyper::status::StatusClass::Success;
 
 use url::{SchemeData, Url};
+use util::task::spawn_named;
+
+pub trait AsyncCORSResponseListener {
+    fn response_available(&self, response: CORSResponse);
+}
+
+pub trait AsyncCORSResponseTarget {
+    fn invoke_with_listener(&self, listener: CORSListenerWrapper);
+}
+
+pub struct CORSListenerWrapper(pub Box<for<'r> Invoke<(&'r (AsyncCORSResponseListener+'r))> + Send>);
+
+impl CORSListenerWrapper {
+    fn new<F>(f: Box<F>) -> CORSListenerWrapper
+              where F: for <'r> FnOnce(&'r (AsyncCORSResponseListener+'r)) + Send {
+        CORSListenerWrapper(f)
+    }
+
+    pub fn invoke(self, listener: &AsyncCORSResponseListener) {
+        (self.0).invoke(listener)
+    }
+}
 
 #[derive(Clone)]
 pub struct CORSRequest {
@@ -86,6 +110,18 @@ impl CORSRequest {
             headers: headers,
             preflight_flag: false
         }
+    }
+
+    pub fn http_fetch_async(&self, listener: Box<AsyncCORSResponseTarget + Send>) {
+        // TODO: this exists only to make preflight check non-blocking
+        // perhaps should be handled by the resource task?
+        let req = self.clone();
+        spawn_named("cors".to_owned(), move || {
+            let response = req.http_fetch();
+            listener.invoke_with_listener(CORSListenerWrapper::new(box move |listener: &AsyncCORSResponseListener| {
+                listener.response_available(response);
+            }));
+        });
     }
 
     /// http://fetch.spec.whatwg.org/#concept-http-fetch

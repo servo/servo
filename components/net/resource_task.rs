@@ -51,14 +51,33 @@ pub fn global_init() {
     }
 }
 
+#[must_use]
+pub enum AsyncResponseResult {
+    ContinueNormalResponse,
+    AbortResponse,
+}
+
+pub struct ListenerWrapper(pub Box<for<'r> Invoke<(&'r (AsyncResponseListener+'r))> + Send>);
+
+impl ListenerWrapper {
+    fn new<F>(f: Box<F>) -> ListenerWrapper
+              where F: for <'r> FnOnce(&'r (AsyncResponseListener+'r)) + Send {
+        ListenerWrapper(f)
+    }
+
+    pub fn invoke(self, listener: &AsyncResponseListener) {
+        (self.0).invoke(listener)
+    }
+}
+
 pub trait AsyncResponseListener {
-    fn headers_available(&self, metadata: Metadata);
+    fn headers_available(&self, metadata: Metadata) -> AsyncResponseResult;
     fn data_available(&self, payload: Vec<u8>);
     fn response_complete(&self, status: Result<(), String>);
 }
 
 pub trait AsyncResponseTarget {
-    fn invoke_with_listener<F>(&self, f: F) where F: FnOnce(&AsyncResponseListener);
+    fn invoke_with_listener(&self, listener: ListenerWrapper);
 }
 
 pub enum ControlMsg {
@@ -210,12 +229,12 @@ impl ProgressSender {
         match *self {
             ProgressSender::Channel(ref c) => c.send(msg).map_err(|_| ()),
             ProgressSender::Listener(ref b) => {
-                b.invoke_with_listener(move |listener| {
+                b.invoke_with_listener(ListenerWrapper::new(box move |listener: &AsyncResponseListener| {
                     match msg {
                         ProgressMsg::Payload(buf) => listener.data_available(buf),
                         ProgressMsg::Done(status) => listener.response_complete(status),
                     }
-                });
+                }));
                 Ok(())
             }
         }
@@ -254,9 +273,9 @@ pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result
             }
         }
         ResponseSenders::Listener(target) => {
-            target.invoke_with_listener(move |listener| {
+            target.invoke_with_listener(ListenerWrapper(box move |listener: &AsyncResponseListener| {
                 listener.headers_available(metadata);
-            });
+            }));
             Ok(ProgressSender::Listener(target))
         }
     }
