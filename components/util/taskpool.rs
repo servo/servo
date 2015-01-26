@@ -52,8 +52,7 @@ impl TaskPool {
     }
 
     pub fn execute<F>(&self, job: F)
-        where F: FnOnce(),
-              F: Send
+        where F: FnOnce() + Send
     {
         self.tx.send(Thunk::new(job));
     }
