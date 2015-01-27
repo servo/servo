@@ -22,7 +22,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use page::{IterablePage, Page};
 
-use servo_msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan};
+use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_util::str::DOMString;
@@ -108,12 +108,12 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
 
         self.containing_page_pipeline_id.set(Some(page.id));
 
-        let ConstellationChan(ref chan) = page.constellation_chan;
-    chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
-                                                        page.id,
-                                                        new_subpage_id,
-                                                        old_subpage_id,
-                                                        sandboxed));
+        let chan = &mut *page.constellation_chan.borrow_mut();
+        chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(url,
+                                                            page.id,
+                                                            new_subpage_id,
+                                                            old_subpage_id,
+                                                            sandboxed));
     }
 }
 

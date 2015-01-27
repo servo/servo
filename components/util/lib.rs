@@ -36,6 +36,12 @@ extern crate url;
 
 use std::sync::Arc;
 
+pub mod platform {
+    pub mod unix {
+        pub mod ipc;
+    }
+}
+
 pub mod bloom;
 pub mod cache;
 pub mod cursor;
@@ -44,6 +50,7 @@ pub mod deque;
 pub mod dlist;
 pub mod fnv;
 pub mod geometry;
+pub mod ipc;
 pub mod logical_geometry;
 pub mod memory;
 pub mod namespace;
@@ -51,6 +58,7 @@ pub mod opts;
 pub mod persistent_list;
 pub mod range;
 pub mod resource_files;
+pub mod sbsf;
 pub mod smallvec;
 pub mod sort;
 pub mod str;

@@ -11,7 +11,7 @@ use text_writer::TextWriter;
 
 macro_rules! define_cursor {
     ($( $css: expr => $variant: ident = $value: expr, )+) => {
-        #[deriving(Clone, Copy, PartialEq, Eq, FromPrimitive, Show)]
+        #[deriving(Clone, Copy, PartialEq, Eq, FromPrimitive, Show, Decodable, Encodable)]
         #[repr(u8)]
         pub enum Cursor {
             $( $variant = $value ),+

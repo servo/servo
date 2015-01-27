@@ -30,11 +30,11 @@ struct LocalLayoutContext {
 
 thread_local!(static LOCAL_CONTEXT_KEY: Cell<*mut LocalLayoutContext> = Cell::new(ptr::null_mut()))
 
-fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext) -> *mut LocalLayoutContext {
+fn create_or_get_local_context() -> *mut LocalLayoutContext {
     LOCAL_CONTEXT_KEY.with(|ref r| {
         if r.get().is_null() {
             let context = box LocalLayoutContext {
-                font_context: FontContext::new(shared_layout_context.font_cache_task.clone()),
+                font_context: FontContext::new(),
                 applicable_declarations_cache: ApplicableDeclarationsCache::new(),
                 style_sharing_candidate_cache: StyleSharingCandidateCache::new(),
             };
@@ -87,9 +87,7 @@ pub struct LayoutContext<'a> {
 
 impl<'a> LayoutContext<'a> {
     pub fn new(shared_layout_context: &'a SharedLayoutContext) -> LayoutContext<'a> {
-
-        let local_context = create_or_get_local_context(shared_layout_context);
-
+        let local_context = create_or_get_local_context();
         LayoutContext {
             shared: shared_layout_context,
             cached_local_layout_context: local_context,

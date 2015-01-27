@@ -27,12 +27,12 @@ use layout_interface::{ReflowGoal, ReflowQueryType};
 use page::Page;
 use script_task::{TimerSource, ScriptChan};
 use script_task::ScriptMsg;
-use script_traits::ScriptControlChan;
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
-use servo_msg::compositor_msg::ScriptListener;
+use servo_msg::compositor_msg::ScriptToCompositorMsg;
 use servo_msg::constellation_msg::LoadData;
 use servo_net::image_cache_task::ImageCacheTask;
+use servo_net::server::SharedServerProxy;
 use servo_net::storage_task::StorageTask;
 use servo_util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
@@ -54,12 +54,11 @@ use time;
 pub struct Window {
     eventtarget: EventTarget,
     script_chan: Box<ScriptChan+Send>,
-    control_chan: ScriptControlChan,
     console: MutNullableJS<Console>,
     location: MutNullableJS<Location>,
     navigator: MutNullableJS<Navigator>,
     image_cache_task: ImageCacheTask,
-    compositor: DOMRefCell<Box<ScriptListener+'static>>,
+    compositor: DOMRefCell<SharedServerProxy<ScriptToCompositorMsg,()>>,
     browser_context: DOMRefCell<Option<BrowserContext>>,
     page: Rc<Page>,
     performance: MutNullableJS<Performance>,
@@ -80,15 +79,11 @@ impl Window {
         self.script_chan.clone()
     }
 
-    pub fn control_chan<'a>(&'a self) -> &'a ScriptControlChan {
-        &self.control_chan
-    }
-
     pub fn image_cache_task<'a>(&'a self) -> &'a ImageCacheTask {
         &self.image_cache_task
     }
 
-    pub fn compositor(&self) -> RefMut<Box<ScriptListener+'static>> {
+    pub fn compositor(&self) -> RefMut<SharedServerProxy<ScriptToCompositorMsg,()>> {
         self.compositor.borrow_mut()
     }
 
@@ -389,14 +384,12 @@ impl Window {
     pub fn new(cx: *mut JSContext,
                page: Rc<Page>,
                script_chan: Box<ScriptChan+Send>,
-               control_chan: ScriptControlChan,
-               compositor: Box<ScriptListener+'static>,
+               compositor: SharedServerProxy<ScriptToCompositorMsg,()>,
                image_cache_task: ImageCacheTask)
                -> Temporary<Window> {
         let win = box Window {
             eventtarget: EventTarget::new_inherited(EventTargetTypeId::Window),
             script_chan: script_chan,
-            control_chan: control_chan,
             console: Default::default(),
             compositor: DOMRefCell::new(compositor),
             page: page,

@@ -46,16 +46,21 @@ use layout_interface::{LayoutRPC, LayoutChan};
 use libc;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use net::image_cache_task::ImageCacheTask;
+use net::storage_task::StorageTask;
 use script_traits::ScriptControlChan;
 use script_traits::UntrustedNodeAddress;
-use servo_msg::compositor_msg::ScriptListener;
+use serialize::{Decodable, Encodable};
 use servo_msg::constellation_msg::ConstellationChan;
+use servo_net::server::{ServerProxy, SharedServerProxy};
+use servo_util::ipc::{IpcReceiver, IpcSender};
+use servo_util::sbsf::{ServoDecoder, ServoEncoder};
 use servo_util::smallvec::{SmallVec1, SmallVec};
 use servo_util::str::{LengthOrPercentageOrAuto};
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::comm::{Receiver, Sender};
 use std::io::timer::Timer;
+use std::io::IoError;
 use std::rc::Rc;
 use string_cache::{Atom, Namespace};
 use style::PropertyDeclarationBlock;
@@ -219,6 +224,7 @@ no_jsmanaged_fields!(WindowProxyHandler)
 no_jsmanaged_fields!(UntrustedNodeAddress)
 no_jsmanaged_fields!(LengthOrPercentageOrAuto)
 no_jsmanaged_fields!(RGBA)
+no_jsmanaged_fields!(StorageTask)
 
 impl JSTraceable for Box<ScriptChan+Send> {
     #[inline]
@@ -241,7 +247,35 @@ impl<A,B> JSTraceable for fn(A) -> B {
     }
 }
 
-impl JSTraceable for Box<ScriptListener+'static> {
+impl<T> JSTraceable for IpcReceiver<T> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<T> JSTraceable for IpcSender<T> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<M,R> JSTraceable for ServerProxy<M,R> where M: for<'a> Decodable<ServoDecoder<'a>,IoError> +
+                                                    for<'a> Encodable<ServoEncoder<'a>,IoError>,
+                                                 R: for<'a> Decodable<ServoDecoder<'a>,IoError> +
+                                                    for<'a> Encodable<ServoEncoder<'a>,IoError> {
+    #[inline]
+    fn trace(&self, _: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+impl<M,R> JSTraceable for SharedServerProxy<M,R>
+                      where M: for<'a> Decodable<ServoDecoder<'a>,IoError> +
+                               for<'a> Encodable<ServoEncoder<'a>,IoError>,
+                            R: for<'a> Decodable<ServoDecoder<'a>,IoError> +
+                               for<'a> Encodable<ServoEncoder<'a>,IoError> {
     #[inline]
     fn trace(&self, _: *mut JSTracer) {
         // Do nothing

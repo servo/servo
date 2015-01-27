@@ -10,7 +10,7 @@ use dom::node::LayoutDataRef;
 
 use geom::point::Point2D;
 use geom::rect::Rect;
-use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
+use script_traits::{OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use servo_msg::constellation_msg::{PipelineExitType, WindowSizeData};
 use servo_util::geometry::Au;
 use std::any::{Any, AnyRefExt};
@@ -102,8 +102,6 @@ pub struct Reflow {
     pub url: Url,
     /// Is the current reflow of an iframe, as opposed to a root window?
     pub iframe: bool,
-    /// The channel through which messages can be sent back to the script task.
-    pub script_chan: ScriptControlChan,
     /// The current window size.
     pub window_size: WindowSizeData,
     /// The channel that we send a notification to.

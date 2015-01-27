@@ -1635,7 +1635,7 @@ impl Node {
                 None => {}
                 Some(chan) => {
                     let LayoutChan(chan) = chan;
-                    chan.send(Msg::ReapLayoutData(layout_data))
+                    chan.send_opt(Msg::ReapLayoutData(layout_data));
                 },
             }
         }

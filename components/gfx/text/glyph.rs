@@ -23,7 +23,7 @@ use geom::point::Point2D;
 /// In the uncommon case (multiple glyphs per unicode character, large glyph index/advance, or
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
-#[deriving(Clone, Show, Copy)]
+#[deriving(Clone, Show, Copy, Decodable, Encodable)]
 struct GlyphEntry {
     value: u32,
 }
@@ -252,7 +252,7 @@ impl GlyphEntry {
 
 // Stores data for a detailed glyph, in the case that several glyphs
 // correspond to one character, or the glyph's data couldn't be packed.
-#[deriving(Clone, Show, Copy)]
+#[deriving(Clone, Show, Copy, Decodable, Encodable)]
 struct DetailedGlyph {
     id: GlyphId,
     // glyph's advance, in the text's direction (RTL or RTL)
@@ -271,7 +271,7 @@ impl DetailedGlyph {
     }
 }
 
-#[deriving(PartialEq, Clone, Eq, Show, Copy)]
+#[deriving(PartialEq, Clone, Eq, Show, Copy, Decodable, Encodable)]
 struct DetailedGlyphRecord {
     // source string offset/GlyphEntry offset in the TextRun
     entry_offset: CharIndex,
@@ -295,6 +295,7 @@ impl Ord for DetailedGlyphRecord {
 // until a lookup is actually performed; this matches the expected
 // usage pattern of setting/appending all the detailed glyphs, and
 // then querying without setting.
+#[deriving(Encodable, Decodable)]
 struct DetailedGlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
@@ -500,6 +501,7 @@ impl<'a> GlyphInfo<'a> {
 /// |               +---+---+                     |
 /// +---------------------------------------------+
 /// ~~~
+#[deriving(Encodable, Decodable)]
 pub struct GlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
@@ -514,7 +516,7 @@ pub struct GlyphStore {
 }
 
 int_range_index! {
-    #[deriving(Encodable)]
+    #[deriving(Decodable, Encodable)]
     #[doc = "An index that refers to a character in a text run. This could \
              point to the middle of a glyph."]
     struct CharIndex(int)

@@ -32,8 +32,6 @@ use compositing::{CompositorProxy, CompositorTask, Constellation};
 #[cfg(not(test))]
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 #[cfg(not(test))]
-use servo_msg::constellation_msg::ConstellationChan;
-#[cfg(not(test))]
 use script::dom::bindings::codegen::RegisterBindings;
 
 #[cfg(not(test))]
@@ -75,6 +73,8 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
         let (compositor_proxy, compositor_receiver) =
             WindowMethods::create_compositor_channel(&window);
+        let (compositor_server, compositor_server_proxy) =
+            CompositorTask::create_compositor_server_channel();
         let time_profiler_chan = TimeProfiler::create(opts.time_profiler_period);
         let memory_profiler_chan = MemoryProfiler::create(opts.memory_profiler_period);
         let devtools_chan = opts.devtools_port.map(|port| {
@@ -103,13 +103,14 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             let storage_task = StorageTaskFactory::new();
             let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
                                                      script::script_task::ScriptTask>::start(
-                                                          compositor_proxy_for_constellation,
-                                                          resource_task,
-                                                          image_cache_task,
-                                                          font_cache_task,
-                                                          time_profiler_chan_clone,
-                                                          devtools_chan,
-                                                          storage_task);
+                                                    compositor_proxy_for_constellation,
+                                                    compositor_server_proxy,
+                                                    resource_task,
+                                                    image_cache_task,
+                                                    font_cache_task,
+                                                    time_profiler_chan_clone,
+                                                    devtools_chan,
+                                                    storage_task);
 
             // Send the URL command to the constellation.
             let cwd = os::getcwd().unwrap();
@@ -121,8 +122,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                     Err(_) => panic!("URL parsing failed"),
                 };
 
-                let ConstellationChan(ref chan) = constellation_chan;
-                chan.send(ConstellationMsg::InitLoadUrl(url));
+                constellation_chan.send(ConstellationMsg::InitLoadUrl(url));
             }
 
             // Send the constallation Chan as the result
@@ -135,6 +135,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         let compositor = CompositorTask::create(window,
                                                 compositor_proxy,
                                                 compositor_receiver,
+                                                compositor_server,
                                                 constellation_chan,
                                                 time_profiler_chan,
                                                 memory_profiler_chan);
@@ -156,7 +157,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         self.compositor.pinch_zoom_level()
     }
 
-    pub fn get_title_for_main_frame(&self) {
+    pub fn get_title_for_main_frame(&mut self) {
         self.compositor.get_title_for_main_frame()
     }
 

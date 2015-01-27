@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(default_type_params, globs, phase)]
+#![feature(default_type_params, globs, phase, unsafe_destructor)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
@@ -14,6 +14,7 @@ extern crate hyper;
 extern crate png;
 #[phase(plugin, link)]
 extern crate log;
+extern crate libc;
 extern crate serialize;
 extern crate "util" as servo_util;
 extern crate stb_image;
@@ -38,6 +39,7 @@ pub mod image_cache_task;
 pub mod local_image_cache;
 pub mod resource_task;
 pub mod storage_task;
+pub mod server;
 mod sniffer_task;
 
 /// An implementation of the [Fetch spec](http://fetch.spec.whatwg.org/)

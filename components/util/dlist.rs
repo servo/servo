@@ -4,6 +4,7 @@
 
 //! Utility functions for doubly-linked lists.
 
+use serialize::{Decodable, Decoder, Encodable, Encoder};
 use std::collections::DList;
 use std::mem;
 use std::ptr;
@@ -121,5 +122,44 @@ pub fn prepend_from<T>(this: &mut DList<T>, other: &mut DList<T>) {
         this.length += other.length;
         other.length = 0;
     }
+}
+
+/// Encodes a doubly-linked list.
+pub fn encode_dlist<T,E,S>(s: &mut S, dlist: &DList<T>)
+                           -> Result<(),E>
+                           where T: Encodable<S,E>, S: Encoder<E> {
+    s.emit_seq(dlist.len(), |s| {
+        let mut result = Ok(());
+        for (index, value) in dlist.iter().enumerate() {
+            if let Err(err) = s.emit_seq_elt(index, |s| value.encode(s)) {
+                result = Err(err);
+                break
+            }
+        }
+        result
+    })
+}
+
+/// Decodes a doubly-linked list.
+pub fn decode_dlist<T,E,D>(d: &mut D)
+                           -> Result<DList<T>,E>
+                           where T: Decodable<D,E>, D: Decoder<E> {
+    d.read_seq(|d, size| {
+        let mut error = None;
+        let mut dlist = DList::new();
+        for i in range(0, size) {
+            match d.read_seq_elt(i, |d| Decodable::decode(d)) {
+                Ok(value) => dlist.push_back(value),
+                Err(err) => {
+                    error = Some(err);
+                    break
+                }
+            }
+        }
+        match error {
+            None => Ok(dlist),
+            Some(err) => Err(err),
+        }
+    })
 }
 

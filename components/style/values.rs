@@ -12,7 +12,7 @@ macro_rules! define_css_keyword_enum {
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
         #[allow(non_camel_case_types)]
-        #[deriving(Clone, Eq, PartialEq, FromPrimitive, Copy)]
+        #[deriving(Clone, Eq, PartialEq, FromPrimitive, Copy, Decodable, Encodable)]
         pub enum $name {
             $( $variant ),+
         }
@@ -405,7 +405,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, PartialOrd, Copy)]
+    #[deriving(Clone, PartialEq, PartialOrd, Copy, Decodable, Encodable)]
     pub struct Angle(pub CSSFloat);
 
     impl fmt::Show for Angle {
