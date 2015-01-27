@@ -88,6 +88,23 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
     make_setter!(SetType, "type");
+
+    // https://html.spec.whatwg.org/multipage/forms.html#htmlbuttonelement
+    make_url_or_base_getter!(FormAction);
+
+    make_setter!(SetFormAction, "formaction");
+
+    make_enumerated_getter!(FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
+
+    make_setter!(SetFormEnctype, "formenctype");
+
+    make_enumerated_getter!(FormMethod, "get", ("post") | ("dialog"));
+
+    make_setter!(SetFormMethod, "formmethod");
+
+    make_getter!(FormTarget);
+
+    make_setter!(SetFormTarget, "formtarget");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
