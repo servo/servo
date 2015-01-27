@@ -47,7 +47,7 @@ pub enum TimerCallback {
     FunctionTimerCallback(Function)
 }
 
-impl<H: Writer +Hasher> Hash<H> for TimerId {
+impl<H: Writer + Hasher> Hash<H> for TimerId {
     fn hash(&self, state: &mut H) {
         let TimerId(id) = *self;
         id.hash(state);

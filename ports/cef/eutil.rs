@@ -22,7 +22,7 @@ pub trait Downcast<Class> {
 pub fn slice_to_str<F>(s: *const u8, l: uint, f: F) -> c_int where F: FnOnce(&str) -> c_int {
     unsafe {
         let s = slice::from_raw_buf(&s, l);
-        str::from_utf8(s).map(move |s| f(s)).unwrap_or(0)
+        str::from_utf8(s).map(f).unwrap_or(0)
     }
 }
 

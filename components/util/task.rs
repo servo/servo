@@ -18,11 +18,14 @@ pub fn spawn_named<F>(name: String, f: F)
 }
 
 /// Arrange to send a particular message to a channel if the task fails.
-pub fn spawn_named_with_send_on_failure<F:FnOnce()+Send,T: Send>(name: &'static str,
-                                                 state: task_state::TaskState,
-                                                 f: F,
-                                                 msg: T,
-                                                 dest: Sender<T>) {
+pub fn spawn_named_with_send_on_failure<F, T>(name: &'static str,
+                                              state: task_state::TaskState,
+                                              f: F,
+                                              msg: T,
+                                              dest: Sender<T>)
+    where F: FnOnce() + Send,
+          T: Send
+{
     let future_handle = thread::Builder::new().name(name.to_owned()).scoped(move || {
         task_state::initialize(state);
         f()

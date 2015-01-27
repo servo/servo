@@ -33,7 +33,7 @@ use gfx::paint_task::Msg as PaintMsg;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
 use script::dom::bindings::js::JS;
-use script::dom::node::{LayoutDataRef, LayoutData, Node, NodeTypeId};
+use script::dom::node::{LayoutDataRef, Node, NodeTypeId};
 use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse};
@@ -919,11 +919,8 @@ impl LayoutTask {
     /// because it contains local managed pointers.
     unsafe fn handle_reap_layout_data(layout_data: LayoutDataRef) {
         let mut layout_data_ref = layout_data.borrow_mut();
-        let layout_data = mem::replace(&mut *layout_data_ref, None);
-        let layout_data_ptr: *const Option<LayoutDataWrapper> =
-            mem::transmute::<*const Option<LayoutData>, _>(&layout_data);
-        mem::forget(layout_data);
-        let _ = *layout_data_ptr;
+        let _: Option<LayoutDataWrapper> = mem::transmute(
+            mem::replace(&mut *layout_data_ref, None));
     }
 
     /// Returns profiling information which is passed to the time profiler.

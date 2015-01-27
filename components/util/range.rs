@@ -360,8 +360,7 @@ impl<I: RangeIndex<T>, T> Range<I> {
 
 /// Methods for `Range`s with indices based on integer values
 #[old_impl_check]
-impl<T: Int, I: RangeIndex<T>> Range<I>
-{
+impl<T: Int, I: RangeIndex<T>> Range<I> {
     /// Returns an iterater that increments over `[begin, end)`.
     #[inline]
     pub fn each_index(&self) -> EachIndex<T, I> {

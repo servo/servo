@@ -1130,6 +1130,7 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
             indent.push_str("| ")
         }
 
+        // TODO: ICE, already fixed in rustc.
         //println!("{}+ {:?}", indent, self);
 
         for kid in imm_child_iter(self) {
