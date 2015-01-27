@@ -15,7 +15,8 @@ use dom::element::{AttributeHandlers, Element, ElementTypeId};
 use dom::element::ActivationElementHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlformelement::{FormControl};
+use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElementHelpers};
+use dom::htmlformelement::{SubmittedFrom};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
@@ -205,6 +206,13 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
     fn activation_behavior(&self) {
         let ty = self.button_type.get();
         match ty {
+            //https://html.spec.whatwg.org/multipage/forms.html#attr-button-type-submit-state
+            ButtonType::ButtonSubmit => {
+                self.form_owner().map(|o| {
+                    o.root().r().submit(SubmittedFrom::NotFromFormSubmitMethod,
+                                        FormSubmitter::ButtonElement(self.clone()))
+                });
+            }
             _ => ()
         }
     }
