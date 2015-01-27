@@ -19,9 +19,10 @@ use layers::platform::surface::{NativeCompositingGraphicsContext, NativeGraphics
 use layers::layers::LayerBufferSet;
 use pipeline::CompositionPipeline;
 use servo_msg::compositor_msg::{Epoch, LayerId, LayerMetadata, ReadyState};
-use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptListener, ScrollPolicy};
+use servo_msg::compositor_msg::{PaintListener, PaintState, ScriptToCompositorMsg, ScrollPolicy};
 use servo_msg::constellation_msg::{ConstellationChan, LoadData, PipelineId};
 use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers};
+use servo_net::server::{Server, SharedServerProxy};
 use servo_util::cursor::Cursor;
 use servo_util::geometry::PagePx;
 use servo_util::memory::MemoryProfilerChan;
@@ -29,6 +30,8 @@ use servo_util::time::TimeProfilerChan;
 use std::comm::{channel, Sender, Receiver};
 use std::fmt::{Error, Formatter, Show};
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+use std::task;
 
 /// Sends messages to the compositor. This is a trait supplied by the port because the method used
 /// to communicate with the compositor may have to kick OS event loops awake, communicate cross-
@@ -59,41 +62,6 @@ impl CompositorReceiver for Receiver<Msg> {
     }
     fn recv_compositor_msg(&mut self) -> Msg {
         self.recv()
-    }
-}
-
-/// Implementation of the abstract `ScriptListener` interface.
-impl ScriptListener for Box<CompositorProxy+'static+Send> {
-    fn set_ready_state(&mut self, pipeline_id: PipelineId, ready_state: ReadyState) {
-        let msg = Msg::ChangeReadyState(pipeline_id, ready_state);
-        self.send(msg);
-    }
-
-    fn scroll_fragment_point(&mut self,
-                             pipeline_id: PipelineId,
-                             layer_id: LayerId,
-                             point: Point2D<f32>) {
-        self.send(Msg::ScrollFragmentPoint(pipeline_id, layer_id, point));
-    }
-
-    fn close(&mut self) {
-        let (chan, port) = channel();
-        self.send(Msg::Exit(chan));
-        port.recv();
-    }
-
-    fn dup(&mut self) -> Box<ScriptListener+'static> {
-        box self.clone_compositor_proxy() as Box<ScriptListener+'static>
-    }
-
-    fn set_title(&mut self, pipeline_id: PipelineId, title: Option<String>) {
-        self.send(Msg::ChangePageTitle(pipeline_id, title))
-    }
-
-    fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        if state == KeyState::Pressed {
-            self.send(Msg::KeyEvent(key, modifiers));
-        }
     }
 }
 
@@ -270,14 +238,55 @@ impl CompositorTask {
         NativeCompositingGraphicsContext::new()
     }
 
+    pub fn create_compositor_server_channel() -> (Server<ScriptToCompositorMsg,()>,
+                                                  SharedServerProxy<ScriptToCompositorMsg,()>) {
+        let mut server = Server::new("CompositorTask");
+        let server_proxy = Arc::new(Mutex::new(server.create_new_client()));
+        (server, server_proxy)
+    }
+
     pub fn create<Window>(window: Option<Rc<Window>>,
                           sender: Box<CompositorProxy+Send>,
                           receiver: Box<CompositorReceiver>,
+                          mut server: Server<ScriptToCompositorMsg,()>,
                           constellation_chan: ConstellationChan,
                           time_profiler_chan: TimeProfilerChan,
                           memory_profiler_chan: MemoryProfilerChan)
                           -> Box<CompositorEventListener + 'static>
                           where Window: WindowMethods + 'static {
+        // Create a proxy server to forward messages received via IPC to the compositor.
+        let mut compositor_proxy_for_forwarder = sender.clone_compositor_proxy();
+        task::spawn(proc() {
+            while let Some(msgs) = server.recv() {
+                for (_, msg) in msgs.into_iter() {
+                    match msg {
+                        ScriptToCompositorMsg::SetReadyState(pipeline_id, ready_state) => {
+                            compositor_proxy_for_forwarder.send(Msg::ChangeReadyState(
+                                    pipeline_id,
+                                    ready_state))
+                        }
+                        ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id,
+                                                                   layer_id,
+                                                                   point) => {
+                            compositor_proxy_for_forwarder.send(Msg::ScrollFragmentPoint(
+                                    pipeline_id,
+                                    layer_id,
+                                    point))
+                        }
+                        ScriptToCompositorMsg::SetTitle(pipeline_id, title) => {
+                            compositor_proxy_for_forwarder.send(Msg::ChangePageTitle(pipeline_id,
+                                                                                     title))
+                        }
+                        ScriptToCompositorMsg::SendKeyEvent(key, state, modifiers) => {
+                            if state == KeyState::Pressed {
+                                compositor_proxy_for_forwarder.send(Msg::KeyEvent(key, modifiers))
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
         match window {
             Some(window) => {
                 box compositor::IOCompositor::create(window,
@@ -305,6 +314,6 @@ pub trait CompositorEventListener {
     fn shutdown(&mut self);
     fn pinch_zoom_level(&self) -> f32;
     /// Requests that the compositor send the title for the main frame as soon as possible.
-    fn get_title_for_main_frame(&self);
+    fn get_title_for_main_frame(&mut self);
 }
 

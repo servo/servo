@@ -3,19 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use CompositorProxy;
+use content_process::{mod, AuxiliaryContentProcessData, ContentProcess, ContentProcessIpc, Zone};
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory, LayoutControlChan};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
-use script_traits::{NewLayoutInfo, ConstellationControlMsg};
+use script_traits::{ConstellationControlMsg};
 
 use devtools_traits::DevtoolsControlChan;
+use gfx::font_cache_task::FontCacheTask;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::{PaintChan, PaintTask};
+use servo_msg::compositor_msg::ScriptToCompositorMsg;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, SubpageId};
 use servo_msg::constellation_msg::{LoadData, WindowSizeData, PipelineExitType};
 use servo_net::image_cache_task::ImageCacheTask;
-use gfx::font_cache_task::FontCacheTask;
 use servo_net::resource_task::ResourceTask;
+use servo_net::server::SharedServerProxy;
 use servo_net::storage_task::StorageTask;
+use servo_util::ipc;
+use servo_util::opts;
 use servo_util::time::TimeProfilerChan;
 use std::rc::Rc;
 
@@ -27,7 +32,6 @@ pub struct Pipeline {
     pub layout_chan: LayoutControlChan,
     pub paint_chan: PaintChan,
     pub layout_shutdown_port: Receiver<()>,
-    pub paint_shutdown_port: Receiver<()>,
     /// Load data corresponding to the most recently-loaded page.
     pub load_data: LoadData,
     /// The title of the most recently-loaded page.
@@ -50,7 +54,9 @@ impl Pipeline {
                            subpage_id: Option<SubpageId>,
                            constellation_chan: ConstellationChan,
                            compositor_proxy: Box<CompositorProxy+'static+Send>,
-                           devtools_chan: Option<DevtoolsControlChan>,
+                           script_to_compositor_client: SharedServerProxy<ScriptToCompositorMsg,
+                                                                          ()>,
+                           _: Option<DevtoolsControlChan>,
                            image_cache_task: ImageCacheTask,
                            font_cache_task: FontCacheTask,
                            resource_task: ResourceTask,
@@ -61,79 +67,66 @@ impl Pipeline {
                            load_data: LoadData)
                            -> Pipeline
                            where LTF: LayoutTaskFactory, STF:ScriptTaskFactory {
-        let layout_pair = ScriptTaskFactory::create_layout_channel(None::<&mut STF>);
         let (paint_port, paint_chan) = PaintChan::new();
-        let (paint_shutdown_chan, paint_shutdown_port) = channel();
-        let (layout_shutdown_chan, layout_shutdown_port) = channel();
-        let (pipeline_chan, pipeline_port) = channel();
+        let (_, layout_shutdown_port) = channel();
+        let (pipeline_port, pipeline_chan) = ipc::channel();
 
         let failure = Failure {
             pipeline_id: id,
             subpage_id: subpage_id,
         };
 
-        let script_chan = match script_pipeline {
+        let (script_port, script_chan) = ipc::channel();
+        let content_process_ipc = ContentProcessIpc {
+            script_to_compositor_client: script_to_compositor_client,
+            script_port: script_port,
+            constellation_chan: constellation_chan.clone(),
+            storage_task: storage_task,
+            pipeline_to_layout_port: pipeline_port,
+            layout_to_paint_chan: paint_chan.create_layout_channel(),
+            font_cache_task: font_cache_task.clone(),
+        };
+
+        match script_pipeline {
             None => {
-                let (script_chan, script_port) = channel();
-                ScriptTaskFactory::create(None::<&mut STF>,
-                                          id,
-                                          compositor_proxy.clone_compositor_proxy(),
-                                          &layout_pair,
-                                          ScriptControlChan(script_chan.clone()),
-                                          script_port,
-                                          constellation_chan.clone(),
-                                          failure.clone(),
-                                          resource_task.clone(),
-                                          storage_task.clone(),
-                                          image_cache_task.clone(),
-                                          devtools_chan,
-                                          window_size);
-                ScriptControlChan(script_chan)
-            }
-            Some(spipe) => {
-                let new_layout_info = NewLayoutInfo {
-                    old_pipeline_id: spipe.id.clone(),
-                    new_pipeline_id: id,
-                    subpage_id: subpage_id.expect("script_pipeline != None but subpage_id == None"),
-                    layout_chan: ScriptTaskFactory::clone_layout_channel(None::<&mut STF>, &layout_pair),
+                let data = AuxiliaryContentProcessData {
+                    pipeline_id: id,
+                    failure: failure,
+                    window_size: window_size,
+                    zone: Zone::from_load_data(&load_data),
                 };
 
-                let ScriptControlChan(ref chan) = spipe.script_chan;
-                chan.send(ConstellationControlMsg::AttachLayout(new_layout_info));
-                spipe.script_chan.clone()
+                if !opts::get().multiprocess {
+                    let content_process = ContentProcess {
+                        ipc: content_process_ipc,
+                        resource_task: resource_task.clone(),
+                        image_cache_task: image_cache_task.clone(),
+                        time_profiler_chan: time_profiler_chan.clone(),
+                    };
+                    content_process.create_script_and_layout_threads(data)
+                } else {
+                    content_process::spawn(content_process_ipc, data)
+                }
             }
-        };
+            Some(_spipe) => {
+                panic!("layout connection to existing script thread not yet ported to e10s")
+            }
+        }
 
         PaintTask::create(id,
                           paint_port,
                           compositor_proxy,
                           constellation_chan.clone(),
-                          font_cache_task.clone(),
+                          font_cache_task,
                           failure.clone(),
-                          time_profiler_chan.clone(),
-                          paint_shutdown_chan);
-
-        LayoutTaskFactory::create(None::<&mut LTF>,
-                                  id,
-                                  layout_pair,
-                                  pipeline_port,
-                                  constellation_chan,
-                                  failure,
-                                  script_chan.clone(),
-                                  paint_chan.clone(),
-                                  resource_task,
-                                  image_cache_task,
-                                  font_cache_task,
-                                  time_profiler_chan,
-                                  layout_shutdown_chan);
+                          time_profiler_chan.clone());
 
         Pipeline::new(id,
                       subpage_id,
-                      script_chan,
+                      ScriptControlChan(script_chan),
                       LayoutControlChan(pipeline_chan),
                       paint_chan,
                       layout_shutdown_port,
-                      paint_shutdown_port,
                       load_data)
     }
 
@@ -143,7 +136,6 @@ impl Pipeline {
                layout_chan: LayoutControlChan,
                paint_chan: PaintChan,
                layout_shutdown_port: Receiver<()>,
-               paint_shutdown_port: Receiver<()>,
                load_data: LoadData)
                -> Pipeline {
         Pipeline {
@@ -153,7 +145,6 @@ impl Pipeline {
             layout_chan: layout_chan,
             paint_chan: paint_chan,
             layout_shutdown_port: layout_shutdown_port,
-            paint_shutdown_port: paint_shutdown_port,
             load_data: load_data,
             title: None,
         }
@@ -182,7 +173,6 @@ impl Pipeline {
         if chan.send_opt(ConstellationControlMsg::ExitPipeline(self.id, exit_type)).is_ok() {
             // Wait until all slave tasks have terminated and run destructors
             // NOTE: We don't wait for script task as we don't always own it
-            let _ = self.paint_shutdown_port.recv_opt();
             let _ = self.layout_shutdown_port.recv_opt();
         }
 
@@ -193,7 +183,7 @@ impl Pipeline {
         let _ = script_channel.send_opt(
             ConstellationControlMsg::ExitPipeline(self.id,
                                                   PipelineExitType::PipelineOnly));
-        let _ = self.paint_chan.send_opt(PaintMsg::Exit(None, PipelineExitType::PipelineOnly));
+        let _ = self.paint_chan.send_opt(PaintMsg::Exit(PipelineExitType::PipelineOnly));
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
         let _ = layout_channel.send_opt(LayoutControlMsg::ExitNowMsg(PipelineExitType::PipelineOnly));
     }

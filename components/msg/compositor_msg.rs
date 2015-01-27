@@ -20,7 +20,7 @@ pub enum PaintState {
     Painting,
 }
 
-#[deriving(Eq, Ord, PartialEq, PartialOrd, Clone, Show, Copy)]
+#[deriving(Eq, Ord, PartialEq, PartialOrd, Clone, Show, Copy, Decodable, Encodable)]
 pub enum ReadyState {
     /// Informs the compositor that nothing has been done yet. Used for setting status
     Blank,
@@ -33,7 +33,7 @@ pub enum ReadyState {
 }
 
 /// A newtype struct for denoting the age of messages; prevents race conditions.
-#[deriving(PartialEq, Eq, Show, Copy)]
+#[deriving(PartialEq, Eq, Show, Copy, Decodable, Encodable)]
 pub struct Epoch(pub uint);
 
 impl Epoch {
@@ -43,7 +43,7 @@ impl Epoch {
     }
 }
 
-#[deriving(Clone, PartialEq, Eq, Copy)]
+#[deriving(Clone, PartialEq, Eq, Copy, Decodable, Encodable)]
 pub struct LayerId(pub uint, pub uint);
 
 impl Show for LayerId {
@@ -61,7 +61,7 @@ impl LayerId {
 }
 
 /// The scrolling policy of a layer.
-#[deriving(Clone, PartialEq, Eq, Copy)]
+#[deriving(Clone, PartialEq, Eq, Copy, Decodable, Encodable)]
 pub enum ScrollPolicy {
     /// These layers scroll when the parent receives a scrolling message.
     Scrollable,
@@ -107,15 +107,12 @@ pub trait PaintListener for Sized? {
 
 /// The interface used by the script task to tell the compositor to update its ready state,
 /// which is used in displaying the appropriate message in the window's title.
-pub trait ScriptListener {
-    fn set_ready_state(&mut self, PipelineId, ReadyState);
-    fn scroll_fragment_point(&mut self,
-                             pipeline_id: PipelineId,
-                             layer_id: LayerId,
-                             point: Point2D<f32>);
+#[deriving(Decodable, Encodable)]
+pub enum ScriptToCompositorMsg {
+    SetReadyState(PipelineId, ReadyState),
+    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>),
     /// Informs the compositor that the title of the page with the given pipeline ID has changed.
-    fn set_title(&mut self, pipeline_id: PipelineId, new_title: Option<String>);
-    fn close(&mut self);
-    fn dup(&mut self) -> Box<ScriptListener+'static>;
-    fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers);
+    SetTitle(PipelineId, Option<String>),
+    SendKeyEvent(Key, KeyState, KeyModifiers),
 }
+

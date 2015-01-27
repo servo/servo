@@ -2,14 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(phase)]
+#![feature(phase, macro_rules)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 
-#[cfg(target_os="android")]
-extern crate libc;
-
+extern crate gfx;
+extern crate layout;
+extern crate "msg" as servo_msg;
+extern crate "net" as servo_net;
+extern crate script;
+extern crate serialize;
 extern crate servo;
 extern crate time;
 extern crate "util" as servo_util;
@@ -21,6 +24,8 @@ extern crate "glfw_app" as app;
 
 #[cfg(not(test))]
 extern crate compositing;
+
+extern crate libc;
 
 #[cfg(target_os="android")]
 #[phase(plugin, link)]
@@ -42,6 +47,26 @@ use std::borrow::ToOwned;
 
 #[cfg(not(any(test,target_os="android")))]
 use std::os;
+
+use std::str::FromStr;
+
+mod content_process;
+
+pub mod platform {
+    #[cfg(target_os="macos")]
+    pub use self::macos::sandbox;
+    #[cfg(not(target_os="macos"))]
+    pub use self::linux::sandbox;
+
+    #[cfg(target_os="macos")]
+    pub mod macos {
+        pub mod sandbox;
+    }
+    #[cfg(not(target_os="macos"))]
+    pub mod linux {
+        pub mod sandbox;
+    }
+}
 
 #[cfg(not(test))]
 struct BrowserWrapper {
@@ -107,6 +132,10 @@ fn setup_logging() {
 }
 
 fn main() {
+    if let Some(bootstrap_fd_string) = os::getenv("SERVO_CONTENT_PROCESS") {
+        return content_process::main(FromStr::from_str(bootstrap_fd_string.as_slice()).unwrap())
+    }
+
     if opts::from_cmdline_args(get_args().as_slice()) {
         setup_logging();
 

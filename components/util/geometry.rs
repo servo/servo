@@ -8,7 +8,7 @@ use geom::rect::Rect;
 use geom::size::Size2D;
 use geom::num::Zero;
 
-use serialize::{Encodable, Encoder};
+use serialize::{Decodable, Decoder, Encodable, Encoder};
 use std::default::Default;
 use std::i32;
 use std::num::{Float, NumCast};
@@ -29,7 +29,7 @@ use std::fmt;
 ///
 /// The ratio between ScreenPx and DevicePixel for a given display be found by calling
 /// `servo::windowing::WindowMethods::hidpi_factor`.
-#[deriving(Show, Copy)]
+#[deriving(Show, Copy, Encodable, Decodable)]
 pub enum ScreenPx {}
 
 /// One CSS "px" in the coordinate system of the "initial viewport":
@@ -41,7 +41,7 @@ pub enum ScreenPx {}
 ///
 /// At the default zoom level of 100%, one PagePx is equal to one ScreenPx.  However, if the
 /// document is zoomed in or out then this scale may be larger or smaller.
-#[deriving(Encodable, Show, Copy)]
+#[deriving(Encodable, Decodable, Show, Copy)]
 pub enum ViewportPx {}
 
 /// One CSS "px" in the root coordinate system for the content document.
@@ -50,7 +50,7 @@ pub enum ViewportPx {}
 /// This is the mobile-style "pinch zoom" that enlarges content without reflowing it.  When the
 /// viewport zoom is not equal to 1.0, then the layout viewport is no longer the same physical size
 /// as the viewable area.
-#[deriving(Encodable, Show, Copy)]
+#[deriving(Encodable, Decodable, Show, Copy)]
 pub enum PagePx {}
 
 // In summary, the hierarchy of pixel units and the factors to convert from one to the next:
@@ -115,6 +115,13 @@ pub const MAX_AU: Au = Au(i32::MAX);
 impl<E, S: Encoder<E>> Encodable<S, E> for Au {
     fn encode(&self, e: &mut S) -> Result<(), E> {
         e.emit_f64(to_frac_px(*self))
+    }
+}
+
+impl<E, D: Decoder<E>> Decodable<D, E> for Au {
+    fn decode(d: &mut D) -> Result<Au, E> {
+        let value: f64 = try!(Decodable::decode(d));
+        Ok(Au::from_frac_px(value))
     }
 }
 

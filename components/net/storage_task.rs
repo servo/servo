@@ -3,41 +3,75 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::comm::{channel, Receiver, Sender};
-use std::collections::HashMap;
-use std::collections::TreeMap;
+use server::{ClientId, Server, SharedServerProxy};
+use std::collections::{HashMap, TreeMap};
+use std::sync::{Arc, Mutex};
 use url::Url;
 
 use servo_util::str::DOMString;
 use servo_util::task::spawn_named;
 
 /// Request operations on the storage data associated with a particular url
+#[deriving(Decodable, Encodable)]
 pub enum StorageTaskMsg {
     /// gets the number of key/value pairs present in the associated storage data
-    Length(Sender<u32>, Url),
+    Length(Url),
 
     /// gets the name of the key at the specified index in the associated storage data
-    Key(Sender<Option<DOMString>>, Url, u32),
+    Key(Url, u32),
 
     /// gets the value associated with the given key in the associated storage data
-    GetItem(Sender<Option<DOMString>>, Url, DOMString),
+    GetItem(Url, DOMString),
 
     /// sets the value of the given key in the associated storage data
     /// TODO throw QuotaExceededError in case of error
-    SetItem(Sender<bool>, Url, DOMString, DOMString),
+    SetItem(Url, DOMString, DOMString),
 
     /// removes the key/value pair for the given key in the associated storage data
-    RemoveItem(Sender<bool>, Url, DOMString),
+    RemoveItem(Url, DOMString),
 
     /// clears the associated storage data by removing all the key/value pairs
-    Clear(Sender<bool>, Url),
+    Clear(Url),
+}
 
-    /// shut down this task
-    Exit
+/// Response operations on the storage data associated with a particular URL.
+#[deriving(Decodable, Encodable)]
+pub enum StorageTaskResponse {
+    /// The number of key/value pairs present in the associated storage data.
+    Length(u32),
+    /// The name of the key at the specified index in the associated storage data.
+    Key(Option<DOMString>),
+    /// The value associated with the given key in the associated storage data.
+    GetItem(Option<DOMString>),
+    /// A simple acknowledgement of success/failure, used for `SetItem`, `RemoveItem`, and `Clear`.
+    Complete(bool),
 }
 
 /// Handle to a storage task
-pub type StorageTask = Sender<StorageTaskMsg>;
+#[deriving(Clone)]
+pub struct StorageTask {
+    pub client: SharedServerProxy<StorageTaskMsg,StorageTaskResponse>,
+}
+
+impl StorageTask {
+    #[inline]
+    pub fn from_client(client: SharedServerProxy<StorageTaskMsg,StorageTaskResponse>)
+                       -> StorageTask {
+        StorageTask {
+            client: client,
+        }
+    }
+
+    pub fn send(&self, msg: StorageTaskMsg) -> StorageTaskResponse {
+        self.client.lock().send_sync(msg)
+    }
+
+    pub fn create_new_client(&self) -> StorageTask {
+        StorageTask {
+            client: Arc::new(Mutex::new(self.client.lock().create_new_client())),
+        }
+    }
+}
 
 pub trait StorageTaskFactory {
     fn new() -> StorageTask;
@@ -46,23 +80,26 @@ pub trait StorageTaskFactory {
 impl StorageTaskFactory for StorageTask {
     /// Create a StorageTask
     fn new() -> StorageTask {
-        let (chan, port) = channel();
+        let mut server = Server::new("StorageTask");
+        let client = Arc::new(Mutex::new(server.create_new_client()));
         spawn_named("StorageManager".to_owned(), proc() {
-            StorageManager::new(port).start();
+            StorageManager::new(server).start();
         });
-        chan
+        StorageTask {
+            client: client,
+        }
     }
 }
 
 struct StorageManager {
-    port: Receiver<StorageTaskMsg>,
+    server: Server<StorageTaskMsg,StorageTaskResponse>,
     data: HashMap<String, TreeMap<DOMString, DOMString>>,
 }
 
 impl StorageManager {
-    fn new(port: Receiver<StorageTaskMsg>) -> StorageManager {
+    fn new(server: Server<StorageTaskMsg,StorageTaskResponse>) -> StorageManager {
         StorageManager {
-            port: port,
+            server: server,
             data: HashMap::new(),
         }
     }
@@ -70,46 +107,40 @@ impl StorageManager {
 
 impl StorageManager {
     fn start(&mut self) {
-        loop {
-            match self.port.recv() {
-                StorageTaskMsg::Length(sender, url) => {
-                    self.length(sender, url)
-                }
-                StorageTaskMsg::Key(sender, url, index) => {
-                    self.key(sender, url, index)
-                }
-                StorageTaskMsg::SetItem(sender, url, name, value) => {
-                    self.set_item(sender, url, name, value)
-                }
-                StorageTaskMsg::GetItem(sender, url, name) => {
-                    self.get_item(sender, url, name)
-                }
-                StorageTaskMsg::RemoveItem(sender, url, name) => {
-                    self.remove_item(sender, url, name)
-                }
-                StorageTaskMsg::Clear(sender, url) => {
-                    self.clear(sender, url)
-                }
-                StorageTaskMsg::Exit => {
-                    break
+        while let Some(msgs) = self.server.recv() {
+            for (client_id, msg) in msgs.into_iter() {
+                match msg {
+                    StorageTaskMsg::Length(url) => self.length(client_id, url),
+                    StorageTaskMsg::Key(url, index) => self.key(client_id, url, index),
+                    StorageTaskMsg::SetItem(url, name, value) => {
+                        self.set_item(client_id, url, name, value)
+                    }
+                    StorageTaskMsg::GetItem(url, name) => self.get_item(client_id, url, name),
+                    StorageTaskMsg::RemoveItem(url, name) => {
+                        self.remove_item(client_id, url, name)
+                    }
+                    StorageTaskMsg::Clear(url) => self.clear(client_id, url),
                 }
             }
         }
     }
 
-    fn length(&self, sender: Sender<u32>, url: Url) {
+    fn length(&self, sender: ClientId, url: Url) {
         let origin = self.get_origin_as_string(url);
-        sender.send(self.data.get(&origin).map_or(0u, |entry| entry.len()) as u32);
+        self.server.send(sender, StorageTaskResponse::Length(
+                self.data.get(&origin).map_or(0u, |entry| entry.len()) as u32));
     }
 
-    fn key(&self, sender: Sender<Option<DOMString>>, url: Url, index: u32) {
+    fn key(&self, sender: ClientId, url: Url, index: u32) {
         let origin = self.get_origin_as_string(url);
-        sender.send(self.data.get(&origin)
-                    .and_then(|entry| entry.keys().nth(index as uint))
-                    .map(|key| key.clone()));
+        self.server.send(sender,
+                         StorageTaskResponse::Key(
+                self.data.get(&origin)
+                         .and_then(|entry| entry.keys().nth(index as uint))
+                         .map(|key| key.clone())));
     }
 
-    fn set_item(&mut self, sender: Sender<bool>, url: Url, name: DOMString, value: DOMString) {
+    fn set_item(&mut self, sender: ClientId, url: Url, name: DOMString, value: DOMString) {
         let origin = self.get_origin_as_string(url);
         if !self.data.contains_key(&origin) {
             self.data.insert(origin.clone(), TreeMap::new());
@@ -124,32 +155,37 @@ impl StorageManager {
             }
         }).unwrap();
 
-        sender.send(updated);
+        self.server.send(sender, StorageTaskResponse::Complete(updated));
     }
 
-    fn get_item(&self, sender: Sender<Option<DOMString>>, url: Url, name: DOMString) {
+    fn get_item(&self, sender: ClientId, url: Url, name: DOMString) {
         let origin = self.get_origin_as_string(url);
-        sender.send(self.data.get(&origin)
-                    .and_then(|entry| entry.get(&name))
-                    .map(|value| value.to_string()));
+        self.server.send(sender,
+                         StorageTaskResponse::GetItem(
+                             self.data.get(&origin)
+                                      .and_then(|entry| entry.get(&name))
+                                      .map(|value| value.to_string())));
     }
 
-    fn remove_item(&mut self, sender: Sender<bool>, url: Url, name: DOMString) {
+    fn remove_item(&mut self, sender: ClientId, url: Url, name: DOMString) {
         let origin = self.get_origin_as_string(url);
-        sender.send(self.data.get_mut(&origin)
-                    .map_or(false, |entry| entry.remove(&name).is_some()));
+        self.server.send(sender,
+                         StorageTaskResponse::Complete(
+                             self.data.get_mut(&origin)
+                                      .map_or(false, |entry| entry.remove(&name).is_some())));
     }
 
-    fn clear(&mut self, sender: Sender<bool>, url: Url) {
+    fn clear(&mut self, sender: ClientId, url: Url) {
         let origin = self.get_origin_as_string(url);
-        sender.send(self.data.get_mut(&origin)
-                    .map_or(false, |entry| {
-                        if !entry.is_empty() {
-                            entry.clear();
-                            true
-                        } else {
-                            false
-                        }}));
+        self.server.send(sender,
+                         StorageTaskResponse::Complete(self.data.get_mut(&origin)
+                                                                .map_or(false, |entry| {
+                                                                    if !entry.is_empty() {
+                                                                        entry.clear();
+                                                                        true
+                                                                    } else {
+                                                                        false
+                                                                    }})));
     }
 
     fn get_origin_as_string(&self, url: Url) -> String {

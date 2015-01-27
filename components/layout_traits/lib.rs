@@ -12,27 +12,31 @@ extern crate "msg" as servo_msg;
 extern crate "net" as servo_net;
 extern crate "util" as servo_util;
 
+extern crate serialize;
+
 // This module contains traits in layout used generically
 //   in the rest of Servo.
 // The traits are here instead of in layout so
 //   that these modules won't have to depend on layout.
 
 use gfx::font_cache_task::FontCacheTask;
-use gfx::paint_task::PaintChan;
+use gfx::paint_task::LayoutToPaintChan;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
+use servo_util::ipc::{IpcReceiver, IpcSender};
 use servo_util::time::TimeProfilerChan;
-use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
+use script_traits::{ConstellationControlMsg, OpaqueScriptLayoutChannel};
 use std::comm::Sender;
 
 /// Messages sent to the layout task from the constellation
+#[deriving(Decodable, Encodable)]
 pub enum LayoutControlMsg {
     ExitNowMsg(PipelineExitType),
 }
 
 /// A channel wrapper for constellation messages
-pub struct LayoutControlChan(pub Sender<LayoutControlMsg>);
+pub struct LayoutControlChan(pub IpcSender<LayoutControlMsg>);
 
 // A static method creating a layout task
 // Here to remove the compositor -> layout dependency
@@ -41,14 +45,13 @@ pub trait LayoutTaskFactory {
     fn create(_phantom: Option<&mut Self>,
               id: PipelineId,
               chan: OpaqueScriptLayoutChannel,
-              pipeline_port: Receiver<LayoutControlMsg>,
+              pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan,
               failure_msg: Failure,
-              script_chan: ScriptControlChan,
-              paint_chan: PaintChan,
+              script_chan: Sender<ConstellationControlMsg>,
+              paint_chan: LayoutToPaintChan,
               resource_task: ResourceTask,
               img_cache_task: ImageCacheTask,
               font_cache_task: FontCacheTask,
-              time_profiler_chan: TimeProfilerChan,
-              shutdown_chan: Sender<()>);
+              time_profiler_chan: TimeProfilerChan);
 }

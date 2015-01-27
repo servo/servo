@@ -283,7 +283,9 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
         // Tell the workers to start.
         let mut work_count = AtomicUint::new(self.work_count);
         for worker in self.workers.iter_mut() {
-            worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(), &mut work_count, &self.data))
+            worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(),
+                                              &mut work_count,
+                                              &self.data))
         }
 
         // Wait for the work to finish.

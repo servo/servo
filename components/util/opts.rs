@@ -12,15 +12,15 @@ use geom::size::TypedSize2D;
 use layers::geometry::DevicePixel;
 use getopts;
 use std::collections::HashSet;
-use std::cmp;
+//use std::cmp;
 use std::io;
 use std::mem;
 use std::os;
 use std::ptr;
-use std::rt;
+//use std::rt;
 
 /// Global flags for Servo, currently set on the command line.
-#[deriving(Clone)]
+#[deriving(Clone, Decodable, Encodable)]
 pub struct Opts {
     /// The initial URLs to load.
     pub urls: Vec<String>,
@@ -52,8 +52,7 @@ pub struct Opts {
     /// Enable experimental web features (`-e`).
     pub enable_experimental: bool,
 
-    /// The number of threads to use for layout (`-y`). Defaults to 1, which results in a recursive
-    /// sequential algorithm.
+    /// The number of threads to use for layout (`-y`). Defaults to 3/2 the number of cores.
     pub layout_threads: uint,
 
     pub nonincremental_layout: bool,
@@ -108,6 +107,13 @@ pub struct Opts {
 
     /// A specific path to find required resources (such as user-agent.css).
     pub resources_path: Option<String>,
+
+    /// Whether we are running in multiprocess mode.
+    pub multiprocess: bool,
+
+    /// True if we should serialize display lists even in single-process mode. This is disabled by
+    /// default because it is currently very slow.
+    pub force_display_list_serialization: bool,
 }
 
 fn print_usage(app: &str, opts: &[getopts::OptGroup]) {
@@ -131,6 +137,8 @@ pub fn print_debug_usage(app: &str)  {
     print_option("trace-layout", "Write layout trace to an external file for debugging.");
     print_option("validate-display-list-geometry",
                  "Display an error when display list geometry escapes overflow region.");
+    print_option("serialize-display-lists",
+                 "Serialize display lists even in single-process mode.");
 
     println!("");
 }
@@ -175,6 +183,8 @@ pub fn default_opts() -> Opts {
         validate_display_list_geometry: false,
         profile_tasks: false,
         resources_path: None,
+        multiprocess: false,
+        force_display_list_serialization: false,
     }
 }
 
@@ -204,6 +214,7 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         getopts::optflag("h", "help", "Print this message"),
         getopts::optopt("r", "render-api", "Set the rendering API to use", "gl|mesa"),
         getopts::optopt("", "resources-path", "Path to find static resources", "/home/servo/resources"),
+        getopts::optflag("", "multiprocess", "Run in multiprocess mode"),
     );
 
     let opt_match = match getopts::getopts(args, opts.as_slice()) {
@@ -266,7 +277,8 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
 
     let mut layout_threads: uint = match opt_match.opt_str("y") {
         Some(layout_threads_str) => from_str(layout_threads_str.as_slice()).unwrap(),
-        None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
+        //None => cmp::max(rt::default_sched_threads() * 3 / 4, 1),
+        None => 1,
     };
 
     let nonincremental_layout = opt_match.opt_present("i");
@@ -319,6 +331,9 @@ pub fn from_cmdline_args(args: &[String]) -> bool {
         dump_flow_tree: debug_options.contains(&"dump-flow-tree"),
         validate_display_list_geometry: debug_options.contains(&"validate-display-list-geometry"),
         resources_path: opt_match.opt_str("resources-path"),
+        multiprocess: opt_match.opt_present("multiprocess"),
+        force_display_list_serialization:
+            debug_options.contains(&"force-display-list-serialization"),
     };
 
     set_opts(opts);

@@ -17,17 +17,16 @@ use layout_interface::{
     ReflowGoal, ReflowQueryType,
     TrustedNodeAddress
 };
-use script_traits::{UntrustedNodeAddress, ScriptControlChan};
+use script_traits::{UntrustedNodeAddress};
 
 use geom::{Point2D, Rect, Size2D};
 use js::rust::Cx;
-use servo_msg::compositor_msg::ScriptListener;
+use servo_msg::compositor_msg::ScriptToCompositorMsg;
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
-use servo_util::geometry::{Au, MAX_RECT};
-use servo_util::geometry;
+use servo_util::geometry::{mod, Au, MAX_RECT};
 use servo_util::str::DOMString;
 use servo_util::smallvec::SmallVec;
 use std::cell::{Cell, Ref, RefMut};
@@ -87,7 +86,7 @@ pub struct Page {
     pub storage_task: StorageTask,
 
     /// A handle for communicating messages to the constellation task.
-    pub constellation_chan: ConstellationChan,
+    pub constellation_chan: DOMRefCell<ConstellationChan>,
 
     // Child Pages.
     pub children: DOMRefCell<Vec<Rc<Page>>>,
@@ -157,16 +156,14 @@ impl Page {
             last_reflow_id: Cell::new(0),
             resource_task: resource_task,
             storage_task: storage_task,
-            constellation_chan: constellation_chan,
+            constellation_chan: DOMRefCell::new(constellation_chan),
             children: DOMRefCell::new(vec!()),
             page_clip_rect: Cell::new(MAX_RECT),
         }
     }
 
     pub fn flush_layout(&self, goal: ReflowGoal, query: ReflowQueryType) {
-        let frame = self.frame();
-        let window = frame.as_ref().unwrap().window.root();
-        self.reflow(goal, window.r().control_chan().clone(), &mut **window.r().compositor(), query);
+        self.reflow(goal, query);
     }
 
     pub fn layout(&self) -> &LayoutRPC {
@@ -238,7 +235,11 @@ impl Page {
             Some(ref frame) => {
                 let window = frame.window.root();
                 let document = frame.document.root();
-                window.r().compositor().set_title(self.id, Some(document.r().Title()));
+                window.r()
+                      .compositor()
+                      .lock()
+                      .send_async(ScriptToCompositorMsg::SetTitle(self.id,
+                                                                  Some(document.r().Title())));
             }
         }
     }
@@ -336,11 +337,7 @@ impl Page {
     /// yet, the page is presumed invisible and no reflow is performed.
     ///
     /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
-    pub fn reflow(&self,
-                  goal: ReflowGoal,
-                  script_chan: ScriptControlChan,
-                  _: &mut ScriptListener,
-                  query_type: ReflowQueryType) {
+    pub fn reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType) {
         let root = match *self.frame() {
             None => return,
             Some(ref frame) => {
@@ -383,7 +380,6 @@ impl Page {
             iframe: self.subpage_id.is_some(),
             goal: goal,
             window_size: window_size,
-            script_chan: script_chan,
             script_join_chan: join_chan,
             id: last_reflow_id.get(),
             query_type: query_type,

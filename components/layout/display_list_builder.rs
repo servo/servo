@@ -26,7 +26,7 @@ use geom::{Point2D, Rect, Size2D, SideOffsets2D};
 use gfx::color;
 use gfx::display_list::{BOX_SHADOW_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayItem};
 use gfx::display_list::{BorderRadii, BoxShadowDisplayItem, ClippingRegion};
-use gfx::display_list::{DisplayItem, DisplayList, DisplayItemMetadata};
+use gfx::display_list::{DisplayItem, DisplayItemImage, DisplayList, DisplayItemMetadata};
 use gfx::display_list::{GradientDisplayItem};
 use gfx::display_list::{GradientStop, ImageDisplayItem, LineDisplayItem};
 use gfx::display_list::TextOrientation;
@@ -37,7 +37,6 @@ use png;
 use png::PixelsByColorType;
 use servo_msg::compositor_msg::ScrollPolicy;
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
-use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::image::holder::ImageHolder;
 use servo_util::cursor::Cursor;
 use servo_util::geometry::{mod, Au, to_px};
@@ -376,7 +375,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                 style,
                                                                 Cursor::DefaultCursor),
                                        clip),
-            image: image.clone(),
+            image: DisplayItemImage(image.clone()),
             stretch_size: Size2D(Au::from_px(image.width as int),
                                  Au::from_px(image.height as int)),
         }), level);
@@ -860,7 +859,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                             &*self.style,
                                                                             Cursor::DefaultCursor),
                                                    (*clip).clone()),
-                        image: image.clone(),
+                        image: DisplayItemImage(image.clone()),
                         stretch_size: stacking_relative_content_box.size,
                     }));
                 } else {
@@ -891,11 +890,11 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                             &*self.style,
                                                                             Cursor::DefaultCursor),
                                                (*clip).clone()),
-                    image: Arc::new(box png::Image {
+                    image: DisplayItemImage(Arc::new(box png::Image {
                         width: width as u32,
                         height: height as u32,
                         pixels: PixelsByColorType::RGBA8(canvas_data),
-                    }),
+                    })),
                     stretch_size: stacking_relative_content_box.size,
                 };
 
@@ -919,7 +918,7 @@ impl FragmentDisplayListBuilding for Fragment {
         debug!("finalizing position and size of iframe for {},{}",
                iframe_fragment.pipeline_id,
                iframe_fragment.subpage_id);
-        let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
+        let chan = &layout_context.shared.constellation_chan;
         chan.send(ConstellationMsg::FrameRect(iframe_fragment.pipeline_id,
                                               iframe_fragment.subpage_id,
                                               iframe_rect));

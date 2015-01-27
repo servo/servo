@@ -20,24 +20,27 @@ use layers::platform::surface::{NativeGraphicsMetadata, NativePaintingGraphicsCo
 use layers::platform::surface::NativeSurface;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers;
+use libc::c_int;
 use servo_msg::compositor_msg::{Epoch, PaintState, LayerId};
 use servo_msg::compositor_msg::{LayerMetadata, PaintListener, ScrollPolicy};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
 use servo_msg::constellation_msg::PipelineExitType;
+use servo_net::server;
+use servo_util::ipc::{mod, IpcSender};
 use servo_util::geometry::{Au, ZERO_POINT};
 use servo_util::opts;
 use servo_util::smallvec::SmallVec;
-use servo_util::task::spawn_named_with_send_on_failure;
 use servo_util::task_state;
 use servo_util::time::{TimeProfilerChan, TimeProfilerCategory, profile};
 use std::comm::{Receiver, Sender, channel};
 use std::mem;
-use std::task::TaskBuilder;
 use std::sync::Arc;
+use std::task as std_task;
+use std::task::TaskBuilder;
 
 /// Information about a hardware graphics layer that layout sends to the painting task.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct PaintLayer {
     /// A per-pipeline ID describing this layer that should be stable across reflows.
     pub id: LayerId,
@@ -58,6 +61,7 @@ impl PaintLayer {
     }
 }
 
+#[deriving(Decodable, Encodable)]
 pub struct PaintRequest {
     pub buffer_requests: Vec<BufferRequest>,
     pub scale: f32,
@@ -65,13 +69,24 @@ pub struct PaintRequest {
     pub epoch: Epoch,
 }
 
+/// Messages from the compositor, pipeline, and/or layout tasks to the paint task.
 pub enum Msg {
-    PaintInit(Arc<StackingContext>),
+    FromLayout(LayoutToPaintMsg),
     Paint(Vec<PaintRequest>),
     UnusedBuffer(Vec<Box<LayerBuffer>>),
     PaintPermissionGranted,
     PaintPermissionRevoked,
-    Exit(Option<Sender<()>>, PipelineExitType),
+    Exit(PipelineExitType),
+}
+
+/// Messages from the layout task to the paint task.
+#[deriving(Decodable, Encodable)]
+pub enum LayoutToPaintMsg {
+    /// A new display list has arrived.
+    SerializedPaintInit(Arc<StackingContext>),
+    /// Same as `PaintInit`, but cast to a pointer. This is to be used only in 
+    UnserializedPaintInit(uint),
+    Exit(PipelineExitType),
 }
 
 #[deriving(Clone)]
@@ -91,6 +106,44 @@ impl PaintChan {
     pub fn send_opt(&self, msg: Msg) -> Result<(), Msg> {
         let &PaintChan(ref chan) = self;
         chan.send_opt(msg)
+    }
+
+    /// Creates an IPC channel through which layout can send messages to the painting thread. This
+    /// spawns a helper thread to forward messages to the painter.
+    pub fn create_layout_channel(&self) -> LayoutToPaintChan {
+        let (ipc_receiver, ipc_sender) = ipc::channel();
+        let &PaintChan(ref paint_channel) = self;
+        let paint_channel = (*paint_channel).clone();
+        std_task::spawn(proc() {
+            while let Ok(msg) = ipc_receiver.recv_opt() {
+                if paint_channel.send_opt(Msg::FromLayout(msg)).is_err() {
+                    return
+                }
+            }
+        });
+        LayoutToPaintChan(ipc_sender)
+    }
+}
+
+/// The channel on which the layout thread sends messages to the painting thread.
+#[deriving(Clone)]
+pub struct LayoutToPaintChan(IpcSender<LayoutToPaintMsg>);
+
+impl LayoutToPaintChan {
+    #[inline]
+    pub fn from_channel(channel: IpcSender<LayoutToPaintMsg>) -> LayoutToPaintChan {
+        LayoutToPaintChan(channel)
+    }
+
+    #[inline]
+    pub fn fd(&self) -> c_int {
+        let LayoutToPaintChan(ref channel) = *self;
+        channel.fd()
+    }
+
+    pub fn send(&self, msg: LayoutToPaintMsg) {
+        let &LayoutToPaintChan(ref chan) = self;
+        chan.send(msg)
     }
 }
 
@@ -141,80 +194,75 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                   constellation_chan: ConstellationChan,
                   font_cache_task: FontCacheTask,
                   failure_msg: Failure,
-                  time_profiler_chan: TimeProfilerChan,
-                  shutdown_chan: Sender<()>) {
+                  time_profiler_chan: TimeProfilerChan) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("PaintTask", task_state::PAINT, proc() {
-            {
-                // Ensures that the paint task and graphics context are destroyed before the
-                // shutdown message.
-                let mut compositor = compositor;
-                let native_graphics_context = compositor.get_graphics_metadata().map(
-                    |md| NativePaintingGraphicsContext::from_metadata(&md));
-                let worker_threads = WorkerThreadProxy::spawn(compositor.get_graphics_metadata(),
-                                                              font_cache_task,
-                                                              time_profiler_chan.clone());
+        server::spawn_named_with_send_to_server_on_failure("PaintTask", task_state::PAINT, proc() {
+            let mut compositor = compositor;
+            let native_graphics_context = compositor.get_graphics_metadata().map(|md| {
+                NativePaintingGraphicsContext::from_metadata(&md)
+            });
+            let worker_threads = WorkerThreadProxy::spawn(compositor.get_graphics_metadata(),
+                                                          font_cache_task,
+                                                          time_profiler_chan.clone());
 
-                // FIXME: rust/#5967
-                let mut paint_task = PaintTask {
-                    id: id,
-                    port: port,
-                    compositor: compositor,
-                    constellation_chan: constellation_chan,
-                    time_profiler_chan: time_profiler_chan,
-                    native_graphics_context: native_graphics_context,
-                    root_stacking_context: None,
-                    paint_permission: false,
-                    epoch: Epoch(0),
-                    buffer_map: BufferMap::new(10000000),
-                    worker_threads: worker_threads,
-                    used_buffer_count: 0,
-                };
+            // FIXME: rust/#5967
+            let mut paint_task = PaintTask {
+                id: id,
+                port: port,
+                compositor: compositor,
+                constellation_chan: constellation_chan,
+                time_profiler_chan: time_profiler_chan,
+                native_graphics_context: native_graphics_context,
+                root_stacking_context: None,
+                paint_permission: false,
+                epoch: Epoch(0),
+                buffer_map: BufferMap::new(10000000),
+                worker_threads: worker_threads,
+                used_buffer_count: 0,
+            };
 
-                paint_task.start();
+            paint_task.start();
 
-                // Destroy all the buffers.
-                match paint_task.native_graphics_context.as_ref() {
-                    Some(ctx) => paint_task.buffer_map.clear(ctx),
-                    None => (),
-                }
-
-                // Tell all the worker threads to shut down.
-                for worker_thread in paint_task.worker_threads.iter_mut() {
-                    worker_thread.exit()
-                }
+            // Destroy all the buffers.
+            match paint_task.native_graphics_context.as_ref() {
+                Some(ctx) => paint_task.buffer_map.clear(ctx),
+                None => (),
             }
 
-            debug!("paint_task: shutdown_chan send");
-            shutdown_chan.send(());
+            // Tell all the worker threads to shut down.
+            for worker_thread in paint_task.worker_threads.iter_mut() {
+                worker_thread.exit()
+            }
         }, ConstellationMsg::Failure(failure_msg), c);
     }
 
     fn start(&mut self) {
         debug!("PaintTask: beginning painting loop");
 
-        let mut exit_response_channel : Option<Sender<()>> = None;
         let mut waiting_for_compositor_buffers_to_exit = false;
         loop {
             match self.port.recv() {
-                Msg::PaintInit(stacking_context) => {
-                    self.root_stacking_context = Some(stacking_context.clone());
-
-                    if !self.paint_permission {
-                        debug!("PaintTask: paint ready msg");
-                        let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::PainterReady(self.id));
-                        continue;
+                Msg::FromLayout(LayoutToPaintMsg::SerializedPaintInit(stacking_context)) => {
+                    self.root_stacking_context = Some(stacking_context);
+                    self.received_paint_init();
+                }
+                Msg::FromLayout(LayoutToPaintMsg::UnserializedPaintInit(stacking_context)) => {
+                    // Security check: in multiprocess mode, an untrusted process can send these to
+                    // us, so we must forbid them in that case.
+                    if opts::get().multiprocess || opts::get().force_display_list_serialization {
+                        panic!("`UnserializedPaintInit` messages not allowed in this mode!");
                     }
-
-                    self.epoch.next();
-                    self.initialize_layers();
+                    let stacking_context: Arc<StackingContext> = unsafe {
+                        mem::transmute(stacking_context)
+                    };
+                    self.root_stacking_context = Some(stacking_context);
+                    self.received_paint_init();
                 }
                 Msg::Paint(requests) => {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::PainterReady(self.id));
+                        c.lock().send_async(ConstellationMsg::PainterReady(self.id));
                         self.compositor.paint_msg_discarded();
                         continue;
                     }
@@ -250,7 +298,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
 
                     if waiting_for_compositor_buffers_to_exit && self.used_buffer_count == 0 {
                         debug!("PaintTask: Received all loaned buffers, exiting.");
-                        exit_response_channel.map(|channel| channel.send(()));
                         break;
                     }
                 }
@@ -265,7 +312,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                 Msg::PaintPermissionRevoked => {
                     self.paint_permission = false;
                 }
-                Msg::Exit(response_channel, exit_type) => {
+                Msg::Exit(exit_type) | Msg::FromLayout(LayoutToPaintMsg::Exit(exit_type)) => {
                     let should_wait_for_compositor_buffers = match exit_type {
                         PipelineExitType::Complete => false,
                         PipelineExitType::PipelineOnly => self.used_buffer_count != 0
@@ -273,7 +320,6 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
 
                     if !should_wait_for_compositor_buffers {
                         debug!("PaintTask: Exiting without waiting for compositor buffers.");
-                        response_channel.map(|channel| channel.send(()));
                         break;
                     }
 
@@ -282,10 +328,21 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     // When doing a complete exit, the compositor lets all buffers leak.
                     println!("PaintTask: Saw ExitMsg, {} buffers in use", self.used_buffer_count);
                     waiting_for_compositor_buffers_to_exit = true;
-                    exit_response_channel = response_channel;
                 }
             }
         }
+    }
+
+    fn received_paint_init(&mut self) {
+        if !self.paint_permission {
+            debug!("PaintTask: paint ready msg");
+            let ConstellationChan(ref mut c) = self.constellation_chan;
+            c.lock().send_async(ConstellationMsg::PainterReady(self.id));
+            return;
+        }
+
+        self.epoch.next();
+        self.initialize_layers();
     }
 
     /// Retrieves an appropriately-sized layer buffer from the cache to match the requirements of
@@ -387,9 +444,10 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                  page_position: &Point2D<Au>) {
             let page_position = stacking_context.bounds.origin + *page_position;
             if let Some(ref paint_layer) = stacking_context.layer {
-                // Layers start at the top left of their overflow rect, as far as the info we give to
-                // the compositor is concerned.
-                let overflow_relative_page_position = page_position + stacking_context.overflow.origin;
+                // Layers start at the top left of their overflow rect, as far as the info we give
+                // to the compositor is concerned.
+                let overflow_relative_page_position = page_position +
+                    stacking_context.overflow.origin;
                 let layer_position =
                     Rect(Point2D(overflow_relative_page_position.x.to_nearest_px() as i32,
                                  overflow_relative_page_position.y.to_nearest_px() as i32),
@@ -477,7 +535,7 @@ impl WorkerThread {
     fn new(sender: Sender<MsgFromWorkerThread>,
            receiver: Receiver<MsgToWorkerThread>,
            native_graphics_metadata: Option<NativeGraphicsMetadata>,
-           font_cache_task: FontCacheTask,
+           _: FontCacheTask,
            time_profiler_sender: TimeProfilerChan)
            -> WorkerThread {
         WorkerThread {
@@ -486,7 +544,7 @@ impl WorkerThread {
             native_graphics_context: native_graphics_metadata.map(|metadata| {
                 NativePaintingGraphicsContext::from_metadata(&metadata)
             }),
-            font_context: box FontContext::new(font_cache_task.clone()),
+            font_context: box FontContext::new(),
             time_profiler_sender: time_profiler_sender,
         }
     }

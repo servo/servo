@@ -9,10 +9,8 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
-use servo_util::memory::MemoryProfilerChan;
-use servo_util::memory;
-use servo_util::time::TimeProfilerChan;
-use servo_util::time;
+use servo_util::memory::{mod, MemoryProfilerChan};
+use servo_util::time::{mod, TimeProfilerChan};
 
 /// Starts the compositor, which listens for messages on the specified port.
 ///
@@ -48,14 +46,14 @@ impl NullCompositor {
                   time_profiler_chan: TimeProfilerChan,
                   memory_profiler_chan: MemoryProfilerChan)
                   -> NullCompositor {
-        let compositor = NullCompositor::new(port,
-                                             constellation_chan,
-                                             time_profiler_chan,
-                                             memory_profiler_chan);
+        let mut compositor = NullCompositor::new(port,
+                                                 constellation_chan,
+                                                 time_profiler_chan,
+                                                 memory_profiler_chan);
 
         // Tell the constellation about the initial fake size.
         {
-            let ConstellationChan(ref chan) = compositor.constellation_chan;
+            let chan = &mut compositor.constellation_chan;
             chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
                 initial_viewport: TypedSize2D(640_f32, 480_f32),
                 visible_viewport: TypedSize2D(640_f32, 480_f32),
@@ -72,7 +70,7 @@ impl CompositorEventListener for NullCompositor {
         match self.port.recv_compositor_msg() {
             Msg::Exit(chan) => {
                 debug!("shutting down the constellation");
-                let ConstellationChan(ref con_chan) = self.constellation_chan;
+                let con_chan = &mut self.constellation_chan;
                 con_chan.send(ConstellationMsg::Exit);
                 chan.send(());
             }
@@ -136,5 +134,5 @@ impl CompositorEventListener for NullCompositor {
         1.0
     }
 
-    fn get_title_for_main_frame(&self) {}
+    fn get_title_for_main_frame(&mut self) {}
 }

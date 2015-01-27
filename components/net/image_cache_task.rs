@@ -15,7 +15,6 @@ use std::collections::HashMap;
 use std::collections::hash_map::{Occupied, Vacant};
 use std::mem::replace;
 use std::sync::{Arc, Mutex};
-use serialize::{Encoder, Encodable};
 use url::Url;
 
 pub enum Msg {
@@ -71,12 +70,6 @@ impl PartialEq for ImageResponseMsg {
 #[deriving(Clone)]
 pub struct ImageCacheTask {
     chan: Sender<Msg>,
-}
-
-impl<E, S: Encoder<E>> Encodable<S, E> for ImageCacheTask {
-    fn encode(&self, _: &mut S) -> Result<(), E> {
-        Ok(())
-    }
 }
 
 type DecoderFactory = fn() -> (proc(&[u8]) : 'static -> Option<Image>);

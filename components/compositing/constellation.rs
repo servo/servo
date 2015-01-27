@@ -16,7 +16,7 @@ use layout_traits::LayoutTaskFactory;
 use libc;
 use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{ScriptControlChan, ScriptTaskFactory};
-use servo_msg::compositor_msg::LayerId;
+use servo_msg::compositor_msg::{LayerId, ScriptToCompositorMsg};
 use servo_msg::constellation_msg::{mod, ConstellationChan, Failure};
 use servo_msg::constellation_msg::{IFrameSandboxState, NavigationDirection};
 use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers};
@@ -25,9 +25,9 @@ use servo_msg::constellation_msg::{PipelineExitType, PipelineId};
 use servo_msg::constellation_msg::{SubpageId, WindowSizeData};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_net::image_cache_task::{ImageCacheTask, ImageCacheTaskClient};
-use servo_net::resource_task::ResourceTask;
-use servo_net::resource_task;
-use servo_net::storage_task::{StorageTask, StorageTaskMsg};
+use servo_net::resource_task::{mod, ResourceTask};
+use servo_net::server::{ClientId, Server, SharedServerProxy};
+use servo_net::storage_task::StorageTask;
 use servo_util::cursor::Cursor;
 use servo_util::geometry::{PagePx, ViewportPx};
 use servo_util::opts;
@@ -39,19 +39,20 @@ use std::collections::{HashMap, HashSet};
 use std::io;
 use std::mem::replace;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 use url::Url;
 
 /// Maintains the pipelines and navigation context and grants permission to composite.
 pub struct Constellation<LTF, STF> {
-    /// A channel through which messages can be sent to this object.
-    pub chan: ConstellationChan,
-
-    /// Receives messages.
-    pub request_port: Receiver<ConstellationMsg>,
+    /// The server that we receive messages on.
+    pub server: Server<ConstellationMsg,()>,
 
     /// A channel (the implementation of which is port-specific) through which messages can be sent
     /// to the compositor.
     pub compositor_proxy: Box<CompositorProxy>,
+
+    /// An client that the script thread uses to communicate with the compositor.
+    pub script_to_compositor_client: SharedServerProxy<ScriptToCompositorMsg,()>,
 
     /// A channel through which messages can be sent to the resource task.
     pub resource_task: ResourceTask,
@@ -341,6 +342,7 @@ impl NavigationContext {
 
 impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     pub fn start(compositor_proxy: Box<CompositorProxy+Send>,
+                 script_to_compositor_client: SharedServerProxy<ScriptToCompositorMsg,()>,
                  resource_task: ResourceTask,
                  image_cache_task: ImageCacheTask,
                  font_cache_task: FontCacheTask,
@@ -348,13 +350,14 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                  devtools_chan: Option<DevtoolsControlChan>,
                  storage_task: StorageTask)
                  -> ConstellationChan {
-        let (constellation_port, constellation_chan) = ConstellationChan::new();
-        let constellation_chan_clone = constellation_chan.clone();
+        let mut server = Server::new("Constellation");
+        let constellation_chan = Arc::new(Mutex::new(server.create_new_client()));
+        let constellation_chan = ConstellationChan::from_server_proxy(constellation_chan);
         spawn_named("Constellation".to_owned(), proc() {
             let mut constellation: Constellation<LTF, STF> = Constellation {
-                chan: constellation_chan_clone,
-                request_port: constellation_port,
+                server: server,
                 compositor_proxy: compositor_proxy,
+                script_to_compositor_client: script_to_compositor_client,
                 devtools_chan: devtools_chan,
                 resource_task: resource_task,
                 image_cache_task: image_cache_task,
@@ -379,10 +382,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn run(&mut self) {
-        loop {
-            let request = self.request_port.recv();
-            if !self.handle_request(request) {
-                break;
+        while let Some(msgs) = self.server.recv() {
+            for (client_id, msg) in msgs.into_iter() {
+                if !self.handle_request(client_id, msg) {
+                    return
+                }
             }
         }
     }
@@ -394,15 +398,18 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     script_pipeline: Option<Rc<Pipeline>>,
                     load_data: LoadData)
                     -> Rc<Pipeline> {
+        let constellation_chan = Arc::new(Mutex::new(self.server.create_new_client()));
+        let constellation_chan = ConstellationChan::from_server_proxy(constellation_chan);
         let pipe = Pipeline::create::<LTF, STF>(id,
                                                 subpage_id,
-                                                self.chan.clone(),
+                                                constellation_chan,
                                                 self.compositor_proxy.clone_compositor_proxy(),
+                                                self.script_to_compositor_client.clone(),
                                                 self.devtools_chan.clone(),
                                                 self.image_cache_task.clone(),
-                                                self.font_cache_task.clone(),
+                                                self.font_cache_task.create_new_client(),
                                                 self.resource_task.clone(),
-                                                self.storage_task.clone(),
+                                                self.storage_task.create_new_client(),
                                                 self.time_profiler_chan.clone(),
                                                 self.window_size,
                                                 script_pipeline,
@@ -443,7 +450,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     /// Handles loading pages, navigation, and granting access to the compositor
-    fn handle_request(&mut self, request: ConstellationMsg) -> bool {
+    fn handle_request(&mut self, _: ClientId, request: ConstellationMsg) -> bool {
         match request {
             ConstellationMsg::Exit => {
                 debug!("constellation exiting");
@@ -464,7 +471,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                 debug!("constellation got frame rect message");
                 self.handle_frame_rect_msg(pipeline_id, subpage_id, Rect::from_untyped(&rect));
             }
-            ConstellationMsg::ScriptLoadedURLInIFrame(url, source_pipeline_id, new_subpage_id, old_subpage_id, sandbox) => {
+            ConstellationMsg::ScriptLoadedURLInIFrame(url,
+                                                      source_pipeline_id,
+                                                      new_subpage_id,
+                                                      old_subpage_id,
+                                                      sandbox) => {
                 debug!("constellation got iframe URL load message");
                 self.handle_script_loaded_url_in_iframe_msg(url,
                                                             source_pipeline_id,
@@ -521,8 +532,6 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         self.devtools_chan.as_ref().map(|chan| {
             chan.send(devtools_traits::ServerExitMsg);
         });
-        self.storage_task.send(StorageTaskMsg::Exit);
-        self.font_cache_task.exit();
         self.compositor_proxy.send(CompositorMsg::ShutdownComplete);
     }
 
@@ -1068,9 +1077,11 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn send_frame_tree_and_grant_paint_permission(&mut self, frame_tree: Rc<FrameTree>) {
         debug!("Constellation sending SetFrameTree");
         let (chan, port) = channel();
+        let constellation_chan = Arc::new(Mutex::new(self.server.create_new_client()));
+        let constellation_chan = ConstellationChan::from_server_proxy(constellation_chan);
         self.compositor_proxy.send(CompositorMsg::SetFrameTree(frame_tree.to_sendable(),
                                                                chan,
-                                                               self.chan.clone()));
+                                                               constellation_chan));
         if port.recv_opt().is_err() {
             debug!("Compositor has discarded SetFrameTree");
             return; // Our message has been discarded, probably shutting down.

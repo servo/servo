@@ -1043,7 +1043,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use std::fmt;
-            #[deriving(PartialEq, Eq, Copy, Clone)]
+            #[deriving(PartialEq, Eq, Copy, Clone, Decodable, Encodable)]
             pub enum T {
                 % for weight in range(100, 901, 100):
                     Weight${weight},
@@ -1706,7 +1706,7 @@ pub mod longhands {
             use values::CSSFloat;
 
             // TODO(pcwalton): `blur`, `drop-shadow`
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq, Show, Decodable, Encodable)]
             pub enum Filter {
                 Brightness(CSSFloat),
                 Contrast(CSSFloat),
@@ -1718,7 +1718,7 @@ pub mod longhands {
                 Sepia(CSSFloat),
             }
 
-            #[deriving(Clone, PartialEq, Show)]
+            #[deriving(Clone, PartialEq, Show, Decodable, Encodable)]
             pub struct T {
                 pub filters: Vec<Filter>,
             }

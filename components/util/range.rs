@@ -175,7 +175,7 @@ macro_rules! int_range_index {
 }
 
 /// A range of indices
-#[deriving(Clone, Encodable, Copy)]
+#[deriving(Clone, Encodable, Decodable, Copy)]
 pub struct Range<I> {
     begin: I,
     length: I,

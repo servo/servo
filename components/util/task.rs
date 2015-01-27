@@ -3,9 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::task;
 use std::comm::Sender;
-use std::task::TaskBuilder;
+use std::task::{mod, TaskBuilder};
 use task_state;
 
 pub fn spawn_named(name: String, f: proc():Send) {
@@ -38,3 +37,4 @@ pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
         }
     });
 }
+

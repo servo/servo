@@ -10,7 +10,9 @@ extern crate azure;
 extern crate geom;
 extern crate hyper;
 extern crate layers;
+extern crate libc;
 extern crate serialize;
+extern crate "net" as servo_net;
 extern crate "util" as servo_util;
 extern crate url;
 
@@ -21,3 +23,4 @@ extern crate io_surface;
 
 pub mod compositor_msg;
 pub mod constellation_msg;
+

@@ -10,6 +10,7 @@ use std::io::File;
 /// The identifier is an absolute path, and the bytes
 /// field is the loaded data that can be passed to
 /// freetype and azure directly.
+#[deriving(Encodable, Decodable)]
 pub struct FontTemplateData {
     pub bytes: Vec<u8>,
     pub identifier: String,

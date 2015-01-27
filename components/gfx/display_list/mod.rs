@@ -30,6 +30,7 @@ use geom::{Point2D, Rect, SideOffsets2D, Size2D, Matrix2D};
 use geom::num::Zero;
 use libc::uintptr_t;
 use paint_task::PaintLayer;
+use serialize::{Decodable, Decoder, Encodable, Encoder};
 use servo_msg::compositor_msg::LayerId;
 use servo_net::image::base::Image;
 use servo_util::cursor::Cursor;
@@ -60,7 +61,7 @@ pub static BOX_SHADOW_INFLATION_FACTOR: i32 = 3;
 /// Because the script task's GC does not trace layout, node data cannot be safely stored in layout
 /// data structures. Also, layout code tends to be faster when the DOM is not being accessed, for
 /// locality reasons. Using `OpaqueNode` enforces this invariant.
-#[deriving(Clone, PartialEq, Copy)]
+#[deriving(Clone, PartialEq, Copy, Encodable, Decodable)]
 pub struct OpaqueNode(pub uintptr_t);
 
 impl OpaqueNode {
@@ -151,7 +152,52 @@ impl DisplayList {
     }
 }
 
+impl<E,S> Encodable<S,E> for DisplayList where S: Encoder<E> {
+    fn encode(&self, s: &mut S) -> Result<(),E> {
+        s.emit_struct("DisplayList", 6, |s| {
+            try!(encode_dlist_field(s, &self.background_and_borders, "background_and_borders", 0));
+            try!(encode_dlist_field(s,
+                                    &self.block_backgrounds_and_borders,
+                                    "block_backgrounds_and_borders",
+                                    1));
+            try!(encode_dlist_field(s, &self.floats, "floats", 2));
+            try!(encode_dlist_field(s, &self.content, "content", 3));
+            try!(encode_dlist_field(s, &self.outlines, "outlines", 4));
+            encode_dlist_field(s, &self.children, "children", 5)
+        })
+    }
+}
+
+impl<E,D> Decodable<D,E> for DisplayList where D: Decoder<E> {
+    fn decode(d: &mut D) -> Result<DisplayList,E> {
+        d.read_struct("DisplayList", 6, |d| {
+            Ok(DisplayList {
+                background_and_borders: try!(decode_dlist_field(d, "background_and_borders", 0)),
+                block_backgrounds_and_borders:
+                    try!(decode_dlist_field(d, "block_backgrounds_and_borders", 1)),
+                floats: try!(decode_dlist_field(d, "floats", 2)),
+                content: try!(decode_dlist_field(d, "content", 3)),
+                outlines: try!(decode_dlist_field(d, "outlines", 4)),
+                children: try!(decode_dlist_field(d, "children", 5)),
+            })
+        })
+    }
+}
+
+fn encode_dlist_field<T,E,S>(s: &mut S, dlist: &DList<T>, name: &str, index: uint)
+                             -> Result<(),E>
+                             where T: Encodable<S,E>, S: Encoder<E> {
+    s.emit_struct_field(name, index, |s| servo_dlist::encode_dlist(s, dlist))
+}
+
+fn decode_dlist_field<T,E,D>(d: &mut D, name: &str, index: uint)
+                             -> Result<DList<T>,E>
+                             where T: Decodable<D,E>, D: Decoder<E> {
+    d.read_struct_field(name, index, |d| servo_dlist::decode_dlist(d))
+}
+
 /// Represents one CSS stacking context, which may or may not have a hardware layer.
+#[deriving(Encodable, Decodable)]
 pub struct StackingContext {
     /// The display items that make up this stacking context.
     pub display_list: Box<DisplayList>,
@@ -473,7 +519,7 @@ pub fn find_stacking_context_with_layer_id(this: &Arc<StackingContext>, layer_id
 }
 
 /// One drawing command in the list.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub enum DisplayItem {
     SolidColorClass(Box<SolidColorDisplayItem>),
     TextClass(Box<TextDisplayItem>),
@@ -485,7 +531,7 @@ pub enum DisplayItem {
 }
 
 /// Information common to all display items.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct BaseDisplayItem {
     /// The boundaries of the display item, in layer coordinates.
     pub bounds: Rect<Au>,
@@ -512,7 +558,7 @@ impl BaseDisplayItem {
 /// A clipping region for a display item. Currently, this can describe rectangles, rounded
 /// rectangles (for `border-radius`), or arbitrary intersections of the two. Arbitrary transforms
 /// are not supported because those are handled by the higher-level `StackingContext` abstraction.
-#[deriving(Clone, PartialEq, Show)]
+#[deriving(Clone, PartialEq, Show, Decodable, Encodable)]
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
     pub main: Rect<Au>,
@@ -526,7 +572,7 @@ pub struct ClippingRegion {
 /// A complex clipping region. These don't as easily admit arbitrary intersection operations, so
 /// they're stored in a list over to the side. Currently a complex clipping region is just a
 /// rounded rectangle, but the CSS WGs will probably make us throw more stuff in here eventually.
-#[deriving(Clone, PartialEq, Show)]
+#[deriving(Clone, PartialEq, Show, Decodable, Encodable)]
 pub struct ComplexClippingRegion {
     /// The boundaries of the rectangle.
     pub rect: Rect<Au>,
@@ -637,7 +683,7 @@ impl ClippingRegion {
 /// Metadata attached to each display item. This is useful for performing auxiliary tasks with
 /// the display list involving hit testing: finding the originating DOM node and determining the
 /// cursor to use when the element is hovered over.
-#[deriving(Clone, Copy)]
+#[deriving(Clone, Copy, Encodable, Decodable)]
 pub struct DisplayItemMetadata {
     /// The DOM node from which this display item originated.
     pub node: OpaqueNode,
@@ -666,14 +712,14 @@ impl DisplayItemMetadata {
 }
 
 /// Paints a solid color.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct SolidColorDisplayItem {
     pub base: BaseDisplayItem,
     pub color: Color,
 }
 
 /// Paints text.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct TextDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -691,7 +737,7 @@ pub struct TextDisplayItem {
     pub orientation: TextOrientation,
 }
 
-#[deriving(Clone, Eq, PartialEq)]
+#[deriving(Clone, Eq, PartialEq, Decodable, Encodable)]
 pub enum TextOrientation {
     Upright,
     SidewaysLeft,
@@ -699,10 +745,13 @@ pub enum TextOrientation {
 }
 
 /// Paints an image.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct ImageDisplayItem {
+    /// Fields common to all display items.
     pub base: BaseDisplayItem,
-    pub image: Arc<Box<Image>>,
+
+    /// The actual image.
+    pub image: DisplayItemImage,
 
     /// The dimensions to which the image display item should be stretched. If this is smaller than
     /// the bounds of this display item, then the image will be repeated in the appropriate
@@ -710,8 +759,18 @@ pub struct ImageDisplayItem {
     pub stretch_size: Size2D<Au>,
 }
 
+#[deriving(Clone, Encodable, Decodable)]
+pub struct DisplayItemImage(pub Arc<Box<Image>>);
+
+impl DisplayItemImage {
+    pub fn get(&self) -> Arc<Box<Image>> {
+        let DisplayItemImage(ref image) = *self;
+        (*image).clone()
+    }
+}
+
 /// Paints a gradient.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct GradientDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -727,7 +786,7 @@ pub struct GradientDisplayItem {
 }
 
 /// Paints a border.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct BorderDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -750,7 +809,7 @@ pub struct BorderDisplayItem {
 /// Information about the border radii.
 ///
 /// TODO(pcwalton): Elliptical radii.
-#[deriving(Clone, Default, PartialEq, Show, Copy)]
+#[deriving(Clone, Default, PartialEq, Show, Copy, Decodable, Encodable)]
 pub struct BorderRadii<T> {
     pub top_left: T,
     pub top_right: T,
@@ -768,7 +827,7 @@ impl<T> BorderRadii<T> where T: PartialEq + Zero {
 }
 
 /// Paints a line segment.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct LineDisplayItem {
     pub base: BaseDisplayItem,
 
@@ -780,7 +839,7 @@ pub struct LineDisplayItem {
 }
 
 /// Paints a box shadow per CSS-BACKGROUNDS.
-#[deriving(Clone)]
+#[deriving(Clone, Encodable, Decodable)]
 pub struct BoxShadowDisplayItem {
     /// Fields common to all display items.
     pub base: BaseDisplayItem,
@@ -854,7 +913,7 @@ impl DisplayItem {
                         bounds.origin.y = bounds.origin.y + y_offset;
                         bounds.size = image_item.stretch_size;
 
-                        paint_context.draw_image(&bounds, image_item.image.clone());
+                        paint_context.draw_image(&bounds, image_item.image.get());
 
                         x_offset = x_offset + image_item.stretch_size.width;
                     }

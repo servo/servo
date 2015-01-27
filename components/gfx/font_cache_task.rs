@@ -9,14 +9,15 @@ use platform::font_list::get_last_resort_font_families;
 use platform::font_context::FontContextHandle;
 
 use collections::str::Str;
-use std::borrow::ToOwned;
-use std::collections::HashMap;
-use std::sync::Arc;
 use font_template::{FontTemplate, FontTemplateDescriptor};
 use platform::font_template::FontTemplateData;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
+use servo_net::server::{Server, SharedServerProxy};
 use servo_util::task::spawn_named;
 use servo_util::str::LowercaseString;
+use std::borrow::ToOwned;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use style::Source;
 
 /// A list of font templates that make up a given font family.
@@ -73,22 +74,24 @@ impl FontFamily {
 }
 
 /// Commands that the FontContext sends to the font cache task.
+#[deriving(Decodable, Encodable)]
 pub enum Command {
-    GetFontTemplate(String, FontTemplateDescriptor, Sender<Reply>),
-    GetLastResortFontTemplate(FontTemplateDescriptor, Sender<Reply>),
-    AddWebFont(String, Source, Sender<()>),
-    Exit(Sender<()>),
+    GetFontTemplate(String, FontTemplateDescriptor),
+    GetLastResortFontTemplate(FontTemplateDescriptor),
+    AddWebFont(String, Source),
 }
 
 /// Reply messages sent from the font cache task to the FontContext caller.
+#[deriving(Decodable, Encodable)]
 pub enum Reply {
     GetFontTemplateReply(Option<Arc<FontTemplateData>>),
+    AddWebFontReply,
 }
 
 /// The font cache task itself. It maintains a list of reference counted
 /// font templates that are currently in use.
 struct FontCache {
-    port: Receiver<Command>,
+    server: Server<Command,Reply>,
     generic_fonts: HashMap<LowercaseString, LowercaseString>,
     local_families: HashMap<LowercaseString, FontFamily>,
     web_families: HashMap<LowercaseString, FontFamily>,
@@ -108,52 +111,54 @@ fn add_generic_font(generic_fonts: &mut HashMap<LowercaseString, LowercaseString
 
 impl FontCache {
     fn run(&mut self) {
-        loop {
-            let msg = self.port.recv();
-
-            match msg {
-                Command::GetFontTemplate(family, descriptor, result) => {
-                    let family = LowercaseString::new(family.as_slice());
-                    let maybe_font_template = self.get_font_template(&family, &descriptor);
-                    result.send(Reply::GetFontTemplateReply(maybe_font_template));
-                }
-                Command::GetLastResortFontTemplate(descriptor, result) => {
-                    let font_template = self.get_last_resort_font_template(&descriptor);
-                    result.send(Reply::GetFontTemplateReply(Some(font_template)));
-                }
-                Command::AddWebFont(family_name, src, result) => {
-                    let family_name = LowercaseString::new(family_name.as_slice());
-                    if !self.web_families.contains_key(&family_name) {
-                        let family = FontFamily::new();
-                        self.web_families.insert(family_name.clone(), family);
+        while let Some(msgs) = self.server.recv() {
+            for (client_id, msg) in msgs.into_iter() {
+                match msg {
+                    Command::GetFontTemplate(family, descriptor) => {
+                        let family = LowercaseString::new(family.as_slice());
+                        let maybe_font_template = self.get_font_template(&family, &descriptor);
+                        self.server.send(client_id,
+                                         Reply::GetFontTemplateReply(maybe_font_template));
                     }
+                    Command::GetLastResortFontTemplate(descriptor) => {
+                        let font_template = self.get_last_resort_font_template(&descriptor);
+                        self.server.send(client_id,
+                                         Reply::GetFontTemplateReply(Some(font_template)));
+                    }
+                    Command::AddWebFont(family_name, src) => {
+                        let family_name = LowercaseString::new(family_name.as_slice());
+                        if !self.web_families.contains_key(&family_name) {
+                            let family = FontFamily::new();
+                            self.web_families.insert(family_name.clone(), family);
+                        }
 
-                    match src {
-                        Source::Url(ref url_source) => {
-                            let url = &url_source.url;
-                            let maybe_resource = load_whole_resource(&self.resource_task, url.clone());
-                            match maybe_resource {
-                                Ok((_, bytes)) => {
-                                    let family = &mut self.web_families[family_name];
-                                    family.add_template(url.to_string().as_slice(), Some(bytes));
-                                },
-                                Err(_) => {
-                                    debug!("Failed to load web font: family={} url={}", family_name, url);
+                        match src {
+                            Source::Url(ref url_source) => {
+                                let url = &url_source.url;
+                                let maybe_resource = load_whole_resource(&self.resource_task,
+                                                                         url.clone());
+                                match maybe_resource {
+                                    Ok((_, bytes)) => {
+                                        let family = &mut self.web_families[family_name];
+                                        family.add_template(url.to_string().as_slice(),
+                                                            Some(bytes));
+                                    },
+                                    Err(_) => {
+                                        debug!("Failed to load web font: family={} url={}",
+                                               family_name,
+                                               url);
+                                    }
                                 }
                             }
+                            Source::Local(ref local_family_name) => {
+                                let family = &mut self.web_families[family_name];
+                                get_variations_for_family(local_family_name.as_slice(), |path| {
+                                    family.add_template(path.as_slice(), None);
+                                });
+                            }
                         }
-                        Source::Local(ref local_family_name) => {
-                            let family = &mut self.web_families[family_name];
-                            get_variations_for_family(local_family_name.as_slice(), |path| {
-                                family.add_template(path.as_slice(), None);
-                            });
-                        }
+                        self.server.send(client_id, Reply::AddWebFontReply);
                     }
-                    result.send(());
-                }
-                Command::Exit(result) => {
-                    result.send(());
-                    break;
                 }
             }
         }
@@ -177,8 +182,10 @@ impl FontCache {
         }
     }
 
-    fn find_font_in_local_family<'a>(&'a mut self, family_name: &LowercaseString, desc: &FontTemplateDescriptor)
-                                -> Option<Arc<FontTemplateData>> {
+    fn find_font_in_local_family<'a>(&'a mut self,
+                                     family_name: &LowercaseString,
+                                     desc: &FontTemplateDescriptor)
+                                     -> Option<Arc<FontTemplateData>> {
         // TODO(Issue #188): look up localized font family names if canonical name not found
         // look up canonical name
         if self.local_families.contains_key(family_name) {
@@ -205,8 +212,10 @@ impl FontCache {
         }
     }
 
-    fn find_font_in_web_family<'a>(&'a mut self, family_name: &LowercaseString, desc: &FontTemplateDescriptor)
-                                -> Option<Arc<FontTemplateData>> {
+    fn find_font_in_web_family<'a>(&'a mut self,
+                                   family_name: &LowercaseString,
+                                   desc: &FontTemplateDescriptor)
+                                   -> Option<Arc<FontTemplateData>> {
         if self.web_families.contains_key(family_name) {
             let family = &mut self.web_families[*family_name];
             let maybe_font = family.find_font_for_style(desc, &self.font_context);
@@ -246,12 +255,13 @@ impl FontCache {
 /// the per-thread/task FontContext structures.
 #[deriving(Clone)]
 pub struct FontCacheTask {
-    chan: Sender<Command>,
+    pub client: SharedServerProxy<Command,Reply>,
 }
 
 impl FontCacheTask {
     pub fn new(resource_task: ResourceTask) -> FontCacheTask {
-        let (chan, port) = channel();
+        let mut server = Server::new("FontCache");
+        let client = Arc::new(Mutex::new(server.create_new_client()));
 
         spawn_named("FontCacheTask".to_owned(), proc() {
             // TODO: Allow users to specify these.
@@ -263,7 +273,7 @@ impl FontCacheTask {
             add_generic_font(&mut generic_fonts, "monospace", "Menlo");
 
             let mut cache = FontCache {
-                port: port,
+                server: server,
                 generic_fonts: generic_fonts,
                 local_families: HashMap::new(),
                 web_families: HashMap::new(),
@@ -276,49 +286,46 @@ impl FontCacheTask {
         });
 
         FontCacheTask {
-            chan: chan,
+            client: client,
+        }
+    }
+
+    #[inline]
+    pub fn from_client(client: SharedServerProxy<Command,Reply>) -> FontCacheTask {
+        FontCacheTask {
+            client: client,
         }
     }
 
     pub fn get_font_template(&self, family: String, desc: FontTemplateDescriptor)
                                                 -> Option<Arc<FontTemplateData>> {
 
-        let (response_chan, response_port) = channel();
-        self.chan.send(Command::GetFontTemplate(family, desc, response_chan));
-
-        let reply = response_port.recv();
-
-        match reply {
-            Reply::GetFontTemplateReply(data) => {
-                data
-            }
+        let response = self.client.lock().send_sync(Command::GetFontTemplate(family, desc));
+        if let Reply::GetFontTemplateReply(data) = response {
+            data
+        } else {
+            panic!("get_font_template(): unexpected server response")
         }
     }
 
     pub fn get_last_resort_font_template(&self, desc: FontTemplateDescriptor)
                                                 -> Arc<FontTemplateData> {
 
-        let (response_chan, response_port) = channel();
-        self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan));
-
-        let reply = response_port.recv();
-
-        match reply {
-            Reply::GetFontTemplateReply(data) => {
-                data.unwrap()
-            }
+        let response = self.client.lock().send_sync(Command::GetLastResortFontTemplate(desc));
+        if let Reply::GetFontTemplateReply(data) = response {
+            data.unwrap()
+        } else {
+            panic!("get_font_template(): unexpected server response")
         }
     }
 
     pub fn add_web_font(&self, family: String, src: Source) {
-        let (response_chan, response_port) = channel();
-        self.chan.send(Command::AddWebFont(family, src, response_chan));
-        response_port.recv();
+        self.client.lock().send_sync(Command::AddWebFont(family, src));
     }
 
-    pub fn exit(&self) {
-        let (response_chan, response_port) = channel();
-        self.chan.send(Command::Exit(response_chan));
-        response_port.recv();
+    pub fn create_new_client(&self) -> FontCacheTask {
+        FontCacheTask {
+            client: Arc::new(Mutex::new(self.client.lock().create_new_client())),
+        }
     }
 }
