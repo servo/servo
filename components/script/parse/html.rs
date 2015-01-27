@@ -109,6 +109,8 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
 
         let child = self.get_or_create(new_node).root();
         assert!(parent.r().InsertBefore(child.r(), Some(sibling.r())).is_ok());
+        // Merge adjacent text nodes
+        parent.r().Normalize();
         Ok(())
     }
 
@@ -125,8 +127,10 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
         let parent: Root<Node> = unsafe { JS::from_trusted_node_address(parent).root() };
         let child = self.get_or_create(child).root();
 
-        // FIXME(#3701): Use a simpler algorithm and merge adjacent text nodes
+        // FIXME(#3701): Use a simpler algorithm
         assert!(parent.r().AppendChild(child.r()).is_ok());
+        // Merge adjacent text nodes
+        parent.r().Normalize();
     }
 
     fn append_doctype_to_document(&mut self, name: String, public_id: String, system_id: String) {
