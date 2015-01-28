@@ -16,7 +16,7 @@ use wrapper::ThreadSafeLayoutNode;
 use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
 use std::fmt;
-use style::ComputedValues;
+use style::properties::ComputedValues;
 use std::sync::Arc;
 
 /// A table formatting context.

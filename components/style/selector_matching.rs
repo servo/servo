@@ -21,8 +21,7 @@ use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::{CaseSensitivity, Combinator, CompoundSelector, LocalName};
-use selectors::{PseudoElement, SelectorList, SimpleSelector};
-use selectors::{get_selector_list_selectors};
+use selectors::{PseudoElement, SimpleSelector, Selector};
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules, Origin};
 
 
@@ -549,14 +548,15 @@ impl DeclarationBlock {
     }
 }
 
-pub fn matches<'a,E,N>(selector_list: &SelectorList,
+pub fn matches<'a,E,N>(selector_list: &Vec<Selector>,
                        element: &N,
                        parent_bf: &Option<Box<BloomFilter>>)
                        -> bool
                        where E: TElement<'a>, N: TNode<'a,E> {
-    get_selector_list_selectors(selector_list).iter().any(|selector|
+    selector_list.iter().any(|selector| {
         selector.pseudo_element.is_none() &&
-        matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false))
+        matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false)
+    })
 }
 
 /// Determines whether the given element matches the given single or compound selector.

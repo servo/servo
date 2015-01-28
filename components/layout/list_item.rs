@@ -19,7 +19,7 @@ use geom::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
 use servo_util::opts;
-use style::ComputedValues;
+use style::properties::ComputedValues;
 use style::computed_values::list_style_type;
 use std::sync::Arc;
 

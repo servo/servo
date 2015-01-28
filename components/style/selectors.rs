@@ -112,17 +112,6 @@ pub enum NamespaceConstraint {
 }
 
 
-/// Re-exported to script, but opaque.
-pub struct SelectorList {
-    selectors: Vec<Selector>
-}
-
-/// Public to the style crate, but not re-exported to script
-pub fn get_selector_list_selectors<'a>(selector_list: &'a SelectorList) -> &'a [Selector] {
-    selector_list.selectors.as_slice()
-}
-
-
 fn compute_specificity(mut selector: &CompoundSelector,
                        pseudo_element: &Option<PseudoElement>) -> u32 {
     struct Specificity {
@@ -194,15 +183,13 @@ fn compute_specificity(mut selector: &CompoundSelector,
 
 
 
-pub fn parse_author_origin_selector_list_from_str(input: &str)
-                                    -> Result<SelectorList,()> {
+pub fn parse_author_origin_selector_list_from_str(input: &str) -> Result<Vec<Selector>, ()> {
     let context = ParserContext {
         stylesheet_origin: Origin::Author,
         namespaces: NamespaceMap::new(),
         base_url: &Url::parse("about:blank").unwrap(),
     };
     parse_selector_list(&context, &mut Parser::new(input))
-    .map(|s| SelectorList { selectors: s })
 }
 
 /// Parse a comma-separated list of Selectors.

@@ -22,8 +22,8 @@ use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
 use std::cmp::max;
 use std::fmt;
-use style::ComputedValues;
-use style::computed_values::LengthOrPercentageOrAuto;
+use style::properties::ComputedValues;
+use style::values::computed::LengthOrPercentageOrAuto;
 use std::sync::Arc;
 
 /// A single row of a table.

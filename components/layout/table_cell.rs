@@ -18,7 +18,8 @@ use wrapper::ThreadSafeLayoutNode;
 use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
 use std::fmt;
-use style::{UnsignedIntegerAttribute, ComputedValues};
+use style::properties::ComputedValues;
+use style::legacy::UnsignedIntegerAttribute;
 use std::sync::Arc;
 
 /// A table formatting context.

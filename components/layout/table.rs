@@ -25,8 +25,10 @@ use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalRect;
 use std::cmp::max;
 use std::fmt;
-use style::{ComputedValues, CSSFloat};
-use style::computed_values::{LengthOrPercentageOrAuto, table_layout};
+use style::properties::ComputedValues;
+use style::values::CSSFloat;
+use style::values::computed::{LengthOrPercentageOrAuto};
+use style::computed_values::table_layout;
 use std::sync::Arc;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.

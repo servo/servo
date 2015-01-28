@@ -8,7 +8,7 @@ use flow::{IS_ABSOLUTELY_POSITIONED};
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::float;
-use style::ComputedValues;
+use style::properties::ComputedValues;
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]

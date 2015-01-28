@@ -18,7 +18,7 @@ use platform::font_template::FontTemplateData;
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
 use servo_util::task::spawn_named;
 use servo_util::str::LowercaseString;
-use style::Source;
+use style::font_face::Source;
 
 /// A list of font templates that make up a given font family.
 struct FontFamily {

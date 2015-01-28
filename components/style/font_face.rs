@@ -6,7 +6,7 @@ use cssparser::{Token, Parser, DeclarationListParser, AtRuleParser, DeclarationP
 use std::ascii::AsciiExt;
 use stylesheets::CSSRule;
 use properties::longhands::font_family::parse_one_family;
-use properties::computed_values::font_family::FontFamily;
+use computed_values::font_family::FontFamily;
 use media_queries::Device;
 use url::{Url, UrlParser};
 use parser::ParserContext;
