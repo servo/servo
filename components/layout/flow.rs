@@ -60,7 +60,7 @@ use std::raw;
 use std::sync::atomic::{AtomicUint, Ordering};
 use std::slice::IterMut;
 use style::computed_values::{clear, empty_cells, float, position, text_align};
-use style::ComputedValues;
+use style::properties::ComputedValues;
 use std::sync::Arc;
 
 /// Virtual methods that make up a float context.

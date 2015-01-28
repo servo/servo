@@ -8,10 +8,9 @@
 
 use fragment::Fragment;
 
-use style::computed_values as computed;
 use geom::SideOffsets2D;
-use style::computed_values::{LengthOrPercentageOrAuto, LengthOrPercentage};
-use style::ComputedValues;
+use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone, LengthOrPercentage};
+use style::properties::ComputedValues;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalMargin;
 use std::cmp::{max, min};
@@ -333,14 +332,14 @@ pub enum MaybeAuto {
 
 impl MaybeAuto {
     #[inline]
-    pub fn from_style(length: computed::LengthOrPercentageOrAuto, containing_length: Au)
+    pub fn from_style(length: LengthOrPercentageOrAuto, containing_length: Au)
                       -> MaybeAuto {
         match length {
-            computed::LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
-            computed::LengthOrPercentageOrAuto::Percentage(percent) => {
+            LengthOrPercentageOrAuto::Auto => MaybeAuto::Auto,
+            LengthOrPercentageOrAuto::Percentage(percent) => {
                 MaybeAuto::Specified(containing_length.scale_by(percent))
             }
-            computed::LengthOrPercentageOrAuto::Length(length) => MaybeAuto::Specified(length)
+            LengthOrPercentageOrAuto::Length(length) => MaybeAuto::Specified(length)
         }
     }
 
@@ -366,18 +365,18 @@ impl MaybeAuto {
     }
 }
 
-pub fn specified_or_none(length: computed::LengthOrPercentageOrNone, containing_length: Au) -> Option<Au> {
+pub fn specified_or_none(length: LengthOrPercentageOrNone, containing_length: Au) -> Option<Au> {
     match length {
-        computed::LengthOrPercentageOrNone::None => None,
-        computed::LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
-        computed::LengthOrPercentageOrNone::Length(length) => Some(length),
+        LengthOrPercentageOrNone::None => None,
+        LengthOrPercentageOrNone::Percentage(percent) => Some(containing_length.scale_by(percent)),
+        LengthOrPercentageOrNone::Length(length) => Some(length),
     }
 }
 
-pub fn specified(length: computed::LengthOrPercentage, containing_length: Au) -> Au {
+pub fn specified(length: LengthOrPercentage, containing_length: Au) -> Au {
     match length {
-        computed::LengthOrPercentage::Length(length) => length,
-        computed::LengthOrPercentage::Percentage(p) => containing_length.scale_by(p)
+        LengthOrPercentage::Length(length) => length,
+        LengthOrPercentage::Percentage(p) => containing_length.scale_by(p)
     }
 }
 

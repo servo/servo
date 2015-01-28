@@ -57,10 +57,9 @@ use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::cmp::{max, min};
 use std::fmt;
-use style::ComputedValues;
-use style::computed_values::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use style::computed_values::{LengthOrPercentage, box_sizing, display, float};
-use style::computed_values::{overflow, position};
+use style::properties::ComputedValues;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::computed_values::{overflow, position, box_sizing, display, float};
 use std::sync::Arc;
 
 /// Information specific to floated blocks.

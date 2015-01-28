@@ -17,7 +17,7 @@ use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalRect;
 use std::fmt;
-use style::ComputedValues;
+use style::properties::ComputedValues;
 use std::sync::Arc;
 
 /// A table formatting context.

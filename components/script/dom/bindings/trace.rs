@@ -58,7 +58,7 @@ use std::io::timer::Timer;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender};
 use string_cache::{Atom, Namespace};
-use style::PropertyDeclarationBlock;
+use style::properties::PropertyDeclarationBlock;
 use url::Url;
 
 

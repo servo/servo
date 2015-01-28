@@ -19,7 +19,7 @@ use wrapper::{PreorderDomTraversal, PostorderDomTraversal};
 use servo_util::bloom::BloomFilter;
 use servo_util::opts;
 use servo_util::tid::tid;
-use style::TNode;
+use style::node::TNode;
 
 use std::cell::RefCell;
 use std::mem;

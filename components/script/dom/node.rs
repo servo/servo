@@ -48,7 +48,11 @@ use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
 use util::geometry::Au;
 use util::str::{DOMString, null_str_as_empty};
-use style::{matches, SelectorList};
+use style::selectors::{Selector, AttrSelector, NamespaceConstraint};
+use style::selectors::parse_author_origin_selector_list_from_str;
+use style::selector_matching::matches;
+use style::properties::ComputedValues;
+use style;
 
 use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
@@ -60,7 +64,6 @@ use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{FilterMap, Peekable};
 use std::mem;
-use style::{self, ComputedValues};
 use std::sync::Arc;
 use uuid;
 use string_cache::QualName;
@@ -376,12 +379,12 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
 }
 
 pub struct QuerySelectorIterator<'a> {
-    selectors: SelectorList,
+    selectors: Vec<Selector>,
     iterator: TreeIterator<'a>,
 }
 
 impl<'a> QuerySelectorIterator<'a> {
-    unsafe fn new(iter: TreeIterator<'a>, selectors: SelectorList) -> QuerySelectorIterator<'a> {
+    unsafe fn new(iter: TreeIterator<'a>, selectors: Vec<Selector>) -> QuerySelectorIterator<'a> {
         QuerySelectorIterator {
             selectors: selectors,
             iterator: iter,
@@ -746,7 +749,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
-        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
@@ -768,7 +771,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         // Step 1.
         let nodes;
         let root = self.ancestors().last().unwrap_or(self.clone());
-        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
@@ -2229,7 +2232,7 @@ impl<'a> VirtualMethods for JSRef<'a, Node> {
     }
 }
 
-impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
+impl<'a> style::node::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn parent_node(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
@@ -2304,7 +2307,7 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
         ElementCast::to_ref(self).unwrap()
     }
 
-    fn match_attr<F>(self, attr: &style::AttrSelector, test: F) -> bool
+    fn match_attr<F>(self, attr: &AttrSelector, test: F) -> bool
         where F: Fn(&str) -> bool
     {
         let name = {
@@ -2315,11 +2318,11 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
             }
         };
         match attr.namespace {
-            style::NamespaceConstraint::Specific(ref ns) => {
+            NamespaceConstraint::Specific(ref ns) => {
                 self.as_element().get_attribute(ns.clone(), name).root()
                     .map_or(false, |attr| test(attr.r().value().as_slice()))
             },
-            style::NamespaceConstraint::Any => {
+            NamespaceConstraint::Any => {
                 self.as_element().get_attributes(name).into_iter()
                     .map(|attr| attr.root())
                     .any(|attr| test(attr.r().value().as_slice()))

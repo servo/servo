@@ -11,7 +11,7 @@ use std::cell::RefCell;
 use util::cache::HashCache;
 use util::smallvec::{SmallVec, SmallVec8};
 use style::computed_values::{font_stretch, font_variant, font_weight};
-use style::style_structs::Font as FontStyle;
+use style::properties::style_structs::Font as FontStyle;
 use std::sync::Arc;
 
 use std::hash::Hash;

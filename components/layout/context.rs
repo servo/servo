@@ -19,7 +19,7 @@ use std::cell::Cell;
 use std::mem;
 use std::ptr;
 use std::sync::{Arc, Mutex};
-use style::Stylist;
+use style::selector_matching::Stylist;
 use url::Url;
 
 struct LocalLayoutContext {
