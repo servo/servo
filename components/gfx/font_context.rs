@@ -140,7 +140,9 @@ impl FontContext {
         // so they will never be released. Find out a good time to drop them.
 
         let desc = FontTemplateDescriptor::new(style.font_weight,
-                                               style.font_style == font_style::T::italic || style.font_style == font_style::T::oblique);
+                                               style.font_stretch,
+                                               style.font_style == font_style::T::italic ||
+                                                style.font_style == font_style::T::oblique);
         let mut fonts = SmallVec8::new();
 
         for family in style.font_family.iter() {
