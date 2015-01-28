@@ -8,10 +8,9 @@ use cssparser::ToCss;
 use std::ascii::AsciiExt;
 use text_writer::TextWriter;
 
-
 macro_rules! define_cursor {
     ($( $css: expr => $variant: ident = $value: expr, )+) => {
-        #[deriving(Clone, Copy, PartialEq, Eq, FromPrimitive, Show)]
+        #[derive(Clone, Copy, PartialEq, Eq, FromPrimitive, Show)]
         #[repr(u8)]
         pub enum Cursor {
             $( $variant = $value ),+
@@ -19,7 +18,7 @@ macro_rules! define_cursor {
 
         impl Cursor {
             pub fn from_css_keyword(keyword: &str) -> Result<Cursor, ()> {
-                match_ignore_ascii_case! { keyword:
+                match_ignore_ascii_case! { keyword,
                     $( concat!($css) => Ok(Cursor::$variant) ),+
                     _ => Err(())
                 }

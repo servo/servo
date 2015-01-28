@@ -62,28 +62,28 @@ impl HTMLFormElement {
 
 impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-acceptcharset
-    make_getter!(AcceptCharset, "accept-charset")
+    make_getter!(AcceptCharset, "accept-charset");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-acceptcharset
-    make_setter!(SetAcceptCharset, "accept-charset")
+    make_setter!(SetAcceptCharset, "accept-charset");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
-    make_url_or_base_getter!(Action)
+    make_url_or_base_getter!(Action);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-action
-    make_setter!(SetAction, "action")
+    make_setter!(SetAction, "action");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-autocomplete
-    make_enumerated_getter!(Autocomplete, "on", "off")
+    make_enumerated_getter!(Autocomplete, "on", ("off"));
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-autocomplete
-    make_setter!(SetAutocomplete, "autocomplete")
+    make_setter!(SetAutocomplete, "autocomplete");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-enctype
-    make_enumerated_getter!(Enctype, "application/x-www-form-urlencoded", "text/plain" | "multipart/form-data")
+    make_enumerated_getter!(Enctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-enctype
-    make_setter!(SetEnctype, "enctype")
+    make_setter!(SetEnctype, "enctype");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-encoding
     fn Encoding(self) -> DOMString {
@@ -96,28 +96,28 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-method
-    make_enumerated_getter!(Method, "get", "post" | "dialog")
+    make_enumerated_getter!(Method, "get", ("post") | ("dialog"));
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-method
-    make_setter!(SetMethod, "method")
+    make_setter!(SetMethod, "method");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-name
-    make_getter!(Name)
+    make_getter!(Name);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-form-name
-    make_setter!(SetName, "name")
+    make_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-novalidate
-    make_bool_getter!(NoValidate)
+    make_bool_getter!(NoValidate);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-novalidate
-    make_bool_setter!(SetNoValidate, "novalidate")
+    make_bool_setter!(SetNoValidate, "novalidate");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-target
-    make_getter!(Target)
+    make_getter!(Target);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-fs-target
-    make_setter!(SetTarget, "target")
+    make_setter!(SetTarget, "target");
 
     // https://html.spec.whatwg.org/multipage/forms.html#the-form-element:concept-form-submit
     fn Submit(self) {
@@ -130,13 +130,13 @@ impl<'a> HTMLFormElementMethods for JSRef<'a, HTMLFormElement> {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum SubmittedFrom {
     FromFormSubmitMethod,
     NotFromFormSubmitMethod
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum ResetFrom {
     FromFormResetMethod,
     NotFromFormResetMethod
@@ -399,21 +399,21 @@ pub struct FormDatum {
     pub value: DOMString
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum FormEncType {
     TextPlainEncoded,
     UrlEncoded,
     FormDataEncoded
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum FormMethod {
     FormGet,
     FormPost,
     FormDialog
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum FormSubmitter<'a> {
     FormElement(JSRef<'a, HTMLFormElement>),
     InputElement(JSRef<'a, HTMLInputElement>)
@@ -482,7 +482,7 @@ impl<'a> FormSubmitter<'a> {
     }
 }
 
-pub trait FormControl<'a> : Copy {
+pub trait FormControl<'a> : Copy + Sized {
     // FIXME: This is wrong (https://github.com/servo/servo/issues/3553)
     //        but we need html5ever to do it correctly
     fn form_owner(self) -> Option<Temporary<HTMLFormElement>> {
@@ -507,16 +507,21 @@ pub trait FormControl<'a> : Copy {
             .map(Temporary::from_rooted)
     }
 
-    fn get_form_attribute(self,
-                          attr: &Atom,
-                          input: |Self| -> DOMString,
-                          owner: |JSRef<HTMLFormElement>| -> DOMString) -> DOMString {
+    fn get_form_attribute<InputFn, OwnerFn>(self,
+                                            attr: &Atom,
+                                            input: InputFn,
+                                            owner: OwnerFn)
+                                            -> DOMString
+        where InputFn: Fn(Self) -> DOMString,
+              OwnerFn: Fn(JSRef<HTMLFormElement>) -> DOMString
+    {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
             self.form_owner().map_or("".to_owned(), |t| owner(t.root().r()))
         }
     }
+
     fn to_element(self) -> JSRef<'a, Element>;
     // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
     fn mutable(self) -> bool;

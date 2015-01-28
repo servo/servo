@@ -95,19 +95,19 @@ impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
 }
 
 impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
-    make_getter!(Alt)
+    make_getter!(Alt);
 
-    make_setter!(SetAlt, "alt")
+    make_setter!(SetAlt, "alt");
 
-    make_url_getter!(Src)
+    make_url_getter!(Src);
 
-    make_setter!(SetSrc, "src")
+    make_setter!(SetSrc, "src");
 
-    make_getter!(UseMap)
+    make_getter!(UseMap);
 
-    make_setter!(SetUseMap, "usemap")
+    make_setter!(SetUseMap, "usemap");
 
-    make_bool_getter!(IsMap)
+    make_bool_getter!(IsMap);
 
     fn SetIsMap(self, is_map: bool) {
         let element: JSRef<Element> = ElementCast::from_ref(self);
@@ -150,29 +150,29 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
-    make_getter!(Name)
+    make_getter!(Name);
 
-    make_setter!(SetName, "name")
+    make_setter!(SetName, "name");
 
-    make_getter!(Align)
+    make_getter!(Align);
 
-    make_setter!(SetAlign, "align")
+    make_setter!(SetAlign, "align");
 
-    make_uint_getter!(Hspace)
+    make_uint_getter!(Hspace);
 
-    make_uint_setter!(SetHspace, "hspace")
+    make_uint_setter!(SetHspace, "hspace");
 
-    make_uint_getter!(Vspace)
+    make_uint_getter!(Vspace);
 
-    make_uint_setter!(SetVspace, "vspace")
+    make_uint_setter!(SetVspace, "vspace");
 
-    make_getter!(LongDesc)
+    make_getter!(LongDesc);
 
-    make_setter!(SetLongDesc, "longdesc")
+    make_setter!(SetLongDesc, "longdesc");
 
-    make_getter!(Border)
+    make_getter!(Border);
 
-    make_setter!(SetBorder, "border")
+    make_setter!(SetBorder, "border");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {

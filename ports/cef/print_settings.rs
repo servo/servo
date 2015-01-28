@@ -5,5 +5,5 @@
 use interfaces::cef_print_settings_t;
 
 cef_stub_static_method_impls! {
-    fn cef_print_settings_create() -> *mut cef_print_settings_t;
+    fn cef_print_settings_create() -> *mut cef_print_settings_t
 }

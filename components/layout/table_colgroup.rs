@@ -109,7 +109,7 @@ impl Flow for TableColGroupFlow {
 impl fmt::Show for TableColGroupFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.fragment {
-            Some(ref rb) => write!(f, "TableColGroupFlow: {}", rb),
+            Some(ref rb) => write!(f, "TableColGroupFlow: {:?}", rb),
             None => write!(f, "TableColGroupFlow"),
         }
     }

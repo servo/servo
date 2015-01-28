@@ -21,6 +21,9 @@ name = "reftest"
 path = "../../tests/reftest.rs"
 harness = false
 
+[dependencies.png]
+git = "https://github.com/servo/rust-png"
+
 [[test]]
 name = "contenttest"
 path = "../../tests/contenttest.rs"
@@ -53,6 +56,9 @@ path = "../layout"
 [dependencies.gfx]
 path = "../gfx"
 
+[dependencies.devtools]
+path = "../devtools"
+
 [dependencies.glfw_app]
 path = "../../ports/glfw"
 optional = true
@@ -61,8 +67,10 @@ optional = true
 path = "../../ports/glutin"
 optional = true
 
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
+[dependencies.android_glue]
+path = "../../support/android-rs-glue/glue"
+optional = true
 
-[dependencies.time]
-git = "https://github.com/rust-lang/time"
+[dependencies]
+url = "*"
+time = "*"

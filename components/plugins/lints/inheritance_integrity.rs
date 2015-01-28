@@ -9,7 +9,7 @@ use rustc::middle::{ty, def};
 use utils::match_lang_ty;
 
 declare_lint!(INHERITANCE_INTEGRITY, Deny,
-              "Ensures that struct fields are properly laid out for inheritance to work")
+              "Ensures that struct fields are properly laid out for inheritance to work");
 
 /// Lint for ensuring proper layout of DOM structs
 ///

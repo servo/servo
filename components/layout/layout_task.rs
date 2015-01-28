@@ -7,7 +7,7 @@
 
 use css::node_style::StyledNode;
 use construct::ConstructionResult;
-use context::SharedLayoutContext;
+use context::{SharedLayoutContext, SharedLayoutContextWrapper};
 use flow::{mod, Flow, ImmutableFlowUtils, MutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator};
@@ -61,7 +61,8 @@ use servo_util::time::{TimerMetadataFrameType, TimerMetadataReflowType, profile}
 use servo_util::workqueue::WorkQueue;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::comm::{channel, Sender, Receiver, Select};
+use std::ops::{Deref, DerefMut};
+use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
 use style::computed_values::{filter, mix_blend_mode};
@@ -89,7 +90,7 @@ pub struct LayoutTaskData {
     pub stylist: Box<Stylist>,
 
     /// The workers that we use for parallel operation.
-    pub parallel_traversal: Option<WorkQueue<*const SharedLayoutContext, UnsafeFlow>>,
+    pub parallel_traversal: Option<WorkQueue<SharedLayoutContextWrapper, UnsafeFlow>>,
 
     /// The dirty rect. Used during display list construction.
     pub dirty: Rect<Au>,
@@ -153,19 +154,17 @@ struct LayoutImageResponder {
 }
 
 impl ImageResponder<UntrustedNodeAddress> for LayoutImageResponder {
-    fn respond(&self) -> proc(ImageResponseMsg, UntrustedNodeAddress):Send {
+    fn respond(&self) -> Box<Fn(ImageResponseMsg, UntrustedNodeAddress)+Send> {
         let id = self.id.clone();
         let script_chan = self.script_chan.clone();
-        let f: proc(ImageResponseMsg, UntrustedNodeAddress):Send =
-            proc(_, node_address) {
-                let ScriptControlChan(chan) = script_chan;
-                debug!("Dirtying {:x}", node_address.0 as uint);
-                let mut nodes = SmallVec1::new();
-                nodes.vec_push(node_address);
-                drop(chan.send_opt(ConstellationControlMsg::SendEvent(
-                    id.clone(), CompositorEvent::ReflowEvent(nodes))))
-            };
-        f
+        box move |&:_, node_address| {
+            let ScriptControlChan(ref chan) = script_chan;
+            debug!("Dirtying {:x}", node_address.0 as uint);
+            let mut nodes = SmallVec1::new();
+            nodes.vec_push(node_address);
+            drop(chan.send(ConstellationControlMsg::SendEvent(
+                id, CompositorEvent::ReflowEvent(nodes))))
+        }
     }
 }
 
@@ -185,7 +184,7 @@ impl LayoutTaskFactory for LayoutTask {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(con_chan) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, proc() {
+        spawn_named_with_send_on_failure("LayoutTask", task_state::LAYOUT, move || {
             { // Ensures layout task is destroyed before we send shutdown message
                 let sender = chan.sender();
                 let layout =
@@ -219,7 +218,8 @@ enum RWGuard<'a> {
     Used(MutexGuard<'a, LayoutTaskData>),
 }
 
-impl<'a> Deref<LayoutTaskData> for RWGuard<'a> {
+impl<'a> Deref for RWGuard<'a> {
+    type Target = LayoutTaskData;
     fn deref(&self) -> &LayoutTaskData {
         match *self {
             RWGuard::Held(ref x) => &**x,
@@ -228,7 +228,7 @@ impl<'a> Deref<LayoutTaskData> for RWGuard<'a> {
     }
 }
 
-impl<'a> DerefMut<LayoutTaskData> for RWGuard<'a> {
+impl<'a> DerefMut for RWGuard<'a> {
     fn deref_mut(&mut self) -> &mut LayoutTaskData {
         match *self {
             RWGuard::Held(ref mut x) => &mut **x,
@@ -257,7 +257,7 @@ impl LayoutTask {
         let device = Device::new(MediaType::Screen, opts::get().initial_window_size.as_f32() * ScaleFactor(1.0));
         let parallel_traversal = if opts::get().layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", task_state::LAYOUT,
-                                opts::get().layout_threads, ptr::null()))
+                                opts::get().layout_threads, SharedLayoutContextWrapper(ptr::null())))
         } else {
             None
         };
@@ -292,7 +292,7 @@ impl LayoutTask {
 
     /// Starts listening on the port.
     fn start(self) {
-        let mut possibly_locked_rw_data = Some(self.rw_data.lock());
+        let mut possibly_locked_rw_data = Some((*self.rw_data).lock().unwrap());
         while self.handle_request(&mut possibly_locked_rw_data) {
             // Loop indefinitely.
         }
@@ -347,14 +347,14 @@ impl LayoutTask {
 
         match port_to_read {
             PortToRead::Pipeline => {
-                match self.pipeline_port.recv() {
+                match self.pipeline_port.recv().unwrap() {
                     LayoutControlMsg::ExitNowMsg(exit_type) => {
                         self.handle_script_request(Msg::ExitNow(exit_type), possibly_locked_rw_data)
                     }
                 }
             },
             PortToRead::Script => {
-                let msg = self.port.recv();
+                let msg = self.port.recv().unwrap();
                 self.handle_script_request(msg, possibly_locked_rw_data)
             }
         }
@@ -370,7 +370,7 @@ impl LayoutTask {
                         possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>)
                         -> RWGuard<'a> {
         match possibly_locked_rw_data.take() {
-            None    => RWGuard::Used(self.rw_data.lock()),
+            None    => RWGuard::Used((*self.rw_data).lock().unwrap()),
             Some(x) => RWGuard::Held(x),
         }
     }
@@ -434,7 +434,7 @@ impl LayoutTask {
                            possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
         response_chan.send(());
         loop {
-            match self.port.recv() {
+            match self.port.recv().unwrap() {
                 Msg::ReapLayoutData(dead_layout_data) => {
                     unsafe {
                         LayoutTask::handle_reap_layout_data(dead_layout_data)
@@ -470,7 +470,7 @@ impl LayoutTask {
         }
 
         self.paint_chan.send(PaintMsg::Exit(Some(response_chan), exit_type));
-        response_port.recv()
+        response_port.recv().unwrap()
     }
 
     fn handle_load_stylesheet<'a>(&'a self,
@@ -499,7 +499,7 @@ impl LayoutTask {
         // Find all font-face rules and notify the font cache of them.
         // GWTODO: Need to handle unloading web fonts (when we handle unloading stylesheets!)
         let mut rw_data = self.lock_rw_data(possibly_locked_rw_data);
-        iter_font_face_rules(&sheet, &rw_data.stylist.device, |family, src| {
+        iter_font_face_rules(&sheet, &rw_data.stylist.device, &|&:family, src| {
             self.font_cache_task.add_web_font(family.to_owned(), (*src).clone());
         });
         rw_data.stylist.add_stylesheet(sheet);
@@ -734,7 +734,7 @@ impl LayoutTask {
 
         {
             // Reset the image cache.
-            let mut local_image_cache = rw_data.local_image_cache.lock();
+            let mut local_image_cache = rw_data.local_image_cache.lock().unwrap();
             local_image_cache.next_round(self.make_on_image_available_cb());
         }
 
@@ -946,14 +946,14 @@ impl LayoutRPC for LayoutRPCImpl {
     // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
     fn content_box(&self) -> ContentBoxResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
-        let rw_data = rw_data.lock();
+        let rw_data = rw_data.lock().unwrap();
         ContentBoxResponse(rw_data.content_box_response)
     }
 
     /// Requests the dimensions of all the content boxes, as in the `getClientRects()` call.
     fn content_boxes(&self) -> ContentBoxesResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
-        let rw_data = rw_data.lock();
+        let rw_data = rw_data.lock().unwrap();
         ContentBoxesResponse(rw_data.content_boxes_response.clone())
     }
 
@@ -962,7 +962,7 @@ impl LayoutRPC for LayoutRPCImpl {
         let point = Point2D(Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
         let resp = {
             let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock();
+            let rw_data = rw_data.lock().unwrap();
             match rw_data.stacking_context {
                 None => panic!("no root stacking context!"),
                 Some(ref stacking_context) => {
@@ -989,7 +989,7 @@ impl LayoutRPC for LayoutRPCImpl {
         let point = Point2D(Au::from_frac_px(point.x as f64), Au::from_frac_px(point.y as f64));
         {
             let &LayoutRPCImpl(ref rw_data) = self;
-            let rw_data = rw_data.lock();
+            let rw_data = rw_data.lock().unwrap();
             match rw_data.stacking_context {
                 None => panic!("no root stacking context!"),
                 Some(ref stacking_context) => {

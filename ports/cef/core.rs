@@ -8,12 +8,10 @@ use types::{cef_main_args_t, cef_settings_t};
 
 use geom::size::TypedSize2D;
 use libc::{c_char, c_int, c_void};
-use rustrt::local::Local;
-use rustrt::task;
 use servo_util::opts;
 use std::borrow::ToOwned;
-use std::c_str::CString;
-use std::rt;
+use std::ffi;
+use std::str;
 use browser;
 
 const MAX_RENDERING_THREADS: uint = 128;
@@ -39,11 +37,6 @@ fn resources_path() -> Option<String> {
     None
 }
 
-fn create_rust_task() {
-    let task = box task::Task::new(None, None);
-    Local::put(task);
-}
-
 #[no_mangle]
 pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
                                  settings: *mut cef_settings_t,
@@ -55,7 +48,6 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
     }
 
     unsafe {
-        rt::init((*args).argc as int, (*args).argv);
         command_line_init((*args).argc, (*args).argv);
 
         if !application.is_null() {
@@ -67,8 +59,6 @@ pub extern "C" fn cef_initialize(args: *const cef_main_args_t,
             });
         }
     }
-
-    create_rust_task();
 
     let urls = vec![HOME_URL.to_owned()];
     opts::set_opts(opts::Opts {
@@ -156,7 +146,8 @@ pub extern "C" fn cef_log(_file: *const c_char,
                           _severity: c_int,
                           message: *const c_char) {
     unsafe {
-        println!("{}", CString::new(message, false))
+        let slice = ffi::c_str_to_bytes(&message);
+        println!("{}", str::from_utf8(slice).unwrap())
     }
 }
 

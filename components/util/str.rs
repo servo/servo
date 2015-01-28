@@ -5,12 +5,14 @@
 use geometry::Au;
 
 use cssparser::{mod, RGBA, Color};
+
+use libc::c_char;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
+use std::ffi::c_str_to_bytes;
 use std::iter::Filter;
-use std::num::Int;
-use std::str::{CharEq, CharSplits, FromStr};
-use unicode::char::UnicodeChar;
+use std::num::{Int, ToPrimitive};
+use std::str::{from_utf8, CharEq, FromStr, Split};
 
 pub type DOMString = String;
 pub type StaticCharVec = &'static [char];
@@ -65,15 +67,16 @@ pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
     '\u{000d}',
 ];
 
-pub fn split_html_space_chars<'a>(s: &'a str)
-                                  -> Filter<'a, &'a str, CharSplits<'a, StaticCharVec>> {
-    s.split(HTML_SPACE_CHARACTERS).filter(|&split| !split.is_empty())
+pub fn split_html_space_chars<'a>(s: &'a str) ->
+                                  Filter<&'a str, Split<'a, StaticCharVec>, fn(&&str) -> bool> {
+    fn not_empty(&split: &&str) -> bool { !split.is_empty() }
+    s.split(HTML_SPACE_CHARACTERS).filter(not_empty as fn(&&str) -> bool)
 }
 
 /// Shared implementation to parse an integer according to
 /// <http://www.whatwg.org/html/#rules-for-parsing-integers> or
 /// <http://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
-fn do_parse_integer<T: Iterator<char>>(input: T) -> Option<i64> {
+fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
     fn is_ascii_digit(c: &char) -> bool {
         match *c {
             '0'...'9' => true,
@@ -118,7 +121,7 @@ fn do_parse_integer<T: Iterator<char>>(input: T) -> Option<i64> {
 
 /// Parse an integer according to
 /// <http://www.whatwg.org/html/#rules-for-parsing-integers>.
-pub fn parse_integer<T: Iterator<char>>(input: T) -> Option<i32> {
+pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
     do_parse_integer(input).and_then(|result| {
         result.to_i32()
     })
@@ -126,13 +129,13 @@ pub fn parse_integer<T: Iterator<char>>(input: T) -> Option<i32> {
 
 /// Parse an integer according to
 /// <http://www.whatwg.org/html/#rules-for-parsing-non-negative-integers>.
-pub fn parse_unsigned_integer<T: Iterator<char>>(input: T) -> Option<u32> {
+pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
     do_parse_integer(input).and_then(|result| {
         result.to_u32()
     })
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum LengthOrPercentageOrAuto {
     Auto,
     Percentage(f64),
@@ -141,14 +144,14 @@ pub enum LengthOrPercentageOrAuto {
 
 /// Parses a length per HTML5 § 2.4.4.4. If unparseable, `Auto` is returned.
 pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
-    value = value.trim_left_chars(Whitespace);
+    value = value.trim_left_matches(Whitespace);
     if value.len() == 0 {
         return LengthOrPercentageOrAuto::Auto
     }
     if value.starts_with("+") {
         value = value.slice_from(1)
     }
-    value = value.trim_left_chars('0');
+    value = value.trim_left_matches('0');
     if value.len() == 0 {
         return LengthOrPercentageOrAuto::Auto
     }
@@ -197,7 +200,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
     }
 
     // Step 3.
-    input = input.trim_left_chars(Whitespace).trim_right_chars(Whitespace);
+    input = input.trim_left_matches(Whitespace).trim_right_matches(Whitespace);
 
     // Step 4.
     if input.eq_ignore_ascii_case("transparent") {
@@ -321,7 +324,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
 }
 
 
-#[deriving(Clone, Eq, PartialEq, Hash, Show)]
+#[derive(Clone, Eq, PartialEq, Hash, Show)]
 pub struct LowercaseString {
     inner: String,
 }
@@ -339,4 +342,10 @@ impl Str for LowercaseString {
     fn as_slice(&self) -> &str {
         self.inner.as_slice()
     }
+}
+
+/// Creates a String from the given null-terminated buffer.
+/// Panics if the buffer does not contain UTF-8.
+pub unsafe fn c_str_to_string(s: *const c_char) -> String {
+    from_utf8(c_str_to_bytes(&s)).unwrap().to_owned()
 }

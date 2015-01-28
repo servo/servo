@@ -60,3 +60,5 @@ impl StructuredCloneData {
         message
     }
 }
+
+unsafe impl Send for StructuredCloneData {}

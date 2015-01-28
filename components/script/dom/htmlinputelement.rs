@@ -46,7 +46,7 @@ const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
 
 #[jstraceable]
-#[deriving(PartialEq, Copy)]
+#[derive(PartialEq, Copy)]
 #[allow(dead_code)]
 enum InputType {
     InputSubmit,
@@ -192,16 +192,16 @@ impl RawLayoutHTMLInputElementHelpers for HTMLInputElement {
 
 impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled")
+    make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultchecked
-    make_bool_getter!(DefaultChecked, "checked")
+    make_bool_getter!(DefaultChecked, "checked");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultchecked
-    make_bool_setter!(SetDefaultChecked, "checked")
+    make_bool_setter!(SetDefaultChecked, "checked");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-checked
     fn Checked(self) -> bool {
@@ -214,28 +214,28 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-readonly
-    make_bool_getter!(ReadOnly)
+    make_bool_getter!(ReadOnly);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-readonly
-    make_bool_setter!(SetReadOnly, "readonly")
+    make_bool_setter!(SetReadOnly, "readonly");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-size
-    make_uint_getter!(Size)
+    make_uint_getter!(Size);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-size
-    make_uint_setter!(SetSize, "size")
+    make_uint_setter!(SetSize, "size");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
-    make_enumerated_getter!(Type, "text", "hidden" | "search" | "tel" |
-                                  "url" | "email" | "password" |
-                                  "datetime" | "date" | "month" |
-                                  "week" | "time" | "datetime-local" |
-                                  "number" | "range" | "color" |
-                                  "checkbox" | "radio" | "file" |
-                                  "submit" | "image" | "reset" | "button")
+    make_enumerated_getter!(Type, "text", ("hidden") | ("search") | ("tel") |
+                                  ("url") | ("email") | ("password") |
+                                  ("datetime") | ("date") | ("month") |
+                                  ("week") | ("time") | ("datetime-local") |
+                                  ("number") | ("range") | ("color") |
+                                  ("checkbox") | ("radio") | ("file") |
+                                  ("submit") | ("image") | ("reset") | ("button"));
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-type
-    make_setter!(SetType, "type")
+    make_setter!(SetType, "type");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-value
     fn Value(self) -> DOMString {
@@ -250,40 +250,40 @@ impl<'a> HTMLInputElementMethods for JSRef<'a, HTMLInputElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultvalue
-    make_getter!(DefaultValue, "value")
+    make_getter!(DefaultValue, "value");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-defaultvalue
-    make_setter!(SetDefaultValue, "value")
+    make_setter!(SetDefaultValue, "value");
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
-    make_getter!(Name)
+    make_getter!(Name);
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
-    make_setter!(SetName, "name")
+    make_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
-    make_url_or_base_getter!(FormAction)
+    make_url_or_base_getter!(FormAction);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formaction
-    make_setter!(SetFormAction, "formaction")
+    make_setter!(SetFormAction, "formaction");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
-    make_enumerated_getter!(FormEnctype, "application/x-www-form-urlencoded", "text/plain" | "multipart/form-data")
+    make_enumerated_getter!(FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formenctype
-    make_setter!(SetFormEnctype, "formenctype")
+    make_setter!(SetFormEnctype, "formenctype");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
-    make_enumerated_getter!(FormMethod, "get", "post" | "dialog")
+    make_enumerated_getter!(FormMethod, "get", ("post") | ("dialog"));
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formmethod
-    make_setter!(SetFormMethod, "formmethod")
+    make_setter!(SetFormMethod, "formmethod");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formtarget
-    make_getter!(FormTarget)
+    make_getter!(FormTarget);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-formtarget
-    make_setter!(SetFormTarget, "formtarget")
+    make_setter!(SetFormTarget, "formtarget");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-input-indeterminate
     fn Indeterminate(self) -> bool {
@@ -312,17 +312,23 @@ fn broadcast_radio_checked(broadcaster: JSRef<HTMLInputElement>, group: Option<&
     let doc = document_from_node(broadcaster).root();
     let doc_node: JSRef<Node> = NodeCast::from_ref(doc.r());
 
-    // There is no DOM tree manipulation here, so this is safe
-    let mut iter = unsafe {
-        doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
+    // This function is a workaround for lifetime constraint difficulties.
+    fn do_broadcast<'a>(doc_node: JSRef<'a, Node>, broadcaster: JSRef<'a, HTMLInputElement>,
+                        owner: Option<JSRef<'a, HTMLFormElement>>, group: Option<&str>) {
+        // There is no DOM tree manipulation here, so this is safe
+        let mut iter = unsafe {
+            doc_node.query_selector_iter("input[type=radio]".to_owned()).unwrap()
                 .filter_map(|t| HTMLInputElementCast::to_ref(t))
-                .filter(|&r| in_same_group(r, owner.r(), group) && broadcaster != r)
-    };
-    for r in iter {
-        if r.Checked() {
-            r.SetChecked(false);
+                .filter(|&r| in_same_group(r, owner, group) && broadcaster != r)
+        };
+        for r in iter {
+            if r.Checked() {
+                r.SetChecked(false);
+            }
         }
     }
+
+    do_broadcast(doc_node, broadcaster, owner.r(), group)
 }
 
 fn in_same_group<'a,'b>(other: JSRef<'a, HTMLInputElement>,
@@ -766,16 +772,20 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         let doc = document_from_node(*self).root();
         let node: JSRef<Node> = NodeCast::from_ref(doc.r());
         let owner = self.form_owner();
-        if owner.is_none() || ElementCast::from_ref(*self).click_in_progress() {
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+        if owner.is_none() || elem.click_in_progress() {
             return;
         }
         // This is safe because we are stopping after finding the first element
         // and only then performing actions which may modify the DOM tree
         unsafe {
             node.query_selector_iter("input[type=submit]".to_owned()).unwrap()
-                .filter_map(|t| HTMLInputElementCast::to_ref(t))
+                .filter_map(|t| {
+                    let h: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(t);
+                    h
+                })
                 .find(|r| r.form_owner() == owner)
-                .map(|s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
+                .map(|&:s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
         }
     }
 }

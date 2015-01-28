@@ -11,13 +11,13 @@ macro_rules! make_getter(
             #[allow(unused_imports)]
             use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.get_string_attribute(&Atom::from_slice($htmlname.to_ascii_lower().as_slice()))
+            element.get_string_attribute(&Atom::from_slice($htmlname.to_ascii_lowercase().as_slice()))
         }
     );
     ($attr:ident) => {
-        make_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+        make_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
     }
-)
+);
 
 #[macro_export]
 macro_rules! make_bool_getter(
@@ -33,9 +33,9 @@ macro_rules! make_bool_getter(
         }
     );
     ($attr:ident) => {
-        make_bool_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+        make_bool_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
     }
-)
+);
 
 #[macro_export]
 macro_rules! make_uint_getter(
@@ -51,9 +51,9 @@ macro_rules! make_uint_getter(
         }
     );
     ($attr:ident) => {
-        make_uint_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+        make_uint_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
     }
-)
+);
 
 #[macro_export]
 macro_rules! make_url_getter(
@@ -70,9 +70,9 @@ macro_rules! make_url_getter(
     );
     ($attr:ident) => {
         // FIXME(pcwalton): Do this at compile time, not runtime.
-        make_url_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+        make_url_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
     }
-)
+);
 
 #[macro_export]
 macro_rules! make_url_or_base_getter(
@@ -94,13 +94,13 @@ macro_rules! make_url_or_base_getter(
         }
     );
     ($attr:ident) => {
-        make_url_or_base_getter!($attr, stringify!($attr).to_ascii_lower().as_slice())
+        make_url_or_base_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
     }
-)
+);
 
 #[macro_export]
 macro_rules! make_enumerated_getter(
-    ( $attr:ident, $htmlname:expr, $default:expr, $($choices: pat)|+) => (
+    ( $attr:ident, $htmlname:expr, $default:expr, $(($choices: pat))|+) => (
         fn $attr(self) -> DOMString {
             use dom::element::{Element, AttributeHandlers};
             use dom::bindings::codegen::InheritTypes::ElementCast;
@@ -109,7 +109,7 @@ macro_rules! make_enumerated_getter(
             use std::borrow::ToOwned;
             let element: JSRef<Element> = ElementCast::from_ref(self);
             let val = element.get_string_attribute(&Atom::from_slice($htmlname))
-                             .into_ascii_lower();
+                             .into_ascii_lowercase();
             // https://html.spec.whatwg.org/multipage/forms.html#attr-fs-method
             match val.as_slice() {
                 $($choices)|+ => val,
@@ -117,10 +117,10 @@ macro_rules! make_enumerated_getter(
             }
         }
     );
-    ($attr:ident, $default:expr, $($choices: pat)|+) => {
-        make_enumerated_getter!($attr, stringify!($attr).to_ascii_lower().as_slice(), $default, $($choices)|+)
+    ($attr:ident, $default:expr, $(($choices: pat))|+) => {
+        make_enumerated_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice(), $default, $(($choices))|+);
     }
-)
+);
 
 // concat_idents! doesn't work for function name positions, so
 // we have to specify both the content name and the HTML name here
@@ -135,7 +135,7 @@ macro_rules! make_setter(
             element.set_string_attribute(&Atom::from_slice($htmlname), value)
         }
     );
-)
+);
 
 #[macro_export]
 macro_rules! make_bool_setter(
@@ -148,7 +148,7 @@ macro_rules! make_bool_setter(
             element.set_bool_attribute(&Atom::from_slice($htmlname), value)
         }
     );
-)
+);
 
 #[macro_export]
 macro_rules! make_uint_setter(
@@ -161,7 +161,7 @@ macro_rules! make_uint_setter(
             element.set_uint_attribute(&Atom::from_slice($htmlname), value)
         }
     );
-)
+);
 
 /// For use on non-jsmanaged types
 /// Use #[jstraceable] on JS managed types
@@ -184,7 +184,7 @@ macro_rules! no_jsmanaged_fields(
             }
         }
     );
-)
+);
 
 /// These are used to generate a event handler which has no special case.
 macro_rules! define_event_handler(
@@ -199,32 +199,32 @@ macro_rules! define_event_handler(
             eventtarget.set_event_handler_common(stringify!($event_type), listener)
         }
     )
-)
+);
 
 macro_rules! event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(EventHandlerNonNull, $event_type, $getter, $setter)
+        define_event_handler!(EventHandlerNonNull, $event_type, $getter, $setter);
     )
-)
+);
 
 macro_rules! error_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
-        define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter)
+        define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter);
     )
-)
+);
 
 // https://html.spec.whatwg.org/multipage/webappapis.html#globaleventhandlers
 // see webidls/EventHandler.webidl
 // As more methods get added, just update them here.
 macro_rules! global_event_handlers(
     () => (
-        event_handler!(load, GetOnload, SetOnload)
-        global_event_handlers!(NoOnload)
+        event_handler!(load, GetOnload, SetOnload);
+        global_event_handlers!(NoOnload);
 
     );
     (NoOnload) => (
-        event_handler!(click, GetOnclick, SetOnclick)
-        event_handler!(input, GetOninput, SetOninput)
-        event_handler!(change, GetOnchange, SetOnchange)
+        event_handler!(click, GetOnclick, SetOnclick);
+        event_handler!(input, GetOninput, SetOninput);
+        event_handler!(change, GetOnchange, SetOnchange);
     )
-)
+);

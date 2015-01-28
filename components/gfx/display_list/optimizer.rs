@@ -44,7 +44,7 @@ impl DisplayListOptimizer {
     fn add_in_bounds_display_items<'a,I>(&self,
                                          result_list: &mut DList<DisplayItem>,
                                          mut display_items: I)
-                                         where I: Iterator<&'a DisplayItem> {
+                                         where I: Iterator<Item=&'a DisplayItem> {
         for display_item in display_items {
             if self.visible_rect.intersects(&display_item.base().bounds) &&
                     display_item.base().clip.might_intersect_rect(&self.visible_rect) {
@@ -57,7 +57,7 @@ impl DisplayListOptimizer {
     fn add_in_bounds_stacking_contexts<'a,I>(&self,
                                              result_list: &mut DList<Arc<StackingContext>>,
                                              mut stacking_contexts: I)
-                                             where I: Iterator<&'a Arc<StackingContext>> {
+                                             where I: Iterator<Item=&'a Arc<StackingContext>> {
         for stacking_context in stacking_contexts {
             let overflow = stacking_context.overflow.translate(&stacking_context.bounds.origin);
             if self.visible_rect.intersects(&overflow) {

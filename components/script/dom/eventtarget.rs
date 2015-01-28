@@ -21,22 +21,26 @@ use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObje
 use js::jsapi::{JSContext, JSObject};
 use servo_util::fnv::FnvHasher;
 use servo_util::str::DOMString;
+
 use libc::{c_char, size_t};
 use std::borrow::ToOwned;
-use std::collections::hash_map::{Occupied, Vacant};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::hash_state::DefaultState;
+use std::default::Default;
+use std::ffi::CString;
 use std::ptr;
 use url::Url;
 
 use std::collections::HashMap;
 
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 #[jstraceable]
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
 }
 
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 #[jstraceable]
 pub enum EventTargetTypeId {
     Node(NodeTypeId),
@@ -47,7 +51,7 @@ pub enum EventTargetTypeId {
     XMLHttpRequestEventTarget(XMLHttpRequestEventTargetTypeId)
 }
 
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 #[jstraceable]
 pub enum EventListenerType {
     Additive(EventListener),
@@ -63,7 +67,7 @@ impl EventListenerType {
     }
 }
 
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 #[jstraceable]
 #[privatize]
 pub struct EventListenerEntry {
@@ -75,7 +79,7 @@ pub struct EventListenerEntry {
 pub struct EventTarget {
     reflector_: Reflector,
     type_id: EventTargetTypeId,
-    handlers: DOMRefCell<HashMap<DOMString, Vec<EventListenerEntry>, FnvHasher>>,
+    handlers: DOMRefCell<HashMap<DOMString, Vec<EventListenerEntry>, DefaultState<FnvHasher>>>,
 }
 
 impl EventTarget {
@@ -83,7 +87,7 @@ impl EventTarget {
         EventTarget {
             reflector_: Reflector::new(),
             type_id: type_id,
-            handlers: DOMRefCell::new(HashMap::with_hasher(FnvHasher)),
+            handlers: DOMRefCell::new(Default::default()),
         }
     }
 
@@ -146,7 +150,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
         let mut handlers = self.handlers.borrow_mut();
         let entries = match handlers.entry(ty) {
             Occupied(entry) => entry.into_mut(),
-            Vacant(entry) => entry.set(vec!()),
+            Vacant(entry) => entry.insert(vec!()),
         };
 
         let idx = entries.iter().position(|&entry| {
@@ -194,14 +198,14 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
                                     scope: *mut JSObject,
                                     ty: &str,
                                     source: DOMString) {
-        let url = url.serialize().to_c_str();
-        let name = ty.to_c_str();
+        let url = CString::from_slice(url.serialize().as_bytes());
+        let name = CString::from_slice(ty.as_bytes());
         let lineno = 0; //XXXjdm need to get a real number here
 
         let nargs = 1; //XXXjdm not true for onerror
-        static ARG_NAME: [c_char, ..6] =
+        const ARG_NAME: [c_char; 6] =
             ['e' as c_char, 'v' as c_char, 'e' as c_char, 'n' as c_char, 't' as c_char, 0];
-        static ARG_NAMES: [*const c_char, ..1] = [&ARG_NAME as *const c_char];
+        static mut ARG_NAMES: [*const c_char; 1] = [&ARG_NAME as *const c_char];
 
         let source: Vec<u16> = source.as_slice().utf16_units().collect();
         let handler = unsafe {
@@ -209,7 +213,7 @@ impl<'a> EventTargetHelpers for JSRef<'a, EventTarget> {
                                  ptr::null_mut(),
                                  name.as_ptr(),
                                  nargs,
-                                 &ARG_NAMES as *const *const i8 as *mut *const i8,
+                                 &ARG_NAMES as *const *const c_char as *mut *const c_char,
                                  source.as_ptr(),
                                  source.len() as size_t,
                                  url.as_ptr(),
@@ -255,7 +259,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
                 let mut handlers = self.handlers.borrow_mut();
                 let entry = match handlers.entry(ty) {
                     Occupied(entry) => entry.into_mut(),
-                    Vacant(entry) => entry.set(vec!()),
+                    Vacant(entry) => entry.insert(vec!()),
                 };
 
                 let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };

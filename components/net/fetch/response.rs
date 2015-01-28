@@ -6,10 +6,10 @@ use url::Url;
 use hyper::status::StatusCode;
 use hyper::header::Headers;
 use std::ascii::AsciiExt;
-use std::comm::Receiver;
+use std::sync::mpsc::Receiver;
 
 /// [Response type](http://fetch.spec.whatwg.org/#concept-response-type)
-#[deriving(Clone, PartialEq, Copy)]
+#[derive(Clone, PartialEq, Copy)]
 pub enum ResponseType {
     Basic,
     CORS,
@@ -19,7 +19,7 @@ pub enum ResponseType {
 }
 
 /// [Response termination reason](http://fetch.spec.whatwg.org/#concept-response-termination-reason)
-#[deriving(Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum TerminationReason {
     EndUserAbort,
     Fatal,
@@ -29,7 +29,7 @@ pub enum TerminationReason {
 /// The response body can still be pushed to after fetch
 /// This provides a way to store unfinished response bodies
 #[unstable = "I haven't yet decided exactly how the interface for this will be"]
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
     Receiving(Vec<u8>),
@@ -50,7 +50,7 @@ pub struct ResponseLoader {
 }
 
 /// A [Response](http://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Response {
     pub response_type: ResponseType,
     pub termination_reason: Option<TerminationReason>,
@@ -110,7 +110,7 @@ impl Response {
             ResponseType::Default | ResponseType::Error => unreachable!(),
             ResponseType::Basic => {
                 let headers = old_headers.iter().filter(|header| {
-                    match header.name().to_ascii_lower().as_slice() {
+                    match header.name().to_ascii_lowercase().as_slice() {
                         "set-cookie" | "set-cookie2" => false,
                         _ => true
                     }
@@ -120,7 +120,7 @@ impl Response {
             },
             ResponseType::CORS => {
                 let headers = old_headers.iter().filter(|header| {
-                    match header.name().to_ascii_lower().as_slice() {
+                    match header.name().to_ascii_lowercase().as_slice() {
                         "cache-control" | "content-language" |
                         "content-type" | "expires" | "last-modified" | "Pragma" => false,
                         // XXXManishearth handle Access-Control-Expose-Headers

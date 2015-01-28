@@ -19,9 +19,9 @@ use servo_util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::collections::hash_map::{Occupied, Vacant};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 
-#[deriving(Clone)]
+#[derive(Clone)]
 #[jstraceable]
 #[must_root]
 pub enum FormDatum {
@@ -65,7 +65,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
         match data.entry(name) {
             Occupied(entry) => entry.into_mut().push(file),
             Vacant(entry) => {
-                entry.set(vec!(file));
+                entry.insert(vec!(file));
             }
         }
     }
@@ -74,7 +74,7 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
         let mut data = self.data.borrow_mut();
         match data.entry(name) {
             Occupied(entry) => entry.into_mut().push(FormDatum::StringData(value)),
-            Vacant  (entry) => { entry.set(vec!(FormDatum::StringData(value))); },
+            Vacant  (entry) => { entry.insert(vec!(FormDatum::StringData(value))); },
         }
     }
 

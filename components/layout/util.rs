@@ -64,7 +64,6 @@ impl PrivateLayoutData {
 }
 
 bitflags! {
-    #[deriving(Copy)]
     flags LayoutDataFlags: u8 {
         #[doc="Whether a flow has been newly constructed."]
         const HAS_NEWLY_CONSTRUCTED_FLOW = 0x01
@@ -75,6 +74,14 @@ pub struct LayoutDataWrapper {
     pub chan: Option<LayoutChan>,
     pub shared_data: SharedLayoutData,
     pub data: Box<PrivateLayoutData>,
+}
+
+#[allow(dead_code)]
+fn static_assertion(x: Option<LayoutDataWrapper>) {
+    unsafe {
+        let _: Option<::script::dom::node::LayoutData> =
+            ::std::intrinsics::transmute(x);
+    }
 }
 
 /// A trait that allows access to the layout data of a DOM node.

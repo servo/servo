@@ -4,21 +4,21 @@
 
 //! Timing functions.
 
-use collections::TreeMap;
+use collections::BTreeMap;
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
-use std::comm::{Sender, channel, Receiver};
 use std::f64;
 use std::io::timer::sleep;
 use std::iter::AdditiveIterator;
-use std::num::FloatMath;
+use std::num::Float;
+use std::sync::mpsc::{Sender, channel, Receiver};
 use std::time::duration::Duration;
 use std_time::precise_time_ns;
 use task::{spawn_named};
 use url::Url;
 
 // front-end representation of the profiler used to communicate with the profiler
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct TimeProfilerChan(pub Sender<TimeProfilerMsg>);
 
 impl TimeProfilerChan {
@@ -28,7 +28,7 @@ impl TimeProfilerChan {
     }
 }
 
-#[deriving(PartialEq, Clone, PartialOrd, Eq, Ord)]
+#[derive(PartialEq, Clone, PartialOrd, Eq, Ord)]
 pub struct TimerMetadata {
     url:         String,
     iframe:      bool,
@@ -60,7 +60,7 @@ impl Formatable for Option<TimerMetadata> {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum TimeProfilerMsg {
     /// Normal message used for reporting time
     Time((TimeProfilerCategory, Option<TimerMetadata>), f64),
@@ -71,7 +71,7 @@ pub enum TimeProfilerMsg {
 }
 
 #[repr(u32)]
-#[deriving(PartialEq, Clone, PartialOrd, Eq, Ord)]
+#[derive(PartialEq, Clone, PartialOrd, Eq, Ord)]
 pub enum TimeProfilerCategory {
     Compositing,
     LayoutPerform,
@@ -130,7 +130,7 @@ impl Formatable for TimeProfilerCategory {
     }
 }
 
-type TimeProfilerBuckets = TreeMap<(TimeProfilerCategory, Option<TimerMetadata>), Vec<f64>>;
+type TimeProfilerBuckets = BTreeMap<(TimeProfilerCategory, Option<TimerMetadata>), Vec<f64>>;
 
 // back end of the profiler that handles data aggregation and performance metrics
 pub struct TimeProfiler {
@@ -146,25 +146,25 @@ impl TimeProfiler {
             Some(period) => {
                 let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
-                spawn_named("Time profiler timer".to_owned(), proc() {
+                spawn_named("Time profiler timer".to_owned(), move || {
                     loop {
                         sleep(period);
-                        if chan.send_opt(TimeProfilerMsg::Print).is_err() {
+                        if chan.send(TimeProfilerMsg::Print).is_err() {
                             break;
                         }
                     }
                 });
                 // Spawn the time profiler.
-                spawn_named("Time profiler".to_owned(), proc() {
+                spawn_named("Time profiler".to_owned(), move || {
                     let mut profiler = TimeProfiler::new(port);
                     profiler.start();
                 });
             }
             None => {
                 // No-op to handle messages when the time profiler is inactive.
-                spawn_named("Time profiler".to_owned(), proc() {
+                spawn_named("Time profiler".to_owned(), move || {
                     loop {
-                        match port.recv_opt() {
+                        match port.recv() {
                             Err(_) | Ok(TimeProfilerMsg::Exit) => break,
                             _ => {}
                         }
@@ -179,14 +179,14 @@ impl TimeProfiler {
     pub fn new(port: Receiver<TimeProfilerMsg>) -> TimeProfiler {
         TimeProfiler {
             port: port,
-            buckets: TreeMap::new(),
+            buckets: BTreeMap::new(),
             last_msg: None,
         }
     }
 
     pub fn start(&mut self) {
         loop {
-            let msg = self.port.recv_opt();
+            let msg = self.port.recv();
             match msg {
                Ok(msg) => {
                    if !self.handle_msg(msg) {
@@ -249,13 +249,13 @@ impl TimeProfiler {
     }
 }
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub enum TimerMetadataFrameType {
     RootWindow,
     IFrame,
 }
 
-#[deriving(Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub enum TimerMetadataReflowType {
     Incremental,
     FirstReflow,
@@ -263,11 +263,13 @@ pub enum TimerMetadataReflowType {
 
 pub type ProfilerMetadata<'a> = Option<(&'a Url, TimerMetadataFrameType, TimerMetadataReflowType)>;
 
-pub fn profile<T>(category: TimeProfilerCategory,
-                  meta: ProfilerMetadata,
-                  time_profiler_chan: TimeProfilerChan,
-                  callback: || -> T)
-                  -> T {
+pub fn profile<T, F>(category: TimeProfilerCategory,
+                     meta: ProfilerMetadata,
+                     time_profiler_chan: TimeProfilerChan,
+                     callback: F)
+                  -> T
+    where F: FnOnce() -> T
+{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();
@@ -282,7 +284,9 @@ pub fn profile<T>(category: TimeProfilerCategory,
     return val;
 }
 
-pub fn time<T>(msg: &str, callback: || -> T) -> T{
+pub fn time<T, F>(msg: &str, callback: F) -> T
+    where F: Fn() -> T
+{
     let start_time = precise_time_ns();
     let val = callback();
     let end_time = precise_time_ns();

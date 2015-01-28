@@ -11,9 +11,11 @@ use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 
 use servo_util::str::DOMString;
+
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cmp::{min, max};
-use std::ascii::AsciiExt;
+use std::num::ToPrimitive;
 
 #[jstraceable]
 pub enum BlobTypeId {
@@ -69,7 +71,7 @@ impl Blob {
         } else {
             ""
         };
-        let typeStrLower = typeString.as_slice().to_ascii_lower();
+        let typeStrLower = typeString.as_slice().to_ascii_lowercase();
         Ok(Blob::new(global, bytes, typeStrLower.as_slice()))
     }
 }
@@ -113,7 +115,7 @@ impl<'a> BlobMethods for JSRef<'a, Blob> {
             None => "".to_owned(),
             Some(str) => {
                 if is_ascii_printable(&str) {
-                    str.as_slice().to_ascii_lower().to_owned()
+                    str.as_slice().to_ascii_lowercase().to_owned()
                 } else {
                     "".to_owned()
                 }

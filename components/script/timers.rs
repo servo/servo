@@ -21,15 +21,15 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::cmp;
 use std::collections::HashMap;
-use std::comm::{channel, Sender};
-use std::comm::Select;
-use std::hash::{Hash, sip};
+use std::sync::mpsc::{channel, Sender};
+use std::sync::mpsc::Select;
+use std::hash::{Hash, Hasher, Writer};
 use std::io::timer::Timer;
 use std::time::duration::Duration;
 
-#[deriving(PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 #[jstraceable]
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct TimerId(i32);
 
 #[jstraceable]
@@ -41,14 +41,14 @@ struct TimerHandle {
 }
 
 #[jstraceable]
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum TimerCallback {
     StringTimerCallback(DOMString),
     FunctionTimerCallback(Function)
 }
 
-impl Hash for TimerId {
-    fn hash(&self, state: &mut sip::SipState) {
+impl<H: Writer + Hasher> Hash<H> for TimerId {
+    fn hash(&self, state: &mut H) {
         let TimerId(id) = *self;
         id.hash(state);
     }
@@ -56,7 +56,7 @@ impl Hash for TimerId {
 
 impl TimerHandle {
     fn cancel(&mut self) {
-        self.cancel_chan.as_ref().map(|chan| chan.send_opt(()).ok());
+        self.cancel_chan.as_ref().map(|chan| chan.send(()).ok());
     }
 }
 
@@ -79,7 +79,7 @@ impl Drop for TimerManager {
 
 // Enum allowing more descriptive values for the is_interval field
 #[jstraceable]
-#[deriving(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum IsInterval {
     Interval,
     NonInterval,
@@ -91,7 +91,7 @@ pub enum IsInterval {
 // TODO: Handle rooting during fire_timer when movable GC is turned on
 #[jstraceable]
 #[privatize]
-#[deriving(Clone)]
+#[derive(Clone)]
 struct TimerData {
     is_interval: IsInterval,
     callback: TimerCallback,
@@ -129,7 +129,7 @@ impl TimerManager {
             TimerSource::FromWindow(_) => "Window:SetTimeout",
             TimerSource::FromWorker => "Worker:SetTimeout",
         }.to_owned();
-        spawn_named(spawn_name, proc() {
+        spawn_named(spawn_name, move || {
             let mut tm = tm;
             let duration = Duration::milliseconds(timeout as i64);
             let timeout_port = if is_interval == IsInterval::Interval {

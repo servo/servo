@@ -16,6 +16,8 @@ use geom::size::Size2D;
 use canvas::canvas_paint_task::{CanvasMsg, CanvasPaintTask};
 use canvas::canvas_paint_task::CanvasMsg::{ClearRect, Close, FillRect, Recreate, StrokeRect};
 
+use std::sync::mpsc::Sender;
+
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,

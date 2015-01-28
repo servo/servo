@@ -18,6 +18,7 @@ use msg::compositor_msg::{PaintState, ReadyState};
 use msg::constellation_msg::LoadData;
 use NestedEventLoopListener;
 use std::rc::Rc;
+use std::sync::mpsc::{channel, Sender};
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 
@@ -45,8 +46,8 @@ use std::ptr;
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
 #[cfg(feature = "window")]
-bitflags!(
-    #[deriving(Show, Copy)]
+bitflags! {
+    #[derive(Show)]
     flags KeyModifiers: u8 {
         const LEFT_CONTROL = 1,
         const RIGHT_CONTROL = 2,
@@ -55,7 +56,7 @@ bitflags!(
         const LEFT_ALT = 16,
         const RIGHT_ALT = 32,
     }
-)
+}
 
 /// The type of a window.
 #[cfg(feature = "window")]
@@ -63,10 +64,10 @@ pub struct Window {
     window: glutin::Window,
 
     mouse_down_button: Cell<Option<glutin::MouseButton>>,
-    mouse_down_point: Cell<Point2D<int>>,
+    mouse_down_point: Cell<Point2D<i32>>,
     event_queue: RefCell<Vec<WindowEvent>>,
 
-    mouse_pos: Cell<Point2D<int>>,
+    mouse_pos: Cell<Point2D<i32>>,
     ready_state: Cell<ReadyState>,
     paint_state: Cell<PaintState>,
     key_modifiers: Cell<KeyModifiers>,
@@ -76,7 +77,7 @@ pub struct Window {
 
 #[cfg(feature = "window")]
 impl Window {
-    pub fn new(is_foreground: bool, window_size: TypedSize2D<DevicePixel, uint>) -> Rc<Window> {
+    pub fn new(is_foreground: bool, window_size: TypedSize2D<DevicePixel, u32>) -> Rc<Window> {
         let mut glutin_window = glutin::WindowBuilder::new()
                             .with_title("Servo [glutin]".to_string())
                             .with_dimensions(window_size.to_untyped().width, window_size.to_untyped().height)
@@ -86,7 +87,7 @@ impl Window {
                             .unwrap();
         unsafe { glutin_window.make_current() };
 
-        glutin_window.set_window_resize_callback(Some(Window::nested_window_resize));
+        glutin_window.set_window_resize_callback(Some(Window::nested_window_resize as fn(u32, u32)));
 
         Window::load_gl_functions(&glutin_window);
 
@@ -112,7 +113,7 @@ impl Window {
         Rc::new(window)
     }
 
-    fn nested_window_resize(width: uint, height: uint) {
+    fn nested_window_resize(width: u32, height: u32) {
         unsafe {
             match g_nested_event_loop_listener {
                 None => {}
@@ -124,12 +125,12 @@ impl Window {
     }
 
     #[cfg(not(target_os="android"))]
-    fn gl_version() -> (uint, uint) {
+    fn gl_version() -> (u32, u32) {
         (3, 0)
     }
 
     #[cfg(target_os="android")]
-    fn gl_version() -> (uint, uint) {
+    fn gl_version() -> (u32, u32) {
         (2, 0)
     }
 
@@ -225,7 +226,7 @@ impl Window {
     }
 
     /// Helper function to handle a click
-    fn handle_mouse(&self, button: glutin::MouseButton, action: glutin::ElementState, x: int, y: int) {
+    fn handle_mouse(&self, button: glutin::MouseButton, action: glutin::ElementState, x: i32, y: i32) {
         // FIXME(tkuehn): max pixel dist should be based on pixel density
         let max_pixel_dist = 10f64;
         let event = match action {
@@ -289,7 +290,7 @@ impl Window {
         {
             let mut event_queue = self.event_queue.borrow_mut();
             if !event_queue.is_empty() {
-                return event_queue.remove(0).unwrap();
+                return event_queue.remove(0);
             }
         }
 
@@ -317,7 +318,12 @@ impl Window {
         if close_event || self.window.is_closed() {
             WindowEvent::Quit
         } else {
-            self.event_queue.borrow_mut().remove(0).unwrap_or(WindowEvent::Idle)
+            let mut event_queue = self.event_queue.borrow_mut();
+            if event_queue.is_empty() {
+                WindowEvent::Idle
+            } else {
+                event_queue.remove(0)
+            }
         }
     }
 
@@ -434,8 +440,8 @@ impl Window {
 
 #[cfg(feature = "window")]
 impl WindowMethods for Window {
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
-        let scale_factor = self.window.hidpi_factor() as uint;
+    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
+        let scale_factor = self.window.hidpi_factor() as u32;
         let (width, height) = self.window.get_inner_size().unwrap();
         TypedSize2D(width * scale_factor, height * scale_factor)
     }
@@ -553,13 +559,13 @@ impl WindowMethods for Window {
 pub struct Window {
     #[allow(dead_code)]
     context: glutin::HeadlessContext,
-    width: uint,
-    height: uint,
+    width: u32,
+    height: u32,
 }
 
 #[cfg(feature = "headless")]
 impl Window {
-    pub fn new(_is_foreground: bool, window_size: TypedSize2D<DevicePixel, uint>) -> Rc<Window> {
+    pub fn new(_is_foreground: bool, window_size: TypedSize2D<DevicePixel, u32>) -> Rc<Window> {
         let window_size = window_size.to_untyped();
         let headless_builder = glutin::HeadlessRendererBuilder::new(window_size.width,
                                                                     window_size.height);
@@ -592,7 +598,7 @@ impl Window {
 
 #[cfg(feature = "headless")]
 impl WindowMethods for Window {
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
+    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
         TypedSize2D(self.width, self.height)
     }
 
@@ -658,6 +664,9 @@ struct GlutinCompositorProxy {
     sender: Sender<compositor_task::Msg>,
     window_proxy: Option<glutin::WindowProxy>,
 }
+
+// TODO: Should this be implemented here or upstream in glutin::WindowProxy?
+unsafe impl Send for GlutinCompositorProxy {}
 
 impl CompositorProxy for GlutinCompositorProxy {
     fn send(&mut self, msg: compositor_task::Msg) {

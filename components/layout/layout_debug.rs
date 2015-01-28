@@ -14,11 +14,11 @@ use serialize::json;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::io::File;
-use std::sync::atomic::{AtomicUint, Ordering, INIT_ATOMIC_UINT};
+use std::sync::atomic::{AtomicUint, Ordering, ATOMIC_UINT_INIT};
 
-thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None))
+thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
 
-static mut DEBUG_ID_COUNTER: AtomicUint = INIT_ATOMIC_UINT;
+static mut DEBUG_ID_COUNTER: AtomicUint = ATOMIC_UINT_INIT;
 
 pub struct Scope;
 
@@ -31,9 +31,9 @@ macro_rules! layout_debug_scope(
             layout_debug::Scope
         }
     )
-)
+);
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct ScopeData {
     name: String,
     pre: String,
@@ -63,12 +63,12 @@ impl Scope {
     pub fn new(name: String) -> Scope {
         STATE_KEY.with(|ref r| {
             match &mut *r.borrow_mut() {
-                &Some(ref mut state) => {
+                &mut Some(ref mut state) => {
                     let flow_trace = json::encode(&flow::base(&*state.flow_root));
                     let data = box ScopeData::new(name.clone(), flow_trace);
                     state.scope_stack.push(data);
                 }
-                &None => {}
+                &mut None => {}
             }
         });
         Scope
@@ -80,13 +80,13 @@ impl Drop for Scope {
     fn drop(&mut self) {
         STATE_KEY.with(|ref r| {
             match &mut *r.borrow_mut() {
-                &Some(ref mut state) => {
+                &mut Some(ref mut state) => {
                     let mut current_scope = state.scope_stack.pop().unwrap();
                     current_scope.post = json::encode(&flow::base(&*state.flow_root));
                     let previous_scope = state.scope_stack.last_mut().unwrap();
                     previous_scope.children.push(current_scope);
                 }
-                &None => {}
+                &mut None => {}
             }
         });
     }

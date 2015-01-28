@@ -9,12 +9,12 @@ use servo_util::geometry::Au;
 use servo_util::range::Range;
 use servo_util::vec::{Comparator, FullBinarySearchMethods};
 use std::cmp::Ordering;
-use std::slice::Items;
+use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{CharIndex, GlyphStore};
 
 /// A single "paragraph" of text in one font size and style.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct TextRun {
     pub text: Arc<String>,
     pub font_template: Arc<FontTemplateData>,
@@ -25,7 +25,7 @@ pub struct TextRun {
 }
 
 /// A single series of glyphs within a text run.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct GlyphRun {
     /// The glyphs.
     pub glyph_store: Arc<GlyphStore>,
@@ -34,7 +34,7 @@ pub struct GlyphRun {
 }
 
 pub struct NaturalWordSliceIterator<'a> {
-    glyph_iter: Items<'a, GlyphRun>,
+    glyph_iter: Iter<'a, GlyphRun>,
     range: Range<CharIndex>,
 }
 
@@ -73,7 +73,9 @@ impl<'a> TextRunSlice<'a> {
     }
 }
 
-impl<'a> Iterator<TextRunSlice<'a>> for NaturalWordSliceIterator<'a> {
+impl<'a> Iterator for NaturalWordSliceIterator<'a> {
+    type Item = TextRunSlice<'a>;
+
     // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
     #[inline(always)]
     fn next(&mut self) -> Option<TextRunSlice<'a>> {
@@ -101,11 +103,13 @@ impl<'a> Iterator<TextRunSlice<'a>> for NaturalWordSliceIterator<'a> {
 
 pub struct CharacterSliceIterator<'a> {
     glyph_run: Option<&'a GlyphRun>,
-    glyph_run_iter: Items<'a, GlyphRun>,
+    glyph_run_iter: Iter<'a, GlyphRun>,
     range: Range<CharIndex>,
 }
 
-impl<'a> Iterator<TextRunSlice<'a>> for CharacterSliceIterator<'a> {
+impl<'a> Iterator for CharacterSliceIterator<'a> {
+    type Item = TextRunSlice<'a>;
+
     // inline(always) due to the inefficient rt failures messing up inline heuristics, I think.
     #[inline(always)]
     fn next(&mut self) -> Option<TextRunSlice<'a>> {
@@ -140,7 +144,9 @@ pub struct LineIterator<'a> {
     slices: NaturalWordSliceIterator<'a>,
 }
 
-impl<'a> Iterator<Range<CharIndex>> for LineIterator<'a> {
+impl<'a> Iterator for LineIterator<'a> {
+    type Item = Range<CharIndex>;
+
     fn next(&mut self) -> Option<Range<CharIndex>> {
         // Loop until we hit whitespace and are in a clump.
         loop {
@@ -311,9 +317,9 @@ impl<'a> TextRun {
     }
 
     pub fn min_width_for_range(&self, range: &Range<CharIndex>) -> Au {
-        debug!("iterating outer range {}", range);
+        debug!("iterating outer range {:?}", range);
         self.natural_word_slices_in_range(range).fold(Au(0), |max_piece_width, slice| {
-            debug!("iterated on {}[{}]", slice.offset, slice.range);
+            debug!("iterated on {:?}[{:?}]", slice.offset, slice.range);
             Au::max(max_piece_width, self.advance_for_range(&slice.range))
         })
     }

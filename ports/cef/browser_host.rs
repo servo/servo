@@ -22,32 +22,33 @@ pub struct ServoCefBrowserHost {
     pub client: CefClient,
 }
 
-cef_class_impl! {
+full_cef_class_impl! {
     ServoCefBrowserHost : CefBrowserHost, cef_browser_host_t {
-        fn get_client(&this) -> *mut cef_client_t {
+        fn get_client(&this,) -> *mut cef_client_t {{
             this.downcast().client.clone()
-        }
+        }}
 
-        fn was_resized(&this) -> () {
+        fn was_resized(&this,) -> () {{
             let mut rect = cef_rect_t::zero();
             this.get_client()
                 .get_render_handler()
                 .get_backing_rect(this.downcast().browser.borrow().clone().unwrap(), &mut rect);
-            let size = TypedSize2D(rect.width as uint, rect.height as uint);
+            let size = TypedSize2D(rect.width as u32, rect.height as u32);
             this.downcast().send_window_event(WindowEvent::Resize(size));
-        }
+        }}
 
-        fn close_browser(&this, _force: c_int) -> () {
+        fn close_browser(&this, _force: c_int [c_int],) -> () {{
             browser::close(this.downcast().browser.borrow_mut().take().unwrap());
-        }
+        }}
 
-        fn send_focus_event(&this, focus: c_int) -> () {
+        fn send_focus_event(&this, focus: c_int [c_int],) -> () {{
+            let focus: c_int = focus;
             if focus != 0 {
                 this.downcast().send_window_event(WindowEvent::Refresh);
             }
-        }
+        }}
 
-        fn send_key_event(&this, event: *const cef_key_event) -> () {
+        fn send_key_event(&this, event: *const cef_key_event [&cef_key_event],) -> () {{
             // FIXME(pcwalton): So awful. But it's nearly midnight here and I have to get
             // Google working.
             let event: &cef_key_event = event;
@@ -98,15 +99,17 @@ cef_class_impl! {
             };
             let key_modifiers = KeyModifiers::empty();  // TODO(pcwalton)
             this.downcast().send_window_event(WindowEvent::KeyEvent(key, key_state, key_modifiers))
-        }
+        }}
 
         fn send_mouse_click_event(&this,
-                                  event: *const cef_mouse_event,
-                                  mouse_button_type: cef_mouse_button_type_t,
-                                  mouse_up: c_int,
-                                  _click_count: c_int)
-                                  -> () {
+                                  event: *const cef_mouse_event [&cef_mouse_event],
+                                  mouse_button_type: cef_mouse_button_type_t [cef_mouse_button_type_t],
+                                  mouse_up: c_int [c_int],
+                                  _click_count: c_int [c_int],)
+                                  -> () {{
             let event: &cef_mouse_event = event;
+            let mouse_button_type: cef_mouse_button_type_t = mouse_button_type;
+            let mouse_up: c_int = mouse_up;
             let button_type = mouse_button_type as uint;
             let point = TypedPoint2D((*event).x as f32, (*event).y as f32);
             if mouse_up != 0 {
@@ -116,38 +119,42 @@ cef_class_impl! {
                 this.downcast().send_window_event(WindowEvent::MouseWindowEventClass(
                     MouseWindowEvent::MouseUp(button_type, point)))
             }
-        }
+        }}
 
-        fn send_mouse_move_event(&this, event: *const cef_mouse_event, _mouse_exited: c_int)
-                                 -> () {
+        fn send_mouse_move_event(&this, event: *const cef_mouse_event [&cef_mouse_event],
+                                 _mouse_exited: c_int [c_int],)
+                                 -> () {{
             let event: &cef_mouse_event = event;
             let point = TypedPoint2D((*event).x as f32, (*event).y as f32);
             this.downcast().send_window_event(WindowEvent::MouseWindowMoveEventClass(point))
-        }
+        }}
 
         fn send_mouse_wheel_event(&this,
-                                  event: *const cef_mouse_event,
-                                  delta_x: c_int,
-                                  delta_y: c_int)
-                                  -> () {
+                                  event: *const cef_mouse_event [&cef_mouse_event],
+                                  delta_x: c_int [c_int],
+                                  delta_y: c_int [c_int],)
+                                  -> () {{
             let event: &cef_mouse_event = event;
+            let delta_x: c_int = delta_x;
+            let delta_y: c_int = delta_y;
             let delta = TypedPoint2D(delta_x as f32, delta_y as f32);
             let origin = TypedPoint2D((*event).x as i32, (*event).y as i32);
             this.downcast().send_window_event(WindowEvent::Scroll(delta, origin))
-        }
+        }}
 
-        fn get_zoom_level(&this) -> c_double {
+        fn get_zoom_level(&this,) -> c_double {{
             this.downcast().pinch_zoom_level() as c_double
-        }
+        }}
 
-        fn set_zoom_level(&this, new_zoom_level: c_double) -> () {
+        fn set_zoom_level(&this, new_zoom_level: c_double [c_double],) -> () {{
+            let new_zoom_level: c_double = new_zoom_level;
             let old_zoom_level = this.get_zoom_level();
             this.downcast().send_window_event(WindowEvent::PinchZoom((new_zoom_level / old_zoom_level) as f32))
-        }
+        }}
 
-        fn initialize_compositing(&this) -> () {
+        fn initialize_compositing(&this,) -> () {{
             this.downcast().send_window_event(WindowEvent::InitializeCompositing);
-        }
+        }}
     }
 }
 

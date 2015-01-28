@@ -15,7 +15,7 @@ use syntax::parse::token::InternedString;
 pub fn expand_dom_struct(_: &mut ExtCtxt, _: Span, _: &MetaItem, item: P<Item>) -> P<Item> {
     let mut item2 = (*item).clone();
     {
-        let add_attr = |s| {
+        let mut add_attr = |&mut :s| {
             item2.attrs.push(attr::mk_attr_outer(attr::mk_attr_id(), attr::mk_word_item(InternedString::new(s))));
         };
         add_attr("must_root");
@@ -34,7 +34,7 @@ pub fn expand_dom_struct(_: &mut ExtCtxt, _: Span, _: &MetaItem, item: P<Item>) 
 /// Provides the hook to expand `#[jstraceable]` into an implementation of `JSTraceable`
 ///
 /// The expansion basically calls `trace()` on all of the fields of the struct/enum, erroring if they do not implement the method.
-pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: &Item, push: |P<Item>|) {
+pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: &Item, mut push: Box<FnMut(P<Item>)>) {
     let trait_def = TraitDef {
         span: span,
         attributes: Vec::new(),
@@ -51,13 +51,11 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
                 attributes: vec!(attr::mk_attr_outer(attr::mk_attr_id(),
                                                      attr::mk_name_value_item_str(InternedString::new("inline"),
                                                                                   InternedString::new("always")))),
-                combine_substructure: combine_substructure(|a, b, c| {
-                    jstraceable_substructure(a, b, c)
-                })
+                combine_substructure: combine_substructure(box jstraceable_substructure)
             }
         )
     };
-    trait_def.expand(cx, mitem, item, push)
+    trait_def.expand(cx, mitem, item, |:a| push(a))
 }
 
 // Mostly copied from syntax::ext::deriving::hash
@@ -68,7 +66,7 @@ fn jstraceable_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substru
         _ => cx.span_bug(trait_span, "incorrect number of arguments in `jstraceable`")
     };
     let trace_ident = substr.method_ident;
-    let call_trace = |span, thing_expr| {
+    let call_trace = |&:span, thing_expr| {
         let expr = cx.expr_method_call(span, thing_expr, trace_ident, vec!(state_expr.clone()));
         cx.stmt_expr(expr)
     };

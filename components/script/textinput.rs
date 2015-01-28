@@ -14,14 +14,14 @@ use std::cmp::{min, max};
 use std::default::Default;
 use std::num::SignedInt;
 
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 enum Selection {
     Selected,
     NotSelected
 }
 
 #[jstraceable]
-#[deriving(Copy)]
+#[derive(Copy)]
 struct TextPoint {
     /// 0-based line number
     line: uint,
@@ -59,14 +59,14 @@ impl Default for TextPoint {
 }
 
 /// Control whether this control should allow multiple lines.
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum Lines {
     Single,
     Multiple,
 }
 
 /// The direction in which to delete a character.
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 enum DeleteDir {
     Forward,
     Backward

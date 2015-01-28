@@ -95,6 +95,6 @@ impl Flow for TableCaptionFlow {
 
 impl fmt::Show for TableCaptionFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TableCaptionFlow: {}", self.block_flow)
+        write!(f, "TableCaptionFlow: {:?}", self.block_flow)
     }
 }

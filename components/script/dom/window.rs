@@ -47,6 +47,7 @@ use libc;
 use serialize::base64::{FromBase64, ToBase64, STANDARD};
 use std::cell::{Ref, RefMut};
 use std::default::Default;
+use std::ffi::CString;
 use std::rc::Rc;
 use time;
 
@@ -283,9 +284,9 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         })
     }
 
-    global_event_handlers!()
-    event_handler!(unload, GetOnunload, SetOnunload)
-    error_event_handler!(error, GetOnerror, SetOnerror)
+    global_event_handlers!();
+    event_handler!(unload, GetOnunload, SetOnunload);
+    error_event_handler!(error, GetOnerror, SetOnerror);
 
     fn Screen(self) -> Temporary<Screen> {
         self.screen.or_init(|| Screen::new(self))
@@ -336,7 +337,7 @@ impl<'a, T: Reflectable> ScriptHelpers for JSRef<'a, T> {
         let global = global_object_for_js_object(this).root().r().reflector().get_jsobject();
         let code: Vec<u16> = code.as_slice().utf16_units().collect();
         let mut rval = UndefinedValue();
-        let filename = filename.to_c_str();
+        let filename = CString::from_slice(filename.as_bytes());
 
         with_compartment(cx, global, || {
             unsafe {

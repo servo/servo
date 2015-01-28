@@ -8,16 +8,17 @@ use geom::{Size2D, Point2D, SideOffsets2D, Rect};
 use geom::num::Zero;
 use std::cmp::{min, max};
 use std::fmt::{Show, Formatter, Error};
+use std::ops::{Add, Sub};
 
 bitflags!(
-    #[deriving(Encodable, Copy)]
+    #[derive(RustcEncodable)]
     flags WritingMode: u8 {
         const FLAG_RTL = 1 << 0,
         const FLAG_VERTICAL = 1 << 1,
         const FLAG_VERTICAL_LR = 1 << 2,
         const FLAG_SIDEWAYS_LEFT = 1 << 3
     }
-)
+);
 
 impl WritingMode {
     #[inline]
@@ -79,11 +80,11 @@ impl Show for WritingMode {
 /// (in addition to taking it as a parameter to methods) and check it.
 /// In non-debug builds, make this storage zero-size and the checks no-ops.
 #[cfg(ndebug)]
-#[deriving(Encodable, PartialEq, Eq, Clone, Copy)]
+#[derive(RustcEncodable, PartialEq, Eq, Clone, Copy)]
 struct DebugWritingMode;
 
 #[cfg(not(ndebug))]
-#[deriving(Encodable, PartialEq, Eq, Clone, Copy)]
+#[derive(RustcEncodable, PartialEq, Eq, Clone, Copy)]
 struct DebugWritingMode {
     mode: WritingMode
 }
@@ -134,7 +135,7 @@ impl Show for DebugWritingMode {
 
 
 /// A 2D size in flow-relative dimensions
-#[deriving(Encodable, PartialEq, Eq, Clone, Copy)]
+#[derive(RustcEncodable, PartialEq, Eq, Clone, Copy)]
 pub struct LogicalSize<T> {
     pub inline: T,  // inline-size, a.k.a. logical width, a.k.a. measure
     pub block: T,  // block-size, a.k.a. logical height, a.k.a. extent
@@ -143,7 +144,7 @@ pub struct LogicalSize<T> {
 
 impl<T: Show> Show for LogicalSize<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        write!(formatter, "LogicalSize({}, i{}×b{})",
+        write!(formatter, "LogicalSize({:?}, i{:?}×b{:?})",
                self.debug_writing_mode, self.inline, self.block)
     }
 }
@@ -240,9 +241,11 @@ impl<T: Copy> LogicalSize<T> {
     }
 }
 
-impl<T: Add<T, T>> Add<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
+impl<T: Add<T, Output=T>> Add for LogicalSize<T> {
+    type Output = LogicalSize<T>;
+
     #[inline]
-    fn add(&self, other: &LogicalSize<T>) -> LogicalSize<T> {
+    fn add(self, other: LogicalSize<T>) -> LogicalSize<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalSize {
             debug_writing_mode: self.debug_writing_mode,
@@ -252,9 +255,11 @@ impl<T: Add<T, T>> Add<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
     }
 }
 
-impl<T: Sub<T, T>> Sub<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
+impl<T: Sub<T, Output=T>> Sub for LogicalSize<T> {
+    type Output = LogicalSize<T>;
+
     #[inline]
-    fn sub(&self, other: &LogicalSize<T>) -> LogicalSize<T> {
+    fn sub(self, other: LogicalSize<T>) -> LogicalSize<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalSize {
             debug_writing_mode: self.debug_writing_mode,
@@ -266,7 +271,7 @@ impl<T: Sub<T, T>> Sub<LogicalSize<T>, LogicalSize<T>> for LogicalSize<T> {
 
 
 /// A 2D point in flow-relative dimensions
-#[deriving(PartialEq, Encodable, Eq, Clone, Copy)]
+#[derive(PartialEq, RustcEncodable, Eq, Clone, Copy)]
 pub struct LogicalPoint<T> {
     pub i: T,  /// inline-axis coordinate
     pub b: T,  /// block-axis coordinate
@@ -275,7 +280,7 @@ pub struct LogicalPoint<T> {
 
 impl<T: Show> Show for LogicalPoint<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
-        write!(formatter, "LogicalPoint({} (i{}, b{}))",
+        write!(formatter, "LogicalPoint({:?} (i{:?}, b{:?}))",
                self.debug_writing_mode, self.i, self.b)
     }
 }
@@ -303,7 +308,7 @@ impl<T: Copy> LogicalPoint<T> {
     }
 }
 
-impl<T: Copy + Sub<T, T>> LogicalPoint<T> {
+impl<T: Copy + Sub<T, Output=T>> LogicalPoint<T> {
     #[inline]
     pub fn from_physical(mode: WritingMode, point: Point2D<T>, container_size: Size2D<T>)
                          -> LogicalPoint<T> {
@@ -391,7 +396,7 @@ impl<T: Copy + Sub<T, T>> LogicalPoint<T> {
     }
 }
 
-impl<T: Add<T,T>> LogicalPoint<T> {
+impl<T: Copy + Add<T, Output=T>> LogicalPoint<T> {
     /// This doesn’t really makes sense,
     /// but happens when dealing with multiple origins.
     #[inline]
@@ -405,9 +410,11 @@ impl<T: Add<T,T>> LogicalPoint<T> {
     }
 }
 
-impl<T: Add<T,T>> Add<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
+impl<T: Copy + Add<T,Output=T>> Add<LogicalSize<T>> for LogicalPoint<T> {
+    type Output = LogicalPoint<T>;
+
     #[inline]
-    fn add(&self, other: &LogicalSize<T>) -> LogicalPoint<T> {
+    fn add(self, other: LogicalSize<T>) -> LogicalPoint<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalPoint {
             debug_writing_mode: self.debug_writing_mode,
@@ -417,9 +424,11 @@ impl<T: Add<T,T>> Add<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
     }
 }
 
-impl<T: Sub<T,T>> Sub<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
+impl<T: Copy + Sub<T,Output=T>> Sub<LogicalSize<T>> for LogicalPoint<T> {
+    type Output = LogicalPoint<T>;
+
     #[inline]
-    fn sub(&self, other: &LogicalSize<T>) -> LogicalPoint<T> {
+    fn sub(self, other: LogicalSize<T>) -> LogicalPoint<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalPoint {
             debug_writing_mode: self.debug_writing_mode,
@@ -434,7 +443,7 @@ impl<T: Sub<T,T>> Sub<LogicalSize<T>, LogicalPoint<T>> for LogicalPoint<T> {
 /// Represents the four sides of the margins, borders, or padding of a CSS box,
 /// or a combination of those.
 /// A positive "margin" can be added to a rectangle to obtain a bigger rectangle.
-#[deriving(Encodable, PartialEq, Eq, Clone, Copy)]
+#[derive(RustcEncodable, PartialEq, Eq, Clone, Copy)]
 pub struct LogicalMargin<T> {
     pub block_start: T,
     pub inline_end: T,
@@ -446,7 +455,7 @@ pub struct LogicalMargin<T> {
 impl<T: Show> Show for LogicalMargin<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter,
-               "LogicalMargin({}, inline: {}..{} block: {}..{})",
+               "LogicalMargin({:?}, inline: {:?}..{:?} block: {:?}..{:?})",
                self.debug_writing_mode,
                self.inline_start,
                self.inline_end,
@@ -656,7 +665,7 @@ impl<T: PartialEq + Zero> LogicalMargin<T> {
     }
 }
 
-impl<T: Add<T, T>> LogicalMargin<T> {
+impl<T: Copy + Add<T, Output=T>> LogicalMargin<T> {
     #[inline]
     pub fn inline_start_end(&self) -> T {
         self.inline_start + self.inline_end
@@ -688,9 +697,11 @@ impl<T: Add<T, T>> LogicalMargin<T> {
     }
 }
 
-impl<T: Add<T, T>> Add<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> {
+impl<T: Add<T, Output=T>> Add for LogicalMargin<T> {
+    type Output = LogicalMargin<T>;
+
     #[inline]
-    fn add(&self, other: &LogicalMargin<T>) -> LogicalMargin<T> {
+    fn add(self, other: LogicalMargin<T>) -> LogicalMargin<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalMargin {
             debug_writing_mode: self.debug_writing_mode,
@@ -702,9 +713,11 @@ impl<T: Add<T, T>> Add<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> 
     }
 }
 
-impl<T: Sub<T, T>> Sub<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> {
+impl<T: Sub<T, Output=T>> Sub for LogicalMargin<T> {
+    type Output = LogicalMargin<T>;
+
     #[inline]
-    fn sub(&self, other: &LogicalMargin<T>) -> LogicalMargin<T> {
+    fn sub(self, other: LogicalMargin<T>) -> LogicalMargin<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalMargin {
             debug_writing_mode: self.debug_writing_mode,
@@ -718,7 +731,7 @@ impl<T: Sub<T, T>> Sub<LogicalMargin<T>, LogicalMargin<T>> for LogicalMargin<T> 
 
 
 /// A rectangle in flow-relative dimensions
-#[deriving(Encodable, PartialEq, Eq, Clone, Copy)]
+#[derive(RustcEncodable, PartialEq, Eq, Clone, Copy)]
 pub struct LogicalRect<T> {
     pub start: LogicalPoint<T>,
     pub size: LogicalSize<T>,
@@ -728,7 +741,7 @@ pub struct LogicalRect<T> {
 impl<T: Show> Show for LogicalRect<T> {
     fn fmt(&self, formatter: &mut Formatter) -> Result<(), Error> {
         write!(formatter,
-               "LogicalRect({}, i{}×b{}, @ (i{},b{}))",
+               "LogicalRect({:?}, i{:?}×b{:?}, @ (i{:?},b{:?}))",
                self.debug_writing_mode,
                self.size.inline,
                self.size.block,
@@ -772,7 +785,7 @@ impl<T: Copy> LogicalRect<T> {
     }
 }
 
-impl<T: Copy + Add<T, T> + Sub<T, T>> LogicalRect<T> {
+impl<T: Copy + Add<T, Output=T> + Sub<T, Output=T>> LogicalRect<T> {
     #[inline]
     pub fn from_physical(mode: WritingMode, rect: Rect<T>, container_size: Size2D<T>)
                          -> LogicalRect<T> {
@@ -881,7 +894,7 @@ impl<T: Copy + Add<T, T> + Sub<T, T>> LogicalRect<T> {
     }
 }
 
-impl<T: Copy + Ord + Add<T, T> + Sub<T, T>> LogicalRect<T> {
+impl<T: Copy + Ord + Add<T, Output=T> + Sub<T, Output=T>> LogicalRect<T> {
     #[inline]
     pub fn union(&self, other: &LogicalRect<T>) -> LogicalRect<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
@@ -904,9 +917,11 @@ impl<T: Copy + Ord + Add<T, T> + Sub<T, T>> LogicalRect<T> {
     }
 }
 
-impl<T: Add<T, T> + Sub<T, T>> Add<LogicalMargin<T>, LogicalRect<T>> for LogicalRect<T> {
+impl<T: Copy + Add<T, Output=T> + Sub<T, Output=T>> Add<LogicalMargin<T>> for LogicalRect<T> {
+    type Output = LogicalRect<T>;
+
     #[inline]
-    fn add(&self, other: &LogicalMargin<T>) -> LogicalRect<T> {
+    fn add(self, other: LogicalMargin<T>) -> LogicalRect<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalRect {
             start: LogicalPoint {
@@ -927,9 +942,11 @@ impl<T: Add<T, T> + Sub<T, T>> Add<LogicalMargin<T>, LogicalRect<T>> for Logical
 }
 
 
-impl<T: Add<T, T> + Sub<T, T>> Sub<LogicalMargin<T>, LogicalRect<T>> for LogicalRect<T> {
+impl<T: Copy + Add<T, Output=T> + Sub<T, Output=T>> Sub<LogicalMargin<T>> for LogicalRect<T> {
+    type Output = LogicalRect<T>;
+
     #[inline]
-    fn sub(&self, other: &LogicalMargin<T>) -> LogicalRect<T> {
+    fn sub(self, other: LogicalMargin<T>) -> LogicalRect<T> {
         self.debug_writing_mode.check_debug(other.debug_writing_mode);
         LogicalRect {
             start: LogicalPoint {
@@ -950,7 +967,7 @@ impl<T: Add<T, T> + Sub<T, T>> Sub<LogicalMargin<T>, LogicalRect<T>> for Logical
 }
 
 #[cfg(test)]
-fn modes() -> [WritingMode, ..10] {
+fn modes() -> [WritingMode; 10] {
     [
         WritingMode::empty(),
         FLAG_VERTICAL,

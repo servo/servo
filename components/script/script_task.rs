@@ -68,28 +68,30 @@ use servo_util::task_state;
 
 use geom::point::Point2D;
 use hyper::header::{Header, HeaderFormat};
-use hyper::header::common::util as header_util;
+use hyper::header::shared::util as header_util;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
-use js::jsapi::{JSContext, JSRuntime};
+use js::jsapi::{JSContext, JSRuntime, JSObject};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
 use js::jsapi::{JS_SetGCCallback, JSGCStatus, JSGC_BEGIN, JSGC_END};
 use js::rust::{Cx, RtUtils};
 use js;
 use url::Url;
 
-use std::any::{Any, AnyRefExt};
+use libc;
+use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::comm::{channel, Sender, Receiver, Select};
 use std::fmt::{mod, Show};
 use std::mem::replace;
+use std::num::ToPrimitive;
 use std::rc::Rc;
+use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::u32;
 use time::{Tm, strptime};
 
-thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None))
+thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum TimerSource {
     FromWindow(PipelineId),
     FromWorker
@@ -147,7 +149,7 @@ impl ScriptChan for NonWorkerScriptChan {
 
     fn clone(&self) -> Box<ScriptChan+Send> {
         let NonWorkerScriptChan(ref chan) = *self;
-        box NonWorkerScriptChan(chan.clone())
+        box NonWorkerScriptChan((*chan).clone())
     }
 }
 
@@ -302,7 +304,7 @@ impl ScriptTaskFactory for ScriptTask {
         let ConstellationChan(const_chan) = constellation_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
-        spawn_named_with_send_on_failure("ScriptTask", task_state::SCRIPT, proc() {
+        spawn_named_with_send_on_failure("ScriptTask", task_state::SCRIPT, move || {
             let script_task = ScriptTask::new(id,
                                               box compositor as Box<ScriptListener>,
                                               layout_chan,
@@ -350,6 +352,12 @@ impl ScriptTask {
                window_size: WindowSizeData)
                -> ScriptTask {
         let (js_runtime, js_context) = ScriptTask::new_rt_and_cx();
+        let wrap_for_same_compartment = wrap_for_same_compartment as
+            unsafe extern "C" fn(*mut JSContext, *mut JSObject) -> *mut JSObject;
+        let pre_wrap = pre_wrap as
+            unsafe extern fn(*mut JSContext, *mut JSObject, *mut JSObject,
+                             libc::c_uint) -> *mut JSObject;
+
         unsafe {
             // JS_SetWrapObjectCallbacks clobbers the existing wrap callback,
             // and JSCompartment::wrap crashes if that happens. The only way
@@ -425,7 +433,8 @@ impl ScriptTask {
         // Needed for debug assertions about whether GC is running.
         if !cfg!(ndebug) {
             unsafe {
-                JS_SetGCCallback(js_runtime.ptr, Some(debug_gc_callback));
+                JS_SetGCCallback(js_runtime.ptr,
+                    Some(debug_gc_callback as unsafe extern "C" fn(*mut JSRuntime, JSGCStatus)));
             }
         }
 
@@ -497,11 +506,11 @@ impl ScriptTask {
             }
             let ret = sel.wait();
             if ret == port1.id() {
-                MixedMessage::FromScript(self.port.recv())
+                MixedMessage::FromScript(self.port.recv().unwrap())
             } else if ret == port2.id() {
-                MixedMessage::FromConstellation(self.control_port.recv())
+                MixedMessage::FromConstellation(self.control_port.recv().unwrap())
             } else if ret == port3.id() {
-                MixedMessage::FromDevtools(self.devtools_port.recv())
+                MixedMessage::FromDevtools(self.devtools_port.recv().unwrap())
             } else {
                 panic!("unexpected select result")
             }
@@ -666,7 +675,7 @@ impl ScriptTask {
 
     /// Handles a notification that reflow completed.
     fn handle_reflow_complete_msg(&self, pipeline_id: PipelineId, reflow_id: uint) {
-        debug!("Script: Reflow {} complete for {}", reflow_id, pipeline_id);
+        debug!("Script: Reflow {:?} complete for {:?}", reflow_id, pipeline_id);
         let page = self.page.borrow_mut();
         let page = page.find(pipeline_id).expect(
             "ScriptTask: received a load message for a layout channel that is not associated \
@@ -694,8 +703,8 @@ impl ScriptTask {
             with a page in the page tree. This is a bug.");
         page.window_size.set(new_size);
         match &mut *page.mut_url() {
-            &Some((_, ref mut needs_reflow)) => *needs_reflow = true,
-            &None => (),
+            &mut Some((_, ref mut needs_reflow)) => *needs_reflow = true,
+            &mut None => (),
         }
     }
 
@@ -724,7 +733,7 @@ impl ScriptTask {
         // If root is being exited, shut down all pages
         let page = self.page.borrow_mut();
         if page.id == id {
-            debug!("shutting down layout for root page {}", id);
+            debug!("shutting down layout for root page {:?}", id);
             *self.js_context.borrow_mut() = None;
             shut_down_layout(&*page, (*self.js_runtime).ptr, exit_type);
             return true
@@ -748,7 +757,7 @@ impl ScriptTask {
     /// objects, parses HTML and CSS, and kicks off initial layout.
     fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
         let url = load_data.url.clone();
-        debug!("ScriptTask: loading {} on page {}", url, pipeline_id);
+        debug!("ScriptTask: loading {:?} on page {:?}", url, pipeline_id);
 
         let page = self.page.borrow_mut();
         let page = page.find(pipeline_id).expect("ScriptTask: received a load
@@ -764,7 +773,7 @@ impl ScriptTask {
             // Pull out the `needs_reflow` flag explicitly because `reflow` can ask for the page's
             // URL, and we can't be holding a borrow on that URL (#4402).
             let needed_reflow = match &mut *page.mut_url() {
-                &Some((_, ref mut needs_reflow)) => replace(needs_reflow, false),
+                &mut Some((_, ref mut needs_reflow)) => replace(needs_reflow, false),
                 _ => panic!("can't reload a page with no URL!")
             };
             if needed_reflow {
@@ -823,7 +832,7 @@ impl ScriptTask {
                 consumer: input_chan,
             }));
 
-            let load_response = input_port.recv();
+            let load_response = input_port.recv().unwrap();
 
             load_response.metadata.headers.as_ref().map(|headers| {
                 headers.get().map(|&LastModified(ref tm)| {
@@ -855,7 +864,7 @@ impl ScriptTask {
         self.compositor.borrow_mut().set_ready_state(pipeline_id, PerformingLayout);
 
         // Kick off the initial reflow of the page.
-        debug!("kicking off initial reflow of {}", final_url);
+        debug!("kicking off initial reflow of {:?}", final_url);
         document.r().content_changed(NodeCast::from_ref(document.r()),
                                      NodeDamage::OtherNodeDamage);
         window.r().flush_layout(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery);
@@ -1025,9 +1034,8 @@ impl ScriptTask {
                                            props.location, is_repeating, is_composing,
                                            ctrl, alt, shift, meta,
                                            props.char_code, 0).root();
-            let _ = target.DispatchEvent(EventCast::from_ref(event.r()));
-
             let ev = EventCast::from_ref(event.r());
+            let _ = target.DispatchEvent(ev);
             prevented = ev.DefaultPrevented();
             // TODO: if keypress event is canceled, prevent firing input events
         }
@@ -1127,25 +1135,26 @@ impl ScriptTask {
     }
 
     fn handle_click_event(&self, pipeline_id: PipelineId, _button: uint, point: Point2D<f32>) {
-        debug!("ClickEvent: clicked at {}", point);
+        debug!("ClickEvent: clicked at {:?}", point);
         let page = get_page(&*self.page.borrow(), pipeline_id);
         match page.hit_test(&point) {
             Some(node_address) => {
-                debug!("node address is {}", node_address.0);
+                debug!("node address is {:?}", node_address.0);
 
                 let temp_node =
                         node::from_untrusted_node_address(
                             self.js_runtime.ptr, node_address).root();
 
-                let maybe_node = match ElementCast::to_ref(temp_node.r()) {
+                let maybe_elem: Option<JSRef<Element>> = ElementCast::to_ref(temp_node.r());
+                let maybe_node = match maybe_elem {
                     Some(element) => Some(element),
                     None => temp_node.r().ancestors().filter_map(ElementCast::to_ref).next(),
                 };
 
                 match maybe_node {
                     Some(el) => {
-                        let node = NodeCast::from_ref(el);
-                        debug!("clicked on {}", node.debug_str());
+                        let node: JSRef<Node> = NodeCast::from_ref(el);
+                        debug!("clicked on {:?}", node.debug_str());
                         // Prevent click event if form control element is disabled.
                         if node.click_event_filter_by_disabled_state() { return; }
                         match *page.frame() {
@@ -1308,7 +1317,7 @@ pub fn get_page(page: &Rc<Page>, pipeline_id: PipelineId) -> Rc<Page> {
 }
 
 //FIXME(seanmonstar): uplift to Hyper
-#[deriving(Clone)]
+#[derive(Clone)]
 struct LastModified(pub Tm);
 
 impl Header for LastModified {
