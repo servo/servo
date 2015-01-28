@@ -4,8 +4,6 @@
 
 //! Utilities to throw exceptions from Rust bindings.
 
-#![deny(missing_docs)]
-
 use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::global::GlobalRef;
 use dom::domexception::DOMException;

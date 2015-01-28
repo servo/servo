@@ -5,8 +5,6 @@
 //! This module implements structured cloning, as defined by [HTML]
 //! (https://html.spec.whatwg.org/multipage/#safe-passing-of-structured-data).
 
-#![deny(missing_docs)]
-
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::DataClone;
 use dom::bindings::global::GlobalRef;
