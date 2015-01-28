@@ -1166,16 +1166,12 @@ mod tests {
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
     fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
-        use namespaces::NamespaceMap;
         use selectors::parse_selector_list;
         use stylesheets::Origin;
 
         css_selectors.iter().enumerate().map(|(i, selectors)| {
-            let context = ParserContext {
-                stylesheet_origin: Origin::Author,
-                namespaces: NamespaceMap::new(),
-                base_url: &Url::parse("about:blank").unwrap(),
-            };
+            let url = Url::parse("about:blank").unwrap();
+            let context = ParserContext::new(Origin::Author, &url);
             parse_selector_list(&context, &mut Parser::new(*selectors))
             .unwrap().into_iter().map(|s| {
                 Rule {

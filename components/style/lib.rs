@@ -68,7 +68,6 @@ pub mod selectors;
 pub mod selector_matching;
 #[macro_use] pub mod values;
 pub mod properties;
-pub mod namespaces;
 pub mod node;
 pub mod media_queries;
 pub mod font_face;

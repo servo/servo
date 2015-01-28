@@ -21,7 +21,6 @@ use values::specified::BorderStyle;
 use values::computed;
 use selector_matching::DeclarationBlock;
 use parser::ParserContext;
-use namespaces::NamespaceMap;
 use stylesheets::Origin;
 
 use self::property_bit_field::PropertyBitField;
@@ -2325,57 +2324,57 @@ pub struct PropertyDeclarationBlock {
 
 
 pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclarationBlock {
-    let context = ParserContext {
-        stylesheet_origin: Origin::Author,
-        base_url: base_url,
-        namespaces: NamespaceMap::new(),
-    };
+    let context = ParserContext::new(Origin::Author, base_url);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
 
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    important_declarations: Vec<PropertyDeclaration>,
-    normal_declarations: Vec<PropertyDeclaration>,
 }
 
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser<(), ()> for PropertyDeclarationParser<'a, 'b> {}
+impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
+    type Prelude = ();
+    type AtRule = (Vec<PropertyDeclaration>, bool);
+}
 
 
-impl<'a, 'b> DeclarationParser<()> for PropertyDeclarationParser<'a, 'b> {
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
+impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
+    type Declaration = (Vec<PropertyDeclaration>, bool);
+
+    fn parse_value(&self, name: &str, input: &mut Parser) -> Result<(Vec<PropertyDeclaration>, bool), ()> {
         let mut results = vec![];
-        let important = try!(input.parse_entirely(|input| {
-            match PropertyDeclaration::parse(name, self.context, input, &mut results) {
-                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
-                _ => return Err(())
-            }
-            Ok(input.try(parse_important).is_ok())
-        }));
-        if important {
-            self.important_declarations.push_all(results.as_slice());
-        } else {
-            self.normal_declarations.push_all(results.as_slice());
+        match PropertyDeclaration::parse(name, self.context, input, &mut results) {
+            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
+            _ => return Err(())
         }
-        Ok(())
+        let important = input.try(parse_important).is_ok();
+        Ok((results, important))
     }
 }
 
 
 pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Parser)
                                        -> PropertyDeclarationBlock {
+    let mut important_declarations = Vec::new();
+    let mut normal_declarations = Vec::new();
     let parser = PropertyDeclarationParser {
         context: context,
-        important_declarations: vec![],
-        normal_declarations: vec![],
     };
-    let parser = DeclarationListParser::new(input, parser).run();
+    for declaration in DeclarationListParser::new(input, parser) {
+        if let Ok((results, important)) = declaration {
+            if important {
+                important_declarations.push_all(results.as_slice());
+            } else {
+                normal_declarations.push_all(results.as_slice());
+            }
+        }
+    }
     PropertyDeclarationBlock {
-        important: Arc::new(deduplicate_property_declarations(parser.important_declarations)),
-        normal: Arc::new(deduplicate_property_declarations(parser.normal_declarations)),
+        important: Arc::new(deduplicate_property_declarations(important_declarations)),
+        normal: Arc::new(deduplicate_property_declarations(normal_declarations)),
     }
 }
 
