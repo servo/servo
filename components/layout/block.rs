@@ -32,7 +32,7 @@ use context::LayoutContext;
 use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, FragmentDisplayListBuilding};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use flow::{mod, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
+use flow::{self, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
 use flow::{ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
 use flow::{PostorderFlowTraversal, mut_base};
 use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};

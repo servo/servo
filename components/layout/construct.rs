@@ -31,7 +31,7 @@ use fragment::TableColumnFragmentInfo;
 use fragment::UnscannedTextFragmentInfo;
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::InlineFlow;
-use list_item::{mod, ListItemFlow};
+use list_item::{self, ListItemFlow};
 use parallel;
 use table_wrapper::TableWrapperFlow;
 use table::TableFlow;
@@ -56,7 +56,7 @@ use std::mem;
 use std::sync::atomic::Ordering;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
-use style::{mod, ComputedValues};
+use style::{self, ComputedValues};
 use std::sync::Arc;
 use url::Url;
 

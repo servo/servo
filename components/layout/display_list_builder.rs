@@ -13,7 +13,7 @@
 use block::BlockFlow;
 use canvas::canvas_paint_task::CanvasMsg::SendPixelContents;
 use context::LayoutContext;
-use flow::{mod, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
+use flow::{self, Flow, IS_ABSOLUTELY_POSITIONED, NEEDS_LAYER};
 use fragment::{CoordinateSystem, Fragment, IframeFragmentInfo, ImageFragmentInfo};
 use fragment::{ScannedTextFragmentInfo, SpecificFragmentInfo};
 use inline::InlineFlow;
@@ -40,7 +40,7 @@ use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::image::holder::ImageHolder;
 use servo_util::cursor::Cursor;
-use servo_util::geometry::{mod, Au, to_px};
+use servo_util::geometry::{self, Au, to_px};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::default::Default;

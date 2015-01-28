@@ -14,7 +14,7 @@ use gfx::font::{RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
-use gfx::text::util::{mod, CompressionMode};
+use gfx::text::util::{self, CompressionMode};
 use servo_util::dlist;
 use servo_util::geometry::Au;
 use servo_util::logical_geometry::{LogicalSize, WritingMode};
