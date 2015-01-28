@@ -66,7 +66,7 @@ use string_cache::Atom;
 pub trait VirtualMethods {
     /// Returns self as the superclass of the implementation for this trait,
     /// if any.
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods>;
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods>;
 
     /// Called when changing or adding attributes, after the attribute's value
     /// has been updated.

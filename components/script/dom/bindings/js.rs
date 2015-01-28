@@ -636,7 +636,7 @@ impl<'a, T: Reflectable> JSRef<'a, T> {
 }
 
 impl<'a, T: Reflectable> Reflectable for JSRef<'a, T> {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
+    fn reflector<'b>(&'b self) -> &'b Reflector {
         (**self).reflector()
     }
 }
