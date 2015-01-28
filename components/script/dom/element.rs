@@ -59,7 +59,7 @@ use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
 
 use cssparser::RGBA;
 use std::ascii::AsciiExt;
-use std::borrow::ToOwned;
+use std::borrow::{IntoCow, ToOwned};
 use std::cell::{Ref, RefMut};
 use std::default::Default;
 use std::mem;
@@ -89,14 +89,14 @@ impl ElementDerived for EventTarget {
     }
 }
 
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum ElementTypeId {
     HTMLElement(HTMLElementTypeId),
     Element,
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum ElementCreator {
     ParserCreated,
     ScriptCreated,
@@ -388,7 +388,7 @@ impl LayoutElementHelpers for JS<Element> {
     }
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 pub enum StylePriority {
     Important,
     Normal,
@@ -424,7 +424,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
     // https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name
     fn parsed_name(self, name: DOMString) -> DOMString {
         if self.html_element_in_html_document() {
-            name.as_slice().to_ascii_lower()
+            name.as_slice().to_ascii_lowercase()
         } else {
             name
         }
@@ -505,7 +505,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
 
     fn update_inline_style(self, property_decl: style::PropertyDeclaration, style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
-        if let &Some(ref mut declarations) = &mut *inline_declarations {
+        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
                 declarations.important.make_unique()
             } else {
@@ -569,9 +569,10 @@ pub trait AttributeHandlers {
                                  prefix: Option<DOMString>);
     fn set_attribute(self, name: &Atom, value: AttrValue);
     fn set_custom_attribute(self, name: DOMString, value: DOMString) -> ErrorResult;
-    fn do_set_attribute(self, local_name: Atom, value: AttrValue,
-                        name: Atom, namespace: Namespace,
-                        prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool);
+    fn do_set_attribute<F>(self, local_name: Atom, value: AttrValue,
+                           name: Atom, namespace: Namespace,
+                           prefix: Option<DOMString>, cb: F)
+        where F: Fn(JSRef<Attr>) -> bool;
     fn parse_attribute(self, namespace: &Namespace, local_name: &Atom,
                        value: DOMString) -> AttrValue;
 
@@ -633,7 +634,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_attribute(self, name: &Atom, value: AttrValue) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         assert!(!name.as_slice().contains(":"));
 
         self.do_set_attribute(name.clone(), value, name.clone(),
@@ -657,9 +658,15 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         Ok(())
     }
 
-    fn do_set_attribute(self, local_name: Atom, value: AttrValue,
-                        name: Atom, namespace: Namespace,
-                        prefix: Option<DOMString>, cb: |JSRef<Attr>| -> bool) {
+    fn do_set_attribute<F>(self,
+                           local_name: Atom,
+                           value: AttrValue,
+                           name: Atom,
+                           namespace: Namespace,
+                           prefix: Option<DOMString>,
+                           cb: F)
+        where F: Fn(JSRef<Attr>) -> bool
+    {
         let idx = self.attrs.borrow().iter()
                                      .map(|attr| attr.root())
                                      .position(|attr| cb(attr.r()));
@@ -724,7 +731,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
             let owner_doc = node.owner_doc().root();
             owner_doc.r().quirks_mode()
         };
-        let is_equal = |lhs: &Atom, rhs: &Atom| match quirks_mode {
+        let is_equal = |&:lhs: &Atom, rhs: &Atom| match quirks_mode {
             NoQuirks | LimitedQuirks => lhs == rhs,
             Quirks => lhs.as_slice().eq_ignore_ascii_case(rhs.as_slice())
         };
@@ -742,9 +749,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn has_attribute(self, name: &Atom) -> bool {
-        assert!(name.as_slice().chars().all(|ch| {
-            !ch.is_ascii() || ch.to_ascii().to_lowercase() == ch.to_ascii()
-        }));
+        assert!(name.as_slice().bytes().all(|&:b| b.to_ascii_lowercase() == b));
         self.attrs.borrow().iter().map(|attr| attr.root()).any(|attr| {
             *attr.r().local_name() == *name && *attr.r().namespace() == ns!("")
         })
@@ -760,7 +765,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn get_url_attribute(self, name: &Atom) -> DOMString {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         if !self.has_attribute(name) {
             return "".to_owned();
         }
@@ -785,7 +790,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_string_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::String(value));
     }
 
@@ -800,18 +805,18 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
     }
 
     fn set_tokenlist_attribute(self, name: &Atom, value: DOMString) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::from_serialized_tokenlist(value));
     }
 
     fn set_atomic_tokenlist_attribute(self, name: &Atom, tokens: Vec<Atom>) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::from_atomic_tokens(tokens));
     }
 
     fn get_uint_attribute(self, name: &Atom) -> u32 {
         assert!(name.as_slice().chars().all(|ch| {
-            !ch.is_ascii() || ch.to_ascii().to_lowercase() == ch.to_ascii()
+            !ch.is_ascii() || ch.to_ascii_lowercase() == ch
         }));
         let attribute = self.get_attribute(ns!(""), name).root();
         match attribute {
@@ -826,7 +831,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         }
     }
     fn set_uint_attribute(self, name: &Atom, value: u32) {
-        assert!(name.as_slice() == name.as_slice().to_ascii_lower().as_slice());
+        assert!(name.as_slice() == name.as_slice().to_ascii_lowercase().as_slice());
         self.set_attribute(name, AttrValue::UInt(value.to_string(), value));
     }
 }
@@ -860,9 +865,9 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
             None => self.local_name.as_slice().into_cow()
         };
         if self.html_element_in_html_document() {
-            qualified_name.as_slice().to_ascii_upper()
+            qualified_name.as_slice().to_ascii_uppercase()
         } else {
-            qualified_name.into_string()
+            qualified_name.into_owned()
         }
     }
 
@@ -1374,13 +1379,15 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         node.get_enabled_state()
     }
     fn get_checked_state(self) -> bool {
-        match HTMLInputElementCast::to_ref(self) {
+        let input_element: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
+        match input_element {
             Some(input) => input.Checked(),
             None => false,
         }
     }
     fn get_indeterminate_state(self) -> bool {
-        match HTMLInputElementCast::to_ref(self) {
+        let input_element: Option<JSRef<HTMLInputElement>> = HTMLInputElementCast::to_ref(self);
+        match input_element {
             Some(input) => input.get_indeterminate_state(),
             None => false,
         }
@@ -1394,7 +1401,9 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
 
         has_class(self, name)
     }
-    fn each_class(self, callback: |&Atom|) {
+    fn each_class<F>(self, callback: F)
+        where F: Fn(&Atom)
+    {
         match self.get_attribute(ns!(""), &atom!("class")).root() {
             None => {}
             Some(ref attr) => {
@@ -1410,7 +1419,8 @@ impl<'a> style::TElement<'a> for JSRef<'a, Element> {
         }
     }
     fn has_nonzero_border(self) -> bool {
-        match HTMLTableElementCast::to_ref(self) {
+        let table_element: Option<JSRef<HTMLTableElement>> = HTMLTableElementCast::to_ref(self);
+        match table_element {
             None => false,
             Some(this) => {
                 match this.get_border() {
@@ -1461,7 +1471,10 @@ impl<'a> ActivationElementHelpers<'a> for JSRef<'a, Element> {
             None => {
                 let node: JSRef<Node> = NodeCast::from_ref(self);
                 node.ancestors()
-                    .filter_map(|node| ElementCast::to_ref(node))
+                    .filter_map(|node| {
+                        let e: Option<JSRef<Element>> = ElementCast::to_ref(node);
+                        e
+                    })
                     .filter(|e| e.as_maybe_activatable().is_some()).next()
                     .map(|r| Temporary::from_rooted(r))
             }

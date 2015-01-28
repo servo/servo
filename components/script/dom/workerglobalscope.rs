@@ -30,7 +30,7 @@ use std::default::Default;
 use std::rc::Rc;
 use url::{Url, UrlParser};
 
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 #[jstraceable]
 pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,

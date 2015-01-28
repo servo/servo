@@ -11,14 +11,14 @@ multiple times and thus triggering reflows multiple times.
 use image_cache_task::{ImageCacheTask, ImageResponseMsg, Msg};
 
 use std::borrow::ToOwned;
-use std::comm::{Receiver, channel};
 use std::collections::HashMap;
-use std::collections::hash_map::{Occupied, Vacant};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::sync::mpsc::{Receiver, channel};
 use servo_util::task::spawn_named;
 use url::Url;
 
 pub trait ImageResponder<NodeAddress: Send> {
-    fn respond(&self) -> proc(ImageResponseMsg, NodeAddress):Send;
+    fn respond(&self) -> Box<Fn(ImageResponseMsg, NodeAddress)+Send>;
 }
 
 pub struct LocalImageCache<NodeAddress> {
@@ -39,7 +39,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct ImageState {
     prefetched: bool,
     decoded: bool,
@@ -118,7 +118,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
         let (response_chan, response_port) = channel();
         self.image_cache_task.send(Msg::GetImage((*url).clone(), response_chan));
 
-        let response = response_port.recv();
+        let response = response_port.recv().unwrap();
         match response {
             ImageResponseMsg::ImageNotReady => {
                 // Need to reflow when the image is available
@@ -128,13 +128,13 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
                 // on the image to load and triggering layout
                 let image_cache_task = self.image_cache_task.clone();
                 assert!(self.on_image_available.is_some());
-                let on_image_available: proc(ImageResponseMsg, NodeAddress):Send =
+                let on_image_available =
                     self.on_image_available.as_ref().unwrap().respond();
                 let url = (*url).clone();
-                spawn_named("LocalImageCache".to_owned(), proc() {
+                spawn_named("LocalImageCache".to_owned(), move || {
                     let (response_chan, response_port) = channel();
                     image_cache_task.send(Msg::WaitForImage(url, response_chan));
-                    on_image_available(response_port.recv(), node_address);
+                    on_image_available(response_port.recv().unwrap(), node_address);
                 });
             }
             _ => ()
@@ -157,7 +157,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
         match self.state_map.entry((*url).clone()) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) =>
-                entry.set(ImageState {
+                entry.insert(ImageState {
                     prefetched: false,
                     decoded: false,
                     last_request_round: 0,

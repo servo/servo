@@ -13,10 +13,10 @@ use protocol::JsonPacketStream;
 use serialize::json;
 use std::io::TcpStream;
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct TabTraits;
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct TabAttachedReply {
     from: String,
     __type__: String,
@@ -26,24 +26,24 @@ struct TabAttachedReply {
     traits: TabTraits,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct TabDetachedReply {
     from: String,
     __type__: String,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct ReconfigureReply {
     from: String
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct ListFramesReply {
     from: String,
     frames: Vec<FrameMsg>,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 struct FrameMsg {
     id: uint,
     url: String,
@@ -51,7 +51,7 @@ struct FrameMsg {
     parentID: uint,
 }
 
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 pub struct TabActorMsg {
     actor: String,
     title: String,

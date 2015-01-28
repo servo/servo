@@ -4,10 +4,11 @@
 
 use interfaces::cef_command_line_t;
 
-use libc::{calloc, c_int, size_t};
+use libc::{calloc, c_int, c_char, size_t};
+use std::ffi;
 use std::mem;
-use std::string;
-use std::c_vec::CVec;
+use std::slice;
+use std::str;
 use string as cef_string;
 use string::cef_string_utf16_set;
 use types::{cef_string_t, cef_string_userfree_t, cef_string_utf16_t};
@@ -33,12 +34,15 @@ pub fn command_line_init(argc: c_int, argv: *const *const u8) {
     unsafe {
         let mut a: Vec<String> = vec!();
         for i in range(0u, argc as uint) {
-            a.push(string::raw::from_buf(*argv.offset(i as int) as *const u8));
+            let offset = *argv.offset(i as int) as *const c_char;
+            let slice = ffi::c_str_to_bytes(&offset);
+            let s = str::from_utf8(slice).unwrap();
+            a.push(String::from_str(s));
         }
         let cl = command_line_new();
         (*cl).argc = argc;
         (*cl).argv = a;
-        (*cl).cl.get_switch_value = Some(command_line_get_switch_value);
+        (*cl).cl.get_switch_value = Some(command_line_get_switch_value as extern "C" fn(*mut cef_command_line_t, *const cef_string_t) -> cef_string_userfree_t);
         GLOBAL_CMDLINE = Some(cl);
     }
 }
@@ -53,20 +57,21 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
         //but the default cef callback uses utf16, so I'm jumping on board the SS Copy
         let cl: *mut command_line_t = mem::transmute(cmd);
         let cs: *const cef_string_utf16_t = mem::transmute(name);
-        let opt = String::from_utf16(CVec::new((*cs).str, (*cs).length as uint).as_slice()).unwrap();
+        let buf = (*cs).str as *const _;
+        let slice = slice::from_raw_buf(&buf, (*cs).length as usize);
+        let opt = String::from_utf16(slice).unwrap();
             //debug!("opt: {}", opt);
         for s in (*cl).argv.iter() {
-            let o = s.as_slice().trim_left_chars('-');
+            let o = s.as_slice().trim_left_matches('-');
             //debug!("arg: {}", o);
             if o.as_slice().starts_with(opt.as_slice()) {
                 let mut string = mem::uninitialized();
                 let arg = o.slice_from(opt.len() + 1).as_bytes();
-                arg.with_c_str(|c_str| {
-                    cef_string_utf16_set(mem::transmute(c_str),
-                                         arg.len() as size_t,
-                                         &mut string,
-                                         1);
-                });
+                let c_str = ffi::CString::from_slice(arg);
+                cef_string_utf16_set(c_str.as_bytes().as_ptr() as *const _,
+                                     arg.len() as size_t,
+                                     &mut string,
+                                     1);
                 return cef_string::string_to_userfree_string(string)
             }
         }
@@ -78,7 +83,7 @@ pub extern "C" fn command_line_get_switch_value(cmd: *mut cef_command_line_t, na
 pub extern "C" fn cef_command_line_create() -> *mut cef_command_line_t {
         unsafe {
             let cl = command_line_new();
-            (*cl).cl.get_switch_value = Some(command_line_get_switch_value);
+            (*cl).cl.get_switch_value = Some(command_line_get_switch_value as extern "C" fn(*mut cef_command_line_t, *const cef_string_t) -> cef_string_userfree_t);
             mem::transmute(cl)
         }
 }
@@ -98,7 +103,7 @@ pub extern "C" fn cef_command_line_get_global() -> *mut cef_command_line_t {
 }
 
 cef_stub_static_method_impls! {
-    fn cef_command_line_create_command_line() -> *mut cef_command_line_t;
-    fn cef_command_line_get_global_command_line() -> *mut cef_command_line_t;
+    fn cef_command_line_create_command_line() -> *mut cef_command_line_t
+    fn cef_command_line_get_global_command_line() -> *mut cef_command_line_t
 }
 

@@ -26,7 +26,7 @@ dependencies = [
 [[package]]
 name = "android_glue"
 version = "0.0.1"
-source = "git+https://github.com/servo/android-rs-glue?ref=servo#122bc28545b5e59a923c466a484c403fa691bd55"
+source = "git+https://github.com/tomaka/android-rs-glue#7e930d2822adb791a515c24dfefe6ae37493f40f"
 dependencies = [
  "compile_msg 0.1.3 (git+https://github.com/huonw/compile_msg)",
 ]
@@ -34,7 +34,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#d0acabef6221e5fd6840254dc23f91c66b874629"
+source = "git+https://github.com/servo/rust-azure#2cc22b161a93f4016457f680b3966d879606d06d"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -42,7 +42,7 @@ dependencies = [
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "skia-sys 0.0.20130412 (git+https://github.com/servo/skia?ref=upstream-2014-06-16)",
+ "skia-sys 0.0.20130412 (git+https://github.com/servo/skia?branch=upstream-2014-06-16)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
@@ -66,7 +66,7 @@ dependencies = [
 [[package]]
 name = "cocoa"
 version = "0.1.1"
-source = "git+https://github.com/servo/rust-cocoa#bf53a53ce306279fc1cae0d56fdd5e7216696420"
+source = "git+https://github.com/servo/rust-cocoa#84a405ba9ff2a79d507dc6ee1ea3cf9bf48706d1"
 
 [[package]]
 name = "compile_msg"
@@ -91,25 +91,26 @@ dependencies = [
  "net 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "script_traits 0.0.1",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
 [[package]]
 name = "cookie"
-version = "0.1.0"
-source = "git+https://github.com/alexcrichton/cookie-rs#8d1b4bb8d5ed06e58c162eb235a4ccd210b68108"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "openssl 0.2.4 (git+https://github.com/sfackler/rust-openssl)",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "core_foundation"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-core-foundation#81db9ab15f67e16d7a3e9705a06cad65192014fd"
+source = "git+https://github.com/servo/rust-core-foundation#ce3d852765827b64a0d5fb2aadd77da39665b0b0"
 
 [[package]]
 name = "core_graphics"
@@ -122,7 +123,7 @@ dependencies = [
 [[package]]
 name = "core_text"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-core-text#cb369a26a0eb4e83c2128ceb3c685a191113417a"
+source = "git+https://github.com/servo/rust-core-text#b5cb33905350e99b2a19f5a22f7b1efea7ad48c2"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -130,12 +131,12 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.1.1"
-source = "git+https://github.com/servo/rust-cssparser#8d1b3e220e795f7baaa940919059d5f4ef4ec28c"
+version = "0.2.0"
+source = "git+https://github.com/servo/rust-cssparser#2a8c9f2c5f568495bae16f44b799be39b8efad39"
 dependencies = [
- "encoding 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "matches 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "text_writer 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "text_writer 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -157,63 +158,63 @@ dependencies = [
 [[package]]
 name = "egl"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-egl#88f2a13812ddbce2bf2317221663a61c31b3e220"
+source = "git+https://github.com/servo/rust-egl#cd74c82a8537090edb6c16478e2261db2a8c0b4f"
 
 [[package]]
 name = "encoding"
-version = "0.2.6"
+version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "encoding-index-japanese 1.0.20140915 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding-index-korean 1.0.20140915 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding-index-simpchinese 1.0.20140915 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding-index-singlebyte 1.0.20140915 (registry+https://github.com/rust-lang/crates.io-index)",
- "encoding-index-tradchinese 1.0.20140915 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding-index-japanese 1.20141219.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding-index-korean 1.20141219.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding-index-simpchinese 1.20141219.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding-index-singlebyte 1.20141219.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding-index-tradchinese 1.20141219.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "encoding-index-japanese"
-version = "1.0.20140915"
+version = "1.20141219.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "encoding_index_tests 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding_index_tests 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "encoding-index-korean"
-version = "1.0.20140915"
+version = "1.20141219.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "encoding_index_tests 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding_index_tests 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "encoding-index-simpchinese"
-version = "1.0.20140915"
+version = "1.20141219.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "encoding_index_tests 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding_index_tests 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "encoding-index-singlebyte"
-version = "1.0.20140915"
+version = "1.20141219.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "encoding_index_tests 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding_index_tests 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "encoding-index-tradchinese"
-version = "1.0.20140915"
+version = "1.20141219.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "encoding_index_tests 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding_index_tests 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "encoding_index_tests"
-version = "0.1.0"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -241,7 +242,7 @@ dependencies = [
 [[package]]
 name = "freetype"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-freetype#e55b06110fb2d74a2db68ead740db7e98fb98060"
+source = "git+https://github.com/servo/rust-freetype#ec0231343a3ad360d86846c12895a0a0cbb19f79"
 
 [[package]]
 name = "freetype-sys"
@@ -250,18 +251,18 @@ source = "git+https://github.com/servo/libfreetype2#f5c49c0da1d5bc6b206c41763440
 
 [[package]]
 name = "gcc"
-version = "0.1.1"
-source = "git+https://github.com/alexcrichton/gcc-rs#dfe97a119af4b2db53178eb8c3ca6be6589a152b"
+version = "0.1.4"
+source = "git+https://github.com/alexcrichton/gcc-rs#f5c52d956e0742a66e40c8301e634e136c3ae287"
 
 [[package]]
 name = "gcc"
-version = "0.1.2"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "geom"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-geom#05f2d5494355adc78ad7d17286912f0d128f503b"
+source = "git+https://github.com/servo/rust-geom#a4a4a03aa024412bf3f4e093c0198b433c6ad63f"
 
 [[package]]
 name = "gfx"
@@ -283,45 +284,65 @@ dependencies = [
  "script_traits 0.0.1",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "style 0.0.1",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
 [[package]]
 name = "gl_common"
-version = "0.0.1"
-source = "git+https://github.com/bjz/gl-rs.git#b5e3f4f76c31bc1b459d5e4c10d879ffa4f67c6e"
+version = "0.0.3"
+source = "git+https://github.com/bjz/gl-rs.git#230e6c9ed611cddfcb6682dee9686471d54863d0"
+
+[[package]]
+name = "gl_common"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "gl_generator"
-version = "0.0.1"
-source = "git+https://github.com/bjz/gl-rs.git#b5e3f4f76c31bc1b459d5e4c10d879ffa4f67c6e"
+version = "0.0.12"
+source = "git+https://github.com/bjz/gl-rs.git#230e6c9ed611cddfcb6682dee9686471d54863d0"
 dependencies = [
- "gl_common 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
- "khronos_api 0.0.2 (git+https://github.com/bjz/gl-rs.git)",
- "xml-rs 0.1.3 (git+https://github.com/netvl/xml-rs)",
+ "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs.git)",
+ "khronos_api 0.0.5 (git+https://github.com/bjz/gl-rs.git)",
+ "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xml-rs 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "gl_generator"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "gl_common 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "khronos_api 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xml-rs 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "gleam"
 version = "0.0.1"
-source = "git+https://github.com/servo/gleam#c54eb9ad6d4b62b7effbe9c79a1b3720845b45b4"
+source = "git+https://github.com/servo/gleam#8a23e963c5b8e1a727a80fb009d71e2f9efb6a89"
 dependencies = [
- "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs.git)",
+ "gl_generator 0.0.12 (git+https://github.com/bjz/gl-rs.git)",
 ]
 
 [[package]]
 name = "glutin"
-version = "0.0.2"
-source = "git+https://github.com/servo/glutin?ref=servo#ec6b4d0fff12ef607db422508ae005ba91406f5b"
+version = "0.0.4-pre"
+source = "git+https://github.com/tomaka/glutin#1d6b863cd454839b8e3cf1e296cbf8f31fb70029"
 dependencies = [
- "android_glue 0.0.1 (git+https://github.com/servo/android-rs-glue?ref=servo)",
+ "android_glue 0.0.1 (git+https://github.com/tomaka/android-rs-glue)",
  "cocoa 0.1.1 (git+https://github.com/servo/rust-cocoa)",
+ "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
- "gl_common 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
- "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
- "winapi 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_common 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gl_generator 0.0.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "khronos_api 0.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -330,21 +351,23 @@ version = "0.0.1"
 dependencies = [
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
  "compositing 0.0.1",
+ "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
- "glutin 0.0.2 (git+https://github.com/servo/glutin?ref=servo)",
+ "glutin 0.0.4-pre (git+https://github.com/tomaka/glutin)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "msg 0.0.1",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
 [[package]]
 name = "glx"
 version = "0.0.1"
-source = "git+https://github.com/servo/rust-glx#7126ffa09fcfcc9f85f1406f3b5db729f5fdb7c3"
+source = "git+https://github.com/servo/rust-glx#f056a8998987f6f081f9ad7fa396beb1b2988c02"
 dependencies = [
- "gl_generator 0.0.1 (git+https://github.com/bjz/gl-rs.git)",
+ "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs.git)",
+ "gl_generator 0.0.12 (git+https://github.com/bjz/gl-rs.git)",
 ]
 
 [[package]]
@@ -355,33 +378,36 @@ source = "git+https://github.com/servo/rust-harfbuzz#59b5b18087418404d661784934c
 [[package]]
 name = "html5ever"
 version = "0.0.0"
-source = "git+https://github.com/servo/html5ever#0abe5e30cc03f9e73bfd4fdc018192d149c21fb3"
+source = "git+https://github.com/servo/html5ever#d35dfaaf0d85007057a299afc370d07e92538944"
 dependencies = [
  "html5ever_macros 0.0.0 (git+https://github.com/servo/html5ever)",
- "phf 0.0.1 (git+https://github.com/sfackler/rust-phf)",
- "phf_mac 0.0.1 (git+https://github.com/sfackler/rust-phf)",
+ "phf 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_mac 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "html5ever_macros"
 version = "0.0.0"
-source = "git+https://github.com/servo/html5ever#0abe5e30cc03f9e73bfd4fdc018192d149c21fb3"
+source = "git+https://github.com/servo/html5ever#d35dfaaf0d85007057a299afc370d07e92538944"
 
 [[package]]
 name = "hyper"
-version = "0.0.1"
-source = "git+https://github.com/servo/hyper?ref=servo#43becc919c24939b8b84fe541b0e0898a4827836"
+version = "0.1.0"
+source = "git+https://github.com/servo/hyper?branch=servo#248a6f29086baa841eb30c88540dca3196accae4"
 dependencies = [
- "cookie 0.1.0 (git+https://github.com/alexcrichton/cookie-rs)",
- "mime 0.0.1 (git+https://github.com/hyperium/mime.rs)",
- "mucell 0.1.2 (git+https://github.com/chris-morgan/mucell)",
- "openssl 0.2.4 (git+https://github.com/sfackler/rust-openssl)",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
- "unsafe-any 0.1.1 (git+https://github.com/reem/rust-unsafe-any)",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "cookie 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mime 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mucell 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicase 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unsafe-any 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -398,20 +424,25 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-mozjs#5a69e377d6ab7ea8601f711443994f1c8172c7a8"
+source = "git+https://github.com/servo/rust-mozjs#6cabb12f858f27d23fc3d2d9f0c334b80eb56573"
 dependencies = [
  "mozjs-sys 0.0.0 (git+https://github.com/servo/mozjs)",
 ]
 
 [[package]]
 name = "khronos_api"
-version = "0.0.2"
-source = "git+https://github.com/bjz/gl-rs.git#b5e3f4f76c31bc1b459d5e4c10d879ffa4f67c6e"
+version = "0.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "khronos_api"
+version = "0.0.5"
+source = "git+https://github.com/bjz/gl-rs.git#230e6c9ed611cddfcb6682dee9686471d54863d0"
 
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#f20270839f8658a2b19eae6fade9325efe5f4578"
+source = "git+https://github.com/servo/rust-layers#84d6d2cd2d09489eb10af7167fa34c914a8bee71"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
@@ -428,8 +459,9 @@ dependencies = [
 name = "layout"
 version = "0.0.1"
 dependencies = [
- "cssparser 0.1.1 (git+https://github.com/servo/rust-cssparser)",
- "encoding 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "canvas 0.0.1",
+ "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
+ "encoding 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "layout_traits 0.0.1",
@@ -440,7 +472,7 @@ dependencies = [
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
  "style 0.0.1",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -457,8 +489,8 @@ dependencies = [
 
 [[package]]
 name = "lazy_static"
-version = "0.1.0"
-source = "git+https://github.com/Kimundi/lazy-static.rs#76f06e4fa7bc8c92f11d1def19bd4ddfd8017cd8"
+version = "0.1.6"
+source = "git+https://github.com/Kimundi/lazy-static.rs#31a7aa0176ecd70b4aab274a40d1e2cd78c1fbf8"
 
 [[package]]
 name = "libressl-pnacl-sys"
@@ -469,14 +501,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "log"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "regex 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "matches"
-version = "0.1.0"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "mime"
-version = "0.0.1"
-source = "git+https://github.com/hyperium/mime.rs#7898f1c29c7f5d35d0c3c7aed37ebcfc95a40873"
+version = "0.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "mozjs-sys"
@@ -490,44 +533,44 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
+ "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "style 0.0.1",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
 [[package]]
 name = "mucell"
-version = "0.1.2"
-source = "git+https://github.com/chris-morgan/mucell#d198c6605b3e688719db168db0939051c803b1ea"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "net"
 version = "0.0.1"
 dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
+ "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
 [[package]]
 name = "openssl"
-version = "0.2.4"
-source = "git+https://github.com/sfackler/rust-openssl#f299e336d06a85438c3ee90aa06235510f3f5dbe"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "openssl-sys 0.2.4 (git+https://github.com/sfackler/rust-openssl)",
+ "openssl-sys 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "openssl-sys"
-version = "0.2.4"
-source = "git+https://github.com/sfackler/rust-openssl#f299e336d06a85438c3ee90aa06235510f3f5dbe"
+version = "0.2.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libressl-pnacl-sys 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -535,20 +578,24 @@ dependencies = [
 
 [[package]]
 name = "phf"
-version = "0.0.1"
-source = "git+https://github.com/sfackler/rust-phf#6a7cc6eb9ec08b103b6b62fa39bdb3229f3cdbe4"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "xxhash 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "phf_mac"
-version = "0.0.1"
-source = "git+https://github.com/sfackler/rust-phf#6a7cc6eb9ec08b103b6b62fa39bdb3229f3cdbe4"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "time 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "xxhash 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_shared 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "phf_shared"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "pkg-config"
@@ -567,29 +614,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "png"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-png#cc1976df347bb21ac78c5b37e651b85878855991"
+source = "git+https://github.com/servo/rust-png#2804379427ced963466d19132b816bb06a8a4006"
 dependencies = [
- "gcc 0.1.1 (git+https://github.com/alexcrichton/gcc-rs)",
+ "gcc 0.1.4 (git+https://github.com/alexcrichton/gcc-rs)",
  "png-sys 1.6.16 (git+https://github.com/servo/rust-png)",
 ]
 
 [[package]]
 name = "png-sys"
 version = "1.6.16"
-source = "git+https://github.com/servo/rust-png#cc1976df347bb21ac78c5b37e651b85878855991"
+source = "git+https://github.com/servo/rust-png#2804379427ced963466d19132b816bb06a8a4006"
+
+[[package]]
+name = "regex"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "rustc-serialize"
+version = "0.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "script"
 version = "0.0.1"
 dependencies = [
  "canvas 0.0.1",
- "cssparser 0.1.1 (git+https://github.com/servo/rust-cssparser)",
+ "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
  "devtools_traits 0.0.1",
- "encoding 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "encoding 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "html5ever 0.0.0 (git+https://github.com/servo/html5ever)",
- "hyper 0.0.1 (git+https://github.com/servo/hyper?ref=servo)",
+ "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "msg 0.0.1",
  "net 0.0.1",
@@ -598,10 +655,10 @@ dependencies = [
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
  "style 0.0.1",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
- "uuid 0.1.1 (git+https://github.com/rust-lang/uuid)",
+ "uuid 0.1.7 (git+https://github.com/rust-lang/uuid)",
 ]
 
 [[package]]
@@ -612,7 +669,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "msg 0.0.1",
  "net 0.0.1",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -621,21 +678,23 @@ name = "servo"
 version = "0.0.1"
 dependencies = [
  "compositing 0.0.1",
+ "devtools 0.0.1",
  "gfx 0.0.1",
  "glutin_app 0.0.1",
  "layout 0.0.1",
  "msg 0.0.1",
  "net 0.0.1",
+ "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "script 0.0.1",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
 [[package]]
 name = "skia-sys"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia?ref=upstream-2014-06-16#35649d0cddfd89c0bfee0ff558da7291e26d30c3"
+source = "git+https://github.com/servo/skia?branch=upstream-2014-06-16#35649d0cddfd89c0bfee0ff558da7291e26d30c3"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
@@ -644,42 +703,42 @@ dependencies = [
 [[package]]
 name = "stb_image"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-stb-image#97d7e440e80e41a304647363c322eab68e3700aa"
+source = "git+https://github.com/servo/rust-stb-image#2ba03a447b9ef101c25e07bb7f8876416e5fcd71"
 
 [[package]]
 name = "string_cache"
 version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#661c537b85f19ac81dfcd84e28557d480b6b7a9f"
+source = "git+https://github.com/servo/string-cache#43a1e5d0d0f2a45e2b96160c8fbe6e1d9602cfa9"
 dependencies = [
- "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
- "phf 0.0.1 (git+https://github.com/sfackler/rust-phf)",
- "phf_mac 0.0.1 (git+https://github.com/sfackler/rust-phf)",
+ "lazy_static 0.1.6 (git+https://github.com/Kimundi/lazy-static.rs)",
+ "phf 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "phf_mac 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
- "xxhash 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xxhash 0.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "string_cache_macros"
 version = "0.0.0"
-source = "git+https://github.com/servo/string-cache#661c537b85f19ac81dfcd84e28557d480b6b7a9f"
+source = "git+https://github.com/servo/string-cache#43a1e5d0d0f2a45e2b96160c8fbe6e1d9602cfa9"
 dependencies = [
- "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
+ "lazy_static 0.1.6 (git+https://github.com/Kimundi/lazy-static.rs)",
 ]
 
 [[package]]
 name = "style"
 version = "0.0.1"
 dependencies = [
- "cssparser 0.1.1 (git+https://github.com/servo/rust-cssparser)",
- "encoding 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
+ "encoding 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "lazy_static 0.1.0 (git+https://github.com/Kimundi/lazy-static.rs)",
- "matches 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.6 (git+https://github.com/Kimundi/lazy-static.rs)",
+ "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
- "text_writer 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "text_writer 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -689,59 +748,63 @@ version = "0.0.1"
 
 [[package]]
 name = "text_writer"
-version = "0.1.4"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "time"
-version = "0.1.0"
-source = "git+https://github.com/rust-lang/time#afab521f3b91658a3ba2d3e877b7e01699733bef"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "gcc 0.1.1 (git+https://github.com/alexcrichton/gcc-rs)",
+ "gcc 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
-name = "time"
-version = "0.1.3"
+name = "unicase"
+version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "gcc 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "unsafe-any"
-version = "0.1.1"
-source = "git+https://github.com/reem/rust-unsafe-any#eb3fe87bea85f375b8fcefa0cdecfd131fae9624"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "url"
-version = "0.2.4"
-source = "git+https://github.com/servo/rust-url#79f8034a8e1815ffa1f49204572ddbf6eb747c75"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "util"
 version = "0.0.1"
 dependencies = [
- "cssparser 0.1.1 (git+https://github.com/servo/rust-cssparser)",
+ "cssparser 0.2.0 (git+https://github.com/servo/rust-cssparser)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "plugins 0.0.1",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
  "task_info 0.0.1",
- "text_writer 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "time 0.1.0 (git+https://github.com/rust-lang/time)",
- "url 0.2.4 (git+https://github.com/servo/rust-url)",
+ "text_writer 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "uuid"
-version = "0.1.1"
-source = "git+https://github.com/rust-lang/uuid#fc793c974a25c126c5cf5daa3b18973512a7a6a0"
+version = "0.1.7"
+source = "git+https://github.com/rust-lang/uuid#3ea51ffa0682c820e8c8b505de078e3bc93e2cb3"
+dependencies = [
+ "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "winapi"
-version = "0.0.2"
+version = "0.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -751,11 +814,11 @@ source = "git+https://github.com/servo/rust-xlib#58ec3847b592aeabdcfeb6a2d02033d
 
 [[package]]
 name = "xml-rs"
-version = "0.1.3"
-source = "git+https://github.com/netvl/xml-rs#1a812d3ba720afd768bd75d29a5b5f10ddcdfbeb"
+version = "0.1.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "xxhash"
-version = "0.0.3"
+version = "0.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 

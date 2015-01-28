@@ -32,12 +32,13 @@ use js::jsval::JSVal;
 use js::rust::Cx;
 
 use std::rc::Rc;
+use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
 
 /// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
 /// every message. While this SendableWorkerScriptChan is alive, the associated Worker object
 /// will remain alive.
-#[deriving(Clone)]
+#[derive(Clone)]
 #[jstraceable]
 pub struct SendableWorkerScriptChan {
     sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
@@ -133,7 +134,7 @@ impl DedicatedWorkerGlobalScope {
                             parent_sender: Box<ScriptChan+Send>,
                             own_sender: Sender<(TrustedWorkerAddress, ScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, ScriptMsg)>) {
-        spawn_named(format!("WebWorker for {}", worker_url.serialize()), proc() {
+        spawn_named(format!("WebWorker for {}", worker_url.serialize()), move || {
             task_state::initialize(SCRIPT | IN_WORKER);
 
             let roots = RootCollection::new();
@@ -165,7 +166,7 @@ impl DedicatedWorkerGlobalScope {
             }
 
             loop {
-                match global.r().receiver.recv_opt() {
+                match global.r().receiver.recv() {
                     Ok((linked_worker, msg)) => {
                         let _ar = AutoWorkerReset::new(global.r(), linked_worker);
                         global.r().handle_event(msg);
@@ -228,7 +229,7 @@ impl<'a> DedicatedWorkerGlobalScopeMethods for JSRef<'a, DedicatedWorkerGlobalSc
         Ok(())
     }
 
-    event_handler!(message, GetOnmessage, SetOnmessage)
+    event_handler!(message, GetOnmessage, SetOnmessage);
 }
 
 impl DedicatedWorkerGlobalScopeDerived for EventTarget {

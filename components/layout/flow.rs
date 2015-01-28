@@ -55,9 +55,10 @@ use servo_util::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use std::mem;
 use std::fmt;
 use std::iter::Zip;
+use std::num::FromPrimitive;
 use std::raw;
 use std::sync::atomic::{AtomicUint, Ordering};
-use std::slice::MutItems;
+use std::slice::IterMut;
 use style::computed_values::{clear, empty_cells, float, position, text_align};
 use style::ComputedValues;
 use std::sync::Arc;
@@ -66,7 +67,7 @@ use std::sync::Arc;
 ///
 /// Note that virtual methods have a cost; we should not overuse them in Servo. Consider adding
 /// methods to `ImmutableFlowUtils` or `MutableFlowUtils` before adding more methods here.
-pub trait Flow: fmt::Show + ToString + Sync {
+pub trait Flow: fmt::Show + Sync {
     // RTTI
     //
     // TODO(pcwalton): Use Rust's RTTI, once that works.
@@ -82,7 +83,7 @@ pub trait Flow: fmt::Show + ToString + Sync {
 
     /// If this is a block flow, returns the underlying object. Fails otherwise.
     fn as_block<'a>(&'a mut self) -> &'a mut BlockFlow {
-        debug!("called as_block() on a flow of type {}", self.class());
+        debug!("called as_block() on a flow of type {:?}", self.class());
         panic!("called as_block() on a non-block flow")
     }
 
@@ -204,10 +205,10 @@ pub trait Flow: fmt::Show + ToString + Sync {
     fn assign_block_size_for_inorder_child_if_necessary<'a>(&mut self,
                                                             layout_context: &'a LayoutContext<'a>)
                                                             -> bool {
-        let impacted = base(&*self).flags.impacted_by_floats();
+        let impacted = base(self).flags.impacted_by_floats();
         if impacted {
             self.assign_block_size(layout_context);
-            mut_base(&mut *self).restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
+            mut_base(self).restyle_damage.remove(REFLOW_OUT_OF_FLOW | REFLOW);
         }
         impacted
     }
@@ -295,7 +296,8 @@ pub trait Flow: fmt::Show + ToString + Sync {
     /// Returns a layer ID for the given fragment.
     fn layer_id(&self, fragment_id: uint) -> LayerId {
         unsafe {
-            let pointer: uint = mem::transmute(self);
+            let obj = mem::transmute::<&&Self, &raw::TraitObject>(&self);
+            let pointer: uint = mem::transmute(obj.data);
             LayerId(pointer, fragment_id)
         }
     }
@@ -308,9 +310,9 @@ pub trait Flow: fmt::Show + ToString + Sync {
 // Base access
 
 #[inline(always)]
-pub fn base<'a>(this: &'a Flow) -> &'a BaseFlow {
+pub fn base<'a, T: ?Sized + Flow>(this: &'a T) -> &'a BaseFlow {
     unsafe {
-        let obj = mem::transmute::<&'a Flow, raw::TraitObject>(this);
+        let obj = mem::transmute::<&&'a T, &'a raw::TraitObject>(&this);
         mem::transmute::<*mut (), &'a BaseFlow>(obj.data)
     }
 }
@@ -321,9 +323,9 @@ pub fn imm_child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
 }
 
 #[inline(always)]
-pub fn mut_base<'a>(this: &'a mut Flow) -> &'a mut BaseFlow {
+pub fn mut_base<'a, T: ?Sized + Flow>(this: &'a mut T) -> &'a mut BaseFlow {
     unsafe {
-        let obj = mem::transmute::<&'a mut Flow, raw::TraitObject>(this);
+        let obj = mem::transmute::<&&'a mut T, &'a raw::TraitObject>(&this);
         mem::transmute::<*mut (), &'a mut BaseFlow>(obj.data)
     }
 }
@@ -423,7 +425,7 @@ pub trait MutableOwnedFlowUtils {
     fn set_absolute_descendants(&mut self, abs_descendants: AbsDescendants);
 }
 
-#[deriving(Encodable, PartialEq, Show)]
+#[derive(RustcEncodable, PartialEq, Show)]
 pub enum FlowClass {
     Block,
     Inline,
@@ -465,7 +467,6 @@ pub trait PostorderFlowTraversal {
 
 bitflags! {
     #[doc = "Flags used in flows."]
-    #[deriving(Copy)]
     flags FlowFlags: u16 {
         // floated descendants flags
         #[doc = "Whether this flow has descendants that float left in the same block formatting"]
@@ -540,7 +541,7 @@ impl FlowFlags {
     #[inline]
     pub fn set_text_align(&mut self, value: text_align::T) {
         *self = (*self & !TEXT_ALIGN) |
-            FlowFlags::from_bits(value as u16 << TEXT_ALIGN_SHIFT).unwrap();
+            FlowFlags::from_bits((value as u16) << TEXT_ALIGN_SHIFT).unwrap();
     }
 
     #[inline]
@@ -592,7 +593,7 @@ impl FlowFlags {
 /// The Descendants of a flow.
 ///
 /// Also, details about their position wrt this flow.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Descendants {
     /// Links to every descendant. This must be private because it is unsafe to leak `FlowRef`s to
     /// layout.
@@ -650,20 +651,21 @@ impl Descendants {
 pub type AbsDescendants = Descendants;
 
 pub struct DescendantIter<'a> {
-    iter: MutItems<'a, FlowRef>,
+    iter: IterMut<'a, FlowRef>,
 }
 
-impl<'a> Iterator<&'a mut (Flow + 'a)> for DescendantIter<'a> {
+impl<'a> Iterator for DescendantIter<'a> {
+    type Item = &'a mut (Flow + 'a);
     fn next(&mut self) -> Option<&'a mut (Flow + 'a)> {
         self.iter.next().map(|flow| &mut **flow)
     }
 }
 
-pub type DescendantOffsetIter<'a> = Zip<DescendantIter<'a>, MutItems<'a, Au>>;
+pub type DescendantOffsetIter<'a> = Zip<DescendantIter<'a>, IterMut<'a, Au>>;
 
 /// Information needed to compute absolute (i.e. viewport-relative) flow positions (not to be
 /// confused with absolutely-positioned flows).
-#[deriving(Encodable, Copy)]
+#[derive(RustcEncodable, Copy)]
 pub struct AbsolutePositionInfo {
     /// The size of the containing block for relatively-positioned descendants.
     pub relative_containing_block_size: LogicalSize<Au>,
@@ -776,33 +778,36 @@ pub struct BaseFlow {
     pub flags: FlowFlags,
 }
 
+unsafe impl Send for BaseFlow {}
+unsafe impl Sync for BaseFlow {}
+
 impl fmt::Show for BaseFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
-               "@ {}, CC {}, ADC {}",
+               "@ {:?}, CC {}, ADC {}",
                self.position,
                self.parallel.children_count.load(Ordering::SeqCst),
                self.abs_descendants.len())
     }
 }
 
-impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
-    fn encode(&self, e: &mut S) -> Result<(), E> {
+impl Encodable for BaseFlow {
+    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
         e.emit_struct("base", 0, |e| {
-            try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)))
+            try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)));
             try!(e.emit_struct_field("stacking_relative_position",
                                      1,
-                                     |e| self.stacking_relative_position.encode(e)))
+                                     |e| self.stacking_relative_position.encode(e)));
             try!(e.emit_struct_field("intrinsic_inline_sizes",
                                      2,
-                                     |e| self.intrinsic_inline_sizes.encode(e)))
-            try!(e.emit_struct_field("position", 3, |e| self.position.encode(e)))
+                                     |e| self.intrinsic_inline_sizes.encode(e)));
+            try!(e.emit_struct_field("position", 3, |e| self.position.encode(e)));
             e.emit_struct_field("children", 4, |e| {
                 e.emit_seq(self.children.len(), |e| {
                     for (i, c) in self.children.iter().enumerate() {
                         try!(e.emit_seq_elt(i, |e| {
                             try!(e.emit_struct("flow", 0, |e| {
-                                try!(e.emit_struct_field("class", 0, |e| c.class().encode(e)))
+                                try!(e.emit_struct_field("class", 0, |e| c.class().encode(e)));
                                 e.emit_struct_field("data", 1, |e| {
                                     match c.class() {
                                         FlowClass::Block => c.as_immutable_block().encode(e),
@@ -815,9 +820,9 @@ impl<E, S: Encoder<E>> Encodable<S, E> for BaseFlow {
                                         _ => { Ok(()) }     // TODO: Support captions
                                     }
                                 })
-                            }))
+                            }));
                             Ok(())
-                        }))
+                        }));
                     }
                     Ok(())
                 })
@@ -838,7 +843,7 @@ impl Drop for BaseFlow {
 
 /// Whether a base flow should be forced to be nonfloated. This can affect e.g. `TableFlow`, which
 /// is never floated because the table wrapper flow is the floated one.
-#[deriving(Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum ForceNonfloatedFlag {
     /// The flow should be floated if the node has a `float` property.
     FloatIfNecessary,
@@ -951,7 +956,7 @@ impl BaseFlow {
             }
 
             if bounds.union(&paint_bounds.bounding_rect()) != bounds {
-                error!("DisplayList item {} outside of Flow overflow ({})", item, paint_bounds);
+                error!("DisplayList item {:?} outside of Flow overflow ({:?})", item, paint_bounds);
             }
         }
     }
@@ -1125,7 +1130,8 @@ impl<'a> ImmutableFlowUtils for &'a (Flow + 'a) {
             indent.push_str("| ")
         }
 
-        println!("{}+ {}", indent, self.to_string());
+        // TODO: ICE, already fixed in rustc.
+        //println!("{}+ {:?}", indent, self);
 
         for kid in imm_child_iter(self) {
             kid.dump_with_level(level + 1)

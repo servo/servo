@@ -26,6 +26,7 @@ use js::jsval::JSVal;
 use url::UrlParser;
 
 use std::cell::Cell;
+use std::sync::mpsc::{channel, Sender};
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -97,7 +98,7 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
         Ok(())
     }
 
-    event_handler!(message, GetOnmessage, SetOnmessage)
+    event_handler!(message, GetOnmessage, SetOnmessage);
 }
 
 pub struct WorkerMessageHandler {

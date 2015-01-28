@@ -48,7 +48,7 @@ type Generation = uint;
 /// Since a work-stealing queue is used for styling, sometimes, the bloom filter
 /// will no longer be the for the parent of the node we're currently on. When
 /// this happens, the task local bloom filter will be thrown away and rebuilt.
-thread_local!(static STYLE_BLOOM: RefCell<Option<(Box<BloomFilter>, UnsafeLayoutNode, Generation)>> = RefCell::new(None))
+thread_local!(static STYLE_BLOOM: RefCell<Option<(Box<BloomFilter>, UnsafeLayoutNode, Generation)>> = RefCell::new(None));
 
 /// Returns the task local bloom filter.
 ///
@@ -74,7 +74,7 @@ fn take_task_local_bloom_filter(parent_node: Option<LayoutNode>, layout_context:
                 // Hey, the cached parent is our parent! We can reuse the bloom filter.
                 if old_node == layout_node_to_unsafe_layout_node(&parent) &&
                     old_generation == layout_context.shared.generation {
-                    debug!("[{}] Parent matches (={}). Reusing bloom filter.", tid(), old_node.val0());
+                    debug!("[{}] Parent matches (={}). Reusing bloom filter.", tid(), old_node.0);
                     bloom_filter.clone()
                 } else {
                     // Oh no. the cached parent is stale. I guess we need a new one. Reuse the existing
@@ -120,7 +120,7 @@ fn insert_ancestors_into_bloom_filter(bf: &mut Box<BloomFilter>,
 
 /// The recalc-style-for-node traversal, which styles each node and must run before
 /// layout computation. This computes the styles applied to each node.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct RecalcStyleForNode<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
@@ -200,7 +200,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
 
         // Before running the children, we need to insert our nodes into the bloom
         // filter.
-        debug!("[{}] + {:X}", tid(), unsafe_layout_node.val0());
+        debug!("[{}] + {:X}", tid(), unsafe_layout_node.0);
         node.insert_into_bloom_filter(&mut *bf);
 
         // NB: flow construction updates the bloom filter on the way up.
@@ -209,7 +209,7 @@ impl<'a> PreorderDomTraversal for RecalcStyleForNode<'a> {
 }
 
 /// The flow construction traversal, which builds flows for styled nodes.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct ConstructFlows<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
@@ -258,7 +258,7 @@ impl<'a> PostorderDomTraversal for ConstructFlows<'a> {
 
         match node.layout_parent_node(self.layout_context.shared) {
             None => {
-                debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.val0());
+                debug!("[{}] - {:X}, and deleting BF.", tid(), unsafe_layout_node.0);
                 // If this is the reflow root, eat the task-local bloom filter.
             }
             Some(parent) => {
@@ -308,7 +308,7 @@ impl<'a> PostorderFlowTraversal for BubbleISizes<'a> {
 }
 
 /// The assign-inline-sizes traversal. In Gecko this corresponds to `Reflow`.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct AssignISizes<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
@@ -329,7 +329,7 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 /// layout computation. Determines the final block-sizes for all layout objects, computes
 /// positions, and computes overflow regions. In Gecko this corresponds to `Reflow` and
 /// `FinishAndStoreOverflow`.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct AssignBSizesAndStoreOverflow<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
@@ -354,7 +354,7 @@ impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct ComputeAbsolutePositions<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
@@ -366,7 +366,7 @@ impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct BuildDisplayList<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }

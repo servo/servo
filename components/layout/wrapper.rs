@@ -49,8 +49,8 @@ use script::dom::htmlelement::HTMLElementTypeId;
 use script::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutHTMLCanvasElementHelpers};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
-use script::dom::htmlinputelement::LayoutHTMLInputElementHelpers;
-use script::dom::htmltextareaelement::LayoutHTMLTextAreaElementHelpers;
+use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use script::dom::node::{Node, NodeTypeId};
 use script::dom::node::{LayoutNodeHelpers, RawLayoutNodeHelpers, SharedLayoutData};
 use script::dom::node::{HAS_CHANGED, IS_DIRTY, HAS_DIRTY_SIBLINGS, HAS_DIRTY_DESCENDANTS};
@@ -58,8 +58,9 @@ use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::str::{LengthOrPercentageOrAuto, is_whitespace};
-use std::kinds::marker::ContravariantLifetime;
+use std::marker::ContravariantLifetime;
 use std::mem;
+use std::sync::mpsc::Sender;
 use string_cache::{Atom, Namespace};
 use style::computed_values::{content, display, white_space};
 use style::{NamespaceConstraint, AttrSelector, IntegerAttribute};
@@ -161,7 +162,7 @@ pub trait TLayoutNode {
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `JS`.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct LayoutNode<'a> {
     /// The wrapped node.
     node: JS<Node>,
@@ -212,15 +213,20 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     fn text(&self) -> String {
         unsafe {
-            if let Some(text) = TextCast::to_js(self.get_jsmanaged()) {
-                (*text.unsafe_get()).characterdata().data_for_layout().to_owned()
-            } else if let Some(input) = HTMLInputElementCast::to_js(self.get_jsmanaged()) {
-                input.get_value_for_layout()
-            } else if let Some(area) = HTMLTextAreaElementCast::to_js(self.get_jsmanaged()) {
-                area.get_value_for_layout()
-            } else {
-                panic!("not text!")
+            let text: Option<JS<Text>> = TextCast::to_js(self.get_jsmanaged());
+            if let Some(text) = text {
+                return (*text.unsafe_get()).characterdata().data_for_layout().to_owned();
             }
+            let input: Option<JS<HTMLInputElement>> = HTMLInputElementCast::to_js(self.get_jsmanaged());
+            if let Some(input) = input {
+                return input.get_value_for_layout();
+            }
+            let area: Option<JS<HTMLTextAreaElement>> = HTMLTextAreaElementCast::to_js(self.get_jsmanaged());
+            if let Some(area) = area {
+                return area.get_value_for_layout();
+            }
+
+            panic!("not text!")
         }
     }
 }
@@ -245,7 +251,7 @@ impl<'ln> LayoutNode<'ln> {
     }
 
     fn debug_str(self) -> String {
-        format!("{}: changed={} dirty={} dirty_descendants={}",
+        format!("{:?}: changed={} dirty={} dirty_descendants={}",
                 self.type_id(), self.has_changed(), self.is_dirty(), self.has_dirty_descendants())
     }
 
@@ -383,8 +389,8 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
         self.node_is_document()
     }
 
-    fn match_attr(self, attr: &AttrSelector, test: |&str| -> bool) -> bool {
-        assert!(self.is_element())
+    fn match_attr<F>(self, attr: &AttrSelector, test: F) -> bool where F: Fn(&str) -> bool {
+        assert!(self.is_element());
         let name = if self.is_html_element_in_html_document() {
             &attr.lower_name
         } else {
@@ -448,7 +454,8 @@ pub struct LayoutNodeChildrenIterator<'a> {
     current: Option<LayoutNode<'a>>,
 }
 
-impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeChildrenIterator<'a> {
+impl<'a> Iterator for LayoutNodeChildrenIterator<'a> {
+    type Item = LayoutNode<'a>;
     fn next(&mut self) -> Option<LayoutNode<'a>> {
         let node = self.current;
         self.current = node.and_then(|node| node.next_sibling());
@@ -460,7 +467,8 @@ pub struct LayoutNodeReverseChildrenIterator<'a> {
     current: Option<LayoutNode<'a>>,
 }
 
-impl<'a> Iterator<LayoutNode<'a>> for LayoutNodeReverseChildrenIterator<'a> {
+impl<'a> Iterator for LayoutNodeReverseChildrenIterator<'a> {
+    type Item = LayoutNode<'a>;
     fn next(&mut self) -> Option<LayoutNode<'a>> {
         let node = self.current;
         self.current = node.and_then(|node| node.prev_sibling());
@@ -482,7 +490,8 @@ impl<'a> LayoutTreeIterator<'a> {
     }
 }
 
-impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
+impl<'a> Iterator for LayoutTreeIterator<'a> {
+    type Item = LayoutNode<'a>;
     fn next(&mut self) -> Option<LayoutNode<'a>> {
         let ret = self.stack.pop();
         ret.map(|node| self.stack.extend(node.rev_children()));
@@ -491,7 +500,7 @@ impl<'a> Iterator<LayoutNode<'a>> for LayoutTreeIterator<'a> {
 }
 
 /// A wrapper around elements that ensures layout can only ever access safe properties.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct LayoutElement<'le> {
     element: &'le Element,
 }
@@ -530,7 +539,8 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
 
     fn get_link(self) -> Option<&'le str> {
         // FIXME: This is HTML only.
-        match NodeCast::from_actual(self.element).type_id_for_layout() {
+        let node: &Node = NodeCast::from_actual(self.element);
+        match node.type_id_for_layout() {
             // http://www.whatwg.org/specs/web-apps/current-work/multipage/selectors.html#
             // selector-link
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) |
@@ -547,7 +557,8 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
     fn get_hover_state(self) -> bool {
         unsafe {
-            NodeCast::from_actual(self.element).get_hover_state_for_layout()
+            let node: &Node = NodeCast::from_actual(self.element);
+            node.get_hover_state_for_layout()
         }
     }
 
@@ -561,14 +572,16 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     #[inline]
     fn get_disabled_state(self) -> bool {
         unsafe {
-            NodeCast::from_actual(self.element).get_disabled_state_for_layout()
+            let node: &Node = NodeCast::from_actual(self.element);
+            node.get_disabled_state_for_layout()
         }
     }
 
     #[inline]
     fn get_enabled_state(self) -> bool {
         unsafe {
-            NodeCast::from_actual(self.element).get_enabled_state_for_layout()
+            let node: &Node = NodeCast::from_actual(self.element);
+            node.get_enabled_state_for_layout()
         }
     }
 
@@ -594,7 +607,7 @@ impl<'le> TElement<'le> for LayoutElement<'le> {
     }
 
     #[inline(always)]
-    fn each_class(self, callback: |&Atom|) {
+    fn each_class<F>(self, mut callback: F) where F: FnMut(&Atom) {
         unsafe {
             match self.element.get_classes_for_layout() {
                 None => {}
@@ -658,7 +671,7 @@ fn get_content(content_list: &content::T) -> String {
     }
 }
 
-#[deriving(Copy, PartialEq, Clone)]
+#[derive(Copy, PartialEq, Clone)]
 pub enum PseudoElementType {
     Normal,
     Before(display::T),
@@ -683,7 +696,7 @@ impl PseudoElementType {
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
-#[deriving(Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct ThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
     node: LayoutNode<'ln>,
@@ -946,7 +959,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn get_input_value(&self) -> String {
         unsafe {
-            match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
+            let input: Option<JS<HTMLInputElement>> = HTMLInputElementCast::to_js(self.get_jsmanaged());
+            match input {
                 Some(input) => input.get_value_for_layout(),
                 None => panic!("not an input element!")
             }
@@ -965,7 +979,8 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute)
                                           -> Option<u32> {
         unsafe {
-            match ElementCast::to_js(self.get_jsmanaged()) {
+            let elem: Option<JS<Element>> = ElementCast::to_js(self.get_jsmanaged());
+            match elem {
                 Some(element) => {
                     (*element.unsafe_get()).get_unsigned_integer_attribute_for_layout(attribute)
                 }
@@ -985,7 +1000,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn set_restyle_damage(self, damage: RestyleDamage) {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
-            &Some(ref mut layout_data) => layout_data.data.restyle_damage = damage,
+            &mut Some(ref mut layout_data) => layout_data.data.restyle_damage = damage,
             _ => panic!("no layout data for this node"),
         }
     }
@@ -1004,7 +1019,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn insert_flags(self, new_flags: LayoutDataFlags) {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
-            &Some(ref mut layout_data) => layout_data.data.flags.insert(new_flags),
+            &mut Some(ref mut layout_data) => layout_data.data.flags.insert(new_flags),
             _ => panic!("no layout data for this node"),
         }
     }
@@ -1013,7 +1028,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn remove_flags(self, flags: LayoutDataFlags) {
         let mut layout_data_ref = self.mutate_layout_data();
         match &mut *layout_data_ref {
-            &Some(ref mut layout_data) => layout_data.data.flags.remove(flags),
+            &mut Some(ref mut layout_data) => layout_data.data.flags.remove(flags),
             _ => panic!("no layout data for this node"),
         }
     }
@@ -1033,7 +1048,8 @@ pub struct ThreadSafeLayoutNodeChildrenIterator<'a> {
     parent_node: Option<ThreadSafeLayoutNode<'a>>,
 }
 
-impl<'a> Iterator<ThreadSafeLayoutNode<'a>> for ThreadSafeLayoutNodeChildrenIterator<'a> {
+impl<'a> Iterator for ThreadSafeLayoutNodeChildrenIterator<'a> {
+    type Item = ThreadSafeLayoutNode<'a>;
     fn next(&mut self) -> Option<ThreadSafeLayoutNode<'a>> {
         let node = self.current_node.clone();
 

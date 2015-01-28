@@ -3,9 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::comm::{channel, Receiver, Sender};
 use std::collections::HashMap;
-use std::collections::TreeMap;
+use std::collections::BTreeMap;
+use std::sync::mpsc::{channel, Receiver, Sender};
 use url::Url;
 
 use servo_util::str::DOMString;
@@ -40,14 +40,14 @@ pub enum StorageTaskMsg {
 pub type StorageTask = Sender<StorageTaskMsg>;
 
 pub trait StorageTaskFactory {
-    fn new() -> StorageTask;
+    fn new() -> Self;
 }
 
 impl StorageTaskFactory for StorageTask {
     /// Create a StorageTask
     fn new() -> StorageTask {
         let (chan, port) = channel();
-        spawn_named("StorageManager".to_owned(), proc() {
+        spawn_named("StorageManager".to_owned(), move || {
             StorageManager::new(port).start();
         });
         chan
@@ -56,7 +56,7 @@ impl StorageTaskFactory for StorageTask {
 
 struct StorageManager {
     port: Receiver<StorageTaskMsg>,
-    data: HashMap<String, TreeMap<DOMString, DOMString>>,
+    data: HashMap<String, BTreeMap<DOMString, DOMString>>,
 }
 
 impl StorageManager {
@@ -71,7 +71,7 @@ impl StorageManager {
 impl StorageManager {
     fn start(&mut self) {
         loop {
-            match self.port.recv() {
+            match self.port.recv().unwrap() {
                 StorageTaskMsg::Length(sender, url) => {
                     self.length(sender, url)
                 }
@@ -112,7 +112,7 @@ impl StorageManager {
     fn set_item(&mut self, sender: Sender<bool>, url: Url, name: DOMString, value: DOMString) {
         let origin = self.get_origin_as_string(url);
         if !self.data.contains_key(&origin) {
-            self.data.insert(origin.clone(), TreeMap::new());
+            self.data.insert(origin.clone(), BTreeMap::new());
         }
 
         let updated = self.data.get_mut(&origin).map(|entry| {

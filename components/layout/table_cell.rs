@@ -22,7 +22,7 @@ use style::{UnsignedIntegerAttribute, ComputedValues};
 use std::sync::Arc;
 
 /// A table formatting context.
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 pub struct TableCellFlow {
     /// Data common to all block flows.
     pub block_flow: BlockFlow,
@@ -176,6 +176,6 @@ impl Flow for TableCellFlow {
 
 impl fmt::Show for TableCellFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TableCellFlow: {}", self.block_flow)
+        write!(f, "TableCellFlow: {:?}", self.block_flow)
     }
 }

@@ -5,6 +5,6 @@
 use interfaces::{cef_stream_reader_t, cef_zip_reader_t};
 
 cef_stub_static_method_impls! {
-    fn cef_zip_reader_create(stream: *mut cef_stream_reader_t) -> *mut cef_zip_reader_t;
+    fn cef_zip_reader_create(stream: *mut cef_stream_reader_t) -> *mut cef_zip_reader_t
 }
 

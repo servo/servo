@@ -4,7 +4,7 @@
 
 //! A simple application that uses GLFW to open a window for Servo to display in.
 
-#![feature(macro_rules)]
+#![feature(box_syntax, int_uint)]
 #![deny(unused_imports, unused_variables)]
 
 #[cfg(target_os="macos")]
@@ -40,5 +40,5 @@ pub fn create_window() -> Rc<Window> {
     let size = opts.initial_window_size.as_f32() * scale_factor;
 
     // Open a window.
-    Window::new(foreground, size.as_uint())
+    Window::new(foreground, size.as_uint().cast().unwrap())
 }

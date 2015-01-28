@@ -16,7 +16,7 @@ use time;
 use time::{now, Timespec};
 
 use hyper::header::{Headers, Header, HeaderFormat, HeaderView};
-use hyper::header::common::util as header_util;
+use hyper::header::shared::util as header_util;
 use hyper::client::Request;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::header::common::{ContentType, Host};
@@ -25,7 +25,7 @@ use hyper::status::StatusClass::Success;
 
 use url::{SchemeData, Url};
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct CORSRequest {
     pub origin: Url,
     pub destination: Url,
@@ -40,7 +40,7 @@ pub struct CORSRequest {
 /// http://fetch.spec.whatwg.org/#concept-request-mode
 /// This only covers some of the request modes. The
 /// `same-origin` and `no CORS` modes are unnecessary for XHR.
-#[deriving(PartialEq, Copy, Clone)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum RequestMode {
     CORS, // CORS
     ForcedPreflight // CORS-with-forced-preflight
@@ -126,7 +126,7 @@ impl CORSRequest {
         // Step 5 - 7
         let mut header_names = vec!();
         for header in self.headers.iter() {
-            header_names.push(header.name().to_ascii_lower());
+            header_names.push(header.name().to_ascii_lowercase());
         }
         header_names.sort();
         preflight.headers.set(AccessControlRequestHeaders(header_names));
@@ -240,12 +240,12 @@ impl CORSResponse {
 // CORS Cache stuff
 
 /// A CORS cache object. Anchor it somewhere to the user agent.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct CORSCache(Vec<CORSCacheEntry>);
 
 /// Union type for CORS cache entries
 /// Each entry might pertain to a header or method
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum HeaderOrMethod {
     HeaderData(String),
     MethodData(Method)
@@ -268,7 +268,7 @@ impl HeaderOrMethod {
 }
 
 // An entry in the CORS cache
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct CORSCacheEntry {
     pub origin: Url,
     pub url: Url,
@@ -361,7 +361,7 @@ impl CORSCache {
 fn is_simple_header(h: &HeaderView) -> bool {
     //FIXME: use h.is::<HeaderType>() when AcceptLanguage and
     //ContentLanguage headers exist
-    match h.name().to_ascii_lower().as_slice() {
+    match h.name().to_ascii_lowercase().as_slice() {
         "accept" | "accept-language" | "content-language" => true,
         "content-type" => match h.value() {
             Some(&ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) |
@@ -383,7 +383,7 @@ fn is_simple_method(m: &Method) -> bool {
 }
 
 //XXX(seanmonstar): worth uplifting to Hyper?
-#[deriving(Clone)]
+#[derive(Clone)]
 struct AccessControlRequestMethod(pub Method);
 
 impl Header for AccessControlRequestMethod {
@@ -404,7 +404,7 @@ impl HeaderFormat for AccessControlRequestMethod {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct AccessControlRequestHeaders(pub Vec<String>);
 
 impl Header for AccessControlRequestHeaders {
@@ -425,7 +425,7 @@ impl HeaderFormat for AccessControlRequestHeaders {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct AccessControlAllowMethods(pub Vec<Method>);
 
 impl Header for AccessControlAllowMethods {
@@ -446,7 +446,7 @@ impl HeaderFormat for AccessControlAllowMethods {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct AccessControlAllowHeaders(pub Vec<String>);
 
 impl Header for AccessControlAllowHeaders {
@@ -467,7 +467,7 @@ impl HeaderFormat for AccessControlAllowHeaders {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 enum AccessControlAllowOrigin {
     AllowStar,
     AllowOrigin(Url),
@@ -482,7 +482,7 @@ impl Header for AccessControlAllowOrigin {
 
     fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlAllowOrigin> {
         if raw.len() == 1 {
-            from_utf8(raw[0].as_slice()).and_then(|s| {
+            from_utf8(raw[0].as_slice()).ok().and_then(|s| {
                 if s == "*" {
                     Some(AccessControlAllowOrigin::AllowStar)
                 } else {
@@ -504,7 +504,7 @@ impl HeaderFormat for AccessControlAllowOrigin {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct AccessControlMaxAge(pub u32);
 
 impl Header for AccessControlMaxAge {

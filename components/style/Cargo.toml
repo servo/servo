@@ -18,9 +18,6 @@ path = "../util"
 [dependencies.geom]
 git = "https://github.com/servo/rust-geom"
 
-[dependencies.url]
-git = "https://github.com/servo/rust-url"
-
 [dependencies.cssparser]
 git = "https://github.com/servo/rust-cssparser"
 
@@ -37,3 +34,4 @@ git = "https://github.com/servo/string-cache"
 text_writer = "0.1.1"
 encoding = "0.2"
 matches = "0.1"
+url = "*"

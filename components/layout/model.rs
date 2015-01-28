@@ -18,7 +18,7 @@ use std::cmp::{max, min};
 use std::fmt;
 
 /// A collapsible margin. See CSS 2.1 § 8.3.1.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct AdjoiningMargins {
     /// The value of the greatest positive margin.
     pub most_positive: Au,
@@ -61,7 +61,7 @@ impl AdjoiningMargins {
 }
 
 /// Represents the block-start and block-end margins of a flow with collapsible margins. See CSS 2.1 § 8.3.1.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum CollapsibleMargins {
     /// Margins may not collapse with this flow.
     None(Au, Au),
@@ -239,14 +239,14 @@ impl MarginCollapseInfo {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum MarginCollapseState {
     AccumulatingCollapsibleTopMargin,
     AccumulatingMarginIn,
 }
 
 /// Intrinsic inline-sizes, which consist of minimum and preferred.
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 pub struct IntrinsicISizes {
     /// The *minimum inline-size* of the content.
     pub minimum_inline_size: Au,
@@ -256,7 +256,7 @@ pub struct IntrinsicISizes {
 
 impl fmt::Show for IntrinsicISizes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "min={}, pref={}", self.minimum_inline_size, self.preferred_inline_size)
+        write!(f, "min={:?}, pref={:?}", self.minimum_inline_size, self.preferred_inline_size)
     }
 }
 
@@ -325,7 +325,7 @@ impl IntrinsicISizesContribution {
 }
 
 /// Useful helper data type when computing values for blocks and positioned elements.
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 pub enum MaybeAuto {
     Auto,
     Specified(Au),
@@ -358,7 +358,7 @@ impl MaybeAuto {
     }
 
     #[inline]
-    pub fn map(&self, mapper: |Au| -> Au) -> MaybeAuto {
+    pub fn map<F>(&self, mapper: F) -> MaybeAuto where F: FnOnce(Au) -> Au {
         match *self {
             MaybeAuto::Auto => MaybeAuto::Auto,
             MaybeAuto::Specified(value) => MaybeAuto::Specified(mapper(value)),

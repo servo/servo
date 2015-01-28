@@ -9,7 +9,7 @@ use rustc::middle::ty::expr_ty;
 use rustc::util::ppaux::Repr;
 
 declare_lint!(TRANSMUTE_TYPE_LINT, Allow,
-              "Warn and report types being transmuted")
+              "Warn and report types being transmuted");
 
 /// Lint for auditing transmutes
 ///

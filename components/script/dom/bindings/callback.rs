@@ -14,10 +14,11 @@ use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::with_compartment;
 
+use std::ffi::CString;
 use std::ptr;
 
 /// The exception handling used for a call.
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
     Report,
@@ -26,7 +27,7 @@ pub enum ExceptionHandling {
 }
 
 /// A common base class for representing IDL callback function types.
-#[deriving(Copy, Clone,PartialEq)]
+#[derive(Copy, Clone,PartialEq)]
 #[jstraceable]
 pub struct CallbackFunction {
     object: CallbackObject
@@ -44,7 +45,7 @@ impl CallbackFunction {
 }
 
 /// A common base class for representing IDL callback interface types.
-#[deriving(Copy, Clone,PartialEq)]
+#[derive(Copy, Clone,PartialEq)]
 #[jstraceable]
 pub struct CallbackInterface {
     object: CallbackObject
@@ -53,7 +54,7 @@ pub struct CallbackInterface {
 /// A common base class for representing IDL callback function and
 /// callback interface types.
 #[allow(raw_pointer_deriving)]
-#[deriving(Copy, Clone,PartialEq)]
+#[derive(Copy, Clone,PartialEq)]
 #[jstraceable]
 struct CallbackObject {
     /// The underlying `JSObject`.
@@ -99,7 +100,7 @@ impl CallbackInterface {
     pub fn GetCallableProperty(&self, cx: *mut JSContext, name: &str) -> Result<JSVal, ()> {
         let mut callable = UndefinedValue();
         unsafe {
-            let name = name.to_c_str();
+            let name = CString::from_slice(name.as_bytes());
             if JS_GetProperty(cx, self.callback(), name.as_ptr(), &mut callable) == 0 {
                 return Err(());
             }

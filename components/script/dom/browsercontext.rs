@@ -194,17 +194,20 @@ unsafe extern fn set(cx: *mut JSContext, proxy: *mut JSObject, _receiver: *mut J
 }
 
 static PROXY_HANDLER: ProxyTraps = ProxyTraps {
-    getPropertyDescriptor: Some(getPropertyDescriptor),
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
-    defineProperty: Some(defineProperty),
+    getPropertyDescriptor: Some(getPropertyDescriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
+    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor
+                                   as unsafe extern "C" fn(*mut JSContext, *mut JSObject,
+                                                           jsid, bool, *mut JSPropertyDescriptor)
+                                                           -> bool),
+    defineProperty: Some(defineProperty as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut JSPropertyDescriptor) -> bool),
     getOwnPropertyNames: None,
     delete_: None,
     enumerate: None,
 
     has: None,
-    hasOwn: Some(hasOwn),
-    get: Some(get),
-    set: Some(set),
+    hasOwn: Some(hasOwn as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut bool) -> bool),
+    get: Some(get as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut JSObject, jsid, *mut JSVal) -> bool),
+    set: Some(set as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut JSObject, jsid, bool, *mut JSVal) -> bool),
     keys: None,
     iterate: None,
 

@@ -93,7 +93,7 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
 
              ptr::copy_memory((*output).str, src, src_len as uint);
              (*output).length = src_len;
-             (*output).dtor = Some(string_utf8_dtor);
+             (*output).dtor = Some(string_utf8_dtor as extern "C" fn(*mut u8));
            }
        } else {
          (*output).str = mem::transmute(src);
@@ -107,15 +107,15 @@ pub extern "C" fn cef_string_utf8_set(src: *const u8, src_len: size_t, output: *
 #[no_mangle]
 pub extern "C" fn cef_string_utf8_cmp(a: *const cef_string_utf8_t, b: *const cef_string_utf8_t) -> c_int {
     unsafe {
-        slice::raw::buf_as_slice((*a).str as *const u8, (*a).length as uint, |astr:&[u8]| {
-            slice::raw::buf_as_slice((*b).str as *const u8, (*b).length as uint, |bstr:&[u8]| {
-                match astr.cmp(bstr) {
-                    Ordering::Less => -1,
-                    Ordering::Equal => 0,
-                    Ordering::Greater => 1
-                }
-            })
-        })
+        let astr = (*a).str as *const u8;
+        let bstr = (*b).str as *const u8;
+        let astr = slice::from_raw_buf(&astr, (*a).length as uint);
+        let bstr = slice::from_raw_buf(&bstr, (*b).length as uint);
+        match astr.cmp(bstr) {
+            Ordering::Less => -1,
+            Ordering::Equal => 0,
+            Ordering::Greater => 1
+        }
     }
 }
 
@@ -131,15 +131,14 @@ pub extern "C" fn cef_string_utf8_to_utf16(src: *const u8, src_len: size_t, outp
 #[no_mangle]
 pub extern "C" fn cef_string_utf16_to_utf8(src: *const u16, src_len: size_t, output: *mut cef_string_utf8_t) -> c_int {
     unsafe {
-       slice::raw::buf_as_slice(src, src_len as uint, |ustr| {
-            match string::String::from_utf16(ustr) {
-                Some(str) => {
-                    cef_string_utf8_set(str.as_bytes().as_ptr(), str.len() as size_t, output, 1);
-                    1 as c_int
-                },
-                None =>  0 as c_int
-            }
-       })
+        let ustr = slice::from_raw_buf(&src, src_len as uint);
+        match string::String::from_utf16(ustr) {
+            Ok(str) => {
+                cef_string_utf8_set(str.as_bytes().as_ptr(), str.len() as size_t, output, 1);
+                1 as c_int
+            },
+            _ =>  0 as c_int
+        }
     }
 }
 
@@ -175,7 +174,7 @@ pub extern "C" fn cef_string_utf16_set(src: *const c_ushort, src_len: size_t, ou
 
              ptr::copy_memory((*output).str, src, src_len as uint);
              (*output).length = src_len;
-             (*output).dtor = Some(string_utf16_dtor);
+             (*output).dtor = Some(string_utf16_dtor as extern "C" fn(*mut c_ushort));
            }
        } else {
          (*output).str = mem::transmute(src);
@@ -189,15 +188,15 @@ pub extern "C" fn cef_string_utf16_set(src: *const c_ushort, src_len: size_t, ou
 #[no_mangle]
 pub extern "C" fn cef_string_utf16_cmp(a: *const cef_string_utf16_t, b: *const cef_string_utf16_t) -> c_int {
     unsafe {
-        slice::raw::buf_as_slice(mem::transmute((*a).str), (*a).length as uint, |astr:&[u16]| {
-            slice::raw::buf_as_slice(mem::transmute((*b).str), (*b).length as uint, |bstr:&[u16]| {
-                match astr.cmp(bstr) {
-                    Ordering::Less => -1,
-                    Ordering::Equal => 0,
-                    Ordering::Greater => 1
-                }
-            })
-        })
+        let astr = (*a).str as *const _;
+        let bstr = (*b).str as *const _;
+        let astr: &[u16] = slice::from_raw_buf(&astr, (*a).length as uint);
+        let bstr: &[u16] = slice::from_raw_buf(&bstr, (*b).length as uint);
+        match astr.cmp(bstr) {
+            Ordering::Less => -1,
+            Ordering::Equal => 0,
+            Ordering::Greater => 1
+        }
     }
 }
 
@@ -233,7 +232,7 @@ pub extern "C" fn cef_string_wide_set(src: *const wchar_t, src_len: size_t, outp
 
              ptr::copy_memory((*output).str, src, src_len as uint);
              (*output).length = src_len;
-             (*output).dtor = Some(string_wide_dtor);
+             (*output).dtor = Some(string_wide_dtor as extern "C" fn(*mut wchar_t));
            }
        } else {
          (*output).str = mem::transmute(src);
@@ -247,15 +246,15 @@ pub extern "C" fn cef_string_wide_set(src: *const wchar_t, src_len: size_t, outp
 #[no_mangle]
 pub extern "C" fn cef_string_wide_cmp(a: *const cef_string_wide_t, b: *const cef_string_wide_t) -> c_int {
     unsafe {
-        slice::raw::buf_as_slice((*a).str as *const wchar_t, (*a).length as uint, |astr:&[wchar_t]| {
-            slice::raw::buf_as_slice((*b).str as *const wchar_t, (*b).length as uint, |bstr:&[wchar_t]| {
-                match astr.cmp(bstr) {
-                    Ordering::Less => -1,
-                    Ordering::Equal => 0,
-                    Ordering::Greater => 1
-                }
-            })
-        })
+        let astr = (*a).str as *const wchar_t;
+        let bstr = (*b).str as *const wchar_t;
+        let astr = slice::from_raw_buf(&astr, (*a).length as uint);
+        let bstr = slice::from_raw_buf(&bstr, (*b).length as uint);
+        match astr.cmp(bstr) {
+            Ordering::Less => -1,
+            Ordering::Equal => 0,
+            Ordering::Greater => 1
+        }
     }
 }
 
@@ -276,10 +275,9 @@ pub extern "C" fn cef_string_wide_to_utf8(src: *const wchar_t, src_len: size_t, 
          return cef_string_utf16_to_utf8(src as *const u16, src_len, output);
     }
     unsafe {
-       slice::raw::buf_as_slice(src, src_len as uint, |ustr| {
-            let conv = ustr.iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>();
-            cef_string_utf8_set(conv.as_bytes().as_ptr(), conv.len() as size_t, output, 1)
-       })
+        let ustr = slice::from_raw_buf(&src, src_len as uint);
+        let conv = ustr.iter().map(|&c| char::from_u32(c as u32).unwrap_or('\u{FFFD}')).collect::<String>();
+        cef_string_utf8_set(conv.as_bytes().as_ptr(), conv.len() as size_t, output, 1)
     }
 }
 
@@ -294,10 +292,9 @@ pub extern "C" fn cef_string_ascii_to_utf16(src: *const u8, src_len: size_t, out
 #[no_mangle]
 pub extern "C" fn cef_string_ascii_to_wide(src: *const u8, src_len: size_t, output: *mut cef_string_wide_t) -> c_int {
     unsafe {
-        slice::raw::buf_as_slice(src, src_len as uint, |ustr| {
-            let conv = ustr.iter().map(|&c| c as u8).collect::<Vec<u8>>();
-            cef_string_wide_set(conv.as_ptr() as *const wchar_t, conv.len() as size_t, output, 1)
-        })
+        let ustr = slice::from_raw_buf(&src, src_len as uint);
+        let conv = ustr.iter().map(|&c| c as u8).collect::<Vec<u8>>();
+        cef_string_wide_set(conv.as_ptr() as *const wchar_t, conv.len() as size_t, output, 1)
     }
 }
 

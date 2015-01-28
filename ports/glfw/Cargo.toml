@@ -32,5 +32,5 @@ git = "https://github.com/servo/rust-cgl"
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
 
-[dependencies.time]
-git = "https://github.com/rust-lang/time"
+[dependencies]
+time = "*"

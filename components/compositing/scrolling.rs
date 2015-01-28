@@ -7,7 +7,8 @@
 use compositor_task::{CompositorProxy, Msg};
 
 use std::io::timer;
-use std::task::TaskBuilder;
+use std::sync::mpsc::{Receiver, Sender, channel};
+use std::thread::Builder;
 use std::time::duration::Duration;
 use time;
 
@@ -33,7 +34,7 @@ enum ToScrollingTimerMsg {
 impl ScrollingTimerProxy {
     pub fn new(compositor_proxy: Box<CompositorProxy+Send>) -> ScrollingTimerProxy {
         let (to_scrolling_timer_sender, to_scrolling_timer_receiver) = channel();
-        TaskBuilder::new().spawn(proc() {
+        Builder::new().spawn(move || {
             let mut scrolling_timer = ScrollingTimer {
                 compositor_proxy: compositor_proxy,
                 receiver: to_scrolling_timer_receiver,
@@ -46,18 +47,18 @@ impl ScrollingTimerProxy {
     }
 
     pub fn scroll_event_processed(&mut self, timestamp: u64) {
-        self.sender.send(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp))
+        self.sender.send(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp)).unwrap()
     }
 
     pub fn shutdown(&mut self) {
-        self.sender.send(ToScrollingTimerMsg::ExitMsg);
+        self.sender.send(ToScrollingTimerMsg::ExitMsg).unwrap()
     }
 }
 
 impl ScrollingTimer {
     pub fn run(&mut self) {
         loop {
-            match self.receiver.recv_opt() {
+            match self.receiver.recv() {
                 Ok(ToScrollingTimerMsg::ScrollEventProcessedMsg(timestamp)) => {
                     let target = timestamp as i64 + TIMEOUT;
                     let delta = target - (time::precise_time_ns() as i64);

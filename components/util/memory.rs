@@ -6,13 +6,16 @@
 
 use libc::{c_char,c_int,c_void,size_t};
 use std::borrow::ToOwned;
+use std::ffi::CString;
 use std::io::timer::sleep;
 #[cfg(target_os="linux")]
 use std::io::File;
+use std::mem;
 use std::mem::size_of;
 #[cfg(target_os="linux")]
 use std::os::page_size;
 use std::ptr::null_mut;
+use std::sync::mpsc::{Sender, channel, Receiver};
 use std::time::duration::Duration;
 use task::spawn_named;
 #[cfg(target_os="macos")]
@@ -45,16 +48,16 @@ impl MemoryProfiler {
             Some(period) => {
                 let period = Duration::milliseconds((period * 1000f64) as i64);
                 let chan = chan.clone();
-                spawn_named("Memory profiler timer".to_owned(), proc() {
+                spawn_named("Memory profiler timer".to_owned(), move || {
                     loop {
                         sleep(period);
-                        if chan.send_opt(MemoryProfilerMsg::Print).is_err() {
+                        if chan.send(MemoryProfilerMsg::Print).is_err() {
                             break;
                         }
                     }
                 });
                 // Spawn the memory profiler.
-                spawn_named("Memory profiler".to_owned(), proc() {
+                spawn_named("Memory profiler".to_owned(), move || {
                     let memory_profiler = MemoryProfiler::new(port);
                     memory_profiler.start();
                 });
@@ -62,9 +65,9 @@ impl MemoryProfiler {
             None => {
                 // No-op to handle messages when the memory profiler is
                 // inactive.
-                spawn_named("Memory profiler".to_owned(), proc() {
+                spawn_named("Memory profiler".to_owned(), move || {
                     loop {
-                        match port.recv_opt() {
+                        match port.recv() {
                             Err(_) | Ok(MemoryProfilerMsg::Exit) => break,
                             _ => {}
                         }
@@ -84,7 +87,7 @@ impl MemoryProfiler {
 
     pub fn start(&self) {
         loop {
-            match self.port.recv_opt() {
+            match self.port.recv() {
                Ok(msg) => {
                    if !self.handle_msg(msg) {
                        break
@@ -151,12 +154,13 @@ extern {
 
 fn get_jemalloc_stat(name: &'static str) -> Option<u64> {
     let mut old: size_t = 0;
-    let c_name = name.to_c_str();
+    let c_name = CString::from_slice(name.as_bytes());
     let oldp = &mut old as *mut _ as *mut c_void;
     let mut oldlen = size_of::<size_t>() as size_t;
     let rv: c_int;
     unsafe {
-        rv = je_mallctl(c_name.into_inner(), oldp, &mut oldlen, null_mut(), 0);
+        rv = je_mallctl(c_name.as_ptr(), oldp, &mut oldlen, null_mut(), 0);
+        mem::forget(c_name); // XXX correct?
     }
     if rv == 0 { Some(old as u64) } else { None }
 }
@@ -164,7 +168,7 @@ fn get_jemalloc_stat(name: &'static str) -> Option<u64> {
 // Like std::macros::try!, but for Option<>.
 macro_rules! option_try(
     ($e:expr) => (match $e { Some(e) => e, None => return None })
-)
+);
 
 #[cfg(target_os="linux")]
 fn get_proc_self_statm_field(field: uint) -> Option<u64> {
@@ -172,7 +176,7 @@ fn get_proc_self_statm_field(field: uint) -> Option<u64> {
     match f.read_to_string() {
         Ok(contents) => {
             let s = option_try!(contents.as_slice().words().nth(field));
-            let npages: u64 = option_try!(from_str(s));
+            let npages: u64 = option_try!(s.parse());
             Some(npages * (page_size() as u64))
         }
         Err(_) => None

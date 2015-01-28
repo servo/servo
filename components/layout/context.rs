@@ -28,7 +28,7 @@ struct LocalLayoutContext {
     style_sharing_candidate_cache: StyleSharingCandidateCache,
 }
 
-thread_local!(static LOCAL_CONTEXT_KEY: Cell<*mut LocalLayoutContext> = Cell::new(ptr::null_mut()))
+thread_local!(static LOCAL_CONTEXT_KEY: Cell<*mut LocalLayoutContext> = Cell::new(ptr::null_mut()));
 
 fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext) -> *mut LocalLayoutContext {
     LOCAL_CONTEXT_KEY.with(|ref r| {
@@ -79,6 +79,9 @@ pub struct SharedLayoutContext {
     /// This can be used to easily check for invalid stale data.
     pub generation: uint,
 }
+
+pub struct SharedLayoutContextWrapper(pub *const SharedLayoutContext);
+unsafe impl Send for SharedLayoutContextWrapper {}
 
 pub struct LayoutContext<'a> {
     pub shared: &'a SharedLayoutContext,

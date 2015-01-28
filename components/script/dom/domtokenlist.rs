@@ -118,7 +118,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
         let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
         for token in tokens.iter() {
             let token = try!(self.check_token_exceptions(token.as_slice()));
-            atoms.iter().position(|atom| *atom == token).and_then(|index| {
+            atoms.iter().position(|atom| *atom == token).map(|index| {
                 atoms.remove(index)
             });
         }

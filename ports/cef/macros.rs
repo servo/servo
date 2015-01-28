@@ -35,9 +35,29 @@
 macro_rules! cef_class_impl(
     ($class_name:ident : $interface_name:ident, $c_interface_name:ident {
         $(
-            fn $method_name:ident ( & $method_this:ident
-                                   $( , $method_arg_name:ident : $method_arg_type:ty )* )
-                                   -> $method_return_type:ty $method_body:block
+            fn $method_name:ident ( & $method_this:ident ,
+                                   $( $method_arg_name:ident : $c_method_arg_type:ty ,)* )
+                                   -> $method_return_type:ty {$method_body:block}
+        )*
+    }) => (
+        full_cef_class_impl! {
+            $class_name : $interface_name, $c_interface_name {
+                $(fn $method_name(&$method_this,
+                                  $($method_arg_name : $c_method_arg_type [$c_method_arg_type],)*)
+                                  -> $method_return_type {
+                    $method_body
+                })*
+            }
+        }
+    )
+);
+
+macro_rules! full_cef_class_impl(
+    ($class_name:ident : $interface_name:ident, $c_interface_name:ident {
+        $(
+            fn $method_name:ident ( & $method_this:ident ,
+                                   $( $method_arg_name:ident : $c_method_arg_type:ty [$method_arg_type:ty] ,)* )
+                                   -> $method_return_type:ty {$method_body:block}
         )*
     }) => (
         impl $class_name {
@@ -52,7 +72,7 @@ macro_rules! cef_class_impl(
                         ::eutil::create_cef_object::<$c_interface_name,$class_name>(size))
                 };
                 unsafe {
-                    $((*cef_object.c_object()).$method_name = Some($method_name);)*
+                    $((*cef_object.c_object()).$method_name = Some($method_name as extern "C" fn(*mut $c_interface_name, $($c_method_arg_type,)*) -> $method_return_type);)*
                     let extra_slot =
                         ::std::mem::transmute::<&mut u8,
                                                 &mut $class_name>(&mut (*cef_object.c_object())
@@ -65,13 +85,13 @@ macro_rules! cef_class_impl(
 
         $(
             extern "C" fn $method_name(raw_this: *mut $c_interface_name,
-                                       $($method_arg_name: $method_arg_type),*)
+                                       $($method_arg_name: $c_method_arg_type),*)
                                        -> $method_return_type {
                 let $method_this = unsafe {
                     $interface_name::from_c_object_addref(raw_this)
                 };
                 $(
-                    let $method_arg_name = unsafe {
+                    let $method_arg_name: $method_arg_type = unsafe {
                         ::wrappers::CefWrap::to_rust($method_arg_name)
                     };
                 )*
@@ -87,13 +107,13 @@ macro_rules! cef_class_impl(
             }
         }
     )
-)
+);
 
 macro_rules! cef_static_method_impls(
     (
         $(
             fn $method_name:ident ( $($method_arg_name:ident : $method_arg_type:ty ),* )
-                                   -> $method_return_type:ty $method_body:block
+                                   -> $method_return_type:ty {$method_body:block}
         )*
     ) => (
         $(
@@ -109,13 +129,13 @@ macro_rules! cef_static_method_impls(
             }
         )*
     )
-)
+);
 
 macro_rules! cef_stub_static_method_impls(
     (
         $(
             fn $method_name:ident ( $($method_arg_name:ident : $method_arg_type:ty ),* )
-                                   -> $method_return_type:ty ;
+                                   -> $method_return_type:ty
         )*
     ) => (
         $(
@@ -126,4 +146,4 @@ macro_rules! cef_stub_static_method_impls(
             }
         )*
     )
-)
+);

@@ -17,9 +17,11 @@
 
 use task::spawn_named;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{channel, Sender, Receiver};
+use std::thunk::Thunk;
 
 pub struct TaskPool {
-    tx: Sender<proc():Send>,
+    tx: Sender<Thunk<()>>,
 }
 
 impl TaskPool {
@@ -33,23 +35,25 @@ impl TaskPool {
             let state = state.clone();
             spawn_named(
                 format!("TaskPoolWorker {}/{}", i+1, tasks),
-                proc() worker(&*state));
+                move || worker(&*state));
         }
 
         return TaskPool { tx: tx };
 
-        fn worker(rx: &Mutex<Receiver<proc():Send>>) {
+        fn worker(rx: &Mutex<Receiver<Thunk<()>>>) {
             loop {
-                let job = rx.lock().recv_opt();
+                let job = rx.lock().unwrap().recv();
                 match job {
-                    Ok(job) => job(),
+                    Ok(job) => job.invoke(()),
                     Err(..) => break,
                 }
             }
         }
     }
 
-    pub fn execute(&self, job: proc():Send) {
-        self.tx.send(job);
+    pub fn execute<F>(&self, job: F)
+        where F: FnOnce() + Send
+    {
+        self.tx.send(Thunk::new(job));
     }
 }

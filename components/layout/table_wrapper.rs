@@ -27,18 +27,19 @@ use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
 use std::cmp::{max, min};
 use std::fmt;
+use std::ops::Add;
 use style::{ComputedValues, CSSFloat};
 use style::computed_values::{table_layout, LengthOrPercentageOrAuto};
 use std::sync::Arc;
 
-#[deriving(Copy, Encodable, Show)]
+#[derive(Copy, RustcEncodable, Show)]
 pub enum TableLayout {
     Fixed,
     Auto
 }
 
 /// A table wrapper flow based on a block formatting context.
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 pub struct TableWrapperFlow {
     pub block_flow: BlockFlow,
 
@@ -144,11 +145,11 @@ impl TableWrapperFlow {
         // Compute all the guesses for the column sizes, and sum them.
         let mut total_guess = AutoLayoutCandidateGuess::new();
         let guesses: Vec<AutoLayoutCandidateGuess> =
-            self.column_intrinsic_inline_sizes.iter().map(|column_intrinsic_inline_size| {
+            self.column_intrinsic_inline_sizes.iter().map(|&mut:column_intrinsic_inline_size| {
                 let guess = AutoLayoutCandidateGuess::from_column_intrinsic_inline_size(
                     column_intrinsic_inline_size,
                     available_inline_size);
-                total_guess = total_guess + guess;
+                total_guess = &total_guess + &guess;
                 guess
             }).collect();
 
@@ -383,9 +384,9 @@ impl Flow for TableWrapperFlow {
 impl fmt::Show for TableWrapperFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.block_flow.base.flags.is_float() {
-            write!(f, "TableWrapperFlow(Float): {}", self.block_flow.fragment)
+            write!(f, "TableWrapperFlow(Float): {:?}", self.block_flow.fragment)
         } else {
-            write!(f, "TableWrapperFlow: {}", self.block_flow.fragment)
+            write!(f, "TableWrapperFlow: {:?}", self.block_flow.fragment)
         }
     }
 }
@@ -482,9 +483,10 @@ impl AutoLayoutCandidateGuess {
     }
 }
 
-impl Add<AutoLayoutCandidateGuess,AutoLayoutCandidateGuess> for AutoLayoutCandidateGuess {
+impl<'a> Add for &'a AutoLayoutCandidateGuess {
+    type Output = AutoLayoutCandidateGuess;
     #[inline]
-    fn add(&self, other: &AutoLayoutCandidateGuess) -> AutoLayoutCandidateGuess {
+    fn add(self, other: &AutoLayoutCandidateGuess) -> AutoLayoutCandidateGuess {
         AutoLayoutCandidateGuess {
             minimum_guess: self.minimum_guess + other.minimum_guess,
             minimum_percentage_guess:
@@ -497,7 +499,7 @@ impl Add<AutoLayoutCandidateGuess,AutoLayoutCandidateGuess> for AutoLayoutCandid
 
 /// The `CSSFloat` member specifies the weight of the smaller of the two guesses, on a scale from
 /// 0.0 to 1.0.
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 enum SelectedAutoLayoutCandidateGuess {
     UseMinimumGuess,
     InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(CSSFloat),

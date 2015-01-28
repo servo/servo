@@ -11,12 +11,12 @@ use servo_util::geometry::{Au, ViewportPx};
 use values::{computed, specified};
 
 
-#[deriving(Show, PartialEq)]
+#[derive(Show, PartialEq)]
 pub struct MediaQueryList {
     media_queries: Vec<MediaQuery>
 }
 
-#[deriving(PartialEq, Eq, Copy, Show)]
+#[derive(PartialEq, Eq, Copy, Show)]
 pub enum Range<T> {
     Min(T),
     Max(T),
@@ -33,18 +33,18 @@ impl<T: Ord> Range<T> {
     }
 }
 
-#[deriving(PartialEq, Eq, Copy, Show)]
+#[derive(PartialEq, Eq, Copy, Show)]
 pub enum Expression {
     Width(Range<Au>),
 }
 
-#[deriving(PartialEq, Eq, Copy, Show)]
+#[derive(PartialEq, Eq, Copy, Show)]
 pub enum Qualifier {
     Only,
     Not,
 }
 
-#[deriving(Show, PartialEq)]
+#[derive(Show, PartialEq)]
 pub struct MediaQuery {
     qualifier: Option<Qualifier>,
     media_type: MediaQueryType,
@@ -62,13 +62,13 @@ impl MediaQuery {
     }
 }
 
-#[deriving(PartialEq, Eq, Copy, Show)]
+#[derive(PartialEq, Eq, Copy, Show)]
 pub enum MediaQueryType {
     All,  // Always true
     MediaType(MediaType),
 }
 
-#[deriving(PartialEq, Eq, Copy, Show)]
+#[derive(PartialEq, Eq, Copy, Show)]
 pub enum MediaType {
     Screen,
     Print,
@@ -76,7 +76,7 @@ pub enum MediaType {
 }
 
 #[allow(missing_copy_implementations)]
-#[deriving(Show)]
+#[derive(Show)]
 pub struct Device {
     pub media_type: MediaType,
     pub viewport_size: TypedSize2D<ViewportPx, f32>,
@@ -109,7 +109,7 @@ impl Expression {
             let name = try!(input.expect_ident());
             try!(input.expect_colon());
             // TODO: Handle other media features
-            match_ignore_ascii_case! { name:
+            match_ignore_ascii_case! { name,
                 "min-width" => {
                     Ok(Expression::Width(Range::Min(try!(parse_non_negative_length(input)))))
                 },
@@ -136,7 +136,7 @@ impl MediaQuery {
 
         let media_type;
         if let Ok(ident) = input.try(|input| input.expect_ident()) {
-            media_type = match_ignore_ascii_case! { ident:
+            media_type = match_ignore_ascii_case! { ident,
                 "screen" => MediaQueryType::MediaType(MediaType::Screen),
                 "print" => MediaQueryType::MediaType(MediaType::Print),
                 "all" => MediaQueryType::All
@@ -222,7 +222,7 @@ mod tests {
     use url::Url;
     use std::borrow::ToOwned;
 
-    fn test_media_rule(css: &str, callback: |&MediaQueryList, &str|) {
+    fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {
         let url = Url::parse("http://localhost").unwrap();
         let stylesheet = Stylesheet::from_str(css, url, Origin::Author);
         let mut rule_count: int = 0;

@@ -22,7 +22,7 @@ use style::ComputedValues;
 use std::sync::Arc;
 
 /// A table formatting context.
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 pub struct TableRowGroupFlow {
     /// Fields common to all block flows.
     pub block_flow: BlockFlow,
@@ -164,6 +164,6 @@ impl Flow for TableRowGroupFlow {
 
 impl fmt::Show for TableRowGroupFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TableRowGroupFlow: {}", self.block_flow.fragment)
+        write!(f, "TableRowGroupFlow: {:?}", self.block_flow.fragment)
     }
 }

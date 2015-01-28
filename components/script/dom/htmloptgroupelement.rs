@@ -47,10 +47,10 @@ impl HTMLOptGroupElement {
 
 impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
     // http://www.whatwg.org/html#dom-optgroup-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html#dom-optgroup-disabled
-    make_bool_setter!(SetDisabled, "disabled")
+    make_bool_setter!(SetDisabled, "disabled");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
