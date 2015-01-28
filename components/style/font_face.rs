@@ -9,7 +9,7 @@ use properties::longhands::font_family::parse_one_family;
 use properties::computed_values::font_family::FontFamily;
 use media_queries::Device;
 use url::{Url, UrlParser};
-use parser::ParserContext;
+use parser::{ParserContext, log_css_error};
 
 
 pub fn iter_font_face_rules_inner<F>(rules: &[CSSRule], device: &Device,
@@ -54,9 +54,14 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
                              -> Result<FontFaceRule, ()> {
     let mut family = None;
     let mut src = None;
-    for declaration in DeclarationListParser::new(input, FontFaceRuleParser { context: context }) {
+    let mut iter = DeclarationListParser::new(input, FontFaceRuleParser { context: context });
+    while let Some(declaration) = iter.next() {
         match declaration {
-            Err(()) => {}
+            Err(range) => {
+                let message = format!("Unsupported @font-face descriptor declaration: '{}'",
+                                      iter.input.slice(range));
+                log_css_error(iter.input, range.start, &*message);
+            }
             Ok(FontFaceDescriptorDeclaration::Family(value)) => {
                 family = Some(value);
             }

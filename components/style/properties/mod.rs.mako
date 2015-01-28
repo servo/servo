@@ -20,7 +20,7 @@ use geom::SideOffsets2D;
 use values::specified::BorderStyle;
 use values::computed;
 use selector_matching::DeclarationBlock;
-use parser::ParserContext;
+use parser::{ParserContext, log_css_error};
 use stylesheets::Origin;
 
 use self::property_bit_field::PropertyBitField;
@@ -2363,12 +2363,20 @@ pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Pars
     let parser = PropertyDeclarationParser {
         context: context,
     };
-    for declaration in DeclarationListParser::new(input, parser) {
-        if let Ok((results, important)) = declaration {
-            if important {
-                important_declarations.push_all(results.as_slice());
-            } else {
-                normal_declarations.push_all(results.as_slice());
+    let mut iter = DeclarationListParser::new(input, parser);
+    while let Some(declaration) = iter.next() {
+        match declaration {
+            Ok((results, important)) => {
+                if important {
+                    important_declarations.push_all(results.as_slice());
+                } else {
+                    normal_declarations.push_all(results.as_slice());
+                }
+            }
+            Err(range) => {
+                let message = format!("Unsupported property declaration: '{}'",
+                                      iter.input.slice(range));
+                log_css_error(iter.input, range.start, &*message);
             }
         }
     }

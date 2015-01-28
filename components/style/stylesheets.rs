@@ -13,7 +13,7 @@ use cssparser::{Parser, decode_stylesheet_bytes,
                 QualifiedRuleParser, AtRuleParser, RuleListParser, AtRuleType};
 use string_cache::{Atom, Namespace};
 use selectors::{Selector, parse_selector_list};
-use parser::ParserContext;
+use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use media_queries::{self, Device, MediaQueryList, parse_media_query_list};
 use font_face::{FontFaceRule, Source, parse_font_face_block, iter_font_face_rules_inner};
@@ -93,16 +93,22 @@ impl Stylesheet {
         let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
         let mut rules = Vec::new();
         while let Some(result) = iter.next() {
-            if let Ok(rule) = result {
-                if let CSSRule::Namespace(ref prefix, ref namespace) = rule {
-                    if let Some(prefix) = prefix.as_ref() {
-                        iter.parser.context.namespaces.prefix_map.insert(
-                            prefix.clone(), namespace.clone());
-                    } else {
-                        iter.parser.context.namespaces.default = Some(namespace.clone());
+            match result {
+                Ok(rule) => {
+                    if let CSSRule::Namespace(ref prefix, ref namespace) = rule {
+                        if let Some(prefix) = prefix.as_ref() {
+                            iter.parser.context.namespaces.prefix_map.insert(
+                                prefix.clone(), namespace.clone());
+                        } else {
+                            iter.parser.context.namespaces.default = Some(namespace.clone());
+                        }
                     }
+                    rules.push(rule);
                 }
-                rules.push(rule);
+                Err(range) => {
+                    let message = format!("Invalid rule: '{}'", iter.input.slice(range));
+                    log_css_error(iter.input, range.start, &*message);
+                }
             }
         }
         Stylesheet {
@@ -114,9 +120,18 @@ impl Stylesheet {
 
 
 fn parse_nested_rules(context: &ParserContext, input: &mut Parser) -> Vec<CSSRule> {
-    RuleListParser::new_for_nested_rule(input, NestedRuleParser { context: context })
-    .filter_map(|result| result.ok())
-    .collect()
+    let mut iter = RuleListParser::new_for_nested_rule(input, NestedRuleParser { context: context });
+    let mut rules = Vec::new();
+    while let Some(result) = iter.next() {
+        match result {
+            Ok(rule) => rules.push(rule),
+            Err(range) => {
+                let message = format!("Unsupported rule: '{}'", iter.input.slice(range));
+                log_css_error(iter.input, range.start, &*message);
+            }
+        }
+    }
+    rules
 }
 
 
