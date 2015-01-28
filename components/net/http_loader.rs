@@ -68,7 +68,6 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
         redirected_to.insert(url.clone());
 
-
         match url.scheme.as_slice() {
             "http" | "https" => {}
             _ => {
@@ -87,10 +86,12 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
             ssl.set_CA_file(&certs);
         };
 
-        let ssl_err_string = "[UnknownError { library: \"SSL routines\", function: \"SSL3_GET_SERVER_CERTIFICATE\",\
-                               reason: \"certificate verify failed\" }]";
-        let mut req = match Request::with_connector(load_data.method.clone(), url.clone(),
-                                                    &mut HttpConnector(Some(box verifier as Box<FnMut(&mut SslContext)>))) {
+        let ssl_err_string = "[UnknownError { library: \"SSL routines\", \
+function: \"SSL3_GET_SERVER_CERTIFICATE\", \
+reason: \"certificate verify failed\" }]";
+
+        let mut connector = HttpConnector(Some(box verifier as Box<FnMut(&mut SslContext)>));
+        let mut req = match Request::with_connector(load_data.method.clone(), url.clone(), &mut connector) {
             Ok(req) => req,
             Err(HttpError::HttpIoError(IoError {kind: IoErrorKind::OtherIoError,
                                                 desc: "Error in OpenSSL",

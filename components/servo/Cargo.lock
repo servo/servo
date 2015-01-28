@@ -103,7 +103,7 @@ name = "cookie"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "openssl 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -434,7 +434,7 @@ dependencies = [
  "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mucell 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -599,7 +599,7 @@ dependencies = [
 
 [[package]]
 name = "openssl"
-version = "0.2.16"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "openssl-sys 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",

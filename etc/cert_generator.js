@@ -33,6 +33,7 @@ function getPEMString(cert)
 }
 
 let certcache = Components.classes["@mozilla.org/security/nsscertcache;1"].createInstance(Ci.nsINSSCertCache);
+let certdb = Components.classes["@mozilla.org/security/x509certdb;1"].createInstance(Ci.nsIX509CertDB);
 certcache.cacheAllCerts();
 let enumerator = certcache.getX509CachedCerts().getEnumerator();
 let certlist = [];
@@ -40,8 +41,11 @@ let certstring="";
 while(enumerator.hasMoreElements()){
   let cert = enumerator.getNext().QueryInterface(Ci.nsIX509Cert);
   let pem = getPEMString(cert);
-  certlist.push({name: cert.commonName, pem: pem});
-  certstring+=pem;
+  let trusted = certdb.isCertTrusted(cert, Ci.nsIX509Cert.CA_CERT, Ci.nsIX509CertDB.TRUSTED_SSL);
+  certlist.push({name: cert.commonName, pem: pem, trusted: trusted});
+  if (trusted) {
+    certstring+=pem;
+  }
 }
 
 function save(path) {
