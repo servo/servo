@@ -46,10 +46,10 @@ struct PageErrorMessage {
     errorMessage: String,
     sourceName: String,
     lineText: String,
-    lineNumber: uint,
-    columnNumber: uint,
+    lineNumber: usize,
+    columnNumber: usize,
     category: String,
-    timeStamp: uint,
+    timeStamp: usize,
     warning: bool,
     error: bool,
     exception: bool,
@@ -61,7 +61,7 @@ struct PageErrorMessage {
 #[allow(dead_code)]
 struct LogMessage {
     _type: String, //FIXME: should this be __type__ instead?
-    timeStamp: uint,
+    timeStamp: usize,
     message: String,
 }
 
@@ -97,7 +97,7 @@ struct EvaluateJSReply {
     from: String,
     input: String,
     result: Json,
-    timestamp: uint,
+    timestamp: usize,
     exception: Json,
     exceptionMessage: String,
     helperResult: Json,

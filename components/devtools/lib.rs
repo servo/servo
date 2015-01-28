@@ -10,7 +10,7 @@
 #![crate_name = "devtools"]
 #![crate_type = "rlib"]
 
-#![feature(int_uint, box_syntax)]
+#![feature(box_syntax)]
 
 #![allow(non_snake_case)]
 #![allow(missing_copy_implementations)]
