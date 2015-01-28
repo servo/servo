@@ -222,8 +222,8 @@ pub struct FlowConstructor<'a> {
 
 impl<'a> FlowConstructor<'a> {
     /// Creates a new flow constructor.
-    pub fn new<'a>(layout_context: &'a LayoutContext<'a>)
-               -> FlowConstructor<'a> {
+    pub fn new<'b>(layout_context: &'b LayoutContext<'b>)
+                   -> FlowConstructor<'b> {
         FlowConstructor {
             layout_context: layout_context,
         }
