@@ -102,7 +102,7 @@ pub fn throw_not_in_union(cx: *mut JSContext, names: &'static str) -> JSBool {
 }
 
 /// Format string used to throw `TypeError`s.
-const ERROR_FORMAT_STRING_STRING: [libc::c_char; 4] = [
+static ERROR_FORMAT_STRING_STRING: [libc::c_char; 4] = [
     '{' as libc::c_char,
     '0' as libc::c_char,
     '}' as libc::c_char,
@@ -110,7 +110,7 @@ const ERROR_FORMAT_STRING_STRING: [libc::c_char; 4] = [
 ];
 
 /// Format string struct used to throw `TypeError`s.
-const ERROR_FORMAT_STRING: JSErrorFormatString = JSErrorFormatString {
+static mut ERROR_FORMAT_STRING: JSErrorFormatString = JSErrorFormatString {
     format: &ERROR_FORMAT_STRING_STRING as *const libc::c_char,
     argCount: 1,
     exnType: JSEXN_TYPEERR as i16,
