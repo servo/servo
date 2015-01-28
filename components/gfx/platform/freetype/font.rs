@@ -43,7 +43,7 @@ fn fixed_to_float_ft(f: i32) -> f64 {
 pub struct FontTable;
 
 impl FontTableMethods for FontTable {
-    fn with_buffer<F>(&self, _blk: F) where F: FnOnce(*const u8, uint) {
+    fn with_buffer<F>(&self, _blk: F) where F: FnOnce(*const u8, usize) {
         panic!()
     }
 }
@@ -94,7 +94,7 @@ impl FontHandleMethods for FontHandle {
             Err(()) => Err(())
         };
 
-        fn create_face_from_buffer(lib: FT_Library, cbuf: *const u8, cbuflen: uint, pt_size: Option<Au>)
+        fn create_face_from_buffer(lib: FT_Library, cbuf: *const u8, cbuflen: usize, pt_size: Option<Au>)
                                    -> Result<FT_Face, ()> {
             unsafe {
                 let mut face: FT_Face = ptr::null_mut();

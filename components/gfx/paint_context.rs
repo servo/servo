@@ -45,7 +45,7 @@ pub struct PaintContext<'a> {
     /// The rectangle that this context encompasses in page coordinates.
     pub page_rect: Rect<f32>,
     /// The rectangle that this context encompasses in screen coordinates (pixels).
-    pub screen_rect: Rect<uint>,
+    pub screen_rect: Rect<usize>,
     /// The clipping rect for the stacking context as a whole.
     pub clip_rect: Option<Rect<Au>>,
     /// The current transient clipping region, if any. A "transient clipping region" is the
@@ -606,9 +606,9 @@ impl<'a> PaintContext<'a> {
                                   color: Color,
                                   dash_size: DashSize) {
         let rect = bounds.to_azure_rect();
-        let draw_opts = DrawOptions::new(1u as AzFloat, 0 as uint16_t);
-        let mut stroke_opts = StrokeOptions::new(0u as AzFloat, 10u as AzFloat);
-        let mut dash: [AzFloat; 2] = [0u as AzFloat, 0u as AzFloat];
+        let draw_opts = DrawOptions::new(1us as AzFloat, 0 as uint16_t);
+        let mut stroke_opts = StrokeOptions::new(0us as AzFloat, 10us as AzFloat);
+        let mut dash: [AzFloat; 2] = [0us as AzFloat, 0us as AzFloat];
 
         stroke_opts.set_cap_style(AZ_CAP_BUTT as u8);
 
@@ -620,8 +620,8 @@ impl<'a> PaintContext<'a> {
         };
 
         stroke_opts.line_width = border_width;
-        dash[0] = border_width * (dash_size as int) as AzFloat;
-        dash[1] = border_width * (dash_size as int) as AzFloat;
+        dash[0] = border_width * (dash_size as isize) as AzFloat;
+        dash[1] = border_width * (dash_size as isize) as AzFloat;
         stroke_opts.mDashPattern = dash.as_mut_ptr();
         stroke_opts.mDashLength = dash.len() as size_t;
 
