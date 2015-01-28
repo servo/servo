@@ -4,7 +4,7 @@
 
 use geometry::Au;
 
-use cssparser::{mod, RGBA, Color};
+use cssparser::{self, RGBA, Color};
 
 use libc::c_char;
 use std::ascii::AsciiExt;

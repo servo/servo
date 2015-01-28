@@ -175,10 +175,9 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
-#[old_impl_check]
-impl<T: Assignable<U>, U: Reflectable> JS<U> {
+impl<U: Reflectable> JS<U> {
     /// Create a `JS<T>` from any JS-managed pointer.
-    pub fn from_rooted(root: T) -> JS<U> {
+    pub fn from_rooted<T: Assignable<U>>(root: T) -> JS<U> {
         unsafe {
             root.get_js()
         }
@@ -246,10 +245,9 @@ pub struct MutNullableJS<T: Reflectable> {
     ptr: Cell<Option<JS<T>>>
 }
 
-#[old_impl_check]
-impl<T: Assignable<U>, U: Reflectable> MutNullableJS<U> {
+impl<U: Reflectable> MutNullableJS<U> {
     /// Create a new `MutNullableJS`
-    pub fn new(initial: Option<T>) -> MutNullableJS<U> {
+    pub fn new<T: Assignable<U>>(initial: Option<T>) -> MutNullableJS<U> {
         MutNullableJS {
             ptr: Cell::new(initial.map(|initial| {
                 unsafe { initial.get_js() }
@@ -326,16 +324,15 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
-#[old_impl_check]
-impl<From, To> JS<From> {
+impl<From> JS<From> {
     /// Return `self` as a `JS` of another type.
     //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute(self) -> JS<To> {
+    pub unsafe fn transmute<To>(self) -> JS<To> {
         mem::transmute(self)
     }
 
     /// Return `self` as a `JS` of another type.
-    pub unsafe fn transmute_copy(&self) -> JS<To> {
+    pub unsafe fn transmute_copy<To>(&self) -> JS<To> {
         mem::transmute_copy(self)
     }
 }
