@@ -34,13 +34,18 @@ extern crate lazy_static;
 
 extern crate util;
 
+#[plugin] #[no_link] extern crate mod_path;
+
 
 pub mod stylesheets;
 pub mod parser;
 pub mod selectors;
 pub mod selector_matching;
 #[macro_use] pub mod values;
-#[macro_use] pub mod properties;
+
+// Generated from the properties.mako.rs template by build.rs
+mod_path! properties (concat!(env!("OUT_DIR"), "/properties.rs"));
+
 pub mod node;
 pub mod media_queries;
 pub mod font_face;
