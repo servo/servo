@@ -12,19 +12,22 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
-use dom::bindings::js::{JSRef, LayoutJS, Temporary, OptionalRootable};
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary, OptionalRootable};
+use dom::bindings::refcounted::Trusted;
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
-use dom::event::Event;
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::htmlformelement::FormControl;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeDamage, NodeTypeId};
-use dom::node::{document_from_node};
+use dom::node::{document_from_node, window_from_node};
 use textinput::{TextInput, Lines, KeyReaction};
 use dom::virtualmethods::VirtualMethods;
+use script_task::{ScriptMsg, Runnable};
 
 use util::str::DOMString;
 use string_cache::Atom;
@@ -183,6 +186,13 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
         // TODO move the cursor to the end of the field
         self.textinput.borrow_mut().set_content(value);
         self.value_changed.set(true);
+
+        let window = window_from_node(self).root();
+        let window = window.r();
+        let chan = window.script_chan();
+        let handler = Trusted::new(window.get_cx(), self, chan.clone());
+        chan.send(ScriptMsg::RunnableMsg(box handler));
+
         self.force_relayout();
     }
 }
@@ -207,6 +217,7 @@ impl<'a> HTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
 
 trait PrivateHTMLTextAreaElementHelpers {
     fn force_relayout(self);
+    fn dispatch_change_event(self);
 }
 
 impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
@@ -214,6 +225,16 @@ impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
         let doc = document_from_node(self).root();
         let node: JSRef<Node> = NodeCast::from_ref(self);
         doc.r().content_changed(node, NodeDamage::OtherNodeDamage)
+    }
+
+    fn dispatch_change_event(self) {
+        let window = window_from_node(self).root();
+        let window = window.r();
+        let event = Event::new(GlobalRef::Window(window),
+                               "input".to_owned(),
+                               EventBubbles::DoesNotBubble,
+                               EventCancelable::NotCancelable).root();
+        self.handle_event(event.r());
     }
 }
 
@@ -342,5 +363,12 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
 impl<'a> FormControl<'a> for JSRef<'a, HTMLTextAreaElement> {
     fn to_element(self) -> JSRef<'a, Element> {
         ElementCast::from_ref(self)
+    }
+}
+
+impl Runnable for Trusted<HTMLTextAreaElement> {
+    fn handler(self: Box<Trusted<HTMLTextAreaElement>>) {
+        let target = self.to_temporary().root();
+        target.r().dispatch_change_event();
     }
 }
