@@ -100,7 +100,7 @@ impl<'a> LayoutContext<'a> {
     }
 
     #[inline(always)]
-    pub fn font_context<'a>(&'a self) -> &'a mut FontContext {
+    pub fn font_context<'b>(&'b self) -> &'b mut FontContext {
         unsafe {
             let cached_context = &mut *self.cached_local_layout_context;
             &mut cached_context.font_context
@@ -108,7 +108,7 @@ impl<'a> LayoutContext<'a> {
     }
 
     #[inline(always)]
-    pub fn applicable_declarations_cache<'a>(&'a self) -> &'a mut ApplicableDeclarationsCache {
+    pub fn applicable_declarations_cache<'b>(&'b self) -> &'b mut ApplicableDeclarationsCache {
         unsafe {
             let cached_context = &mut *self.cached_local_layout_context;
             &mut cached_context.applicable_declarations_cache
@@ -116,7 +116,7 @@ impl<'a> LayoutContext<'a> {
     }
 
     #[inline(always)]
-    pub fn style_sharing_candidate_cache<'a>(&'a self) -> &'a mut StyleSharingCandidateCache {
+    pub fn style_sharing_candidate_cache<'b>(&'b self) -> &'b mut StyleSharingCandidateCache {
         unsafe {
             let cached_context = &mut *self.cached_local_layout_context;
             &mut cached_context.style_sharing_candidate_cache
