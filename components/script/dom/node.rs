@@ -2223,7 +2223,7 @@ pub fn window_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Node> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_borrowed_ref(self);
         Some(eventtarget as &VirtualMethods)
     }

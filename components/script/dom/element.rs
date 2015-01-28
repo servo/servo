@@ -1155,7 +1155,7 @@ pub fn get_attribute_parts<'a>(name: &'a str) -> (Option<&'a str>, &'a str) {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Element> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let node: &JSRef<Node> = NodeCast::from_borrowed_ref(self);
         Some(node as &VirtualMethods)
     }

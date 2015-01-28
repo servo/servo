@@ -69,7 +69,7 @@ fn is_stylesheet(value: &Option<String>) -> bool {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
