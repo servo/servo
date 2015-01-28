@@ -195,7 +195,7 @@ impl<'a, QueueData: 'static, WorkData: Send> WorkerProxy<'a, QueueData, WorkData
 
     /// Retrieves the queue user data.
     #[inline]
-    pub fn user_data<'a>(&'a self) -> &'a QueueData {
+    pub fn user_data<'b>(&'b self) -> &'b QueueData {
         unsafe {
             mem::transmute(self.queue_data)
         }

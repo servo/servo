@@ -5,7 +5,7 @@
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
-#![macro_escape]
+#![macro_use]
 
 use flow_ref::FlowRef;
 use flow;

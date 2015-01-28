@@ -49,9 +49,9 @@ extern crate string_cache_macros;
 pub mod cors;
 
 /// The implementation of the DOM.
-#[macro_escape]
+#[macro_use]
 pub mod dom {
-    #[macro_escape]
+    #[macro_use]
     pub mod macros;
 
     /// The code to expose the DOM to JavaScript through IDL bindings.

@@ -13,7 +13,7 @@ use render_handler::CefRenderHandlerExtensions;
 use types::{cef_cursor_handle_t, cef_rect_t};
 use wrappers::Utf16Encoder;
 
-use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
+use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
