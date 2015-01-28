@@ -46,7 +46,7 @@ impl<'a> Deref for FlowRef {
     }
 }
 
-impl<'a> DerefMut for FlowRef {
+impl DerefMut for FlowRef {
     fn deref_mut<'a>(&mut self) -> &mut (Flow + 'a) {
         unsafe {
             mem::transmute_copy::<raw::TraitObject, &mut (Flow + 'a)>(&self.object)
