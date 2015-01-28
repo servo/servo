@@ -6,13 +6,13 @@ use eutil::Downcast;
 use interfaces::{CefBrowser, CefBrowserHost, CefClient, cef_browser_host_t, cef_client_t};
 use types::{cef_mouse_button_type_t, cef_mouse_event, cef_rect_t, cef_key_event};
 use types::cef_key_event_type_t::{KEYEVENT_CHAR, KEYEVENT_KEYDOWN, KEYEVENT_KEYUP, KEYEVENT_RAWKEYDOWN};
-use browser::{mod, ServoCefBrowserExtensions};
+use browser::{self, ServoCefBrowserExtensions};
 
 use compositing::windowing::{WindowEvent, MouseWindowEvent};
 use geom::point::TypedPoint2D;
 use geom::size::TypedSize2D;
 use libc::{c_double, c_int};
-use servo_msg::constellation_msg::{mod, KeyModifiers, KeyState};
+use servo_msg::constellation_msg::{self, KeyModifiers, KeyState};
 use std::cell::RefCell;
 
 pub struct ServoCefBrowserHost {

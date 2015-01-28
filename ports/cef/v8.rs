@@ -6,7 +6,7 @@ use interfaces::{cef_v8accessor_t, cef_v8context_t, cef_v8handler_t, cef_v8stack
 use interfaces::{cef_v8value_t};
 use types::{cef_string_t, cef_time_t};
 
-use libc::{mod, c_double, c_int};
+use libc::{self, c_double, c_int};
 
 cef_stub_static_method_impls! {
     fn cef_v8context_get_current_context() -> *mut cef_v8context_t
