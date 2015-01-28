@@ -36,7 +36,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#2cc22b161a93f4016457f680b3966d879606d06d"
+source = "git+https://github.com/servo/rust-azure#72deb42903b12dc6f1924fa1757cd79d37b35429"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -474,7 +474,7 @@ source = "git+https://github.com/bjz/gl-rs.git#230e6c9ed611cddfcb6682dee9686471d
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#84d6d2cd2d09489eb10af7167fa34c914a8bee71"
+source = "git+https://github.com/servo/rust-layers#8dece8325eda4a74816832580e62ebd3afc99dfb"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
