@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(int_uint)]
-
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
@@ -68,7 +66,7 @@ pub enum ConstellationControlMsg {
     /// Sends a DOM event.
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script that reflow is finished.
-    ReflowComplete(PipelineId, uint),
+    ReflowComplete(PipelineId, usize),
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32>),
     /// Requests that the script task immediately send the constellation the title of a pipeline.
@@ -82,9 +80,9 @@ unsafe impl Send for ConstellationControlMsg {
 pub enum CompositorEvent {
     ResizeEvent(WindowSizeData),
     ReflowEvent(SmallVec1<UntrustedNodeAddress>),
-    ClickEvent(uint, Point2D<f32>),
-    MouseDownEvent(uint, Point2D<f32>),
-    MouseUpEvent(uint, Point2D<f32>),
+    ClickEvent(usize, Point2D<f32>),
+    MouseDownEvent(usize, Point2D<f32>),
+    MouseUpEvent(usize, Point2D<f32>),
     MouseMoveEvent(Point2D<f32>),
     KeyEvent(Key, KeyState, KeyModifiers),
 }
