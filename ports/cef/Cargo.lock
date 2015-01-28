@@ -810,7 +810,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "xlib"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-xlib#58ec3847b592aeabdcfeb6a2d02033d3a2c7f427"
+source = "git+https://github.com/servo/rust-xlib#138b0e281b9fd64f7d2e17080fa9a2d4a8554313"
 
 [[package]]
 name = "xml-rs"
