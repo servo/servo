@@ -44,7 +44,7 @@ impl DOMTokenList {
 
 trait PrivateDOMTokenListHelpers {
     fn attribute(self) -> Option<Temporary<Attr>>;
-    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<Atom>;
+    fn check_token_exceptions(self, token: &str) -> Fallible<Atom>;
 }
 
 impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
@@ -53,7 +53,7 @@ impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
         element.r().get_attribute(ns!(""), &self.local_name)
     }
 
-    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<Atom> {
+    fn check_token_exceptions(self, token: &str) -> Fallible<Atom> {
         match token {
             "" => Err(Syntax),
             slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(InvalidCharacter),
