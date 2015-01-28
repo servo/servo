@@ -36,7 +36,7 @@ use hyper::header::Headers;
 use hyper::header::common::{Accept, ContentLength, ContentType};
 use hyper::header::quality_item::QualityItem;
 use hyper::http::RawStatus;
-use hyper::mime::{mod, Mime};
+use hyper::mime::{self, Mime};
 use hyper::method::Method;
 
 use js::jsapi::{JS_ParseJSON, JSContext};

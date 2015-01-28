@@ -10,7 +10,7 @@
 //! with CORSRequest being expanded into FetchRequest (etc)
 
 use std::ascii::AsciiExt;
-use std::fmt::{mod, Show};
+use std::fmt::{self, Show};
 use std::str::from_utf8;
 use time;
 use time::{now, Timespec};

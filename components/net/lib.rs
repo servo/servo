@@ -45,7 +45,7 @@ mod sniffer_task;
 
 /// An implementation of the [Fetch spec](http://fetch.spec.whatwg.org/)
 pub mod fetch {
-    #![allow(dead_code)] // XXXManishearth this is only temporary until the Fetch mod starts being used
+    #![allow(dead_code, unused)] // XXXManishearth this is only temporary until the Fetch mod starts being used
     pub mod request;
     pub mod response;
     pub mod cors_cache;

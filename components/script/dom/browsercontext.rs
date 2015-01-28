@@ -26,7 +26,7 @@ use js::{JSRESOLVE_QUALIFIED, JSRESOLVE_ASSIGNING};
 
 use std::ptr;
 
-#[allow(raw_pointer_deriving)]
+#[allow(raw_pointer_derive)]
 #[jstraceable]
 #[privatize]
 pub struct BrowserContext {

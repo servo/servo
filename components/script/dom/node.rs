@@ -60,7 +60,7 @@ use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{FilterMap, Peekable};
 use std::mem;
-use style::{mod, ComputedValues};
+use style::{self, ComputedValues};
 use std::sync::Arc;
 use uuid;
 use string_cache::QualName;
@@ -2206,7 +2206,7 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 /// The address of a node known to be valid. These are sent from script to layout,
 /// and are also used in the HTML parser interface.
 
-#[allow(raw_pointer_deriving)]
+#[allow(raw_pointer_derive)]
 #[derive(Clone, PartialEq, Eq, Copy)]
 pub struct TrustedNodeAddress(pub *const c_void);
 

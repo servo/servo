@@ -5,7 +5,7 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use context::{LayoutContext, SharedLayoutContext};
-use flow::{mod, Flow, ImmutableFlowUtils, MutableFlowUtils, PostorderFlowTraversal};
+use flow::{self, Flow, ImmutableFlowUtils, MutableFlowUtils, PostorderFlowTraversal};
 use flow::{PreorderFlowTraversal};
 use flow_ref::FlowRef;
 use fragment::FragmentBorderBoxIterator;

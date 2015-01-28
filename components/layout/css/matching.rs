@@ -5,7 +5,7 @@
 //! High-level interface to CSS selector matching.
 
 use css::node_style::StyledNode;
-use incremental::{mod, RestyleDamage};
+use incremental::{self, RestyleDamage};
 use util::{LayoutDataAccess, LayoutDataWrapper};
 use wrapper::{LayoutElement, LayoutNode, TLayoutNode};
 
@@ -19,7 +19,7 @@ use std::mem;
 use std::hash::{Hash, Hasher, Writer};
 use std::slice::Iter;
 use string_cache::{Atom, Namespace};
-use style::{mod, PseudoElement, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
+use style::{self, PseudoElement, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
 use style::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes, cascade};
 use std::sync::Arc;
 
