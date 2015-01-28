@@ -4,7 +4,7 @@
 
 
 use eutil::slice_to_str;
-use libc::{mod, size_t, c_int, c_ushort, c_void};
+use libc::{self, size_t, c_int, c_ushort, c_void};
 use libc::types::os::arch::c95::wchar_t;
 use std::char;
 use std::cmp::Ordering;

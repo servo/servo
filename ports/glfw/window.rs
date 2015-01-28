@@ -6,13 +6,13 @@
 
 use NestedEventLoopListener;
 
-use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
+use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::WindowNavigateMsg;
 use compositing::windowing::{MouseWindowEvent, WindowEvent, WindowMethods};
 use geom::point::{Point2D, TypedPoint2D};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
-use glfw::{mod, Context};
+use glfw::{self, Context};
 use gleam::gl;
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
@@ -25,7 +25,7 @@ use std::cell::{Cell, RefCell};
 use std::comm::Receiver;
 use std::num::Float;
 use std::rc::Rc;
-use time::{mod, Timespec};
+use time::{self, Timespec};
 use util::cursor::Cursor;
 use util::geometry::ScreenPx;
 
