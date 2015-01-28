@@ -12,7 +12,7 @@ fn hexdump_slice(buf: &[u8]) {
     let mut stderr = io::stderr();
     stderr.write(b"    ").unwrap();
     for (i, &v) in buf.iter().enumerate() {
-        let output = format!("{:02X} ", v as uint);
+        let output = format!("{:02X} ", v as usize);
         stderr.write(output.as_bytes()).unwrap();
         match i % 16 {
             15 => { stderr.write(b"\n    ").unwrap(); },
