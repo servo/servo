@@ -127,6 +127,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString font;
   [TreatNullAs=EmptyString] attribute DOMString fontFamily;
   [TreatNullAs=EmptyString] attribute DOMString fontSize;
+  [TreatNullAs=EmptyString] attribute DOMString fontStretch;
   [TreatNullAs=EmptyString] attribute DOMString fontStyle;
   [TreatNullAs=EmptyString] attribute DOMString fontVariant;
   [TreatNullAs=EmptyString] attribute DOMString fontWeight;

@@ -1149,6 +1149,9 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    ${single_keyword("font-stretch",
+                     "normal ultra-condensed extra-condensed condensed semi-condensed semi-expanded expanded extra-expanded ultra-expanded")}
+
     // CSS 2.1, Section 16 - Text
 
     ${new_style_struct("InheritedText", is_inherited=True)}

@@ -12,7 +12,7 @@ use servo_util::str::c_str_to_string;
 use platform::font_context::FontContextHandle;
 use text::glyph::GlyphId;
 use text::util::{float_to_fixed, fixed_to_float};
-use style::computed_values::font_weight;
+use style::computed_values::{font_stretch, font_weight};
 use platform::font_template::FontTemplateData;
 
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
@@ -160,6 +160,10 @@ impl FontHandleMethods for FontHandle {
                 }
             }
         }
+    }
+    fn stretchiness(&self) -> font_stretch::T {
+        // TODO(pcwalton): Implement this.
+        font_stretch::T::normal
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
