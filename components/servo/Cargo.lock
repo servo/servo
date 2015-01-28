@@ -103,7 +103,7 @@ name = "cookie"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -326,7 +326,7 @@ dependencies = [
 [[package]]
 name = "gleam"
 version = "0.0.1"
-source = "git+https://github.com/servo/gleam#8a23e963c5b8e1a727a80fb009d71e2f9efb6a89"
+source = "git+https://github.com/servo/gleam#375779e0e8e1eaa8ff1a732c81fa91808a7f6c63"
 dependencies = [
  "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs.git)",
  "gl_generator 0.0.12 (git+https://github.com/bjz/gl-rs.git)",
@@ -335,7 +335,7 @@ dependencies = [
 [[package]]
 name = "glfw"
 version = "0.0.1"
-source = "git+https://github.com/servo/glfw-rs?branch=servo#757b917511cd14821f3da114ad3110e377d7d858"
+source = "git+https://github.com/servo/glfw-rs?branch=servo#907db700166b48e71d7d59b1eb9964b874c7ca42"
 dependencies = [
  "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?branch=cargo-3.0.4)",
  "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -434,7 +434,7 @@ dependencies = [
  "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mucell 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -556,7 +556,7 @@ dependencies = [
 [[package]]
 name = "mozjs-sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#0335cc57346147851589dea04e85971f064081fd"
+source = "git+https://github.com/servo/mozjs#58ee8869c7e589244ab2eb3a3ad15e2b64498428"
 
 [[package]]
 name = "msg"
@@ -593,15 +593,15 @@ dependencies = [
 
 [[package]]
 name = "openssl"
-version = "0.2.15"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "openssl-sys 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl-sys 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "openssl-sys"
-version = "0.2.15"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libressl-pnacl-sys 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -713,7 +713,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "skia-sys"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia?branch=upstream-2014-06-16#35649d0cddfd89c0bfee0ff558da7291e26d30c3"
+source = "git+https://github.com/servo/skia?branch=upstream-2014-06-16#aeb720b947ec463f780a0d00ab8485f902a83986"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
