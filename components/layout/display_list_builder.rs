@@ -40,7 +40,7 @@ use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::ConstellationChan;
 use servo_net::image::holder::ImageHolder;
 use servo_util::cursor::Cursor;
-use servo_util::geometry::{self, Au, to_px};
+use servo_util::geometry::{self, Au, to_px, to_frac_px};
 use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::default::Default;
@@ -218,12 +218,42 @@ pub trait FragmentDisplayListBuilding {
                                                   clip: &ClippingRegion);
 }
 
+fn handle_overlapping_radii(size: &Size2D<Au>, radii: &BorderRadii<Au>) -> BorderRadii<Au> {
+    // No two corners' border radii may add up to more than the length of the edge
+    // between them. To prevent that, all radii are scaled down uniformly.
+    fn scale_factor(radius_a: Au, radius_b: Au, edge_length: Au) -> f64 {
+        let required = radius_a + radius_b;
+
+        if required <= edge_length {
+            1.0
+        } else {
+            to_frac_px(edge_length) / to_frac_px(required)
+        }
+    }
+
+    let top_factor = scale_factor(radii.top_left, radii.top_right, size.width);
+    let bottom_factor = scale_factor(radii.bottom_left, radii.bottom_right, size.width);
+    let left_factor = scale_factor(radii.top_left, radii.bottom_left, size.height);
+    let right_factor = scale_factor(radii.top_right, radii.bottom_right, size.height);
+    let min_factor = top_factor.min(bottom_factor).min(left_factor).min(right_factor);
+    if min_factor < 1.0 {
+        BorderRadii {
+            top_left:     radii.top_left    .scale_by(min_factor),
+            top_right:    radii.top_right   .scale_by(min_factor),
+            bottom_left:  radii.bottom_left .scale_by(min_factor),
+            bottom_right: radii.bottom_right.scale_by(min_factor),
+        }
+    } else {
+        *radii
+    }
+}
+
 fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &Border) -> BorderRadii<Au> {
     // TODO(cgaebel): Support border radii even in the case of multiple border widths.
     // This is an extension of supporting elliptical radii. For now, all percentage
     // radii will be relative to the width.
 
-    BorderRadii {
+    handle_overlapping_radii(&abs_bounds.size, &BorderRadii {
         top_left:     model::specified(border_style.border_top_left_radius,
                                        abs_bounds.size.width),
         top_right:    model::specified(border_style.border_top_right_radius,
@@ -232,7 +262,7 @@ fn build_border_radius(abs_bounds: &Rect<Au>, border_style: &Border) -> BorderRa
                                        abs_bounds.size.width),
         bottom_left:  model::specified(border_style.border_bottom_left_radius,
                                        abs_bounds.size.width),
-    }
+    })
 }
 
 impl FragmentDisplayListBuilding for Fragment {
