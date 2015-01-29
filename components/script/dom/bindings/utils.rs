@@ -436,7 +436,7 @@ pub fn get_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
 
 /// Get an array index from the given `jsid`. Returns `None` if the given
 /// `jsid` is not an integer.
-pub fn GetArrayIndexFromId(_cx: *mut JSContext, id: jsid) -> Option<u32> {
+pub fn get_array_index_from_id(_cx: *mut JSContext, id: jsid) -> Option<u32> {
     unsafe {
         if RUST_JSID_IS_INT(id) != 0 {
             return Some(RUST_JSID_TO_INT(id) as u32);
