@@ -24,8 +24,8 @@ use encoding::all::UTF_8;
 use encoding::types::{Encoding, DecoderTrap};
 
 use servo_net::resource_task::{ProgressMsg, LoadResponse};
-use servo_util::task_state;
-use servo_util::task_state::IN_HTML_PARSER;
+use util::task_state;
+use util::task_state::IN_HTML_PARSER;
 use std::ascii::AsciiExt;
 use std::string::CowString;
 use url::Url;

@@ -19,7 +19,7 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::{DOMString, StaticStringVec};
+use util::str::{DOMString, StaticStringVec};
 use string_cache::Atom;
 
 #[dom_struct]

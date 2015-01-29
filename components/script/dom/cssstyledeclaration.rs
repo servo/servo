@@ -15,7 +15,7 @@ use dom::element::{Element, ElementHelpers, StylePriority};
 use dom::htmlelement::HTMLElement;
 use dom::node::{window_from_node, document_from_node, NodeDamage, Node};
 use dom::window::Window;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use string_cache::Atom;
 use style::{is_supported_property, longhands_from_shorthand, parse_style_attribute};
 use style::PropertyDeclaration;

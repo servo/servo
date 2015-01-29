@@ -18,8 +18,8 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use servo_net::image_cache_task;
-use servo_util::geometry::to_px;
-use servo_util::str::DOMString;
+use util::geometry::to_px;
+use util::str::DOMString;
 use string_cache::Atom;
 
 use url::{Url, UrlParser};

@@ -16,7 +16,7 @@ use dom::window::Window;
 use dom::virtualmethods::vtable_for;
 
 use devtools_traits::AttrInfo;
-use servo_util::str::{DOMString, split_html_space_chars};
+use util::str::{DOMString, split_html_space_chars};
 
 use string_cache::{Atom, Namespace};
 

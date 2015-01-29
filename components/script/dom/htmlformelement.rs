@@ -23,7 +23,7 @@ use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use hyper::method::Method;
 use servo_msg::constellation_msg::LoadData;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use script_task::{ScriptChan, ScriptMsg};
 use std::ascii::OwnedAsciiExt;
 use url::UrlParser;

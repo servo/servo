@@ -11,8 +11,8 @@ use geom::scale_factor::ScaleFactor;
 use hyper::header::Headers;
 use hyper::method::Method;
 use layers::geometry::DevicePixel;
-use servo_util::cursor::Cursor;
-use servo_util::geometry::{PagePx, ViewportPx};
+use util::cursor::Cursor;
+use util::geometry::{PagePx, ViewportPx};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use url::Url;
 

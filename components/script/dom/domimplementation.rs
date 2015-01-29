@@ -23,7 +23,7 @@ use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::Node;
 use dom::text::Text;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 

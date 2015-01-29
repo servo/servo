@@ -7,7 +7,7 @@
 
 extern crate servo;
 extern crate time;
-extern crate "util" as servo_util;
+extern crate util;
 
 extern crate compositing;
 
@@ -18,7 +18,7 @@ extern crate gleam;
 extern crate layers;
 extern crate egl;
 
-use servo_util::opts;
+use util::opts;
 use servo::Browser;
 use compositing::windowing::WindowEvent;
 

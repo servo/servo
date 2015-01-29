@@ -15,7 +15,7 @@ use window;
 use compositing::windowing::{WindowNavigateMsg, WindowEvent};
 use glutin_app;
 use libc::c_int;
-use servo_util::opts;
+use util::opts;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::sync::atomic::{AtomicInt, Ordering};

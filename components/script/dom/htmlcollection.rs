@@ -12,8 +12,8 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers, ElementHelpers};
 use dom::node::{Node, NodeHelpers, TreeIterator};
 use dom::window::Window;
-use servo_util::namespace;
-use servo_util::str::{DOMString, split_html_space_chars};
+use util::namespace;
+use util::str::{DOMString, split_html_space_chars};
 
 use std::ascii::AsciiExt;
 use std::iter::{FilterMap, Skip};

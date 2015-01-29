@@ -61,10 +61,10 @@ use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::{ResourceTask, ControlMsg};
 use servo_net::resource_task::LoadData as NetLoadData;
 use servo_net::storage_task::StorageTask;
-use servo_util::geometry::to_frac_px;
-use servo_util::smallvec::SmallVec;
-use servo_util::task::spawn_named_with_send_on_failure;
-use servo_util::task_state;
+use util::geometry::to_frac_px;
+use util::smallvec::SmallVec;
+use util::task::spawn_named_with_send_on_failure;
+use util::task_state;
 
 use geom::point::Point2D;
 use hyper::header::{Header, HeaderFormat};

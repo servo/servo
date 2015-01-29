@@ -19,7 +19,7 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use script_task::{ScriptChan, ScriptMsg, Runnable};
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use js::jsapi::JSContext;
 use js::jsval::JSVal;

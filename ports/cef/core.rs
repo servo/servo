@@ -8,7 +8,7 @@ use types::{cef_main_args_t, cef_settings_t};
 
 use geom::size::TypedSize2D;
 use libc::{c_char, c_int, c_void};
-use servo_util::opts;
+use util::opts;
 use std::borrow::ToOwned;
 use std::ffi;
 use std::str;

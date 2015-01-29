@@ -23,9 +23,9 @@ use script_task::{ScriptTask, ScriptChan, ScriptMsg, TimerSource};
 use script_task::StackRootTLS;
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
-use servo_util::task::spawn_named;
-use servo_util::task_state;
-use servo_util::task_state::{SCRIPT, IN_WORKER};
+use util::task::spawn_named;
+use util::task_state;
+use util::task_state::{SCRIPT, IN_WORKER};
 
 use js::jsapi::JSContext;
 use js::jsval::JSVal;

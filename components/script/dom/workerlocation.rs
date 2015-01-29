@@ -10,7 +10,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use url::Url;
 

@@ -26,7 +26,7 @@ use dom::node::{document_from_node};
 use textinput::{TextInput, Lines, KeyReaction};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use string_cache::Atom;
 
 use std::borrow::ToOwned;

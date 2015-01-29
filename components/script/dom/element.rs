@@ -52,8 +52,8 @@ use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
 use style::{self, SimpleColorAttribute, UnsignedIntegerAttribute};
 use style::{IntegerAttribute, LengthAttribute, matches};
-use servo_util::namespace;
-use servo_util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::namespace;
+use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 use html5ever::tree_builder::{NoQuirks, LimitedQuirks, Quirks};
 

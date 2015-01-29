@@ -12,8 +12,8 @@ use dom::window::ScriptHelpers;
 
 use script_task::{ScriptChan, ScriptMsg, TimerSource};
 
-use servo_util::task::spawn_named;
-use servo_util::str::DOMString;
+use util::task::spawn_named;
+use util::str::DOMString;
 
 use js::jsval::JSVal;
 

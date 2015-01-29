@@ -13,7 +13,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use style::{StylesheetOrigin, Stylesheet};
 
 #[dom_struct]

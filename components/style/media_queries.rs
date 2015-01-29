@@ -7,7 +7,7 @@ use cssparser::{Token, Parser, Delimiter};
 
 use geom::size::TypedSize2D;
 use properties::longhands;
-use servo_util::geometry::{Au, ViewportPx};
+use util::geometry::{Au, ViewportPx};
 use values::{computed, specified};
 
 
@@ -215,7 +215,7 @@ impl MediaQueryList {
 #[cfg(test)]
 mod tests {
     use geom::size::TypedSize2D;
-    use servo_util::geometry::Au;
+    use util::geometry::Au;
     use stylesheets::{iter_stylesheet_media_rules, iter_stylesheet_style_rules, Stylesheet};
     use stylesheets::Origin;
     use super::*;

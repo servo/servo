@@ -9,10 +9,10 @@ use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
-use servo_util::memory::MemoryProfilerChan;
-use servo_util::memory;
-use servo_util::time::TimeProfilerChan;
-use servo_util::time;
+use util::memory::MemoryProfilerChan;
+use util::memory;
+use util::time::TimeProfilerChan;
+use util::time;
 
 /// Starts the compositor, which listens for messages on the specified port.
 ///

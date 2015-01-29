@@ -19,8 +19,8 @@ use dom::xmlhttprequesteventtarget::XMLHttpRequestEventTargetTypeId;
 use dom::virtualmethods::VirtualMethods;
 use js::jsapi::{JS_CompileUCFunction, JS_GetFunctionObject, JS_CloneFunctionObject};
 use js::jsapi::{JSContext, JSObject};
-use servo_util::fnv::FnvHasher;
-use servo_util::str::DOMString;
+use util::fnv::FnvHasher;
+use util::str::DOMString;
 
 use libc::{c_char, size_t};
 use std::borrow::ToOwned;

@@ -20,7 +20,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::{DOMString, parse_unsigned_integer};
+use util::str::{DOMString, parse_unsigned_integer};
 
 use geom::size::Size2D;
 

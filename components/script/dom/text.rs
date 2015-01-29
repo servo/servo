@@ -12,7 +12,7 @@ use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::node::{Node, NodeTypeId};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 /// An HTML text node.
 #[dom_struct]

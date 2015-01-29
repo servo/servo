@@ -12,7 +12,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use encoding::all::UTF_8;
 use encoding::types::{EncodingRef, EncoderTrap};

@@ -56,7 +56,7 @@ pub mod specified {
     use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
     use parser::ParserContext;
     use text_writer::{self, TextWriter};
-    use servo_util::geometry::Au;
+    use util::geometry::Au;
     use super::CSSFloat;
     use super::computed;
 
@@ -675,7 +675,7 @@ pub mod computed {
     use properties::longhands;
     use std::fmt;
     use url::Url;
-    use servo_util::geometry::Au;
+    use util::geometry::Au;
 
     #[allow(missing_copy_implementations)]  // It’s kinda big
     pub struct Context {

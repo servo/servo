@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use servo_util::vec::*;
-use servo_util::range;
-use servo_util::range::{Range, RangeIndex, EachIndex};
-use servo_util::geometry::Au;
+use util::vec::*;
+use util::range;
+use util::range::{Range, RangeIndex, EachIndex};
+use util::geometry::Au;
 
 use std::cmp::{Ordering, PartialOrd};
 use std::iter::repeat;

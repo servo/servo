@@ -12,7 +12,7 @@ use geom::point::Point2D;
 use geom::rect::Rect;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel, UntrustedNodeAddress};
 use servo_msg::constellation_msg::{PipelineExitType, WindowSizeData};
-use servo_util::geometry::Au;
+use util::geometry::Au;
 use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::boxed::BoxAny;

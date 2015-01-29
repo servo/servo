@@ -20,7 +20,7 @@ use fontconfig::fontconfig::{
     FcObjectSetAdd, FcPatternGetInteger
 };
 
-use servo_util::str::c_str_to_string;
+use util::str::c_str_to_string;
 
 use libc;
 use libc::{c_int, c_char};
