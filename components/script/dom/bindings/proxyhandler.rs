@@ -146,14 +146,14 @@ pub fn fill_property_descriptor(desc: &mut JSPropertyDescriptor,
 }
 
 /// No-op required hook.
-pub unsafe extern fn getOwnPropertyNames_(_cx: *mut JSContext,
-                                          _obj: *mut JSObject,
-                                          _v: *mut AutoIdVector) -> bool {
+pub unsafe extern fn get_own_property_names(_cx: *mut JSContext,
+                                            _obj: *mut JSObject,
+                                            _v: *mut AutoIdVector) -> bool {
     true
 }
 
 /// No-op required hook.
-pub unsafe extern fn enumerate_(_cx: *mut JSContext, _obj: *mut JSObject,
-                                _v: *mut AutoIdVector) -> bool {
+pub unsafe extern fn enumerate(_cx: *mut JSContext, _obj: *mut JSObject,
+                               _v: *mut AutoIdVector) -> bool {
     true
 }
