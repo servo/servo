@@ -11,6 +11,7 @@ use block::BlockFlow;
 use construct::FlowConstructor;
 use context::LayoutContext;
 use display_list_builder::ListItemFlowDisplayListBuilding;
+use floats::FloatKind;
 use flow::{Flow, FlowClass};
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use wrapper::ThreadSafeLayoutNode;
@@ -18,6 +19,7 @@ use wrapper::ThreadSafeLayoutNode;
 use geom::{Point2D, Rect};
 use gfx::display_list::DisplayList;
 use servo_util::geometry::Au;
+use servo_util::logical_geometry::LogicalRect;
 use servo_util::opts;
 use style::ComputedValues;
 use style::computed_values::list_style_type;
@@ -34,12 +36,17 @@ pub struct ListItemFlow {
 }
 
 impl ListItemFlow {
-    pub fn from_node_and_marker(constructor: &mut FlowConstructor,
-                                node: &ThreadSafeLayoutNode,
-                                marker_fragment: Option<Fragment>)
-                                -> ListItemFlow {
+    pub fn from_node_marker_and_flotation(constructor: &mut FlowConstructor,
+                                          node: &ThreadSafeLayoutNode,
+                                          marker_fragment: Option<Fragment>,
+                                          flotation: Option<FloatKind>)
+                                          -> ListItemFlow {
         ListItemFlow {
-            block_flow: BlockFlow::from_node(constructor, node),
+            block_flow: if let Some(flotation) = flotation {
+                BlockFlow::float_from_node(constructor, node, flotation)
+            } else {
+                BlockFlow::from_node(constructor, node)
+            },
             marker: marker_fragment,
         }
     }
@@ -93,6 +100,10 @@ impl Flow for ListItemFlow {
         self.block_flow.compute_absolute_position()
     }
 
+    fn place_float_if_applicable<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+        self.block_flow.place_float_if_applicable(layout_context)
+    }
+
     fn update_late_computed_inline_position_if_necessary(&mut self, inline_position: Au) {
         self.block_flow.update_late_computed_inline_position_if_necessary(inline_position)
     }
@@ -114,6 +125,10 @@ impl Flow for ListItemFlow {
 
     fn compute_overflow(&self) -> Rect<Au> {
         self.block_flow.compute_overflow()
+    }
+
+    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
+        self.block_flow.generated_containing_block_rect()
     }
 
     fn iterate_through_fragment_border_boxes(&self,
