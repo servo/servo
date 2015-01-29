@@ -55,8 +55,9 @@ pub unsafe extern fn get_property_descriptor(cx: *mut JSContext,
 }
 
 /// Defines an expando on the given `proxy`.
-pub unsafe extern fn defineProperty_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                              desc: *mut JSPropertyDescriptor) -> bool {
+pub unsafe extern fn define_property(cx: *mut JSContext, proxy: *mut JSObject,
+                                     id: jsid, desc: *mut JSPropertyDescriptor)
+                                     -> bool {
     static JSMSG_GETTER_ONLY: libc::c_uint = 160;
 
     //FIXME: Workaround for https://github.com/mozilla/rust/issues/13385
