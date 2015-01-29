@@ -136,7 +136,8 @@ pub fn ensure_expando_object(cx: *mut JSContext, obj: *mut JSObject)
 
 /// Set the property descriptor's object to `obj` and set it to enumerable,
 /// and writable if `readonly` is true.
-pub fn FillPropertyDescriptor(desc: &mut JSPropertyDescriptor, obj: *mut JSObject, readonly: bool) {
+pub fn fill_property_descriptor(desc: &mut JSPropertyDescriptor,
+                                obj: *mut JSObject, readonly: bool) {
     desc.obj = obj;
     desc.attrs = if readonly { JSPROP_READONLY } else { 0 } | JSPROP_ENUMERATE;
     desc.getter = None;
