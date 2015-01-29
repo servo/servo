@@ -2088,22 +2088,22 @@ class CGDefineProxyHandler(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        customDefineProperty = 'defineProperty_'
+        customDefineProperty = 'proxyhandler::define_property'
         if self.descriptor.operations['IndexedSetter'] or self.descriptor.operations['NamedSetter']:
             customDefineProperty = 'defineProperty'
 
-        customDelete = 'delete_'
+        customDelete = 'proxyhandler::delete'
         if self.descriptor.operations['NamedDeleter']:
             customDelete = 'delete'
 
         body = """\
 let traps = ProxyTraps {
-    getPropertyDescriptor: Some(getPropertyDescriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
+    getPropertyDescriptor: Some(get_property_descriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
     defineProperty: Some(%s as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut JSPropertyDescriptor) -> bool),
-    getOwnPropertyNames: Some(getOwnPropertyNames_ as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut AutoIdVector) -> bool),
+    getOwnPropertyNames: Some(proxyhandler::get_own_property_names as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut AutoIdVector) -> bool),
     delete_: Some(%s as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut bool) -> bool),
-    enumerate: Some(enumerate_ as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut AutoIdVector) -> bool),
+    enumerate: Some(proxyhandler::enumerate as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut AutoIdVector) -> bool),
 
     has: None,
     hasOwn: Some(hasOwn as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut bool) -> bool),
@@ -3631,7 +3631,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
 
         if indexedGetter:
             readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
-            fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn true;" % readonly
+            fillDescriptor = "fill_property_descriptor(&mut *desc, proxy, %s);\nreturn true;" % readonly
             templateValues = {'jsvalRef': '(*desc).value', 'successCode': fillDescriptor}
             get = ("if index.is_some() {\n" +
                    "    let index = index.unwrap();\n" +
@@ -3649,7 +3649,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 if not 'IndexedCreator' in self.descriptor.operations:
                     # FIXME need to check that this is a 'supported property index'
                     assert False
-                setOrIndexedGet += ("        FillPropertyDescriptor(&mut *desc, proxy, false);\n" +
+                setOrIndexedGet += ("        fill_property_descriptor(&mut *desc, proxy, false);\n" +
                                     "        return true;\n" +
                                     "    }\n")
             if self.descriptor.operations['NamedSetter']:
@@ -3657,7 +3657,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 if not 'NamedCreator' in self.descriptor.operations:
                     # FIXME need to check that this is a 'supported property name'
                     assert False
-                setOrIndexedGet += ("        FillPropertyDescriptor(&mut *desc, proxy, false);\n" +
+                setOrIndexedGet += ("        fill_property_descriptor(&mut *desc, proxy, false);\n" +
                                     "        return true;\n" +
                                     "    }\n")
             setOrIndexedGet += "}"
@@ -3674,7 +3674,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             readonly = toStringBool(self.descriptor.operations['NamedSetter'] is None)
-            fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn true;" % readonly
+            fillDescriptor = "fill_property_descriptor(&mut *desc, proxy, %s);\nreturn true;" % readonly
             templateValues = {'jsvalRef': '(*desc).value', 'successCode': fillDescriptor}
             # Once we start supporting OverrideBuiltins we need to make
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
@@ -3691,7 +3691,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             namedGet = ""
 
         return setOrIndexedGet + """\
-let expando: *mut JSObject = GetExpandoObject(proxy);
+let expando: *mut JSObject = get_expando_object(proxy);
 //if (!xpc::WrapperFactory::IsXrayWrapper(proxy) && (expando = GetExpandoObject(proxy))) {
 if !expando.is_null() {
     let flags = if set { JSRESOLVE_ASSIGNING } else { 0 } | JSRESOLVE_QUALIFIED;
@@ -3764,7 +3764,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    }\n" +
                     "    return true;\n"
                     "}\n") % (self.descriptor.name)
-        return set + """return proxyhandler::defineProperty_(%s);""" % ", ".join(a.name for a in self.args)
+        return set + """return proxyhandler::define_property(%s);""" % ", ".join(a.name for a in self.args)
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -3785,7 +3785,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
                     "let this = JS::from_raw(this);\n" +
                     "let this = this.root();\n" +
                     "%s") % (CGProxyNamedDeleter(self.descriptor).define())
-        set += "return proxyhandler::delete_(%s);" % ", ".join(a.name for a in self.args)
+        set += "return proxyhandler::delete(%s);" % ", ".join(a.name for a in self.args)
         return set
 
     def definition_body(self):
@@ -3829,7 +3829,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
             named = ""
 
         return indexed + """\
-let expando: *mut JSObject = GetExpandoObject(proxy);
+let expando: *mut JSObject = get_expando_object(proxy);
 if !expando.is_null() {
     let mut b: JSBool = 1;
     let ok = JS_HasPropertyById(cx, expando, id, &mut b) != 0;
@@ -3854,7 +3854,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
         self.descriptor = descriptor
     def getBody(self):
         getFromExpando = """\
-let expando = GetExpandoObject(proxy);
+let expando = get_expando_object(proxy);
 if !expando.is_null() {
     let mut hasProp = 0;
     if JS_HasPropertyById(cx, expando, id, &mut hasProp) == 0 {
@@ -3946,7 +3946,7 @@ class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
 JSString* jsresult;
 return xpc_qsStringToJsstring(cx, result, &jsresult) ? jsresult : NULL;"""
 
-        return """_obj_toString(cx, "%s")""" % self.descriptor.name
+        return """proxyhandler::object_to_string(cx, "%s")""" % self.descriptor.name
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -4580,10 +4580,8 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
-            'dom::bindings::proxyhandler::{_obj_toString, defineProperty_}',
-            'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
-            'dom::bindings::proxyhandler::{delete_, getPropertyDescriptor}',
-            'dom::bindings::proxyhandler::{getOwnPropertyNames_, enumerate_}',
+            'dom::bindings::proxyhandler::{fill_property_descriptor, get_expando_object}',
+            'dom::bindings::proxyhandler::{get_property_descriptor}',
             'dom::bindings::str::ByteString',
             'page::JSPageInfo',
             'libc',
