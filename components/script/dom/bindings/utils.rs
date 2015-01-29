@@ -231,20 +231,20 @@ fn create_interface_object(cx: *mut JSContext, global: *mut JSObject,
 
         match members.static_methods {
             Some(static_methods) => {
-                DefineMethods(cx, constructor, static_methods)
+                define_methods(cx, constructor, static_methods)
             },
             _ => (),
         }
 
         match members.static_attrs {
             Some(static_properties) => {
-                DefineProperties(cx, constructor, static_properties)
+                define_properties(cx, constructor, static_properties)
             },
             _ => (),
         }
 
         match members.consts {
-            Some(constants) => DefineConstants(cx, constructor, constants),
+            Some(constants) => define_constants(cx, constructor, constants),
             _ => (),
         }
 
@@ -265,7 +265,8 @@ fn create_interface_object(cx: *mut JSContext, global: *mut JSObject,
 
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
-fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [ConstantSpec]) {
+fn define_constants(cx: *mut JSContext, obj: *mut JSObject,
+                    constants: &'static [ConstantSpec]) {
     for spec in constants.iter() {
         unsafe {
             assert!(JS_DefineProperty(cx, obj, spec.name.as_ptr() as *const libc::c_char,
@@ -279,7 +280,8 @@ fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [
 /// Defines methods on `obj`. The last entry of `methods` must contain zeroed
 /// memory.
 /// Fails on JSAPI failure.
-fn DefineMethods(cx: *mut JSContext, obj: *mut JSObject, methods: &'static [JSFunctionSpec]) {
+fn define_methods(cx: *mut JSContext, obj: *mut JSObject,
+                  methods: &'static [JSFunctionSpec]) {
     unsafe {
         assert!(JS_DefineFunctions(cx, obj, methods.as_ptr()) != 0);
     }
@@ -288,7 +290,8 @@ fn DefineMethods(cx: *mut JSContext, obj: *mut JSObject, methods: &'static [JSFu
 /// Defines attributes on `obj`. The last entry of `properties` must contain
 /// zeroed memory.
 /// Fails on JSAPI failure.
-fn DefineProperties(cx: *mut JSContext, obj: *mut JSObject, properties: &'static [JSPropertySpec]) {
+fn define_properties(cx: *mut JSContext, obj: *mut JSObject,
+                     properties: &'static [JSPropertySpec]) {
     unsafe {
         assert!(JS_DefineProperties(cx, obj, properties.as_ptr()) != 0);
     }
@@ -305,17 +308,17 @@ fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
         assert!(!ourProto.is_null());
 
         match members.methods {
-            Some(methods) => DefineMethods(cx, ourProto, methods),
+            Some(methods) => define_methods(cx, ourProto, methods),
             _ => (),
         }
 
         match members.attrs {
-            Some(properties) => DefineProperties(cx, ourProto, properties),
+            Some(properties) => define_properties(cx, ourProto, properties),
             _ => (),
         }
 
         match members.consts {
-            Some(constants) => DefineConstants(cx, ourProto, constants),
+            Some(constants) => define_constants(cx, ourProto, constants),
             _ => (),
         }
 
