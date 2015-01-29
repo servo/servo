@@ -27,7 +27,8 @@ path = "../../components/msg"
 path = "../../components/util"
 
 [dependencies.glutin]
-git = "https://github.com/tomaka/glutin"
+git = "https://github.com/servo/glutin"
+branch = "servo"
 
 [dependencies.gleam]
 git = "https://github.com/servo/gleam"
