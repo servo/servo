@@ -1811,7 +1811,7 @@ assert!(!obj.is_null());\
 """ % (descriptor.name, parent)
     else:
         if descriptor.isGlobal():
-            create += "let obj = CreateDOMGlobal(aCx, &Class.base as *const js::Class as *const JSClass);\n"
+            create += "let obj = create_dom_global(aCx, &Class.base as *const js::Class as *const JSClass);\n"
         else:
             create += ("let obj = with_compartment(aCx, proto, || {\n"
                        "    JS_NewObject(aCx, &Class.base as *const js::Class as *const JSClass, &*proto, &*%s)\n"
@@ -4548,7 +4548,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::js::{JS, JSRef, Root, RootedReference, Temporary}',
             'dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable}',
             'dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable}',
-            'dom::bindings::utils::{CreateDOMGlobal, do_create_interface_objects}',
+            'dom::bindings::utils::{create_dom_global, do_create_interface_objects}',
             'dom::bindings::utils::ConstantSpec',
             'dom::bindings::utils::{DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',

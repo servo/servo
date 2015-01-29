@@ -560,7 +560,8 @@ pub fn has_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
 }
 
 /// Create a DOM global object with the given class.
-pub fn CreateDOMGlobal(cx: *mut JSContext, class: *const JSClass) -> *mut JSObject {
+pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass)
+                         -> *mut JSObject {
     unsafe {
         let obj = JS_NewGlobalObject(cx, class, ptr::null_mut());
         if obj.is_null() {
