@@ -4721,8 +4721,8 @@ class CGCallback(CGClass):
         # Record the names of all the arguments, so we can use them when we call
         # the private method.
         argnames = [arg.name for arg in args]
-        argnamesWithThis = ["s.GetContext()", "thisObjJS"] + argnames
-        argnamesWithoutThis = ["s.GetContext()", "ptr::null_mut()"] + argnames
+        argnamesWithThis = ["s.get_context()", "thisObjJS"] + argnames
+        argnamesWithoutThis = ["s.get_context()", "ptr::null_mut()"] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for deciding whether the
         # CallSetup should re-throw exceptions on aRv.
@@ -4742,13 +4742,13 @@ class CGCallback(CGClass):
         argsWithoutThis.insert(0, Argument(None, "self"))
 
         setupCall = ("let s = CallSetup::new(self, aExceptionHandling);\n"
-                     "if s.GetContext().is_null() {\n"
+                     "if s.get_context().is_null() {\n"
                      "    return Err(FailureUnknown);\n"
                      "}\n")
 
         bodyWithThis = string.Template(
             setupCall+
-            "let thisObjJS = wrap_call_this_object(s.GetContext(), thisObj);\n"
+            "let thisObjJS = wrap_call_this_object(s.get_context(), thisObj);\n"
             "if thisObjJS.is_null() {\n"
             "    return Err(FailureUnknown);\n"
             "}\n"
@@ -5000,7 +5000,7 @@ class CallbackMember(CGNativeMember):
             return ""
         return (
             "CallSetup s(CallbackPreserveColor(), aRv, aExceptionHandling);\n"
-            "JSContext* cx = s.GetContext();\n"
+            "JSContext* cx = s.get_context();\n"
             "if (!cx) {\n"
             "    return Err(FailureUnknown);\n"
             "}\n")

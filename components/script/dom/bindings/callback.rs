@@ -154,7 +154,7 @@ impl CallSetup {
     }
 
     /// Returns the `JSContext` used for the call.
-    pub fn GetContext(&self) -> *mut JSContext {
+    pub fn get_context(&self) -> *mut JSContext {
         self.cx
     }
 }
