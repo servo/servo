@@ -3908,7 +3908,7 @@ if !expando.is_null() {
 
 %s
 let mut found = false;
-if !GetPropertyOnPrototype(cx, proxy, id, &mut found, vp) {
+if !get_property_on_prototype(cx, proxy, id, &mut found, vp) {
     return false;
 }
 
@@ -4553,7 +4553,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
-            'dom::bindings::utils::{GetPropertyOnPrototype, get_proto_or_iface_array}',
+            'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array}',
             'dom::bindings::utils::HasPropertyOnPrototype',
             'dom::bindings::utils::IsPlatformObject',
             'dom::bindings::utils::{Reflectable}',

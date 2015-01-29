@@ -410,8 +410,9 @@ impl Reflector {
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
 ///
 /// Returns false on JSAPI failure.
-pub fn GetPropertyOnPrototype(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, found: *mut bool,
-                              vp: *mut JSVal) -> bool {
+pub fn get_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
+                                 id: jsid, found: *mut bool, vp: *mut JSVal)
+                                 -> bool {
     unsafe {
       //let proto = GetObjectProto(proxy);
       let proto = JS_GetPrototype(proxy);
@@ -553,7 +554,7 @@ pub fn get_dictionary_property(cx: *mut JSContext,
 pub fn HasPropertyOnPrototype(cx: *mut JSContext, proxy: *mut JSObject, id: jsid) -> bool {
     //  MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
     let mut found = false;
-    return !GetPropertyOnPrototype(cx, proxy, id, &mut found, ptr::null_mut()) || found;
+    return !get_property_on_prototype(cx, proxy, id, &mut found, ptr::null_mut()) || found;
 }
 
 /// Returns whether `obj` can be converted to a callback interface per IDL.
