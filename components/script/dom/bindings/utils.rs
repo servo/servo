@@ -186,18 +186,18 @@ pub type NonNullJSNative =
 /// Fails on JSAPI failure.
 pub fn do_create_interface_objects(cx: *mut JSContext, global: *mut JSObject,
                                    receiver: *mut JSObject,
-                                   protoProto: *mut JSObject,
-                                   protoClass: &'static JSClass,
+                                   proto_proto: *mut JSObject,
+                                   proto_class: &'static JSClass,
                                    constructor: Option<(NonNullJSNative, &'static str, u32)>,
-                                   domClass: *const DOMClass,
+                                   dom_class: *const DOMClass,
                                    members: &'static NativeProperties)
                                    -> *mut JSObject {
-    let proto = CreateInterfacePrototypeObject(cx, global, protoProto,
-                                               protoClass, members);
+    let proto = CreateInterfacePrototypeObject(cx, global, proto_proto,
+                                               proto_class, members);
 
     unsafe {
         JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
-                           PrivateValue(domClass as *const libc::c_void));
+                           PrivateValue(dom_class as *const libc::c_void));
     }
 
     match constructor {
