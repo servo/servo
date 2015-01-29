@@ -420,13 +420,13 @@ pub fn get_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
           *found = false;
           return true;
       }
-      let mut hasProp = 0;
-      if JS_HasPropertyById(cx, proto, id, &mut hasProp) == 0 {
+      let mut has_property = 0;
+      if JS_HasPropertyById(cx, proto, id, &mut has_property) == 0 {
           return false;
       }
-      *found = hasProp != 0;
+      *found = has_property != 0;
       let no_output = vp.is_null();
-      if hasProp == 0 || no_output {
+      if has_property == 0 || no_output {
           return true;
       }
 
