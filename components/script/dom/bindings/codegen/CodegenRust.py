@@ -1905,10 +1905,10 @@ class CGAbstractExternMethod(CGAbstractMethod):
 
 class PropertyArrays():
     def __init__(self, descriptor):
-        self.staticMethods = MethodDefiner(descriptor, "StaticMethods",
-                                           static=True)
-        self.staticAttrs = AttrDefiner(descriptor, "StaticAttributes",
-                                       static=True)
+        self.static_methods = MethodDefiner(descriptor, "StaticMethods",
+                                            static=True)
+        self.static_attrs = AttrDefiner(descriptor, "StaticAttributes",
+                                        static=True)
         self.methods = MethodDefiner(descriptor, "Methods", static=False)
         self.attrs = AttrDefiner(descriptor, "Attributes", static=False)
         self.consts = ConstDefiner(descriptor, "Constants")
@@ -1916,7 +1916,7 @@ class PropertyArrays():
 
     @staticmethod
     def arrayNames():
-        return [ "staticMethods", "staticAttrs", "methods", "attrs", "consts" ]
+        return ["static_methods", "static_attrs", "methods", "attrs", "consts"]
 
     def variableNames(self):
         names = {}

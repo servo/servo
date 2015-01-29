@@ -171,9 +171,9 @@ pub struct NativeProperties {
     /// Constants for the interface.
     pub consts: Option<&'static [ConstantSpec]>,
     /// Static methods for the interface.
-    pub staticMethods: Option<&'static [JSFunctionSpec]>,
+    pub static_methods: Option<&'static [JSFunctionSpec]>,
     /// Static attributes for the interface.
-    pub staticAttrs: Option<&'static [JSPropertySpec]>,
+    pub static_attrs: Option<&'static [JSPropertySpec]>,
 }
 unsafe impl Sync for NativeProperties {}
 
@@ -226,13 +226,17 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
         let constructor = JS_GetFunctionObject(fun);
         assert!(!constructor.is_null());
 
-        match members.staticMethods {
-            Some(staticMethods) => DefineMethods(cx, constructor, staticMethods),
+        match members.static_methods {
+            Some(static_methods) => {
+                DefineMethods(cx, constructor, static_methods)
+            },
             _ => (),
         }
 
-        match members.staticAttrs {
-            Some(staticProperties) => DefineProperties(cx, constructor, staticProperties),
+        match members.static_attrs {
+            Some(static_properties) => {
+                DefineProperties(cx, constructor, static_properties)
+            },
             _ => (),
         }
 
