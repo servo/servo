@@ -2034,7 +2034,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
 assert!(((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) != 0);
 
 /* Check to see whether the interface objects are already installed */
-let protoOrIfaceArray = GetProtoOrIfaceArray(aGlobal);
+let protoOrIfaceArray = get_proto_or_iface_array(aGlobal);
 let cachedObject: *mut JSObject = *protoOrIfaceArray.offset(%s as int);
 if cachedObject.is_null() {
     let tmp: *mut JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
@@ -4553,7 +4553,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
-            'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
+            'dom::bindings::utils::{GetPropertyOnPrototype, get_proto_or_iface_array}',
             'dom::bindings::utils::HasPropertyOnPrototype',
             'dom::bindings::utils::IsPlatformObject',
             'dom::bindings::utils::{Reflectable}',
