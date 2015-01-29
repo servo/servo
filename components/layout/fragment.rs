@@ -194,6 +194,18 @@ impl SpecificFragmentInfo {
     }
 }
 
+/// Clamp a value obtained from style_length, based on min / max lengths.
+fn clamp_size(size: Au, min_size: LengthOrPercentage, max_size: LengthOrPercentageOrNone,
+                    container_inline_size: Au) -> Au {
+    let min_size = model::specified(min_size, container_inline_size);
+    let max_size = model::specified_or_none(max_size, container_inline_size);
+
+    Au::max(min_size, match max_size {
+        None => size,
+        Some(max_size) => Au::min(size, max_size),
+    })
+}
+
 /// A hypothetical box (see CSS 2.1 § 10.3.7) for an absolutely-positioned block that was declared
 /// with `display: inline;`.
 ///
@@ -375,18 +387,6 @@ impl ReplacedImageFragmentInfo {
         }
     }
 
-    /// Clamp a value obtained from style_length, based on min / max lengths.
-    pub fn clamp_size(size: Au, min_size: LengthOrPercentage, max_size: LengthOrPercentageOrNone,
-                        container_inline_size: Au) -> Au {
-        let min_size = model::specified(min_size, container_inline_size);
-        let max_size = model::specified_or_none(max_size, container_inline_size);
-
-        Au::max(min_size, match max_size {
-            None => size,
-            Some(max_size) => Au::min(size, max_size),
-        })
-    }
-
     pub fn calculate_replaced_inline_size(&mut self,
                                           style: ComputedValues,
                                           noncontent_inline_size: Au,
@@ -425,21 +425,20 @@ impl ReplacedImageFragmentInfo {
                         MaybeAuto::Auto => intrinsic_height,
                         MaybeAuto::Specified(h) => h,
                     };
-                    let specified_height = ReplacedImageFragmentInfo::clamp_size(
-                        specified_height,
-                        style_min_block_size,
-                        style_max_block_size,
-                        Au(0));
+                    let specified_height = clamp_size(specified_height,
+                                                      style_min_block_size,
+                                                      style_max_block_size,
+                                                      Au(0));
                     Au((specified_height.to_f32().unwrap() * ratio) as i32)
                 }
             },
             MaybeAuto::Specified(w) => w,
         };
 
-        let inline_size = ReplacedImageFragmentInfo::clamp_size(inline_size,
-                                                                style_min_inline_size,
-                                                                style_max_inline_size,
-                                                                container_inline_size);
+        let inline_size = clamp_size(inline_size,
+                                     style_min_inline_size,
+                                     style_max_inline_size,
+                                     container_inline_size);
 
         self.computed_inline_size = Some(inline_size);
         inline_size + noncontent_inline_size
@@ -475,10 +474,10 @@ impl ReplacedImageFragmentInfo {
             }
         };
 
-        let block_size = ReplacedImageFragmentInfo::clamp_size(block_size,
-            style_min_block_size,
-            style_max_block_size,
-            Au(0));
+        let block_size = clamp_size(block_size,
+                                    style_min_block_size,
+                                    style_max_block_size,
+                                    Au(0));
 
         self.computed_block_size = Some(block_size);
         block_size + noncontent_block_size
@@ -503,6 +502,44 @@ impl IframeFragmentInfo {
             pipeline_id: pipeline_id,
             subpage_id: subpage_id,
         }
+    }
+
+    #[inline]
+    pub fn calculate_replaced_inline_size(style: ComputedValues, containing_size: Au) -> Au {
+        // Calculate the replaced inline size (or default) as per CSS 2.1 § 10.3.2
+        IframeFragmentInfo::calculate_replaced_size(style.content_inline_size(),
+                                                    style.min_inline_size(),
+                                                    style.max_inline_size(),
+                                                    containing_size,
+                                                    Au::from_px(300))
+    }
+
+    #[inline]
+    pub fn calculate_replaced_block_size(style: ComputedValues, containing_size: Au) -> Au {
+        // Calculate the replaced block size (or default) as per CSS 2.1 § 10.3.2
+        IframeFragmentInfo::calculate_replaced_size(style.content_block_size(),
+                                                    style.min_block_size(),
+                                                    style.max_block_size(),
+                                                    containing_size,
+                                                    Au::from_px(150))
+
+    }
+
+    fn calculate_replaced_size(content_size: LengthOrPercentageOrAuto,
+                               style_min_size: LengthOrPercentage,
+                               style_max_size: LengthOrPercentageOrNone,
+                               containing_size: Au, default_size: Au) -> Au {
+        let computed_size = match MaybeAuto::from_style(content_size, containing_size) {
+            MaybeAuto::Specified(length) => length,
+            MaybeAuto::Auto => default_size,
+        };
+
+        let size = clamp_size(computed_size,
+                              style_min_size,
+                              style_max_size,
+                              containing_size);
+
+        size
     }
 }
 
@@ -1171,8 +1208,10 @@ impl Fragment {
     pub fn compute_intrinsic_inline_sizes(&mut self) -> IntrinsicISizesContribution {
         let mut result = self.style_specified_intrinsic_inline_size();
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableColumn(_) | SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper |
+            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableColumn(_) | SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {}
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
                 let block_flow = info.flow_ref.as_block();
@@ -1543,14 +1582,14 @@ impl Fragment {
     /// content per CSS 2.1 § 10.3.2.
     pub fn assign_replaced_inline_size_if_necessary<'a>(&'a mut self, container_inline_size: Au) {
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper => return,
             SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not have inline_size"),
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             }
             SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {}
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) | SpecificFragmentInfo::Iframe(_) => {}
         };
 
         let style = self.style().clone();
@@ -1596,6 +1635,11 @@ impl Fragment {
                                                                              fragment_inline_size,
                                                                              fragment_block_size);
             }
+            SpecificFragmentInfo::Iframe(_) => {
+                self.border_box.size.inline = IframeFragmentInfo::calculate_replaced_inline_size(
+                                                style, container_inline_size) +
+                                              noncontent_inline_size;
+            }
             _ => panic!("this case should have been handled above"),
         }
     }
@@ -1606,14 +1650,14 @@ impl Fragment {
     /// Ideally, this should follow CSS 2.1 § 10.6.2.
     pub fn assign_replaced_block_size_if_necessary(&mut self, containing_block_block_size: Au) {
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
             SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper => return,
             SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not have block_size"),
             SpecificFragmentInfo::UnscannedText(_) => {
                 panic!("Unscanned text fragments should have been scanned by now!")
             }
             SpecificFragmentInfo::Canvas(_) | SpecificFragmentInfo::Image(_) | SpecificFragmentInfo::ScannedText(_) | SpecificFragmentInfo::InlineBlock(_) |
-            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {}
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) | SpecificFragmentInfo::Iframe(_) => {}
         }
 
         let style = self.style().clone();
@@ -1655,6 +1699,11 @@ impl Fragment {
                 // Not the primary fragment, so we do not take the noncontent size into account.
                 let block_flow = info.flow_ref.as_block();
                 self.border_box.size.block = block_flow.base.position.size.block;
+            }
+            SpecificFragmentInfo::Iframe(_) => {
+                self.border_box.size.block = IframeFragmentInfo::calculate_replaced_block_size(
+                                                style, containing_block_block_size) +
+                                             noncontent_block_size;
             }
             _ => panic!("should have been handled above"),
         }
