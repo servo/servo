@@ -336,7 +336,7 @@ class CGMethodCall(CGThing):
 
             # Check for vanilla JS objects
             # XXXbz Do we need to worry about security wrappers?
-            pickFirstSignature("%s.is_object() && !IsPlatformObject(%s.to_object())" %
+            pickFirstSignature("%s.is_object() && !is_platform_object(%s.to_object())" %
                                (distinguishingArg, distinguishingArg),
                                lambda s: (s[1][distinguishingIndex].type.isCallback() or
                                           s[1][distinguishingIndex].type.isCallbackInterface() or
@@ -719,7 +719,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             handleInvalidEnumValueCode = "return 1;"
 
         template = (
-            "match FindEnumStringIndex(cx, ${val}, %(values)s) {\n"
+            "match find_enum_string_index(cx, ${val}, %(values)s) {\n"
             "    Err(_) => { %(exceptionCode)s },\n"
             "    Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "    Ok(Some(index)) => {\n"
@@ -4552,10 +4552,10 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::ConstantSpec',
             'dom::bindings::utils::{DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
-            'dom::bindings::utils::{FindEnumStringIndex, get_array_index_from_id}',
+            'dom::bindings::utils::{find_enum_string_index, get_array_index_from_id}',
             'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array}',
             'dom::bindings::utils::HasPropertyOnPrototype',
-            'dom::bindings::utils::IsPlatformObject',
+            'dom::bindings::utils::is_platform_object',
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::{squirrel_away_unique}',
             'dom::bindings::utils::throwing_constructor',
