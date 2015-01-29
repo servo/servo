@@ -116,8 +116,8 @@ impl CallbackInterface {
 }
 
 /// Wraps the reflector for `p` into the compartment of `cx`.
-pub fn WrapCallThisObject<T: Reflectable>(cx: *mut JSContext,
-                                          p: JSRef<T>) -> *mut JSObject {
+pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
+                                             p: JSRef<T>) -> *mut JSObject {
     let mut obj = p.reflector().get_jsobject();
     assert!(!obj.is_null());
 

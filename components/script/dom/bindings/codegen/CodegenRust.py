@@ -4566,7 +4566,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
-            'dom::bindings::callback::{WrapCallThisObject}',
+            'dom::bindings::callback::wrap_call_this_object',
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
             'dom::bindings::conversions::{unwrap, unwrap_jsmanaged}',
             'dom::bindings::conversions::DOM_OBJECT_SLOT',
@@ -4748,7 +4748,7 @@ class CGCallback(CGClass):
 
         bodyWithThis = string.Template(
             setupCall+
-            "let thisObjJS = WrapCallThisObject(s.GetContext(), thisObj);\n"
+            "let thisObjJS = wrap_call_this_object(s.GetContext(), thisObj);\n"
             "if thisObjJS.is_null() {\n"
             "    return Err(FailureUnknown);\n"
             "}\n"
