@@ -148,7 +148,7 @@ impl TimerManager {
             loop {
                 let id = select.wait();
                 if id == timeout_handle.id() {
-                    timeout_port.recv();
+                    timeout_port.recv().unwrap();
                     script_chan.send(ScriptMsg::FireTimer(source, TimerId(handle)));
                     if is_interval == IsInterval::NonInterval {
                         break;

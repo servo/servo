@@ -24,7 +24,7 @@ pub struct TimeProfilerChan(pub Sender<TimeProfilerMsg>);
 impl TimeProfilerChan {
     pub fn send(&self, msg: TimeProfilerMsg) {
         let TimeProfilerChan(ref c) = *self;
-        c.send(msg);
+        c.send(msg).unwrap();
     }
 }
 

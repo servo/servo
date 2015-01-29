@@ -164,7 +164,7 @@ pub fn start_sending_opt(senders: ResponseSenders, metadata: Metadata) -> Result
 pub fn load_whole_resource(resource_task: &ResourceTask, url: Url)
         -> Result<(Metadata, Vec<u8>), String> {
     let (start_chan, start_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan)));
+    resource_task.send(ControlMsg::Load(LoadData::new(url, start_chan))).unwrap();
     let response = start_port.recv().unwrap();
 
     let mut buf = vec!();
@@ -238,7 +238,7 @@ impl ResourceManager {
             _ => {
                 debug!("resource_task: no loader for scheme {}", load_data.url.scheme);
                 start_sending(senders, Metadata::default(load_data.url))
-                    .send(ProgressMsg::Done(Err("no loader for scheme".to_string())));
+                    .send(ProgressMsg::Done(Err("no loader for scheme".to_string()))).unwrap();
                 return
             }
         }
@@ -248,7 +248,7 @@ impl ResourceManager {
 /// Load a URL asynchronously and iterate over chunks of bytes from the response.
 pub fn load_bytes_iter(resource_task: &ResourceTask, url: Url) -> (Metadata, ProgressMsgPortIterator) {
     let (input_chan, input_port) = channel();
-    resource_task.send(ControlMsg::Load(LoadData::new(url, input_chan)));
+    resource_task.send(ControlMsg::Load(LoadData::new(url, input_chan))).unwrap();
 
     let response = input_port.recv().unwrap();
     let iter = ProgressMsgPortIterator { progress_port: response.progress_port };

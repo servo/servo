@@ -113,7 +113,7 @@ impl<'a> HTMLIFrameElementHelpers for JSRef<'a, HTMLIFrameElement> {
                                                         page.id,
                                                         new_subpage_id,
                                                         old_subpage_id,
-                                                        sandboxed));
+                                                        sandboxed)).unwrap();
     }
 }
 
