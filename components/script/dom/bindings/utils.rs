@@ -330,7 +330,8 @@ fn create_interface_prototype_object(cx: *mut JSContext, global: *mut JSObject,
 
 /// A throwing constructor, for those interfaces that have neither
 /// `NoInterfaceObject` nor `Constructor`.
-pub unsafe extern fn ThrowingConstructor(cx: *mut JSContext, _argc: c_uint, _vp: *mut JSVal) -> JSBool {
+pub unsafe extern fn throwing_constructor(cx: *mut JSContext, _argc: c_uint,
+                                          _vp: *mut JSVal) -> JSBool {
     throw_type_error(cx, "Illegal constructor.");
     return 0;
 }

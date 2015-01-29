@@ -1991,7 +1991,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 constructHook = CONSTRUCT_HOOK_NAME
                 constructArgs = methodLength(self.descriptor.interface.ctor())
             else:
-                constructHook = "ThrowingConstructor"
+                constructHook = "throwing_constructor"
                 constructArgs = 0
 
             constructor = 'Some((%s as NonNullJSNative, "%s", %d))' % (
@@ -4558,7 +4558,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::IsPlatformObject',
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::{squirrel_away_unique}',
-            'dom::bindings::utils::{ThrowingConstructor}',
+            'dom::bindings::utils::throwing_constructor',
             'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
             'dom::bindings::utils::ConstantVal::{IntVal, UintVal}',
