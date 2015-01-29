@@ -37,7 +37,7 @@ pub fn spawn_named_with_send_on_failure<F, T>(name: &'static str,
             Ok(()) => (),
             Err(..) => {
                 debug!("{} failed, notifying constellation", name);
-                dest.send(msg);
+                dest.send(msg).unwrap();
             }
         }
     });
