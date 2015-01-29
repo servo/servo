@@ -336,7 +336,7 @@ class CGMethodCall(CGThing):
 
             # Check for vanilla JS objects
             # XXXbz Do we need to worry about security wrappers?
-            pickFirstSignature("%s.is_object() && !IsPlatformObject(%s.to_object())" %
+            pickFirstSignature("%s.is_object() && !is_platform_object(%s.to_object())" %
                                (distinguishingArg, distinguishingArg),
                                lambda s: (s[1][distinguishingIndex].type.isCallback() or
                                           s[1][distinguishingIndex].type.isCallbackInterface() or
@@ -719,7 +719,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
             handleInvalidEnumValueCode = "return 1;"
 
         template = (
-            "match FindEnumStringIndex(cx, ${val}, %(values)s) {\n"
+            "match find_enum_string_index(cx, ${val}, %(values)s) {\n"
             "    Err(_) => { %(exceptionCode)s },\n"
             "    Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
             "    Ok(Some(index)) => {\n"
@@ -1811,7 +1811,7 @@ assert!(!obj.is_null());\
 """ % (descriptor.name, parent)
     else:
         if descriptor.isGlobal():
-            create += "let obj = CreateDOMGlobal(aCx, &Class.base as *const js::Class as *const JSClass);\n"
+            create += "let obj = create_dom_global(aCx, &Class.base as *const js::Class as *const JSClass);\n"
         else:
             create += ("let obj = with_compartment(aCx, proto, || {\n"
                        "    JS_NewObject(aCx, &Class.base as *const js::Class as *const JSClass, &*proto, &*%s)\n"
@@ -1905,10 +1905,10 @@ class CGAbstractExternMethod(CGAbstractMethod):
 
 class PropertyArrays():
     def __init__(self, descriptor):
-        self.staticMethods = MethodDefiner(descriptor, "StaticMethods",
-                                           static=True)
-        self.staticAttrs = AttrDefiner(descriptor, "StaticAttributes",
-                                       static=True)
+        self.static_methods = MethodDefiner(descriptor, "StaticMethods",
+                                            static=True)
+        self.static_attrs = AttrDefiner(descriptor, "StaticAttributes",
+                                        static=True)
         self.methods = MethodDefiner(descriptor, "Methods", static=False)
         self.attrs = AttrDefiner(descriptor, "Attributes", static=False)
         self.consts = ConstDefiner(descriptor, "Constants")
@@ -1916,7 +1916,7 @@ class PropertyArrays():
 
     @staticmethod
     def arrayNames():
-        return [ "staticMethods", "staticAttrs", "methods", "attrs", "consts" ]
+        return ["static_methods", "static_attrs", "methods", "attrs", "consts"]
 
     def variableNames(self):
         names = {}
@@ -1991,7 +1991,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 constructHook = CONSTRUCT_HOOK_NAME
                 constructArgs = methodLength(self.descriptor.interface.ctor())
             else:
-                constructHook = "ThrowingConstructor"
+                constructHook = "throwing_constructor"
                 constructArgs = 0
 
             constructor = 'Some((%s as NonNullJSNative, "%s", %d))' % (
@@ -2001,10 +2001,10 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             constructor = 'None'
 
         call = """\
-return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
-                               &PrototypeClass, %s,
-                               %s,
-                               &sNativeProperties);""" % (constructor, domClass)
+return do_create_interface_objects(aCx, aGlobal, aReceiver, parentProto,
+                                   &PrototypeClass, %s,
+                                   %s,
+                                   &sNativeProperties);""" % (constructor, domClass)
 
         return CGList([
             CGGeneric(getParentProto),
@@ -2034,7 +2034,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
 assert!(((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) != 0);
 
 /* Check to see whether the interface objects are already installed */
-let protoOrIfaceArray = GetProtoOrIfaceArray(aGlobal);
+let protoOrIfaceArray = get_proto_or_iface_array(aGlobal);
 let cachedObject: *mut JSObject = *protoOrIfaceArray.offset(%s as int);
 if cachedObject.is_null() {
     let tmp: *mut JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
@@ -3627,7 +3627,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
 
         setOrIndexedGet = ""
         if indexedGetter or indexedSetter:
-            setOrIndexedGet += "let index = GetArrayIndexFromId(cx, id);\n"
+            setOrIndexedGet += "let index = get_array_index_from_id(cx, id);\n"
 
         if indexedGetter:
             readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
@@ -3680,7 +3680,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
             # properties that shadow prototype properties.
             namedGet = ("\n" +
-                        "if !set && RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
+                        "if !set && RUST_JSID_IS_STRING(id) != 0 && !has_property_on_prototype(cx, proxy, id) {\n" +
                         "    let name = jsid_to_str(cx, id);\n" +
                         "    let this = UnwrapProxy(proxy);\n" +
                         "    let this = JS::from_raw(this);\n" +
@@ -3725,7 +3725,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         if indexedSetter:
             if not (self.descriptor.operations['IndexedCreator'] is indexedSetter):
                 raise TypeError("Can't handle creator that's different from the setter")
-            set += ("let index = GetArrayIndexFromId(cx, id);\n" +
+            set += ("let index = get_array_index_from_id(cx, id);\n" +
                     "if index.is_some() {\n" +
                     "    let index = index.unwrap();\n" +
                     "    let this = UnwrapProxy(proxy);\n" +
@@ -3735,7 +3735,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    return true;\n" +
                     "}\n")
         elif self.descriptor.operations['IndexedGetter']:
-            set += ("if GetArrayIndexFromId(cx, id).is_some() {\n" +
+            set += ("if get_array_index_from_id(cx, id).is_some() {\n" +
                     "    return false;\n" +
                     "    //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
                     "}\n") % self.descriptor.name
@@ -3800,7 +3800,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
     def getBody(self):
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
-            indexed = ("let index = GetArrayIndexFromId(cx, id);\n" +
+            indexed = ("let index = get_array_index_from_id(cx, id);\n" +
                        "if index.is_some() {\n" +
                        "    let index = index.unwrap();\n" +
                        "    let this = UnwrapProxy(proxy);\n" +
@@ -3815,7 +3815,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            named = ("if RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
+            named = ("if RUST_JSID_IS_STRING(id) != 0 && !has_property_on_prototype(cx, proxy, id) {\n" +
                      "    let name = jsid_to_str(cx, id);\n" +
                      "    let this = UnwrapProxy(proxy);\n" +
                      "    let this = JS::from_raw(this);\n" +
@@ -3873,7 +3873,7 @@ if !expando.is_null() {
 
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
-            getIndexedOrExpando = ("let index = GetArrayIndexFromId(cx, id);\n" +
+            getIndexedOrExpando = ("let index = get_array_index_from_id(cx, id);\n" +
                                    "if index.is_some() {\n" +
                                    "    let index = index.unwrap();\n" +
                                    "    let this = UnwrapProxy(proxy);\n" +
@@ -3908,7 +3908,7 @@ if !expando.is_null() {
 
 %s
 let mut found = false;
-if !GetPropertyOnPrototype(cx, proxy, id, &mut found, vp) {
+if !get_property_on_prototype(cx, proxy, id, &mut found, vp) {
     return false;
 }
 
@@ -4548,17 +4548,17 @@ class CGBindingRoot(CGThing):
             'dom::bindings::js::{JS, JSRef, Root, RootedReference, Temporary}',
             'dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable}',
             'dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable}',
-            'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
+            'dom::bindings::utils::{create_dom_global, do_create_interface_objects}',
             'dom::bindings::utils::ConstantSpec',
             'dom::bindings::utils::{DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
-            'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
-            'dom::bindings::utils::{GetPropertyOnPrototype, GetProtoOrIfaceArray}',
-            'dom::bindings::utils::HasPropertyOnPrototype',
-            'dom::bindings::utils::IsPlatformObject',
+            'dom::bindings::utils::{find_enum_string_index, get_array_index_from_id}',
+            'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array}',
+            'dom::bindings::utils::has_property_on_prototype',
+            'dom::bindings::utils::is_platform_object',
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::{squirrel_away_unique}',
-            'dom::bindings::utils::{ThrowingConstructor}',
+            'dom::bindings::utils::throwing_constructor',
             'dom::bindings::utils::get_dictionary_property',
             'dom::bindings::utils::{NativeProperties, NativePropertyHooks}',
             'dom::bindings::utils::ConstantVal::{IntVal, UintVal}',
