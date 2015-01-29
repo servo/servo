@@ -300,30 +300,31 @@ fn define_properties(cx: *mut JSContext, obj: *mut JSObject,
 /// Creates the *interface prototype object*.
 /// Fails on JSAPI failure.
 fn create_interface_prototype_object(cx: *mut JSContext, global: *mut JSObject,
-                                     parentProto: *mut JSObject,
-                                     protoClass: &'static JSClass,
+                                     parent_proto: *mut JSObject,
+                                     proto_class: &'static JSClass,
                                      members: &'static NativeProperties)
                                      -> *mut JSObject {
     unsafe {
-        let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, &*parentProto, &*global);
-        assert!(!ourProto.is_null());
+        let our_proto = JS_NewObjectWithUniqueType(cx, proto_class,
+                                                   &*parent_proto, &*global);
+        assert!(!our_proto.is_null());
 
         match members.methods {
-            Some(methods) => define_methods(cx, ourProto, methods),
+            Some(methods) => define_methods(cx, our_proto, methods),
             _ => (),
         }
 
         match members.attrs {
-            Some(properties) => define_properties(cx, ourProto, properties),
+            Some(properties) => define_properties(cx, our_proto, properties),
             _ => (),
         }
 
         match members.consts {
-            Some(constants) => define_constants(cx, ourProto, constants),
+            Some(constants) => define_constants(cx, our_proto, constants),
             _ => (),
         }
 
-        return ourProto;
+        return our_proto;
     }
 }
 
