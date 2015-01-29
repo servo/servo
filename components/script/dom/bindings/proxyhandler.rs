@@ -89,7 +89,7 @@ pub unsafe extern fn delete(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
 }
 
 /// Returns the stringification of an object with class `name`.
-pub fn _obj_toString(cx: *mut JSContext, name: &str) -> *mut JSString {
+pub fn object_to_string(cx: *mut JSContext, name: &str) -> *mut JSString {
     unsafe {
         let result = format!("[object {}]", name);
 

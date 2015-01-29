@@ -3946,7 +3946,7 @@ class CGDOMJSProxyHandler_obj_toString(CGAbstractExternMethod):
 JSString* jsresult;
 return xpc_qsStringToJsstring(cx, result, &jsresult) ? jsresult : NULL;"""
 
-        return """_obj_toString(cx, "%s")""" % self.descriptor.name
+        return """proxyhandler::object_to_string(cx, "%s")""" % self.descriptor.name
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -4580,7 +4580,6 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
-            'dom::bindings::proxyhandler::{_obj_toString}',
             'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
             'dom::bindings::proxyhandler::{get_property_descriptor}',
             'dom::bindings::proxyhandler::{getOwnPropertyNames_, enumerate_}',
