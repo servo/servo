@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 pub struct PersistentList<T> {
     head: PersistentListLink<T>,
-    length: uint,
+    length: usize,
 }
 
 struct PersistentListEntry<T> {
@@ -29,7 +29,7 @@ impl<T> PersistentList<T> where T: Send + Sync {
     }
 
     #[inline]
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         self.length
     }
 

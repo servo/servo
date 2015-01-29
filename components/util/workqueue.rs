@@ -13,7 +13,7 @@ use task_state;
 use libc::funcs::posix88::unistd::usleep;
 use std::mem;
 use rand::{Rng, weak_rng, XorShiftRng};
-use std::sync::atomic::{AtomicUint, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 
@@ -33,7 +33,7 @@ pub struct WorkUnit<QueueData, WorkData> {
 /// Messages from the supervisor to the worker.
 enum WorkerMsg<QueueData: 'static, WorkData: 'static> {
     /// Tells the worker to start work.
-    Start(Worker<WorkUnit<QueueData, WorkData>>, *mut AtomicUint, *const QueueData),
+    Start(Worker<WorkUnit<QueueData, WorkData>>, *mut AtomicUsize, *const QueueData),
     /// Tells the worker to stop. It can be restarted again with a `WorkerMsg::Start`.
     Stop,
     /// Tells the worker thread to terminate.
@@ -45,7 +45,7 @@ unsafe impl<QueueData: 'static, WorkData: 'static> Send for WorkerMsg<QueueData,
 /// Messages to the supervisor.
 enum SupervisorMsg<QueueData: 'static, WorkData: 'static> {
     Finished,
-    ReturnDeque(uint, Worker<WorkUnit<QueueData, WorkData>>),
+    ReturnDeque(usize, Worker<WorkUnit<QueueData, WorkData>>),
 }
 
 unsafe impl<QueueData: 'static, WorkData: 'static> Send for SupervisorMsg<QueueData, WorkData> {}
@@ -63,7 +63,7 @@ struct WorkerInfo<QueueData: 'static, WorkData: 'static> {
 /// Information specific to each worker thread that the thread keeps.
 struct WorkerThread<QueueData: 'static, WorkData: 'static> {
     /// The index of this worker.
-    index: uint,
+    index: usize,
     /// The communication port from the supervisor.
     port: Receiver<WorkerMsg<QueueData, WorkData>>,
     /// The communication channel on which messages are sent to the supervisor.
@@ -110,7 +110,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
                         let mut i = 0;
                         let mut should_continue = true;
                         loop {
-                            let victim = (self.rng.next_u32() as uint) % self.other_deques.len();
+                            let victim = (self.rng.next_u32() as usize) % self.other_deques.len();
                             match self.other_deques[victim].steal() {
                                 Empty | Abort => {
                                     // Continue.
@@ -179,7 +179,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
 /// A handle to the work queue that individual work units have.
 pub struct WorkerProxy<'a, QueueData: 'a, WorkData: 'a> {
     worker: &'a mut Worker<WorkUnit<QueueData, WorkData>>,
-    ref_count: *mut AtomicUint,
+    ref_count: *mut AtomicUsize,
     queue_data: *const QueueData,
     worker_index: u8,
 }
@@ -216,7 +216,7 @@ pub struct WorkQueue<QueueData: 'static, WorkData: 'static> {
     /// A port on which deques can be received from the workers.
     port: Receiver<SupervisorMsg<QueueData, WorkData>>,
     /// The amount of work that has been enqueued.
-    work_count: uint,
+    work_count: usize,
     /// Arbitrary user data.
     pub data: QueueData,
 }
@@ -226,7 +226,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     /// it.
     pub fn new(task_name: &'static str,
                state: task_state::TaskState,
-               thread_count: uint,
+               thread_count: usize,
                user_data: QueueData) -> WorkQueue<QueueData, WorkData> {
         // Set up data structures.
         let (supervisor_chan, supervisor_port) = channel();
@@ -295,7 +295,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     /// Synchronously runs all the enqueued tasks and waits for them to complete.
     pub fn run(&mut self) {
         // Tell the workers to start.
-        let mut work_count = AtomicUint::new(self.work_count);
+        let mut work_count = AtomicUsize::new(self.work_count);
         for worker in self.workers.iter_mut() {
             worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(), &mut work_count, &self.data)).unwrap()
         }

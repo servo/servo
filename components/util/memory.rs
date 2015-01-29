@@ -241,7 +241,7 @@ macro_rules! option_try(
 );
 
 #[cfg(target_os="linux")]
-fn get_proc_self_statm_field(field: uint) -> Option<u64> {
+fn get_proc_self_statm_field(field: usize) -> Option<u64> {
     let mut f = File::open(&Path::new("/proc/self/statm"));
     match f.read_to_string() {
         Ok(contents) => {

@@ -236,7 +236,7 @@ impl Au {
     }
 
     #[inline]
-    pub fn from_px(px: int) -> Au {
+    pub fn from_px(px: isize) -> Au {
         NumCast::from(px * 60).unwrap()
     }
 
@@ -246,9 +246,9 @@ impl Au {
     }
 
     #[inline]
-    pub fn to_nearest_px(&self) -> int {
+    pub fn to_nearest_px(&self) -> isize {
         let Au(s) = *self;
-        ((s as f64) / 60f64).round() as int
+        ((s as f64) / 60f64).round() as isize
     }
 
     #[inline]
@@ -309,13 +309,13 @@ pub fn from_frac_px(px: f64) -> Au {
     Au((px * 60f64) as i32)
 }
 
-pub fn from_px(px: int) -> Au {
+pub fn from_px(px: isize) -> Au {
     NumCast::from(px * 60).unwrap()
 }
 
-pub fn to_px(au: Au) -> int {
+pub fn to_px(au: Au) -> isize {
     let Au(a) = au;
-    (a / 60) as int
+    (a / 60) as isize
 }
 
 pub fn to_frac_px(au: Au) -> f64 {
@@ -325,7 +325,7 @@ pub fn to_frac_px(au: Au) -> f64 {
 
 // assumes 72 points per inch, and 96 px per inch
 pub fn from_pt(pt: f64) -> Au {
-    from_px((pt / 72f64 * 96f64) as int)
+    from_px((pt / 72f64 * 96f64) as isize)
 }
 
 // assumes 72 points per inch, and 96 px per inch
