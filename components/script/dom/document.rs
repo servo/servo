@@ -55,8 +55,8 @@ use dom::range::Range;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
-use servo_util::namespace;
-use servo_util::str::{DOMString, split_html_space_chars};
+use util::namespace;
+use util::str::{DOMString, split_html_space_chars};
 
 use html5ever::tree_builder::{QuirksMode, NoQuirks, LimitedQuirks, Quirks};
 use layout_interface::{LayoutChan, Msg};

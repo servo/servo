@@ -19,7 +19,7 @@ use dom::virtualmethods::VirtualMethods;
 
 use std::default::Default;
 use string_cache::Atom;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[jstraceable]
 #[must_root]

@@ -14,7 +14,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::sync::mpsc::{Receiver, channel};
-use servo_util::task::spawn_named;
+use util::task::spawn_named;
 use url::Url;
 
 pub trait ImageResponder<NodeAddress: Send> {

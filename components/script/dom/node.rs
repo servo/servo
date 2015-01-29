@@ -46,8 +46,8 @@ use geom::rect::Rect;
 use layout_interface::{LayoutChan, Msg};
 use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
-use servo_util::geometry::Au;
-use servo_util::str::{DOMString, null_str_as_empty};
+use util::geometry::Au;
+use util::str::{DOMString, null_str_as_empty};
 use style::{matches, SelectorList};
 
 use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};

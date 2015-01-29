@@ -18,7 +18,7 @@ use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
-use servo_util::str::{self, DOMString};
+use util::str::{self, DOMString};
 
 use std::borrow::ToOwned;
 use std::cell::Cell;

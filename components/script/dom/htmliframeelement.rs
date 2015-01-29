@@ -25,7 +25,7 @@ use page::{IterablePage, Page};
 use servo_msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan};
 use servo_msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::ascii::AsciiExt;
 use std::cell::Cell;

@@ -11,7 +11,7 @@ extern crate libc;
 
 extern crate servo;
 extern crate time;
-extern crate "util" as servo_util;
+extern crate util;
 
 #[cfg(all(feature = "glutin_app",not(test)))]
 extern crate "glutin_app" as app;
@@ -29,7 +29,7 @@ extern crate android_glue;
 use libc::c_int;
 
 #[cfg(not(test))]
-use servo_util::opts;
+use util::opts;
 
 #[cfg(not(test))]
 use servo::Browser;
@@ -74,7 +74,7 @@ fn redirect_output(file_no: c_int) {
     use libc::funcs::posix88::unistd::{pipe, dup2};
     use libc::funcs::posix88::stdio::fdopen;
     use libc::funcs::c95::stdio::fgets;
-    use servo_util::task::spawn_named;
+    use util::task::spawn_named;
     use std::mem;
     use std::ffi::CString;
     use std::str::from_utf8;

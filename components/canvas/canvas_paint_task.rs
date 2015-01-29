@@ -6,7 +6,7 @@ use azure::azure_hl::{DrawTarget, Color, SurfaceFormat, BackendType, StrokeOptio
 use azure::azure_hl::{ColorPattern, PatternRef};
 use geom::rect::Rect;
 use geom::size::Size2D;
-use servo_util::task::spawn_named;
+use util::task::spawn_named;
 
 use std::borrow::ToOwned;
 use std::sync::mpsc::{channel, Sender};

@@ -1677,7 +1677,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
         'dom::types::*',
         'js::jsapi::JSContext',
         'js::jsval::JSVal',
-        'servo_util::str::DOMString',
+        'util::str::DOMString',
     ]
 
     # Now find all the things we'll need as arguments and return values because
@@ -4587,7 +4587,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::str::ByteString',
             'page::JSPageInfo',
             'libc',
-            'servo_util::str::DOMString',
+            'util::str::DOMString',
             'std::borrow::ToOwned',
             'std::cmp',
             'std::iter::repeat',

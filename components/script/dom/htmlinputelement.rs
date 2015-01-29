@@ -34,7 +34,7 @@ use textinput::TextInput;
 use textinput::KeyReaction::{TriggerDefaultAction, DispatchInput, Nothing};
 use textinput::Lines::Single;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use string_cache::Atom;
 
 use std::ascii::OwnedAsciiExt;

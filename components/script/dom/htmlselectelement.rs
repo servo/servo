@@ -20,7 +20,7 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use string_cache::Atom;
 
 use std::borrow::ToOwned;

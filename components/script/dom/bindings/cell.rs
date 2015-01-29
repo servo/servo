@@ -7,8 +7,8 @@
 use dom::bindings::trace::JSTraceable;
 use js::jsapi::{JSTracer};
 
-use servo_util::task_state;
-use servo_util::task_state::{SCRIPT, IN_GC};
+use util::task_state;
+use util::task_state::{SCRIPT, IN_GC};
 
 use std::cell::{RefCell, Ref, RefMut};
 

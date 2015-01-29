@@ -14,7 +14,7 @@ use dom::event::{Event, EventTypeId};
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use servo_msg::constellation_msg;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};

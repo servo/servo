@@ -14,7 +14,7 @@ extern crate geom;
 extern crate hyper;
 extern crate layers;
 extern crate serialize;
-extern crate "util" as servo_util;
+extern crate util;
 extern crate url;
 
 #[cfg(target_os="macos")]

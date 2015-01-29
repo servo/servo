@@ -10,7 +10,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;

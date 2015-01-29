@@ -21,8 +21,8 @@ use std::mem::transmute;
 use std::mem::size_of;
 use std::mem::zeroed;
 use std::ptr;
-use servo_util::cursor::Cursor;
-use servo_util::geometry::ScreenPx;
+use util::cursor::Cursor;
+use util::geometry::ScreenPx;
 use gleam::gl;
 
 use egl::egl::EGLConfig;

@@ -9,6 +9,6 @@
 
 extern crate azure;
 extern crate geom;
-extern crate "util" as servo_util;
+extern crate util;
 
 pub mod canvas_paint_task;

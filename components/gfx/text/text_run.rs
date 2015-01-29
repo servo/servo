@@ -5,9 +5,9 @@
 use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
 use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
-use servo_util::geometry::Au;
-use servo_util::range::Range;
-use servo_util::vec::{Comparator, FullBinarySearchMethods};
+use util::geometry::Au;
+use util::range::Range;
+use util::vec::{Comparator, FullBinarySearchMethods};
 use std::cmp::Ordering;
 use std::slice::Iter;
 use std::sync::Arc;

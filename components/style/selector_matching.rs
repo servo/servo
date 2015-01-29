@@ -10,10 +10,10 @@ use std::sync::Arc;
 
 use url::Url;
 
-use servo_util::bloom::BloomFilter;
-use servo_util::resource_files::read_resource_file;
-use servo_util::smallvec::VecLike;
-use servo_util::sort;
+use util::bloom::BloomFilter;
+use util::resource_files::read_resource_file;
+use util::smallvec::VecLike;
+use util::sort;
 use string_cache::Atom;
 
 use legacy::PresentationalHintSynthesis;

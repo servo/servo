@@ -57,7 +57,7 @@ use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{Node, NodeHelpers, NodeTypeId, CloneChildrenFlag};
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use string_cache::Atom;
 
