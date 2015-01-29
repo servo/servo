@@ -24,7 +24,7 @@ use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
-use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate, JSHandleObject};
+use js::jsapi::JSHandleObject;
 use js::jsapi::JS_GetFunctionObject;
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
 use js::jsapi::{JS_GetProperty, JS_HasProperty};
@@ -557,13 +557,6 @@ pub fn has_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
     //  MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
     let mut found = false;
     return !get_property_on_prototype(cx, proxy, id, &mut found, ptr::null_mut()) || found;
-}
-
-/// Returns whether `obj` can be converted to a callback interface per IDL.
-pub fn IsConvertibleToCallbackInterface(cx: *mut JSContext, obj: *mut JSObject) -> bool {
-    unsafe {
-        JS_ObjectIsDate(cx, obj) == 0 && JS_ObjectIsRegExp(cx, obj) == 0
-    }
 }
 
 /// Create a DOM global object with the given class.
