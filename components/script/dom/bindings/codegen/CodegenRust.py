@@ -3627,7 +3627,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
 
         setOrIndexedGet = ""
         if indexedGetter or indexedSetter:
-            setOrIndexedGet += "let index = GetArrayIndexFromId(cx, id);\n"
+            setOrIndexedGet += "let index = get_array_index_from_id(cx, id);\n"
 
         if indexedGetter:
             readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
@@ -3725,7 +3725,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
         if indexedSetter:
             if not (self.descriptor.operations['IndexedCreator'] is indexedSetter):
                 raise TypeError("Can't handle creator that's different from the setter")
-            set += ("let index = GetArrayIndexFromId(cx, id);\n" +
+            set += ("let index = get_array_index_from_id(cx, id);\n" +
                     "if index.is_some() {\n" +
                     "    let index = index.unwrap();\n" +
                     "    let this = UnwrapProxy(proxy);\n" +
@@ -3735,7 +3735,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    return true;\n" +
                     "}\n")
         elif self.descriptor.operations['IndexedGetter']:
-            set += ("if GetArrayIndexFromId(cx, id).is_some() {\n" +
+            set += ("if get_array_index_from_id(cx, id).is_some() {\n" +
                     "    return false;\n" +
                     "    //return ThrowErrorMessage(cx, MSG_NO_PROPERTY_SETTER, \"%s\");\n" +
                     "}\n") % self.descriptor.name
@@ -3800,7 +3800,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
     def getBody(self):
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
-            indexed = ("let index = GetArrayIndexFromId(cx, id);\n" +
+            indexed = ("let index = get_array_index_from_id(cx, id);\n" +
                        "if index.is_some() {\n" +
                        "    let index = index.unwrap();\n" +
                        "    let this = UnwrapProxy(proxy);\n" +
@@ -3873,7 +3873,7 @@ if !expando.is_null() {
 
         indexedGetter = self.descriptor.operations['IndexedGetter']
         if indexedGetter:
-            getIndexedOrExpando = ("let index = GetArrayIndexFromId(cx, id);\n" +
+            getIndexedOrExpando = ("let index = get_array_index_from_id(cx, id);\n" +
                                    "if index.is_some() {\n" +
                                    "    let index = index.unwrap();\n" +
                                    "    let this = UnwrapProxy(proxy);\n" +
@@ -4552,7 +4552,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::ConstantSpec',
             'dom::bindings::utils::{DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
-            'dom::bindings::utils::{FindEnumStringIndex, GetArrayIndexFromId}',
+            'dom::bindings::utils::{FindEnumStringIndex, get_array_index_from_id}',
             'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array}',
             'dom::bindings::utils::HasPropertyOnPrototype',
             'dom::bindings::utils::IsPlatformObject',
