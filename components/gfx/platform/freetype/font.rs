@@ -6,9 +6,9 @@ extern crate freetype;
 
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::{FontTableTag, FractionalPixel};
-use servo_util::geometry::Au;
-use servo_util::geometry;
-use servo_util::str::c_str_to_string;
+use util::geometry::Au;
+use util::geometry;
+use util::str::c_str_to_string;
 use platform::font_context::FontContextHandle;
 use text::glyph::GlyphId;
 use text::util::{float_to_fixed, fixed_to_float};

@@ -14,7 +14,7 @@ extern crate geom;
 extern crate libc;
 extern crate "msg" as servo_msg;
 extern crate "net" as servo_net;
-extern crate "util" as servo_util;
+extern crate util;
 extern crate url;
 extern crate serialize;
 
@@ -32,7 +32,7 @@ use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
-use servo_util::smallvec::SmallVec1;
+use util::smallvec::SmallVec1;
 use std::any::Any;
 use std::sync::mpsc::{Sender, Receiver};
 

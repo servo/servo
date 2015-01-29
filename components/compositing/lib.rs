@@ -24,7 +24,7 @@ extern crate script_traits;
 extern crate "msg" as servo_msg;
 extern crate "net" as servo_net;
 #[macro_use]
-extern crate "util" as servo_util;
+extern crate util;
 extern crate gleam;
 
 extern crate libc;

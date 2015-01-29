@@ -36,7 +36,7 @@ extern crate script_traits;
 #[no_link] #[plugin] #[macro_use]
 extern crate "plugins" as servo_plugins;
 extern crate "net" as servo_net;
-extern crate "util" as servo_util;
+extern crate util;
 #[macro_use]
 extern crate style;
 extern crate "msg" as servo_msg;

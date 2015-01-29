@@ -8,7 +8,7 @@ use file_loader;
 
 use url::Url;
 use hyper::http::RawStatus;
-use servo_util::resource_files::resources_dir_path;
+use util::resource_files::resources_dir_path;
 
 use std::borrow::ToOwned;
 use std::io::fs::PathExtensions;

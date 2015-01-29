@@ -47,8 +47,8 @@ use net::resource_task::{ResourceTask, ResourceCORSData, LoadData, LoadResponse}
 use net::resource_task::ControlMsg::Load;
 use net::resource_task::ProgressMsg::{Payload, Done};
 use cors::{allow_cross_origin_request, CORSRequest, RequestMode};
-use servo_util::str::DOMString;
-use servo_util::task::spawn_named;
+use util::str::DOMString;
+use util::task::spawn_named;
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;

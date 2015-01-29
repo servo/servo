@@ -10,8 +10,8 @@ use std::fmt;
 use std::fmt::Show;
 use std::sync::Arc;
 
-use servo_util::logical_geometry::{WritingMode, LogicalMargin};
-use servo_util::geometry::Au;
+use util::logical_geometry::{WritingMode, LogicalMargin};
+use util::geometry::Au;
 use url::Url;
 use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
                 DeclarationListParser, parse_important};
@@ -183,7 +183,7 @@ pub mod longhands {
     <%def name="predefined_type(name, type, initial_value, parse_method='parse')">
         <%self:longhand name="${name}">
             #[allow(unused_imports)]
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
             pub use values::computed::compute_${type} as to_computed_value;
             pub type SpecifiedValue = specified::${type};
             pub mod computed_value {
@@ -227,7 +227,7 @@ pub mod longhands {
 
     % for side in ["top", "right", "bottom", "left"]:
         <%self:longhand name="border-${side}-width">
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
             #[inline]
             pub fn parse(_context: &ParserContext, input: &mut Parser)
                                    -> Result<SpecifiedValue, ()> {
@@ -235,7 +235,7 @@ pub mod longhands {
             }
             pub type SpecifiedValue = specified::Length;
             pub mod computed_value {
-                use servo_util::geometry::Au;
+                use util::geometry::Au;
                 pub type T = Au;
             }
             #[inline] pub fn get_initial_value() -> computed_value::T {
@@ -285,7 +285,7 @@ pub mod longhands {
         pub use values::computed::compute_Au as to_computed_value;
         pub type SpecifiedValue = super::border_top_width::SpecifiedValue;
         pub mod computed_value {
-            pub use servo_util::geometry::Au as T;
+            pub use util::geometry::Au as T;
         }
     </%self:longhand>
 
@@ -491,7 +491,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use values::CSSFloat;
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
             use std::fmt;
             #[derive(PartialEq, Copy, Clone)]
             pub enum T {
@@ -573,7 +573,7 @@ pub mod longhands {
         }
         pub mod computed_value {
             use values::CSSFloat;
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
             use std::fmt;
             #[allow(non_camel_case_types)]
             #[derive(PartialEq, Copy, Clone)]
@@ -1106,10 +1106,10 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="font-size">
-        use servo_util::geometry::Au;
+        use util::geometry::Au;
         pub type SpecifiedValue = specified::Length;  // Percentages are the same as em.
         pub mod computed_value {
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
             pub type T = Au;
         }
         const MEDIUM_PX: int = 16;
@@ -1162,7 +1162,7 @@ pub mod longhands {
     <%self:longhand name="letter-spacing">
         pub type SpecifiedValue = Option<specified::Length>;
         pub mod computed_value {
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
             pub type T = Option<Au>;
         }
         #[inline]
@@ -1186,7 +1186,7 @@ pub mod longhands {
     <%self:longhand name="word-spacing">
         pub type SpecifiedValue = Option<specified::Length>;
         pub mod computed_value {
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
             pub type T = Option<Au>;
         }
         #[inline]
@@ -1410,12 +1410,12 @@ pub mod longhands {
     ${new_style_struct("Pointing", is_inherited=True)}
 
     <%self:longhand name="cursor">
-        use servo_util::cursor as util_cursor;
+        use util::cursor as util_cursor;
         pub use super::computed_as_specified as to_computed_value;
         pub use self::computed_value::T as SpecifiedValue;
 
         pub mod computed_value {
-            use servo_util::cursor::Cursor;
+            use util::cursor::Cursor;
             #[derive(Clone, PartialEq, Eq, Copy, Show)]
             pub enum T {
                 AutoCursor,
@@ -1504,7 +1504,7 @@ pub mod longhands {
         }
 
         pub mod computed_value {
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
             use values::computed;
             use std::fmt;
 
@@ -1565,7 +1565,7 @@ pub mod longhands {
         }
 
         pub fn parse_one_box_shadow(input: &mut Parser) -> Result<SpecifiedBoxShadow, ()> {
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
             let mut lengths = [specified::Length::Au(Au(0)); 4];
             let mut lengths_parsed = false;
             let mut color = None;
@@ -1629,7 +1629,7 @@ pub mod longhands {
         // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
 
         pub mod computed_value {
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
 
             #[derive(Clone, PartialEq, Eq, Copy, Show)]
             pub struct ClipRect {
@@ -1669,7 +1669,7 @@ pub mod longhands {
 
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             use std::ascii::AsciiExt;
-            use servo_util::geometry::Au;
+            use util::geometry::Au;
             use values::specified::Length;
 
             if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
@@ -2031,7 +2031,7 @@ pub mod shorthands {
         'border-%s-radius' % (corner)
          for corner in ['top-left', 'top-right', 'bottom-right', 'bottom-left']
     )}">
-        use servo_util::geometry::Au;
+        use util::geometry::Au;
         use values::specified::{Length, LengthOrPercentage};
         let _ignored = context;
 
@@ -2503,7 +2503,7 @@ impl PropertyDeclaration {
                 % if property.derived_from is None:
                     "${property.name}" => {
                         % if property.experimental:
-                            if !::servo_util::opts::experimental_enabled() {
+                            if !::util::opts::experimental_enabled() {
                                 return PropertyDeclarationParseResult::ExperimentalProperty
                             }
                         % endif
@@ -2716,7 +2716,7 @@ impl ComputedValues {
 
 /// Return a WritingMode bitflags from the relevant CSS properties.
 fn get_writing_mode(inheritedbox_style: &style_structs::InheritedBox) -> WritingMode {
-    use servo_util::logical_geometry;
+    use util::logical_geometry;
     let mut flags = WritingMode::empty();
     match inheritedbox_style.direction {
         computed_values::direction::T::ltr => {},

@@ -13,7 +13,7 @@ use dom::bindings::js::{MutNullableJS, JSRef, RootedReference, Temporary};
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use dom::window::Window;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::cell::Cell;
 use std::default::Default;

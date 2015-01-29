@@ -13,7 +13,7 @@ use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use dom::eventtarget::{EventTarget, EventTargetHelpers};
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, UndefinedValue};

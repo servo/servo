@@ -13,7 +13,7 @@ use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId};
 use js::jsapi::JSContext;
 use js::jsval::{JSVal, NullValue};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct CustomEvent {

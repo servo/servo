@@ -18,7 +18,7 @@
 extern crate "msg" as servo_msg;
 extern crate serialize;
 extern crate url;
-extern crate "util" as servo_util;
+extern crate util;
 
 pub use self::DevtoolsControlMsg::*;
 pub use self::DevtoolScriptControlMsg::*;
@@ -26,7 +26,7 @@ pub use self::EvaluateJSReply::*;
 
 use serialize::{Decodable, Decoder};
 use servo_msg::constellation_msg::PipelineId;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use url::Url;
 
 use std::sync::mpsc::{Sender, Receiver};

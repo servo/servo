@@ -14,7 +14,7 @@ use hyper::status::StatusClass;
 use std::error::Error;
 use std::io::Reader;
 use std::sync::mpsc::Sender;
-use servo_util::task::spawn_named;
+use util::task::spawn_named;
 use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;

@@ -7,8 +7,8 @@ use resource_task;
 use resource_task::{LoadData, ResourceTask};
 use resource_task::ProgressMsg::{Payload, Done};
 
-use servo_util::task::spawn_named;
-use servo_util::taskpool::TaskPool;
+use util::task::spawn_named;
+use util::taskpool::TaskPool;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -484,7 +484,7 @@ mod tests {
     use resource_task::ProgressMsg::{Payload, Done};
     use sniffer_task;
     use image::base::test_image_bin;
-    use servo_util::taskpool::TaskPool;
+    use util::taskpool::TaskPool;
     use std::sync::mpsc::{Sender, channel, Receiver};
     use url::Url;
 

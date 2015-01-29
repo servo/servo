@@ -25,7 +25,7 @@ extern crate devtools_traits;
 extern crate "serialize" as rustc_serialize;
 extern crate serialize;
 extern crate "msg" as servo_msg;
-extern crate "util" as servo_util;
+extern crate util;
 
 use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
@@ -36,7 +36,7 @@ use protocol::JsonPacketStream;
 
 use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg, DevtoolsPageInfo};
 use servo_msg::constellation_msg::PipelineId;
-use servo_util::task::spawn_named;
+use util::task::spawn_named;
 
 use std::borrow::ToOwned;
 use std::cell::RefCell;

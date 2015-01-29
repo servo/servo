@@ -52,7 +52,7 @@ use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
 
-use servo_util::smallvec::{SmallVec, SmallVec16};
+use util::smallvec::{SmallVec, SmallVec16};
 use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
 use std::marker::ContravariantLifetime;

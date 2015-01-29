@@ -9,7 +9,7 @@ use std::borrow::ToOwned;
 use std::io;
 use std::io::File;
 use std::sync::mpsc::Sender;
-use servo_util::task::spawn_named;
+use util::task::spawn_named;
 
 static READ_SIZE: uint = 8192;
 
