@@ -40,8 +40,9 @@ use util::{PrivateLayoutData};
 use cssparser::RGBA;
 use gfx::display_list::OpaqueNode;
 use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLImageElementCast, HTMLInputElementCast};
-use script::dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementCast, NodeCast, TextCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLImageElementCast};
+use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
+use script::dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
 use script::dom::bindings::js::JS;
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
@@ -58,6 +59,8 @@ use script::dom::text::Text;
 use script::layout_interface::LayoutChan;
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_util::str::{LengthOrPercentageOrAuto, is_whitespace};
+use std::borrow::ToOwned;
+use std::cell::{Ref, RefMut};
 use std::marker::ContravariantLifetime;
 use std::mem;
 use std::sync::mpsc::Sender;
@@ -67,9 +70,6 @@ use style::{NamespaceConstraint, AttrSelector, IntegerAttribute};
 use style::{LengthAttribute, PropertyDeclarationBlock, SimpleColorAttribute};
 use style::{TElement, TElementAttributes, TNode, UnsignedIntegerAttribute};
 use url::Url;
-
-use std::borrow::ToOwned;
-use std::cell::{Ref, RefMut};
 
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {
