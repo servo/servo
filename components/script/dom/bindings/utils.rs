@@ -217,12 +217,12 @@ pub fn do_create_interface_objects(cx: *mut JSContext, global: *mut JSObject,
 /// Fails on JSAPI failure.
 fn create_interface_object(cx: *mut JSContext, global: *mut JSObject,
                            receiver: *mut JSObject,
-                           constructorNative: NonNullJSNative,
-                           ctorNargs: u32, proto: *mut JSObject,
+                           constructor_native: NonNullJSNative,
+                           ctor_nargs: u32, proto: *mut JSObject,
                            members: &'static NativeProperties,
                            name: *const libc::c_char) {
     unsafe {
-        let fun = JS_NewFunction(cx, Some(constructorNative), ctorNargs,
+        let fun = JS_NewFunction(cx, Some(constructor_native), ctor_nargs,
                                  JSFUN_CONSTRUCTOR, global, name);
         assert!(!fun.is_null());
 
@@ -252,10 +252,10 @@ fn create_interface_object(cx: *mut JSContext, global: *mut JSObject,
             assert!(JS_LinkConstructorAndPrototype(cx, constructor, proto) != 0);
         }
 
-        let mut alreadyDefined = 0;
-        assert!(JS_AlreadyHasOwnProperty(cx, receiver, name, &mut alreadyDefined) != 0);
+        let mut already_defined = 0;
+        assert!(JS_AlreadyHasOwnProperty(cx, receiver, name, &mut already_defined) != 0);
 
-        if alreadyDefined == 0 {
+        if already_defined == 0 {
             assert!(JS_DefineProperty(cx, receiver, name,
                                       ObjectValue(&*constructor),
                                       None, None, 0) != 0);
