@@ -203,9 +203,9 @@ pub fn do_create_interface_objects(cx: *mut JSContext, global: *mut JSObject,
     match constructor {
         Some((native, name, nargs)) => {
             let s = CString::from_slice(name.as_bytes());
-            CreateInterfaceObject(cx, global, receiver,
-                                  native, nargs, proto,
-                                  members, s.as_ptr())
+            create_interface_object(cx, global, receiver,
+                                    native, nargs, proto,
+                                    members, s.as_ptr())
         },
         None => (),
     }
@@ -215,11 +215,12 @@ pub fn do_create_interface_objects(cx: *mut JSContext, global: *mut JSObject,
 
 /// Creates the *interface object*.
 /// Fails on JSAPI failure.
-fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
-                         constructorNative: NonNullJSNative,
-                         ctorNargs: u32, proto: *mut JSObject,
-                         members: &'static NativeProperties,
-                         name: *const libc::c_char) {
+fn create_interface_object(cx: *mut JSContext, global: *mut JSObject,
+                           receiver: *mut JSObject,
+                           constructorNative: NonNullJSNative,
+                           ctorNargs: u32, proto: *mut JSObject,
+                           members: &'static NativeProperties,
+                           name: *const libc::c_char) {
     unsafe {
         let fun = JS_NewFunction(cx, Some(constructorNative), ctorNargs,
                                  JSFUN_CONSTRUCTOR, global, name);
