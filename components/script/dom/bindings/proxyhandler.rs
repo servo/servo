@@ -77,8 +77,8 @@ pub unsafe extern fn define_property(cx: *mut JSContext, proxy: *mut JSObject,
 }
 
 /// Deletes an expando off the given `proxy`.
-pub unsafe extern fn delete_(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
-                             bp: *mut bool) -> bool {
+pub unsafe extern fn delete(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
+                            bp: *mut bool) -> bool {
     let expando = GetExpandoObject(proxy);
     if expando.is_null() {
         *bp = true;
