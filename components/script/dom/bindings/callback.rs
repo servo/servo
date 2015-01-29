@@ -95,7 +95,8 @@ impl CallbackInterface {
     /// Returns the property with the given `name`, if it is a callable object,
     /// or `Err(())` otherwise. If it returns `Err(())`, a JSAPI exception is
     /// pending.
-    pub fn GetCallableProperty(&self, cx: *mut JSContext, name: &str) -> Result<JSVal, ()> {
+    pub fn get_callable_property(&self, cx: *mut JSContext, name: &str)
+                                 -> Result<JSVal, ()> {
         let mut callable = UndefinedValue();
         unsafe {
             let name = CString::from_slice(name.as_bytes());

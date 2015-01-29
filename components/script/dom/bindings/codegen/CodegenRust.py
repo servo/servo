@@ -5083,7 +5083,7 @@ class CallbackOperationBase(CallbackMethod):
             "methodName": self.methodName
         }
         getCallableFromProp = string.Template(
-                'match self.parent.GetCallableProperty(cx, "${methodName}") {\n'
+                'match self.parent.get_callable_property(cx, "${methodName}") {\n'
                 '    Err(_) => return Err(FailureUnknown),\n'
                 '    Ok(callable) => callable,\n'
                 '}').substitute(replacements)
