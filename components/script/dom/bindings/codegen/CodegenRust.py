@@ -2092,7 +2092,7 @@ class CGDefineProxyHandler(CGAbstractMethod):
         if self.descriptor.operations['IndexedSetter'] or self.descriptor.operations['NamedSetter']:
             customDefineProperty = 'defineProperty'
 
-        customDelete = 'delete_'
+        customDelete = 'proxyhandler::delete'
         if self.descriptor.operations['NamedDeleter']:
             customDelete = 'delete'
 
@@ -3785,7 +3785,7 @@ class CGDOMJSProxyHandler_delete(CGAbstractExternMethod):
                     "let this = JS::from_raw(this);\n" +
                     "let this = this.root();\n" +
                     "%s") % (CGProxyNamedDeleter(self.descriptor).define())
-        set += "return proxyhandler::delete_(%s);" % ", ".join(a.name for a in self.args)
+        set += "return proxyhandler::delete(%s);" % ", ".join(a.name for a in self.args)
         return set
 
     def definition_body(self):
@@ -4582,7 +4582,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{_obj_toString}',
             'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
-            'dom::bindings::proxyhandler::{delete_, get_property_descriptor}',
+            'dom::bindings::proxyhandler::{get_property_descriptor}',
             'dom::bindings::proxyhandler::{getOwnPropertyNames_, enumerate_}',
             'dom::bindings::str::ByteString',
             'page::JSPageInfo',
