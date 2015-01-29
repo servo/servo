@@ -184,12 +184,14 @@ pub type NonNullJSNative =
 /// Creates the *interface prototype object* and the *interface object* (if
 /// needed).
 /// Fails on JSAPI failure.
-pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
-                               protoProto: *mut JSObject,
-                               protoClass: &'static JSClass,
-                               constructor: Option<(NonNullJSNative, &'static str, u32)>,
-                               domClass: *const DOMClass,
-                               members: &'static NativeProperties) -> *mut JSObject {
+pub fn do_create_interface_objects(cx: *mut JSContext, global: *mut JSObject,
+                                   receiver: *mut JSObject,
+                                   protoProto: *mut JSObject,
+                                   protoClass: &'static JSClass,
+                                   constructor: Option<(NonNullJSNative, &'static str, u32)>,
+                                   domClass: *const DOMClass,
+                                   members: &'static NativeProperties)
+                                   -> *mut JSObject {
     let proto = CreateInterfacePrototypeObject(cx, global, protoProto,
                                                protoClass, members);
 
