@@ -71,7 +71,7 @@ pub unsafe extern fn define_property(cx: *mut JSContext, proxy: *mut JSObject,
                                             JSMSG_GETTER_ONLY) != 0;
     }
 
-    let expando = EnsureExpandoObject(cx, proxy);
+    let expando = ensure_expando_object(cx, proxy);
     return JS_DefinePropertyById(cx, expando, id, (*desc).value, (*desc).getter,
                                  (*desc).setter, (*desc).attrs) != 0;
 }
@@ -117,7 +117,8 @@ pub fn get_expando_object(obj: *mut JSObject) -> *mut JSObject {
 
 /// Get the expando object, or create it if it doesn't exist yet.
 /// Fails on JSAPI failure.
-pub fn EnsureExpandoObject(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObject {
+pub fn ensure_expando_object(cx: *mut JSContext, obj: *mut JSObject)
+                             -> *mut JSObject {
     unsafe {
         assert!(is_dom_proxy(obj));
         let mut expando = get_expando_object(obj);
