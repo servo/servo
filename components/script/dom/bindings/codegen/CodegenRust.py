@@ -2001,10 +2001,10 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             constructor = 'None'
 
         call = """\
-return CreateInterfaceObjects2(aCx, aGlobal, aReceiver, parentProto,
-                               &PrototypeClass, %s,
-                               %s,
-                               &sNativeProperties);""" % (constructor, domClass)
+return do_create_interface_objects(aCx, aGlobal, aReceiver, parentProto,
+                                   &PrototypeClass, %s,
+                                   %s,
+                                   &sNativeProperties);""" % (constructor, domClass)
 
         return CGList([
             CGGeneric(getParentProto),
@@ -4548,7 +4548,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::js::{JS, JSRef, Root, RootedReference, Temporary}',
             'dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable}',
             'dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable}',
-            'dom::bindings::utils::{CreateDOMGlobal, CreateInterfaceObjects2}',
+            'dom::bindings::utils::{CreateDOMGlobal, do_create_interface_objects}',
             'dom::bindings::utils::ConstantSpec',
             'dom::bindings::utils::{DOMClass}',
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
