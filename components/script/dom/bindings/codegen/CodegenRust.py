@@ -3631,7 +3631,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
 
         if indexedGetter:
             readonly = toStringBool(self.descriptor.operations['IndexedSetter'] is None)
-            fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn true;" % readonly
+            fillDescriptor = "fill_property_descriptor(&mut *desc, proxy, %s);\nreturn true;" % readonly
             templateValues = {'jsvalRef': '(*desc).value', 'successCode': fillDescriptor}
             get = ("if index.is_some() {\n" +
                    "    let index = index.unwrap();\n" +
@@ -3649,7 +3649,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 if not 'IndexedCreator' in self.descriptor.operations:
                     # FIXME need to check that this is a 'supported property index'
                     assert False
-                setOrIndexedGet += ("        FillPropertyDescriptor(&mut *desc, proxy, false);\n" +
+                setOrIndexedGet += ("        fill_property_descriptor(&mut *desc, proxy, false);\n" +
                                     "        return true;\n" +
                                     "    }\n")
             if self.descriptor.operations['NamedSetter']:
@@ -3657,7 +3657,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 if not 'NamedCreator' in self.descriptor.operations:
                     # FIXME need to check that this is a 'supported property name'
                     assert False
-                setOrIndexedGet += ("        FillPropertyDescriptor(&mut *desc, proxy, false);\n" +
+                setOrIndexedGet += ("        fill_property_descriptor(&mut *desc, proxy, false);\n" +
                                     "        return true;\n" +
                                     "    }\n")
             setOrIndexedGet += "}"
@@ -3674,7 +3674,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
             readonly = toStringBool(self.descriptor.operations['NamedSetter'] is None)
-            fillDescriptor = "FillPropertyDescriptor(&mut *desc, proxy, %s);\nreturn true;" % readonly
+            fillDescriptor = "fill_property_descriptor(&mut *desc, proxy, %s);\nreturn true;" % readonly
             templateValues = {'jsvalRef': '(*desc).value', 'successCode': fillDescriptor}
             # Once we start supporting OverrideBuiltins we need to make
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
@@ -4580,7 +4580,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
-            'dom::bindings::proxyhandler::{FillPropertyDescriptor, get_expando_object}',
+            'dom::bindings::proxyhandler::{fill_property_descriptor, get_expando_object}',
             'dom::bindings::proxyhandler::{get_property_descriptor}',
             'dom::bindings::proxyhandler::{getOwnPropertyNames_, enumerate_}',
             'dom::bindings::str::ByteString',
