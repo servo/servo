@@ -3691,7 +3691,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             namedGet = ""
 
         return setOrIndexedGet + """\
-let expando: *mut JSObject = GetExpandoObject(proxy);
+let expando: *mut JSObject = get_expando_object(proxy);
 //if (!xpc::WrapperFactory::IsXrayWrapper(proxy) && (expando = GetExpandoObject(proxy))) {
 if !expando.is_null() {
     let flags = if set { JSRESOLVE_ASSIGNING } else { 0 } | JSRESOLVE_QUALIFIED;
@@ -3829,7 +3829,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
             named = ""
 
         return indexed + """\
-let expando: *mut JSObject = GetExpandoObject(proxy);
+let expando: *mut JSObject = get_expando_object(proxy);
 if !expando.is_null() {
     let mut b: JSBool = 1;
     let ok = JS_HasPropertyById(cx, expando, id, &mut b) != 0;
@@ -3854,7 +3854,7 @@ class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
         self.descriptor = descriptor
     def getBody(self):
         getFromExpando = """\
-let expando = GetExpandoObject(proxy);
+let expando = get_expando_object(proxy);
 if !expando.is_null() {
     let mut hasProp = 0;
     if JS_HasPropertyById(cx, expando, id, &mut hasProp) == 0 {
@@ -4580,7 +4580,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
-            'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
+            'dom::bindings::proxyhandler::{FillPropertyDescriptor, get_expando_object}',
             'dom::bindings::proxyhandler::{get_property_descriptor}',
             'dom::bindings::proxyhandler::{getOwnPropertyNames_, enumerate_}',
             'dom::bindings::str::ByteString',

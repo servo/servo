@@ -79,7 +79,7 @@ pub unsafe extern fn define_property(cx: *mut JSContext, proxy: *mut JSObject,
 /// Deletes an expando off the given `proxy`.
 pub unsafe extern fn delete(cx: *mut JSContext, proxy: *mut JSObject, id: jsid,
                             bp: *mut bool) -> bool {
-    let expando = GetExpandoObject(proxy);
+    let expando = get_expando_object(proxy);
     if expando.is_null() {
         *bp = true;
         return true;
@@ -103,7 +103,7 @@ pub fn object_to_string(cx: *mut JSContext, name: &str) -> *mut JSString {
 }
 
 /// Get the expando object, or null if there is none.
-pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
+pub fn get_expando_object(obj: *mut JSObject) -> *mut JSObject {
     unsafe {
         assert!(is_dom_proxy(obj));
         let val = GetProxyExtra(obj, JSPROXYSLOT_EXPANDO);
@@ -120,7 +120,7 @@ pub fn GetExpandoObject(obj: *mut JSObject) -> *mut JSObject {
 pub fn EnsureExpandoObject(cx: *mut JSContext, obj: *mut JSObject) -> *mut JSObject {
     unsafe {
         assert!(is_dom_proxy(obj));
-        let mut expando = GetExpandoObject(obj);
+        let mut expando = get_expando_object(obj);
         if expando.is_null() {
             expando = JS_NewObjectWithGivenProto(cx, ptr::null_mut(),
                                                  ptr::null_mut(),
