@@ -462,9 +462,10 @@ pub fn get_array_index_from_id(_cx: *mut JSContext, id: jsid) -> Option<u32> {
 /// Find the index of a string given by `v` in `values`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(None)` if there was no matching string.
-pub fn FindEnumStringIndex(cx: *mut JSContext,
-                           v: JSVal,
-                           values: &[&'static str]) -> Result<Option<uint>, ()> {
+pub fn find_enum_string_index(cx: *mut JSContext,
+                              v: JSVal,
+                              values: &[&'static str])
+                              -> Result<Option<uint>, ()> {
     unsafe {
         let jsstr = JS_ValueToString(cx, v);
         if jsstr.is_null() {
@@ -488,7 +489,7 @@ pub fn FindEnumStringIndex(cx: *mut JSContext,
 
 /// Returns wether `obj` is a platform object
 /// http://heycam.github.io/webidl/#dfn-platform-object
-pub fn IsPlatformObject(obj: *mut JSObject) -> bool {
+pub fn is_platform_object(obj: *mut JSObject) -> bool {
     unsafe {
         // Fast-path the common case
         let mut clasp = JS_GetClass(obj);
