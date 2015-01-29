@@ -3680,7 +3680,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             # ResolveOwnProperty or EnumerateOwnProperties filter out named
             # properties that shadow prototype properties.
             namedGet = ("\n" +
-                        "if !set && RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
+                        "if !set && RUST_JSID_IS_STRING(id) != 0 && !has_property_on_prototype(cx, proxy, id) {\n" +
                         "    let name = jsid_to_str(cx, id);\n" +
                         "    let this = UnwrapProxy(proxy);\n" +
                         "    let this = JS::from_raw(this);\n" +
@@ -3815,7 +3815,7 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
 
         namedGetter = self.descriptor.operations['NamedGetter']
         if namedGetter:
-            named = ("if RUST_JSID_IS_STRING(id) != 0 && !HasPropertyOnPrototype(cx, proxy, id) {\n" +
+            named = ("if RUST_JSID_IS_STRING(id) != 0 && !has_property_on_prototype(cx, proxy, id) {\n" +
                      "    let name = jsid_to_str(cx, id);\n" +
                      "    let this = UnwrapProxy(proxy);\n" +
                      "    let this = JS::from_raw(this);\n" +
@@ -4554,7 +4554,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{DOMJSClass, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{find_enum_string_index, get_array_index_from_id}',
             'dom::bindings::utils::{get_property_on_prototype, get_proto_or_iface_array}',
-            'dom::bindings::utils::HasPropertyOnPrototype',
+            'dom::bindings::utils::has_property_on_prototype',
             'dom::bindings::utils::is_platform_object',
             'dom::bindings::utils::{Reflectable}',
             'dom::bindings::utils::{squirrel_away_unique}',

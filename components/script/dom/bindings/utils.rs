@@ -552,7 +552,8 @@ pub fn get_dictionary_property(cx: *mut JSContext,
 }
 
 /// Returns whether `proxy` has a property `id` on its prototype.
-pub fn HasPropertyOnPrototype(cx: *mut JSContext, proxy: *mut JSObject, id: jsid) -> bool {
+pub fn has_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
+                                 id: jsid) -> bool {
     //  MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
     let mut found = false;
     return !get_property_on_prototype(cx, proxy, id, &mut found, ptr::null_mut()) || found;
