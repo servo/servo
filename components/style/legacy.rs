@@ -10,6 +10,7 @@ use values::specified::CSSColor;
 use values::{CSSFloat, specified};
 use properties::DeclaredValue::SpecifiedValue;
 use properties::PropertyDeclaration;
+use properties::longhands;
 use selector_matching::{DeclarationBlock, Stylist};
 
 use cssparser::Color;
@@ -191,7 +192,8 @@ impl PresentationalHintSynthesis for Stylist {
                         let value = specified::Length::Em(value as CSSFloat);
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 PropertyDeclaration::Height(SpecifiedValue(
-                                    specified::LengthOrPercentageOrAuto::Length(value)))));
+                                    longhands::height::SpecifiedValue(
+                                        specified::LengthOrPercentageOrAuto::Length(value))))));
                         *shareable = false
                     }
                     Some(_) | None => {}
@@ -237,13 +239,17 @@ impl PresentationalHintSynthesis for Stylist {
             Some(length) => {
                 let width_value = specified::Length::Au(Au::from_px(length as int));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        PropertyDeclaration::BorderTopWidth(SpecifiedValue(width_value))));
+                        PropertyDeclaration::BorderTopWidth(SpecifiedValue(
+                            longhands::border_top_width::SpecifiedValue(width_value)))));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        PropertyDeclaration::BorderLeftWidth(SpecifiedValue(width_value))));
+                        PropertyDeclaration::BorderLeftWidth(SpecifiedValue(
+                            longhands::border_left_width::SpecifiedValue(width_value)))));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        PropertyDeclaration::BorderBottomWidth(SpecifiedValue(width_value))));
+                        PropertyDeclaration::BorderBottomWidth(SpecifiedValue(
+                            longhands::border_bottom_width::SpecifiedValue(width_value)))));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
-                        PropertyDeclaration::BorderRightWidth(SpecifiedValue(width_value))));
+                        PropertyDeclaration::BorderRightWidth(SpecifiedValue(
+                            longhands::border_right_width::SpecifiedValue(width_value)))));
                 *shareable = false
             }
         }

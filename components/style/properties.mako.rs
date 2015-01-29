@@ -20,7 +20,7 @@ use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser,
 use geom::SideOffsets2D;
 
 use values::specified::BorderStyle;
-use values::computed;
+use values::computed::{self, ToComputedValue};
 use selector_matching::DeclarationBlock;
 use parser::{ParserContext, log_css_error};
 use stylesheets::Origin;
@@ -95,11 +95,6 @@ def switch_to_style_struct(name):
 %>
 
 pub mod longhands {
-    use values::computed;
-
-    pub fn computed_as_specified<T>(value: T, _context: &computed::Context) -> T {
-        value
-    }
 
     <%def name="raw_longhand(name, derived_from=None, experimental=False)">
     <%
@@ -177,8 +172,8 @@ pub mod longhands {
         <%self:single_keyword_computed name="${name}"
                                        values="${values}"
                                        experimental="${experimental}">
-            // The computed value is the same as the specified value.
-            pub use super::computed_as_specified as to_computed_value;
+            use values::computed::ComputedValueAsSpecified;
+            impl ComputedValueAsSpecified for SpecifiedValue {}
         </%self:single_keyword_computed>
     </%def>
 
@@ -186,7 +181,6 @@ pub mod longhands {
         <%self:longhand name="${name}">
             #[allow(unused_imports)]
             use util::geometry::Au;
-            pub use values::computed::compute_${type} as to_computed_value;
             pub type SpecifiedValue = specified::${type};
             pub mod computed_value {
                 pub use values::computed::${type} as T;
@@ -224,18 +218,29 @@ pub mod longhands {
     % endfor
 
     % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("border-%s-style" % side, "BorderStyle", "computed::BorderStyle::none")}
+        ${predefined_type("border-%s-style" % side, "BorderStyle", "specified::BorderStyle::none")}
     % endfor
 
     % for side in ["top", "right", "bottom", "left"]:
         <%self:longhand name="border-${side}-width">
+            use values::computed::{ToComputedValue, Context};
             use util::geometry::Au;
+            use cssparser::ToCss;
+            use text_writer::{self, TextWriter};
+
+            impl ToCss for SpecifiedValue {
+                fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                    self.0.to_css(dest)
+                }
+            }
+
             #[inline]
             pub fn parse(_context: &ParserContext, input: &mut Parser)
                                    -> Result<SpecifiedValue, ()> {
-                specified::parse_border_width(input)
+                specified::parse_border_width(input).map(SpecifiedValue)
             }
-            pub type SpecifiedValue = specified::Length;
+            #[derive(Clone, PartialEq)]
+            pub struct SpecifiedValue(pub specified::Length);
             pub mod computed_value {
                 use util::geometry::Au;
                 pub type T = Au;
@@ -243,13 +248,17 @@ pub mod longhands {
             #[inline] pub fn get_initial_value() -> computed_value::T {
                 Au::from_px(3)  // medium
             }
-            #[inline]
-            pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                                  -> computed_value::T {
-                if !context.border_${side}_present {
-                    Au(0)
-                } else {
-                    computed::compute_Au(value, context)
+
+            impl ToComputedValue for SpecifiedValue {
+                type ComputedValue = computed_value::T;
+
+                #[inline]
+                fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                    if !context.border_${side}_present {
+                        Au(0)
+                    } else {
+                        self.0.to_computed_value(context)
+                    }
                 }
             }
         </%self:longhand>
@@ -269,7 +278,6 @@ pub mod longhands {
 
     <%self:longhand name="outline-style">
         pub use values::specified::BorderStyle as SpecifiedValue;
-        pub use super::computed_as_specified as to_computed_value;
         pub fn get_initial_value() -> SpecifiedValue { SpecifiedValue::none }
         pub mod computed_value {
             pub use values::specified::BorderStyle as T;
@@ -283,11 +291,13 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="outline-width">
-        pub use super::border_top_width::{get_initial_value, parse};
-        pub use values::computed::compute_Au as to_computed_value;
-        pub type SpecifiedValue = super::border_top_width::SpecifiedValue;
+        pub use super::border_top_width::get_initial_value;
+        pub type SpecifiedValue = specified::Length;
         pub mod computed_value {
             pub use util::geometry::Au as T;
+        }
+        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            specified::parse_border_width(input)
         }
     </%self:longhand>
 
@@ -311,26 +321,31 @@ pub mod longhands {
             table-row table-column-group table-column table-cell table-caption
             list-item
             none">
-        #[inline]
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                              -> computed_value::T {
-            use self::computed_value::T;
-//            if context.is_root_element && value == list_item {
-//                return block
-//            }
-            if context.positioned || context.floated || context.is_root_element {
-                match value {
-                    T::inline_table => T::table,
-                    T::inline | T::inline_block |
-                    T::table_row_group | T::table_column |
-                    T::table_column_group | T::table_header_group |
-                    T::table_footer_group | T::table_row | T::table_cell |
-                    T::table_caption
-                    => T::block,
-                    _ => value,
+        use values::computed::{ToComputedValue, Context};
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                use self::computed_value::T;
+    //            if context.is_root_element && value == list_item {
+    //                return block
+    //            }
+                if context.positioned || context.floated || context.is_root_element {
+                    match *self {
+                        T::inline_table => T::table,
+                        T::inline | T::inline_block |
+                        T::table_row_group | T::table_column |
+                        T::table_column_group | T::table_header_group |
+                        T::table_footer_group | T::table_row | T::table_cell |
+                        T::table_caption
+                        => T::block,
+                        _ => *self,
+                    }
+                } else {
+                    *self
                 }
-            } else {
-                value
             }
         }
     </%self:single_keyword_computed>
@@ -340,7 +355,6 @@ pub mod longhands {
     ${single_keyword("clear", "none left right both")}
 
     <%self:longhand name="-servo-display-for-hypothetical-box" derived_from="display">
-        pub use super::computed_as_specified as to_computed_value;
         pub use super::display::{SpecifiedValue, get_initial_value};
         pub use super::display::{parse};
 
@@ -358,7 +372,9 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="z-index">
-        pub use super::computed_as_specified as to_computed_value;
+        use values::computed::ComputedValueAsSpecified;
+
+        impl ComputedValueAsSpecified for SpecifiedValue {}
         pub type SpecifiedValue = computed_value::T;
         pub mod computed_value {
             use cssparser::ToCss;
@@ -413,7 +429,18 @@ pub mod longhands {
                       "computed::LengthOrPercentageOrAuto::Auto",
                       "parse_non_negative")}
     <%self:longhand name="height">
-        pub type SpecifiedValue = specified::LengthOrPercentageOrAuto;
+        use values::computed::{ToComputedValue, Context};
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                self.0.to_css(dest)
+            }
+        }
+
+        #[derive(Clone, PartialEq)]
+        pub struct SpecifiedValue(pub specified::LengthOrPercentageOrAuto);
         pub mod computed_value {
             pub use values::computed::LengthOrPercentageOrAuto as T;
         }
@@ -421,17 +448,22 @@ pub mod longhands {
         pub fn get_initial_value() -> computed_value::T { computed::LengthOrPercentageOrAuto::Auto }
         #[inline]
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            specified::LengthOrPercentageOrAuto::parse_non_negative(input)
+            specified::LengthOrPercentageOrAuto::parse_non_negative(input).map(SpecifiedValue)
         }
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                              -> computed_value::T {
-            match (value, context.inherited_height) {
-                (specified::LengthOrPercentageOrAuto::Percentage(_),
-                 computed::LengthOrPercentageOrAuto::Auto)
-                if !context.is_root_element && !context.positioned => {
-                    computed::LengthOrPercentageOrAuto::Auto
-                },
-                _ => computed::compute_LengthOrPercentageOrAuto(value, context)
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match (self.0, context.inherited_height) {
+                    (specified::LengthOrPercentageOrAuto::Percentage(_),
+                     computed::LengthOrPercentageOrAuto::Auto)
+                    if !context.is_root_element && !context.positioned => {
+                        computed::LengthOrPercentageOrAuto::Auto
+                    },
+                    _ => self.0.to_computed_value(context)
+                }
             }
         }
     </%self:longhand>
@@ -453,6 +485,7 @@ pub mod longhands {
     ${switch_to_style_struct("InheritedBox")}
 
     <%self:longhand name="line-height">
+        use values::computed::{ToComputedValue, Context};
         use cssparser::ToCss;
         use text_writer::{self, TextWriter};
         use values::CSSFloat;
@@ -518,18 +551,22 @@ pub mod longhands {
         }
         #[inline]
         pub fn get_initial_value() -> computed_value::T { computed_value::T::Normal }
-        #[inline]
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                              -> computed_value::T {
-            match value {
-                SpecifiedValue::Normal => computed_value::T::Normal,
-                SpecifiedValue::Length(value) => {
-                    computed_value::T::Length(computed::compute_Au(value, context))
-                }
-                SpecifiedValue::Number(value) => computed_value::T::Number(value),
-                SpecifiedValue::Percentage(value) => {
-                    computed_value::T::Length(computed::compute_Au(
-                        specified::Length::Em(value), context))
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Normal => computed_value::T::Normal,
+                    SpecifiedValue::Length(value) => {
+                        computed_value::T::Length(value.to_computed_value(context))
+                    }
+                    SpecifiedValue::Number(value) => computed_value::T::Number(value),
+                    SpecifiedValue::Percentage(value) => {
+                        computed_value::T::Length(
+                            specified::Length::Em(value).to_computed_value(context))
+                    }
                 }
             }
         }
@@ -538,6 +575,7 @@ pub mod longhands {
     ${switch_to_style_struct("Box")}
 
     <%self:longhand name="vertical-align">
+        use values::computed::{ToComputedValue, Context};
         use cssparser::ToCss;
         use text_writer::{self, TextWriter};
 
@@ -608,22 +646,26 @@ pub mod longhands {
         }
         #[inline]
         pub fn get_initial_value() -> computed_value::T { computed_value::T::baseline }
-        #[inline]
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                              -> computed_value::T {
-            match value {
-                % for keyword in vertical_align_keywords:
-                    SpecifiedValue::${to_rust_ident(keyword)} => {
-                        computed_value::T::${to_rust_ident(keyword)}
-                    }
-                % endfor
-                SpecifiedValue::LengthOrPercentage(value) => {
-                    match computed::compute_LengthOrPercentage(value, context) {
-                        computed::LengthOrPercentage::Length(value) => {
-                            computed_value::T::Length(value)
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    % for keyword in vertical_align_keywords:
+                        SpecifiedValue::${to_rust_ident(keyword)} => {
+                            computed_value::T::${to_rust_ident(keyword)}
                         }
-                        computed::LengthOrPercentage::Percentage(value) => {
-                            computed_value::T::Percentage(value)
+                    % endfor
+                    SpecifiedValue::LengthOrPercentage(value) => {
+                        match value.to_computed_value(context) {
+                            computed::LengthOrPercentage::Length(value) => {
+                                computed_value::T::Length(value)
+                            }
+                            computed::LengthOrPercentage::Percentage(value) => {
+                                computed_value::T::Percentage(value)
+                            }
                         }
                     }
                 }
@@ -646,10 +688,12 @@ pub mod longhands {
     ${switch_to_style_struct("Box")}
 
     <%self:longhand name="content">
-            pub use super::computed_as_specified as to_computed_value;
             pub use self::computed_value::T as SpecifiedValue;
             pub use self::computed_value::ContentItem;
             use cssparser::Token;
+            use values::computed::ComputedValueAsSpecified;
+
+            impl ComputedValueAsSpecified for SpecifiedValue {}
 
             pub mod computed_value {
                 use std::borrow::IntoCow;
@@ -746,6 +790,7 @@ pub mod longhands {
         use url::Url;
         use cssparser::{ToCss, Token};
         use text_writer::{self, TextWriter};
+        use values::computed::{ToComputedValue, Context};
 
         #[derive(Clone, PartialEq, Eq)]
         pub enum SpecifiedValue {
@@ -769,11 +814,15 @@ pub mod longhands {
             pub type T = Option<Url>;
         }
 
-        pub fn to_computed_value(value: SpecifiedValue, _context: &computed::Context)
-                                 -> computed_value::T {
-            match value {
-                SpecifiedValue::None => None,
-                SpecifiedValue::Url(url) => Some(url),
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::None => None,
+                    SpecifiedValue::Url(ref url) => Some(url.clone()),
+                }
             }
         }
 
@@ -799,28 +848,48 @@ pub mod longhands {
                       "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
     <%self:longhand name="background-image">
-        use values::specified::{CSSImage, Image};
+        use values::specified::Image;
+        use values::computed::{ToComputedValue, Context};
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
         pub mod computed_value {
             use values::computed;
             pub type T = Option<computed::Image>;
         }
-        pub type SpecifiedValue = CSSImage;
+
+        #[derive(Clone, PartialEq)]
+        pub struct SpecifiedValue(pub Option<Image>);
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                match *self {
+                    SpecifiedValue(Some(ref image)) => image.to_css(dest),
+                    SpecifiedValue(None) => dest.write_str("none"),
+                }
+            }
+        }
+
         #[inline]
         pub fn get_initial_value() -> computed_value::T {
             None
         }
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             if input.try(|input| input.expect_ident_matching("none")).is_ok() {
-                Ok(CSSImage(None))
+                Ok(SpecifiedValue(None))
             } else {
-                Ok(CSSImage(Some(try!(Image::parse(context, input)))))
+                Ok(SpecifiedValue(Some(try!(Image::parse(context, input)))))
             }
         }
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                                 -> computed_value::T {
-            match value {
-                CSSImage(None) => None,
-                CSSImage(Some(image)) => Some(image.to_computed_value(context)),
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue(None) => None,
+                    SpecifiedValue(Some(ref image)) => Some(image.to_computed_value(context)),
+                }
             }
         }
     </%self:longhand>
@@ -828,6 +897,7 @@ pub mod longhands {
     <%self:longhand name="background-position">
             use cssparser::ToCss;
             use text_writer::{self, TextWriter};
+            use values::computed::{ToComputedValue, Context};
 
             pub mod computed_value {
                 use values::computed::LengthOrPercentage;
@@ -900,12 +970,15 @@ pub mod longhands {
                 }
             }
 
-            #[inline]
-            pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                                     -> computed_value::T {
-                computed_value::T {
-                    horizontal: computed::compute_LengthOrPercentage(value.horizontal, context),
-                    vertical: computed::compute_LengthOrPercentage(value.vertical, context),
+            impl ToComputedValue for SpecifiedValue {
+                type ComputedValue = computed_value::T;
+
+                #[inline]
+                fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                    computed_value::T {
+                        horizontal: self.horizontal.to_computed_value(context),
+                        vertical: self.vertical.to_computed_value(context),
+                    }
                 }
             }
 
@@ -935,10 +1008,15 @@ pub mod longhands {
     <%self:raw_longhand name="color">
         use cssparser::{Color, RGBA};
         use values::specified::{CSSColor, CSSRGBA};
-        #[inline]
-        pub fn to_computed_value(value: SpecifiedValue, _context: &computed::Context)
-                                 -> computed_value::T {
-            value.parsed
+        use values::computed::{ToComputedValue, Context};
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+                self.parsed
+            }
         }
 
         pub type SpecifiedValue = CSSRGBA;
@@ -968,9 +1046,11 @@ pub mod longhands {
     ${new_style_struct("Font", is_inherited=True)}
 
     <%self:longhand name="font-family">
-        pub use super::computed_as_specified as to_computed_value;
         use std::borrow::ToOwned;
         use self::computed_value::FontFamily;
+        use values::computed::ComputedValueAsSpecified;
+
+        impl ComputedValueAsSpecified for SpecifiedValue {}
         pub mod computed_value {
             use cssparser::ToCss;
             use text_writer::{self, TextWriter};
@@ -1053,6 +1133,7 @@ pub mod longhands {
     <%self:longhand name="font-weight">
         use cssparser::ToCss;
         use text_writer::{self, TextWriter};
+        use values::computed::{ToComputedValue, Context};
 
         #[derive(Clone, PartialEq, Eq, Copy)]
         pub enum SpecifiedValue {
@@ -1130,42 +1211,57 @@ pub mod longhands {
         pub fn get_initial_value() -> computed_value::T {
             computed_value::T::Weight400  // normal
         }
-        #[inline]
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                              -> computed_value::T {
-            match value {
-                % for weight in range(100, 901, 100):
-                    SpecifiedValue::Weight${weight} => computed_value::T::Weight${weight},
-                % endfor
-                SpecifiedValue::Bolder => match context.inherited_font_weight {
-                    computed_value::T::Weight100 => computed_value::T::Weight400,
-                    computed_value::T::Weight200 => computed_value::T::Weight400,
-                    computed_value::T::Weight300 => computed_value::T::Weight400,
-                    computed_value::T::Weight400 => computed_value::T::Weight700,
-                    computed_value::T::Weight500 => computed_value::T::Weight700,
-                    computed_value::T::Weight600 => computed_value::T::Weight900,
-                    computed_value::T::Weight700 => computed_value::T::Weight900,
-                    computed_value::T::Weight800 => computed_value::T::Weight900,
-                    computed_value::T::Weight900 => computed_value::T::Weight900,
-                },
-                SpecifiedValue::Lighter => match context.inherited_font_weight {
-                    computed_value::T::Weight100 => computed_value::T::Weight100,
-                    computed_value::T::Weight200 => computed_value::T::Weight100,
-                    computed_value::T::Weight300 => computed_value::T::Weight100,
-                    computed_value::T::Weight400 => computed_value::T::Weight100,
-                    computed_value::T::Weight500 => computed_value::T::Weight100,
-                    computed_value::T::Weight600 => computed_value::T::Weight400,
-                    computed_value::T::Weight700 => computed_value::T::Weight400,
-                    computed_value::T::Weight800 => computed_value::T::Weight700,
-                    computed_value::T::Weight900 => computed_value::T::Weight700,
-                },
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    % for weight in range(100, 901, 100):
+                        SpecifiedValue::Weight${weight} => computed_value::T::Weight${weight},
+                    % endfor
+                    SpecifiedValue::Bolder => match context.inherited_font_weight {
+                        computed_value::T::Weight100 => computed_value::T::Weight400,
+                        computed_value::T::Weight200 => computed_value::T::Weight400,
+                        computed_value::T::Weight300 => computed_value::T::Weight400,
+                        computed_value::T::Weight400 => computed_value::T::Weight700,
+                        computed_value::T::Weight500 => computed_value::T::Weight700,
+                        computed_value::T::Weight600 => computed_value::T::Weight900,
+                        computed_value::T::Weight700 => computed_value::T::Weight900,
+                        computed_value::T::Weight800 => computed_value::T::Weight900,
+                        computed_value::T::Weight900 => computed_value::T::Weight900,
+                    },
+                    SpecifiedValue::Lighter => match context.inherited_font_weight {
+                        computed_value::T::Weight100 => computed_value::T::Weight100,
+                        computed_value::T::Weight200 => computed_value::T::Weight100,
+                        computed_value::T::Weight300 => computed_value::T::Weight100,
+                        computed_value::T::Weight400 => computed_value::T::Weight100,
+                        computed_value::T::Weight500 => computed_value::T::Weight100,
+                        computed_value::T::Weight600 => computed_value::T::Weight400,
+                        computed_value::T::Weight700 => computed_value::T::Weight400,
+                        computed_value::T::Weight800 => computed_value::T::Weight700,
+                        computed_value::T::Weight900 => computed_value::T::Weight700,
+                    },
+                }
             }
         }
     </%self:longhand>
 
     <%self:longhand name="font-size">
         use util::geometry::Au;
-        pub type SpecifiedValue = specified::Length;  // Percentages are the same as em.
+        use values::computed::{ToComputedValue, Context};
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                self.0.to_css(dest)
+            }
+        }
+
+        #[derive(Clone, PartialEq)]
+        pub struct SpecifiedValue(pub specified::Length);  // Percentages are the same as em.
         pub mod computed_value {
             use util::geometry::Au;
             pub type T = Au;
@@ -1174,11 +1270,15 @@ pub mod longhands {
         #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(MEDIUM_PX)
         }
-        #[inline]
-        pub fn to_computed_value(_value: SpecifiedValue, context: &computed::Context)
-                                 -> computed_value::T {
-            // We already computed this element's font size; no need to compute it again.
-            return context.font_size
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                // We already computed this element's font size; no need to compute it again.
+                return context.font_size
+            }
         }
         /// <length> | <percentage> | <absolute-size> | <relative-size>
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
@@ -1204,6 +1304,7 @@ pub mod longhands {
                     _ => Err(())
                 }
             })
+            .map(SpecifiedValue)
         }
     </%self:longhand>
 
@@ -1218,6 +1319,7 @@ pub mod longhands {
     ${single_keyword("text-align", "left right center justify")}
 
     <%self:longhand name="letter-spacing">
+        use values::computed::{ToComputedValue, Context};
         use cssparser::ToCss;
         use text_writer::{self, TextWriter};
 
@@ -1246,12 +1348,15 @@ pub mod longhands {
             None
         }
 
-        #[inline]
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                                 -> computed_value::T {
-            match value {
-                SpecifiedValue::Normal => None,
-                SpecifiedValue::Specified(l) => Some(computed::compute_Au(l, context))
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Normal => None,
+                    SpecifiedValue::Specified(l) => Some(l.to_computed_value(context))
+                }
             }
         }
 
@@ -1265,6 +1370,7 @@ pub mod longhands {
     </%self:longhand>
 
     <%self:longhand name="word-spacing">
+        use values::computed::{ToComputedValue, Context};
         use cssparser::ToCss;
         use text_writer::{self, TextWriter};
 
@@ -1293,12 +1399,15 @@ pub mod longhands {
             None
         }
 
-        #[inline]
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                                 -> computed_value::T {
-            match value {
-                SpecifiedValue::Normal => None,
-                SpecifiedValue::Specified(l) => Some(computed::compute_Au(l, context))
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                match *self {
+                    SpecifiedValue::Normal => None,
+                    SpecifiedValue::Specified(l) => Some(l.to_computed_value(context))
+                }
             }
         }
 
@@ -1328,9 +1437,11 @@ pub mod longhands {
     ${new_style_struct("Text", is_inherited=False)}
 
     <%self:longhand name="text-decoration">
-        pub use super::computed_as_specified as to_computed_value;
         use cssparser::ToCss;
         use text_writer::{self, TextWriter};
+        use values::computed::ComputedValueAsSpecified;
+
+        impl ComputedValueAsSpecified for SpecifiedValue {}
 
         #[derive(PartialEq, Eq, Copy, Clone)]
         pub struct SpecifiedValue {
@@ -1406,7 +1517,9 @@ pub mod longhands {
     <%self:longhand name="-servo-text-decorations-in-effect"
                     derived_from="display text-decoration">
         use cssparser::RGBA;
-        pub use super::computed_as_specified as to_computed_value;
+        use values::computed::ComputedValueAsSpecified;
+
+        impl ComputedValueAsSpecified for SpecifiedValue {}
 
         #[derive(Clone, PartialEq, Copy)]
         pub struct SpecifiedValue {
@@ -1521,8 +1634,10 @@ pub mod longhands {
 
     <%self:longhand name="cursor">
         use util::cursor as util_cursor;
-        pub use super::computed_as_specified as to_computed_value;
         pub use self::computed_value::T as SpecifiedValue;
+        use values::computed::ComputedValueAsSpecified;
+
+        impl ComputedValueAsSpecified for SpecifiedValue {}
 
         pub mod computed_value {
             use cssparser::ToCss;
@@ -1571,7 +1686,18 @@ pub mod longhands {
 
     <%self:longhand name="opacity">
         use values::CSSFloat;
-        pub type SpecifiedValue = CSSFloat;
+        use values::computed::{ToComputedValue, Context};
+        use cssparser::ToCss;
+        use text_writer::{self, TextWriter};
+
+        impl ToCss for SpecifiedValue {
+            fn to_css<W>(&self, dest: &mut W) -> text_writer::Result where W: TextWriter {
+                self.0.to_css(dest)
+            }
+        }
+
+        #[derive(Clone, PartialEq)]
+        pub struct SpecifiedValue(pub CSSFloat);
         pub mod computed_value {
             use values::CSSFloat;
             pub type T = CSSFloat;
@@ -1580,25 +1706,30 @@ pub mod longhands {
         pub fn get_initial_value() -> computed_value::T {
             1.0
         }
-        #[inline]
-        pub fn to_computed_value(value: SpecifiedValue, _: &computed::Context)
-                                 -> computed_value::T {
-            if value < 0.0 {
-                0.0
-            } else if value > 1.0 {
-                1.0
-            } else {
-                value
+
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, _context: &Context) -> computed_value::T {
+                if self.0 < 0.0 {
+                    0.0
+                } else if self.0 > 1.0 {
+                    1.0
+                } else {
+                    self.0
+                }
             }
         }
         fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            input.expect_number()
+            input.expect_number().map(SpecifiedValue)
         }
     </%self:longhand>
 
     <%self:longhand name="box-shadow">
         use cssparser::{self, ToCss};
         use text_writer::{self, TextWriter};
+        use values::computed::{ToComputedValue, Context};
 
         pub type SpecifiedValue = Vec<SpecifiedBoxShadow>;
 
@@ -1692,19 +1823,24 @@ pub mod longhands {
             }
         }
 
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                                 -> computed_value::T {
-            value.into_iter().map(|value| compute_one_box_shadow(value, context)).collect()
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                self.iter().map(|value| compute_one_box_shadow(value, context)).collect()
+            }
         }
 
-        pub fn compute_one_box_shadow(value: SpecifiedBoxShadow, context: &computed::Context)
+        pub fn compute_one_box_shadow(value: &SpecifiedBoxShadow, context: &computed::Context)
                                       -> computed_value::BoxShadow {
             computed_value::BoxShadow {
-                offset_x: computed::compute_Au(value.offset_x, context),
-                offset_y: computed::compute_Au(value.offset_y, context),
-                blur_radius: computed::compute_Au(value.blur_radius, context),
-                spread_radius: computed::compute_Au(value.spread_radius, context),
+                offset_x: value.offset_x.to_computed_value(context),
+                offset_y: value.offset_y.to_computed_value(context),
+                blur_radius: value.blur_radius.to_computed_value(context),
+                spread_radius: value.spread_radius.to_computed_value(context),
                 color: value.color
+                            .as_ref()
                             .map(|color| color.parsed)
                             .unwrap_or(cssparser::Color::CurrentColor),
                 inset: value.inset,
@@ -1778,6 +1914,8 @@ pub mod longhands {
 
         // NB: `top` and `left` are 0 if `auto` per CSS 2.1 11.1.2.
 
+        use values::computed::{ToComputedValue, Context};
+
         pub mod computed_value {
             use util::geometry::Au;
 
@@ -1845,14 +1983,18 @@ pub mod longhands {
             None
         }
 
-        pub fn to_computed_value(value: SpecifiedValue, context: &computed::Context)
-                                 -> computed_value::T {
-            value.map(|value| computed_value::ClipRect {
-                top: computed::compute_Au(value.top, context),
-                right: value.right.map(|right| computed::compute_Au(right, context)),
-                bottom: value.bottom.map(|bottom| computed::compute_Au(bottom, context)),
-                left: computed::compute_Au(value.left, context),
-            })
+        impl ToComputedValue for SpecifiedValue {
+            type ComputedValue = computed_value::T;
+
+            #[inline]
+            fn to_computed_value(&self, context: &Context) -> computed_value::T {
+                self.map(|value| computed_value::ClipRect {
+                    top: value.top.to_computed_value(context),
+                    right: value.right.map(|right| right.to_computed_value(context)),
+                    bottom: value.bottom.map(|bottom| bottom.to_computed_value(context)),
+                    left: value.left.to_computed_value(context),
+                })
+            }
         }
 
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
@@ -1890,9 +2032,11 @@ pub mod longhands {
 
     <%self:longhand name="filter">
         use values::specified::Angle;
-        pub use super::computed_as_specified as to_computed_value;
         pub use self::computed_value::T as SpecifiedValue;
         pub use self::computed_value::Filter;
+        use values::computed::ComputedValueAsSpecified;
+
+        impl ComputedValueAsSpecified for SpecifiedValue {}
 
         pub mod computed_value {
             use values::specified::Angle;
@@ -2068,50 +2212,57 @@ pub mod shorthands {
         }
     </%def>
 
+    fn parse_four_sides<F, T>(input: &mut Parser, parse_one: F) -> Result<(T, T, T, T), ()>
+    where F: Fn(&mut Parser) -> Result<T, ()>, F: Copy, T: Clone {
+        // zero or more than four values is invalid.
+        // one value sets them all
+        // two values set (top, bottom) and (left, right)
+        // three values set top, (left, right) and bottom
+        // four values set them in order
+        let top = try!(parse_one(input));
+        let right;
+        let bottom;
+        let left;
+        match input.try(parse_one) {
+            Err(()) => {
+                right = top.clone();
+                bottom = top.clone();
+                left = top.clone();
+            }
+            Ok(value) => {
+                right = value;
+                match input.try(parse_one) {
+                    Err(()) => {
+                        bottom = top.clone();
+                        left = right.clone();
+                    }
+                    Ok(value) => {
+                        bottom = value;
+                        match input.try(parse_one) {
+                            Err(()) => {
+                                left = right.clone();
+                            }
+                            Ok(value) => {
+                                left = value;
+                            }
+                        }
+
+                    }
+                }
+
+            }
+        }
+        Ok((top, right, bottom, left))
+    }
+
     <%def name="four_sides_shorthand(name, sub_property_pattern, parser_function)">
         <%self:shorthand name="${name}" sub_properties="${
                 ' '.join(sub_property_pattern % side
                          for side in ['top', 'right', 'bottom', 'left'])}">
             use values::specified;
+            use super::parse_four_sides;
             let _unused = context;
-            // zero or more than four values is invalid.
-            // one value sets them all
-            // two values set (top, bottom) and (left, right)
-            // three values set top, (left, right) and bottom
-            // four values set them in order
-            let top = try!(${parser_function}(input));
-            let right;
-            let bottom;
-            let left;
-            match input.try(${parser_function}) {
-                Err(()) => {
-                    right = top.clone();
-                    bottom = top.clone();
-                    left = top.clone();
-                }
-                Ok(value) => {
-                    right = value;
-                    match input.try(${parser_function}) {
-                        Err(()) => {
-                            bottom = top.clone();
-                            left = right.clone();
-                        }
-                        Ok(value) => {
-                            bottom = value;
-                            match input.try(${parser_function}) {
-                                Err(()) => {
-                                    left = right.clone();
-                                }
-                                Ok(value) => {
-                                    left = value;
-                                }
-                            }
-
-                        }
-                    }
-
-                }
-            }
+            let (top, right, bottom, left) = try!(parse_four_sides(input, ${parser_function}));
             Ok(Longhands {
                 % for side in ["top", "right", "bottom", "left"]:
                     ${to_rust_ident(sub_property_pattern % side)}: Some(${side}),
@@ -2191,8 +2342,21 @@ pub mod shorthands {
     ${four_sides_shorthand("border-color", "border-%s-color", "specified::CSSColor::parse")}
     ${four_sides_shorthand("border-style", "border-%s-style",
                            "specified::BorderStyle::parse")}
-    ${four_sides_shorthand("border-width", "border-%s-width",
-                           "specified::parse_border_width")}
+    <%self:shorthand name="border-width" sub_properties="${
+            ' '.join('border-%s-width' % side
+                     for side in ['top', 'right', 'bottom', 'left'])}">
+        use values::specified;
+        use super::parse_four_sides;
+        let _unused = context;
+        let (top, right, bottom, left) = try!(parse_four_sides(input, specified::parse_border_width));
+        Ok(Longhands {
+            % for side in ["top", "right", "bottom", "left"]:
+                ${to_rust_ident('border-%s-width' % side)}:
+                    Some(longhands::${to_rust_ident('border-%s-width' % side)}::SpecifiedValue(${side})),
+            % endfor
+        })
+    </%self:shorthand>
+
 
     pub fn parse_border(context: &ParserContext, input: &mut Parser)
                      -> Result<(Option<specified::CSSColor>,
@@ -2239,9 +2403,9 @@ pub mod shorthands {
         )}">
             let (color, style, width) = try!(super::parse_border(context, input));
             Ok(Longhands {
-                % for prop in ["color", "style", "width"]:
-                    ${"border_%s_%s: %s," % (side, prop, prop)}
-                % endfor
+                border_${side}_color: color,
+                border_${side}_style: style,
+                border_${side}_width: width.map(longhands::${to_rust_ident('border-%s-width' % side)}::SpecifiedValue),
             })
         </%self:shorthand>
     % endfor
@@ -2254,9 +2418,9 @@ pub mod shorthands {
         let (color, style, width) = try!(super::parse_border(context, input));
         Ok(Longhands {
             % for side in ["top", "right", "bottom", "left"]:
-                % for prop in ["color", "style", "width"]:
-                    ${"border_%s_%s: %s.clone()," % (side, prop, prop)}
-                % endfor
+                border_${side}_color: color.clone(),
+                border_${side}_style: style,
+                border_${side}_width: width.map(longhands::${to_rust_ident('border-%s-width' % side)}::SpecifiedValue),
             % endfor
         })
     </%self:shorthand>
@@ -3048,10 +3212,7 @@ fn cascade_with_cached_declarations(applicable_declarations: &[DeclarationBlock]
                                     seen.set_${property.ident}();
                                     let computed_value = match *declared_value {
                                         DeclaredValue::SpecifiedValue(ref specified_value)
-                                        => longhands::${property.ident}::to_computed_value(
-                                            (*specified_value).clone(),
-                                            context
-                                        ),
+                                        => specified_value.to_computed_value(context),
                                         DeclaredValue::Initial
                                         => longhands::${property.ident}::get_initial_value(),
                                         DeclaredValue::Inherit => {
@@ -3176,8 +3337,11 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
             match *declaration {
                 PropertyDeclaration::FontSize(ref value) => {
                     context.font_size = match *value {
-                        DeclaredValue::SpecifiedValue(specified_value) => computed::compute_Au_with_font_size(
-                            specified_value, context.inherited_font_size, context.root_font_size),
+                        DeclaredValue::SpecifiedValue(ref specified_value) => {
+                            specified_value.0.to_computed_value_with_font_size(
+                                context.inherited_font_size, context.root_font_size
+                            )
+                        }
                         DeclaredValue::Initial => longhands::font_size::get_initial_value(),
                         DeclaredValue::Inherit => context.inherited_font_size,
                     }
@@ -3259,10 +3423,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
                                 seen.set_${property.ident}();
                                 let computed_value = match *declared_value {
                                     DeclaredValue::SpecifiedValue(ref specified_value)
-                                    => longhands::${property.ident}::to_computed_value(
-                                        (*specified_value).clone(),
-                                        &context
-                                    ),
+                                    => specified_value.to_computed_value(&context),
                                     DeclaredValue::Initial
                                     => longhands::${property.ident}::get_initial_value(),
                                     DeclaredValue::Inherit => {
@@ -3316,7 +3477,7 @@ pub fn cascade(applicable_declarations: &[DeclarationBlock],
     // The initial value of display may be changed at computed value time.
     if !seen.get_display() {
         let box_ = style_box_.make_unique();
-        box_.display = longhands::display::to_computed_value(box_.display, &context);
+        box_.display = box_.display.to_computed_value(&context);
     }
 
     if is_root_element {

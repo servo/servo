@@ -8,7 +8,7 @@ use cssparser::{Token, Parser, Delimiter};
 use geom::size::TypedSize2D;
 use properties::longhands;
 use util::geometry::{Au, ViewportPx};
-use values::{computed, specified};
+use values::specified;
 
 
 #[derive(Debug, PartialEq)]
@@ -98,7 +98,7 @@ fn parse_non_negative_length(input: &mut Parser) -> Result<Au, ()> {
     // http://dev.w3.org/csswg/mediaqueries3/ - Section 6
     // em units are relative to the initial font-size.
     let initial_font_size = longhands::font_size::get_initial_value();
-    Ok(computed::compute_Au_with_font_size(length, initial_font_size, initial_font_size))
+    Ok(length.to_computed_value_with_font_size(initial_font_size, initial_font_size))
 }
 
 
