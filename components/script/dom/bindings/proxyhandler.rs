@@ -31,10 +31,11 @@ static JSPROXYSLOT_EXPANDO: u32 = 0;
 /// with argument `id` and return the result, if it is not `undefined`.
 /// Otherwise, walk along the prototype chain to find a property with that
 /// name.
-pub unsafe extern fn getPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObject,
-                                           id: jsid, set: bool,
-                                           desc: *mut JSPropertyDescriptor)
-                                           -> bool {
+pub unsafe extern fn get_property_descriptor(cx: *mut JSContext,
+                                             proxy: *mut JSObject,
+                                             id: jsid, set: bool,
+                                             desc: *mut JSPropertyDescriptor)
+                                             -> bool {
     let handler = GetProxyHandler(proxy);
     if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, set, desc) {
         return false;
