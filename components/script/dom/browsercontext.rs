@@ -9,7 +9,7 @@ use dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable
 use dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable};
 use dom::bindings::proxyhandler::{get_property_descriptor, fill_property_descriptor};
 use dom::bindings::utils::{Reflectable, WindowProxyHandler};
-use dom::bindings::utils::{GetArrayIndexFromId};
+use dom::bindings::utils::get_array_index_from_id;
 use dom::document::{Document, DocumentHelpers};
 use dom::window::Window;
 use dom::window::WindowHelpers;
@@ -100,7 +100,7 @@ impl SessionHistoryEntry {
 }
 
 unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: *mut JSObject, id: jsid) -> Option<Temporary<Window>> {
-    let index = GetArrayIndexFromId(cx, id);
+    let index = get_array_index_from_id(cx, id);
     if let Some(index) = index {
         let target = GetProxyPrivate(proxy).to_object();
         let win: Root<Window> = unwrap_jsmanaged(target).unwrap().root();
@@ -139,7 +139,7 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObje
 
 
 unsafe extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, desc: *mut JSPropertyDescriptor) -> bool {
-    if GetArrayIndexFromId(cx, id).is_some() {
+    if get_array_index_from_id(cx, id).is_some() {
         // Spec says to Reject whether this is a supported index or not,
         // since we have no indexed setter or indexed creator.  That means
         // throwing in strict mode (FIXME: Bug 828137), doing nothing in
@@ -182,7 +182,7 @@ unsafe extern fn get(cx: *mut JSContext, proxy: *mut JSObject, receiver: *mut JS
 }
 
 unsafe extern fn set(cx: *mut JSContext, proxy: *mut JSObject, _receiver: *mut JSObject, id: jsid, _strict: bool, vp: *mut JSVal) -> bool {
-    if GetArrayIndexFromId(cx, id).is_some() {
+    if get_array_index_from_id(cx, id).is_some() {
         // Reject (which means throw if and only if strict) the set.
         // FIXME: Throw
         return true;
