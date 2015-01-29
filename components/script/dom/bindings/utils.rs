@@ -339,10 +339,11 @@ pub unsafe extern fn throwing_constructor(cx: *mut JSContext, _argc: c_uint,
 /// Construct and cache the ProtoOrIfaceArray for the given global.
 /// Fails if the argument is not a DOM global.
 pub fn initialize_global(global: *mut JSObject) {
-    let protoArray = box () ([0 as *mut JSObject; PrototypeList::ID::Count as uint]);
+    let proto_array = box ()
+        ([0 as *mut JSObject; PrototypeList::ID::Count as uint]);
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
-        let box_ = squirrel_away_unique(protoArray);
+        let box_ = squirrel_away_unique(proto_array);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
                            PrivateValue(box_ as *const libc::c_void));
