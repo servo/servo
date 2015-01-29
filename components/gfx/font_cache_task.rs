@@ -120,11 +120,11 @@ impl FontCache {
                 Command::GetFontTemplate(family, descriptor, result) => {
                     let family = LowercaseString::new(family.as_slice());
                     let maybe_font_template = self.get_font_template(&family, &descriptor);
-                    result.send(Reply::GetFontTemplateReply(maybe_font_template));
+                    result.send(Reply::GetFontTemplateReply(maybe_font_template)).unwrap();
                 }
                 Command::GetLastResortFontTemplate(descriptor, result) => {
                     let font_template = self.get_last_resort_font_template(&descriptor);
-                    result.send(Reply::GetFontTemplateReply(Some(font_template)));
+                    result.send(Reply::GetFontTemplateReply(Some(font_template))).unwrap();
                 }
                 Command::AddWebFont(family_name, src, result) => {
                     let family_name = LowercaseString::new(family_name.as_slice());
@@ -154,10 +154,10 @@ impl FontCache {
                             });
                         }
                     }
-                    result.send(());
+                    result.send(()).unwrap();
                 }
                 Command::Exit(result) => {
-                    result.send(());
+                    result.send(()).unwrap();
                     break;
                 }
             }
@@ -289,7 +289,7 @@ impl FontCacheTask {
                                                 -> Option<Arc<FontTemplateData>> {
 
         let (response_chan, response_port) = channel();
-        self.chan.send(Command::GetFontTemplate(family, desc, response_chan));
+        self.chan.send(Command::GetFontTemplate(family, desc, response_chan)).unwrap();
 
         let reply = response_port.recv().unwrap();
 
@@ -304,7 +304,7 @@ impl FontCacheTask {
                                                 -> Arc<FontTemplateData> {
 
         let (response_chan, response_port) = channel();
-        self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan));
+        self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan)).unwrap();
 
         let reply = response_port.recv().unwrap();
 
@@ -317,13 +317,13 @@ impl FontCacheTask {
 
     pub fn add_web_font(&self, family: String, src: Source) {
         let (response_chan, response_port) = channel();
-        self.chan.send(Command::AddWebFont(family, src, response_chan));
-        response_port.recv();
+        self.chan.send(Command::AddWebFont(family, src, response_chan)).unwrap();
+        response_port.recv().unwrap();
     }
 
     pub fn exit(&self) {
         let (response_chan, response_port) = channel();
-        self.chan.send(Command::Exit(response_chan));
-        response_port.recv();
+        self.chan.send(Command::Exit(response_chan)).unwrap();
+        response_port.recv().unwrap();
     }
 }

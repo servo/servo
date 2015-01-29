@@ -45,7 +45,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     }
     let parts: Vec<&str> = scheme_data.as_slice().splitn(1, ',').collect();
     if parts.len() != 2 {
-        start_sending(senders, metadata).send(Done(Err("invalid data uri".to_string())));
+        start_sending(senders, metadata).send(Done(Err("invalid data uri".to_string()))).unwrap();
         return;
     }
 
@@ -72,16 +72,16 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         let bytes = bytes.into_iter().filter(|&b| b != ' ' as u8).collect::<Vec<u8>>();
         match bytes.as_slice().from_base64() {
             Err(..) => {
-                progress_chan.send(Done(Err("non-base64 data uri".to_string())));
+                progress_chan.send(Done(Err("non-base64 data uri".to_string()))).unwrap();
             }
             Ok(data) => {
-                progress_chan.send(Payload(data));
-                progress_chan.send(Done(Ok(())));
+                progress_chan.send(Payload(data)).unwrap();
+                progress_chan.send(Done(Ok(()))).unwrap();
             }
         }
     } else {
-        progress_chan.send(Payload(bytes));
-        progress_chan.send(Done(Ok(())));
+        progress_chan.send(Payload(bytes)).unwrap();
+        progress_chan.send(Done(Ok(()))).unwrap();
     }
 }
 

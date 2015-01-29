@@ -26,7 +26,7 @@ pub struct MemoryProfilerChan(pub Sender<MemoryProfilerMsg>);
 impl MemoryProfilerChan {
     pub fn send(&self, msg: MemoryProfilerMsg) {
         let MemoryProfilerChan(ref c) = *self;
-        c.send(msg);
+        c.send(msg).unwrap();
     }
 }
 

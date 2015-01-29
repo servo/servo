@@ -58,7 +58,7 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         let sheet = Stylesheet::from_str(data.as_slice(), url,
                                          StylesheetOrigin::Author);
         let LayoutChan(ref layout_chan) = win.page().layout_chan;
-        layout_chan.send(Msg::AddStylesheet(sheet));
+        layout_chan.send(Msg::AddStylesheet(sheet)).unwrap();
     }
 }
 

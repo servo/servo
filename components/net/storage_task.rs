@@ -99,14 +99,14 @@ impl StorageManager {
 
     fn length(&self, sender: Sender<u32>, url: Url) {
         let origin = self.get_origin_as_string(url);
-        sender.send(self.data.get(&origin).map_or(0u, |entry| entry.len()) as u32);
+        sender.send(self.data.get(&origin).map_or(0u, |entry| entry.len()) as u32).unwrap();
     }
 
     fn key(&self, sender: Sender<Option<DOMString>>, url: Url, index: u32) {
         let origin = self.get_origin_as_string(url);
         sender.send(self.data.get(&origin)
                     .and_then(|entry| entry.keys().nth(index as uint))
-                    .map(|key| key.clone()));
+                    .map(|key| key.clone())).unwrap();
     }
 
     fn set_item(&mut self, sender: Sender<bool>, url: Url, name: DOMString, value: DOMString) {
@@ -124,20 +124,20 @@ impl StorageManager {
             }
         }).unwrap();
 
-        sender.send(updated);
+        sender.send(updated).unwrap();
     }
 
     fn get_item(&self, sender: Sender<Option<DOMString>>, url: Url, name: DOMString) {
         let origin = self.get_origin_as_string(url);
         sender.send(self.data.get(&origin)
                     .and_then(|entry| entry.get(&name))
-                    .map(|value| value.to_string()));
+                    .map(|value| value.to_string())).unwrap();
     }
 
     fn remove_item(&mut self, sender: Sender<bool>, url: Url, name: DOMString) {
         let origin = self.get_origin_as_string(url);
         sender.send(self.data.get_mut(&origin)
-                    .map_or(false, |entry| entry.remove(&name).is_some()));
+                    .map_or(false, |entry| entry.remove(&name).is_some())).unwrap();
     }
 
     fn clear(&mut self, sender: Sender<bool>, url: Url) {
@@ -149,7 +149,7 @@ impl StorageManager {
                             true
                         } else {
                             false
-                        }}));
+                        }})).unwrap();
     }
 
     fn get_origin_as_string(&self, url: Url) -> String {

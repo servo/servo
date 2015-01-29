@@ -133,7 +133,7 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
         match UrlParser::new().base_url(&window.page().get_url()).parse(href) {
             Ok(url) => {
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;
-                layout_chan.send(Msg::LoadStylesheet(url));
+                layout_chan.send(Msg::LoadStylesheet(url)).unwrap();
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }

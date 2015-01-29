@@ -260,7 +260,7 @@ impl XMLHttpRequest {
                 // perhaps should be handled by the resource_loader?
                 spawn_named("XHR:Cors".to_owned(), move || {
                     let response = req2.http_fetch();
-                    chan.send(response);
+                    chan.send(response).unwrap();
                 });
 
                 select! (
@@ -282,7 +282,7 @@ impl XMLHttpRequest {
         }
 
         // Step 10, 13
-        resource_task.send(Load(load_data));
+        resource_task.send(Load(load_data)).unwrap();
 
 
         let progress_port;

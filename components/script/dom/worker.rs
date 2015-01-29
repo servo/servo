@@ -94,7 +94,7 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
     fn PostMessage(self, cx: *mut JSContext, message: JSVal) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(cx, self, self.global.root().r().script_chan().clone());
-        self.sender.send((address, ScriptMsg::DOMMessage(data)));
+        self.sender.send((address, ScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }
 
