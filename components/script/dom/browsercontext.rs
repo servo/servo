@@ -7,7 +7,7 @@ use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::js::{JS, JSRef, Temporary, Root};
 use dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable};
 use dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable};
-use dom::bindings::proxyhandler::{getPropertyDescriptor, FillPropertyDescriptor};
+use dom::bindings::proxyhandler::{get_property_descriptor, fill_property_descriptor};
 use dom::bindings::utils::{Reflectable, WindowProxyHandler};
 use dom::bindings::utils::{GetArrayIndexFromId};
 use dom::document::{Document, DocumentHelpers};
@@ -116,7 +116,7 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObje
     if let Some(window) = window {
         let window = window.root();
         (*desc).value = window.to_jsval(cx);
-        FillPropertyDescriptor(&mut *desc, proxy, true);
+        fill_property_descriptor(&mut *desc, proxy, true);
         return true;
     }
 
@@ -194,7 +194,8 @@ unsafe extern fn set(cx: *mut JSContext, proxy: *mut JSObject, _receiver: *mut J
 }
 
 static PROXY_HANDLER: ProxyTraps = ProxyTraps {
-    getPropertyDescriptor: Some(getPropertyDescriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
+    getPropertyDescriptor: Some(get_property_descriptor
+                                as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor
                                    as unsafe extern "C" fn(*mut JSContext, *mut JSObject,
                                                            jsid, bool, *mut JSPropertyDescriptor)
