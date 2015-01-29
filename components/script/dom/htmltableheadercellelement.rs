@@ -11,7 +11,7 @@ use dom::htmlelement::HTMLElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementTypeId};
 use dom::node::{Node, NodeTypeId};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLTableHeaderCellElement {

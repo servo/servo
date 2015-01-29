@@ -75,7 +75,7 @@ use dom::htmlulistelement::HTMLUListElement;
 use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use string_cache::QualName;
 

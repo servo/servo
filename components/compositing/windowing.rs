@@ -13,8 +13,8 @@ use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeGraphicsMetadata;
 use servo_msg::compositor_msg::{PaintState, ReadyState};
 use servo_msg::constellation_msg::{Key, KeyState, KeyModifiers, LoadData};
-use servo_util::cursor::Cursor;
-use servo_util::geometry::ScreenPx;
+use util::cursor::Cursor;
+use util::geometry::ScreenPx;
 use std::fmt::{Error, Formatter, Show};
 use std::rc::Rc;
 

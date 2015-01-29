@@ -7,7 +7,7 @@
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::js::JSRef;
 use dom::keyboardevent::KeyboardEvent;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cmp::{min, max};

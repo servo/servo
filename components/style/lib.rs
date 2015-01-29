@@ -32,7 +32,7 @@ extern crate string_cache;
 #[macro_use]
 extern crate lazy_static;
 
-extern crate "util" as servo_util;
+extern crate util;
 
 
 pub use media_queries::{Device, MediaType};

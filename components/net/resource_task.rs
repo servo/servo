@@ -11,7 +11,7 @@ use http_loader;
 use sniffer_task;
 use sniffer_task::SnifferTask;
 
-use servo_util::task::spawn_named;
+use util::task::spawn_named;
 
 use hyper::header::common::UserAgent;
 use hyper::header::Headers;

@@ -10,7 +10,7 @@ use dom::element::ElementTypeId;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLUnknownElement {

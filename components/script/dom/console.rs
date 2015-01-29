@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct Console {

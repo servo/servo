@@ -13,9 +13,9 @@ use properties::PropertyDeclaration;
 use selector_matching::{DeclarationBlock, Stylist};
 
 use cssparser::Color;
-use servo_util::geometry::Au;
-use servo_util::smallvec::VecLike;
-use servo_util::str::LengthOrPercentageOrAuto;
+use util::geometry::Au;
+use util::smallvec::VecLike;
+use util::str::LengthOrPercentageOrAuto;
 
 /// Legacy presentational attributes that take a length as defined in HTML5 § 2.4.4.4.
 #[derive(Copy, PartialEq, Eq)]

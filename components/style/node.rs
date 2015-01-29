@@ -8,7 +8,7 @@
 use cssparser::RGBA;
 use legacy::{IntegerAttribute, LengthAttribute, SimpleColorAttribute, UnsignedIntegerAttribute};
 use selectors::AttrSelector;
-use servo_util::str::LengthOrPercentageOrAuto;
+use util::str::LengthOrPercentageOrAuto;
 use string_cache::{Atom, Namespace};
 
 pub trait TNode<'a, E: TElement<'a>> : Clone + Copy {

@@ -34,7 +34,7 @@ use servo_msg::compositor_msg::ScriptListener;
 use servo_msg::constellation_msg::LoadData;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::storage_task::StorageTask;
-use servo_util::str::{DOMString,HTML_SPACE_CHARACTERS};
+use util::str::{DOMString,HTML_SPACE_CHARACTERS};
 
 use js::jsapi::JS_EvaluateUCScript;
 use js::jsapi::JSContext;

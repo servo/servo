@@ -9,7 +9,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::NodeTypeId;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLMediaElement {

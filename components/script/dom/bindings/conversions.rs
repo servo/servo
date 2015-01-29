@@ -8,7 +8,7 @@ use dom::bindings::codegen::PrototypeList;
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflectable, Reflector, DOMClass};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use js;
 use js::glue::{RUST_JSID_TO_STRING, RUST_JSID_IS_STRING};

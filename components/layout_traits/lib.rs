@@ -10,7 +10,7 @@ extern crate gfx;
 extern crate script_traits;
 extern crate "msg" as servo_msg;
 extern crate "net" as servo_net;
-extern crate "util" as servo_util;
+extern crate util;
 
 // This module contains traits in layout used generically
 //   in the rest of Servo.
@@ -22,7 +22,7 @@ use gfx::paint_task::PaintChan;
 use servo_msg::constellation_msg::{ConstellationChan, Failure, PipelineId, PipelineExitType};
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
-use servo_util::time::TimeProfilerChan;
+use util::time::TimeProfilerChan;
 use script_traits::{ScriptControlChan, OpaqueScriptLayoutChannel};
 use std::sync::mpsc::{Sender, Receiver};
 

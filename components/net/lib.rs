@@ -18,7 +18,7 @@ extern crate png;
 #[macro_use]
 extern crate log;
 extern crate serialize;
-extern crate "util" as servo_util;
+extern crate util;
 extern crate stb_image;
 extern crate time;
 extern crate url;

@@ -17,7 +17,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::str::ByteString;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::blob::Blob;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};

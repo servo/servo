@@ -20,7 +20,7 @@ use dom::virtualmethods::VirtualMethods;
 
 use std::ascii::OwnedAsciiExt;
 use std::borrow::ToOwned;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use string_cache::Atom;
 
 #[dom_struct]

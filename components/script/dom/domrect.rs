@@ -8,7 +8,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::window::Window;
-use servo_util::geometry::Au;
+use util::geometry::Au;
 use std::num::Float;
 
 #[dom_struct]

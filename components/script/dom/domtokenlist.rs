@@ -13,7 +13,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::window_from_node;
 
-use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use string_cache::Atom;
 
 use std::borrow::ToOwned;

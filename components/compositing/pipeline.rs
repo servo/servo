@@ -16,7 +16,7 @@ use servo_net::image_cache_task::ImageCacheTask;
 use gfx::font_cache_task::FontCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
-use servo_util::time::TimeProfilerChan;
+use util::time::TimeProfilerChan;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, channel};
 

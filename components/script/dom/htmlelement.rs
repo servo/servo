@@ -27,7 +27,7 @@ use dom::htmltablecellelement::HTMLTableCellElementTypeId;
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use string_cache::Atom;
 

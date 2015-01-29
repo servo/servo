@@ -15,7 +15,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::collections::HashMap;
