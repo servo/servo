@@ -2088,7 +2088,7 @@ class CGDefineProxyHandler(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
-        customDefineProperty = 'defineProperty_'
+        customDefineProperty = 'proxyhandler::define_property'
         if self.descriptor.operations['IndexedSetter'] or self.descriptor.operations['NamedSetter']:
             customDefineProperty = 'defineProperty'
 
@@ -3764,7 +3764,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     "    }\n" +
                     "    return true;\n"
                     "}\n") % (self.descriptor.name)
-        return set + """return proxyhandler::defineProperty_(%s);""" % ", ".join(a.name for a in self.args)
+        return set + """return proxyhandler::define_property(%s);""" % ", ".join(a.name for a in self.args)
 
     def definition_body(self):
         return CGGeneric(self.getBody())
@@ -4580,7 +4580,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::throw_dom_exception',
             'dom::bindings::error::throw_type_error',
             'dom::bindings::proxyhandler',
-            'dom::bindings::proxyhandler::{_obj_toString, defineProperty_}',
+            'dom::bindings::proxyhandler::{_obj_toString}',
             'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
             'dom::bindings::proxyhandler::{delete_, get_property_descriptor}',
             'dom::bindings::proxyhandler::{getOwnPropertyNames_, enumerate_}',
