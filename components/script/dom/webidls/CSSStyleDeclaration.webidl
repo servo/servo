@@ -116,6 +116,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString wordBreak;
   [TreatNullAs=EmptyString] attribute DOMString wordSpacing;
   [TreatNullAs=EmptyString] attribute DOMString wordWrap;
+  [TreatNullAs=EmptyString] attribute DOMString textOverflow;
 
   [TreatNullAs=EmptyString] attribute DOMString textAlign;
   [TreatNullAs=EmptyString] attribute DOMString textDecoration;
