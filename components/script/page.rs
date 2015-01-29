@@ -133,7 +133,7 @@ impl Page {
            constellation_chan: ConstellationChan,
            js_context: Rc<Cx>) -> Page {
         let js_info = JSPageInfo {
-            dom_static: GlobalStaticData(),
+            dom_static: GlobalStaticData::new(),
             js_context: js_context,
         };
         let layout_rpc: Box<LayoutRPC> = {

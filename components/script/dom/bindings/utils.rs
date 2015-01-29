@@ -55,10 +55,12 @@ pub struct GlobalStaticData {
     pub windowproxy_handler: WindowProxyHandler,
 }
 
-/// Creates a new GlobalStaticData.
-pub fn GlobalStaticData() -> GlobalStaticData {
-    GlobalStaticData {
-        windowproxy_handler: browsercontext::new_window_proxy_handler(),
+impl GlobalStaticData {
+    /// Creates a new GlobalStaticData.
+    pub fn new() -> GlobalStaticData {
+        GlobalStaticData {
+            windowproxy_handler: browsercontext::new_window_proxy_handler(),
+        }
     }
 }
 
