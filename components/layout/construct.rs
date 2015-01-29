@@ -860,8 +860,8 @@ impl<'a> FlowConstructor<'a> {
 
     /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with
     /// possibly other `TableCaptionFlow`s or `TableFlow`s underneath it.
-    fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode,
-                                    float_value: float::T) -> ConstructionResult {
+    fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode, float_value: float::T)
+                                    -> ConstructionResult {
         let fragment = Fragment::new_from_specific_info(node, SpecificFragmentInfo::TableWrapper);
         let wrapper_flow = match float_value {
             float::T::none => box TableWrapperFlow::from_node_and_fragment(node, fragment),
@@ -974,7 +974,12 @@ impl<'a> FlowConstructor<'a> {
 
     /// Builds a flow for a node with `display: list-item`. This yields a `ListItemFlow` with
     /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
-    fn build_flow_for_list_item(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
+    fn build_flow_for_list_item(&mut self, node: &ThreadSafeLayoutNode, flotation: float::T)
+                                -> ConstructionResult {
+        let flotation = match flotation {
+            float::T::none => None,
+            flotation => Some(FloatKind::from_property(flotation)),
+        };
         let marker_fragment = match node.style().get_list().list_style_image {
             Some(ref url) => {
                 Some(Fragment::new_from_specific_info(
@@ -1012,11 +1017,17 @@ impl<'a> FlowConstructor<'a> {
         let initial_fragment;
         match node.style().get_list().list_style_position {
             list_style_position::T::outside => {
-                flow = box ListItemFlow::from_node_and_marker(self, node, marker_fragment);
+                flow = box ListItemFlow::from_node_marker_and_flotation(self,
+                                                                        node,
+                                                                        marker_fragment,
+                                                                        flotation);
                 initial_fragment = None;
             }
             list_style_position::T::inside => {
-                flow = box ListItemFlow::from_node_and_marker(self, node, None);
+                flow = box ListItemFlow::from_node_marker_and_flotation(self,
+                                                                        node,
+                                                                        None,
+                                                                        flotation);
                 initial_fragment = marker_fragment;
             }
         }
@@ -1181,8 +1192,9 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             }
 
             // List items contribute their own special flows.
-            (display::T::list_item, _, _) => {
-                node.set_flow_construction_result(self.build_flow_for_list_item(node))
+            (display::T::list_item, float_value, _) => {
+                node.set_flow_construction_result(self.build_flow_for_list_item(node,
+                                                                                float_value))
             }
 
             // Inline items that are absolutely-positioned contribute inline fragment construction
