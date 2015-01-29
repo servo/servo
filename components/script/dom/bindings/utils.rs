@@ -192,8 +192,8 @@ pub fn do_create_interface_objects(cx: *mut JSContext, global: *mut JSObject,
                                    dom_class: *const DOMClass,
                                    members: &'static NativeProperties)
                                    -> *mut JSObject {
-    let proto = CreateInterfacePrototypeObject(cx, global, proto_proto,
-                                               proto_class, members);
+    let proto = create_interface_prototype_object(cx, global, proto_proto,
+                                                  proto_class, members);
 
     unsafe {
         JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
@@ -299,10 +299,11 @@ fn define_properties(cx: *mut JSContext, obj: *mut JSObject,
 
 /// Creates the *interface prototype object*.
 /// Fails on JSAPI failure.
-fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
-                                  parentProto: *mut JSObject,
-                                  protoClass: &'static JSClass,
-                                  members: &'static NativeProperties) -> *mut JSObject {
+fn create_interface_prototype_object(cx: *mut JSContext, global: *mut JSObject,
+                                     parentProto: *mut JSObject,
+                                     protoClass: &'static JSClass,
+                                     members: &'static NativeProperties)
+                                     -> *mut JSObject {
     unsafe {
         let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, &*parentProto, &*global);
         assert!(!ourProto.is_null());
