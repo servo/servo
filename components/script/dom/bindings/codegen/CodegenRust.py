@@ -2098,7 +2098,7 @@ class CGDefineProxyHandler(CGAbstractMethod):
 
         body = """\
 let traps = ProxyTraps {
-    getPropertyDescriptor: Some(getPropertyDescriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
+    getPropertyDescriptor: Some(get_property_descriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
     getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
     defineProperty: Some(%s as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut JSPropertyDescriptor) -> bool),
     getOwnPropertyNames: Some(getOwnPropertyNames_ as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut AutoIdVector) -> bool),
@@ -4582,7 +4582,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{_obj_toString, defineProperty_}',
             'dom::bindings::proxyhandler::{FillPropertyDescriptor, GetExpandoObject}',
-            'dom::bindings::proxyhandler::{delete_, getPropertyDescriptor}',
+            'dom::bindings::proxyhandler::{delete_, get_property_descriptor}',
             'dom::bindings::proxyhandler::{getOwnPropertyNames_, enumerate_}',
             'dom::bindings::str::ByteString',
             'page::JSPageInfo',
