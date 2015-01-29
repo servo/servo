@@ -1306,6 +1306,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             None |
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement))) => true,
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement))) => self.has_object_data(),
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement))) => true,
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement))) => true,
             Some(NodeTypeId::Element(_)) => false,
         }
