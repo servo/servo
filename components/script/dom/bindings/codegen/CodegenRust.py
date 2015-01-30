@@ -1962,21 +1962,21 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     """
     def __init__(self, descriptor, properties):
         assert not descriptor.interface.isCallback()
-        args = [Argument('*mut JSContext', 'aCx'), Argument('*mut JSObject', 'aGlobal'),
-                Argument('*mut JSObject', 'aReceiver')]
+        args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'global'),
+                Argument('*mut JSObject', 'receiver')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', '*mut JSObject', args)
         self.properties = properties
     def definition_body(self):
         protoChain = self.descriptor.prototypeChain
         if len(protoChain) == 1:
-            getParentProto = "JS_GetObjectPrototype(aCx, aGlobal)"
+            getParentProto = "JS_GetObjectPrototype(cx, global)"
         else:
             parentProtoName = self.descriptor.prototypeChain[-2]
-            getParentProto = ("%s::GetProtoObject(aCx, aGlobal, aReceiver)" %
+            getParentProto = ("%s::GetProtoObject(cx, global, receiver)" %
                               toBindingNamespace(parentProtoName))
 
-        getParentProto = ("let parentProto: *mut JSObject = %s;\n"
-                          "assert!(!parentProto.is_null());\n") % getParentProto
+        getParentProto = ("let parent_proto: *mut JSObject = %s;\n"
+                          "assert!(!parent_proto.is_null());\n") % getParentProto
 
         if self.descriptor.concrete:
             if self.descriptor.proxy:
@@ -2001,7 +2001,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             constructor = 'None'
 
         call = """\
-return do_create_interface_objects(aCx, aGlobal, aReceiver, parentProto,
+return do_create_interface_objects(cx, global, receiver, parent_proto,
                                    &PrototypeClass, %s,
                                    %s,
                                    &sNativeProperties);""" % (constructor, domClass)
