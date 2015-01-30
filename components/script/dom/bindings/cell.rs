@@ -41,6 +41,13 @@ impl<T> DOMRefCell<T> {
         &*self.value.as_unsafe_cell().get()
     }
 
+    /// Borrow the contents for the purpose of script deallocation.
+    ///
+    pub unsafe fn borrow_for_script_deallocation<'a>(&'a self) -> &'a mut T {
+        debug_assert!(task_state::get().contains(SCRIPT));
+        &mut *self.value.as_unsafe_cell().get()
+    }
+
     /// Is the cell mutably borrowed?
     ///
     /// For safety checks in debug builds only.

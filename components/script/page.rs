@@ -273,6 +273,10 @@ impl Page {
         self.js_info.borrow_mut()
     }
 
+    pub unsafe fn unsafe_mut_js_info<'a>(&'a self) -> &'a mut Option<JSPageInfo> {
+        self.js_info.borrow_for_script_deallocation()
+    }
+
     pub fn js_info<'a>(&'a self) -> Ref<'a, Option<JSPageInfo>> {
         self.js_info.borrow()
     }

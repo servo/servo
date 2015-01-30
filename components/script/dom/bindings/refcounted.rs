@@ -188,9 +188,3 @@ impl LiveDOMReferences {
         })
     }
 }
-
-impl Drop for LiveDOMReferences {
-    fn drop(&mut self) {
-        assert!(self.table.borrow().keys().count() == 0);
-    }
-}
