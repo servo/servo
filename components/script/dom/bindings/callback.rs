@@ -95,7 +95,8 @@ impl CallbackInterface {
     /// Returns the property with the given `name`, if it is a callable object,
     /// or `Err(())` otherwise. If it returns `Err(())`, a JSAPI exception is
     /// pending.
-    pub fn GetCallableProperty(&self, cx: *mut JSContext, name: &str) -> Result<JSVal, ()> {
+    pub fn get_callable_property(&self, cx: *mut JSContext, name: &str)
+                                 -> Result<JSVal, ()> {
         let mut callable = UndefinedValue();
         unsafe {
             let name = CString::from_slice(name.as_bytes());
@@ -115,8 +116,8 @@ impl CallbackInterface {
 }
 
 /// Wraps the reflector for `p` into the compartment of `cx`.
-pub fn WrapCallThisObject<T: Reflectable>(cx: *mut JSContext,
-                                          p: JSRef<T>) -> *mut JSObject {
+pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
+                                             p: JSRef<T>) -> *mut JSObject {
     let mut obj = p.reflector().get_jsobject();
     assert!(!obj.is_null());
 
@@ -153,7 +154,7 @@ impl CallSetup {
     }
 
     /// Returns the `JSContext` used for the call.
-    pub fn GetContext(&self) -> *mut JSContext {
+    pub fn get_context(&self) -> *mut JSContext {
         self.cx
     }
 }

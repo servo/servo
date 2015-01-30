@@ -286,8 +286,10 @@ pub fn jsid_to_str(cx: *mut JSContext, id: jsid) -> DOMString {
 }
 
 impl FromJSValConvertible<StringificationBehavior> for DOMString {
-    fn from_jsval(cx: *mut JSContext, value: JSVal, nullBehavior: StringificationBehavior) -> Result<DOMString, ()> {
-        if nullBehavior == StringificationBehavior::Empty && value.is_null() {
+    fn from_jsval(cx: *mut JSContext, value: JSVal,
+                  null_behavior: StringificationBehavior)
+                  -> Result<DOMString, ()> {
+        if null_behavior == StringificationBehavior::Empty && value.is_null() {
             Ok("".to_owned())
         } else {
             let jsstr = unsafe { JS_ValueToString(cx, value) };
