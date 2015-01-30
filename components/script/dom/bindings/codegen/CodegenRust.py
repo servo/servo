@@ -2017,32 +2017,32 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     constructor object).
     """
     def __init__(self, descriptor, name, idPrefix="", pub=False):
-        args = [Argument('*mut JSContext', 'aCx'), Argument('*mut JSObject', 'aGlobal'),
-                Argument('*mut JSObject', 'aReceiver')]
+        args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'global'),
+                Argument('*mut JSObject', 'receiver')]
         CGAbstractMethod.__init__(self, descriptor, name,
                                   '*mut JSObject', args, pub=pub)
         self.id = idPrefix + "ID::" + self.descriptor.name
     def definition_body(self):
         return CGGeneric("""
 
-/* aGlobal and aReceiver are usually the same, but they can be different
+/* global and receiver are usually the same, but they can be different
    too. For example a sandbox often has an xray wrapper for a window as the
-   prototype of the sandbox's global. In that case aReceiver is the xray
-   wrapper and aGlobal is the sandbox's global.
+   prototype of the sandbox's global. In that case receiver is the xray
+   wrapper and global is the sandbox's global.
  */
 
-assert!(((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) != 0);
+assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
 
 /* Check to see whether the interface objects are already installed */
-let protoOrIfaceArray = get_proto_or_iface_array(aGlobal);
-let cachedObject: *mut JSObject = *protoOrIfaceArray.offset(%s as int);
-if cachedObject.is_null() {
-    let tmp: *mut JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
+let proto_or_iface_array = get_proto_or_iface_array(global);
+let cached_object: *mut JSObject = *proto_or_iface_array.offset(%s as int);
+if cached_object.is_null() {
+    let tmp: *mut JSObject = CreateInterfaceObjects(cx, global, receiver);
     assert!(!tmp.is_null());
-    *protoOrIfaceArray.offset(%s as int) = tmp;
+    *proto_or_iface_array.offset(%s as int) = tmp;
     tmp
 } else {
-    cachedObject
+    cached_object
 }""" % (self.id, self.id))
 
 class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
