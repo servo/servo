@@ -1376,7 +1376,7 @@ impl Node {
         }
 
         // Step 7-8.
-        let referenceChild = match child {
+        let reference_child = match child {
             Some(child) if child.clone() == node => node.next_sibling().map(|node| (*node.root()).clone()),
             _ => child
         };
@@ -1386,7 +1386,7 @@ impl Node {
         Node::adopt(node, *document);
 
         // Step 10.
-        Node::insert(node, parent, referenceChild, SuppressObserver::Unsuppressed);
+        Node::insert(node, parent, reference_child, SuppressObserver::Unsuppressed);
 
         // Step 11.
         return Ok(Temporary::from_rooted(node))
@@ -1467,10 +1467,10 @@ impl Node {
         }
 
         // Step 2.
-        let removedNodes: Vec<JSRef<Node>> = parent.children().collect();
+        let removed_nodes: Vec<JSRef<Node>> = parent.children().collect();
 
         // Step 3.
-        let addedNodes = match node {
+        let added_nodes = match node {
             None => vec!(),
             Some(node) => match node.type_id() {
                 NodeTypeId::DocumentFragment => node.children().collect(),
@@ -1493,11 +1493,11 @@ impl Node {
 
         // Step 7.
         let parent_in_doc = parent.is_in_doc();
-        for removedNode in removedNodes.iter() {
-            removedNode.node_removed(parent_in_doc);
+        for removed_node in removed_nodes.iter() {
+            removed_node.node_removed(parent_in_doc);
         }
-        for addedNode in addedNodes.iter() {
-            addedNode.node_inserted();
+        for added_node in added_nodes.iter() {
+            added_node.node_inserted();
         }
     }
 
