@@ -38,5 +38,5 @@ git = "https://github.com/servo/string-cache"
 
 [dependencies]
 text_writer = "0.1.1"
-url = "*"
-time = "*"
+url = "0.2.16"
+time = "0.1.12"
