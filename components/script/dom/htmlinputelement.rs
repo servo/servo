@@ -613,6 +613,18 @@ impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
         Temporary::from_rooted(ElementCast::from_ref(*self))
     }
 
+    fn is_instance_activatable(&self) -> bool {
+        match self.input_type.get() {
+            // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29:activation-behaviour-2
+            // https://html.spec.whatwg.org/multipage/forms.html#reset-button-state-%28type=reset%29:activation-behaviour-2
+            // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-%28type=checkbox%29:activation-behaviour-2
+            // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-%28type=radio%29:activation-behaviour-2
+            InputType::InputSubmit | InputType::InputReset
+            | InputType::InputCheckbox | InputType::InputRadio => self.mutable(),
+            _ => false
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
     #[allow(unsafe_blocks)]
     fn pre_click_activation(&self) {
