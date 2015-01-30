@@ -121,6 +121,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString textAlign;
   [TreatNullAs=EmptyString] attribute DOMString textDecoration;
   [TreatNullAs=EmptyString] attribute DOMString textIndent;
+  [TreatNullAs=EmptyString] attribute DOMString textJustify;
   [TreatNullAs=EmptyString] attribute DOMString textOrientation;
   [TreatNullAs=EmptyString] attribute DOMString textRendering;
   [TreatNullAs=EmptyString] attribute DOMString textTransform;

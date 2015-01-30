@@ -120,7 +120,7 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
 
         debug_assert!(!self.range.is_empty());
         let index_to_return = self.range.begin();
-        self.range.adjust_by(CharIndex(1), CharIndex(0));
+        self.range.adjust_by(CharIndex(1), CharIndex(-1));
         if self.range.is_empty() {
             // We're done.
             self.glyph_run = None
@@ -297,7 +297,7 @@ impl<'a> TextRun {
 
     pub fn advance_for_range(&self, range: &Range<CharIndex>) -> Au {
         // TODO(Issue #199): alter advance direction for RTL
-        // TODO(Issue #98): using inter-char and inter-word spacing settings  when measuring text
+        // TODO(Issue #98): using inter-char and inter-word spacing settings when measuring text
         self.natural_word_slices_in_range(range)
             .fold(Au(0), |advance, slice| {
                 advance + slice.glyphs.advance_for_char_range(&slice.range)

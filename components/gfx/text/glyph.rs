@@ -2,19 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use util::vec::*;
-use util::range;
-use util::range::{Range, RangeIndex, EachIndex};
-use util::geometry::Au;
-
+use geom::point::Point2D;
 use std::cmp::{Ordering, PartialOrd};
 use std::iter::repeat;
-use std::num::{ToPrimitive, NumCast};
 use std::mem;
+use std::num::{ToPrimitive, NumCast};
 use std::ops::{Add, Sub, Mul, Neg, Div, Rem, BitAnd, BitOr, BitXor, Shl, Shr, Not};
 use std::u16;
 use std::vec::Vec;
-use geom::point::Point2D;
+use util::geometry::Au;
+use util::range::{mod, Range, RangeIndex, EachIndex};
+use util::vec::*;
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
 ///
@@ -256,7 +254,7 @@ impl GlyphEntry {
 #[derive(Clone, Show, Copy)]
 struct DetailedGlyph {
     id: GlyphId,
-    // glyph's advance, in the text's direction (RTL or RTL)
+    // glyph's advance, in the text's direction (LTR or RTL)
     advance: Au,
     // glyph's offset from the font's em-box (from top-left)
     offset: Point2D<Au>,
@@ -296,6 +294,7 @@ impl Ord for DetailedGlyphRecord {
 // until a lookup is actually performed; this matches the expected
 // usage pattern of setting/appending all the detailed glyphs, and
 // then querying without setting.
+#[derive(Clone)]
 struct DetailedGlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
@@ -424,6 +423,7 @@ pub struct GlyphData {
 }
 
 impl GlyphData {
+    /// Creates a new entry for one glyph.
     pub fn new(id: GlyphId,
                advance: Au,
                offset: Option<Point2D<Au>>,
@@ -501,6 +501,7 @@ impl<'a> GlyphInfo<'a> {
 /// |               +---+---+                     |
 /// +---------------------------------------------+
 /// ~~~
+#[derive(Clone)]
 pub struct GlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
@@ -547,7 +548,12 @@ impl<'a> GlyphStore {
         self.detail_store.ensure_sorted();
     }
 
-    pub fn add_glyph_for_char_index(&mut self, i: CharIndex, data: &GlyphData) {
+    /// Adds a single glyph. If `character` is present, this represents a single character;
+    /// otherwise, this glyph represents multiple characters.
+    pub fn add_glyph_for_char_index(&mut self,
+                                    i: CharIndex,
+                                    character: Option<char>,
+                                    data: &GlyphData) {
         fn glyph_is_compressible(data: &GlyphData) -> bool {
             is_simple_glyph_id(data.id)
                 && is_simple_advance(data.advance)
@@ -555,10 +561,10 @@ impl<'a> GlyphStore {
                 && data.cluster_start  // others are stored in detail buffer
         }
 
-        assert!(data.ligature_start); // can't compress ligature continuation glyphs.
-        assert!(i < self.char_len());
+        debug_assert!(data.ligature_start); // can't compress ligature continuation glyphs.
+        debug_assert!(i < self.char_len());
 
-        let entry = match (data.is_missing, glyph_is_compressible(data)) {
+        let mut entry = match (data.is_missing, glyph_is_compressible(data)) {
             (true, _) => GlyphEntry::missing(1),
             (false, true) => GlyphEntry::simple(data.id, data.advance),
             (false, false) => {
@@ -566,7 +572,14 @@ impl<'a> GlyphStore {
                 self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
                 GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
             }
-        }.adapt_character_flags_of_entry(self.entry_buffer[i.to_uint()]);
+        };
+
+        // FIXME(pcwalton): Is this necessary? I think it's a no-op.
+        entry = entry.adapt_character_flags_of_entry(self.entry_buffer[i.to_uint()]);
+
+        if character == Some(' ') {
+            entry = entry.set_char_is_space()
+        }
 
         self.entry_buffer[i.to_uint()] = entry;
     }
@@ -691,13 +704,43 @@ impl<'a> GlyphStore {
         let entry = self.entry_buffer[i.to_uint()];
         self.entry_buffer[i.to_uint()] = entry.set_can_break_before(t);
     }
+
+    pub fn space_count_in_range(&self, range: &Range<CharIndex>) -> u32 {
+        let mut spaces = 0;
+        for index in range.each_index() {
+            if self.char_is_space(index) {
+                spaces += 1
+            }
+        }
+        spaces
+    }
+
+    pub fn distribute_extra_space_in_range(&mut self, range: &Range<CharIndex>, space: f64) {
+        debug_assert!(space >= 0.0);
+        if range.is_empty() {
+            return
+        }
+        for index in range.each_index() {
+            // TODO(pcwalton): Handle spaces that are detailed glyphs -- these are uncommon but
+            // possible.
+            let mut entry = &mut self.entry_buffer[index.to_uint()];
+            if entry.is_simple() && entry.char_is_space() {
+                // FIXME(pcwalton): This can overflow for very large font-sizes.
+                let advance =
+                    ((entry.value & GLYPH_ADVANCE_MASK) >> (GLYPH_ADVANCE_SHIFT as uint)) +
+                    Au::from_frac_px(space).to_u32().unwrap();
+                entry.value = (entry.value & !GLYPH_ADVANCE_MASK) |
+                    (advance << (GLYPH_ADVANCE_SHIFT as uint));
+            }
+        }
+    }
 }
 
 /// An iterator over the glyphs in a character range in a `GlyphStore`.
 pub struct GlyphIterator<'a> {
-    store:       &'a GlyphStore,
-    char_index:  CharIndex,
-    char_range:  EachIndex<int, CharIndex>,
+    store: &'a GlyphStore,
+    char_index: CharIndex,
+    char_range: EachIndex<int, CharIndex>,
     glyph_range: Option<EachIndex<int, CharIndex>>,
 }
 
