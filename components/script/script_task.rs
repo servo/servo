@@ -248,11 +248,13 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
     fn drop(&mut self) {
         match self.owner {
             Some(owner) => {
-                let page = owner.page.borrow_mut();
-                for page in page.iter() {
-                    *page.mut_js_info() = None;
+                unsafe {
+                    let page = owner.page.borrow_for_script_deallocation();
+                    for page in page.iter() {
+                        *page.unsafe_mut_js_info() = None;
+                    }
+                    *owner.js_context.borrow_for_script_deallocation() = None;
                 }
-                *owner.js_context.borrow_mut() = None;
             }
             None => (),
         }
