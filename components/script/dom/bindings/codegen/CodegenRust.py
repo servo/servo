@@ -1795,14 +1795,14 @@ class CGAbstractMethod(CGThing):
         assert(False) # Override me!
 
 def CreateBindingJSObject(descriptor, parent=None):
-    create = "let mut raw: JS<%s> = JS::from_raw(&*aObject);\n" % descriptor.concreteType
+    create = "let mut raw: JS<%s> = JS::from_raw(&*object);\n" % descriptor.concreteType
     if descriptor.proxy:
         assert not descriptor.isGlobal()
         create += """
 let handler = RegisterBindings::proxy_handlers[PrototypeList::Proxies::%s as uint];
-let mut private = PrivateValue(squirrel_away_unique(aObject) as *const libc::c_void);
-let obj = with_compartment(aCx, proto, || {
-    NewProxyObject(aCx, handler,
+let mut private = PrivateValue(squirrel_away_unique(object) as *const libc::c_void);
+let obj = with_compartment(cx, proto, || {
+    NewProxyObject(cx, handler,
                    &private,
                    proto, %s,
                    ptr::null_mut(), ptr::null_mut())
@@ -1811,16 +1811,16 @@ assert!(!obj.is_null());\
 """ % (descriptor.name, parent)
     else:
         if descriptor.isGlobal():
-            create += "let obj = create_dom_global(aCx, &Class.base as *const js::Class as *const JSClass);\n"
+            create += "let obj = create_dom_global(cx, &Class.base as *const js::Class as *const JSClass);\n"
         else:
-            create += ("let obj = with_compartment(aCx, proto, || {\n"
-                       "    JS_NewObject(aCx, &Class.base as *const js::Class as *const JSClass, &*proto, &*%s)\n"
+            create += ("let obj = with_compartment(cx, proto, || {\n"
+                       "    JS_NewObject(cx, &Class.base as *const js::Class as *const JSClass, &*proto, &*%s)\n"
                        "});\n" % parent)
         create += """\
 assert!(!obj.is_null());
 
 JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                   PrivateValue(squirrel_away_unique(aObject) as *const libc::c_void));"""
+                   PrivateValue(squirrel_away_unique(object) as *const libc::c_void));"""
     return create
 
 class CGWrapMethod(CGAbstractMethod):
@@ -1831,22 +1831,22 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
         if not descriptor.isGlobal():
-            args = [Argument('*mut JSContext', 'aCx'), Argument('GlobalRef', 'aScope'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
+            args = [Argument('*mut JSContext', 'cx'), Argument('GlobalRef', 'scope'),
+                    Argument("Box<%s>" % descriptor.concreteType, 'object', mutable=True)]
         else:
-            args = [Argument('*mut JSContext', 'aCx'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
+            args = [Argument('*mut JSContext', 'cx'),
+                    Argument("Box<%s>" % descriptor.concreteType, 'object', mutable=True)]
         retval = 'Temporary<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args, pub=True)
 
     def definition_body(self):
         if not self.descriptor.isGlobal():
             return CGGeneric("""\
-let scope = aScope.reflector().get_jsobject();
+let scope = scope.reflector().get_jsobject();
 assert!(!scope.is_null());
 assert!(((*JS_GetClass(scope)).flags & JSCLASS_IS_GLOBAL) != 0);
 
-let proto = with_compartment(aCx, scope, || GetProtoObject(aCx, scope, scope));
+let proto = with_compartment(cx, scope, || GetProtoObject(cx, scope, scope));
 assert!(!proto.is_null());
 
 %s
@@ -1857,13 +1857,13 @@ Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor, "scope"))
         else:
             return CGGeneric("""\
 %s
-with_compartment(aCx, obj, || {
-    let proto = GetProtoObject(aCx, obj, obj);
-    JS_SetPrototype(aCx, obj, proto);
+with_compartment(cx, obj, || {
+    let proto = GetProtoObject(cx, obj, obj);
+    JS_SetPrototype(cx, obj, proto);
 
     raw.reflector().set_jsobject(obj);
 
-    RegisterBindings::Register(aCx, obj);
+    RegisterBindings::Register(cx, obj);
 });
 
 Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor))
@@ -1962,21 +1962,21 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     """
     def __init__(self, descriptor, properties):
         assert not descriptor.interface.isCallback()
-        args = [Argument('*mut JSContext', 'aCx'), Argument('*mut JSObject', 'aGlobal'),
-                Argument('*mut JSObject', 'aReceiver')]
+        args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'global'),
+                Argument('*mut JSObject', 'receiver')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', '*mut JSObject', args)
         self.properties = properties
     def definition_body(self):
         protoChain = self.descriptor.prototypeChain
         if len(protoChain) == 1:
-            getParentProto = "JS_GetObjectPrototype(aCx, aGlobal)"
+            getParentProto = "JS_GetObjectPrototype(cx, global)"
         else:
             parentProtoName = self.descriptor.prototypeChain[-2]
-            getParentProto = ("%s::GetProtoObject(aCx, aGlobal, aReceiver)" %
+            getParentProto = ("%s::GetProtoObject(cx, global, receiver)" %
                               toBindingNamespace(parentProtoName))
 
-        getParentProto = ("let parentProto: *mut JSObject = %s;\n"
-                          "assert!(!parentProto.is_null());\n") % getParentProto
+        getParentProto = ("let parent_proto: *mut JSObject = %s;\n"
+                          "assert!(!parent_proto.is_null());\n") % getParentProto
 
         if self.descriptor.concrete:
             if self.descriptor.proxy:
@@ -2001,7 +2001,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             constructor = 'None'
 
         call = """\
-return do_create_interface_objects(aCx, aGlobal, aReceiver, parentProto,
+return do_create_interface_objects(cx, global, receiver, parent_proto,
                                    &PrototypeClass, %s,
                                    %s,
                                    &sNativeProperties);""" % (constructor, domClass)
@@ -2017,32 +2017,32 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     constructor object).
     """
     def __init__(self, descriptor, name, idPrefix="", pub=False):
-        args = [Argument('*mut JSContext', 'aCx'), Argument('*mut JSObject', 'aGlobal'),
-                Argument('*mut JSObject', 'aReceiver')]
+        args = [Argument('*mut JSContext', 'cx'), Argument('*mut JSObject', 'global'),
+                Argument('*mut JSObject', 'receiver')]
         CGAbstractMethod.__init__(self, descriptor, name,
                                   '*mut JSObject', args, pub=pub)
         self.id = idPrefix + "ID::" + self.descriptor.name
     def definition_body(self):
         return CGGeneric("""
 
-/* aGlobal and aReceiver are usually the same, but they can be different
+/* global and receiver are usually the same, but they can be different
    too. For example a sandbox often has an xray wrapper for a window as the
-   prototype of the sandbox's global. In that case aReceiver is the xray
-   wrapper and aGlobal is the sandbox's global.
+   prototype of the sandbox's global. In that case receiver is the xray
+   wrapper and global is the sandbox's global.
  */
 
-assert!(((*JS_GetClass(aGlobal)).flags & JSCLASS_DOM_GLOBAL) != 0);
+assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
 
 /* Check to see whether the interface objects are already installed */
-let protoOrIfaceArray = get_proto_or_iface_array(aGlobal);
-let cachedObject: *mut JSObject = *protoOrIfaceArray.offset(%s as int);
-if cachedObject.is_null() {
-    let tmp: *mut JSObject = CreateInterfaceObjects(aCx, aGlobal, aReceiver);
+let proto_or_iface_array = get_proto_or_iface_array(global);
+let cached_object: *mut JSObject = *proto_or_iface_array.offset(%s as int);
+if cached_object.is_null() {
+    let tmp: *mut JSObject = CreateInterfaceObjects(cx, global, receiver);
     assert!(!tmp.is_null());
-    *protoOrIfaceArray.offset(%s as int) = tmp;
+    *proto_or_iface_array.offset(%s as int) = tmp;
     tmp
 } else {
-    cachedObject
+    cached_object
 }""" % (self.id, self.id))
 
 class CGGetProtoObjectMethod(CGGetPerInterfaceObject):
