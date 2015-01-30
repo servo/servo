@@ -59,7 +59,7 @@ use std::mem::{forget, min_align_of, size_of, transmute};
 use std::ptr;
 
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicIsize, AtomicPtr};
+use std::sync::atomic::{AtomicInt, AtomicPtr};
 use std::sync::atomic::Ordering::SeqCst;
 
 // Once the queue is less than 1/K full, then it will be downsized. Note that
@@ -74,8 +74,8 @@ static K: isize = 4;
 static MIN_BITS: usize = 7;
 
 struct Deque<T> {
-    bottom: AtomicIsize,
-    top: AtomicIsize,
+    bottom: AtomicInt,
+    top: AtomicInt,
     array: AtomicPtr<Buffer<T>>,
     pool: BufferPool<T>,
 }
@@ -229,8 +229,8 @@ impl<T: Send> Deque<T> {
     fn new(mut pool: BufferPool<T>) -> Deque<T> {
         let buf = pool.alloc(MIN_BITS);
         Deque {
-            bottom: AtomicIsize::new(0),
-            top: AtomicIsize::new(0),
+            bottom: AtomicInt::new(0),
+            top: AtomicInt::new(0),
             array: AtomicPtr::new(unsafe { transmute(buf) }),
             pool: pool,
         }

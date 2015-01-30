@@ -23,7 +23,7 @@ use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan,
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::mem;
 use std::ptr;
-use std::sync::atomic::{AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicInt, Ordering};
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {
@@ -66,13 +66,13 @@ pub fn mut_borrowed_flow_to_unsafe_flow(flow: &mut Flow) -> UnsafeFlow {
 /// Information that we need stored in each DOM node.
 pub struct DomParallelInfo {
     /// The number of children that still need work done.
-    pub children_count: AtomicIsize,
+    pub children_count: AtomicInt,
 }
 
 impl DomParallelInfo {
     pub fn new() -> DomParallelInfo {
         DomParallelInfo {
-            children_count: AtomicIsize::new(0),
+            children_count: AtomicInt::new(0),
         }
     }
 }
@@ -187,7 +187,7 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
 /// Information that we need stored in each flow.
 pub struct FlowParallelInfo {
     /// The number of children that still need work done.
-    pub children_count: AtomicIsize,
+    pub children_count: AtomicInt,
     /// The address of the parent flow.
     pub parent: UnsafeFlow,
 }
@@ -195,7 +195,7 @@ pub struct FlowParallelInfo {
 impl FlowParallelInfo {
     pub fn new() -> FlowParallelInfo {
         FlowParallelInfo {
-            children_count: AtomicIsize::new(0),
+            children_count: AtomicInt::new(0),
             parent: null_unsafe_flow(),
         }
     }

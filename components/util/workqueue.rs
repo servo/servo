@@ -14,7 +14,7 @@ use libc::funcs::posix88::unistd::usleep;
 use rand::{Rng, XorShiftRng};
 use std::mem;
 use std::rand::weak_rng;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUint, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};
 
@@ -34,7 +34,7 @@ pub struct WorkUnit<QueueData, WorkData> {
 /// Messages from the supervisor to the worker.
 enum WorkerMsg<QueueData: 'static, WorkData: 'static> {
     /// Tells the worker to start work.
-    Start(Worker<WorkUnit<QueueData, WorkData>>, *mut AtomicUsize, *const QueueData),
+    Start(Worker<WorkUnit<QueueData, WorkData>>, *mut AtomicUint, *const QueueData),
     /// Tells the worker to stop. It can be restarted again with a `WorkerMsg::Start`.
     Stop,
     /// Tells the worker thread to terminate.
@@ -179,7 +179,7 @@ impl<QueueData: Send, WorkData: Send> WorkerThread<QueueData, WorkData> {
 /// A handle to the work queue that individual work units have.
 pub struct WorkerProxy<'a, QueueData: 'a, WorkData: 'a> {
     worker: &'a mut Worker<WorkUnit<QueueData, WorkData>>,
-    ref_count: *mut AtomicUsize,
+    ref_count: *mut AtomicUint,
     queue_data: *const QueueData,
 }
 
@@ -288,7 +288,7 @@ impl<QueueData: Send, WorkData: Send> WorkQueue<QueueData, WorkData> {
     /// Synchronously runs all the enqueued tasks and waits for them to complete.
     pub fn run(&mut self) {
         // Tell the workers to start.
-        let mut work_count = AtomicUsize::new(self.work_count);
+        let mut work_count = AtomicUint::new(self.work_count);
         for worker in self.workers.iter_mut() {
             worker.chan.send(WorkerMsg::Start(worker.deque.take().unwrap(), &mut work_count, &self.data)).unwrap()
         }

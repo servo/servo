@@ -57,7 +57,7 @@ use std::fmt;
 use std::iter::Zip;
 use std::num::FromPrimitive;
 use std::raw;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUint, Ordering};
 use std::slice::IterMut;
 use style::computed_values::{clear, empty_cells, float, position, text_align};
 use style::properties::ComputedValues;
@@ -698,7 +698,7 @@ pub struct BaseFlow {
     /// NB: Must be the first element.
     ///
     /// The necessity of this will disappear once we have dynamically-sized types.
-    ref_count: AtomicUsize,
+    ref_count: AtomicUint,
 
     pub restyle_damage: RestyleDamage,
 
@@ -894,7 +894,7 @@ impl BaseFlow {
         damage.remove(RECONSTRUCT_FLOW);
 
         BaseFlow {
-            ref_count: AtomicUsize::new(1),
+            ref_count: AtomicUint::new(1),
             restyle_damage: damage,
             children: FlowList::new(),
             intrinsic_inline_sizes: IntrinsicISizes::new(),
@@ -922,7 +922,7 @@ impl BaseFlow {
         self.children.iter_mut()
     }
 
-    pub unsafe fn ref_count<'a>(&'a self) -> &'a AtomicUsize {
+    pub unsafe fn ref_count<'a>(&'a self) -> &'a AtomicUint {
         &self.ref_count
     }
 
