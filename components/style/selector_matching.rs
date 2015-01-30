@@ -254,7 +254,7 @@ impl SelectorMap {
 // The bloom filter for descendant CSS selectors will have a <1% false
 // positive rate until it has this many selectors in it, then it will
 // rapidly increase.
-pub static RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE: uint = 4096;
+pub static RECOMMENDED_SELECTOR_BLOOM_FILTER_SIZE: usize = 4096;
 
 pub struct Stylist {
     // List of stylesheets (including all media rules)
@@ -272,7 +272,7 @@ pub struct Stylist {
     element_map: PerPseudoElementSelectorMap,
     before_map: PerPseudoElementSelectorMap,
     after_map: PerPseudoElementSelectorMap,
-    rules_source_order: uint,
+    rules_source_order: usize,
 }
 
 impl Stylist {
@@ -286,7 +286,7 @@ impl Stylist {
             element_map: PerPseudoElementSelectorMap::new(),
             before_map: PerPseudoElementSelectorMap::new(),
             after_map: PerPseudoElementSelectorMap::new(),
-            rules_source_order: 0u,
+            rules_source_order: 0us,
         };
         // FIXME: Add iso-8859-9.css when the document’s encoding is ISO-8859-8.
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
@@ -526,7 +526,7 @@ struct Rule {
 #[derive(Clone, Show)]
 pub struct DeclarationBlock {
     pub declarations: Arc<Vec<PropertyDeclaration>>,
-    source_order: uint,
+    source_order: usize,
     specificity: u32,
 }
 
@@ -1212,7 +1212,7 @@ mod tests {
     #[test]
     fn test_get_local_name(){
         let rules_list = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
-        let check = |&:i: uint, names: Option<(&str, &str)>| {
+        let check = |&:i: usize, names: Option<(&str, &str)>| {
             assert!(SelectorMap::get_local_name(&rules_list[i][0])
                     == names.map(|(name, lower_name)| LocalName {
                             name: Atom::from_slice(name),

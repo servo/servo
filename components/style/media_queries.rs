@@ -225,7 +225,7 @@ mod tests {
     fn test_media_rule<F>(css: &str, callback: F) where F: Fn(&MediaQueryList, &str) {
         let url = Url::parse("http://localhost").unwrap();
         let stylesheet = Stylesheet::from_str(css, url, Origin::Author);
-        let mut rule_count: int = 0;
+        let mut rule_count: isize = 0;
         iter_stylesheet_media_rules(&stylesheet, |rule| {
             rule_count += 1;
             callback(&rule.media_queries, css);
@@ -233,10 +233,10 @@ mod tests {
         assert!(rule_count > 0);
     }
 
-    fn media_query_test(device: &Device, css: &str, expected_rule_count: int) {
+    fn media_query_test(device: &Device, css: &str, expected_rule_count: isize) {
         let url = Url::parse("http://localhost").unwrap();
         let ss = Stylesheet::from_str(css, url, Origin::Author);
-        let mut rule_count: int = 0;
+        let mut rule_count: isize = 0;
         iter_stylesheet_style_rules(&ss, device, |_| rule_count += 1);
         assert!(rule_count == expected_rule_count, css.to_owned());
     }
