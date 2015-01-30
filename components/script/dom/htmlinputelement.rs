@@ -588,7 +588,8 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
     fn mutable(self) -> bool {
         // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/forms.html#the-readonly-attribute:concept-fe-mutable
-        !(self.Disabled() || self.ReadOnly())
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        !(node.get_disabled_state() || self.ReadOnly())
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-form-reset-control
