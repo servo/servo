@@ -134,7 +134,7 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.2.0"
-source = "git+https://github.com/servo/rust-cssparser#2a8c9f2c5f568495bae16f44b799be39b8efad39"
+source = "git+https://github.com/servo/rust-cssparser#42714934cbe83dab349190695503a09ae23f9528"
 dependencies = [
  "encoding 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -554,6 +554,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "mod_path"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "mozjs-sys"
 version = "0.0.0"
 source = "git+https://github.com/servo/mozjs#58ee8869c7e589244ab2eb3a3ad15e2b64498428"
@@ -753,6 +758,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "lazy_static 0.1.6 (git+https://github.com/Kimundi/lazy-static.rs)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mod_path 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",

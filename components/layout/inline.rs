@@ -36,7 +36,7 @@ use std::ops::{Add, Sub, Mul, Div, Rem, Neg, Shl, Shr, Not, BitOr, BitAnd, BitXo
 use std::u16;
 use style::computed_values::{overflow, text_align, text_justify, text_overflow, vertical_align};
 use style::computed_values::{white_space};
-use style::ComputedValues;
+use style::properties::ComputedValues;
 use std::sync::Arc;
 
 // From gfxFontConstants.h in Firefox

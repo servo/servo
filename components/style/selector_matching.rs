@@ -21,8 +21,7 @@ use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::{CaseSensitivity, Combinator, CompoundSelector, LocalName};
-use selectors::{PseudoElement, SelectorList, SimpleSelector};
-use selectors::{get_selector_list_selectors};
+use selectors::{PseudoElement, SimpleSelector, Selector};
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules, Origin};
 
 
@@ -549,14 +548,15 @@ impl DeclarationBlock {
     }
 }
 
-pub fn matches<'a,E,N>(selector_list: &SelectorList,
+pub fn matches<'a,E,N>(selector_list: &Vec<Selector>,
                        element: &N,
                        parent_bf: &Option<Box<BloomFilter>>)
                        -> bool
                        where E: TElement<'a>, N: TNode<'a,E> {
-    get_selector_list_selectors(selector_list).iter().any(|selector|
+    selector_list.iter().any(|selector| {
         selector.pseudo_element.is_none() &&
-        matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false))
+        matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false)
+    })
 }
 
 /// Determines whether the given element matches the given single or compound selector.
@@ -1166,16 +1166,12 @@ mod tests {
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
     fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
-        use namespaces::NamespaceMap;
         use selectors::parse_selector_list;
         use stylesheets::Origin;
 
         css_selectors.iter().enumerate().map(|(i, selectors)| {
-            let context = ParserContext {
-                stylesheet_origin: Origin::Author,
-                namespaces: NamespaceMap::new(),
-                base_url: &Url::parse("about:blank").unwrap(),
-            };
+            let url = Url::parse("about:blank").unwrap();
+            let context = ParserContext::new(Origin::Author, &url);
             parse_selector_list(&context, &mut Parser::new(*selectors))
             .unwrap().into_iter().map(|s| {
                 Rule {

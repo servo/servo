@@ -50,8 +50,11 @@ use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
 use devtools_traits::AttrInfo;
-use style::{self, SimpleColorAttribute, UnsignedIntegerAttribute};
-use style::{IntegerAttribute, LengthAttribute, matches};
+use style::legacy::{SimpleColorAttribute, UnsignedIntegerAttribute, IntegerAttribute, LengthAttribute};
+use style::selector_matching::matches;
+use style::properties::{PropertyDeclarationBlock, PropertyDeclaration, parse_style_attribute};
+use style::selectors::parse_author_origin_selector_list_from_str;
+use style;
 use util::namespace;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
@@ -74,7 +77,7 @@ pub struct Element {
     namespace: Namespace,
     prefix: Option<DOMString>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
-    style_attribute: DOMRefCell<Option<style::PropertyDeclarationBlock>>,
+    style_attribute: DOMRefCell<Option<PropertyDeclarationBlock>>,
     attr_list: MutNullableJS<NamedNodeMap>,
     class_list: MutNullableJS<DOMTokenList>,
 }
@@ -152,7 +155,7 @@ pub trait RawLayoutElementHelpers {
                                                     -> Option<RGBA>;
     fn local_name<'a>(&'a self) -> &'a Atom;
     fn namespace<'a>(&'a self) -> &'a Namespace;
-    fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>>;
+    fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>>;
 }
 
 #[inline]
@@ -363,7 +366,7 @@ impl RawLayoutElementHelpers for Element {
         &self.namespace
     }
 
-    fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>> {
+    fn style_attribute<'a>(&'a self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>> {
         &self.style_attribute
     }
 }
@@ -402,13 +405,13 @@ pub trait ElementHelpers<'a> {
     fn prefix(self) -> &'a Option<DOMString>;
     fn attrs(&self) -> Ref<Vec<JS<Attr>>>;
     fn attrs_mut(&self) -> RefMut<Vec<JS<Attr>>>;
-    fn style_attribute(self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>>;
+    fn style_attribute(self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>>;
     fn summarize(self) -> Vec<AttrInfo>;
     fn is_void(self) -> bool;
     fn remove_inline_style_property(self, property: DOMString);
-    fn update_inline_style(self, property_decl: style::PropertyDeclaration, style_priority: StylePriority);
-    fn get_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration>;
-    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration>;
+    fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority);
+    fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
+    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration>;
 }
 
 impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
@@ -446,7 +449,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         self.extended_deref().attrs.borrow_mut()
     }
 
-    fn style_attribute(self) -> &'a DOMRefCell<Option<style::PropertyDeclarationBlock>> {
+    fn style_attribute(self) -> &'a DOMRefCell<Option<PropertyDeclarationBlock>> {
         &self.extended_deref().style_attribute
     }
 
@@ -503,7 +506,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         });
     }
 
-    fn update_inline_style(self, property_decl: style::PropertyDeclaration, style_priority: StylePriority) {
+    fn update_inline_style(self, property_decl: PropertyDeclaration, style_priority: StylePriority) {
         let mut inline_declarations = self.style_attribute().borrow_mut();
         if let &mut Some(ref mut declarations) = &mut *inline_declarations {
             let existing_declarations = if style_priority == StylePriority::Important {
@@ -528,13 +531,13 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
             (vec!(), vec!(property_decl))
         };
 
-        *inline_declarations = Some(style::PropertyDeclarationBlock {
+        *inline_declarations = Some(PropertyDeclarationBlock {
             important: Arc::new(important),
             normal: Arc::new(normal),
         });
     }
 
-    fn get_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration> {
+    fn get_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
         let inline_declarations = self.style_attribute.borrow();
         inline_declarations.as_ref().and_then(|declarations| {
             declarations.normal
@@ -545,7 +548,7 @@ impl<'a> ElementHelpers<'a> for JSRef<'a, Element> {
         })
     }
 
-    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<style::PropertyDeclaration> {
+    fn get_important_inline_style_declaration(self, property: &Atom) -> Option<PropertyDeclaration> {
         let inline_declarations = self.style_attribute.borrow();
         inline_declarations.as_ref().and_then(|declarations| {
             declarations.important
@@ -1117,7 +1120,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // http://dom.spec.whatwg.org/#dom-element-matches
     fn Matches(self, selectors: DOMString) -> Fallible<bool> {
-        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
                 let root: JSRef<Node> = NodeCast::from_ref(self);
@@ -1128,7 +1131,7 @@ impl<'a> ElementMethods for JSRef<'a, Element> {
 
     // https://dom.spec.whatwg.org/#dom-element-closest
     fn Closest(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
-        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             Err(()) => Err(Syntax),
             Ok(ref selectors) => {
                 let root: JSRef<Node> = NodeCast::from_ref(self);
@@ -1173,7 +1176,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 let doc = document_from_node(*self).root();
                 let base_url = doc.r().url().clone();
                 let value = attr.value();
-                let style = Some(style::parse_style_attribute(value.as_slice(), &base_url));
+                let style = Some(parse_style_attribute(value.as_slice(), &base_url));
                 *self.style_attribute.borrow_mut() = style;
 
                 if node.is_in_doc() {
@@ -1312,7 +1315,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
     }
 }
 
-impl<'a> style::TElement<'a> for JSRef<'a, Element> {
+impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
     #[allow(unsafe_blocks)]
     fn get_attr(self, namespace: &Namespace, attr: &Atom) -> Option<&'a str> {
         self.get_attribute(namespace.clone(), attr).root().map(|attr| {

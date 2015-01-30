@@ -4,6 +4,8 @@
 
 // This file is a Mako template: http://www.makotemplates.org/
 
+#![macro_use]
+
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::fmt;
@@ -20,9 +22,9 @@ use geom::SideOffsets2D;
 use values::specified::BorderStyle;
 use values::computed;
 use selector_matching::DeclarationBlock;
-use parser::ParserContext;
-use namespaces::NamespaceMap;
+use parser::{ParserContext, log_css_error};
 use stylesheets::Origin;
+use computed_values;
 
 use self::property_bit_field::PropertyBitField;
 
@@ -1805,7 +1807,9 @@ pub mod longhands {
     </%self:longhand>
 
     ${single_keyword("mix-blend-mode",
-                     "normal multiply screen overlay darken lighten color-dodge color-burn hard-light soft-light difference exclusion hue saturation color luminosity")}
+                     """normal multiply screen overlay darken lighten color-dodge
+                        color-burn hard-light soft-light difference exclusion hue
+                        saturation color luminosity""")}
 }
 
 
@@ -2325,57 +2329,65 @@ pub struct PropertyDeclarationBlock {
 
 
 pub fn parse_style_attribute(input: &str, base_url: &Url) -> PropertyDeclarationBlock {
-    let context = ParserContext {
-        stylesheet_origin: Origin::Author,
-        base_url: base_url,
-        namespaces: NamespaceMap::new(),
-    };
+    let context = ParserContext::new(Origin::Author, base_url);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
 
 struct PropertyDeclarationParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    important_declarations: Vec<PropertyDeclaration>,
-    normal_declarations: Vec<PropertyDeclaration>,
 }
 
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser<(), ()> for PropertyDeclarationParser<'a, 'b> {}
+impl<'a, 'b> AtRuleParser for PropertyDeclarationParser<'a, 'b> {
+    type Prelude = ();
+    type AtRule = (Vec<PropertyDeclaration>, bool);
+}
 
 
-impl<'a, 'b> DeclarationParser<()> for PropertyDeclarationParser<'a, 'b> {
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
+impl<'a, 'b> DeclarationParser for PropertyDeclarationParser<'a, 'b> {
+    type Declaration = (Vec<PropertyDeclaration>, bool);
+
+    fn parse_value(&self, name: &str, input: &mut Parser) -> Result<(Vec<PropertyDeclaration>, bool), ()> {
         let mut results = vec![];
-        let important = try!(input.parse_entirely(|input| {
-            match PropertyDeclaration::parse(name, self.context, input, &mut results) {
-                PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
-                _ => return Err(())
-            }
-            Ok(input.try(parse_important).is_ok())
-        }));
-        if important {
-            self.important_declarations.push_all(results.as_slice());
-        } else {
-            self.normal_declarations.push_all(results.as_slice());
+        match PropertyDeclaration::parse(name, self.context, input, &mut results) {
+            PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => {}
+            _ => return Err(())
         }
-        Ok(())
+        let important = input.try(parse_important).is_ok();
+        Ok((results, important))
     }
 }
 
 
 pub fn parse_property_declaration_list(context: &ParserContext, input: &mut Parser)
                                        -> PropertyDeclarationBlock {
+    let mut important_declarations = Vec::new();
+    let mut normal_declarations = Vec::new();
     let parser = PropertyDeclarationParser {
         context: context,
-        important_declarations: vec![],
-        normal_declarations: vec![],
     };
-    let parser = DeclarationListParser::new(input, parser).run();
+    let mut iter = DeclarationListParser::new(input, parser);
+    while let Some(declaration) = iter.next() {
+        match declaration {
+            Ok((results, important)) => {
+                if important {
+                    important_declarations.push_all(results.as_slice());
+                } else {
+                    normal_declarations.push_all(results.as_slice());
+                }
+            }
+            Err(range) => {
+                let message = format!("Unsupported property declaration: '{}'",
+                                      iter.input.slice(range));
+                log_css_error(iter.input, range.start, &*message);
+            }
+        }
+    }
     PropertyDeclarationBlock {
-        important: Arc::new(deduplicate_property_declarations(parser.important_declarations)),
-        normal: Arc::new(deduplicate_property_declarations(parser.normal_declarations)),
+        important: Arc::new(deduplicate_property_declarations(important_declarations)),
+        normal: Arc::new(deduplicate_property_declarations(normal_declarations)),
     }
 }
 
@@ -2622,43 +2634,43 @@ impl ComputedValues {
     }
 
     #[inline]
-    pub fn content_inline_size(&self) -> computed_values::LengthOrPercentageOrAuto {
+    pub fn content_inline_size(&self) -> computed::LengthOrPercentageOrAuto {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.height } else { box_style.width }
     }
 
     #[inline]
-    pub fn content_block_size(&self) -> computed_values::LengthOrPercentageOrAuto {
+    pub fn content_block_size(&self) -> computed::LengthOrPercentageOrAuto {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.width } else { box_style.height }
     }
 
     #[inline]
-    pub fn min_inline_size(&self) -> computed_values::LengthOrPercentage {
+    pub fn min_inline_size(&self) -> computed::LengthOrPercentage {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.min_height } else { box_style.min_width }
     }
 
     #[inline]
-    pub fn min_block_size(&self) -> computed_values::LengthOrPercentage {
+    pub fn min_block_size(&self) -> computed::LengthOrPercentage {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.min_width } else { box_style.min_height }
     }
 
     #[inline]
-    pub fn max_inline_size(&self) -> computed_values::LengthOrPercentageOrNone {
+    pub fn max_inline_size(&self) -> computed::LengthOrPercentageOrNone {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.max_height } else { box_style.max_width }
     }
 
     #[inline]
-    pub fn max_block_size(&self) -> computed_values::LengthOrPercentageOrNone {
+    pub fn max_block_size(&self) -> computed::LengthOrPercentageOrNone {
         let box_style = self.get_box();
         if self.writing_mode.is_vertical() { box_style.max_width } else { box_style.max_height }
     }
 
     #[inline]
-    pub fn logical_padding(&self) -> LogicalMargin<computed_values::LengthOrPercentage> {
+    pub fn logical_padding(&self) -> LogicalMargin<computed::LengthOrPercentage> {
         let padding_style = self.get_padding();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             padding_style.padding_top,
@@ -2680,7 +2692,7 @@ impl ComputedValues {
     }
 
     #[inline]
-    pub fn logical_margin(&self) -> LogicalMargin<computed_values::LengthOrPercentageOrAuto> {
+    pub fn logical_margin(&self) -> LogicalMargin<computed::LengthOrPercentageOrAuto> {
         let margin_style = self.get_margin();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             margin_style.margin_top,
@@ -2691,7 +2703,7 @@ impl ComputedValues {
     }
 
     #[inline]
-    pub fn logical_position(&self) -> LogicalMargin<computed_values::LengthOrPercentageOrAuto> {
+    pub fn logical_position(&self) -> LogicalMargin<computed::LengthOrPercentageOrAuto> {
         // FIXME(SimonSapin): should be the writing mode of the containing block, maybe?
         let position_style = self.get_positionoffsets();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
@@ -3162,6 +3174,17 @@ macro_rules! css_properties_accessors {
     }
 }
 
+
+macro_rules! longhand_properties_idents {
+    ($macro_name: ident) => {
+        $macro_name! {
+            % for property in LONGHANDS:
+                ${property.ident}
+            % endfor
+        }
+    }
+}
+
 pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
     match shorthand {
         % for property in SHORTHANDS:
@@ -3173,19 +3196,4 @@ pub fn longhands_from_shorthand(shorthand: &str) -> Option<Vec<String>> {
         % endfor
         _ => None,
     }
-}
-
-// Only re-export the types for computed values.
-pub mod computed_values {
-    % for property in LONGHANDS:
-        pub use super::longhands::${property.ident}::computed_value as ${property.ident};
-    % endfor
-    // Don't use a side-specific name needlessly:
-    pub use super::longhands::border_top_style::computed_value as border_style;
-
-    pub use cssparser::RGBA;
-    pub use values::computed::{
-        LengthOrPercentage,
-        LengthOrPercentageOrAuto,
-        LengthOrPercentageOrNone};
 }

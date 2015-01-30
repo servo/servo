@@ -16,7 +16,7 @@ use util::geometry::Au;
 use std::any::Any;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::boxed::BoxAny;
-use style::Stylesheet;
+use style::stylesheets::Stylesheet;
 use url::Url;
 
 pub use dom::node::TrustedNodeAddress;

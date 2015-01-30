@@ -6,10 +6,10 @@ use cssparser::{Token, Parser, DeclarationListParser, AtRuleParser, DeclarationP
 use std::ascii::AsciiExt;
 use stylesheets::CSSRule;
 use properties::longhands::font_family::parse_one_family;
-use properties::computed_values::font_family::FontFamily;
+use computed_values::font_family::FontFamily;
 use media_queries::Device;
 use url::{Url, UrlParser};
-use parser::ParserContext;
+use parser::{ParserContext, log_css_error};
 
 
 pub fn iter_font_face_rules_inner<F>(rules: &[CSSRule], device: &Device,
@@ -52,13 +52,26 @@ pub struct FontFaceRule {
 
 pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
                              -> Result<FontFaceRule, ()> {
-    let parser = FontFaceRuleParser {
-        context: context,
-        family: None,
-        src: None,
-    };
-    match DeclarationListParser::new(input, parser).run() {
-        FontFaceRuleParser { family: Some(family), src: Some(src), .. } => {
+    let mut family = None;
+    let mut src = None;
+    let mut iter = DeclarationListParser::new(input, FontFaceRuleParser { context: context });
+    while let Some(declaration) = iter.next() {
+        match declaration {
+            Err(range) => {
+                let message = format!("Unsupported @font-face descriptor declaration: '{}'",
+                                      iter.input.slice(range));
+                log_css_error(iter.input, range.start, &*message);
+            }
+            Ok(FontFaceDescriptorDeclaration::Family(value)) => {
+                family = Some(value);
+            }
+            Ok(FontFaceDescriptorDeclaration::Src(value)) => {
+                src = Some(value);
+            }
+        }
+    }
+    match (family, src) {
+        (Some(family), Some(src)) => {
             Ok(FontFaceRule {
                 family: family,
                 sources: src,
@@ -68,30 +81,36 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
     }
 }
 
+enum FontFaceDescriptorDeclaration {
+    Family(String),
+    Src(Vec<Source>),
+}
+
 
 struct FontFaceRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
-    family: Option<String>,
-    src: Option<Vec<Source>>,
 }
 
 
 /// Default methods reject all at rules.
-impl<'a, 'b> AtRuleParser<(), ()> for FontFaceRuleParser<'a, 'b> {}
+impl<'a, 'b> AtRuleParser for FontFaceRuleParser<'a, 'b> {
+    type Prelude = ();
+    type AtRule = FontFaceDescriptorDeclaration;
+}
 
 
-impl<'a, 'b> DeclarationParser<()> for FontFaceRuleParser<'a, 'b> {
-    fn parse_value(&mut self, name: &str, input: &mut Parser) -> Result<(), ()> {
+impl<'a, 'b> DeclarationParser for FontFaceRuleParser<'a, 'b> {
+    type Declaration = FontFaceDescriptorDeclaration;
+
+    fn parse_value(&self, name: &str, input: &mut Parser) -> Result<FontFaceDescriptorDeclaration, ()> {
         match_ignore_ascii_case! { name,
             "font-family" => {
-                self.family = Some(try!(parse_one_non_generic_family_name(input)));
-                Ok(())
+                Ok(FontFaceDescriptorDeclaration::Family(try!(parse_one_non_generic_family_name(input))))
             },
             "src" => {
-                self.src = Some(try!(input.parse_comma_separated(|input| {
+                Ok(FontFaceDescriptorDeclaration::Src(try!(input.parse_comma_separated(|input| {
                     parse_one_src(self.context, input)
-                })));
-                Ok(())
+                }))))
             }
             _ => Err(())
         }

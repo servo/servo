@@ -56,7 +56,7 @@ use std::mem;
 use std::sync::atomic::Ordering;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
-use style::{self, ComputedValues};
+use style::properties::{ComputedValues, make_inline};
 use std::sync::Arc;
 use url::Url;
 
@@ -707,7 +707,7 @@ impl<'a> FlowConstructor<'a> {
         // `baz` had better not be absolutely positioned!
         let mut style = (*node.style()).clone();
         if style.get_box().display != display::T::inline {
-            style = Arc::new(style::make_inline(&*style))
+            style = Arc::new(make_inline(&*style))
         }
 
         // If this is generated content, then we need to initialize the accumulator with the

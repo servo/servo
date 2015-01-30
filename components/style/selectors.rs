@@ -12,7 +12,6 @@ use string_cache::{Atom, Namespace};
 use url::Url;
 
 use parser::ParserContext;
-use namespaces::NamespaceMap;
 use stylesheets::Origin;
 
 
@@ -112,17 +111,6 @@ pub enum NamespaceConstraint {
 }
 
 
-/// Re-exported to script, but opaque.
-pub struct SelectorList {
-    selectors: Vec<Selector>
-}
-
-/// Public to the style crate, but not re-exported to script
-pub fn get_selector_list_selectors<'a>(selector_list: &'a SelectorList) -> &'a [Selector] {
-    selector_list.selectors.as_slice()
-}
-
-
 fn compute_specificity(mut selector: &CompoundSelector,
                        pseudo_element: &Option<PseudoElement>) -> u32 {
     struct Specificity {
@@ -194,15 +182,10 @@ fn compute_specificity(mut selector: &CompoundSelector,
 
 
 
-pub fn parse_author_origin_selector_list_from_str(input: &str)
-                                    -> Result<SelectorList,()> {
-    let context = ParserContext {
-        stylesheet_origin: Origin::Author,
-        namespaces: NamespaceMap::new(),
-        base_url: &Url::parse("about:blank").unwrap(),
-    };
+pub fn parse_author_origin_selector_list_from_str(input: &str) -> Result<Vec<Selector>, ()> {
+    let url = Url::parse("about:blank").unwrap();
+    let context = ParserContext::new(Origin::Author, &url);
     parse_selector_list(&context, &mut Parser::new(input))
-    .map(|s| SelectorList { selectors: s })
 }
 
 /// Parse a comma-separated list of Selectors.
@@ -647,7 +630,6 @@ fn parse_pseudo_element(name: &str) -> Result<PseudoElement, ()> {
 mod tests {
     use std::sync::Arc;
     use cssparser::Parser;
-    use namespaces::NamespaceMap;
     use stylesheets::Origin;
     use string_cache::Atom;
     use parser::ParserContext;
@@ -655,16 +637,11 @@ mod tests {
     use super::*;
 
     fn parse(input: &str) -> Result<Vec<Selector>, ()> {
-        parse_ns(input, NamespaceMap::new())
+        parse_ns(input, &ParserContext::new(Origin::Author, &Url::parse("about:blank").unwrap()))
     }
 
-    fn parse_ns(input: &str, namespaces: NamespaceMap) -> Result<Vec<Selector>, ()> {
-        let context = ParserContext {
-            stylesheet_origin: Origin::Author,
-            namespaces: namespaces,
-            base_url: &Url::parse("about:blank").unwrap(),
-        };
-        parse_selector_list(&context, &mut Parser::new(input))
+    fn parse_ns(input: &str, context: &ParserContext) -> Result<Vec<Selector>, ()> {
+        parse_selector_list(context, &mut Parser::new(input))
     }
 
     fn specificity(a: u32, b: u32, c: u32) -> u32 {
@@ -728,8 +705,9 @@ mod tests {
         })));
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
-        let mut namespaces = NamespaceMap::new();
-        assert_eq!(parse_ns("[Foo]", namespaces.clone()), Ok(vec!(Selector {
+        let url = Url::parse("about:blank").unwrap();
+        let mut context = ParserContext::new(Origin::Author, &url);
+        assert_eq!(parse_ns("[Foo]", &context), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::AttrExists(AttrSelector {
                     name: Atom::from_slice("Foo"),
@@ -743,8 +721,8 @@ mod tests {
         })));
         // Default namespace does not apply to attribute selectors
         // https://github.com/mozilla/servo/pull/1652
-        namespaces.default = Some(ns!(MathML));
-        assert_eq!(parse_ns("[Foo]", namespaces.clone()), Ok(vec!(Selector {
+        context.namespaces.default = Some(ns!(MathML));
+        assert_eq!(parse_ns("[Foo]", &context), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(SimpleSelector::AttrExists(AttrSelector {
                     name: Atom::from_slice("Foo"),
@@ -757,7 +735,7 @@ mod tests {
             specificity: specificity(0, 1, 0),
         })));
         // Default namespace does apply to type selectors
-        assert_eq!(parse_ns("e", namespaces), Ok(vec!(Selector {
+        assert_eq!(parse_ns("e", &context), Ok(vec!(Selector {
             compound_selectors: Arc::new(CompoundSelector {
                 simple_selectors: vec!(
                     SimpleSelector::Namespace(ns!(MathML)),
