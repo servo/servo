@@ -95,7 +95,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     shutdown_state: ShutdownState,
 
     /// Tracks outstanding paint_msg's sent to the paint tasks.
-    outstanding_paint_msgs: uint,
+    outstanding_paint_msgs: usize,
 
     /// Tracks the last composite time.
     last_composite_time: u64,
@@ -455,7 +455,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.has_paint_msg_tracking() && self.outstanding_paint_msgs > 0
     }
 
-    fn add_outstanding_paint_msg(&mut self, count: uint) {
+    fn add_outstanding_paint_msg(&mut self, count: usize) {
         // return early if not tracking paint_msg's
         if !self.has_paint_msg_tracking() {
             return;
