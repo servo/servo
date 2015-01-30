@@ -1795,14 +1795,14 @@ class CGAbstractMethod(CGThing):
         assert(False) # Override me!
 
 def CreateBindingJSObject(descriptor, parent=None):
-    create = "let mut raw: JS<%s> = JS::from_raw(&*aObject);\n" % descriptor.concreteType
+    create = "let mut raw: JS<%s> = JS::from_raw(&*object);\n" % descriptor.concreteType
     if descriptor.proxy:
         assert not descriptor.isGlobal()
         create += """
 let handler = RegisterBindings::proxy_handlers[PrototypeList::Proxies::%s as uint];
-let mut private = PrivateValue(squirrel_away_unique(aObject) as *const libc::c_void);
-let obj = with_compartment(aCx, proto, || {
-    NewProxyObject(aCx, handler,
+let mut private = PrivateValue(squirrel_away_unique(object) as *const libc::c_void);
+let obj = with_compartment(cx, proto, || {
+    NewProxyObject(cx, handler,
                    &private,
                    proto, %s,
                    ptr::null_mut(), ptr::null_mut())
@@ -1811,16 +1811,16 @@ assert!(!obj.is_null());\
 """ % (descriptor.name, parent)
     else:
         if descriptor.isGlobal():
-            create += "let obj = create_dom_global(aCx, &Class.base as *const js::Class as *const JSClass);\n"
+            create += "let obj = create_dom_global(cx, &Class.base as *const js::Class as *const JSClass);\n"
         else:
-            create += ("let obj = with_compartment(aCx, proto, || {\n"
-                       "    JS_NewObject(aCx, &Class.base as *const js::Class as *const JSClass, &*proto, &*%s)\n"
+            create += ("let obj = with_compartment(cx, proto, || {\n"
+                       "    JS_NewObject(cx, &Class.base as *const js::Class as *const JSClass, &*proto, &*%s)\n"
                        "});\n" % parent)
         create += """\
 assert!(!obj.is_null());
 
 JS_SetReservedSlot(obj, DOM_OBJECT_SLOT as u32,
-                   PrivateValue(squirrel_away_unique(aObject) as *const libc::c_void));"""
+                   PrivateValue(squirrel_away_unique(object) as *const libc::c_void));"""
     return create
 
 class CGWrapMethod(CGAbstractMethod):
@@ -1831,22 +1831,22 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert not descriptor.interface.isCallback()
         if not descriptor.isGlobal():
-            args = [Argument('*mut JSContext', 'aCx'), Argument('GlobalRef', 'aScope'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
+            args = [Argument('*mut JSContext', 'cx'), Argument('GlobalRef', 'scope'),
+                    Argument("Box<%s>" % descriptor.concreteType, 'object', mutable=True)]
         else:
-            args = [Argument('*mut JSContext', 'aCx'),
-                    Argument("Box<%s>" % descriptor.concreteType, 'aObject', mutable=True)]
+            args = [Argument('*mut JSContext', 'cx'),
+                    Argument("Box<%s>" % descriptor.concreteType, 'object', mutable=True)]
         retval = 'Temporary<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args, pub=True)
 
     def definition_body(self):
         if not self.descriptor.isGlobal():
             return CGGeneric("""\
-let scope = aScope.reflector().get_jsobject();
+let scope = scope.reflector().get_jsobject();
 assert!(!scope.is_null());
 assert!(((*JS_GetClass(scope)).flags & JSCLASS_IS_GLOBAL) != 0);
 
-let proto = with_compartment(aCx, scope, || GetProtoObject(aCx, scope, scope));
+let proto = with_compartment(cx, scope, || GetProtoObject(cx, scope, scope));
 assert!(!proto.is_null());
 
 %s
@@ -1857,13 +1857,13 @@ Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor, "scope"))
         else:
             return CGGeneric("""\
 %s
-with_compartment(aCx, obj, || {
-    let proto = GetProtoObject(aCx, obj, obj);
-    JS_SetPrototype(aCx, obj, proto);
+with_compartment(cx, obj, || {
+    let proto = GetProtoObject(cx, obj, obj);
+    JS_SetPrototype(cx, obj, proto);
 
     raw.reflector().set_jsobject(obj);
 
-    RegisterBindings::Register(aCx, obj);
+    RegisterBindings::Register(cx, obj);
 });
 
 Temporary::new(raw)""" % CreateBindingJSObject(self.descriptor))
