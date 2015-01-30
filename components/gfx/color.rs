@@ -21,3 +21,24 @@ pub fn rgb(r: u8, g: u8, b: u8) -> AzColor {
 pub fn rgba(r: AzFloat, g: AzFloat, b: AzFloat, a: AzFloat) -> AzColor {
     AzColor { r: r, g: g, b: b, a: a }
 }
+
+#[inline]
+impl PartialEq for Color {
+    fn eq(&self, other: &Color) -> bool {
+        if self.r != other.r || self.g != other.g || self.b != other.b || self.a != other.a {
+            return false;
+        }
+        return true;
+    }
+}
+
+#[inline]
+pub fn black() -> AzColor {
+    AzColor { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }
+}
+
+#[inline]
+pub fn white() -> AzColor {
+    AzColor { r: 1.0, g: 1.0, b: 1.0, a: 1.0 }
+}
+
