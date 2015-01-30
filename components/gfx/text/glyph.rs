@@ -723,7 +723,7 @@ impl<'a> GlyphStore {
         for index in range.each_index() {
             // TODO(pcwalton): Handle spaces that are detailed glyphs -- these are uncommon but
             // possible.
-            let mut entry = &mut self.entry_buffer[index.to_uint()];
+            let entry = &mut self.entry_buffer[index.to_uint()];
             if entry.is_simple() && entry.char_is_space() {
                 // FIXME(pcwalton): This can overflow for very large font-sizes.
                 let advance =

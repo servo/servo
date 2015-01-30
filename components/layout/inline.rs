@@ -547,7 +547,7 @@ impl LineBreaker {
     /// Tries to append the given fragment to the line, splitting it if necessary. Returns true if
     /// we successfully pushed the fragment to the line or false if we couldn't.
     fn append_fragment_to_line_if_possible(&mut self,
-                                           mut fragment: Fragment,
+                                           fragment: Fragment,
                                            flow: &InlineFlow,
                                            layout_context: &LayoutContext,
                                            flags: InlineReflowFlags)
@@ -623,12 +623,12 @@ impl LineBreaker {
         // Push the first fragment onto the line we're working on and start off the next line with
         // the second fragment. If there's no second fragment, the next line will start off empty.
         match (inline_start_fragment, inline_end_fragment) {
-            (Some(inline_start_fragment), Some(mut inline_end_fragment)) => {
+            (Some(inline_start_fragment), Some(inline_end_fragment)) => {
                 self.push_fragment_to_line(layout_context, inline_start_fragment);
                 self.flush_current_line();
                 self.work_list.push_front(inline_end_fragment)
             },
-            (Some(mut fragment), None) => {
+            (Some(fragment), None) => {
                 self.push_fragment_to_line(layout_context, fragment);
             }
             (None, Some(_)) => debug_assert!(false, "un-normalized split result"),
