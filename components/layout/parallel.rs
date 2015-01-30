@@ -23,7 +23,7 @@ use servo_util::time::{TimeProfilerCategory, ProfilerMetadata, TimeProfilerChan,
 use servo_util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 use std::mem;
 use std::ptr;
-use std::sync::atomic::{AtomicInt, Ordering};
+use std::sync::atomic::{AtomicIsize, Ordering};
 
 #[allow(dead_code)]
 fn static_assertion(node: UnsafeLayoutNode) {
@@ -33,7 +33,7 @@ fn static_assertion(node: UnsafeLayoutNode) {
 }
 
 /// Vtable + pointer representation of a Flow trait object.
-pub type UnsafeFlow = (uint, uint);
+pub type UnsafeFlow = (usize, usize);
 
 fn null_unsafe_flow() -> UnsafeFlow {
     (0, 0)
@@ -66,13 +66,13 @@ pub fn mut_borrowed_flow_to_unsafe_flow(flow: &mut Flow) -> UnsafeFlow {
 /// Information that we need stored in each DOM node.
 pub struct DomParallelInfo {
     /// The number of children that still need work done.
-    pub children_count: AtomicInt,
+    pub children_count: AtomicIsize,
 }
 
 impl DomParallelInfo {
     pub fn new() -> DomParallelInfo {
         DomParallelInfo {
-            children_count: AtomicInt::new(0),
+            children_count: AtomicIsize::new(0),
         }
     }
 }
@@ -108,7 +108,7 @@ pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
         {
             let mut layout_data_ref = node.mutate_layout_data();
             let layout_data = layout_data_ref.as_mut().expect("no layout data");
-            layout_data.data.parallel.children_count.store(child_count as int, Ordering::Relaxed);
+            layout_data.data.parallel.children_count.store(child_count as isize, Ordering::Relaxed);
         }
 
         // Possibly enqueue the children.
@@ -187,7 +187,7 @@ trait ParallelPostorderDomTraversal : PostorderDomTraversal {
 /// Information that we need stored in each flow.
 pub struct FlowParallelInfo {
     /// The number of children that still need work done.
-    pub children_count: AtomicInt,
+    pub children_count: AtomicIsize,
     /// The address of the parent flow.
     pub parent: UnsafeFlow,
 }
@@ -195,7 +195,7 @@ pub struct FlowParallelInfo {
 impl FlowParallelInfo {
     pub fn new() -> FlowParallelInfo {
         FlowParallelInfo {
-            children_count: AtomicInt::new(0),
+            children_count: AtomicIsize::new(0),
             parent: null_unsafe_flow(),
         }
     }
@@ -231,7 +231,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                 let base = flow::mut_base(&mut **flow);
 
                 // Reset the count of children for the next layout traversal.
-                base.parallel.children_count.store(base.children.len() as int, Ordering::Relaxed);
+                base.parallel.children_count.store(base.children.len() as isize, Ordering::Relaxed);
 
                 // Possibly enqueue the parent.
                 let unsafe_parent = base.parallel.parent;

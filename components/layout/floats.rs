@@ -153,7 +153,7 @@ impl Floats {
         }
     }
 
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         self.list.floats.len()
     }
 

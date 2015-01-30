@@ -77,7 +77,7 @@ pub struct SharedLayoutContext {
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
-    pub generation: uint,
+    pub generation: usize,
 }
 
 pub struct SharedLayoutContextWrapper(pub *const SharedLayoutContext);
