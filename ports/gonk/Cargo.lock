@@ -533,7 +533,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "png"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-png#2804379427ced963466d19132b816bb06a8a4006"
+source = "git+https://github.com/servo/rust-png#ade2143c96641abdaedd8bc556f45935d18c35df"
 dependencies = [
  "gcc 0.1.4 (git+https://github.com/alexcrichton/gcc-rs)",
  "png-sys 1.6.16 (git+https://github.com/servo/rust-png)",
@@ -542,7 +542,7 @@ dependencies = [
 [[package]]
 name = "png-sys"
 version = "1.6.16"
-source = "git+https://github.com/servo/rust-png#2804379427ced963466d19132b816bb06a8a4006"
+source = "git+https://github.com/servo/rust-png#ade2143c96641abdaedd8bc556f45935d18c35df"
 
 [[package]]
 name = "regex"
