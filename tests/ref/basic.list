@@ -241,3 +241,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == mix_blend_mode_a.html mix_blend_mode_ref.html
 != text_overflow_a.html text_overflow_ref.html
 == floated_list_item_a.html floated_list_item_ref.html
+== text_align_justify_a.html text_align_justify_ref.html
+== text_justify_none_a.html text_justify_none_ref.html
+== text_overflow_basic_a.html text_overflow_basic_ref.html
+== text_align_complex_a.html text_align_complex_ref.html

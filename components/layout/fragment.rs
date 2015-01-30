@@ -598,9 +598,10 @@ pub struct SplitInfo {
 
 impl SplitInfo {
     fn new(range: Range<CharIndex>, info: &ScannedTextFragmentInfo) -> SplitInfo {
+        let inline_size = info.run.advance_for_range(&range);
         SplitInfo {
             range: range,
-            inline_size: info.run.advance_for_range(&range),
+            inline_size: inline_size,
         }
     }
 }
@@ -1169,7 +1170,9 @@ impl Fragment {
     pub fn inline_start_offset(&self) -> Au {
         match self.specific {
             SpecificFragmentInfo::TableWrapper => self.margin.inline_start,
-            SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell | SpecificFragmentInfo::TableRow => self.border_padding.inline_start,
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableRow => self.border_padding.inline_start,
             SpecificFragmentInfo::TableColumn(_) => Au(0),
             _ => self.margin.inline_start + self.border_padding.inline_start,
         }
@@ -1208,9 +1211,12 @@ impl Fragment {
     pub fn compute_intrinsic_inline_sizes(&mut self) -> IntrinsicISizesContribution {
         let mut result = self.style_specified_intrinsic_inline_size();
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) |
-            SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableColumn(_) | SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableColumn(_) |
+            SpecificFragmentInfo::TableRow |
             SpecificFragmentInfo::TableWrapper |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => {}
             SpecificFragmentInfo::InlineBlock(ref mut info) => {
@@ -1274,8 +1280,13 @@ impl Fragment {
     /// TODO: What exactly does this function return? Why is it Au(0) for SpecificFragmentInfo::Generic?
     pub fn content_inline_size(&self) -> Au {
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper | SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper |
+            SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => Au(0),
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 canvas_fragment_info.replaced_image_fragment_info.computed_inline_size()
@@ -1288,16 +1299,25 @@ impl Fragment {
                 let text_bounds = run.metrics_for_range(range).bounding_box;
                 text_bounds.size.width
             }
-            SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not have inline_size"),
-            SpecificFragmentInfo::UnscannedText(_) => panic!("Unscanned text fragments should have been scanned by now!"),
+            SpecificFragmentInfo::TableColumn(_) => {
+                panic!("Table column fragments do not have inline_size")
+            }
+            SpecificFragmentInfo::UnscannedText(_) => {
+                panic!("Unscanned text fragments should have been scanned by now!")
+            }
         }
     }
 
     /// Returns, and computes, the block-size of this fragment.
     pub fn content_block_size(&self, layout_context: &LayoutContext) -> Au {
         match self.specific {
-            SpecificFragmentInfo::Generic | SpecificFragmentInfo::Iframe(_) | SpecificFragmentInfo::Table | SpecificFragmentInfo::TableCell |
-            SpecificFragmentInfo::TableRow | SpecificFragmentInfo::TableWrapper | SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper |
+            SpecificFragmentInfo::InlineBlock(_) |
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) => Au(0),
             SpecificFragmentInfo::Image(ref image_fragment_info) => {
                 image_fragment_info.replaced_image_fragment_info.computed_block_size()
@@ -1309,8 +1329,12 @@ impl Fragment {
                 // Compute the block-size based on the line-block-size and font size.
                 self.calculate_line_height(layout_context)
             }
-            SpecificFragmentInfo::TableColumn(_) => panic!("Table column fragments do not have block_size"),
-            SpecificFragmentInfo::UnscannedText(_) => panic!("Unscanned text fragments should have been scanned by now!"),
+            SpecificFragmentInfo::TableColumn(_) => {
+                panic!("Table column fragments do not have block_size")
+            }
+            SpecificFragmentInfo::UnscannedText(_) => {
+                panic!("Unscanned text fragments should have been scanned by now!")
+            }
         }
     }
 
@@ -1463,7 +1487,8 @@ impl Fragment {
                                                               max_inline_size: Au,
                                                               flags: SplitOptions)
                                                               -> Option<SplitResult>
-                                                              where I: Iterator<Item=TextRunSlice<'a>> {
+                                                              where I: Iterator<Item=
+                                                                                TextRunSlice<'a>> {
         let text_fragment_info =
             if let SpecificFragmentInfo::ScannedText(ref text_fragment_info) = self.specific {
                 text_fragment_info
@@ -1475,6 +1500,7 @@ impl Fragment {
         let mut remaining_inline_size = max_inline_size;
         let mut inline_start_range = Range::new(text_fragment_info.range.begin(), CharIndex(0));
         let mut inline_end_range = None;
+        let mut overflowing = false;
 
         debug!("calculate_split_position: splitting text fragment (strlen={}, range={:?}, \
                 max_inline_size={:?})",
@@ -1508,12 +1534,23 @@ impl Fragment {
                 continue
             }
 
-            // The advance is more than the remaining inline-size, so split here.
-            let slice_begin = slice.text_run_range().begin();
+            // The advance is more than the remaining inline-size, so split here. First, check to
+            // see if we're going to overflow the line. If so, perform a best-effort split.
+            let mut remaining_range = slice.text_run_range();
+            if inline_start_range.is_empty() {
+                // We're going to overflow the line.
+                overflowing = true;
+                inline_start_range = slice.text_run_range();
+                remaining_range = Range::new(slice.text_run_range().end(), CharIndex(0));
+                remaining_range.extend_to(text_fragment_info.range.end());
+            }
+
+            // Check to see if we need to create an inline-end chunk.
+            let slice_begin = remaining_range.begin();
             if slice_begin < text_fragment_info.range.end() {
                 // There still some things left over at the end of the line, so create the
                 // inline-end chunk.
-                let mut inline_end = slice.text_run_range();
+                let mut inline_end = remaining_range;
                 inline_end.extend_to(text_fragment_info.range.end());
                 inline_end_range = Some(inline_end);
                 debug!("calculate_split_position: splitting remainder with inline-end range={:?}",
@@ -1525,8 +1562,7 @@ impl Fragment {
         }
 
         // If we failed to find a suitable split point, we're on the verge of overflowing the line.
-        let inline_start_is_some = inline_start_range.length() > CharIndex(0);
-        if pieces_processed_count == 1 || !inline_start_is_some {
+        if inline_start_range.is_empty() || overflowing {
             // If we've been instructed to retry at character boundaries (probably via
             // `overflow-wrap: break-word`), do so.
             if flags.contains(RETRY_AT_CHARACTER_BOUNDARIES) {
@@ -1547,7 +1583,38 @@ impl Fragment {
             }
         }
 
-        let inline_start = if inline_start_is_some {
+        // Remove trailing whitespace from the inline-start split, if necessary.
+        //
+        // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
+        strip_trailing_whitespace(&**text_fragment_info.run, &mut inline_start_range);
+
+        // Remove leading whitespace from the inline-end split, if necessary.
+        //
+        // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
+        if let Some(ref mut inline_end_range) = inline_end_range {
+            let inline_end_fragment_text =
+                text_fragment_info.run.text.slice_chars(inline_end_range.begin().to_uint(),
+                                                        inline_end_range.end().to_uint());
+            let mut leading_whitespace_character_count = 0i;
+            for ch in inline_end_fragment_text.chars() {
+                if ch.is_whitespace() {
+                    leading_whitespace_character_count += 1
+                } else {
+                    break
+                }
+            }
+            inline_end_range.adjust_by(CharIndex(leading_whitespace_character_count),
+                                       -CharIndex(leading_whitespace_character_count));
+        }
+
+        // Normalize our split so that the inline-end fragment will never be `Some` while the
+        // inline-start fragment is `None`.
+        if inline_start_range.is_empty() && inline_end_range.is_some() {
+            inline_start_range = inline_end_range.unwrap();
+            inline_end_range = None
+        }
+
+        let inline_start = if !inline_start_range.is_empty() {
             Some(SplitInfo::new(inline_start_range, &**text_fragment_info))
         } else {
             None
@@ -1561,6 +1628,24 @@ impl Fragment {
             inline_end: inline_end,
             text_run: text_fragment_info.run.clone(),
         })
+    }
+
+    /// Attempts to strip trailing whitespace from this fragment by adjusting the text run range.
+    /// Returns true if any modifications were made.
+    pub fn strip_trailing_whitespace_if_necessary(&mut self) -> bool {
+        let text_fragment_info =
+            if let SpecificFragmentInfo::ScannedText(ref mut text_fragment_info) = self.specific {
+                text_fragment_info
+            } else {
+                return false
+            };
+
+        let run = text_fragment_info.run.clone();
+        if strip_trailing_whitespace(&**run, &mut text_fragment_info.range) {
+            self.border_box.size.inline = run.advance_for_range(&text_fragment_info.range);
+            return true
+        }
+        false
     }
 
     /// Returns true if this fragment is an unscanned text fragment that consists entirely of
@@ -1980,5 +2065,27 @@ pub enum CoordinateSystem {
     Parent,
     /// The border box returned is relative to the fragment's own stacking context, if applicable.
     Self,
+}
+
+/// Given a range and a text run, adjusts the range to eliminate trailing whitespace. Returns true
+/// if any modifications were made.
+fn strip_trailing_whitespace(text_run: &TextRun, range: &mut Range<CharIndex>) -> bool {
+    // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
+    let text = text_run.text.slice_chars(range.begin().to_uint(), range.end().to_uint());
+    let mut trailing_whitespace_character_count = 0i;
+    for ch in text.chars().rev() {
+        if ch.is_whitespace() {
+            trailing_whitespace_character_count += 1
+        } else {
+            break
+        }
+    }
+
+    if trailing_whitespace_character_count == 0 {
+        return false
+    }
+
+    range.extend_by(-CharIndex(trailing_whitespace_character_count));
+    return true
 }
 
