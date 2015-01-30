@@ -22,10 +22,10 @@ use servo_util::range::Range;
 use servo_util::smallvec::{SmallVec, SmallVec1};
 use std::collections::DList;
 use std::mem;
-use style::ComputedValues;
 use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
 use style::computed_values::{white_space};
-use style::style_structs::Font as FontStyle;
+use style::properties::ComputedValues;
+use style::properties::style_structs::Font as FontStyle;
 use std::sync::Arc;
 
 /// A stack-allocated object for scanning an inline flow into `TextRun`-containing `TextFragment`s.

@@ -19,8 +19,12 @@ use std::mem;
 use std::hash::{Hash, Hasher, Writer};
 use std::slice::Iter;
 use string_cache::{Atom, Namespace};
-use style::{self, PseudoElement, ComputedValues, DeclarationBlock, Stylist, TElement, TNode};
-use style::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes, cascade};
+use style::selectors::PseudoElement;
+use style::selector_matching::{Stylist, DeclarationBlock};
+use style::node::{TElement, TNode};
+use style::properties::{ComputedValues, cascade};
+use style::selector_matching::{CommonStyleAffectingAttributeMode, CommonStyleAffectingAttributes};
+use style::selector_matching::{common_style_affecting_attributes, rare_style_affecting_attributes};
 use std::sync::Arc;
 
 pub struct ApplicableDeclarations {
@@ -156,7 +160,7 @@ pub struct StyleSharingCandidateCache {
 fn create_common_style_affecting_attributes_from_element(element: &LayoutElement)
                                                          -> CommonStyleAffectingAttributes {
     let mut flags = CommonStyleAffectingAttributes::empty();
-    for attribute_info in style::common_style_affecting_attributes().iter() {
+    for attribute_info in common_style_affecting_attributes().iter() {
         match attribute_info.mode {
             CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                 if element.get_attr(&ns!(""), &attribute_info.atom).is_some() {
@@ -276,7 +280,7 @@ impl StyleSharingCandidate {
         // FIXME(pcwalton): It's probably faster to iterate over all the element's attributes and
         // use the {common, rare}-style-affecting-attributes tables as lookup tables.
 
-        for attribute_info in style::common_style_affecting_attributes().iter() {
+        for attribute_info in common_style_affecting_attributes().iter() {
             match attribute_info.mode {
                 CommonStyleAffectingAttributeMode::IsPresent(flag) => {
                     if self.common_style_affecting_attributes.contains(flag) !=
@@ -303,7 +307,7 @@ impl StyleSharingCandidate {
             }
         }
 
-        for attribute_name in style::rare_style_affecting_attributes().iter() {
+        for attribute_name in rare_style_affecting_attributes().iter() {
             if element.get_attr(&ns!(""), attribute_name).is_some() {
                 return false
             }

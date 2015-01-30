@@ -3,7 +3,7 @@ name = "style"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 
-build = "make -f makefile.cargo"
+build = "build.rs"
 
 [lib]
 name = "style"
@@ -35,3 +35,4 @@ text_writer = "0.1.1"
 encoding = "0.2"
 matches = "0.1"
 url = "*"
+mod_path = "0.1"

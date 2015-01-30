@@ -65,9 +65,11 @@ use std::ops::{Deref, DerefMut};
 use std::sync::mpsc::{channel, Sender, Receiver, Select};
 use std::mem;
 use std::ptr;
+use style::selector_matching::Stylist;
 use style::computed_values::{filter, mix_blend_mode};
-use style::{StylesheetOrigin, Stylesheet, Stylist, TNode, iter_font_face_rules};
-use style::{MediaType, Device};
+use style::stylesheets::{Origin, Stylesheet, iter_font_face_rules};
+use style::node::TNode;
+use style::media_queries::{MediaType, Device};
 use std::sync::{Arc, Mutex, MutexGuard};
 use url::Url;
 
@@ -488,7 +490,7 @@ impl LayoutTask {
                                                 final_url,
                                                 protocol_encoding_label,
                                                 Some(environment_encoding),
-                                                StylesheetOrigin::Author);
+                                                Origin::Author);
         self.handle_add_stylesheet(sheet, possibly_locked_rw_data);
     }
 

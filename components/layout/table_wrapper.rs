@@ -28,8 +28,10 @@ use servo_util::geometry::Au;
 use std::cmp::{max, min};
 use std::fmt;
 use std::ops::Add;
-use style::{ComputedValues, CSSFloat};
-use style::computed_values::{table_layout, LengthOrPercentageOrAuto};
+use style::properties::ComputedValues;
+use style::computed_values::table_layout;
+use style::values::CSSFloat;
+use style::values::computed::LengthOrPercentageOrAuto;
 use std::sync::Arc;
 
 #[derive(Copy, RustcEncodable, Show)]

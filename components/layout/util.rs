@@ -17,7 +17,7 @@ use script::layout_interface::{LayoutChan, TrustedNodeAddress};
 use script_traits::UntrustedNodeAddress;
 use std::mem;
 use std::cell::{Ref, RefMut};
-use style::ComputedValues;
+use style::properties::ComputedValues;
 use style;
 use std::sync::Arc;
 
@@ -176,7 +176,7 @@ pub trait ToGfxColor {
     fn to_gfx_color(&self) -> gfx::color::Color;
 }
 
-impl ToGfxColor for style::computed_values::RGBA {
+impl ToGfxColor for style::values::RGBA {
     fn to_gfx_color(&self) -> gfx::color::Color {
         gfx::color::rgba(self.red, self.green, self.blue, self.alpha)
     }

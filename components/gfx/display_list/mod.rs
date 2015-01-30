@@ -40,7 +40,7 @@ use util::smallvec::{SmallVec, SmallVec8};
 use std::fmt;
 use std::slice::Iter;
 use std::sync::Arc;
-use style::ComputedValues;
+use style::properties::ComputedValues;
 use style::computed_values::{border_style, cursor, filter, mix_blend_mode, pointer_events};
 
 // It seems cleaner to have layout code not mention Azure directly, so let's just reexport this for
