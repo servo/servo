@@ -42,8 +42,8 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
-    let max_redirects = 50u;
-    let mut iters = 0u;
+    let max_redirects = 50us;
+    let mut iters = 0us;
     let mut url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
 

@@ -99,13 +99,13 @@ impl StorageManager {
 
     fn length(&self, sender: Sender<u32>, url: Url) {
         let origin = self.get_origin_as_string(url);
-        sender.send(self.data.get(&origin).map_or(0u, |entry| entry.len()) as u32);
+        sender.send(self.data.get(&origin).map_or(0us, |entry| entry.len()) as u32);
     }
 
     fn key(&self, sender: Sender<Option<DOMString>>, url: Url, index: u32) {
         let origin = self.get_origin_as_string(url);
         sender.send(self.data.get(&origin)
-                    .and_then(|entry| entry.keys().nth(index as uint))
+                    .and_then(|entry| entry.keys().nth(index as usize))
                     .map(|key| key.clone()));
     }
 
