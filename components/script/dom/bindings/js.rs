@@ -53,6 +53,8 @@ use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
 
 use util::smallvec::{SmallVec, SmallVec16};
+
+use core::nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
 use std::marker::ContravariantLifetime;
@@ -124,7 +126,7 @@ impl<T: Reflectable> Temporary<T> {
 /// A rooted, JS-owned value. Must only be used as a field in other JS-owned types.
 #[must_root]
 pub struct JS<T> {
-    ptr: *const T
+    ptr: NonZero<*const T>
 }
 
 impl<T> Copy for JS<T> {}
@@ -149,8 +151,9 @@ impl JS<Node> {
     /// Create a new JS-owned value wrapped from an address known to be a `Node` pointer.
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<Node> {
         let TrustedNodeAddress(addr) = inner;
+        assert!(!addr.is_null());
         JS {
-            ptr: addr as *const Node
+            ptr: NonZero::new(addr as *const Node)
         }
     }
 }
@@ -158,8 +161,9 @@ impl JS<Node> {
 impl<T: Reflectable> JS<T> {
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
     pub unsafe fn from_raw(raw: *const T) -> JS<T> {
+        assert!(!raw.is_null());
         JS {
-            ptr: raw
+            ptr: NonZero::new(raw)
         }
     }
 
@@ -313,7 +317,7 @@ impl<T: Reflectable> JS<T> {
     /// only method that be safely accessed from layout. (The fact that this is
     /// unsafe is what necessitates the layout wrappers.)
     pub unsafe fn unsafe_get(&self) -> *const T {
-        self.ptr
+        *self.ptr
     }
 
     /// Store an unrooted value in this field. This is safe under the assumption that JS<T>
@@ -577,14 +581,14 @@ impl<'a, T: Reflectable> Deref for JSRef<'a, T> {
     type Target = T;
     fn deref<'b>(&'b self) -> &'b T {
         unsafe {
-            &*self.ptr
+            &**self.ptr
         }
     }
 }
 
 /// Encapsulates a reference to something that is guaranteed to be alive. This is freely copyable.
 pub struct JSRef<'a, T> {
-    ptr: *const T,
+    ptr: NonZero<*const T>,
     chain: ContravariantLifetime<'a>,
 }
 
@@ -630,7 +634,7 @@ impl<'a, T: Reflectable> JSRef<'a, T> {
     /// Returns the inner pointer directly.
     pub fn extended_deref(self) -> &'a T {
         unsafe {
-            &*self.ptr
+            &**self.ptr
         }
     }
 }
