@@ -1807,7 +1807,9 @@ pub mod longhands {
     </%self:longhand>
 
     ${single_keyword("mix-blend-mode",
-                     "normal multiply screen overlay darken lighten color-dodge color-burn hard-light soft-light difference exclusion hue saturation color luminosity")}
+                     """normal multiply screen overlay darken lighten color-dodge
+                        color-burn hard-light soft-light difference exclusion hue
+                        saturation color luminosity""")}
 }
 
 
