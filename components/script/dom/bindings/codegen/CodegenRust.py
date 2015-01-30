@@ -4566,7 +4566,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::trace::JSTraceable',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
-            'dom::bindings::callback::{WrapCallThisObject}',
+            'dom::bindings::callback::wrap_call_this_object',
             'dom::bindings::conversions::{FromJSValConvertible, ToJSValConvertible}',
             'dom::bindings::conversions::{unwrap, unwrap_jsmanaged}',
             'dom::bindings::conversions::DOM_OBJECT_SLOT',
@@ -4721,8 +4721,8 @@ class CGCallback(CGClass):
         # Record the names of all the arguments, so we can use them when we call
         # the private method.
         argnames = [arg.name for arg in args]
-        argnamesWithThis = ["s.GetContext()", "thisObjJS"] + argnames
-        argnamesWithoutThis = ["s.GetContext()", "ptr::null_mut()"] + argnames
+        argnamesWithThis = ["s.get_context()", "thisObjJS"] + argnames
+        argnamesWithoutThis = ["s.get_context()", "ptr::null_mut()"] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for deciding whether the
         # CallSetup should re-throw exceptions on aRv.
@@ -4742,13 +4742,13 @@ class CGCallback(CGClass):
         argsWithoutThis.insert(0, Argument(None, "self"))
 
         setupCall = ("let s = CallSetup::new(self, aExceptionHandling);\n"
-                     "if s.GetContext().is_null() {\n"
+                     "if s.get_context().is_null() {\n"
                      "    return Err(FailureUnknown);\n"
                      "}\n")
 
         bodyWithThis = string.Template(
             setupCall+
-            "let thisObjJS = WrapCallThisObject(s.GetContext(), thisObj);\n"
+            "let thisObjJS = wrap_call_this_object(s.get_context(), thisObj);\n"
             "if thisObjJS.is_null() {\n"
             "    return Err(FailureUnknown);\n"
             "}\n"
@@ -5000,7 +5000,7 @@ class CallbackMember(CGNativeMember):
             return ""
         return (
             "CallSetup s(CallbackPreserveColor(), aRv, aExceptionHandling);\n"
-            "JSContext* cx = s.GetContext();\n"
+            "JSContext* cx = s.get_context();\n"
             "if (!cx) {\n"
             "    return Err(FailureUnknown);\n"
             "}\n")
@@ -5083,7 +5083,7 @@ class CallbackOperationBase(CallbackMethod):
             "methodName": self.methodName
         }
         getCallableFromProp = string.Template(
-                'match self.parent.GetCallableProperty(cx, "${methodName}") {\n'
+                'match self.parent.get_callable_property(cx, "${methodName}") {\n'
                 '    Err(_) => return Err(FailureUnknown),\n'
                 '    Ok(callable) => callable,\n'
                 '}').substitute(replacements)

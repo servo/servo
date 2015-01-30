@@ -56,7 +56,7 @@ pub mod dom {
 
     /// The code to expose the DOM to JavaScript through IDL bindings.
     #[allow(unsafe_blocks)]
-    #[deny(missing_docs)]
+    #[deny(missing_docs, non_snake_case)]
     pub mod bindings {
         pub mod cell;
         pub mod global;
@@ -72,7 +72,7 @@ pub mod dom {
         pub mod trace;
 
         /// Generated JS-Rust bindings.
-        #[allow(missing_docs)]
+        #[allow(missing_docs, non_snake_case)]
         pub mod codegen {
             #[allow(unrooted_must_root)]
             pub mod Bindings;
