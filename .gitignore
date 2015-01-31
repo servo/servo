@@ -12,6 +12,7 @@
 /components/script/dom/bindings/codegen/Bindings
 /components/script/dom/bindings/codegen/test/*.rs
 /.servobuild
+/.servo
 /tests/wpt/_virtualenv
 *~
 *#
