@@ -9,12 +9,14 @@ use std::num;
 use std::num::Int;
 
 /// An index type to be used by a `Range`
-pub trait RangeIndex<T>: Int + fmt::Show {
-    fn new(x: T) -> Self;
-    fn get(self) -> T;
+pub trait RangeIndex: Int + fmt::Show {
+    type Index;
+    fn new(x: Self::Index) -> Self;
+    fn get(self) -> Self::Index;
 }
 
-impl RangeIndex<int> for int {
+impl RangeIndex for int {
+    type Index = int;
     #[inline]
     fn new(x: int) -> int { x }
 
@@ -37,7 +39,8 @@ macro_rules! int_range_index {
             }
         }
 
-        impl RangeIndex<$T> for $Self {
+        impl RangeIndex for $Self {
+            type Index = $T;
             #[inline]
             fn new(x: $T) -> $Self {
                 $Self(x)
@@ -191,8 +194,7 @@ pub struct Range<I> {
     length: I,
 }
 
-#[old_impl_check]
-impl<I: RangeIndex<T>, T> fmt::Show for Range<I> {
+impl<I: RangeIndex> fmt::Show for Range<I> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[{:?} .. {:?})", self.begin(), self.end())
     }
@@ -203,11 +205,11 @@ pub struct EachIndex<T, I> {
     it: iter::Range<T>,
 }
 
-pub fn each_index<T: Int, I: RangeIndex<T>>(start: I, stop: I) -> EachIndex<T, I> {
+pub fn each_index<T: Int, I: RangeIndex<Index=T>>(start: I, stop: I) -> EachIndex<T, I> {
     EachIndex { it: iter::range(start.get(), stop.get()) }
 }
 
-impl<T: Int, I: RangeIndex<T>> Iterator for EachIndex<T, I> {
+impl<T: Int, I: RangeIndex<Index=T>> Iterator for EachIndex<T, I> {
     type Item = I;
 
     #[inline]
@@ -221,8 +223,7 @@ impl<T: Int, I: RangeIndex<T>> Iterator for EachIndex<T, I> {
     }
 }
 
-#[old_impl_check]
-impl<I: RangeIndex<T>, T> Range<I> {
+impl<I: RangeIndex> Range<I> {
     /// Create a new range from beginning and length offsets. This could be
     /// denoted as `[begin, begin + length)`.
     ///
@@ -359,8 +360,7 @@ impl<I: RangeIndex<T>, T> Range<I> {
 }
 
 /// Methods for `Range`s with indices based on integer values
-#[old_impl_check]
-impl<T: Int, I: RangeIndex<T>> Range<I> {
+impl<T: Int, I: RangeIndex<Index=T>> Range<I> {
     /// Returns an iterater that increments over `[begin, end)`.
     #[inline]
     pub fn each_index(&self) -> EachIndex<T, I> {

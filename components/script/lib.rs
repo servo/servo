@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![feature(unsafe_destructor, plugin, box_syntax, int_uint)]
-#![feature(old_impl_check)]
 
 #![deny(unsafe_blocks)]
 #![deny(unused_imports)]
