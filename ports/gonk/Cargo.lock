@@ -441,6 +441,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "mod_path"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "mozjs-sys"
 version = "0.0.0"
 source = "git+https://github.com/servo/mozjs#58ee8869c7e589244ab2eb3a3ad15e2b64498428"
@@ -653,6 +658,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "lazy_static 0.1.6 (git+https://github.com/Kimundi/lazy-static.rs)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mod_path 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "string_cache 0.0.0 (git+https://github.com/servo/string-cache)",
  "string_cache_macros 0.0.0 (git+https://github.com/servo/string-cache)",
