@@ -271,9 +271,6 @@ extern "C" fn free_utf16_buffer(buffer: *mut c_ushort) {
     }
 }
 
-
-
-
 impl<'a> CefWrap<cef_string_t> for &'a mut String {
     fn to_c(_: &'a mut String) -> cef_string_t {
         panic!("unimplemented CEF type conversion: &'a mut String");
