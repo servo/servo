@@ -17,6 +17,9 @@ use std::borrow::ToOwned;
 pub trait Activatable : Copy {
     fn as_element(&self) -> Temporary<Element>;
 
+    // Is this particular instance of the element activatable?
+    fn is_instance_activatable(&self) -> bool;
+
     // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
     fn pre_click_activation(&self);
 
