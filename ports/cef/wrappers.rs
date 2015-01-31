@@ -271,38 +271,8 @@ extern "C" fn free_utf16_buffer(buffer: *mut c_ushort) {
     }
 }
 
-// TODO(pcwalton): Post Rust-upgrade, remove this and use `collections::str::Utf16Encoder`.
-pub struct Utf16Encoder<I> {
-    chars: I,
-    extra: u16,
-}
 
-impl<I> Utf16Encoder<I> {
-    pub fn new(chars: I) -> Utf16Encoder<I> where I: Iterator<Item=char> {
-        Utf16Encoder {
-            chars: chars,
-            extra: 0,
-        }
-    }
-}
 
-impl<I> Iterator for Utf16Encoder<I> where I: Iterator<Item=char> {
-    type Item = u16;
-    fn next(&mut self) -> Option<u16> {
-        if self.extra != 0 {
-            return Some(mem::replace(&mut self.extra, 0))
-        }
-
-        let mut buf = [0u16; 2];
-        self.chars.next().map(|ch| {
-            let n = ch.encode_utf16(buf.as_mut_slice()).unwrap_or(0);
-            if n == 2 {
-                self.extra = buf[1]
-            }
-            buf[0]
-        })
-    }
-}
 
 impl<'a> CefWrap<cef_string_t> for &'a mut String {
     fn to_c(_: &'a mut String) -> cef_string_t {
