@@ -3016,7 +3016,7 @@ class CGUnionConversionStruct(CGThing):
             post="\n}")
         return CGWrapper(
             CGIndenter(method),
-            pre="impl FromJSValConvertible<()> for %s {\n" % self.type,
+            pre="impl FromJSValConvertible for %s {\ntype Config = ();\n" % self.type,
             post="\n}")
 
     def try_method(self, t):
