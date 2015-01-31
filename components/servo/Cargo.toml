@@ -72,5 +72,5 @@ path = "../../support/android-rs-glue/glue"
 optional = true
 
 [dependencies]
-url = "*"
-time = "*"
+url = "0.2.16"
+time = "0.1.12"

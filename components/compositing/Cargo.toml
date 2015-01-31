@@ -53,5 +53,5 @@ git = "https://github.com/servo/rust-core-text"
 git = "https://github.com/servo/gleam"
 
 [dependencies]
-url = "*"
-time = "*"
+url = "0.2.16"
+time = "0.1.12"
