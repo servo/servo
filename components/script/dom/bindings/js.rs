@@ -144,6 +144,13 @@ pub struct LayoutJS<T> {
     ptr: NonZero<*const T>
 }
 
+impl<T: Reflectable> LayoutJS<T> {
+    /// Get the reflector.
+    pub unsafe fn get_jsobject(&self) -> *mut JSObject {
+        (**self.ptr).reflector().get_jsobject()
+    }
+}
+
 impl<T> Copy for JS<T> {}
 
 impl<T> Copy for LayoutJS<T> {}
@@ -234,15 +241,6 @@ impl<U: Reflectable> JS<U> {
 //XXXjdm This is disappointing. This only gets called from trace hooks, in theory,
 //       so it's safe to assume that self is rooted and thereby safe to access.
 impl<T: Reflectable> Reflectable for JS<T> {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        unsafe {
-            (*self.unsafe_get()).reflector()
-        }
-    }
-}
-
-// XXXjdm same above
-impl<T: Reflectable> Reflectable for LayoutJS<T> {
     fn reflector<'a>(&'a self) -> &'a Reflector {
         unsafe {
             (*self.unsafe_get()).reflector()

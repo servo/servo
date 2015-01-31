@@ -11,7 +11,6 @@ use gfx::display_list::OpaqueNode;
 use gfx;
 use libc::uintptr_t;
 use script::dom::bindings::js::LayoutJS;
-use script::dom::bindings::utils::Reflectable;
 use script::dom::node::{Node, SharedLayoutData};
 use script::layout_interface::{LayoutChan, TrustedNodeAddress};
 use script_traits::UntrustedNodeAddress;
@@ -143,7 +142,7 @@ impl OpaqueNodeMethods for OpaqueNode {
     fn from_thread_safe_layout_node(node: &ThreadSafeLayoutNode) -> OpaqueNode {
         unsafe {
             let abstract_node = node.get_jsmanaged();
-            let ptr: uintptr_t = abstract_node.reflector().get_jsobject() as uintptr_t;
+            let ptr: uintptr_t = abstract_node.get_jsobject() as uintptr_t;
             OpaqueNode(ptr)
         }
     }
@@ -156,7 +155,7 @@ impl OpaqueNodeMethods for OpaqueNode {
 
     fn from_jsmanaged(node: &LayoutJS<Node>) -> OpaqueNode {
         unsafe {
-            let ptr: uintptr_t = mem::transmute(node.reflector().get_jsobject());
+            let ptr: uintptr_t = node.get_jsobject() as uintptr_t;
             OpaqueNode(ptr)
         }
     }
