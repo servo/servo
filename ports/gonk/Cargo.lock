@@ -72,7 +72,7 @@ name = "cookie"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "openssl 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -319,14 +319,14 @@ source = "git+https://github.com/servo/html5ever#d35dfaaf0d85007057a299afc370d07
 
 [[package]]
 name = "hyper"
-version = "0.1.0"
-source = "git+https://github.com/servo/hyper?branch=servo#248a6f29086baa841eb30c88540dca3196accae4"
+version = "0.1.1"
+source = "git+https://github.com/servo/hyper?branch=servo#7f48a7e945180a4f762dc75236210d20a69b4a6a"
 dependencies = [
  "cookie 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mucell 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "openssl 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.2.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -452,7 +452,7 @@ dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
+ "hyper 0.1.1 (git+https://github.com/servo/hyper?branch=servo)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
  "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
  "style 0.0.1",
@@ -470,7 +470,8 @@ name = "net"
 version = "0.0.1"
 dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
+ "hyper 0.1.1 (git+https://github.com/servo/hyper?branch=servo)",
+ "openssl 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -480,7 +481,7 @@ dependencies = [
 
 [[package]]
 name = "openssl"
-version = "0.2.16"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "openssl-sys 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -488,7 +489,7 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.2.16"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libressl-pnacl-sys 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -565,7 +566,7 @@ dependencies = [
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
  "gfx 0.0.1",
  "html5ever 0.0.0 (git+https://github.com/servo/html5ever)",
- "hyper 0.1.0 (git+https://github.com/servo/hyper?branch=servo)",
+ "hyper 0.1.1 (git+https://github.com/servo/hyper?branch=servo)",
  "js 0.1.0 (git+https://github.com/servo/rust-mozjs)",
  "msg 0.0.1",
  "net 0.0.1",
