@@ -12,7 +12,7 @@ use std::fmt;
 use style::computed_values::float;
 
 /// The kind of float: left or right.
-#[derive(Clone, RustcEncodable, Show, Copy)]
+#[derive(Clone, RustcEncodable, Debug, Copy)]
 pub enum FloatKind {
     Left,
     Right
@@ -45,7 +45,7 @@ struct Float {
     kind: FloatKind,
 }
 
-impl fmt::Show for Float {
+impl fmt::Debug for Float {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "bounds={:?} kind={:?}", self.bounds, self.kind)
     }
@@ -75,7 +75,7 @@ impl FloatList {
     }
 }
 
-impl fmt::Show for FloatList {
+impl fmt::Debug for FloatList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "max_block_start={:?} floats={}", self.max_block_start, self.floats.len())
     }
@@ -93,7 +93,7 @@ pub struct PlacementInfo {
     pub kind: FloatKind
 }
 
-impl fmt::Show for PlacementInfo {
+impl fmt::Debug for PlacementInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
                "size={:?} ceiling={:?} max_inline_size={:?} kind={:?}",
@@ -120,7 +120,7 @@ pub struct Floats {
     pub writing_mode: WritingMode,
 }
 
-impl fmt::Show for Floats {
+impl fmt::Debug for Floats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if !self.list.is_present() {
             write!(f, "[empty]")

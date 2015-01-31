@@ -92,7 +92,8 @@ struct Tracer {
     trc: *mut JSTracer,
 }
 
-impl tree_builder::Tracer<JS<Node>> for Tracer {
+impl tree_builder::Tracer for Tracer {
+    type Handle = JS<Node>;
     #[allow(unrooted_must_root)]
     fn trace_handle(&self, node: JS<Node>) {
         node.trace(self.trc);
@@ -107,7 +108,7 @@ impl JSTraceable for ServoHTMLParser {
         let tracer = Tracer {
             trc: trc,
         };
-        let tracer = &tracer as &tree_builder::Tracer<JS<Node>>;
+        let tracer = &tracer as &tree_builder::Tracer<Handle=JS<Node>>;
 
         unsafe {
             // Assertion: If the parser is mutably borrowed, we're in the

@@ -27,7 +27,7 @@ macro_rules! define_css_keyword_enum {
             }
         }
 
-        impl ::std::fmt::Show for $name {
+        impl ::std::fmt::Debug for $name {
             #[inline]
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 use cssparser::ToCss;
@@ -53,7 +53,7 @@ pub mod specified {
     use std::ascii::AsciiExt;
     use std::f64::consts::PI;
     use std::fmt;
-    use std::fmt::{Formatter, Show};
+    use std::fmt::{Formatter, Debug};
     use url::Url;
     use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
     use parser::ParserContext;
@@ -82,7 +82,7 @@ pub mod specified {
         }
     }
 
-    impl fmt::Show for CSSColor {
+    impl fmt::Debug for CSSColor {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -100,7 +100,7 @@ pub mod specified {
         pub parsed: cssparser::RGBA,
         pub authored: Option<String>,
     }
-    impl fmt::Show for CSSRGBA {
+    impl fmt::Debug for CSSRGBA {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -116,7 +116,7 @@ pub mod specified {
     #[derive(Clone, PartialEq)]
     pub struct CSSImage(pub Option<Image>);
 
-    impl fmt::Show for CSSImage {
+    impl fmt::Debug for CSSImage {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -143,7 +143,7 @@ pub mod specified {
         ServoCharacterWidth(i32),
     }
 
-    impl fmt::Show for Length {
+    impl fmt::Debug for Length {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -211,7 +211,7 @@ pub mod specified {
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
     }
 
-    impl fmt::Show for LengthOrPercentage {
+    impl fmt::Debug for LengthOrPercentage {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -259,7 +259,7 @@ pub mod specified {
         Auto,
     }
 
-    impl fmt::Show for LengthOrPercentageOrAuto {
+    impl fmt::Debug for LengthOrPercentageOrAuto {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -310,7 +310,7 @@ pub mod specified {
         None,
     }
 
-    impl fmt::Show for LengthOrPercentageOrNone {
+    impl fmt::Debug for LengthOrPercentageOrNone {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -409,7 +409,7 @@ pub mod specified {
     #[derive(Clone, PartialEq, PartialOrd, Copy)]
     pub struct Angle(pub CSSFloat);
 
-    impl fmt::Show for Angle {
+    impl fmt::Debug for Angle {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -457,7 +457,7 @@ pub mod specified {
         LinearGradient(LinearGradient),
     }
 
-    impl fmt::Show for Image {
+    impl fmt::Debug for Image {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -515,7 +515,7 @@ pub mod specified {
         pub stops: Vec<ColorStop>,
     }
 
-    impl fmt::Show for LinearGradient {
+    impl fmt::Debug for LinearGradient {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -539,7 +539,7 @@ pub mod specified {
         Corner(HorizontalDirection, VerticalDirection),
     }
 
-    impl fmt::Show for AngleOrCorner {
+    impl fmt::Debug for AngleOrCorner {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -569,7 +569,7 @@ pub mod specified {
         pub position: Option<LengthOrPercentage>,
     }
 
-    impl fmt::Show for ColorStop {
+    impl fmt::Debug for ColorStop {
         #[inline] fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.fmt_to_css(f) }
     }
 
@@ -748,7 +748,7 @@ pub mod computed {
         Length(Au),
         Percentage(CSSFloat),
     }
-    impl fmt::Show for LengthOrPercentage {
+    impl fmt::Debug for LengthOrPercentage {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &LengthOrPercentage::Length(length) => write!(f, "{:?}", length),
@@ -774,7 +774,7 @@ pub mod computed {
         Percentage(CSSFloat),
         Auto,
     }
-    impl fmt::Show for LengthOrPercentageOrAuto {
+    impl fmt::Debug for LengthOrPercentageOrAuto {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &LengthOrPercentageOrAuto::Length(length) => write!(f, "{:?}", length),
@@ -802,7 +802,7 @@ pub mod computed {
         Percentage(CSSFloat),
         None,
     }
-    impl fmt::Show for LengthOrPercentageOrNone {
+    impl fmt::Debug for LengthOrPercentageOrNone {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &LengthOrPercentageOrNone::Length(length) => write!(f, "{:?}", length),
@@ -831,7 +831,7 @@ pub mod computed {
         LinearGradient(LinearGradient),
     }
 
-    impl fmt::Show for Image {
+    impl fmt::Debug for Image {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &Image::Url(ref url) => write!(f, "url(\"{}\")", url),
@@ -850,7 +850,7 @@ pub mod computed {
         pub stops: Vec<ColorStop>,
     }
 
-    impl fmt::Show for LinearGradient {
+    impl fmt::Debug for LinearGradient {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             let _ = write!(f, "{:?}", self.angle_or_corner);
             for stop in self.stops.iter() {
@@ -871,7 +871,7 @@ pub mod computed {
         pub position: Option<LengthOrPercentage>,
     }
 
-    impl fmt::Show for ColorStop {
+    impl fmt::Debug for ColorStop {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             let _ = write!(f, "{:?}", self.color);
             self.position.map(|pos| {

@@ -55,7 +55,8 @@ impl SinkHelpers for servohtmlparser::Sink {
     }
 }
 
-impl<'a> TreeSink<JS<Node>> for servohtmlparser::Sink {
+impl<'a> TreeSink for servohtmlparser::Sink {
+    type Handle = JS<Node>;
     fn get_document(&mut self) -> JS<Node> {
         let doc = self.document.root();
         let node: JSRef<Node> = NodeCast::from_ref(doc.r());
@@ -161,6 +162,10 @@ impl<'a> TreeSink<JS<Node>> for servohtmlparser::Sink {
         let node: Root<Node> = node.root();
         let script: Option<JSRef<HTMLScriptElement>> = HTMLScriptElementCast::to_ref(node.r());
         script.map(|script| script.prepare());
+    }
+
+    fn reparent_children(&mut self, _node: JS<Node>, _new_parent: JS<Node>) {
+        panic!("unimplemented")
     }
 }
 

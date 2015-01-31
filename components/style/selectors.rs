@@ -15,14 +15,14 @@ use parser::ParserContext;
 use stylesheets::Origin;
 
 
-#[derive(PartialEq, Clone, Show)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Selector {
     pub compound_selectors: Arc<CompoundSelector>,
     pub pseudo_element: Option<PseudoElement>,
     pub specificity: u32,
 }
 
-#[derive(Eq, PartialEq, Clone, Hash, Copy, Show)]
+#[derive(Eq, PartialEq, Clone, Hash, Copy, Debug)]
 pub enum PseudoElement {
     Before,
     After,
@@ -30,13 +30,13 @@ pub enum PseudoElement {
 }
 
 
-#[derive(PartialEq, Clone, Show)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct CompoundSelector {
     pub simple_selectors: Vec<SimpleSelector>,
     pub next: Option<(Box<CompoundSelector>, Combinator)>,  // c.next is left of c
 }
 
-#[derive(PartialEq, Clone, Copy, Show)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Combinator {
     Child,  //  >
     Descendant,  // space
@@ -44,7 +44,7 @@ pub enum Combinator {
     LaterSibling,  // ~
 }
 
-#[derive(Eq, PartialEq, Clone, Hash, Show)]
+#[derive(Eq, PartialEq, Clone, Hash, Debug)]
 pub enum SimpleSelector {
     ID(Atom),
     Class(Atom),
@@ -84,27 +84,27 @@ pub enum SimpleSelector {
 }
 
 
-#[derive(Eq, PartialEq, Clone, Hash, Copy, Show)]
+#[derive(Eq, PartialEq, Clone, Hash, Copy, Debug)]
 pub enum CaseSensitivity {
     CaseSensitive,  // Selectors spec says language-defined, but HTML says sensitive.
     CaseInsensitive,
 }
 
 
-#[derive(Eq, PartialEq, Clone, Hash, Show)]
+#[derive(Eq, PartialEq, Clone, Hash, Debug)]
 pub struct LocalName {
     pub name: Atom,
     pub lower_name: Atom,
 }
 
-#[derive(Eq, PartialEq, Clone, Hash, Show)]
+#[derive(Eq, PartialEq, Clone, Hash, Debug)]
 pub struct AttrSelector {
     pub name: Atom,
     pub lower_name: Atom,
     pub namespace: NamespaceConstraint,
 }
 
-#[derive(Eq, PartialEq, Clone, Hash, Show)]
+#[derive(Eq, PartialEq, Clone, Hash, Debug)]
 pub enum NamespaceConstraint {
     Any,
     Specific(Namespace),
@@ -282,7 +282,7 @@ fn parse_type_selector(context: &ParserContext, input: &mut Parser)
 }
 
 
-#[derive(Show)]
+#[derive(Debug)]
 enum SimpleSelectorParseResult {
     SimpleSelector(SimpleSelector),
     PseudoElement(PseudoElement),
@@ -296,7 +296,7 @@ fn parse_qualified_name<'i, 't>
                        (context: &ParserContext, input: &mut Parser<'i, 't>,
                         in_attr_selector: bool)
                         -> Result<Option<(NamespaceConstraint, Option<CowString<'i>>)>, ()> {
-    let default_namespace = |:local_name| {
+    let default_namespace = |local_name| {
         let namespace = match context.namespaces.default {
             Some(ref ns) => NamespaceConstraint::Specific(ns.clone()),
             None => NamespaceConstraint::Any,
@@ -304,7 +304,7 @@ fn parse_qualified_name<'i, 't>
         Ok(Some((namespace, local_name)))
     };
 
-    let explicit_namespace = |&: input: &mut Parser<'i, 't>, namespace| {
+    let explicit_namespace = |input: &mut Parser<'i, 't>, namespace| {
         match input.next_including_whitespace() {
             Ok(Token::Delim('*')) if !in_attr_selector => {
                 Ok(Some((namespace, None)))

@@ -13,7 +13,7 @@ use serialize::json;
 
 use std::borrow::ToOwned;
 use std::cell::RefCell;
-use std::io::File;
+use std::old_io::File;
 use std::sync::atomic::{AtomicUint, Ordering, ATOMIC_UINT_INIT};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
@@ -64,7 +64,7 @@ impl Scope {
         STATE_KEY.with(|ref r| {
             match &mut *r.borrow_mut() {
                 &mut Some(ref mut state) => {
-                    let flow_trace = json::encode(&flow::base(&*state.flow_root));
+                    let flow_trace = json::encode(&flow::base(&*state.flow_root)).unwrap();
                     let data = box ScopeData::new(name.clone(), flow_trace);
                     state.scope_stack.push(data);
                 }
@@ -82,7 +82,7 @@ impl Drop for Scope {
             match &mut *r.borrow_mut() {
                 &mut Some(ref mut state) => {
                     let mut current_scope = state.scope_stack.pop().unwrap();
-                    current_scope.post = json::encode(&flow::base(&*state.flow_root));
+                    current_scope.post = json::encode(&flow::base(&*state.flow_root)).unwrap();
                     let previous_scope = state.scope_stack.last_mut().unwrap();
                     previous_scope.children.push(current_scope);
                 }
@@ -106,7 +106,7 @@ pub fn begin_trace(flow_root: FlowRef) {
     assert!(STATE_KEY.with(|ref r| r.borrow().is_none()));
 
     STATE_KEY.with(|ref r| {
-        let flow_trace = json::encode(&flow::base(&*flow_root));
+        let flow_trace = json::encode(&flow::base(&*flow_root)).unwrap();
         let state = State {
             scope_stack: vec![box ScopeData::new("root".to_owned(), flow_trace)],
             flow_root: flow_root.clone(),
@@ -122,9 +122,9 @@ pub fn end_trace() {
     let mut task_state = STATE_KEY.with(|ref r| r.borrow_mut().take().unwrap());
     assert!(task_state.scope_stack.len() == 1);
     let mut root_scope = task_state.scope_stack.pop().unwrap();
-    root_scope.post = json::encode(&flow::base(&*task_state.flow_root));
+    root_scope.post = json::encode(&flow::base(&*task_state.flow_root)).unwrap();
 
-    let result = json::encode(&root_scope);
+    let result = json::encode(&root_scope).unwrap();
     let path = Path::new("layout_trace.json");
     let mut file = File::create(&path).unwrap();
     file.write_str(result.as_slice()).unwrap();

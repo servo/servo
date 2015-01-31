@@ -6,6 +6,9 @@
 #![feature(plugin)]
 #![feature(int_uint)]
 #![feature(box_syntax)]
+#![feature(optin_builtin_traits)]
+#![feature(core, rustc_private, hash, alloc)]
+#![feature(collections, libc, std_misc)]
 
 #![allow(missing_copy_implementations)]
 #![allow(unstable)]
@@ -13,6 +16,7 @@
 #[macro_use] extern crate log;
 
 extern crate alloc;
+#[macro_use] extern crate bitflags;
 extern crate collections;
 extern crate cssparser;
 extern crate geom;

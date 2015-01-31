@@ -42,21 +42,19 @@ pub fn match_lang_ty(cx: &Context, ty: &Ty, value: &str) -> bool {
     if let TyPath(_, ty_id) = ty.node {
         if let Some(def::DefTy(def_id, _)) = cx.tcx.def_map.borrow().get(&ty_id).cloned() {
             // Iterating through attributes is hard because of cross-crate defs
-            ty::each_attr(cx.tcx, def_id, |attr| {
+            for attr in ty::get_attrs(cx.tcx, def_id).iter() {
                 if let ast::MetaNameValue(ref name, ref val) = attr.node.value.node {
-                    if name.get() == "servo_lang" {
+                    if &**name == "servo_lang" {
                         if let ast::LitStr(ref v, _) = val.node {
-                            if v.get() == value {
+                            if &**v == value {
                                 mark_used(attr);
                                 found = true;
-                                // We're done with the loop
-                                return false;
+                                break
                             }
                         }
                     }
                 }
-                true
-            });
+            }
         };
     }
     found

@@ -180,7 +180,7 @@ impl Flow for TableCellFlow {
     }
 }
 
-impl fmt::Show for TableCellFlow {
+impl fmt::Debug for TableCellFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "TableCellFlow: {:?}", self.block_flow)
     }

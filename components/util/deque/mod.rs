@@ -86,19 +86,21 @@ struct Deque<T> {
 /// There may only be one worker per deque.
 pub struct Worker<T> {
     deque: Arc<Deque<T>>,
-    _noshare: marker::NoSync,
 }
+
+impl<T> !marker::Sync for Worker<T> {}
 
 /// The stealing half of the work-stealing deque. Stealers have access to the
 /// opposite end of the deque from the worker, and they only have access to the
 /// `steal` method.
 pub struct Stealer<T> {
     deque: Arc<Deque<T>>,
-    _noshare: marker::NoSync,
 }
 
+impl<T> !marker::Sync for Stealer<T> {}
+
 /// When stealing some data, this is an enumeration of the possible outcomes.
-#[derive(PartialEq, Show)]
+#[derive(PartialEq, Debug)]
 pub enum Stolen<T> {
     /// The deque was empty at the time of stealing
     Empty,
@@ -156,8 +158,7 @@ impl<T: Send> BufferPool<T> {
     pub fn deque(&self) -> (Worker<T>, Stealer<T>) {
         let a = Arc::new(Deque::new(self.clone()));
         let b = a.clone();
-        (Worker { deque: a, _noshare: marker::NoSync },
-         Stealer { deque: b, _noshare: marker::NoSync })
+        (Worker { deque: a }, Stealer { deque: b })
     }
 
     fn alloc(&mut self, bits: uint) -> Box<Buffer<T>> {
@@ -218,7 +219,7 @@ impl<T: Send> Stealer<T> {
 
 impl<T: Send> Clone for Stealer<T> {
     fn clone(&self) -> Stealer<T> {
-        Stealer { deque: self.deque.clone(), _noshare: marker::NoSync }
+        Stealer { deque: self.deque.clone() }
     }
 }
 

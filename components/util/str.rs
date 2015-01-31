@@ -68,7 +68,7 @@ pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
 ];
 
 pub fn split_html_space_chars<'a>(s: &'a str) ->
-                                  Filter<&'a str, Split<'a, StaticCharVec>, fn(&&str) -> bool> {
+                                  Filter<Split<'a, StaticCharVec>, fn(&&str) -> bool> {
     fn not_empty(&split: &&str) -> bool { !split.is_empty() }
     s.split(HTML_SPACE_CHARACTERS).filter(not_empty as fn(&&str) -> bool)
 }
@@ -149,7 +149,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
         return LengthOrPercentageOrAuto::Auto
     }
     if value.starts_with("+") {
-        value = value.slice_from(1)
+        value = &value[1..]
     }
     value = value.trim_left_matches('0');
     if value.len() == 0 {
@@ -176,19 +176,19 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
             }
         }
     }
-    value = value.slice_to(end_index);
+    value = &value[..end_index];
 
     if found_percent {
-        let result: Option<f64> = FromStr::from_str(value);
+        let result: Result<f64, _> = FromStr::from_str(value);
         match result {
-            Some(number) => return LengthOrPercentageOrAuto::Percentage((number as f64) / 100.0),
-            None => return LengthOrPercentageOrAuto::Auto,
+            Ok(number) => return LengthOrPercentageOrAuto::Percentage((number as f64) / 100.0),
+            Err(_) => return LengthOrPercentageOrAuto::Auto,
         }
     }
 
     match FromStr::from_str(value) {
-        Some(number) => LengthOrPercentageOrAuto::Length(Au::from_px(number)),
-        None => LengthOrPercentageOrAuto::Auto,
+        Ok(number) => LengthOrPercentageOrAuto::Length(Au::from_px(number)),
+        Err(_) => LengthOrPercentageOrAuto::Auto,
     }
 }
 
@@ -245,14 +245,14 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
     // Step 8.
     for (char_count, (index, _)) in input.char_indices().enumerate() {
         if char_count == 128 {
-            input = input.slice_to(index);
+            input = &input[..index];
             break
         }
     }
 
     // Step 9.
     if input.char_at(0) == '#' {
-        input = input.slice_from(1)
+        input = &input[1..]
     }
 
     // Step 10.
@@ -274,22 +274,22 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
     // Step 12.
     let mut length = input.len() / 3;
     let (mut red, mut green, mut blue) = (input.slice_to(length),
-                                          input.slice(length, length * 2),
-                                          input.slice_from(length * 2));
+                                          &input[length..length * 2],
+                                          &input[length * 2..]);
 
     // Step 13.
     if length > 8 {
-        red = red.slice_from(length - 8);
-        green = green.slice_from(length - 8);
-        blue = blue.slice_from(length - 8);
+        red = &red[length - 8..];
+        green = &green[length - 8..];
+        blue = &blue[length - 8..];
         length = 8
     }
 
     // Step 14.
     while length > 2 && red[0] == b'0' && green[0] == b'0' && blue[0] == b'0' {
-        red = red.slice_from(1);
-        green = green.slice_from(1);
-        blue = blue.slice_from(1);
+        red = &red[1..];
+        green = &green[1..];
+        blue = &blue[1..];
         length -= 1
     }
 
@@ -324,7 +324,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA,()> {
 }
 
 
-#[derive(Clone, Eq, PartialEq, Hash, Show)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug)]
 pub struct LowercaseString {
     inner: String,
 }

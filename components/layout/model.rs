@@ -253,7 +253,7 @@ pub struct IntrinsicISizes {
     pub preferred_inline_size: Au,
 }
 
-impl fmt::Show for IntrinsicISizes {
+impl fmt::Debug for IntrinsicISizes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "min={:?}, pref={:?}", self.minimum_inline_size, self.preferred_inline_size)
     }
@@ -324,7 +324,7 @@ impl IntrinsicISizesContribution {
 }
 
 /// Useful helper data type when computing values for blocks and positioned elements.
-#[derive(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Debug)]
 pub enum MaybeAuto {
     Auto,
     Specified(Au),

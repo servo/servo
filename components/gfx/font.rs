@@ -14,7 +14,6 @@ use style::computed_values::{font_stretch, font_variant, font_weight};
 use style::properties::style_structs::Font as FontStyle;
 use std::sync::Arc;
 
-use std::hash::Hash;
 use platform::font_context::FontContextHandle;
 use platform::font::{FontHandle, FontTable};
 use util::geometry::Au;
@@ -70,7 +69,7 @@ pub trait FontTableMethods {
     fn with_buffer<F>(&self, F) where F: FnOnce(*const u8, uint);
 }
 
-#[derive(Clone, Show)]
+#[derive(Clone, Debug)]
 pub struct FontMetrics {
     pub underline_size:   Au,
     pub underline_offset: Au,

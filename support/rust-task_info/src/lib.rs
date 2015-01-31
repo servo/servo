@@ -10,6 +10,8 @@
 #![crate_name = "task_info"]
 #![crate_type = "rlib"]
 
+#![feature(libc)]
+
 extern crate libc;
 
 #[cfg(target_os="macos")]

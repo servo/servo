@@ -36,7 +36,7 @@ use util::time::TimeProfilerChan;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
-use std::io;
+use std::old_io as io;
 use std::mem::replace;
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, channel};

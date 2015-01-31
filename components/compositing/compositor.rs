@@ -42,7 +42,7 @@ use util::time::{TimeProfilerCategory, profile, TimeProfilerChan};
 use util::{memory, time};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::path::Path;
+use std::old_path::Path;
 use std::num::Float;
 use std::rc::Rc;
 use std::slice::bytes::copy_memory;
@@ -142,7 +142,7 @@ enum CompositionRequest {
     CompositeNow,
 }
 
-#[derive(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Debug)]
 enum ShutdownState {
     NotShuttingDown,
     ShuttingDown,

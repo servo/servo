@@ -92,7 +92,7 @@ impl ElementDerived for EventTarget {
     }
 }
 
-#[derive(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Debug)]
 #[jstraceable]
 pub enum ElementTypeId {
     HTMLElement(HTMLElementTypeId),
@@ -1404,8 +1404,8 @@ impl<'a> style::node::TElement<'a> for JSRef<'a, Element> {
 
         has_class(self, name)
     }
-    fn each_class<F>(self, callback: F)
-        where F: Fn(&Atom)
+    fn each_class<F>(self, mut callback: F)
+        where F: FnMut(&Atom)
     {
         match self.get_attribute(ns!(""), &atom!("class")).root() {
             None => {}

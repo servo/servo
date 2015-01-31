@@ -11,7 +11,7 @@
 pub use self::imp::{initialize, get, enter, exit};
 
 bitflags! {
-    #[derive(Show)]
+    #[derive(Debug)]
     flags TaskState: u32 {
         const SCRIPT          = 0x01,
         const LAYOUT          = 0x02,

@@ -71,7 +71,7 @@ use util::task_state;
 
 use geom::point::Point2D;
 use hyper::header::{Header, Headers, HeaderFormat};
-use hyper::header::shared::util as header_util;
+use hyper::header::parsing as header_parsing;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSObject};
 use js::jsapi::{JS_SetGCParameter, JSGC_MAX_BYTES};
@@ -84,7 +84,7 @@ use libc;
 use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::fmt::{self, Show};
+use std::fmt::{self, Display};
 use std::mem::replace;
 use std::num::ToPrimitive;
 use std::rc::Rc;
@@ -1363,13 +1363,13 @@ struct LastModified(pub Tm);
 
 impl Header for LastModified {
     #[inline]
-    fn header_name(_: Option<LastModified>) -> &'static str {
+    fn header_name() -> &'static str {
         "Last-Modified"
     }
 
     // Parses an RFC 2616 compliant date/time string,
     fn parse_header(raw: &[Vec<u8>]) -> Option<LastModified> {
-        header_util::from_one_raw_str(raw).and_then(|s: String| {
+        header_parsing::from_one_raw_str(raw).and_then(|s: String| {
             let s = s.as_slice();
             strptime(s, "%a, %d %b %Y %T %Z").or_else(|_| {
                 strptime(s, "%A, %d-%b-%y %T %Z")
@@ -1386,8 +1386,8 @@ impl HeaderFormat for LastModified {
     fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let LastModified(ref tm) = *self;
         match tm.tm_utcoff {
-            0 => tm.rfc822().fmt(f),
-            _ => tm.to_utc().rfc822().fmt(f)
+            0 => <_ as Display>::fmt(&tm.rfc822(), f),
+            _ => <_ as Display>::fmt(&tm.to_utc().rfc822(), f)
         }
     }
 }

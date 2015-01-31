@@ -10,16 +10,16 @@
 //! with CORSRequest being expanded into FetchRequest (etc)
 
 use std::ascii::AsciiExt;
-use std::fmt::{self, Show};
+use std::fmt::{self, Display};
 use std::str::from_utf8;
 use time;
 use time::{now, Timespec};
 
 use hyper::header::{Headers, Header, HeaderFormat, HeaderView};
-use hyper::header::shared::util as header_util;
+use hyper::header::parsing as header_parsing;
 use hyper::client::Request;
 use hyper::mime::{Mime, TopLevel, SubLevel};
-use hyper::header::common::{ContentType, Host};
+use hyper::header::{ContentType, Host};
 use hyper::method::Method;
 use hyper::status::StatusClass::Success;
 
@@ -160,6 +160,7 @@ impl CORSRequest {
         }
         cors_response.headers = response.headers.clone();
         // Substeps 1-3 (parsing rules: http://fetch.spec.whatwg.org/#http-new-header-syntax)
+        let methods_substep4 = [self.method.clone()];
         let mut methods = match response.headers.get() {
             Some(&AccessControlAllowMethods(ref v)) => v.as_slice(),
             _ => return error
@@ -169,7 +170,6 @@ impl CORSRequest {
             _ => return error
         };
         // Substep 4
-        let methods_substep4 = [self.method.clone()];
         if methods.len() == 0 || preflight.mode == RequestMode::ForcedPreflight {
             methods = methods_substep4.as_slice();
         }
@@ -388,19 +388,19 @@ struct AccessControlRequestMethod(pub Method);
 
 impl Header for AccessControlRequestMethod {
     #[inline]
-    fn header_name(_: Option<AccessControlRequestMethod>) -> &'static str {
+    fn header_name() -> &'static str {
         "Access-Control-Request-Method"
     }
 
     fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlRequestMethod> {
-        header_util::from_one_raw_str(raw).map(AccessControlRequestMethod)
+        header_parsing::from_one_raw_str(raw).map(AccessControlRequestMethod)
     }
 }
 
 impl HeaderFormat for AccessControlRequestMethod {
     fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let AccessControlRequestMethod(ref method) = *self;
-        method.fmt(f)
+        <_ as Display>::fmt(method, f)
     }
 }
 
@@ -409,19 +409,19 @@ struct AccessControlRequestHeaders(pub Vec<String>);
 
 impl Header for AccessControlRequestHeaders {
     #[inline]
-    fn header_name(_: Option<AccessControlRequestHeaders>) -> &'static str {
+    fn header_name() -> &'static str {
         "Access-Control-Request-Headers"
     }
 
     fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlRequestHeaders> {
-        header_util::from_comma_delimited(raw).map(AccessControlRequestHeaders)
+        header_parsing::from_comma_delimited(raw).map(AccessControlRequestHeaders)
     }
 }
 
 impl HeaderFormat for AccessControlRequestHeaders {
     fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let AccessControlRequestHeaders(ref parts) = *self;
-        header_util::fmt_comma_delimited(f, parts.as_slice())
+        header_parsing::fmt_comma_delimited(f, parts.as_slice())
     }
 }
 
@@ -430,19 +430,19 @@ struct AccessControlAllowMethods(pub Vec<Method>);
 
 impl Header for AccessControlAllowMethods {
     #[inline]
-    fn header_name(_: Option<AccessControlAllowMethods>) -> &'static str {
+    fn header_name() -> &'static str {
         "Access-Control-Allow-Methods"
     }
 
     fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlAllowMethods> {
-        header_util::from_comma_delimited(raw).map(AccessControlAllowMethods)
+        header_parsing::from_comma_delimited(raw).map(AccessControlAllowMethods)
     }
 }
 
 impl HeaderFormat for AccessControlAllowMethods {
     fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let AccessControlAllowMethods(ref parts) = *self;
-        header_util::fmt_comma_delimited(f, parts.as_slice())
+        header_parsing::fmt_comma_delimited(f, parts.as_slice())
     }
 }
 
@@ -451,19 +451,19 @@ struct AccessControlAllowHeaders(pub Vec<String>);
 
 impl Header for AccessControlAllowHeaders {
     #[inline]
-    fn header_name(_: Option<AccessControlAllowHeaders>) -> &'static str {
+    fn header_name() -> &'static str {
         "Access-Control-Allow-Headers"
     }
 
     fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlAllowHeaders> {
-        header_util::from_comma_delimited(raw).map(AccessControlAllowHeaders)
+        header_parsing::from_comma_delimited(raw).map(AccessControlAllowHeaders)
     }
 }
 
 impl HeaderFormat for AccessControlAllowHeaders {
     fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let AccessControlAllowHeaders(ref parts) = *self;
-        header_util::fmt_comma_delimited(f, parts.as_slice())
+        header_parsing::fmt_comma_delimited(f, parts.as_slice())
     }
 }
 
@@ -476,7 +476,7 @@ enum AccessControlAllowOrigin {
 
 impl Header for AccessControlAllowOrigin {
     #[inline]
-    fn header_name(_: Option<AccessControlAllowOrigin>) -> &'static str {
+    fn header_name() -> &'static str {
         "Access-Control-Allow-Origin"
     }
 
@@ -498,8 +498,8 @@ impl Header for AccessControlAllowOrigin {
 impl HeaderFormat for AccessControlAllowOrigin {
     fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            AccessControlAllowOrigin::AllowStar => "*".fmt(f),
-            AccessControlAllowOrigin::AllowOrigin(ref url) => url.fmt(f)
+            AccessControlAllowOrigin::AllowStar => <_ as Display>::fmt("*", f),
+            AccessControlAllowOrigin::AllowOrigin(ref url) => <_ as Display>::fmt(url, f)
         }
     }
 }
@@ -509,19 +509,19 @@ struct AccessControlMaxAge(pub u32);
 
 impl Header for AccessControlMaxAge {
     #[inline]
-    fn header_name(_: Option<AccessControlMaxAge>) -> &'static str {
+    fn header_name() -> &'static str {
         "Access-Control-Max-Age"
     }
 
     fn parse_header(raw: &[Vec<u8>]) -> Option<AccessControlMaxAge> {
-        header_util::from_one_raw_str(raw).map(AccessControlMaxAge)
+        header_parsing::from_one_raw_str(raw).map(AccessControlMaxAge)
     }
 }
 
 impl HeaderFormat for AccessControlMaxAge {
     fn fmt_header(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let AccessControlMaxAge(ref num) = *self;
-        num.fmt(f)
+        <_ as Display>::fmt(num, f)
     }
 }
 

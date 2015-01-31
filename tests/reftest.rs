@@ -7,22 +7,21 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#[macro_use] extern crate bitflags;
 extern crate png;
 extern crate test;
-extern crate regex;
 extern crate url;
 
 use std::ascii::AsciiExt;
-use std::io;
-use std::io::{File, Reader, Command, IoResult};
-use std::io::process::ExitStatus;
-use std::io::fs::PathExtensions;
+use std::old_io as io;
+use std::old_io::{File, Reader, Command, IoResult};
+use std::old_io::process::ExitStatus;
+use std::old_io::fs::PathExtensions;
+use std::old_path::Path;
 use std::os;
-use std::path::Path;
 use std::thunk::Thunk;
 use test::{AutoColor, DynTestName, DynTestFn, TestDesc, TestOpts, TestDescAndFn, ShouldFail};
 use test::run_tests_console;
-use regex::Regex;
 use url::Url;
 
 
@@ -47,7 +46,7 @@ fn main() {
     let (render_mode_string, base_path, testname) = match harness_args {
         [] | [_] => panic!("USAGE: cpu|gpu base_path [testname regex]"),
         [ref render_mode_string, ref base_path] => (render_mode_string, base_path, None),
-        [ref render_mode_string, ref base_path, ref testname, ..] => (render_mode_string, base_path, Some(Regex::new(testname.as_slice()).unwrap())),
+        [ref render_mode_string, ref base_path, ref testname, ..] => (render_mode_string, base_path, Some(testname.clone())),
     };
 
     let mut render_mode = match render_mode_string.as_slice() {
@@ -88,15 +87,8 @@ fn main() {
         logfile: None,
         run_tests: true,
         run_benchmarks: false,
-        ratchet_noise_percent: None,
-        ratchet_metrics: None,
-        save_metrics: None,
-        test_shard: None,
         nocapture: false,
         color: AutoColor,
-        show_boxplot: false,
-        boxplot_width: 0,
-        show_all_stats: false,
     };
 
     match run(test_opts,
