@@ -48,4 +48,4 @@ git = "https://github.com/servo/string-cache"
 
 [dependencies]
 encoding = "0.2"
-url = "*"
+url = "0.2.16"
