@@ -12,7 +12,7 @@
 //!
 //! 1. Layout is not allowed to mutate the DOM.
 //!
-//! 2. Layout is not allowed to see anything with `JS` in the name, because it could hang
+//! 2. Layout is not allowed to see anything with `LayoutJS` in the name, because it could hang
 //!    onto these objects and cause use-after-free.
 //!
 //! When implementing wrapper functions, be careful that you do not touch the borrow flags, or you
@@ -43,7 +43,7 @@ use script::dom::bindings::codegen::InheritTypes::{ElementCast, HTMLIFrameElemen
 use script::dom::bindings::codegen::InheritTypes::{HTMLCanvasElementCast, HTMLImageElementCast};
 use script::dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast};
 use script::dom::bindings::codegen::InheritTypes::{NodeCast, TextCast};
-use script::dom::bindings::js::JS;
+use script::dom::bindings::js::LayoutJS;
 use script::dom::element::{Element, ElementTypeId};
 use script::dom::element::{LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlelement::HTMLElementTypeId;
@@ -75,15 +75,15 @@ use url::Url;
 /// Allows some convenience methods on generic layout nodes.
 pub trait TLayoutNode {
     /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: &JS<Node>) -> Self;
+    unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> Self;
 
     /// Returns the type ID of this node. Fails if this node is borrowed mutably. Returns `None`
     /// if this is a pseudo-element; otherwise, returns `Some`.
     fn type_id(&self) -> Option<NodeTypeId>;
 
-    /// Returns the interior of this node as a `JS`. This is highly unsafe for layout to
+    /// Returns the interior of this node as a `LayoutJS`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node>;
+    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node>;
 
     /// Returns the interior of this node as a `Node`. This is highly unsafe for layout to call
     /// and as such is marked `unsafe`.
@@ -110,7 +110,7 @@ pub trait TLayoutNode {
     /// FIXME(pcwalton): Don't copy URLs.
     fn image_url(&self) -> Option<Url> {
         unsafe {
-            match HTMLImageElementCast::to_js(self.get_jsmanaged()) {
+            match HTMLImageElementCast::to_layout_js(self.get_jsmanaged()) {
                 Some(elem) => elem.image().as_ref().map(|url| (*url).clone()),
                 None => panic!("not an image!")
             }
@@ -119,21 +119,21 @@ pub trait TLayoutNode {
 
     fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
         unsafe {
-            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(self.get_jsmanaged());
+            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
             canvas_element.and_then(|elem| elem.get_renderer())
         }
     }
 
     fn get_canvas_width(&self) -> u32 {
         unsafe {
-            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(self.get_jsmanaged());
+            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
             canvas_element.unwrap().get_canvas_width()
         }
     }
 
     fn get_canvas_height(&self) -> u32 {
         unsafe {
-            let canvas_element: Option<JS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_js(self.get_jsmanaged());
+            let canvas_element: Option<LayoutJS<HTMLCanvasElement>> = HTMLCanvasElementCast::to_layout_js(self.get_jsmanaged());
             canvas_element.unwrap().get_canvas_height()
         }
     }
@@ -142,8 +142,8 @@ pub trait TLayoutNode {
     /// not an iframe element, fails.
     fn iframe_pipeline_and_subpage_ids(&self) -> (PipelineId, SubpageId) {
         unsafe {
-            let iframe_element: JS<HTMLIFrameElement> =
-                match HTMLIFrameElementCast::to_js(self.get_jsmanaged()) {
+            let iframe_element: LayoutJS<HTMLIFrameElement> =
+                match HTMLIFrameElementCast::to_layout_js(self.get_jsmanaged()) {
                     Some(elem) => elem,
                     None => panic!("not an iframe element!")
                 };
@@ -162,11 +162,11 @@ pub trait TLayoutNode {
 }
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
-/// only ever see these and must never see instances of `JS`.
+/// only ever see these and must never see instances of `LayoutJS`.
 #[derive(Copy)]
 pub struct LayoutNode<'a> {
     /// The wrapped node.
-    node: JS<Node>,
+    node: LayoutJS<Node>,
 
     /// Being chained to a ContravariantLifetime prevents `LayoutNode`s from escaping.
     pub chain: ContravariantLifetime<'a>,
@@ -189,7 +189,7 @@ impl<'a> PartialEq for LayoutNode<'a> {
 }
 
 impl<'ln> TLayoutNode for LayoutNode<'ln> {
-    unsafe fn new_with_this_lifetime(&self, node: &JS<Node>) -> LayoutNode<'ln> {
+    unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> LayoutNode<'ln> {
         LayoutNode {
             node: node.transmute_copy(),
             chain: self.chain,
@@ -202,7 +202,7 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
         }
     }
 
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
+    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         &self.node
     }
 
@@ -214,15 +214,15 @@ impl<'ln> TLayoutNode for LayoutNode<'ln> {
 
     fn text(&self) -> String {
         unsafe {
-            let text: Option<JS<Text>> = TextCast::to_js(self.get_jsmanaged());
+            let text: Option<LayoutJS<Text>> = TextCast::to_layout_js(self.get_jsmanaged());
             if let Some(text) = text {
                 return (*text.unsafe_get()).characterdata().data_for_layout().to_owned();
             }
-            let input: Option<JS<HTMLInputElement>> = HTMLInputElementCast::to_js(self.get_jsmanaged());
+            let input: Option<LayoutJS<HTMLInputElement>> = HTMLInputElementCast::to_layout_js(self.get_jsmanaged());
             if let Some(input) = input {
                 return input.get_value_for_layout();
             }
-            let area: Option<JS<HTMLTextAreaElement>> = HTMLTextAreaElementCast::to_js(self.get_jsmanaged());
+            let area: Option<LayoutJS<HTMLTextAreaElement>> = HTMLTextAreaElementCast::to_layout_js(self.get_jsmanaged());
             if let Some(area) = area {
                 return area.get_value_for_layout();
             }
@@ -294,7 +294,7 @@ impl<'ln> LayoutNode<'ln> {
 
     }
 
-    pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
+    pub unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         &self.node
     }
 
@@ -371,7 +371,7 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
     #[inline]
     fn as_element(self) -> LayoutElement<'ln> {
         unsafe {
-            let elem: JS<Element> = match ElementCast::to_js(&self.node) {
+            let elem: LayoutJS<Element> = match ElementCast::to_layout_js(&self.node) {
                 Some(elem) => elem,
                 None => panic!("not an element")
             };
@@ -411,7 +411,7 @@ impl<'ln> TNode<'ln, LayoutElement<'ln>> for LayoutNode<'ln> {
 
     fn is_html_element_in_html_document(self) -> bool {
         unsafe {
-            match ElementCast::to_js(&self.node) {
+            match ElementCast::to_layout_js(&self.node) {
                 Some(elem) => elem.html_element_in_html_document_for_layout(),
                 None => false
             }
@@ -707,7 +707,7 @@ pub struct ThreadSafeLayoutNode<'ln> {
 
 impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
     /// Creates a new layout node with the same lifetime as this layout node.
-    unsafe fn new_with_this_lifetime(&self, node: &JS<Node>) -> ThreadSafeLayoutNode<'ln> {
+    unsafe fn new_with_this_lifetime(&self, node: &LayoutJS<Node>) -> ThreadSafeLayoutNode<'ln> {
         ThreadSafeLayoutNode {
             node: LayoutNode {
                 node: node.transmute_copy(),
@@ -726,7 +726,7 @@ impl<'ln> TLayoutNode for ThreadSafeLayoutNode<'ln> {
         self.node.type_id()
     }
 
-    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a JS<Node> {
+    unsafe fn get_jsmanaged<'a>(&'a self) -> &'a LayoutJS<Node> {
         self.node.get_jsmanaged()
     }
 
@@ -824,7 +824,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     #[inline]
     pub fn as_element(&self) -> ThreadSafeLayoutElement<'ln> {
         unsafe {
-            let element = match ElementCast::to_js(self.get_jsmanaged()) {
+            let element = match ElementCast::to_layout_js(self.get_jsmanaged()) {
                 Some(e) => e.unsafe_get(),
                 None => panic!("not an element")
             };
@@ -936,7 +936,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn is_ignorable_whitespace(&self) -> bool {
         unsafe {
-            let text: JS<Text> = match TextCast::to_js(self.get_jsmanaged()) {
+            let text: LayoutJS<Text> = match TextCast::to_layout_js(self.get_jsmanaged()) {
                 Some(text) => text,
                 None => return false
             };
@@ -960,7 +960,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn get_input_value(&self) -> String {
         unsafe {
-            let input: Option<JS<HTMLInputElement>> = HTMLInputElementCast::to_js(self.get_jsmanaged());
+            let input: Option<LayoutJS<HTMLInputElement>> = HTMLInputElementCast::to_layout_js(self.get_jsmanaged());
             match input {
                 Some(input) => input.get_value_for_layout(),
                 None => panic!("not an input element!")
@@ -970,7 +970,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
 
     pub fn get_input_size(&self) -> u32 {
         unsafe {
-            match HTMLInputElementCast::to_js(self.get_jsmanaged()) {
+            match HTMLInputElementCast::to_layout_js(self.get_jsmanaged()) {
                 Some(input) => input.get_size_for_layout(),
                 None => panic!("not an input element!")
             }
@@ -980,7 +980,7 @@ impl<'ln> ThreadSafeLayoutNode<'ln> {
     pub fn get_unsigned_integer_attribute(self, attribute: UnsignedIntegerAttribute)
                                           -> Option<u32> {
         unsafe {
-            let elem: Option<JS<Element>> = ElementCast::to_js(self.get_jsmanaged());
+            let elem: Option<LayoutJS<Element>> = ElementCast::to_layout_js(self.get_jsmanaged());
             match elem {
                 Some(element) => {
                     (*element.unsafe_get()).get_unsigned_integer_attribute_for_layout(attribute)

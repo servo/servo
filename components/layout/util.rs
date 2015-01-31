@@ -10,8 +10,7 @@ use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 use gfx::display_list::OpaqueNode;
 use gfx;
 use libc::uintptr_t;
-use script::dom::bindings::js::JS;
-use script::dom::bindings::utils::Reflectable;
+use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{Node, SharedLayoutData};
 use script::layout_interface::{LayoutChan, TrustedNodeAddress};
 use script_traits::UntrustedNodeAddress;
@@ -126,7 +125,7 @@ pub trait OpaqueNodeMethods {
     fn from_script_node(node: TrustedNodeAddress) -> Self;
 
     /// Converts a DOM node to an `OpaqueNode'.
-    fn from_jsmanaged(node: &JS<Node>) -> Self;
+    fn from_jsmanaged(node: &LayoutJS<Node>) -> Self;
 
     /// Converts this node to an `UntrustedNodeAddress`. An `UntrustedNodeAddress` is just the type
     /// of node that script expects to receive in a hit test.
@@ -143,20 +142,20 @@ impl OpaqueNodeMethods for OpaqueNode {
     fn from_thread_safe_layout_node(node: &ThreadSafeLayoutNode) -> OpaqueNode {
         unsafe {
             let abstract_node = node.get_jsmanaged();
-            let ptr: uintptr_t = abstract_node.reflector().get_jsobject() as uintptr_t;
+            let ptr: uintptr_t = abstract_node.get_jsobject() as uintptr_t;
             OpaqueNode(ptr)
         }
     }
 
     fn from_script_node(node: TrustedNodeAddress) -> OpaqueNode {
         unsafe {
-            OpaqueNodeMethods::from_jsmanaged(&JS::from_trusted_node_address(node))
+            OpaqueNodeMethods::from_jsmanaged(&LayoutJS::from_trusted_node_address(node))
         }
     }
 
-    fn from_jsmanaged(node: &JS<Node>) -> OpaqueNode {
+    fn from_jsmanaged(node: &LayoutJS<Node>) -> OpaqueNode {
         unsafe {
-            let ptr: uintptr_t = mem::transmute(node.reflector().get_jsobject());
+            let ptr: uintptr_t = node.get_jsobject() as uintptr_t;
             OpaqueNode(ptr)
         }
     }

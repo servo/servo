@@ -32,7 +32,7 @@ use gfx::paint_task::{PaintChan, PaintLayer};
 use gfx::paint_task::Msg as PaintMsg;
 use layout_traits::{LayoutControlMsg, LayoutTaskFactory};
 use log;
-use script::dom::bindings::js::JS;
+use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{LayoutDataRef, Node, NodeTypeId};
 use script::dom::element::ElementTypeId;
 use script::dom::htmlelement::HTMLElementTypeId;
@@ -719,8 +719,8 @@ impl LayoutTask {
         // FIXME: Isolate this transmutation into a "bridge" module.
         // FIXME(rust#16366): The following line had to be moved because of a
         // rustc bug. It should be in the next unsafe block.
-        let mut node: JS<Node> = unsafe {
-            JS::from_trusted_node_address(data.document_root)
+        let mut node: LayoutJS<Node> = unsafe {
+            LayoutJS::from_trusted_node_address(data.document_root)
         };
         let node: &mut LayoutNode = unsafe {
             mem::transmute(&mut node)

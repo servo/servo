@@ -8,7 +8,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, LayoutJS, Temporary};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::element::AttributeHandlers;
@@ -88,7 +88,7 @@ pub trait LayoutHTMLImageElementHelpers {
     unsafe fn image(&self) -> Option<Url>;
 }
 
-impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
+impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     unsafe fn image(&self) -> Option<Url> {
         (*self.unsafe_get()).image.borrow_for_layout().clone()
     }

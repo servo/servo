@@ -129,11 +129,42 @@ pub struct JS<T> {
     ptr: NonZero<*const T>
 }
 
+impl<T> JS<T> {
+    /// Returns `LayoutJS<T>` containing the same pointer.
+    fn to_layout(self) -> LayoutJS<T> {
+        LayoutJS {
+            ptr: self.ptr.clone()
+        }
+    }
+}
+
+/// This is specialized `JS<T>` to use in under `layout` crate.
+/// `Layout*Helpers` traits must be implemented on this.
+pub struct LayoutJS<T> {
+    ptr: NonZero<*const T>
+}
+
+impl<T: Reflectable> LayoutJS<T> {
+    /// Get the reflector.
+    pub unsafe fn get_jsobject(&self) -> *mut JSObject {
+        (**self.ptr).reflector().get_jsobject()
+    }
+}
+
 impl<T> Copy for JS<T> {}
+
+impl<T> Copy for LayoutJS<T> {}
 
 impl<T> PartialEq for JS<T> {
     #[allow(unrooted_must_root)]
     fn eq(&self, other: &JS<T>) -> bool {
+        self.ptr == other.ptr
+    }
+}
+
+impl<T> PartialEq for LayoutJS<T> {
+    #[allow(unrooted_must_root)]
+    fn eq(&self, other: &LayoutJS<T>) -> bool {
         self.ptr == other.ptr
     }
 }
@@ -147,12 +178,31 @@ impl <T> Clone for JS<T> {
     }
 }
 
+impl <T> Clone for LayoutJS<T> {
+    #[inline]
+    fn clone(&self) -> LayoutJS<T> {
+        LayoutJS {
+            ptr: self.ptr.clone()
+        }
+    }
+}
+
 impl JS<Node> {
     /// Create a new JS-owned value wrapped from an address known to be a `Node` pointer.
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<Node> {
         let TrustedNodeAddress(addr) = inner;
         assert!(!addr.is_null());
         JS {
+            ptr: NonZero::new(addr as *const Node)
+        }
+    }
+}
+
+impl LayoutJS<Node> {
+    /// Create a new JS-owned value wrapped from an address known to be a `Node` pointer.
+    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutJS<Node> {
+        let TrustedNodeAddress(addr) = inner;
+        LayoutJS {
             ptr: NonZero::new(addr as *const Node)
         }
     }
@@ -296,6 +346,12 @@ impl<T: Reflectable> MutNullableJS<T> {
         self.ptr.get()
     }
 
+    /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
+    /// For use by layout, which can't use safe types like Temporary.
+    pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
+        self.get_inner().map(|js| js.to_layout())
+    }
+
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
     pub fn or_init<F>(&self, cb: F) -> Temporary<T>
@@ -313,9 +369,8 @@ impl<T: Reflectable> MutNullableJS<T> {
 }
 
 impl<T: Reflectable> JS<T> {
-    /// Returns an unsafe pointer to the interior of this object. This is the
-    /// only method that be safely accessed from layout. (The fact that this is
-    /// unsafe is what necessitates the layout wrappers.)
+    /// Returns an unsafe pointer to the interior of this object.
+    /// This should only be used by the DOM bindings.
     pub unsafe fn unsafe_get(&self) -> *const T {
         *self.ptr
     }
@@ -328,19 +383,28 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
-impl<From> JS<From> {
-    /// Return `self` as a `JS` of another type.
-    //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute<To>(self) -> JS<To> {
-        mem::transmute(self)
+impl<T: Reflectable> LayoutJS<T> {
+    /// Returns an unsafe pointer to the interior of this JS object without touching the borrow
+    /// flags. This is the only method that be safely accessed from layout. (The fact that this
+    /// is unsafe is what necessitates the layout wrappers.)
+    pub unsafe fn unsafe_get(&self) -> *const T {
+        *self.ptr
     }
+}
 
+impl<From> JS<From> {
     /// Return `self` as a `JS` of another type.
     pub unsafe fn transmute_copy<To>(&self) -> JS<To> {
         mem::transmute_copy(self)
     }
 }
 
+impl<From> LayoutJS<From> {
+    /// Return `self` as a `LayoutJS` of another type.
+    pub unsafe fn transmute_copy<To>(&self) -> LayoutJS<To> {
+        mem::transmute_copy(self)
+    }
+}
 
 /// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
