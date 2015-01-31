@@ -588,7 +588,8 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
     fn mutable(self) -> bool {
         // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/forms.html#the-readonly-attribute:concept-fe-mutable
-        !(self.Disabled() || self.ReadOnly())
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        !(node.get_disabled_state() || self.ReadOnly())
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-form-reset-control
@@ -611,6 +612,18 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
 impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     fn as_element(&self) -> Temporary<Element> {
         Temporary::from_rooted(ElementCast::from_ref(*self))
+    }
+
+    fn is_instance_activatable(&self) -> bool {
+        match self.input_type.get() {
+            // https://html.spec.whatwg.org/multipage/forms.html#submit-button-state-%28type=submit%29:activation-behaviour-2
+            // https://html.spec.whatwg.org/multipage/forms.html#reset-button-state-%28type=reset%29:activation-behaviour-2
+            // https://html.spec.whatwg.org/multipage/forms.html#checkbox-state-%28type=checkbox%29:activation-behaviour-2
+            // https://html.spec.whatwg.org/multipage/forms.html#radio-button-state-%28type=radio%29:activation-behaviour-2
+            InputType::InputSubmit | InputType::InputReset
+            | InputType::InputCheckbox | InputType::InputRadio => self.mutable(),
+            _ => false
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
