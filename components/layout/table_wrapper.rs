@@ -34,7 +34,7 @@ use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use std::sync::Arc;
 
-#[derive(Copy, RustcEncodable, Show)]
+#[derive(Copy, RustcEncodable, Debug)]
 pub enum TableLayout {
     Fixed,
     Auto
@@ -147,7 +147,7 @@ impl TableWrapperFlow {
         // Compute all the guesses for the column sizes, and sum them.
         let mut total_guess = AutoLayoutCandidateGuess::new();
         let guesses: Vec<AutoLayoutCandidateGuess> =
-            self.column_intrinsic_inline_sizes.iter().map(|&mut:column_intrinsic_inline_size| {
+            self.column_intrinsic_inline_sizes.iter().map(|column_intrinsic_inline_size| {
                 let guess = AutoLayoutCandidateGuess::from_column_intrinsic_inline_size(
                     column_intrinsic_inline_size,
                     available_inline_size);
@@ -383,7 +383,7 @@ impl Flow for TableWrapperFlow {
     }
 }
 
-impl fmt::Show for TableWrapperFlow {
+impl fmt::Debug for TableWrapperFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.block_flow.base.flags.is_float() {
             write!(f, "TableWrapperFlow(Float): {:?}", self.block_flow.fragment)
@@ -501,7 +501,7 @@ impl<'a> Add for &'a AutoLayoutCandidateGuess {
 
 /// The `CSSFloat` member specifies the weight of the smaller of the two guesses, on a scale from
 /// 0.0 to 1.0.
-#[derive(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Debug)]
 enum SelectedAutoLayoutCandidateGuess {
     UseMinimumGuess,
     InterpolateBetweenMinimumGuessAndMinimumPercentageGuess(CSSFloat),

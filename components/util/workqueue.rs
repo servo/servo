@@ -11,9 +11,8 @@ use task::spawn_named;
 use task_state;
 
 use libc::funcs::posix88::unistd::usleep;
-use rand::{Rng, XorShiftRng};
 use std::mem;
-use std::rand::weak_rng;
+use rand::{Rng, weak_rng, XorShiftRng};
 use std::sync::atomic::{AtomicUint, Ordering};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use deque::{Abort, BufferPool, Data, Empty, Stealer, Worker};

@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::io;
-use std::io::File;
+use std::old_io as io;
+use std::old_io::File;
 
 /// Platform specific font representation for Linux.
 /// The identifier is an absolute path, and the bytes

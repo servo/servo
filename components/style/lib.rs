@@ -10,6 +10,7 @@
 #![allow(unstable)]
 
 #[macro_use] extern crate log;
+#[macro_use] extern crate bitflags;
 #[no_link] #[macro_use] #[plugin] extern crate string_cache_macros;
 
 extern crate collections;

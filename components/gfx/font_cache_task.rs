@@ -149,7 +149,7 @@ impl FontCache {
                         }
                         Source::Local(ref local_family_name) => {
                             let family = &mut self.web_families[family_name];
-                            get_variations_for_family(local_family_name.as_slice(), |&mut:path| {
+                            get_variations_for_family(local_family_name.as_slice(), |path| {
                                 family.add_template(path.as_slice(), None);
                             });
                         }
@@ -191,7 +191,7 @@ impl FontCache {
             let s = &mut self.local_families[*family_name];
 
             if s.templates.len() == 0 {
-                get_variations_for_family(family_name.as_slice(), |&mut:path| {
+                get_variations_for_family(family_name.as_slice(), |path| {
                     s.add_template(path.as_slice(), None);
                 });
             }

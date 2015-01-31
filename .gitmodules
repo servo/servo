@@ -3,4 +3,4 @@
 	url = https://github.com/servo/web-platform-tests.git
 [submodule "support/android-rs-glue"]
 	path = support/android-rs-glue
-	url = https://github.com/servo/android-rs-glue
+	url = https://github.com/tomaka/android-rs-glue

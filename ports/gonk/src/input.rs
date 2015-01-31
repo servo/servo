@@ -9,7 +9,7 @@ use std::mem::zeroed;
 use std::os::errno;
 use std::os::unix::AsRawFd;
 use std::num::Float;
-use std::io::File;
+use std::old_io::File;
 use std::thread::Thread;
 use std::sync::mpsc::Sender;
 

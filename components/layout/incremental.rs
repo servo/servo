@@ -86,7 +86,7 @@ impl RestyleDamage {
     }
 }
 
-impl fmt::Show for RestyleDamage {
+impl fmt::Debug for RestyleDamage {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         let mut first_elem = true;
 

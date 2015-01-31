@@ -7,9 +7,9 @@
 use libc::{c_char,c_int,c_void,size_t};
 use std::borrow::ToOwned;
 use std::ffi::CString;
-use std::io::timer::sleep;
+use std::old_io::timer::sleep;
 #[cfg(target_os="linux")]
-use std::io::File;
+use std::old_io::File;
 use std::mem;
 use std::mem::size_of;
 #[cfg(target_os="linux")]
@@ -222,7 +222,7 @@ fn get_proc_self_statm_field(field: uint) -> Option<u64> {
     match f.read_to_string() {
         Ok(contents) => {
             let s = option_try!(contents.as_slice().words().nth(field));
-            let npages: u64 = option_try!(s.parse());
+            let npages: u64 = option_try!(s.parse().ok());
             Some(npages * (page_size() as u64))
         }
         Err(_) => None

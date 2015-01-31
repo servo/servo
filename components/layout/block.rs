@@ -1902,7 +1902,7 @@ impl Flow for BlockFlow {
     }
 }
 
-impl fmt::Show for BlockFlow {
+impl fmt::Debug for BlockFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
                "{:?} - {:x}: frag={:?} ({:?})",
@@ -1914,7 +1914,7 @@ impl fmt::Show for BlockFlow {
 }
 
 /// The inputs for the inline-sizes-and-margins constraint equation.
-#[derive(Show, Copy)]
+#[derive(Debug, Copy)]
 pub struct ISizeConstraintInput {
     pub computed_inline_size: MaybeAuto,
     pub inline_start_margin: MaybeAuto,
@@ -1947,7 +1947,7 @@ impl ISizeConstraintInput {
 }
 
 /// The solutions for the inline-size-and-margins constraint equation.
-#[derive(Copy, Show)]
+#[derive(Copy, Debug)]
 pub struct ISizeConstraintSolution {
     pub inline_start: Au,
     pub inline_end: Au,

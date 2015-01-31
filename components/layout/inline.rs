@@ -68,7 +68,7 @@ static FONT_SUPERSCRIPT_OFFSET_RATIO: f64 = 0.34;
 /// with a float or a horizontal wall of the containing block. The block-start
 /// inline-start corner of the green zone is the same as that of the line, but
 /// the green zone can be taller and wider than the line itself.
-#[derive(RustcEncodable, Show, Copy)]
+#[derive(RustcEncodable, Debug, Copy)]
 pub struct Line {
     /// A range of line indices that describe line breaks.
     ///
@@ -712,7 +712,7 @@ pub struct InlineFragments {
     pub fragments: Vec<Fragment>,
 }
 
-impl fmt::Show for InlineFragments {
+impl fmt::Debug for InlineFragments {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?}", self.fragments)
     }
@@ -1392,7 +1392,7 @@ impl Flow for InlineFlow {
     }
 }
 
-impl fmt::Show for InlineFlow {
+impl fmt::Debug for InlineFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{:?} - {:x} - {:?}", self.class(), self.base.debug_id(), self.fragments)
     }

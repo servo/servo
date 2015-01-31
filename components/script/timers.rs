@@ -24,7 +24,7 @@ use std::collections::HashMap;
 use std::sync::mpsc::{channel, Sender};
 use std::sync::mpsc::Select;
 use std::hash::{Hash, Hasher, Writer};
-use std::io::timer::Timer;
+use std::old_io::timer::Timer;
 use std::time::duration::Duration;
 
 #[derive(PartialEq, Eq)]

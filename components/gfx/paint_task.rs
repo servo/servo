@@ -144,7 +144,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                   time_profiler_chan: TimeProfilerChan,
                   shutdown_chan: Sender<()>) {
         let ConstellationChan(c) = constellation_chan.clone();
-        spawn_named_with_send_on_failure("PaintTask", task_state::PAINT, move |:| {
+        spawn_named_with_send_on_failure("PaintTask", task_state::PAINT, move || {
             {
                 // Ensures that the paint task and graphics context are destroyed before the
                 // shutdown message.
@@ -336,7 +336,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
               mut tiles: Vec<BufferRequest>,
               scale: f32,
               layer_id: LayerId) {
-        profile(TimeProfilerCategory::Painting, None, self.time_profiler_chan.clone(), |:| {
+        profile(TimeProfilerCategory::Painting, None, self.time_profiler_chan.clone(), || {
             // Bail out if there is no appropriate stacking context.
             let stacking_context = if let Some(ref stacking_context) = self.root_stacking_context {
                 match display_list::find_stacking_context_with_layer_id(stacking_context,
@@ -360,7 +360,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                                                           stacking_context.clone(),
                                                           scale);
             }
-            let new_buffers = (0..tile_count).map(|&mut :i| {
+            let new_buffers = (0..tile_count).map(|i| {
                 let thread_id = i % self.worker_threads.len();
                 self.worker_threads[thread_id].get_painted_tile_buffer()
             }).collect();
@@ -425,7 +425,7 @@ impl WorkerThreadProxy {
         } else {
             opts::get().layout_threads
         };
-        (0..thread_count).map(|&:_| {
+        (0..thread_count).map(|_| {
             let (from_worker_sender, from_worker_receiver) = channel();
             let (to_worker_sender, to_worker_receiver) = channel();
             let native_graphics_metadata = native_graphics_metadata.clone();
@@ -582,7 +582,7 @@ impl WorkerThread {
         // GPU painting mode, so that it doesn't have to recreate it.
         if !opts::get().gpu_painting {
             let mut buffer = layer_buffer.unwrap();
-            draw_target.snapshot().get_data_surface().with_data(|&mut:data| {
+            draw_target.snapshot().get_data_surface().with_data(|data| {
                 buffer.native_surface.upload(native_graphics_context!(self), data);
                 debug!("painting worker thread uploading to native surface {}",
                        buffer.native_surface.get_id());

@@ -13,13 +13,13 @@ use time::{Tm, now, at, Timespec};
 use url::Url;
 use std::borrow::ToOwned;
 use std::i64;
-use std::io::net::ip::IpAddr;
+use std::old_io::net::ip::IpAddr;
 use std::time::Duration;
 
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
 /// which cookie-rs and hyper's header parsing do not support.
-#[derive(Clone, Show)]
+#[derive(Clone, Debug)]
 pub struct Cookie {
     pub cookie: cookie_rs::Cookie,
     pub host_only: bool,
@@ -121,7 +121,7 @@ impl Cookie {
         }
         if string.ends_with(domain_string)
             && string.char_at(string.len()-domain_string.len()-1) == '.'
-            && string.parse::<IpAddr>().is_none() {
+            && string.parse::<IpAddr>().is_err() {
             return true;
         }
         false

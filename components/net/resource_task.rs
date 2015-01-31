@@ -15,25 +15,25 @@ use cookie;
 
 use util::task::spawn_named;
 
-use hyper::header::common::UserAgent;
+use hyper::header::UserAgent;
 use hyper::header::{Headers, Header, SetCookie};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
 use url::Url;
 
-use std::borrow::ToOwned;
+use std::borrow::{ToOwned, IntoCow};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::thunk::Invoke;
 use std::collections::HashMap;
-use std::io::{BufferedReader, File};
+use std::old_io::{BufferedReader, File};
 use std::mem;
 use std::os;
 
 #[cfg(test)]
-use std::io::{Listener, Acceptor, TimedOut};
+use std::old_io::{Listener, Acceptor, TimedOut};
 #[cfg(test)]
-use std::io::net::tcp::TcpListener;
+use std::old_io::net::tcp::TcpListener;
 
 static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
 
@@ -97,7 +97,7 @@ pub struct ResourceCORSData {
 }
 
 /// Metadata about a loaded resource, such as is obtained from HTTP headers.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: Url,
@@ -124,7 +124,7 @@ impl Metadata {
             charset:      None,
             headers: None,
             // http://fetch.spec.whatwg.org/#concept-response-status-message
-            status: Some(RawStatus(200, "OK".to_owned())),
+            status: Some(RawStatus(200, "OK".into_cow())),
         }
     }
 
@@ -168,7 +168,7 @@ pub struct ResponseSenders {
 }
 
 /// Messages sent in response to a `Load` message
-#[derive(PartialEq,Show)]
+#[derive(PartialEq,Debug)]
 pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),

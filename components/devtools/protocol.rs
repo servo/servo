@@ -8,7 +8,7 @@
 
 use serialize::{json, Encodable};
 use serialize::json::Json;
-use std::io::{IoError, OtherIoError, EndOfFile, TcpStream, IoResult};
+use std::old_io::{IoError, OtherIoError, EndOfFile, TcpStream, IoResult};
 use std::num;
 
 pub trait JsonPacketStream {
@@ -18,7 +18,7 @@ pub trait JsonPacketStream {
 
 impl JsonPacketStream for TcpStream {
     fn write_json_packet<'a, T: Encodable>(&mut self, obj: &T) {
-        let s = json::encode(obj).replace("__type__", "type");
+        let s = json::encode(obj).unwrap().replace("__type__", "type");
         println!("<- {}", s);
         self.write_str(s.len().to_string().as_slice()).unwrap();
         self.write_u8(':' as u8).unwrap();
