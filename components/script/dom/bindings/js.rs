@@ -396,12 +396,6 @@ impl<T: Reflectable> LayoutJS<T> {
 
 impl<From> JS<From> {
     /// Return `self` as a `JS` of another type.
-    //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute<To>(self) -> JS<To> {
-        mem::transmute(self)
-    }
-
-    /// Return `self` as a `JS` of another type.
     pub unsafe fn transmute_copy<To>(&self) -> JS<To> {
         mem::transmute_copy(self)
     }
