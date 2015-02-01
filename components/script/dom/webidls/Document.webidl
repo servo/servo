@@ -65,6 +65,8 @@ partial interface Document {
   readonly attribute DocumentReadyState readyState;
   readonly attribute DOMString lastModified;
   readonly attribute Location location;
+  [Throws]
+  attribute DOMString cookie;
 
   // DOM tree accessors
            [SetterThrows]

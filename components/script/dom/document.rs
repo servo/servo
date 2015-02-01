@@ -19,7 +19,7 @@ use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLEmbedElem
 use dom::bindings::codegen::InheritTypes::{HTMLFormElementDerived, HTMLImageElementDerived};
 use dom::bindings::codegen::InheritTypes::{HTMLScriptElementDerived};
 use dom::bindings::error::{ErrorResult, Fallible};
-use dom::bindings::error::Error::{NotSupported, InvalidCharacter};
+use dom::bindings::error::Error::{NotSupported, InvalidCharacter, Security};
 use dom::bindings::error::Error::{HierarchyRequest, NamespaceError};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{MutNullableJS, JS, JSRef, LayoutJS, Temporary, TemporaryPushable};
@@ -54,6 +54,8 @@ use dom::range::Range;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{Window, WindowHelpers};
+use net::resource_task::ControlMsg::{SetCookiesForUrl, GetCookiesForUrl};
+use net::cookie_storage::CookieSource::NonHTTP;
 use util::namespace;
 use util::str::{DOMString, split_html_space_chars};
 
@@ -68,6 +70,7 @@ use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::ascii::AsciiExt;
 use std::cell::{Cell, Ref};
 use std::default::Default;
+use std::sync::mpsc::channel;
 use time;
 
 #[derive(PartialEq)]
@@ -1004,7 +1007,38 @@ impl<'a> DocumentMethods for JSRef<'a, Document> {
         Temporary::new(self.window)
     }
 
+    // https://html.spec.whatwg.org/multipage/dom.html#dom-document-cookie
+    fn GetCookie(self) -> Fallible<DOMString> {
+        //TODO: return empty string for cookie-averse Document
+        let url = self.url();
+        if !is_scheme_host_port_tuple(&url) {
+            return Err(Security);
+        }
+        let window = self.window.root();
+        let page = window.page();
+        let (tx, rx) = channel();
+        let _ = page.resource_task.send(GetCookiesForUrl(url, tx, NonHTTP));
+        let cookies = rx.recv().unwrap();
+        Ok(cookies.unwrap_or("".to_owned()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/dom.html#dom-document-cookie
+    fn SetCookie(self, cookie: DOMString) -> ErrorResult {
+        //TODO: ignore for cookie-averse Document
+        let url = self.url();
+        if !is_scheme_host_port_tuple(&url) {
+            return Err(Security);
+        }
+        let window = self.window.root();
+        let page = window.page();
+        let _ = page.resource_task.send(SetCookiesForUrl(url, cookie, NonHTTP));
+        Ok(())
+    }
+
     global_event_handlers!();
     event_handler!(readystatechange, GetOnreadystatechange, SetOnreadystatechange);
 }
 
+fn is_scheme_host_port_tuple(url: &Url) -> bool {
+    url.host().is_some() && url.port_or_default().is_some()
+}
