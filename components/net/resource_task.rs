@@ -10,14 +10,13 @@ use file_loader;
 use http_loader;
 use sniffer_task;
 use sniffer_task::SnifferTask;
-use cookie_rs::Cookie;
 use cookie_storage::{CookieStorage, CookieSource};
 use cookie;
 
 use util::task::spawn_named;
 
 use hyper::header::common::UserAgent;
-use hyper::header::Headers;
+use hyper::header::{Headers, Header, SetCookie};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, Attr};
@@ -31,7 +30,7 @@ pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(LoadData),
     /// Store a set of cookies for a given originating URL
-    SetCookies(Vec<Cookie>, Url, CookieSource),
+    SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(Url, Sender<Option<String>>, CookieSource),
     Exit
@@ -229,11 +228,14 @@ impl ResourceManager {
               ControlMsg::Load(load_data) => {
                 self.load(load_data)
               }
-              ControlMsg::SetCookies(vector, request, source) => {
-                for cookie in vector.into_iter() {
+              ControlMsg::SetCookiesForUrl(request, cookies, source) => {
+                let header = Header::parse_header([cookies.into_bytes()].as_slice());
+                if let Some(SetCookie(cookies)) = header {
+                  for cookie in cookies.into_iter() {
                     if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
-                        self.cookie_storage.push(cookie, source);
+                      self.cookie_storage.push(cookie, source);
                     }
+                  }
                 }
               }
               ControlMsg::GetCookiesForUrl(url, consumer, source) => {
