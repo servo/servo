@@ -423,7 +423,7 @@ impl ImageCacheTask {
     #[cfg(test)]
     fn wait_for_store(&self) -> Receiver<()> {
         let (chan, port) = channel();
-        self.send(Msg::WaitForStore(chan)).unwrap();
+        self.send(Msg::WaitForStore(chan));
         port
     }
 
