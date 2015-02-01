@@ -3,6 +3,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! Conversions of Rust values to and from `JSVal`.
+//!
+//! | IDL type                | Argument type   | Return type    |
+//! |-------------------------|-----------------|----------------|
+//! | any                     | `JSVal`                          |
+//! | boolean                 | `bool`                           |
+//! | byte                    | `i8`                             |
+//! | octet                   | `u8`                             |
+//! | short                   | `i16`                            |
+//! | unsigned short          | `u16`                            |
+//! | long                    | `i32`                            |
+//! | unsigned long           | `u32`                            |
+//! | long long               | `i64`                            |
+//! | unsigned long long      | `u64`                            |
+//! | float                   | `f32`                            |
+//! | double                  | `f64`                            |
+//! | DOMString               | `DOMString`                      |
+//! | ByteString              | `ByteString`                     |
+//! | object                  | `*mut JSObject`                  |
+//! | interface types         | `JSRef<T>`      | `Temporary<T>` |
+//! | dictionary types        | `&T`            | *unsupported*  |
+//! | enumeration types       | `T`                              |
+//! | callback function types | `T`                              |
+//! | nullable types          | `Option<T>`                      |
+//! | sequences               | `Vec<T>`                         |
+//! | union types             | `T`                              |
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::js::{JS, JSRef, Root};
