@@ -8,6 +8,7 @@
 #![allow(unstable)]
 
 extern crate azure;
+extern crate cssparser;
 extern crate geom;
 extern crate util;
 
