@@ -14,7 +14,7 @@ use dom::event::{Event, EventTypeId};
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use servo_msg::constellation_msg;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
@@ -350,7 +350,7 @@ fn code_value(key: constellation_msg::Key) -> &'static str {
 
         constellation_msg::Key::GraveAccent |
         constellation_msg::Key::World1 |
-        constellation_msg::Key::World2 => panic!("unknown char code for {}", key),
+        constellation_msg::Key::World2 => panic!("unknown char code for {:?}", key),
 
         constellation_msg::Key::Escape => "Escape",
         constellation_msg::Key::Enter => "Enter",

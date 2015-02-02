@@ -9,7 +9,7 @@ use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::navigatorinfo;
 use dom::window::Window;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct Navigator {

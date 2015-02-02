@@ -9,7 +9,7 @@ use rustc::lint::{Context, LintPass, LintArray};
 use rustc::middle::ty;
 
 declare_lint!(PRIVATIZE, Deny,
-              "Allows to enforce private fields for struct definitions")
+              "Allows to enforce private fields for struct definitions");
 
 /// Lint for keeping DOM fields private
 ///

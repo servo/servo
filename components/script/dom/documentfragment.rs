@@ -15,7 +15,7 @@ use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::nodelist::NodeList;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct DocumentFragment {

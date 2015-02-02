@@ -515,10 +515,16 @@
         "url": "/IndexedDB/idbworker.js"
       },
       {
+        "url": "/IndexedDB/interfaces.idl"
+      },
+      {
         "url": "/IndexedDB/support.js"
       },
       {
         "url": "/WebCryptoAPI/README.md"
+      },
+      {
+        "url": "/WebIDL/ecmascript-binding/es-exceptions/constructor-object.js"
       },
       {
         "url": "/WebIDL/invalid/idl/enum.widl"
@@ -1437,6 +1443,9 @@
       },
       {
         "url": "/dom/traversal/unfinished/TODO"
+      },
+      {
+        "url": "/encoding/resources/encodings.js"
       },
       {
         "url": "/encoding/resources/single-byte-raw.py"
@@ -2487,6 +2496,9 @@
       },
       {
         "url": "/html/webappapis/scripting/processing-model-2/support/undefined-variable.js"
+      },
+      {
+        "url": "/html/webappapis/system-state-and-capabilities/the-navigator-object/NavigatorID.js"
       },
       {
         "url": "/html/webappapis/system-state-and-capabilities/the-navigator-object/contains.json"
@@ -4316,9 +4328,6 @@
         "url": "/workers/support/ErrorEvent.js"
       },
       {
-        "url": "/workers/support/EventListener.js"
-      },
-      {
         "url": "/workers/support/ImportScripts.js"
       },
       {
@@ -4341,9 +4350,6 @@
       },
       {
         "url": "/workers/support/WorkerNavigator.js"
-      },
-      {
-        "url": "/workers/support/WorkerNested.js"
       },
       {
         "url": "/workers/support/WorkerTerminate.js"
@@ -5147,11 +5153,6 @@
       }
     ],
     "reftest": [
-      {
-        "ref_type": "!=",
-        "ref_url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element-notref.html",
-        "url": "/html/semantics/text-level-semantics/the-wbr-element/wbr-element.html"
-      },
       {
         "ref_type": "==",
         "ref_url": "/2dcontext/building-paths/canvas_complexshapes_arcto_001-ref.htm",
@@ -9454,7 +9455,13 @@
         "url": "/FileAPI/idlharness.html"
       },
       {
+        "url": "/FileAPI/progress.html"
+      },
+      {
         "url": "/FileAPI/reading-data-section/Determining-Encoding.html"
+      },
+      {
+        "url": "/FileAPI/reading-data-section/FileReader-multiple-reads.html"
       },
       {
         "url": "/FileAPI/reading-data-section/filereader_abort.html"
@@ -10150,6 +10157,9 @@
         "url": "/IndexedDB/interfaces.html"
       },
       {
+        "url": "/IndexedDB/interfaces.worker"
+      },
+      {
         "url": "/IndexedDB/key_invalid.htm"
       },
       {
@@ -10214,6 +10224,12 @@
       },
       {
         "url": "/WebIDL/ecmascript-binding/es-exceptions/DOMException-constructor.html"
+      },
+      {
+        "url": "/WebIDL/ecmascript-binding/es-exceptions/constructor-object.html"
+      },
+      {
+        "url": "/WebIDL/ecmascript-binding/es-exceptions/constructor-object.worker"
       },
       {
         "url": "/WebIDL/ecmascript-binding/es-exceptions/exceptions.html"
@@ -11014,6 +11030,9 @@
         "url": "/custom-elements/instantiating-custom-elements/prototype-is-interface-prototype-object.html"
       },
       {
+        "url": "/custom-elements/instantiating-custom-elements/unchanged-attribute.html"
+      },
+      {
         "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-default-namespace.html"
       },
       {
@@ -11638,16 +11657,55 @@
         "url": "/domxpath/evaluator-constructor.html"
       },
       {
+        "url": "/encoding/api-basics.html"
+      },
+      {
+        "url": "/encoding/api-replacement-encodings.html"
+      },
+      {
+        "url": "/encoding/api-surrogates-utf8.html"
+      },
+      {
         "url": "/encoding/gb18030-encoder.html"
       },
       {
         "url": "/encoding/gbk-encoder.html"
       },
       {
+        "url": "/encoding/idlharness.html"
+      },
+      {
         "url": "/encoding/iso-2022-jp-decoder.html"
       },
       {
         "url": "/encoding/iso-2022-jp-encoder.html"
+      },
+      {
+        "url": "/encoding/textdecoder-byte-order-marks.html"
+      },
+      {
+        "url": "/encoding/textdecoder-fatal-streaming.html"
+      },
+      {
+        "url": "/encoding/textdecoder-fatal.html"
+      },
+      {
+        "url": "/encoding/textdecoder-ignorebom.html"
+      },
+      {
+        "url": "/encoding/textdecoder-labels.html"
+      },
+      {
+        "url": "/encoding/textdecoder-streaming.html"
+      },
+      {
+        "url": "/encoding/textdecoder-utf16-surrogates.html"
+      },
+      {
+        "url": "/encoding/textencoder-constructor-non-utf.html"
+      },
+      {
+        "url": "/encoding/textencoder-utf16-surrogates.html"
       },
       {
         "url": "/eventsource/dedicated-worker/eventsource-close.htm"
@@ -11984,6 +12042,9 @@
       },
       {
         "url": "/html/browsers/the-window-object/accessing-other-browsing-contexts/indexed-browsing-contexts-03.html"
+      },
+      {
+        "url": "/html/browsers/the-window-object/apis-for-creating-and-navigating-browsing-contexts-by-name/creating_browsing_context_test_01.html"
       },
       {
         "url": "/html/browsers/the-window-object/named-access-on-the-window-object/named-objects.html"
@@ -13903,6 +13964,12 @@
         "url": "/html/semantics/forms/the-progress-element/progress.html"
       },
       {
+        "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection-namedItem.html"
+      },
+      {
+        "url": "/html/semantics/forms/the-select-element/common-HTMLOptionsCollection.html"
+      },
+      {
         "url": "/html/semantics/forms/the-select-element/select-named-getter.html"
       },
       {
@@ -14161,6 +14228,9 @@
         "url": "/html/semantics/tabular-data/the-tr-element/rowIndex.html"
       },
       {
+        "url": "/html/semantics/tabular-data/the-tr-element/sectionRowIndex.html"
+      },
+      {
         "url": "/html/semantics/text-level-semantics/the-a-element/a-stringifier.html"
       },
       {
@@ -14386,6 +14456,12 @@
         "url": "/html/webappapis/scripting/processing-model-2/window-onerror-runtime-error.html"
       },
       {
+        "url": "/html/webappapis/system-state-and-capabilities/the-navigator-object/NavigatorID.html"
+      },
+      {
+        "url": "/html/webappapis/system-state-and-capabilities/the-navigator-object/NavigatorID.worker"
+      },
+      {
         "url": "/html/webappapis/system-state-and-capabilities/the-navigator-object/content.html"
       },
       {
@@ -14551,6 +14627,9 @@
         "url": "/media-source/mediasource-config-change-webm-v-framesize.html"
       },
       {
+        "url": "/media-source/mediasource-duration-boundaryconditions.html"
+      },
+      {
         "url": "/media-source/mediasource-duration.html"
       },
       {
@@ -14578,16 +14657,25 @@
         "url": "/media-source/mediasource-remove.html"
       },
       {
+        "url": "/media-source/mediasource-removesourcebuffer.html"
+      },
+      {
         "url": "/media-source/mediasource-seek-beyond-duration.html"
       },
       {
         "url": "/media-source/mediasource-seek-during-pending-seek.html"
       },
       {
+        "url": "/media-source/mediasource-sequencemode-append-buffer.html"
+      },
+      {
         "url": "/media-source/mediasource-sourcebuffer-mode.html"
       },
       {
         "url": "/media-source/mediasource-sourcebufferlist.html"
+      },
+      {
+        "url": "/media-source/mediasource-timestamp-offset.html"
       },
       {
         "url": "/mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/api-present.html"
@@ -16822,16 +16910,10 @@
         "url": "/webstorage/storage_local_removeitem_js.html"
       },
       {
-        "url": "/webstorage/storage_local_security.html"
-      },
-      {
         "url": "/webstorage/storage_local_setitem.html"
       },
       {
         "url": "/webstorage/storage_local_setitem_js.html"
-      },
-      {
-        "url": "/webstorage/storage_local_setitem_quotaexceedederr.html"
       },
       {
         "url": "/webstorage/storage_session_builtins.html"
@@ -16874,9 +16956,6 @@
       },
       {
         "url": "/webstorage/storage_session_setitem_js.html"
-      },
-      {
-        "url": "/webstorage/storage_session_setitem_quotaexceedederr.html"
       },
       {
         "url": "/webvtt/interfaces.html"
@@ -16933,12 +17012,6 @@
         "url": "/workers/WorkerGlobalScope_ErrorEvent_message.htm"
       },
       {
-        "url": "/workers/WorkerGlobalScope_EventTarget.htm"
-      },
-      {
-        "url": "/workers/WorkerGlobalScope_addEventListener.htm"
-      },
-      {
         "url": "/workers/WorkerGlobalScope_close.htm"
       },
       {
@@ -16946,12 +17019,6 @@
       },
       {
         "url": "/workers/WorkerGlobalScope_importScripts_NetworkErr.htm"
-      },
-      {
-        "url": "/workers/WorkerGlobalScope_nested_Worker.htm"
-      },
-      {
-        "url": "/workers/WorkerGlobalScope_removeEventListener.htm"
       },
       {
         "url": "/workers/WorkerGlobalScope_setInterval.htm"
@@ -17137,6 +17204,9 @@
         "url": "/workers/interfaces.worker"
       },
       {
+        "url": "/workers/interfaces/DedicatedWorkerGlobalScope/EventTarget.worker"
+      },
+      {
         "url": "/workers/interfaces/DedicatedWorkerGlobalScope/onmessage.worker"
       },
       {
@@ -17269,9 +17339,6 @@
         "url": "/workers/interfaces/WorkerUtils/importScripts/012.html"
       },
       {
-        "url": "/workers/interfaces/WorkerUtils/navigator/001.html"
-      },
-      {
         "url": "/workers/interfaces/WorkerUtils/navigator/002.html"
       },
       {
@@ -17291,6 +17358,9 @@
       },
       {
         "url": "/workers/interfaces/WorkerUtils/navigator/language.html"
+      },
+      {
+        "url": "/workers/nested_worker.worker"
       },
       {
         "url": "/workers/postMessage_DataCloneErr.htm"
@@ -17916,6 +17986,14 @@
       {
         "timeout": "long",
         "url": "/websockets/unload-a-document/005.html"
+      },
+      {
+        "timeout": "long",
+        "url": "/webstorage/storage_local_setitem_quotaexceedederr.html"
+      },
+      {
+        "timeout": "long",
+        "url": "/webstorage/storage_session_setitem_quotaexceedederr.html"
       }
     ],
     "wdspec": [
@@ -17976,6 +18054,6 @@
     "deleted": [],
     "items": {}
   },
-  "rev": "68c7ce132cc91eab73bad13c69225d79fe97a3ec",
+  "rev": "9b3cf7130b08834291687e8b011e85829c20ea79",
   "url_base": "/"
 }

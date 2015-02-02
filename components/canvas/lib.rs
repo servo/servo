@@ -5,9 +5,10 @@
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
+#![allow(unstable)]
 
 extern crate azure;
 extern crate geom;
-extern crate "util" as servo_util;
+extern crate util;
 
 pub mod canvas_paint_task;

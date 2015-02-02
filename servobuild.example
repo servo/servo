@@ -1,5 +1,8 @@
 # Tool options
 [tools]
+# Where Rust compiler snapshots and other downloads will be stored.  Can be
+# shared by multiple Servo reposities.  Defaults to <servo-repo>/.servo
+cache-dir = "~/.servo"
 # If system-rust is true, will use rustc/rustdoc from the path, or if
 # rust-root is specified, will make sure that rust-root is in the path
 # when building. Similarly for Cargo. This takes care of PATH as well as

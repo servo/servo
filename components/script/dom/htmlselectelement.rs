@@ -20,7 +20,7 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use string_cache::Atom;
 
 use std::borrow::ToOwned;
@@ -61,10 +61,10 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
     }
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled")
+    make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-select-type
     fn Type(self) -> DOMString {
@@ -78,7 +78,7 @@ impl<'a> HTMLSelectElementMethods for JSRef<'a, HTMLSelectElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLSelectElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

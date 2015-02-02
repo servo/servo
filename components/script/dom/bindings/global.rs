@@ -7,8 +7,6 @@
 //! This module contains smart pointers to global scopes, to simplify writing
 //! code that works in workers as well as window scopes.
 
-#[deny(missing_docs)]
-
 use dom::bindings::conversions::FromJSValConvertible;
 use dom::bindings::js::{JS, JSRef, Root};
 use dom::bindings::utils::{Reflectable, Reflector};
@@ -28,7 +26,7 @@ use url::Url;
 use std::ptr;
 
 /// A freely-copyable reference to a rooted global object.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum GlobalRef<'a> {
     /// A reference to a `Window` object.
     Window(JSRef<'a, window::Window>),

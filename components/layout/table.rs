@@ -11,7 +11,7 @@ use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use construct::FlowConstructor;
 use context::LayoutContext;
 use floats::FloatKind;
-use flow::{mod, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
+use flow::{self, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS, IMPACTED_BY_RIGHT_FLOATS};
 use flow::ImmutableFlowUtils;
 use fragment::{Fragment, FragmentBorderBoxIterator};
 use layout_debug;
@@ -25,14 +25,16 @@ use servo_util::geometry::Au;
 use servo_util::logical_geometry::LogicalRect;
 use std::cmp::max;
 use std::fmt;
-use style::{ComputedValues, CSSFloat};
-use style::computed_values::{LengthOrPercentageOrAuto, table_layout};
+use style::properties::ComputedValues;
+use style::values::CSSFloat;
+use style::values::computed::{LengthOrPercentageOrAuto};
+use style::computed_values::table_layout;
 use std::sync::Arc;
 
 /// A table flow corresponded to the table's internal table fragment under a table wrapper flow.
 /// The properties `position`, `float`, and `margin-*` are used on the table wrapper fragment,
 /// not table fragment per CSS 2.1 § 10.5.
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 pub struct TableFlow {
     pub block_flow: BlockFlow,
 
@@ -399,7 +401,7 @@ impl Flow for TableFlow {
 impl fmt::Show for TableFlow {
     /// Outputs a debugging string describing this table flow.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TableFlow: {}", self.block_flow)
+        write!(f, "TableFlow: {:?}", self.block_flow)
     }
 }
 
@@ -441,7 +443,7 @@ impl ISizeAndMarginsComputer for InternalTable {
 /// maximum of 100 pixels and 20% of the table), the preceding constraint means that we must
 /// potentially store both a specified width *and* a specified percentage, so that the inline-size
 /// assignment phase of layout will know which one to pick.
-#[deriving(Clone, Encodable, Show, Copy)]
+#[derive(Clone, RustcEncodable, Show, Copy)]
 pub struct ColumnIntrinsicInlineSize {
     /// The preferred intrinsic inline size.
     pub preferred: Au,
@@ -485,7 +487,7 @@ impl ColumnIntrinsicInlineSize {
 ///
 /// TODO(pcwalton): There will probably be some `border-collapse`-related info in here too
 /// eventually.
-#[deriving(Encodable, Copy)]
+#[derive(RustcEncodable, Copy)]
 pub struct ColumnComputedInlineSize {
     /// The computed size of this inline column.
     pub size: Au,

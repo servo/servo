@@ -8,7 +8,7 @@ use rustc::middle::ty::expr_ty;
 use rustc::middle::ty;
 
 declare_lint!(STR_TO_STRING, Deny,
-              "Warn when a String could use to_owned() instead of to_string()")
+              "Warn when a String could use to_owned() instead of to_string()");
 
 /// Prefer str.to_owned() over str.to_string()
 ///

@@ -33,6 +33,7 @@ In the `_finalize()` function the pointer of the Rusty DOM object that is contai
 For supporting SpiderMonkey’s exact GC rooting, we introduce [some types](https://github.com/mozilla/servo/wiki/Using-DOM-types):
 
 - `JS<T>` is used for the DOM typed field in a DOM type structure. The GC can trace them recursively while the enclosing DOM object (maybe root) is alive.
+  - `LayoutJS<T>` is specialized `JS<T>` to use in layout. `Layout*Helper` must be implemented on this type to prevent calling methods from non layout code.
 - `Temporary<T>` is used as a return value for functions returning a DOM type. They are rooted for the duration of their lifetime. But a retun value gets moved around which can break the LIFO ordering constraint. Thus we need to introduce `Root<T>`.
 - `Root<T>` contains the pointer to `JSObject` which the represented DOM type has. SpiderMonkey's conservative stack scanner scans it's pointers and marks a pointed `JSObject` as GC root.
 - `JSRef` is just a reference to the value rooted by `Root<T>`.

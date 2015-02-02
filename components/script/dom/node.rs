@@ -23,7 +23,7 @@ use dom::bindings::conversions;
 use dom::bindings::error::Fallible;
 use dom::bindings::error::Error::{NotFound, HierarchyRequest, Syntax};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, JSRef, RootedReference, Temporary, Root};
+use dom::bindings::js::{JS, JSRef, LayoutJS, RootedReference, Temporary, Root};
 use dom::bindings::js::{TemporaryPushable, OptionalRootedRootable};
 use dom::bindings::js::{ResultRootable, OptionalRootable, MutNullableJS};
 use dom::bindings::trace::JSTraceable;
@@ -46,12 +46,17 @@ use geom::rect::Rect;
 use layout_interface::{LayoutChan, Msg};
 use devtools_traits::NodeInfo;
 use script_traits::UntrustedNodeAddress;
-use servo_util::geometry::Au;
-use servo_util::str::{DOMString, null_str_as_empty};
-use style::{matches, SelectorList};
+use util::geometry::Au;
+use util::str::{DOMString, null_str_as_empty};
+use style::selectors::{Selector, AttrSelector, NamespaceConstraint};
+use style::selectors::parse_author_origin_selector_list_from_str;
+use style::selector_matching::matches;
+use style::properties::ComputedValues;
+use style;
 
 use js::jsapi::{JSContext, JSObject, JSTracer, JSRuntime};
 use js::jsfriendapi;
+use core::nonzero::NonZero;
 use libc;
 use libc::{uintptr_t, c_void};
 use std::borrow::ToOwned;
@@ -59,7 +64,6 @@ use std::cell::{Cell, RefCell, Ref, RefMut};
 use std::default::Default;
 use std::iter::{FilterMap, Peekable};
 use std::mem;
-use style::{mod, ComputedValues};
 use std::sync::Arc;
 use uuid;
 use string_cache::QualName;
@@ -122,7 +126,6 @@ impl NodeDerived for EventTarget {
 bitflags! {
     #[doc = "Flags for node items."]
     #[jstraceable]
-    #[deriving(Copy)]
     flags NodeFlags: u16 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
@@ -183,7 +186,7 @@ impl Drop for Node {
 /// suppress observers flag
 /// http://dom.spec.whatwg.org/#concept-node-insert
 /// http://dom.spec.whatwg.org/#concept-node-remove
-#[deriving(Copy)]
+#[derive(Copy)]
 enum SuppressObserver {
     Suppressed,
     Unsuppressed
@@ -199,14 +202,14 @@ pub struct SharedLayoutData {
 pub struct LayoutData {
     chan: Option<LayoutChan>,
     _shared_data: SharedLayoutData,
-    _data: *const (),
+    _data: NonZero<*const ()>,
 }
 
 pub struct LayoutDataRef {
     pub data_cell: RefCell<Option<LayoutData>>,
 }
 
-no_jsmanaged_fields!(LayoutDataRef)
+no_jsmanaged_fields!(LayoutDataRef);
 
 impl LayoutDataRef {
     pub fn new() -> LayoutDataRef {
@@ -225,8 +228,8 @@ impl LayoutDataRef {
     pub fn take_chan(&self) -> Option<LayoutChan> {
         let mut layout_data = self.data_cell.borrow_mut();
         match &mut *layout_data {
-            &None => None,
-            &Some(ref mut layout_data) => Some(layout_data.chan.take().unwrap()),
+            &mut None => None,
+            &mut Some(ref mut layout_data) => Some(layout_data.chan.take().unwrap()),
         }
     }
 
@@ -255,8 +258,10 @@ impl LayoutDataRef {
     }
 }
 
+unsafe impl Send for LayoutDataRef {}
+
 /// The different types of nodes.
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum NodeTypeId {
     DocumentType,
@@ -374,12 +379,12 @@ impl<'a> PrivateNodeHelpers for JSRef<'a, Node> {
 }
 
 pub struct QuerySelectorIterator<'a> {
-    selectors: SelectorList,
+    selectors: Vec<Selector>,
     iterator: TreeIterator<'a>,
 }
 
 impl<'a> QuerySelectorIterator<'a> {
-    unsafe fn new(iter: TreeIterator<'a>, selectors: SelectorList) -> QuerySelectorIterator<'a> {
+    unsafe fn new(iter: TreeIterator<'a>, selectors: Vec<Selector>) -> QuerySelectorIterator<'a> {
         QuerySelectorIterator {
             selectors: selectors,
             iterator: iter,
@@ -387,7 +392,9 @@ impl<'a> QuerySelectorIterator<'a> {
     }
 }
 
-impl<'a> Iterator<JSRef<'a, Node>> for QuerySelectorIterator<'a> {
+impl<'a> Iterator for QuerySelectorIterator<'a> {
+    type Item = JSRef<'a, Node>;
+
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let selectors = &self.selectors;
         // TODO(cgaebel): Is it worth it to build a bloom filter here
@@ -501,7 +508,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         }
 
         s.push_str(self.debug_str().as_slice());
-        debug!("{}", s);
+        debug!("{:?}", s);
 
         // FIXME: this should have a pure version?
         for kid in self.children() {
@@ -511,7 +518,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
     /// Returns a string that describes this node.
     fn debug_str(self) -> String {
-        format!("{}", self.type_id)
+        format!("{:?}", self.type_id)
     }
 
     fn is_in_doc(self) -> bool {
@@ -742,7 +749,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     // http://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn query_selector(self, selectors: DOMString) -> Fallible<Option<Temporary<Element>>> {
         // Step 1.
-        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
@@ -764,7 +771,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
         // Step 1.
         let nodes;
         let root = self.ancestors().last().unwrap_or(self.clone());
-        match style::parse_author_origin_selector_list_from_str(selectors.as_slice()) {
+        match parse_author_origin_selector_list_from_str(selectors.as_slice()) {
             // Step 2.
             Err(()) => return Err(Syntax),
             // Step 3.
@@ -825,8 +832,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     fn child_elements(self) -> ChildElementIterator<'a> {
+        fn cast(n: JSRef<Node>) -> Option<JSRef<Element>> {
+            ElementCast::to_ref(n)
+        }
+
         self.children()
-            .filter_map::<JSRef<Element>>(ElementCast::to_ref)
+            .filter_map(cast as fn(JSRef<Node>) -> Option<JSRef<Element>>)
             .peekable()
     }
 
@@ -861,9 +872,12 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             publicId: "".to_owned(),
             systemId: "".to_owned(),
 
-            attrs: match ElementCast::to_ref(self) {
-                Some(element) => element.summarize(),
-                None => vec!(),
+            attrs: {
+                let e: Option<JSRef<Element>> = ElementCast::to_ref(self);
+                match e {
+                    Some(element) => element.summarize(),
+                    None => vec!(),
+                }
             },
 
             isDocumentElement:
@@ -886,7 +900,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: UntrustedNodeAddress)
     -> Temporary<Node> {
     unsafe {
-        let candidate: uintptr_t = mem::transmute(candidate);
+        let candidate: uintptr_t = mem::transmute(candidate.0);
         let object: *mut JSObject = jsfriendapi::bindgen::JS_GetAddressableObject(runtime,
                                                                                   candidate);
         if object.is_null() {
@@ -900,20 +914,20 @@ pub fn from_untrusted_node_address(runtime: *mut JSRuntime, candidate: Untrusted
 pub trait LayoutNodeHelpers {
     unsafe fn type_id_for_layout(&self) -> NodeTypeId;
 
-    unsafe fn parent_node_ref(&self) -> Option<JS<Node>>;
-    unsafe fn first_child_ref(&self) -> Option<JS<Node>>;
-    unsafe fn last_child_ref(&self) -> Option<JS<Node>>;
-    unsafe fn prev_sibling_ref(&self) -> Option<JS<Node>>;
-    unsafe fn next_sibling_ref(&self) -> Option<JS<Node>>;
+    unsafe fn parent_node_ref(&self) -> Option<LayoutJS<Node>>;
+    unsafe fn first_child_ref(&self) -> Option<LayoutJS<Node>>;
+    unsafe fn last_child_ref(&self) -> Option<LayoutJS<Node>>;
+    unsafe fn prev_sibling_ref(&self) -> Option<LayoutJS<Node>>;
+    unsafe fn next_sibling_ref(&self) -> Option<LayoutJS<Node>>;
 
-    unsafe fn owner_doc_for_layout(&self) -> JS<Document>;
+    unsafe fn owner_doc_for_layout(&self) -> LayoutJS<Document>;
 
     unsafe fn is_element_for_layout(&self) -> bool;
     unsafe fn get_flag(self, flag: NodeFlags) -> bool;
     unsafe fn set_flag(self, flag: NodeFlags, value: bool);
 }
 
-impl LayoutNodeHelpers for JS<Node> {
+impl LayoutNodeHelpers for LayoutJS<Node> {
     #[inline]
     unsafe fn type_id_for_layout(&self) -> NodeTypeId {
         (*self.unsafe_get()).type_id
@@ -925,33 +939,33 @@ impl LayoutNodeHelpers for JS<Node> {
     }
 
     #[inline]
-    unsafe fn parent_node_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).parent_node.get_inner()
+    unsafe fn parent_node_ref(&self) -> Option<LayoutJS<Node>> {
+        (*self.unsafe_get()).parent_node.get_inner_as_layout()
     }
 
     #[inline]
-    unsafe fn first_child_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).first_child.get_inner()
+    unsafe fn first_child_ref(&self) -> Option<LayoutJS<Node>> {
+        (*self.unsafe_get()).first_child.get_inner_as_layout()
     }
 
     #[inline]
-    unsafe fn last_child_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).last_child.get_inner()
+    unsafe fn last_child_ref(&self) -> Option<LayoutJS<Node>> {
+        (*self.unsafe_get()).last_child.get_inner_as_layout()
     }
 
     #[inline]
-    unsafe fn prev_sibling_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).prev_sibling.get_inner()
+    unsafe fn prev_sibling_ref(&self) -> Option<LayoutJS<Node>> {
+        (*self.unsafe_get()).prev_sibling.get_inner_as_layout()
     }
 
     #[inline]
-    unsafe fn next_sibling_ref(&self) -> Option<JS<Node>> {
-        (*self.unsafe_get()).next_sibling.get_inner()
+    unsafe fn next_sibling_ref(&self) -> Option<LayoutJS<Node>> {
+        (*self.unsafe_get()).next_sibling.get_inner_as_layout()
     }
 
     #[inline]
-    unsafe fn owner_doc_for_layout(&self) -> JS<Document> {
-        (*self.unsafe_get()).owner_doc.get_inner().unwrap()
+    unsafe fn owner_doc_for_layout(&self) -> LayoutJS<Document> {
+        (*self.unsafe_get()).owner_doc.get_inner_as_layout().unwrap()
     }
 
     #[inline]
@@ -1007,16 +1021,18 @@ impl RawLayoutNodeHelpers for Node {
 
 pub type ChildElementIterator<'a> =
     Peekable<JSRef<'a, Element>,
-             FilterMap<'a,
-                       JSRef<'a, Node>,
+             FilterMap<JSRef<'a, Node>,
                        JSRef<'a, Element>,
-                       NodeChildrenIterator<'a>>>;
+                       NodeChildrenIterator<'a>,
+                       fn(JSRef<Node>) -> Option<JSRef<Element>>>>;
 
 pub struct NodeChildrenIterator<'a> {
     current: Option<JSRef<'a, Node>>,
 }
 
-impl<'a> Iterator<JSRef<'a, Node>> for NodeChildrenIterator<'a> {
+impl<'a> Iterator for NodeChildrenIterator<'a> {
+    type Item = JSRef<'a, Node>;
+
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current;
         self.current = node.and_then(|node| node.next_sibling().map(|node| *node.root()));
@@ -1028,7 +1044,9 @@ pub struct ReverseChildrenIterator {
     current: Option<Root<Node>>,
 }
 
-impl Iterator<Temporary<Node>> for ReverseChildrenIterator {
+impl Iterator for ReverseChildrenIterator {
+    type Item = Temporary<Node>;
+
     fn next(&mut self) -> Option<Temporary<Node>> {
         let node = self.current.r().map(Temporary::from_rooted);
         self.current = self.current.take().and_then(|node| node.r().prev_sibling()).root();
@@ -1040,7 +1058,9 @@ pub struct AncestorIterator<'a> {
     current: Option<JSRef<'a, Node>>,
 }
 
-impl<'a> Iterator<JSRef<'a, Node>> for AncestorIterator<'a> {
+impl<'a> Iterator for AncestorIterator<'a> {
+    type Item = JSRef<'a, Node>;
+
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let node = self.current;
         self.current = node.and_then(|node| node.parent_node().map(|node| *node.root()));
@@ -1063,7 +1083,9 @@ impl<'a> TreeIterator<'a> {
     }
 }
 
-impl<'a> Iterator<JSRef<'a, Node>> for TreeIterator<'a> {
+impl<'a> Iterator for TreeIterator<'a> {
+    type Item = JSRef<'a, Node>;
+
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         let ret = self.stack.pop();
         ret.map(|node| {
@@ -1096,7 +1118,7 @@ impl NodeIterator {
     }
 
     fn next_child<'b>(&self, node: JSRef<'b, Node>) -> Option<JSRef<'b, Node>> {
-        let skip = |element: JSRef<Element>| {
+        let skip = |&:element: JSRef<Element>| {
             !self.include_descendants_of_void && element.is_void()
         };
 
@@ -1107,7 +1129,9 @@ impl NodeIterator {
     }
 }
 
-impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
+impl<'a> Iterator for NodeIterator {
+    type Item = JSRef<'a, Node>;
+
     fn next(&mut self) -> Option<JSRef<'a, Node>> {
         self.current_node = match self.current_node.as_ref().map(|node| node.root()) {
             None => {
@@ -1155,7 +1179,7 @@ impl<'a> Iterator<JSRef<'a, Node>> for NodeIterator {
 }
 
 /// Specifies whether children must be recursively cloned or not.
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 pub enum CloneChildrenFlag {
     CloneChildren,
     DoNotCloneChildren
@@ -1355,7 +1379,7 @@ impl Node {
         }
 
         // Step 7-8.
-        let referenceChild = match child {
+        let reference_child = match child {
             Some(child) if child.clone() == node => node.next_sibling().map(|node| (*node.root()).clone()),
             _ => child
         };
@@ -1365,7 +1389,7 @@ impl Node {
         Node::adopt(node, *document);
 
         // Step 10.
-        Node::insert(node, parent, referenceChild, SuppressObserver::Unsuppressed);
+        Node::insert(node, parent, reference_child, SuppressObserver::Unsuppressed);
 
         // Step 11.
         return Ok(Temporary::from_rooted(node))
@@ -1446,10 +1470,10 @@ impl Node {
         }
 
         // Step 2.
-        let removedNodes: Vec<JSRef<Node>> = parent.children().collect();
+        let removed_nodes: Vec<JSRef<Node>> = parent.children().collect();
 
         // Step 3.
-        let addedNodes = match node {
+        let added_nodes = match node {
             None => vec!(),
             Some(node) => match node.type_id() {
                 NodeTypeId::DocumentFragment => node.children().collect(),
@@ -1472,11 +1496,11 @@ impl Node {
 
         // Step 7.
         let parent_in_doc = parent.is_in_doc();
-        for removedNode in removedNodes.iter() {
-            removedNode.node_removed(parent_in_doc);
+        for removed_node in removed_nodes.iter() {
+            removed_node.node_removed(parent_in_doc);
         }
-        for addedNode in addedNodes.iter() {
-            addedNode.node_inserted();
+        for added_node in added_nodes.iter() {
+            added_node.node_inserted();
         }
     }
 
@@ -1635,13 +1659,13 @@ impl Node {
                 None => {}
                 Some(chan) => {
                     let LayoutChan(chan) = chan;
-                    chan.send(Msg::ReapLayoutData(layout_data))
+                    chan.send(Msg::ReapLayoutData(layout_data)).unwrap()
                 },
             }
         }
     }
 
-    pub fn collect_text_contents<'a, T: Iterator<JSRef<'a, Node>>>(mut iterator: T) -> String {
+    pub fn collect_text_contents<'a, T: Iterator<Item=JSRef<'a, Node>>>(mut iterator: T) -> String {
         let mut content = String::new();
         for node in iterator {
             let text: Option<JSRef<Text>> = TextCast::to_ref(node);
@@ -1989,7 +2013,8 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
     fn Normalize(self) {
         let mut prev_text = None;
         for child in self.children() {
-            match TextCast::to_ref(child) {
+            let t: Option<JSRef<Text>> = TextCast::to_ref(child);
+            match t {
                 Some(text) => {
                     let characterdata: JSRef<CharacterData> = CharacterDataCast::from_ref(text);
                     if characterdata.Length() == 0 {
@@ -2184,9 +2209,11 @@ impl<'a> NodeMethods for JSRef<'a, Node> {
 /// The address of a node known to be valid. These are sent from script to layout,
 /// and are also used in the HTML parser interface.
 
-#[allow(raw_pointer_deriving)]
-#[deriving(Clone, PartialEq, Eq, Copy)]
+#[allow(raw_pointer_derive)]
+#[derive(Clone, PartialEq, Eq, Copy)]
 pub struct TrustedNodeAddress(pub *const c_void);
+
+unsafe impl Send for TrustedNodeAddress {}
 
 pub fn document_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary<Document> {
     let node: JSRef<Node> = NodeCast::from_ref(derived);
@@ -2199,13 +2226,13 @@ pub fn window_from_node<T: NodeBase+Reflectable>(derived: JSRef<T>) -> Temporary
 }
 
 impl<'a> VirtualMethods for JSRef<'a, Node> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let eventtarget: &JSRef<EventTarget> = EventTargetCast::from_borrowed_ref(self);
         Some(eventtarget as &VirtualMethods)
     }
 }
 
-impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
+impl<'a> style::node::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
     fn parent_node(self) -> Option<JSRef<'a, Node>> {
         // FIXME(zwarich): Remove this when UFCS lands and there is a better way
         // of disambiguating methods.
@@ -2280,7 +2307,9 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
         ElementCast::to_ref(self).unwrap()
     }
 
-    fn match_attr(self, attr: &style::AttrSelector, test: |&str| -> bool) -> bool {
+    fn match_attr<F>(self, attr: &AttrSelector, test: F) -> bool
+        where F: Fn(&str) -> bool
+    {
         let name = {
             if self.is_html_element_in_html_document() {
                 &attr.lower_name
@@ -2289,11 +2318,11 @@ impl<'a> style::TNode<'a, JSRef<'a, Element>> for JSRef<'a, Node> {
             }
         };
         match attr.namespace {
-            style::NamespaceConstraint::Specific(ref ns) => {
+            NamespaceConstraint::Specific(ref ns) => {
                 self.as_element().get_attribute(ns.clone(), name).root()
                     .map_or(false, |attr| test(attr.r().value().as_slice()))
             },
-            style::NamespaceConstraint::Any => {
+            NamespaceConstraint::Any => {
                 self.as_element().get_attributes(name).into_iter()
                     .map(|attr| attr.root())
                     .any(|attr| test(attr.r().value().as_slice()))
@@ -2367,7 +2396,7 @@ impl<'a> DisabledStateHelpers for JSRef<'a, Node> {
 }
 
 /// A summary of the changes that happened to a node.
-#[deriving(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum NodeDamage {
     /// The node's `style` attribute changed.
     NodeStyleDamaged,

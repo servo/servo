@@ -17,7 +17,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use string_cache::Atom;
 
 #[dom_struct]
@@ -47,14 +47,14 @@ impl HTMLOptGroupElement {
 
 impl<'a> HTMLOptGroupElementMethods for JSRef<'a, HTMLOptGroupElement> {
     // http://www.whatwg.org/html#dom-optgroup-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html#dom-optgroup-disabled
-    make_bool_setter!(SetDisabled, "disabled")
+    make_bool_setter!(SetDisabled, "disabled");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLOptGroupElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

@@ -11,7 +11,7 @@
 
 use hyper::method::Method;
 use std::ascii::AsciiExt;
-use std::comm::{Sender, Receiver, channel};
+use std::sync::mpsc::{Sender, Receiver, channel};
 use time;
 use time::{now, Timespec};
 use url::Url;
@@ -19,7 +19,7 @@ use url::Url;
 /// Union type for CORS cache entries
 ///
 /// Each entry might pertain to a header or method
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum HeaderOrMethod {
     HeaderData(String),
     MethodData(Method)
@@ -42,7 +42,7 @@ impl HeaderOrMethod {
 }
 
 /// An entry in the CORS cache
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct CORSCacheEntry {
     pub origin: Url,
     pub url: Url,
@@ -100,7 +100,7 @@ pub trait CORSCache {
 }
 
 /// A simple, vector-based CORS Cache
-#[deriving(Clone)]
+#[derive(Clone)]
 #[unstable = "This might later be replaced with a HashMap-like entity, though that requires a separate Origin struct"]
 pub struct BasicCORSCache(Vec<CORSCacheEntry>);
 
@@ -207,43 +207,43 @@ impl CORSCache for CORSCacheSender {
     fn clear (&mut self, request: CacheRequestDetails) {
         let (tx, rx) = channel();
         self.send(CORSCacheTaskMsg::Clear(request, tx));
-        let _ = rx.recv_opt();
+        let _ = rx.recv();
     }
 
     fn cleanup(&mut self) {
         let (tx, rx) = channel();
         self.send(CORSCacheTaskMsg::Cleanup(tx));
-        let _ = rx.recv_opt();
+        let _ = rx.recv();
     }
 
     fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool {
         let (tx, rx) = channel();
         self.send(CORSCacheTaskMsg::MatchHeader(request, header_name.to_string(), tx));
-        rx.recv_opt().unwrap_or(false)
+        rx.recv().unwrap_or(false)
     }
 
     fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: uint) -> bool {
         let (tx, rx) = channel();
         self.send(CORSCacheTaskMsg::MatchHeaderUpdate(request, header_name.to_string(), new_max_age, tx));
-        rx.recv_opt().unwrap_or(false)
+        rx.recv().unwrap_or(false)
     }
 
     fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool {
         let (tx, rx) = channel();
         self.send(CORSCacheTaskMsg::MatchMethod(request, method, tx));
-        rx.recv_opt().unwrap_or(false)
+        rx.recv().unwrap_or(false)
     }
 
     fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: uint) -> bool {
         let (tx, rx) = channel();
         self.send(CORSCacheTaskMsg::MatchMethodUpdate(request, method, new_max_age, tx));
-        rx.recv_opt().unwrap_or(false)
+        rx.recv().unwrap_or(false)
     }
 
     fn insert(&mut self, entry: CORSCacheEntry) {
         let (tx, rx) = channel();
         self.send(CORSCacheTaskMsg::Insert(entry, tx));
-        let _ = rx.recv_opt();
+        let _ = rx.recv();
     }
 }
 
@@ -254,7 +254,7 @@ impl CORSCache for CORSCacheSender {
 /// let task = CORSCacheTask::new();
 /// let builder = TaskBuilder::new().named("XHRTask");
 /// let mut sender = task.get_sender();
-/// builder.spawn(proc() { task.run() });
+/// builder.spawn(move || { task.run() });
 /// sender.insert(CORSCacheEntry::new(/* parameters here */));
 /// ```
 pub struct CORSCacheTask {
@@ -284,7 +284,7 @@ impl CORSCacheTask {
     /// Send ExitMsg to the associated Sender to exit
     pub fn run(&mut self) {
         loop {
-            match self.receiver.recv() {
+            match self.receiver.recv().unwrap() {
                 CORSCacheTaskMsg::Clear(request, tx) => {
                     self.cache.clear(request);
                     tx.send(());

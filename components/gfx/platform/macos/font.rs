@@ -11,11 +11,11 @@ extern crate core_text;
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
 use font::FontTableTag;
 use font::FractionalPixel;
-use servo_util::geometry::{Au, px_to_pt};
-use servo_util::geometry;
+use util::geometry::{Au, px_to_pt};
+use util::geometry;
 use platform::macos::font_context::FontContextHandle;
 use text::glyph::GlyphId;
-use style::computed_values::font_weight;
+use style::computed_values::{font_stretch, font_weight};
 use platform::font_template::FontTemplateData;
 
 use core_foundation::base::CFIndex;
@@ -47,7 +47,7 @@ impl FontTable {
 }
 
 impl FontTableMethods for FontTable {
-    fn with_buffer(&self, blk: |*const u8, uint|) {
+    fn with_buffer<F>(&self, blk: F) where F: FnOnce(*const u8, uint) {
         blk(self.data.bytes().as_ptr(), self.data.len() as uint);
     }
 }
@@ -111,9 +111,24 @@ impl FontHandleMethods for FontHandle {
         return font_weight::T::Weight900;
     }
 
+    fn stretchiness(&self) -> font_stretch::T {
+        let normalized = self.ctfont.all_traits().normalized_width();   // [-1.0, 1.0]
+        match (normalized + 1.0) / 2.0 * 9.0 {  // [0.0, 9.0]
+            v if v < 1.0 => font_stretch::T::ultra_condensed,
+            v if v < 2.0 => font_stretch::T::extra_condensed,
+            v if v < 3.0 => font_stretch::T::condensed,
+            v if v < 4.0 => font_stretch::T::semi_condensed,
+            v if v < 5.0 => font_stretch::T::normal,
+            v if v < 6.0 => font_stretch::T::semi_expanded,
+            v if v < 7.0 => font_stretch::T::expanded,
+            v if v < 8.0 => font_stretch::T::extra_expanded,
+            _ => font_stretch::T::ultra_expanded,
+        }
+    }
+
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
-        let characters: [UniChar,  ..1] = [codepoint as UniChar];
-        let mut glyphs: [CGGlyph, ..1] = [0 as CGGlyph];
+        let characters: [UniChar; 1] = [codepoint as UniChar];
+        let mut glyphs: [CGGlyph; 1] = [0 as CGGlyph];
         let count: CFIndex = 1;
 
         let result = self.ctfont.get_glyphs_for_characters(&characters[0],
@@ -179,7 +194,7 @@ impl FontHandleMethods for FontHandle {
             average_advance:  average_advance,
             line_gap:         Au::from_frac_px(line_gap),
         };
-        debug!("Font metrics (@{} pt): {}", self.ctfont.pt_size() as f64, metrics);
+        debug!("Font metrics (@{} pt): {:?}", self.ctfont.pt_size() as f64, metrics);
         return metrics;
     }
 

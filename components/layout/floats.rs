@@ -12,7 +12,7 @@ use std::fmt;
 use style::computed_values::float;
 
 /// The kind of float: left or right.
-#[deriving(Clone, Encodable, Show, Copy)]
+#[derive(Clone, RustcEncodable, Show, Copy)]
 pub enum FloatKind {
     Left,
     Right
@@ -29,7 +29,7 @@ impl FloatKind {
 }
 
 /// The kind of clearance: left, right, or both.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum ClearType {
     Left,
     Right,
@@ -37,7 +37,7 @@ pub enum ClearType {
 }
 
 /// Information about a single float.
-#[deriving(Clone, Copy)]
+#[derive(Clone, Copy)]
 struct Float {
     /// The boundaries of this float.
     bounds: LogicalRect<Au>,
@@ -47,12 +47,12 @@ struct Float {
 
 impl fmt::Show for Float {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "bounds={} kind={}", self.bounds, self.kind)
+        write!(f, "bounds={:?} kind={:?}", self.bounds, self.kind)
     }
 }
 
 /// Information about the floats next to a flow.
-#[deriving(Clone)]
+#[derive(Clone)]
 struct FloatList {
     /// Information about each of the floats here.
     floats: PersistentList<Float>,
@@ -77,7 +77,7 @@ impl FloatList {
 
 impl fmt::Show for FloatList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "max_block_start={} floats={}", self.max_block_start, self.floats.len())
+        write!(f, "max_block_start={:?} floats={}", self.max_block_start, self.floats.len())
     }
 }
 
@@ -96,7 +96,7 @@ pub struct PlacementInfo {
 impl fmt::Show for PlacementInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
-               "size={} ceiling={} max_inline_size={} kind={}",
+               "size={:?} ceiling={:?} max_inline_size={:?} kind={:?}",
                self.size,
                self.ceiling,
                self.max_inline_size,
@@ -110,7 +110,7 @@ fn range_intersect(block_start_1: Au, block_end_1: Au, block_start_2: Au, block_
 
 /// Encapsulates information about floats. This is optimized to avoid allocation if there are
 /// no floats, and to avoid copying when translating the list of floats downward.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Floats {
     /// The list of floats.
     list: FloatList,
@@ -125,7 +125,7 @@ impl fmt::Show for Floats {
         if !self.list.is_present() {
             write!(f, "[empty]")
         } else {
-            write!(f, "offset={} floats={}", self.offset, self.list)
+            write!(f, "offset={:?} floats={:?}", self.offset, self.list)
         }
     }
 }
@@ -166,7 +166,7 @@ impl Floats {
         let list = &self.list;
         let block_start = block_start - self.offset.block;
 
-        debug!("available_rect: trying to find space at {}", block_start);
+        debug!("available_rect: trying to find space at {:?}", block_start);
 
         // Relevant dimensions for the inline-end-most inline-start float
         let mut max_inline_start = Au(0) - self.offset.inline;
@@ -183,7 +183,7 @@ impl Floats {
             let float_pos = float.bounds.start;
             let float_size = float.bounds.size;
 
-            debug!("float_pos: {}, float_size: {}", float_pos, float_size);
+            debug!("float_pos: {:?}, float_size: {:?}", float_pos, float_size);
             match float.kind {
                 FloatKind::Left if float_pos.i + float_size.inline > max_inline_start &&
                         float_pos.b + float_size.block > block_start &&
@@ -194,7 +194,7 @@ impl Floats {
                     l_block_end = Some(float_pos.b + float_size.block);
 
                     debug!("available_rect: collision with inline_start float: new \
-                            max_inline_start is {}",
+                            max_inline_start is {:?}",
                            max_inline_start);
                 }
                 FloatKind::Right if float_pos.i < min_inline_end &&
@@ -205,7 +205,7 @@ impl Floats {
                     r_block_start = Some(float_pos.b);
                     r_block_end = Some(float_pos.b + float_size.block);
                     debug!("available_rect: collision with inline_end float: new min_inline_end \
-                            is {}",
+                            is {:?}",
                             min_inline_end);
                 }
                 FloatKind::Left | FloatKind::Right => {}
@@ -262,7 +262,7 @@ impl Floats {
             }
         }
 
-        debug!("add_float: added float with info {}", new_info);
+        debug!("add_float: added float with info {:?}", new_info);
 
         let new_float = Float {
             bounds: LogicalRect::from_point_size(
@@ -303,7 +303,7 @@ impl Floats {
     /// Given placement information, finds the closest place a fragment can be positioned without
     /// colliding with any floats.
     pub fn place_between_floats(&self, info: &PlacementInfo) -> LogicalRect<Au> {
-        debug!("place_between_floats: Placing object with {}", info.size);
+        debug!("place_between_floats: Placing object with {:?}", info.size);
 
         // If no floats, use this fast path.
         if !self.list.is_present() {
@@ -333,7 +333,7 @@ impl Floats {
             let maybe_location = self.available_rect(float_b,
                                                      info.size.block,
                                                      info.max_inline_size);
-            debug!("place_float: Got available rect: {} for y-pos: {}", maybe_location, float_b);
+            debug!("place_float: Got available rect: {:?} for y-pos: {:?}", maybe_location, float_b);
             match maybe_location {
                 // If there are no floats blocking us, return the current location
                 // TODO(eatkinson): integrate with overflow

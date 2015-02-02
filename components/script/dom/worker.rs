@@ -19,13 +19,14 @@ use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use script_task::{ScriptChan, ScriptMsg, Runnable};
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
 use url::UrlParser;
 
 use std::cell::Cell;
+use std::sync::mpsc::{channel, Sender};
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -56,10 +57,10 @@ impl Worker {
     }
 
     // http://www.whatwg.org/html/#dom-worker
-    pub fn Constructor(global: GlobalRef, scriptURL: DOMString) -> Fallible<Temporary<Worker>> {
+    pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Temporary<Worker>> {
         // Step 2-4.
         let worker_url = match UrlParser::new().base_url(&global.get_url())
-                .parse(scriptURL.as_slice()) {
+                .parse(script_url.as_slice()) {
             Ok(url) => url,
             Err(_) => return Err(Syntax),
         };
@@ -97,7 +98,7 @@ impl<'a> WorkerMethods for JSRef<'a, Worker> {
         Ok(())
     }
 
-    event_handler!(message, GetOnmessage, SetOnmessage)
+    event_handler!(message, GetOnmessage, SetOnmessage);
 }
 
 pub struct WorkerMessageHandler {

@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![deny(missing_docs)]
-
 //! A shareable mutable container for the DOM.
 
 use dom::bindings::trace::JSTraceable;
 use js::jsapi::{JSTracer};
 
-use servo_util::task_state;
-use servo_util::task_state::{SCRIPT, IN_GC};
+use util::task_state;
+use util::task_state::{SCRIPT, IN_GC};
 
 use std::cell::{RefCell, Ref, RefMut};
 
@@ -41,6 +39,13 @@ impl<T> DOMRefCell<T> {
     pub unsafe fn borrow_for_gc_trace<'a>(&'a self) -> &'a T {
         debug_assert!(task_state::get().contains(SCRIPT | IN_GC));
         &*self.value.as_unsafe_cell().get()
+    }
+
+    /// Borrow the contents for the purpose of script deallocation.
+    ///
+    pub unsafe fn borrow_for_script_deallocation<'a>(&'a self) -> &'a mut T {
+        debug_assert!(task_state::get().contains(SCRIPT));
+        &mut *self.value.as_unsafe_cell().get()
     }
 
     /// Is the cell mutably borrowed?

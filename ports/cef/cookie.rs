@@ -8,9 +8,9 @@ use types::cef_string_t;
 use libc::c_int;
 
 cef_stub_static_method_impls! {
-    fn cef_cookie_manager_get_global_manager() -> *mut cef_cookie_manager_t;
+    fn cef_cookie_manager_get_global_manager() -> *mut cef_cookie_manager_t
     fn cef_cookie_manager_create_manager(path: *const cef_string_t,
                                          persist_session_cookies: c_int)
-                                         -> *mut cef_cookie_manager_t;
+                                         -> *mut cef_cookie_manager_t
 }
 

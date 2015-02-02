@@ -4,7 +4,7 @@
 
 use dom::attr::{Attr, AttrHelpers};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{mod, HTMLBodyElementMethods};
+use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::InheritTypes::EventTargetCast;
 use dom::bindings::codegen::InheritTypes::{HTMLBodyElementDerived, HTMLElementCast};
@@ -18,7 +18,7 @@ use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
-use servo_util::str::{mod, DOMString};
+use util::str::{self, DOMString};
 
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -78,7 +78,7 @@ impl HTMLBodyElementHelpers for HTMLBodyElement {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLBodyElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let element: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(element as &VirtualMethods)
     }

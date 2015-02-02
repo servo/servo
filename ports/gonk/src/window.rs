@@ -4,7 +4,7 @@
 
 //! A windowing implementation using gonk interfaces.
 
-use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
+use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
@@ -21,8 +21,8 @@ use std::mem::transmute;
 use std::mem::size_of;
 use std::mem::zeroed;
 use std::ptr;
-use servo_util::cursor::Cursor;
-use servo_util::geometry::ScreenPx;
+use util::cursor::Cursor;
+use util::geometry::ScreenPx;
 use gleam::gl;
 
 use egl::egl::EGLConfig;
@@ -147,7 +147,7 @@ pub struct hwc_color {
 }
 
 #[repr(C)]
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct hwc_rect {
     left: c_int,
     top: c_int,

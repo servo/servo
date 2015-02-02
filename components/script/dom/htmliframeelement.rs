@@ -25,7 +25,7 @@ use page::{IterablePage, Page};
 use servo_msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan};
 use servo_msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -198,7 +198,7 @@ impl<'a> HTMLIFrameElementMethods for JSRef<'a, HTMLIFrameElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -214,7 +214,7 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                 let mut modes = SandboxAllowance::AllowNothing as u8;
                 if let Some(ref tokens) = attr.value().tokens() {
                     for token in tokens.iter() {
-                        modes |= match token.as_slice().to_ascii_lower().as_slice() {
+                        modes |= match token.as_slice().to_ascii_lowercase().as_slice() {
                             "allow-same-origin" => SandboxAllowance::AllowSameOrigin,
                             "allow-forms" => SandboxAllowance::AllowForms,
                             "allow-pointer-lock" => SandboxAllowance::AllowPointerLock,

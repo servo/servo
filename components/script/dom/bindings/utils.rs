@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![deny(missing_docs)]
-
 //! Various utilities to glue JavaScript and the DOM implementation together.
 
 use dom::bindings::codegen::PrototypeList;
@@ -18,6 +16,7 @@ use dom::window;
 use libc;
 use libc::c_uint;
 use std::cell::Cell;
+use std::ffi::CString;
 use std::mem;
 use std::ptr;
 use js::glue::UnwrapObject;
@@ -25,7 +24,7 @@ use js::glue::{IsWrapper, RUST_JSID_IS_INT, RUST_JSID_TO_INT};
 use js::jsapi::{JS_AlreadyHasOwnProperty, JS_NewFunction};
 use js::jsapi::{JS_DefineProperties, JS_ForwardGetPropertyTo};
 use js::jsapi::{JS_GetClass, JS_LinkConstructorAndPrototype, JS_GetStringCharsAndLength};
-use js::jsapi::{JS_ObjectIsRegExp, JS_ObjectIsDate, JSHandleObject};
+use js::jsapi::JSHandleObject;
 use js::jsapi::JS_GetFunctionObject;
 use js::jsapi::{JS_HasPropertyById, JS_GetPrototype};
 use js::jsapi::{JS_GetProperty, JS_HasProperty};
@@ -48,7 +47,7 @@ use js;
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);
 
-#[allow(raw_pointer_deriving)]
+#[allow(raw_pointer_derive)]
 #[jstraceable]
 /// Static data associated with a global object.
 pub struct GlobalStaticData {
@@ -56,10 +55,12 @@ pub struct GlobalStaticData {
     pub windowproxy_handler: WindowProxyHandler,
 }
 
-/// Creates a new GlobalStaticData.
-pub fn GlobalStaticData() -> GlobalStaticData {
-    GlobalStaticData {
-        windowproxy_handler: browsercontext::new_window_proxy_handler(),
+impl GlobalStaticData {
+    /// Creates a new GlobalStaticData.
+    pub fn new() -> GlobalStaticData {
+        GlobalStaticData {
+            windowproxy_handler: browsercontext::new_window_proxy_handler(),
+        }
     }
 }
 
@@ -84,7 +85,7 @@ pub const DOM_PROTOTYPE_SLOT: u32 = js::JSCLASS_GLOBAL_SLOT_COUNT;
 pub const JSCLASS_DOM_GLOBAL: u32 = js::JSCLASS_USERBIT1;
 
 /// Representation of an IDL constant value.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum ConstantVal {
     /// `long` constant.
     IntVal(i32),
@@ -99,7 +100,7 @@ pub enum ConstantVal {
 }
 
 /// Representation of an IDL constant.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ConstantSpec {
     /// name of the constant.
     pub name: &'static [u8],
@@ -130,28 +131,30 @@ pub struct NativePropertyHooks {
 }
 
 /// The struct that holds inheritance information for DOM object reflectors.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct DOMClass {
     /// A list of interfaces that this object implements, in order of decreasing
     /// derivedness.
-    pub interface_chain: [PrototypeList::ID, ..MAX_PROTO_CHAIN_LENGTH],
+    pub interface_chain: [PrototypeList::ID; MAX_PROTO_CHAIN_LENGTH],
 
     /// The NativePropertyHooks for the interface associated with this class.
     pub native_hooks: &'static NativePropertyHooks,
 }
+unsafe impl Sync for DOMClass {}
 
 /// The JSClass used for DOM object reflectors.
-#[deriving(Copy)]
+#[derive(Copy)]
 pub struct DOMJSClass {
     /// The actual JSClass.
     pub base: js::Class,
     /// Associated data for DOM object reflectors.
     pub dom_class: DOMClass
 }
+unsafe impl Sync for DOMJSClass {}
 
 /// Returns the ProtoOrIfaceArray for the given global object.
 /// Fails if `global` is not a DOM global object.
-pub fn GetProtoOrIfaceArray(global: *mut JSObject) -> *mut *mut JSObject {
+pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut *mut JSObject {
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
         JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as *mut *mut JSObject
@@ -168,10 +171,11 @@ pub struct NativeProperties {
     /// Constants for the interface.
     pub consts: Option<&'static [ConstantSpec]>,
     /// Static methods for the interface.
-    pub staticMethods: Option<&'static [JSFunctionSpec]>,
+    pub static_methods: Option<&'static [JSFunctionSpec]>,
     /// Static attributes for the interface.
-    pub staticAttrs: Option<&'static [JSPropertySpec]>,
+    pub static_attrs: Option<&'static [JSPropertySpec]>,
 }
+unsafe impl Sync for NativeProperties {}
 
 /// A JSNative that cannot be null.
 pub type NonNullJSNative =
@@ -180,26 +184,28 @@ pub type NonNullJSNative =
 /// Creates the *interface prototype object* and the *interface object* (if
 /// needed).
 /// Fails on JSAPI failure.
-pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
-                               protoProto: *mut JSObject,
-                               protoClass: &'static JSClass,
-                               constructor: Option<(NonNullJSNative, &'static str, u32)>,
-                               domClass: *const DOMClass,
-                               members: &'static NativeProperties) -> *mut JSObject {
-    let proto = CreateInterfacePrototypeObject(cx, global, protoProto,
-                                               protoClass, members);
+pub fn do_create_interface_objects(cx: *mut JSContext, global: *mut JSObject,
+                                   receiver: *mut JSObject,
+                                   proto_proto: *mut JSObject,
+                                   proto_class: &'static JSClass,
+                                   constructor: Option<(NonNullJSNative, &'static str, u32)>,
+                                   dom_class: *const DOMClass,
+                                   members: &'static NativeProperties)
+                                   -> *mut JSObject {
+    let proto = create_interface_prototype_object(cx, global, proto_proto,
+                                                  proto_class, members);
 
     unsafe {
         JS_SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
-                           PrivateValue(domClass as *const libc::c_void));
+                           PrivateValue(dom_class as *const libc::c_void));
     }
 
     match constructor {
         Some((native, name, nargs)) => {
-            let s = name.to_c_str();
-            CreateInterfaceObject(cx, global, receiver,
-                                  native, nargs, proto,
-                                  members, s.as_ptr())
+            let s = CString::from_slice(name.as_bytes());
+            create_interface_object(cx, global, receiver,
+                                    native, nargs, proto,
+                                    members, s.as_ptr())
         },
         None => (),
     }
@@ -209,31 +215,36 @@ pub fn CreateInterfaceObjects2(cx: *mut JSContext, global: *mut JSObject, receiv
 
 /// Creates the *interface object*.
 /// Fails on JSAPI failure.
-fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *mut JSObject,
-                         constructorNative: NonNullJSNative,
-                         ctorNargs: u32, proto: *mut JSObject,
-                         members: &'static NativeProperties,
-                         name: *const libc::c_char) {
+fn create_interface_object(cx: *mut JSContext, global: *mut JSObject,
+                           receiver: *mut JSObject,
+                           constructor_native: NonNullJSNative,
+                           ctor_nargs: u32, proto: *mut JSObject,
+                           members: &'static NativeProperties,
+                           name: *const libc::c_char) {
     unsafe {
-        let fun = JS_NewFunction(cx, Some(constructorNative), ctorNargs,
+        let fun = JS_NewFunction(cx, Some(constructor_native), ctor_nargs,
                                  JSFUN_CONSTRUCTOR, global, name);
         assert!(!fun.is_null());
 
         let constructor = JS_GetFunctionObject(fun);
         assert!(!constructor.is_null());
 
-        match members.staticMethods {
-            Some(staticMethods) => DefineMethods(cx, constructor, staticMethods),
+        match members.static_methods {
+            Some(static_methods) => {
+                define_methods(cx, constructor, static_methods)
+            },
             _ => (),
         }
 
-        match members.staticAttrs {
-            Some(staticProperties) => DefineProperties(cx, constructor, staticProperties),
+        match members.static_attrs {
+            Some(static_properties) => {
+                define_properties(cx, constructor, static_properties)
+            },
             _ => (),
         }
 
         match members.consts {
-            Some(constants) => DefineConstants(cx, constructor, constants),
+            Some(constants) => define_constants(cx, constructor, constants),
             _ => (),
         }
 
@@ -241,10 +252,10 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
             assert!(JS_LinkConstructorAndPrototype(cx, constructor, proto) != 0);
         }
 
-        let mut alreadyDefined = 0;
-        assert!(JS_AlreadyHasOwnProperty(cx, receiver, name, &mut alreadyDefined) != 0);
+        let mut already_defined = 0;
+        assert!(JS_AlreadyHasOwnProperty(cx, receiver, name, &mut already_defined) != 0);
 
-        if alreadyDefined == 0 {
+        if already_defined == 0 {
             assert!(JS_DefineProperty(cx, receiver, name,
                                       ObjectValue(&*constructor),
                                       None, None, 0) != 0);
@@ -254,7 +265,8 @@ fn CreateInterfaceObject(cx: *mut JSContext, global: *mut JSObject, receiver: *m
 
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
-fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [ConstantSpec]) {
+fn define_constants(cx: *mut JSContext, obj: *mut JSObject,
+                    constants: &'static [ConstantSpec]) {
     for spec in constants.iter() {
         unsafe {
             assert!(JS_DefineProperty(cx, obj, spec.name.as_ptr() as *const libc::c_char,
@@ -268,7 +280,8 @@ fn DefineConstants(cx: *mut JSContext, obj: *mut JSObject, constants: &'static [
 /// Defines methods on `obj`. The last entry of `methods` must contain zeroed
 /// memory.
 /// Fails on JSAPI failure.
-fn DefineMethods(cx: *mut JSContext, obj: *mut JSObject, methods: &'static [JSFunctionSpec]) {
+fn define_methods(cx: *mut JSContext, obj: *mut JSObject,
+                  methods: &'static [JSFunctionSpec]) {
     unsafe {
         assert!(JS_DefineFunctions(cx, obj, methods.as_ptr()) != 0);
     }
@@ -277,7 +290,8 @@ fn DefineMethods(cx: *mut JSContext, obj: *mut JSObject, methods: &'static [JSFu
 /// Defines attributes on `obj`. The last entry of `properties` must contain
 /// zeroed memory.
 /// Fails on JSAPI failure.
-fn DefineProperties(cx: *mut JSContext, obj: *mut JSObject, properties: &'static [JSPropertySpec]) {
+fn define_properties(cx: *mut JSContext, obj: *mut JSObject,
+                     properties: &'static [JSPropertySpec]) {
     unsafe {
         assert!(JS_DefineProperties(cx, obj, properties.as_ptr()) != 0);
     }
@@ -285,36 +299,39 @@ fn DefineProperties(cx: *mut JSContext, obj: *mut JSObject, properties: &'static
 
 /// Creates the *interface prototype object*.
 /// Fails on JSAPI failure.
-fn CreateInterfacePrototypeObject(cx: *mut JSContext, global: *mut JSObject,
-                                  parentProto: *mut JSObject,
-                                  protoClass: &'static JSClass,
-                                  members: &'static NativeProperties) -> *mut JSObject {
+fn create_interface_prototype_object(cx: *mut JSContext, global: *mut JSObject,
+                                     parent_proto: *mut JSObject,
+                                     proto_class: &'static JSClass,
+                                     members: &'static NativeProperties)
+                                     -> *mut JSObject {
     unsafe {
-        let ourProto = JS_NewObjectWithUniqueType(cx, protoClass, &*parentProto, &*global);
-        assert!(!ourProto.is_null());
+        let our_proto = JS_NewObjectWithUniqueType(cx, proto_class,
+                                                   &*parent_proto, &*global);
+        assert!(!our_proto.is_null());
 
         match members.methods {
-            Some(methods) => DefineMethods(cx, ourProto, methods),
+            Some(methods) => define_methods(cx, our_proto, methods),
             _ => (),
         }
 
         match members.attrs {
-            Some(properties) => DefineProperties(cx, ourProto, properties),
+            Some(properties) => define_properties(cx, our_proto, properties),
             _ => (),
         }
 
         match members.consts {
-            Some(constants) => DefineConstants(cx, ourProto, constants),
+            Some(constants) => define_constants(cx, our_proto, constants),
             _ => (),
         }
 
-        return ourProto;
+        return our_proto;
     }
 }
 
 /// A throwing constructor, for those interfaces that have neither
 /// `NoInterfaceObject` nor `Constructor`.
-pub unsafe extern fn ThrowingConstructor(cx: *mut JSContext, _argc: c_uint, _vp: *mut JSVal) -> JSBool {
+pub unsafe extern fn throwing_constructor(cx: *mut JSContext, _argc: c_uint,
+                                          _vp: *mut JSVal) -> JSBool {
     throw_type_error(cx, "Illegal constructor.");
     return 0;
 }
@@ -322,10 +339,11 @@ pub unsafe extern fn ThrowingConstructor(cx: *mut JSContext, _argc: c_uint, _vp:
 /// Construct and cache the ProtoOrIfaceArray for the given global.
 /// Fails if the argument is not a DOM global.
 pub fn initialize_global(global: *mut JSObject) {
-    let protoArray = box () ([0 as *mut JSObject, ..PrototypeList::ID::Count as uint]);
+    let proto_array = box ()
+        ([0 as *mut JSObject; PrototypeList::ID::Count as uint]);
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
-        let box_ = squirrel_away_unique(protoArray);
+        let box_ = squirrel_away_unique(proto_array);
         JS_SetReservedSlot(global,
                            DOM_PROTOTYPE_SLOT,
                            PrivateValue(box_ as *const libc::c_void));
@@ -350,8 +368,8 @@ pub fn reflect_dom_object<T: Reflectable>
 
 /// A struct to store a reference to the reflector of a DOM object.
 // Allowing unused_attribute because the lint sometimes doesn't run in order
-#[allow(raw_pointer_deriving, unrooted_must_root, unused_attributes)]
-#[deriving(PartialEq)]
+#[allow(raw_pointer_derive, unrooted_must_root, unused_attributes)]
+#[derive(PartialEq)]
 #[must_root]
 #[servo_lang = "reflector"]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
@@ -392,8 +410,9 @@ impl Reflector {
 /// set to true and `*vp` to the value, otherwise `*found` is set to false.
 ///
 /// Returns false on JSAPI failure.
-pub fn GetPropertyOnPrototype(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, found: *mut bool,
-                              vp: *mut JSVal) -> bool {
+pub fn get_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
+                                 id: jsid, found: *mut bool, vp: *mut JSVal)
+                                 -> bool {
     unsafe {
       //let proto = GetObjectProto(proxy);
       let proto = JS_GetPrototype(proxy);
@@ -401,13 +420,13 @@ pub fn GetPropertyOnPrototype(cx: *mut JSContext, proxy: *mut JSObject, id: jsid
           *found = false;
           return true;
       }
-      let mut hasProp = 0;
-      if JS_HasPropertyById(cx, proto, id, &mut hasProp) == 0 {
+      let mut has_property = 0;
+      if JS_HasPropertyById(cx, proto, id, &mut has_property) == 0 {
           return false;
       }
-      *found = hasProp != 0;
+      *found = has_property != 0;
       let no_output = vp.is_null();
-      if hasProp == 0 || no_output {
+      if has_property == 0 || no_output {
           return true;
       }
 
@@ -417,7 +436,7 @@ pub fn GetPropertyOnPrototype(cx: *mut JSContext, proxy: *mut JSObject, id: jsid
 
 /// Get an array index from the given `jsid`. Returns `None` if the given
 /// `jsid` is not an integer.
-pub fn GetArrayIndexFromId(_cx: *mut JSContext, id: jsid) -> Option<u32> {
+pub fn get_array_index_from_id(_cx: *mut JSContext, id: jsid) -> Option<u32> {
     unsafe {
         if RUST_JSID_IS_INT(id) != 0 {
             return Some(RUST_JSID_TO_INT(id) as u32);
@@ -443,9 +462,10 @@ pub fn GetArrayIndexFromId(_cx: *mut JSContext, id: jsid) -> Option<u32> {
 /// Find the index of a string given by `v` in `values`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
 /// `Ok(None)` if there was no matching string.
-pub fn FindEnumStringIndex(cx: *mut JSContext,
-                           v: JSVal,
-                           values: &[&'static str]) -> Result<Option<uint>, ()> {
+pub fn find_enum_string_index(cx: *mut JSContext,
+                              v: JSVal,
+                              values: &[&'static str])
+                              -> Result<Option<uint>, ()> {
     unsafe {
         let jsstr = JS_ValueToString(cx, v);
         if jsstr.is_null() {
@@ -469,7 +489,7 @@ pub fn FindEnumStringIndex(cx: *mut JSContext,
 
 /// Returns wether `obj` is a platform object
 /// http://heycam.github.io/webidl/#dfn-platform-object
-pub fn IsPlatformObject(obj: *mut JSObject) -> bool {
+pub fn is_platform_object(obj: *mut JSObject) -> bool {
     unsafe {
         // Fast-path the common case
         let mut clasp = JS_GetClass(obj);
@@ -495,7 +515,7 @@ pub fn IsPlatformObject(obj: *mut JSObject) -> bool {
 pub fn get_dictionary_property(cx: *mut JSContext,
                                object: *mut JSObject,
                                property: &str) -> Result<Option<JSVal>, ()> {
-    use std::c_str::CString;
+    use std::ffi::CString;
     fn has_property(cx: *mut JSContext, object: *mut JSObject, property: &CString,
                     found: &mut JSBool) -> bool {
         unsafe {
@@ -509,7 +529,7 @@ pub fn get_dictionary_property(cx: *mut JSContext,
         }
     }
 
-    let property = property.to_c_str();
+    let property = CString::from_slice(property.as_bytes());
     if object.is_null() {
         return Ok(None);
     }
@@ -532,21 +552,16 @@ pub fn get_dictionary_property(cx: *mut JSContext,
 }
 
 /// Returns whether `proxy` has a property `id` on its prototype.
-pub fn HasPropertyOnPrototype(cx: *mut JSContext, proxy: *mut JSObject, id: jsid) -> bool {
+pub fn has_property_on_prototype(cx: *mut JSContext, proxy: *mut JSObject,
+                                 id: jsid) -> bool {
     //  MOZ_ASSERT(js::IsProxy(proxy) && js::GetProxyHandler(proxy) == handler);
     let mut found = false;
-    return !GetPropertyOnPrototype(cx, proxy, id, &mut found, ptr::null_mut()) || found;
-}
-
-/// Returns whether `obj` can be converted to a callback interface per IDL.
-pub fn IsConvertibleToCallbackInterface(cx: *mut JSContext, obj: *mut JSObject) -> bool {
-    unsafe {
-        JS_ObjectIsDate(cx, obj) == 0 && JS_ObjectIsRegExp(cx, obj) == 0
-    }
+    return !get_property_on_prototype(cx, proxy, id, &mut found, ptr::null_mut()) || found;
 }
 
 /// Create a DOM global object with the given class.
-pub fn CreateDOMGlobal(cx: *mut JSContext, class: *const JSClass) -> *mut JSObject {
+pub fn create_dom_global(cx: *mut JSContext, class: *const JSClass)
+                         -> *mut JSObject {
     unsafe {
         let obj = JS_NewGlobalObject(cx, class, ptr::null_mut());
         if obj.is_null() {
@@ -594,7 +609,7 @@ pub unsafe fn delete_property_by_id(cx: *mut JSContext, object: *mut JSObject,
 }
 
 /// Results of `xml_name_type`.
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 #[allow(missing_docs)]
 pub enum XMLName {
     QName,

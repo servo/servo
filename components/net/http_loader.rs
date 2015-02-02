@@ -7,18 +7,25 @@ use resource_task::ProgressMsg::{Payload, Done};
 
 use log;
 use std::collections::HashSet;
+use file_loader;
 use hyper::client::Request;
 use hyper::header::common::{ContentLength, ContentType, Host, Location};
+use hyper::HttpError;
 use hyper::method::Method;
+use hyper::net::HttpConnector;
 use hyper::status::StatusClass;
-use std::io::Reader;
-use servo_util::task::spawn_named;
+use std::error::Error;
+use openssl::ssl::{SslContext, SslVerifyMode};
+use std::io::{IoError, IoErrorKind, Reader};
+use std::sync::mpsc::Sender;
+use util::task::spawn_named;
+use util::resource_files::resources_dir_path;
 use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
 
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
-    spawn_named("http_loader".to_owned(), proc() load(load_data, start_chan))
+    spawn_named("http_loader".to_owned(), move || load(load_data, start_chan))
 }
 
 fn send_error(url: Url, err: String, senders: ResponseSenders) {
@@ -26,7 +33,7 @@ fn send_error(url: Url, err: String, senders: ResponseSenders) {
     metadata.status = None;
 
     match start_sending_opt(senders, metadata) {
-        Ok(p) => p.send(Done(Err(err))),
+        Ok(p) => p.send(Done(Err(err))).unwrap(),
         _ => {}
     };
 }
@@ -72,10 +79,32 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
         info!("requesting {}", url.serialize());
 
-        let mut req = match Request::new(load_data.method.clone(), url.clone()) {
+        fn verifier(ssl: &mut SslContext) {
+            ssl.set_verify(SslVerifyMode::SslVerifyPeer, None);
+            let mut certs = resources_dir_path();
+            certs.push("certs");
+            ssl.set_CA_file(&certs);
+        };
+
+        let ssl_err_string = "[UnknownError { library: \"SSL routines\", \
+function: \"SSL3_GET_SERVER_CERTIFICATE\", \
+reason: \"certificate verify failed\" }]";
+
+        let mut connector = HttpConnector(Some(box verifier as Box<FnMut(&mut SslContext)>));
+        let mut req = match Request::with_connector(load_data.method.clone(), url.clone(), &mut connector) {
             Ok(req) => req,
+            Err(HttpError::HttpIoError(IoError {kind: IoErrorKind::OtherIoError,
+                                                desc: "Error in OpenSSL",
+                                                detail: Some(ref det)})) if det.as_slice() == ssl_err_string => {
+                let mut image = resources_dir_path();
+                image.push("badcert.html");
+                let load_data = LoadData::new(Url::from_file_path(&image).unwrap(), senders.eventual_consumer);
+                file_loader::factory(load_data, senders.immediate_consumer);
+                return;
+            },
             Err(e) => {
-                send_error(url, e.to_string(), senders);
+                println!("{:?}", e);
+                send_error(url, e.description().to_string(), senders);
                 return;
             }
         };
@@ -91,11 +120,11 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         //}
         let writer = match load_data.data {
             Some(ref data) => {
-                req.headers_mut().set(ContentLength(data.len()));
+                req.headers_mut().set(ContentLength(data.len() as u64));
                 let mut writer = match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.to_string(), senders);
+                        send_error(url, e.description().to_string(), senders);
                         return;
                     }
                 };
@@ -116,7 +145,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
                 match req.start() {
                     Ok(w) => w,
                     Err(e) => {
-                        send_error(url, e.to_string(), senders);
+                        send_error(url, e.description().to_string(), senders);
                         return;
                     }
                 }
@@ -125,7 +154,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
         let mut response = match writer.send() {
             Ok(r) => r,
             Err(e) => {
-                send_error(url, e.to_string(), senders);
+                send_error(url, e.description().to_string(), senders);
                 return;
             }
         };
@@ -189,7 +218,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
             match response.read(buf.as_mut_slice()) {
                 Ok(len) => {
                     unsafe { buf.set_len(len); }
-                    if progress_chan.send_opt(Payload(buf)).is_err() {
+                    if progress_chan.send(Payload(buf)).is_err() {
                         // The send errors when the receiver is out of scope,
                         // which will happen if the fetch has timed out (or has been aborted)
                         // so we don't need to continue with the loading of the file here.
@@ -197,7 +226,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
                     }
                 }
                 Err(_) => {
-                    let _ = progress_chan.send_opt(Done(Ok(())));
+                    let _ = progress_chan.send(Done(Ok(())));
                     break;
                 }
             }

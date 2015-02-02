@@ -10,7 +10,7 @@ use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::node::window_from_node;
 use dom::htmlelement::{HTMLElement, HTMLElementCustomAttributeHelpers};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct DOMStringMap {

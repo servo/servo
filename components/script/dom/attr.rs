@@ -16,7 +16,7 @@ use dom::window::Window;
 use dom::virtualmethods::vtable_for;
 
 use devtools_traits::AttrInfo;
-use servo_util::str::{DOMString, split_html_space_chars};
+use util::str::{DOMString, split_html_space_chars};
 
 use string_cache::{Atom, Namespace};
 
@@ -29,7 +29,7 @@ pub enum AttrSettingType {
     ReplacedAttr,
 }
 
-#[deriving(PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 #[jstraceable]
 pub enum AttrValue {
     String(DOMString),
@@ -58,7 +58,8 @@ impl AttrValue {
     }
 
     pub fn from_u32(string: DOMString, default: u32) -> AttrValue {
-        let result: u32 = from_str(string.as_slice()).unwrap_or(default);
+        // XXX Is parse() correct?
+        let result: u32 = string.parse().unwrap_or(default);
         AttrValue::UInt(string, result)
     }
 

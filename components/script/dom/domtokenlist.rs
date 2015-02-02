@@ -13,7 +13,7 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers};
 use dom::node::window_from_node;
 
-use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 use string_cache::Atom;
 
 use std::borrow::ToOwned;
@@ -44,7 +44,7 @@ impl DOMTokenList {
 
 trait PrivateDOMTokenListHelpers {
     fn attribute(self) -> Option<Temporary<Attr>>;
-    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<Atom>;
+    fn check_token_exceptions(self, token: &str) -> Fallible<Atom>;
 }
 
 impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
@@ -53,7 +53,7 @@ impl<'a> PrivateDOMTokenListHelpers for JSRef<'a, DOMTokenList> {
         element.r().get_attribute(ns!(""), &self.local_name)
     }
 
-    fn check_token_exceptions<'a>(self, token: &'a str) -> Fallible<Atom> {
+    fn check_token_exceptions(self, token: &str) -> Fallible<Atom> {
         match token {
             "" => Err(Syntax),
             slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(InvalidCharacter),
@@ -118,7 +118,7 @@ impl<'a> DOMTokenListMethods for JSRef<'a, DOMTokenList> {
         let mut atoms = element.r().get_tokenlist_attribute(&self.local_name);
         for token in tokens.iter() {
             let token = try!(self.check_token_exceptions(token.as_slice()));
-            atoms.iter().position(|atom| *atom == token).and_then(|index| {
+            atoms.iter().position(|atom| *atom == token).map(|index| {
                 atoms.remove(index)
             });
         }

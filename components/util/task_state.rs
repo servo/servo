@@ -11,7 +11,7 @@
 pub use self::imp::{initialize, get, enter, exit};
 
 bitflags! {
-    #[deriving(Show, Copy)]
+    #[derive(Show)]
     flags TaskState: u32 {
         const SCRIPT          = 0x01,
         const LAYOUT          = 0x02,
@@ -35,7 +35,7 @@ macro_rules! task_types ( ( $( $fun:ident = $flag:ident ; )* ) => (
     #[cfg(not(ndebug))]
     static TYPES: &'static [TaskState]
         = &[ $( $flag ),* ];
-))
+));
 
 task_types! {
     is_script = SCRIPT;
@@ -48,12 +48,12 @@ mod imp {
     use super::{TaskState, TYPES};
     use std::cell::RefCell;
 
-    thread_local!(static STATE: RefCell<Option<TaskState>> = RefCell::new(None))
+    thread_local!(static STATE: RefCell<Option<TaskState>> = RefCell::new(None));
 
     pub fn initialize(x: TaskState) {
         STATE.with(|ref k| {
             match *k.borrow() {
-                Some(s) => panic!("Task state already initialized as {}", s),
+                Some(s) => panic!("Task state already initialized as {:?}", s),
                 None => ()
             };
             *k.borrow_mut() = Some(x);

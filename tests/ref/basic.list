@@ -26,6 +26,7 @@
 # text_decoration_propagation_a.html text_decoration_propagation_b.html
 # inline_text_align_a.html inline_text_align_b.html
 == font_size.html font_size_ref.html
+== font_style.html font_style_ref.html
 == img_size_a.html img_size_b.html
 == img_dynamic_remove.html img_dynamic_remove_ref.html
 == upper_id_attr.html upper_id_attr_ref.html
@@ -125,6 +126,13 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == multiple_css_class_a.html multiple_css_class_b.html
 
 == iframe/simple.html iframe/simple_ref.html
+== iframe/simple_inline_default.html iframe/simple_inline_default_ref.html
+== iframe/simple_inline_width.html iframe/simple_inline_width_ref.html
+== iframe/simple_inline_width_height.html iframe/simple_inline_width_height_ref.html
+== iframe/simple_inline_height.html iframe/simple_inline_height_ref.html
+== iframe/simple_inline_width_percentage.html iframe/simple_inline_width_percentage_ref.html
+== iframe/simple_inline_min.html iframe/simple_inline_min_ref.html
+== iframe/simple_inline_max.html iframe/simple_inline_max_ref.html
 == iframe/multiple_external.html iframe/multiple_external_ref.html
 == iframe/overflow.html iframe/overflow_ref.html
 == iframe/positioning_margin.html iframe/positioning_margin_ref.html
@@ -223,6 +231,7 @@ fragment=top != ../html/acid2.html acid2_ref.html
 != inset_blackborder.html blackborder_ref.html
 != outset_blackborder.html blackborder_ref.html
 == border_radius_clip_a.html border_radius_clip_ref.html
+== border_radius_overlapping_a.html border_radius_overlapping_ref.html
 == stacking_context_overflow_a.html stacking_context_overflow_ref.html
 == stacking_context_overflow_relative_outline_a.html stacking_context_overflow_relative_outline_ref.html
 == word_break_a.html word_break_ref.html
@@ -230,3 +239,9 @@ fragment=top != ../html/acid2.html acid2_ref.html
 == filter_opacity_a.html filter_opacity_ref.html
 == filter_sepia_a.html filter_sepia_ref.html
 == mix_blend_mode_a.html mix_blend_mode_ref.html
+!= text_overflow_a.html text_overflow_ref.html
+== floated_list_item_a.html floated_list_item_ref.html
+== text_align_justify_a.html text_align_justify_ref.html
+== text_justify_none_a.html text_justify_none_ref.html
+== text_overflow_basic_a.html text_overflow_basic_ref.html
+== text_align_complex_a.html text_align_complex_ref.html

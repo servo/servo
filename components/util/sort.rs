@@ -81,6 +81,7 @@ pub fn quicksort_by<T>(arr: &mut [T], compare: fn(&T, &T) -> Ordering) {
 
 #[cfg(test)]
 pub mod test {
+    use std::cmp::Ordering;
     use std::rand;
     use std::rand::Rng;
 
@@ -88,7 +89,7 @@ pub mod test {
 
     #[test]
     pub fn random() {
-        let mut rng = rand::task_rng();
+        let mut rng = rand::thread_rng();
         for _ in range(0u32, 50000u32) {
             let len: uint = rng.gen();
             let mut v: Vec<int> = rng.gen_iter::<int>().take((len % 32) + 1).collect();

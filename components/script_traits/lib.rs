@@ -2,16 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![feature(int_uint)]
+
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
+#![allow(unstable)]
 
 extern crate devtools_traits;
 extern crate geom;
 extern crate libc;
 extern crate "msg" as servo_msg;
 extern crate "net" as servo_net;
-extern crate "util" as servo_util;
+extern crate util;
 extern crate url;
 extern crate serialize;
 
@@ -29,17 +32,19 @@ use servo_msg::compositor_msg::ScriptListener;
 use servo_net::image_cache_task::ImageCacheTask;
 use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
-use servo_util::smallvec::SmallVec1;
+use util::smallvec::SmallVec1;
 use std::any::Any;
+use std::sync::mpsc::{Sender, Receiver};
 
 use geom::point::Point2D;
 use geom::rect::Rect;
 
-use serialize::{Encodable, Encoder};
-
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
-pub type UntrustedNodeAddress = *const c_void;
+#[allow(raw_pointer_derive)]
+#[derive(Copy, Clone)]
+pub struct UntrustedNodeAddress(pub *const c_void);
+unsafe impl Send for UntrustedNodeAddress {}
 
 pub struct NewLayoutInfo {
     pub old_pipeline_id: PipelineId,
@@ -70,6 +75,9 @@ pub enum ConstellationControlMsg {
     GetTitle(PipelineId),
 }
 
+unsafe impl Send for ConstellationControlMsg {
+}
+
 /// Events from the compositor that the script task needs to know about
 pub enum CompositorEvent {
     ResizeEvent(WindowSizeData),
@@ -86,14 +94,8 @@ pub enum CompositorEvent {
 pub struct OpaqueScriptLayoutChannel(pub (Box<Any+Send>, Box<Any+Send>));
 
 /// Encapsulates external communication with the script task.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct ScriptControlChan(pub Sender<ConstellationControlMsg>);
-
-impl<S: Encoder<E>, E> Encodable<S, E> for ScriptControlChan {
-    fn encode(&self, _s: &mut S) -> Result<(), E> {
-        Ok(())
-    }
-}
 
 pub trait ScriptTaskFactory {
     fn create<C>(_phantom: Option<&mut Self>,

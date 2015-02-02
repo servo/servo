@@ -28,23 +28,24 @@ impl ServoCefFrame {
     }
 }
 
-cef_class_impl! {
+full_cef_class_impl! {
     ServoCefFrame : CefFrame, cef_frame_t {
-        fn load_url(&this, url: *const cef_string_t) -> () {
+        fn load_url(&this, url: *const cef_string_t [&[u16]],) -> () {{
             let this = this.downcast();
-            *this.url.borrow_mut() = String::from_utf16(url).unwrap();
-            let event = WindowEvent::LoadUrl(String::from_utf16(url).unwrap());
+            let url = String::from_utf16(url).unwrap();
+            *this.url.borrow_mut() = url.clone();
+            let event = WindowEvent::LoadUrl(url);
             this.browser.borrow_mut().as_mut().unwrap().send_window_event(event);
-        }
-        fn get_url(&this) -> cef_string_userfree_t {
+        }}
+        fn get_url(&this,) -> cef_string_userfree_t {{
             let this = this.downcast();
             (*this.url.borrow()).clone()
-        }
-        fn get_text(&this, visitor: *mut cef_string_visitor_t) -> () {
+        }}
+        fn get_text(&this, visitor: *mut cef_string_visitor_t [CefStringVisitor],) -> () {{
             let this = this.downcast();
             *this.title_visitor.borrow_mut() = Some(visitor);
             this.browser.borrow().as_ref().unwrap().get_title_for_main_frame();
-        }
+        }}
     }
 }
 

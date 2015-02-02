@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, LayoutJS, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 
@@ -15,6 +15,8 @@ use geom::size::Size2D;
 
 use canvas::canvas_paint_task::{CanvasMsg, CanvasPaintTask};
 use canvas::canvas_paint_task::CanvasMsg::{ClearRect, Close, FillRect, Recreate, StrokeRect};
+
+use std::sync::mpsc::Sender;
 
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
@@ -48,7 +50,7 @@ pub trait LayoutCanvasRenderingContext2DHelpers {
     unsafe fn get_renderer(&self) -> Sender<CanvasMsg>;
 }
 
-impl LayoutCanvasRenderingContext2DHelpers for JS<CanvasRenderingContext2D> {
+impl LayoutCanvasRenderingContext2DHelpers for LayoutJS<CanvasRenderingContext2D> {
     unsafe fn get_renderer(&self) -> Sender<CanvasMsg> {
         (*self.unsafe_get()).renderer.clone()
     }

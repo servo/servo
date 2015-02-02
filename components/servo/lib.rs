@@ -2,26 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(globs, macro_rules, phase, thread_local)]
+#![feature(thread_local)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 #![allow(missing_copy_implementations)]
+#![allow(unstable)]
 
-#[phase(plugin, link)]
+#[macro_use]
 extern crate log;
 
 extern crate compositing;
 extern crate devtools;
 extern crate "net" as servo_net;
 extern crate "msg" as servo_msg;
-#[phase(plugin, link)]
-extern crate "util" as servo_util;
+#[macro_use]
+extern crate util;
 extern crate script;
 extern crate layout;
 extern crate gfx;
 extern crate libc;
-extern crate rustrt;
 extern crate url;
 
 use compositing::CompositorEventListener;
@@ -41,24 +41,26 @@ use servo_net::image_cache_task::ImageCacheTask;
 #[cfg(not(test))]
 use servo_net::resource_task::new_resource_task;
 #[cfg(not(test))]
-use servo_net::storage_task::StorageTaskFactory;
+use servo_net::storage_task::{StorageTaskFactory, StorageTask};
 #[cfg(not(test))]
 use gfx::font_cache_task::FontCacheTask;
 #[cfg(not(test))]
-use servo_util::time::TimeProfiler;
+use util::time::TimeProfiler;
 #[cfg(not(test))]
-use servo_util::memory::MemoryProfiler;
+use util::memory::MemoryProfiler;
 #[cfg(not(test))]
-use servo_util::opts;
+use util::opts;
 #[cfg(not(test))]
-use servo_util::taskpool::TaskPool;
+use util::taskpool::TaskPool;
 
 #[cfg(not(test))]
 use std::os;
 #[cfg(not(test))]
 use std::rc::Rc;
 #[cfg(not(test))]
-use std::task::TaskBuilder;
+use std::sync::mpsc::channel;
+#[cfg(not(test))]
+use std::thread::Builder;
 
 pub struct Browser<Window> {
     compositor: Box<CompositorEventListener + 'static>,
@@ -67,7 +69,7 @@ pub struct Browser<Window> {
 impl<Window> Browser<Window> where Window: WindowMethods + 'static {
     #[cfg(not(test))]
     pub fn new(window: Option<Rc<Window>>) -> Browser<Window> {
-        ::servo_util::opts::set_experimental_enabled(opts::get().enable_experimental);
+        ::util::opts::set_experimental_enabled(opts::get().enable_experimental);
         let opts = opts::get();
         RegisterBindings::RegisterProxyHandlers();
 
@@ -86,8 +88,8 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
         let (result_chan, result_port) = channel();
         let compositor_proxy_for_constellation = compositor_proxy.clone_compositor_proxy();
-        TaskBuilder::new()
-            .spawn(proc() {
+        Builder::new()
+            .spawn(move || {
             let opts = &opts_clone;
             // Create a Servo instance.
             let resource_task = new_resource_task(opts.user_agent.clone());
@@ -100,7 +102,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 ImageCacheTask::new(resource_task.clone(), shared_task_pool)
             };
             let font_cache_task = FontCacheTask::new(resource_task.clone());
-            let storage_task = StorageTaskFactory::new();
+            let storage_task: StorageTask = StorageTaskFactory::new();
             let constellation_chan = Constellation::<layout::layout_task::LayoutTask,
                                                      script::script_task::ScriptTask>::start(
                                                           compositor_proxy_for_constellation,
@@ -129,7 +131,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
             result_chan.send(constellation_chan);
         });
 
-        let constellation_chan = result_port.recv();
+        let constellation_chan = result_port.recv().unwrap();
 
         debug!("preparing to enter main loop");
         let compositor = CompositorTask::create(window,

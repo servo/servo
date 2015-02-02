@@ -9,12 +9,12 @@ use dom::bindings::error::Error;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 
 #[repr(uint)]
-#[deriving(Copy, Show)]
+#[derive(Copy, Show)]
 #[jstraceable]
 pub enum DOMErrorName {
     IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR as uint,
@@ -98,7 +98,7 @@ impl<'a> DOMExceptionMethods for JSRef<'a, DOMException> {
 
     // http://dom.spec.whatwg.org/#error-names-0
     fn Name(self) -> DOMString {
-        self.code.to_string()
+        format!("{:?}", self.code)
     }
 
     // http://dom.spec.whatwg.org/#error-names-0
