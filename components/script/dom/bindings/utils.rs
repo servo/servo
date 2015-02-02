@@ -340,7 +340,7 @@ pub unsafe extern fn throwing_constructor(cx: *mut JSContext, _argc: c_uint,
 /// Fails if the argument is not a DOM global.
 pub fn initialize_global(global: *mut JSObject) {
     let proto_array = box ()
-        ([0 as *mut JSObject; PrototypeList::ID::Count as uint]);
+        ([0 as *mut JSObject; PrototypeList::ID::Count as usize]);
     unsafe {
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
         let box_ = squirrel_away_unique(proto_array);
@@ -465,7 +465,7 @@ pub fn get_array_index_from_id(_cx: *mut JSContext, id: jsid) -> Option<u32> {
 pub fn find_enum_string_index(cx: *mut JSContext,
                               v: JSVal,
                               values: &[&'static str])
-                              -> Result<Option<uint>, ()> {
+                              -> Result<Option<usize>, ()> {
     unsafe {
         let jsstr = JS_ValueToString(cx, v);
         if jsstr.is_null() {
@@ -479,9 +479,9 @@ pub fn find_enum_string_index(cx: *mut JSContext,
         }
 
         Ok(values.iter().position(|value| {
-            value.len() == length as uint &&
-            range(0, length as uint).all(|j| {
-                value.as_bytes()[j] as u16 == *chars.offset(j as int)
+            value.len() == length as usize &&
+            range(0, length as usize).all(|j| {
+                value.as_bytes()[j] as u16 == *chars.offset(j as isize)
             })
         }))
     }

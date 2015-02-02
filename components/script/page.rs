@@ -48,7 +48,7 @@ pub struct Page {
     pub subpage_id: Option<SubpageId>,
 
     /// Unique id for last reflow request; used for confirming completion reply.
-    pub last_reflow_id: Cell<uint>,
+    pub last_reflow_id: Cell<usize>,
 
     /// The outermost frame containing the document, window, and page URL.
     pub frame: DOMRefCell<Option<Frame>>,

@@ -473,7 +473,7 @@ pub trait NodeHelpers<'a> {
     fn dirty_impl(self, damage: NodeDamage, force_ancestors: bool);
 
     fn dump(self);
-    fn dump_indent(self, indent: uint);
+    fn dump_indent(self, indent: usize);
     fn debug_str(self) -> String;
 
     fn traverse_preorder(self) -> TreeIterator<'a>;
@@ -501,7 +501,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
     }
 
     /// Dumps the node tree, for debugging, with indentation.
-    fn dump_indent(self, indent: uint) {
+    fn dump_indent(self, indent: usize) {
         let mut s = String::new();
         for _ in range(0, indent) {
             s.push_str("    ");
@@ -512,7 +512,7 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
 
         // FIXME: this should have a pure version?
         for kid in self.children() {
-            kid.dump_indent(indent + 1u)
+            kid.dump_indent(indent + 1us)
         }
     }
 
@@ -862,10 +862,10 @@ impl<'a> NodeHelpers<'a> for JSRef<'a, Node> {
             uniqueId: self.unique_id.borrow().clone(),
             baseURI: self.GetBaseURI().unwrap_or("".to_owned()),
             parent: self.GetParentNode().root().map(|node| node.r().get_unique_id()).unwrap_or("".to_owned()),
-            nodeType: self.NodeType() as uint,
+            nodeType: self.NodeType() as usize,
             namespaceURI: "".to_owned(), //FIXME
             nodeName: self.NodeName(),
-            numChildren: self.ChildNodes().root().r().Length() as uint,
+            numChildren: self.ChildNodes().root().r().Length() as usize,
 
             //FIXME doctype nodes only
             name: "".to_owned(),
@@ -1099,7 +1099,7 @@ impl<'a> Iterator for TreeIterator<'a> {
 pub struct NodeIterator {
     pub start_node: JS<Node>,
     pub current_node: Option<JS<Node>>,
-    pub depth: uint,
+    pub depth: usize,
     include_start: bool,
     include_descendants_of_void: bool
 }

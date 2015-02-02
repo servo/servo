@@ -13,30 +13,30 @@ use util::str::DOMString;
 
 use std::borrow::ToOwned;
 
-#[repr(uint)]
+#[repr(usize)]
 #[derive(Copy, Show)]
 #[jstraceable]
 pub enum DOMErrorName {
-    IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR as uint,
-    HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR as uint,
-    WrongDocumentError = DOMExceptionConstants::WRONG_DOCUMENT_ERR as uint,
-    InvalidCharacterError = DOMExceptionConstants::INVALID_CHARACTER_ERR as uint,
-    NoModificationAllowedError = DOMExceptionConstants::NO_MODIFICATION_ALLOWED_ERR as uint,
-    NotFoundError = DOMExceptionConstants::NOT_FOUND_ERR as uint,
-    NotSupportedError = DOMExceptionConstants::NOT_SUPPORTED_ERR as uint,
-    InvalidStateError = DOMExceptionConstants::INVALID_STATE_ERR as uint,
-    SyntaxError = DOMExceptionConstants::SYNTAX_ERR as uint,
-    InvalidModificationError = DOMExceptionConstants::INVALID_MODIFICATION_ERR as uint,
-    NamespaceError = DOMExceptionConstants::NAMESPACE_ERR as uint,
-    InvalidAccessError = DOMExceptionConstants::INVALID_ACCESS_ERR as uint,
-    SecurityError = DOMExceptionConstants::SECURITY_ERR as uint,
-    NetworkError = DOMExceptionConstants::NETWORK_ERR as uint,
-    AbortError = DOMExceptionConstants::ABORT_ERR as uint,
-    URLMismatchError = DOMExceptionConstants::URL_MISMATCH_ERR as uint,
-    QuotaExceededError = DOMExceptionConstants::QUOTA_EXCEEDED_ERR as uint,
-    TimeoutError = DOMExceptionConstants::TIMEOUT_ERR as uint,
-    InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR as uint,
-    DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR as uint,
+    IndexSizeError = DOMExceptionConstants::INDEX_SIZE_ERR as usize,
+    HierarchyRequestError = DOMExceptionConstants::HIERARCHY_REQUEST_ERR as usize,
+    WrongDocumentError = DOMExceptionConstants::WRONG_DOCUMENT_ERR as usize,
+    InvalidCharacterError = DOMExceptionConstants::INVALID_CHARACTER_ERR as usize,
+    NoModificationAllowedError = DOMExceptionConstants::NO_MODIFICATION_ALLOWED_ERR as usize,
+    NotFoundError = DOMExceptionConstants::NOT_FOUND_ERR as usize,
+    NotSupportedError = DOMExceptionConstants::NOT_SUPPORTED_ERR as usize,
+    InvalidStateError = DOMExceptionConstants::INVALID_STATE_ERR as usize,
+    SyntaxError = DOMExceptionConstants::SYNTAX_ERR as usize,
+    InvalidModificationError = DOMExceptionConstants::INVALID_MODIFICATION_ERR as usize,
+    NamespaceError = DOMExceptionConstants::NAMESPACE_ERR as usize,
+    InvalidAccessError = DOMExceptionConstants::INVALID_ACCESS_ERR as usize,
+    SecurityError = DOMExceptionConstants::SECURITY_ERR as usize,
+    NetworkError = DOMExceptionConstants::NETWORK_ERR as usize,
+    AbortError = DOMExceptionConstants::ABORT_ERR as usize,
+    URLMismatchError = DOMExceptionConstants::URL_MISMATCH_ERR as usize,
+    QuotaExceededError = DOMExceptionConstants::QUOTA_EXCEEDED_ERR as usize,
+    TimeoutError = DOMExceptionConstants::TIMEOUT_ERR as usize,
+    InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR as usize,
+    DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR as usize,
     EncodingError
 }
 

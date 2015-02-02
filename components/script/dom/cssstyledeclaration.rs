@@ -113,13 +113,13 @@ impl<'a> CSSStyleDeclarationMethods for JSRef<'a, CSSStyleDeclaration> {
         let elem: JSRef<Element> = ElementCast::from_ref(owner.r());
         let style_attribute = elem.style_attribute().borrow();
         let result = style_attribute.as_ref().and_then(|declarations| {
-            if index as uint > declarations.normal.len() {
+            if index as usize > declarations.normal.len() {
                 declarations.important
-                            .get(index as uint - declarations.normal.len())
+                            .get(index as usize - declarations.normal.len())
                             .map(|decl| format!("{:?} !important", decl))
             } else {
                 declarations.normal
-                            .get(index as uint)
+                            .get(index as usize)
                             .map(|decl| format!("{:?}", decl))
             }
         });
