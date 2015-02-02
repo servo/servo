@@ -199,8 +199,7 @@ fn fn_cookie_constructor() {
 
     // cookie domains test
     let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  ").unwrap();
-    assert!(Cookie::new_wrapped(cookie, url, CookieSource::HTTP).is_some());
-    let cookie = cookie_rs::Cookie::parse(" baz = bar; Domain =  ").unwrap();
+    assert!(Cookie::new_wrapped(cookie.clone(), url, CookieSource::HTTP).is_some());
     let cookie = Cookie::new_wrapped(cookie, url, CookieSource::HTTP).unwrap();
     assert!(cookie.cookie.domain.as_ref().unwrap().as_slice() == "example.com");
 

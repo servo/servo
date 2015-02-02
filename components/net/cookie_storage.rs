@@ -76,6 +76,21 @@ impl CookieStorage {
         self.cookies.push(cookie);
     }
 
+    fn cookie_comparator(a: &Cookie, b: &Cookie) -> Ordering {
+        let a_path_len = a.cookie.path.as_ref().map(|p| p.len()).unwrap_or(0);
+        let b_path_len = b.cookie.path.as_ref().map(|p| p.len()).unwrap_or(0);
+        match a_path_len.cmp(&b_path_len) {
+            Ordering::Equal => {
+                let a_creation_time = a.creation_time.to_timespec();
+                let b_creation_time = b.creation_time.to_timespec();
+                a_creation_time.cmp(&b_creation_time)
+            }
+            // Ensure that longer paths are sorted earlier than shorter paths
+            Ordering::Greater => Ordering::Less,
+            Ordering::Less => Ordering::Greater,
+        }
+    }
+
     // http://tools.ietf.org/html/rfc6265#section-5.4
     pub fn cookies_for_url(&mut self, url: &Url, source: CookieSource) -> Option<String> {
         let filterer = |&:c: &&mut Cookie| -> bool {
@@ -87,18 +102,7 @@ impl CookieStorage {
 
         // Step 2
         let mut url_cookies: Vec<&mut Cookie> = self.cookies.iter_mut().filter(filterer).collect();
-        url_cookies.sort_by(|a, b| {
-            let a_path_len = a.cookie.path.as_ref().map(|p| p.len()).unwrap_or(0);
-            let b_path_len = b.cookie.path.as_ref().map(|p| p.len()).unwrap_or(0);
-            match a_path_len.cmp(&b_path_len) {
-                Ordering::Equal => {
-                    let a_creation_time = a.creation_time.to_timespec();
-                    let b_creation_time = b.creation_time.to_timespec();
-                    a_creation_time.cmp(&b_creation_time)
-                }
-                result => result
-            }
-        });
+        url_cookies.sort_by(|a, b| CookieStorage::cookie_comparator(*a, *b));
 
         let reducer = |&:acc: String, c: &mut &mut Cookie| -> String {
             // Step 3
@@ -118,4 +122,22 @@ impl CookieStorage {
             _ => Some(result)
         }
     }
+}
+
+#[test]
+fn test_sort_order() {
+    use cookie_rs;
+    let url = &Url::parse("http://example.com/foo").unwrap();
+    let a_wrapped = cookie_rs::Cookie::parse("baz=bar; Path=/foo/bar/").unwrap();
+    let a = Cookie::new_wrapped(a_wrapped.clone(), url, CookieSource::HTTP).unwrap();
+    let a_prime = Cookie::new_wrapped(a_wrapped, url, CookieSource::HTTP).unwrap();
+    let b = cookie_rs::Cookie::parse("baz=bar;Path=/foo/bar/baz/").unwrap();
+    let b = Cookie::new_wrapped(b, url, CookieSource::HTTP).unwrap();
+
+    assert!(b.cookie.path.as_ref().unwrap().len() > a.cookie.path.as_ref().unwrap().len());
+    assert!(CookieStorage::cookie_comparator(&a, &b) == Ordering::Greater);
+    assert!(CookieStorage::cookie_comparator(&b, &a) == Ordering::Less);
+    assert!(CookieStorage::cookie_comparator(&a, &a_prime) == Ordering::Less);
+    assert!(CookieStorage::cookie_comparator(&a_prime, &a) == Ordering::Greater);
+    assert!(CookieStorage::cookie_comparator(&a, &a) == Ordering::Equal);
 }
