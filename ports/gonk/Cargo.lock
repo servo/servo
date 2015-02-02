@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "azure"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-azure#72deb42903b12dc6f1924fa1757cd79d37b35429"
+source = "git+https://github.com/servo/rust-azure#779233af589e797f07e9e2f3f45017fb55c33c68"
 dependencies = [
  "core_foundation 0.1.0 (git+https://github.com/servo/rust-core-foundation)",
  "core_graphics 0.1.0 (git+https://github.com/servo/rust-core-graphics)",
@@ -23,7 +23,7 @@ dependencies = [
  "egl 0.1.0 (git+https://github.com/servo/rust-egl)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "skia-sys 0.0.20130412 (git+https://github.com/servo/skia?branch=upstream-2014-06-16)",
+ "skia 0.0.20130412 (git+https://github.com/servo/skia?branch=upstream-2014-06-16)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
@@ -253,6 +253,7 @@ dependencies = [
  "plugins 0.0.1",
  "png 0.1.0 (git+https://github.com/servo/rust-png)",
  "script_traits 0.0.1",
+ "skia 0.0.20130412 (git+https://github.com/servo/skia?branch=upstream-2014-06-16)",
  "stb_image 0.1.0 (git+https://github.com/servo/rust-stb-image)",
  "style 0.0.1",
  "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -361,7 +362,7 @@ source = "git+https://github.com/bjz/gl-rs.git#230e6c9ed611cddfcb6682dee9686471d
 [[package]]
 name = "layers"
 version = "0.1.0"
-source = "git+https://github.com/servo/rust-layers#c17875c1951ffe2425733a596c2e6c10d9276720"
+source = "git+https://github.com/servo/rust-layers#253fd0eb7e49b356393e14abdf34c76152cba10f"
 dependencies = [
  "azure 0.1.0 (git+https://github.com/servo/rust-azure)",
  "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
@@ -371,6 +372,7 @@ dependencies = [
  "gleam 0.0.1 (git+https://github.com/servo/gleam)",
  "glx 0.0.1 (git+https://github.com/servo/rust-glx)",
  "io_surface 0.1.0 (git+https://github.com/servo/rust-io-surface)",
+ "skia 0.0.20130412 (git+https://github.com/servo/skia?branch=upstream-2014-06-16)",
  "xlib 0.1.0 (git+https://github.com/servo/rust-xlib)",
 ]
 
@@ -616,9 +618,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "skia-sys"
+name = "skia"
 version = "0.0.20130412"
-source = "git+https://github.com/servo/skia?branch=upstream-2014-06-16#aeb720b947ec463f780a0d00ab8485f902a83986"
+source = "git+https://github.com/servo/skia?branch=upstream-2014-06-16#387777643df6df6ce8fb61ce069c7c60b32ab38c"
 dependencies = [
  "expat-sys 2.1.0 (git+https://github.com/servo/libexpat)",
  "freetype-sys 2.4.11 (git+https://github.com/servo/libfreetype2)",
