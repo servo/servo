@@ -14,7 +14,7 @@ use dom::bindings::trace::JSTraceable;
 
 use dom::bindings::utils::reflect_dom_object;
 use dom::event::{Event, EventTypeId, EventBubbles, EventCancelable};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use dom::bindings::cell::DOMRefCell;
 use std::borrow::ToOwned;

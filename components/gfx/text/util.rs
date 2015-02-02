@@ -4,7 +4,7 @@
 
 use text::glyph::CharIndex;
 
-#[deriving(PartialEq, Eq, Copy)]
+#[derive(PartialEq, Eq, Copy)]
 pub enum CompressionMode {
     CompressNone,
     CompressWhitespace,

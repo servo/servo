@@ -2,17 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use flow::{mod, Flow};
+use flow::{self, Flow};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::float;
-use style::ComputedValues;
+use style::properties::ComputedValues;
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]
-    #[deriving(Copy)]
     flags RestyleDamage: u8 {
         #[doc = "Repaint the node itself."]
         #[doc = "Currently unused; need to decide how this propagates."]
@@ -125,7 +124,7 @@ macro_rules! add_if_not_equal(
             $damage.insert($($effect)|*);
         }
     })
-)
+);
 
 pub fn compute_damage(old: &Option<Arc<ComputedValues>>, new: &ComputedValues) -> RestyleDamage {
     let old: &ComputedValues =

@@ -14,7 +14,7 @@ use dom::node::{Node, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
-use servo_util::str::{mod, DOMString};
+use util::str::{self, DOMString};
 use std::cell::Cell;
 
 #[dom_struct]
@@ -62,7 +62,7 @@ impl HTMLTableRowElementHelpers for HTMLTableRowElement {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLTableRowElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

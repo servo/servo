@@ -17,8 +17,8 @@ use geom::{Point2D, Rect};
 use servo_util::geometry::{Au, ZERO_RECT};
 use std::cmp::max;
 use std::fmt;
-use style::computed_values::LengthOrPercentageOrAuto;
-use style::ComputedValues;
+use style::values::computed::LengthOrPercentageOrAuto;
+use style::properties::ComputedValues;
 use std::sync::Arc;
 
 /// A table formatting context.
@@ -109,7 +109,7 @@ impl Flow for TableColGroupFlow {
 impl fmt::Show for TableColGroupFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.fragment {
-            Some(ref rb) => write!(f, "TableColGroupFlow: {}", rb),
+            Some(ref rb) => write!(f, "TableColGroupFlow: {:?}", rb),
             None => write!(f, "TableColGroupFlow"),
         }
     }

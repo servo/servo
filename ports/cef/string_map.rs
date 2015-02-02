@@ -4,15 +4,15 @@
 
 use eutil::slice_to_str;
 use libc::{c_int};
-use std::collections::TreeMap;
+use std::collections::BTreeMap;
 use std::mem;
 use std::string::String;
 use string::{cef_string_userfree_utf16_alloc, cef_string_userfree_utf16_free};
 use string::{cef_string_utf16_set};
 use types::{cef_string_map_t, cef_string_t};
 
-fn string_map_to_treemap(sm: *mut cef_string_map_t) -> *mut TreeMap<String, *mut cef_string_t> {
-    sm as *mut TreeMap<String, *mut cef_string_t>
+fn string_map_to_treemap(sm: *mut cef_string_map_t) -> *mut BTreeMap<String, *mut cef_string_t> {
+    sm as *mut BTreeMap<String, *mut cef_string_t>
 }
 
 //cef_string_map
@@ -20,7 +20,7 @@ fn string_map_to_treemap(sm: *mut cef_string_map_t) -> *mut TreeMap<String, *mut
 #[no_mangle]
 pub extern "C" fn cef_string_map_alloc() -> *mut cef_string_map_t {
     unsafe {
-         let sm: Box<TreeMap<String, *mut cef_string_t>> = box TreeMap::new();
+         let sm: Box<BTreeMap<String, *mut cef_string_t>> = box BTreeMap::new();
          mem::transmute(sm)
     }
 }
@@ -119,7 +119,7 @@ pub extern "C" fn cef_string_map_clear(sm: *mut cef_string_map_t) {
 pub extern "C" fn cef_string_map_free(sm: *mut cef_string_map_t) {
     unsafe {
         if sm.is_null() { return; }
-        let _v: Box<TreeMap<String, *mut cef_string_t>> = mem::transmute(sm);
+        let _v: Box<BTreeMap<String, *mut cef_string_t>> = mem::transmute(sm);
         cef_string_map_clear(sm);
     }
 }

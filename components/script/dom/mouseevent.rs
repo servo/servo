@@ -14,7 +14,7 @@ use dom::event::{Event, EventTypeId};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use std::cell::Cell;
 use std::default::Default;
 

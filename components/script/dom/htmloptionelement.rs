@@ -21,7 +21,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::{DOMString, split_html_space_chars};
+use util::str::{DOMString, split_html_space_chars};
 use string_cache::Atom;
 
 #[dom_struct]
@@ -69,7 +69,7 @@ fn collect_text(node: &JSRef<Node>, value: &mut DOMString) {
 
 impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     // http://www.whatwg.org/html/#dom-option-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html/#dom-option-disabled
     fn SetDisabled(self, disabled: bool) {
@@ -104,7 +104,7 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-option-value
-    make_setter!(SetValue, "value")
+    make_setter!(SetValue, "value");
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-option-label
     fn Label(self) -> DOMString {
@@ -118,12 +118,12 @@ impl<'a> HTMLOptionElementMethods for JSRef<'a, HTMLOptionElement> {
     }
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-option-label
-    make_setter!(SetLabel, "label")
+    make_setter!(SetLabel, "label");
 
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLOptionElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

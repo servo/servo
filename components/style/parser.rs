@@ -3,18 +3,38 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+use std::collections::HashMap;
+use string_cache::Namespace;
 use cssparser::{Parser, SourcePosition};
 use url::{Url, UrlParser};
 use log;
 
 use stylesheets::Origin;
-use namespaces::NamespaceMap;
+
+
+pub struct NamespaceMap {
+    pub default: Option<Namespace>,
+    pub prefix_map: HashMap<String, Namespace>,
+}
 
 
 pub struct ParserContext<'a> {
     pub stylesheet_origin: Origin,
     pub base_url: &'a Url,
     pub namespaces: NamespaceMap,
+}
+
+impl<'a> ParserContext<'a> {
+    pub fn new(stylesheet_origin: Origin, base_url: &'a Url) -> ParserContext<'a> {
+        ParserContext {
+            stylesheet_origin: stylesheet_origin,
+            base_url: base_url,
+            namespaces: NamespaceMap {
+                default: None,
+                prefix_map: HashMap::new()
+            }
+        }
+    }
 }
 
 

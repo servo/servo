@@ -12,10 +12,10 @@ use font_template::FontTemplateDescriptor;
 use platform::font_template::FontTemplateData;
 use font::FontHandleMethods;
 use platform::font::FontHandle;
-use servo_util::cache::HashCache;
-use servo_util::smallvec::{SmallVec, SmallVec8};
-use servo_util::geometry::Au;
-use servo_util::arc_ptr_eq;
+use util::cache::HashCache;
+use util::smallvec::{SmallVec, SmallVec8};
+use util::geometry::Au;
+use util::arc_ptr_eq;
 
 use std::borrow::ToOwned;
 use std::rc::Rc;
@@ -140,7 +140,9 @@ impl FontContext {
         // so they will never be released. Find out a good time to drop them.
 
         let desc = FontTemplateDescriptor::new(style.font_weight,
-                                               style.font_style == font_style::T::italic);
+                                               style.font_stretch,
+                                               style.font_style == font_style::T::italic ||
+                                                style.font_style == font_style::T::oblique);
         let mut fonts = SmallVec8::new();
 
         for family in style.font_family.iter() {

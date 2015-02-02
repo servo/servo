@@ -5,6 +5,6 @@
 use interfaces::{cef_drag_data_t};
 
 cef_stub_static_method_impls! {
-    fn cef_drag_data_create() -> *mut cef_drag_data_t;
+    fn cef_drag_data_create() -> *mut cef_drag_data_t
 }
 

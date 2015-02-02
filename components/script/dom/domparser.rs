@@ -15,7 +15,7 @@ use dom::document::{Document, DocumentHelpers, IsHTMLDocument};
 use dom::document::DocumentSource;
 use dom::window::Window;
 use parse::html::{HTMLInput, parse_html};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::borrow::ToOwned;
 

@@ -31,7 +31,7 @@ use fragment::TableColumnFragmentInfo;
 use fragment::UnscannedTextFragmentInfo;
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::InlineFlow;
-use list_item::{mod, ListItemFlow};
+use list_item::{self, ListItemFlow};
 use parallel;
 use table_wrapper::TableWrapperFlow;
 use table::TableFlow;
@@ -56,12 +56,12 @@ use std::mem;
 use std::sync::atomic::Ordering;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
-use style::{mod, ComputedValues};
+use style::properties::{ComputedValues, make_inline};
 use std::sync::Arc;
 use url::Url;
 
 /// The results of flow construction for a DOM node.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum ConstructionResult {
     /// This node contributes nothing at all (`display: none`). Alternately, this is what newly
     /// created nodes have their `ConstructionResult` set to.
@@ -98,7 +98,7 @@ impl ConstructionResult {
 /// Represents the output of flow construction for a DOM node that has not yet resulted in a
 /// complete flow. Construction items bubble up the tree until they find a `Flow` to be attached
 /// to.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub enum ConstructionItem {
     /// Inline fragments and associated {ib} splits that have not yet found flows.
     InlineFragments(InlineFragmentsConstructionResult),
@@ -109,7 +109,7 @@ pub enum ConstructionItem {
 }
 
 /// Represents inline fragments and {ib} splits that are bubbling up from an inline.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct InlineFragmentsConstructionResult {
     /// Any {ib} splits that we're bubbling up.
     pub splits: DList<InlineBlockSplit>,
@@ -147,7 +147,7 @@ pub struct InlineFragmentsConstructionResult {
 ///             C
 ///         ])
 /// ```
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct InlineBlockSplit {
     /// The inline fragments that precede the flow.
     pub predecessors: DList<Fragment>,
@@ -222,8 +222,8 @@ pub struct FlowConstructor<'a> {
 
 impl<'a> FlowConstructor<'a> {
     /// Creates a new flow constructor.
-    pub fn new<'a>(layout_context: &'a LayoutContext<'a>)
-               -> FlowConstructor<'a> {
+    pub fn new<'b>(layout_context: &'b LayoutContext<'b>)
+                   -> FlowConstructor<'b> {
         FlowConstructor {
             layout_context: layout_context,
         }
@@ -707,7 +707,7 @@ impl<'a> FlowConstructor<'a> {
         // `baz` had better not be absolutely positioned!
         let mut style = (*node.style()).clone();
         if style.get_box().display != display::T::inline {
-            style = Arc::new(style::make_inline(&*style))
+            style = Arc::new(make_inline(&*style))
         }
 
         // If this is generated content, then we need to initialize the accumulator with the
@@ -860,8 +860,8 @@ impl<'a> FlowConstructor<'a> {
 
     /// Builds a flow for a node with `display: table`. This yields a `TableWrapperFlow` with
     /// possibly other `TableCaptionFlow`s or `TableFlow`s underneath it.
-    fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode,
-                                    float_value: float::T) -> ConstructionResult {
+    fn build_flow_for_table_wrapper(&mut self, node: &ThreadSafeLayoutNode, float_value: float::T)
+                                    -> ConstructionResult {
         let fragment = Fragment::new_from_specific_info(node, SpecificFragmentInfo::TableWrapper);
         let wrapper_flow = match float_value {
             float::T::none => box TableWrapperFlow::from_node_and_fragment(node, fragment),
@@ -974,7 +974,12 @@ impl<'a> FlowConstructor<'a> {
 
     /// Builds a flow for a node with `display: list-item`. This yields a `ListItemFlow` with
     /// possibly other `BlockFlow`s or `InlineFlow`s underneath it.
-    fn build_flow_for_list_item(&mut self, node: &ThreadSafeLayoutNode) -> ConstructionResult {
+    fn build_flow_for_list_item(&mut self, node: &ThreadSafeLayoutNode, flotation: float::T)
+                                -> ConstructionResult {
+        let flotation = match flotation {
+            float::T::none => None,
+            flotation => Some(FloatKind::from_property(flotation)),
+        };
         let marker_fragment = match node.style().get_list().list_style_image {
             Some(ref url) => {
                 Some(Fragment::new_from_specific_info(
@@ -991,7 +996,8 @@ impl<'a> FlowConstructor<'a> {
                         let mut unscanned_marker_fragments = DList::new();
                         unscanned_marker_fragments.push_back(Fragment::new_from_specific_info(
                             node,
-                            SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::from_text(text))));
+                            SpecificFragmentInfo::UnscannedText(
+                                UnscannedTextFragmentInfo::from_text(text))));
                         let marker_fragments = TextRunScanner::new().scan_for_runs(
                             self.layout_context.font_context(),
                             unscanned_marker_fragments);
@@ -1011,11 +1017,17 @@ impl<'a> FlowConstructor<'a> {
         let initial_fragment;
         match node.style().get_list().list_style_position {
             list_style_position::T::outside => {
-                flow = box ListItemFlow::from_node_and_marker(self, node, marker_fragment);
+                flow = box ListItemFlow::from_node_marker_and_flotation(self,
+                                                                        node,
+                                                                        marker_fragment,
+                                                                        flotation);
                 initial_fragment = None;
             }
             list_style_position::T::inside => {
-                flow = box ListItemFlow::from_node_and_marker(self, node, None);
+                flow = box ListItemFlow::from_node_marker_and_flotation(self,
+                                                                        node,
+                                                                        None,
+                                                                        flotation);
                 initial_fragment = marker_fragment;
             }
         }
@@ -1150,7 +1162,7 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             }
         };
 
-        debug!("building flow for node: {} {} {}", display, float, node.type_id());
+        debug!("building flow for node: {:?} {:?} {:?}", display, float, node.type_id());
 
         // Switch on display and floatedness.
         match (display, float, positioning) {
@@ -1180,8 +1192,9 @@ impl<'a> PostorderNodeMutTraversal for FlowConstructor<'a> {
             }
 
             // List items contribute their own special flows.
-            (display::T::list_item, _, _) => {
-                node.set_flow_construction_result(self.build_flow_for_list_item(node))
+            (display::T::list_item, float_value, _) => {
+                node.set_flow_construction_result(self.build_flow_for_list_item(node,
+                                                                                float_value))
             }
 
             // Inline items that are absolutely-positioned contribute inline fragment construction
@@ -1293,6 +1306,7 @@ impl<'ln> NodeUtils for ThreadSafeLayoutNode<'ln> {
             None |
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLImageElement))) => true,
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement))) => self.has_object_data(),
+            Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement))) => true,
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement))) => true,
             Some(NodeTypeId::Element(_)) => false,
         }

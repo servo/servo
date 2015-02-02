@@ -13,10 +13,10 @@ use dom::node::NodeTypeId;
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
-use servo_util::str::{mod, DOMString, LengthOrPercentageOrAuto};
+use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 use std::cell::Cell;
 
-#[deriving(Copy, PartialEq, Show)]
+#[derive(Copy, PartialEq, Show)]
 #[jstraceable]
 pub enum HTMLTableCellElementTypeId {
     HTMLTableDataCellElement,
@@ -81,7 +81,7 @@ impl HTMLTableCellElementHelpers for HTMLTableCellElement {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLTableCellElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

@@ -18,7 +18,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
-use servo_util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -69,7 +69,7 @@ fn is_stylesheet(value: &Option<String>) -> bool {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLLinkElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }
@@ -141,20 +141,20 @@ impl<'a> PrivateHTMLLinkElementHelpers for JSRef<'a, HTMLLinkElement> {
 }
 
 impl<'a> HTMLLinkElementMethods for JSRef<'a, HTMLLinkElement> {
-    make_url_getter!(Href)
-    make_setter!(SetHref, "href")
+    make_url_getter!(Href);
+    make_setter!(SetHref, "href");
 
-    make_getter!(Rel)
-    make_setter!(SetRel, "rel")
+    make_getter!(Rel);
+    make_setter!(SetRel, "rel");
 
-    make_getter!(Media)
-    make_setter!(SetMedia, "media")
+    make_getter!(Media);
+    make_setter!(SetMedia, "media");
 
-    make_getter!(Hreflang)
-    make_setter!(SetHreflang, "hreflang")
+    make_getter!(Hreflang);
+    make_setter!(SetHreflang, "hreflang");
 
-    make_getter!(Type)
-    make_setter!(SetType, "type")
+    make_getter!(Type);
+    make_setter!(SetType, "type");
 
     fn RelList(self) -> Temporary<DOMTokenList> {
         self.rel_list.or_init(|| {

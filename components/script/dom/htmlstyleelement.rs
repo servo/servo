@@ -13,8 +13,8 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use layout_interface::{LayoutChan, Msg};
-use servo_util::str::DOMString;
-use style::{StylesheetOrigin, Stylesheet};
+use util::str::DOMString;
+use style::stylesheets::{Origin, Stylesheet};
 
 #[dom_struct]
 pub struct HTMLStyleElement {
@@ -55,15 +55,14 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         let url = win.page().get_url();
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
-        let sheet = Stylesheet::from_str(data.as_slice(), url,
-                                         StylesheetOrigin::Author);
+        let sheet = Stylesheet::from_str(data.as_slice(), url, Origin::Author);
         let LayoutChan(ref layout_chan) = win.page().layout_chan;
         layout_chan.send(Msg::AddStylesheet(sheet));
     }
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLStyleElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

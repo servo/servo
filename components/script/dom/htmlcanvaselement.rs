@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::HTMLCanvasElemen
 use dom::bindings::codegen::InheritTypes::HTMLCanvasElementDerived;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{MutNullableJS, JS, JSRef, Temporary};
+use dom::bindings::js::{MutNullableJS, JSRef, LayoutJS, Temporary};
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::{Element, AttributeHandlers};
@@ -20,12 +20,13 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::{DOMString, parse_unsigned_integer};
+use util::str::{DOMString, parse_unsigned_integer};
 
 use geom::size::Size2D;
 
 use std::cell::Cell;
 use std::default::Default;
+use std::sync::mpsc::Sender;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -67,9 +68,9 @@ pub trait LayoutHTMLCanvasElementHelpers {
     unsafe fn get_canvas_height(&self) -> u32;
 }
 
-impl LayoutHTMLCanvasElementHelpers for JS<HTMLCanvasElement> {
+impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     unsafe fn get_renderer(&self) -> Option<Sender<CanvasMsg>> {
-        let context = (*self.unsafe_get()).context.get_inner();
+        let context = (*self.unsafe_get()).context.get_inner_as_layout();
         context.map(|cx| cx.get_renderer())
     }
 
@@ -115,7 +116,7 @@ impl<'a> HTMLCanvasElementMethods for JSRef<'a, HTMLCanvasElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLCanvasElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let element: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(element as &VirtualMethods)
     }

@@ -18,7 +18,7 @@ use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::virtualmethods::VirtualMethods;
 
 use cssparser::RGBA;
-use servo_util::str::{mod, DOMString, LengthOrPercentageOrAuto};
+use util::str::{self, DOMString, LengthOrPercentageOrAuto};
 use std::cell::Cell;
 
 #[dom_struct]
@@ -62,7 +62,10 @@ impl<'a> HTMLTableElementMethods for JSRef<'a, HTMLTableElement> {
     fn GetCaption(self) -> Option<Temporary<HTMLTableCaptionElement>> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         node.children()
-            .filter_map::<JSRef<HTMLTableCaptionElement>>(HTMLTableCaptionElementCast::to_ref)
+            .filter_map(|n| {
+                let t: Option<JSRef<HTMLTableCaptionElement>> = HTMLTableCaptionElementCast::to_ref(n);
+                t
+            })
             .next()
             .map(Temporary::from_rooted)
     }
@@ -109,7 +112,7 @@ impl HTMLTableElementHelpers for HTMLTableElement {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLTableElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

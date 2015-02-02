@@ -44,8 +44,6 @@
 //! - `TemporaryPushable`: allows mutating vectors of `JS<T>` with new elements of `JSRef`/`Temporary`
 //! - `RootedReference`: makes obtaining an `Option<JSRef<T>>` from an `Option<Root<T>>` easy
 
-#![deny(missing_docs)]
-
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflector, Reflectable};
 use dom::node::Node;
@@ -54,11 +52,14 @@ use js::jsval::JSVal;
 use layout_interface::TrustedNodeAddress;
 use script_task::STACK_ROOTS;
 
-use servo_util::smallvec::{SmallVec, SmallVec16};
+use util::smallvec::{SmallVec, SmallVec16};
+
+use core::nonzero::NonZero;
 use std::cell::{Cell, UnsafeCell};
 use std::default::Default;
-use std::kinds::marker::ContravariantLifetime;
+use std::marker::ContravariantLifetime;
 use std::mem;
+use std::ops::Deref;
 
 /// A type that represents a JS-owned value that is rooted for the lifetime of this value.
 /// Importantly, it requires explicit rooting in order to interact with the inner value.
@@ -125,14 +126,45 @@ impl<T: Reflectable> Temporary<T> {
 /// A rooted, JS-owned value. Must only be used as a field in other JS-owned types.
 #[must_root]
 pub struct JS<T> {
-    ptr: *const T
+    ptr: NonZero<*const T>
+}
+
+impl<T> JS<T> {
+    /// Returns `LayoutJS<T>` containing the same pointer.
+    fn to_layout(self) -> LayoutJS<T> {
+        LayoutJS {
+            ptr: self.ptr.clone()
+        }
+    }
+}
+
+/// This is specialized `JS<T>` to use in under `layout` crate.
+/// `Layout*Helpers` traits must be implemented on this.
+pub struct LayoutJS<T> {
+    ptr: NonZero<*const T>
+}
+
+impl<T: Reflectable> LayoutJS<T> {
+    /// Get the reflector.
+    pub unsafe fn get_jsobject(&self) -> *mut JSObject {
+        (**self.ptr).reflector().get_jsobject()
+    }
 }
 
 impl<T> Copy for JS<T> {}
 
+impl<T> Copy for LayoutJS<T> {}
+
 impl<T> PartialEq for JS<T> {
     #[allow(unrooted_must_root)]
     fn eq(&self, other: &JS<T>) -> bool {
+        self.ptr == other.ptr
+    }
+}
+
+impl<T> PartialEq for LayoutJS<T> {
+    #[allow(unrooted_must_root)]
+    fn eq(&self, other: &LayoutJS<T>) -> bool {
         self.ptr == other.ptr
     }
 }
@@ -146,12 +178,32 @@ impl <T> Clone for JS<T> {
     }
 }
 
+impl <T> Clone for LayoutJS<T> {
+    #[inline]
+    fn clone(&self) -> LayoutJS<T> {
+        LayoutJS {
+            ptr: self.ptr.clone()
+        }
+    }
+}
+
 impl JS<Node> {
     /// Create a new JS-owned value wrapped from an address known to be a `Node` pointer.
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<Node> {
         let TrustedNodeAddress(addr) = inner;
+        assert!(!addr.is_null());
         JS {
-            ptr: addr as *const Node
+            ptr: NonZero::new(addr as *const Node)
+        }
+    }
+}
+
+impl LayoutJS<Node> {
+    /// Create a new JS-owned value wrapped from an address known to be a `Node` pointer.
+    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutJS<Node> {
+        let TrustedNodeAddress(addr) = inner;
+        LayoutJS {
+            ptr: NonZero::new(addr as *const Node)
         }
     }
 }
@@ -159,8 +211,9 @@ impl JS<Node> {
 impl<T: Reflectable> JS<T> {
     /// Create a new JS-owned value wrapped from a raw Rust pointer.
     pub unsafe fn from_raw(raw: *const T) -> JS<T> {
+        assert!(!raw.is_null());
         JS {
-            ptr: raw
+            ptr: NonZero::new(raw)
         }
     }
 
@@ -176,9 +229,9 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
-impl<T: Assignable<U>, U: Reflectable> JS<U> {
+impl<U: Reflectable> JS<U> {
     /// Create a `JS<T>` from any JS-managed pointer.
-    pub fn from_rooted(root: T) -> JS<U> {
+    pub fn from_rooted<T: Assignable<U>>(root: T) -> JS<U> {
         unsafe {
             root.get_js()
         }
@@ -246,9 +299,9 @@ pub struct MutNullableJS<T: Reflectable> {
     ptr: Cell<Option<JS<T>>>
 }
 
-impl<T: Assignable<U>, U: Reflectable> MutNullableJS<U> {
+impl<U: Reflectable> MutNullableJS<U> {
     /// Create a new `MutNullableJS`
-    pub fn new(initial: Option<T>) -> MutNullableJS<U> {
+    pub fn new<T: Assignable<U>>(initial: Option<T>) -> MutNullableJS<U> {
         MutNullableJS {
             ptr: Cell::new(initial.map(|initial| {
                 unsafe { initial.get_js() }
@@ -293,9 +346,17 @@ impl<T: Reflectable> MutNullableJS<T> {
         self.ptr.get()
     }
 
+    /// Retrieve a copy of the inner optional `JS<T>` as `LayoutJS<T>`.
+    /// For use by layout, which can't use safe types like Temporary.
+    pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutJS<T>> {
+        self.get_inner().map(|js| js.to_layout())
+    }
+
     /// Retrieve a copy of the current inner value. If it is `None`, it is
     /// initialized with the result of `cb` first.
-    pub fn or_init(&self, cb: || -> Temporary<T>) -> Temporary<T> {
+    pub fn or_init<F>(&self, cb: F) -> Temporary<T>
+        where F: FnOnce() -> Temporary<T>
+    {
         match self.get() {
             Some(inner) => inner,
             None => {
@@ -308,11 +369,10 @@ impl<T: Reflectable> MutNullableJS<T> {
 }
 
 impl<T: Reflectable> JS<T> {
-    /// Returns an unsafe pointer to the interior of this object. This is the
-    /// only method that be safely accessed from layout. (The fact that this is
-    /// unsafe is what necessitates the layout wrappers.)
+    /// Returns an unsafe pointer to the interior of this object.
+    /// This should only be used by the DOM bindings.
     pub unsafe fn unsafe_get(&self) -> *const T {
-        self.ptr
+        *self.ptr
     }
 
     /// Store an unrooted value in this field. This is safe under the assumption that JS<T>
@@ -323,19 +383,28 @@ impl<T: Reflectable> JS<T> {
     }
 }
 
-impl<From, To> JS<From> {
-    /// Return `self` as a `JS` of another type.
-    //XXXjdm It would be lovely if this could be private.
-    pub unsafe fn transmute(self) -> JS<To> {
-        mem::transmute(self)
+impl<T: Reflectable> LayoutJS<T> {
+    /// Returns an unsafe pointer to the interior of this JS object without touching the borrow
+    /// flags. This is the only method that be safely accessed from layout. (The fact that this
+    /// is unsafe is what necessitates the layout wrappers.)
+    pub unsafe fn unsafe_get(&self) -> *const T {
+        *self.ptr
     }
+}
 
+impl<From> JS<From> {
     /// Return `self` as a `JS` of another type.
-    pub unsafe fn transmute_copy(&self) -> JS<To> {
+    pub unsafe fn transmute_copy<To>(&self) -> JS<To> {
         mem::transmute_copy(self)
     }
 }
 
+impl<From> LayoutJS<From> {
+    /// Return `self` as a `LayoutJS` of another type.
+    pub unsafe fn transmute_copy<To>(&self) -> LayoutJS<To> {
+        mem::transmute_copy(self)
+    }
+}
 
 /// Get an `Option<JSRef<T>>` out of an `Option<Root<T>>`
 pub trait RootedReference<T> {
@@ -500,7 +569,7 @@ impl RootCollection {
         unsafe {
             let roots = self.roots.get();
             (*roots).push(untracked.js_ptr);
-            debug!("  rooting {}", untracked.js_ptr);
+            debug!("  rooting {:?}", untracked.js_ptr);
         }
     }
 
@@ -508,7 +577,7 @@ impl RootCollection {
     fn unroot<'b, T: Reflectable>(&self, rooted: &Root<T>) {
         unsafe {
             let roots = self.roots.get();
-            debug!("unrooting {} (expecting {}",
+            debug!("unrooting {:?} (expecting {:?}",
                    (*roots).as_slice().last().unwrap(),
                    rooted.js_ptr);
             assert!(*(*roots).as_slice().last().unwrap() == rooted.js_ptr);
@@ -565,23 +634,25 @@ impl<T: Reflectable> Drop for Root<T> {
     }
 }
 
-impl<'b, T: Reflectable> Deref<JSRef<'b, T>> for Root<T> {
+impl<'b, T: Reflectable> Deref for Root<T> {
+    type Target = JSRef<'b, T>;
     fn deref<'c>(&'c self) -> &'c JSRef<'b, T> {
         &self.jsref
     }
 }
 
-impl<'a, T: Reflectable> Deref<T> for JSRef<'a, T> {
+impl<'a, T: Reflectable> Deref for JSRef<'a, T> {
+    type Target = T;
     fn deref<'b>(&'b self) -> &'b T {
         unsafe {
-            &*self.ptr
+            &**self.ptr
         }
     }
 }
 
 /// Encapsulates a reference to something that is guaranteed to be alive. This is freely copyable.
 pub struct JSRef<'a, T> {
-    ptr: *const T,
+    ptr: NonZero<*const T>,
     chain: ContravariantLifetime<'a>,
 }
 
@@ -627,13 +698,13 @@ impl<'a, T: Reflectable> JSRef<'a, T> {
     /// Returns the inner pointer directly.
     pub fn extended_deref(self) -> &'a T {
         unsafe {
-            &*self.ptr
+            &**self.ptr
         }
     }
 }
 
 impl<'a, T: Reflectable> Reflectable for JSRef<'a, T> {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
+    fn reflector<'b>(&'b self) -> &'b Reflector {
         (**self).reflector()
     }
 }

@@ -20,7 +20,7 @@ use script_task::{ScriptChan, TimerSource};
 use timers::{IsInterval, TimerId, TimerManager, TimerCallback};
 
 use servo_net::resource_task::{ResourceTask, load_whole_resource};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use js::jsapi::JSContext;
 use js::jsval::JSVal;
@@ -30,7 +30,7 @@ use std::default::Default;
 use std::rc::Rc;
 use url::{Url, UrlParser};
 
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 #[jstraceable]
 pub enum WorkerGlobalScopeTypeId {
     DedicatedGlobalScope,

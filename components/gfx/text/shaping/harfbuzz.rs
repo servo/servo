@@ -40,8 +40,8 @@ use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
 use harfbuzz::{RUST_hb_shape, RUST_hb_buffer_get_glyph_infos};
 use libc::{c_uint, c_int, c_void, c_char};
-use servo_util::geometry::Au;
-use servo_util::range::Range;
+use util::geometry::Au;
+use util::range::Range;
 use std::char;
 use std::iter::repeat;
 use std::mem;
@@ -464,7 +464,7 @@ impl Shaper {
                                           false,
                                           true,
                                           true);
-                glyphs.add_glyph_for_char_index(char_idx, &data);
+                glyphs.add_glyph_for_char_index(char_idx, Some(character), &data);
             } else {
                 // collect all glyphs to be assigned to the first character.
                 let mut datas = vec!();

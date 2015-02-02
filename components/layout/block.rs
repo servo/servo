@@ -32,7 +32,7 @@ use context::LayoutContext;
 use css::node_style::StyledNode;
 use display_list_builder::{BlockFlowDisplayListBuilding, FragmentDisplayListBuilding};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use flow::{mod, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
+use flow::{self, AbsolutePositionInfo, BaseFlow, ForceNonfloatedFlag, FlowClass, Flow};
 use flow::{ImmutableFlowUtils, MutableFlowUtils, PreorderFlowTraversal};
 use flow::{PostorderFlowTraversal, mut_base};
 use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
@@ -57,14 +57,13 @@ use servo_util::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize};
 use servo_util::opts;
 use std::cmp::{max, min};
 use std::fmt;
-use style::ComputedValues;
-use style::computed_values::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
-use style::computed_values::{LengthOrPercentage, box_sizing, display, float};
-use style::computed_values::{overflow, position};
+use style::properties::ComputedValues;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::computed_values::{overflow, position, box_sizing, display, float};
 use std::sync::Arc;
 
 /// Information specific to floated blocks.
-#[deriving(Clone, Encodable)]
+#[derive(Clone, Encodable)]
 pub struct FloatedBlockInfo {
     /// The amount of inline size that is available for the float.
     pub containing_inline_size: Au,
@@ -92,7 +91,7 @@ impl FloatedBlockInfo {
 }
 
 /// The solutions for the block-size-and-margins constraint equation.
-#[deriving(Copy)]
+#[derive(Copy)]
 struct BSizeConstraintSolution {
     block_start: Au,
     _block_end: Au,
@@ -366,7 +365,8 @@ impl CandidateBSizeIterator {
     }
 }
 
-impl Iterator<MaybeAuto> for CandidateBSizeIterator {
+impl Iterator for CandidateBSizeIterator {
+    type Item = MaybeAuto;
     fn next(&mut self) -> Option<MaybeAuto> {
         self.status = match self.status {
             CandidateBSizeIteratorStatus::Initial => CandidateBSizeIteratorStatus::Trying,
@@ -487,13 +487,13 @@ pub enum BlockType {
     FloatNonReplaced,
 }
 
-#[deriving(Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum MarginsMayCollapseFlag {
     MarginsMayCollapse,
     MarginsMayNotCollapse,
 }
 
-#[deriving(PartialEq)]
+#[derive(PartialEq)]
 enum FormattingContextType {
     None,
     Block,
@@ -525,7 +525,7 @@ fn propagate_layer_flag_from_child(layers_needed_for_descendants: &mut bool, kid
 }
 
 // A block formatting context.
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 pub struct BlockFlow {
     /// Data common to all flows.
     pub base: BaseFlow,
@@ -561,8 +561,8 @@ bitflags! {
     }
 }
 
-impl<'a,E,S> Encodable<S,E> for BlockFlowFlags where S: Encoder<E> {
-    fn encode(&self, e: &mut S) -> Result<(),E> {
+impl Encodable for BlockFlowFlags {
+    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
         self.bits().encode(e)
     }
 }
@@ -1905,7 +1905,7 @@ impl Flow for BlockFlow {
 impl fmt::Show for BlockFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f,
-               "{} - {:x}: frag={} ({})",
+               "{:?} - {:x}: frag={:?} ({:?})",
                self.class(),
                self.base.debug_id(),
                self.fragment,
@@ -1914,7 +1914,7 @@ impl fmt::Show for BlockFlow {
 }
 
 /// The inputs for the inline-sizes-and-margins constraint equation.
-#[deriving(Show, Copy)]
+#[derive(Show, Copy)]
 pub struct ISizeConstraintInput {
     pub computed_inline_size: MaybeAuto,
     pub inline_start_margin: MaybeAuto,
@@ -1947,7 +1947,7 @@ impl ISizeConstraintInput {
 }
 
 /// The solutions for the inline-size-and-margins constraint equation.
-#[deriving(Copy, Show)]
+#[derive(Copy, Show)]
 pub struct ISizeConstraintSolution {
     pub inline_start: Au,
     pub inline_end: Au,
@@ -2560,7 +2560,7 @@ impl ISizeAndMarginsComputer for FloatNonReplaced {
         let available_inline_size_float = available_inline_size - margin_inline_start - margin_inline_end;
         let shrink_to_fit = block.get_shrink_to_fit_inline_size(available_inline_size_float);
         let inline_size = computed_inline_size.specified_or_default(shrink_to_fit);
-        debug!("assign_inline_sizes_float -- inline_size: {}", inline_size);
+        debug!("assign_inline_sizes_float -- inline_size: {:?}", inline_size);
         ISizeConstraintSolution::new(inline_size, margin_inline_start, margin_inline_end)
     }
 }
@@ -2580,7 +2580,7 @@ impl ISizeAndMarginsComputer for FloatReplaced {
             MaybeAuto::Specified(w) => w,
             MaybeAuto::Auto => panic!("FloatReplaced: inline_size should have been computed by now")
         };
-        debug!("assign_inline_sizes_float -- inline_size: {}", inline_size);
+        debug!("assign_inline_sizes_float -- inline_size: {:?}", inline_size);
         ISizeConstraintSolution::new(inline_size, margin_inline_start, margin_inline_end)
     }
 

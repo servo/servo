@@ -12,7 +12,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLTextAreaElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::codegen::InheritTypes::{KeyboardEventCast, TextDerived};
-use dom::bindings::js::{JS, JSRef, Temporary, OptionalRootable};
+use dom::bindings::js::{JSRef, LayoutJS, Temporary, OptionalRootable};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::{Element, AttributeHandlers};
 use dom::event::Event;
@@ -26,7 +26,7 @@ use dom::node::{document_from_node};
 use textinput::{TextInput, Lines, KeyReaction};
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 use string_cache::Atom;
 
 use std::borrow::ToOwned;
@@ -58,7 +58,7 @@ pub trait RawLayoutHTMLTextAreaElementHelpers {
     unsafe fn get_rows_for_layout(&self) -> u32;
 }
 
-impl LayoutHTMLTextAreaElementHelpers for JS<HTMLTextAreaElement> {
+impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     unsafe fn get_value_for_layout(self) -> String {
         (*self.unsafe_get()).textinput.borrow_for_layout().get_content()
@@ -103,52 +103,52 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     // constraints
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-cols
-    make_uint_getter!(Cols)
+    make_uint_getter!(Cols);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-cols
-    make_uint_setter!(SetCols, "cols")
+    make_uint_setter!(SetCols, "cols");
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html/#dom-fe-disabled
-    make_bool_setter!(SetDisabled, "disabled")
+    make_bool_setter!(SetDisabled, "disabled");
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
-    make_getter!(Name)
+    make_getter!(Name);
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-fe-name
-    make_setter!(SetName, "name")
+    make_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-placeholder
-    make_getter!(Placeholder)
+    make_getter!(Placeholder);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-placeholder
-    make_setter!(SetPlaceholder, "placeholder")
+    make_setter!(SetPlaceholder, "placeholder");
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-textarea-readonly
-    make_bool_getter!(ReadOnly)
+    make_bool_getter!(ReadOnly);
 
     // https://html.spec.whatwg.org/multipage/forms.html#attr-textarea-readonly
-    make_bool_setter!(SetReadOnly, "readonly")
+    make_bool_setter!(SetReadOnly, "readonly");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-required
-    make_bool_getter!(Required)
+    make_bool_getter!(Required);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-required
-    make_bool_setter!(SetRequired, "required")
+    make_bool_setter!(SetRequired, "required");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-rows
-    make_uint_getter!(Rows)
+    make_uint_getter!(Rows);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-rows
-    make_uint_setter!(SetRows, "rows")
+    make_uint_setter!(SetRows, "rows");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-wrap
-    make_getter!(Wrap)
+    make_getter!(Wrap);
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-wrap
-    make_setter!(SetWrap, "wrap")
+    make_setter!(SetWrap, "wrap");
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea-type
     fn Type(self) -> DOMString {
@@ -200,7 +200,7 @@ impl<'a> PrivateHTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

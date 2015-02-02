@@ -8,7 +8,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use dom::bindings::codegen::InheritTypes::{NodeCast, ElementCast, HTMLElementCast, HTMLImageElementDerived};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JSRef, LayoutJS, Temporary};
 use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::element::AttributeHandlers;
@@ -18,8 +18,8 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, NodeHelpers, NodeDamage, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use servo_net::image_cache_task;
-use servo_util::geometry::to_px;
-use servo_util::str::DOMString;
+use util::geometry::to_px;
+use util::str::DOMString;
 use string_cache::Atom;
 
 use url::{Url, UrlParser};
@@ -88,26 +88,26 @@ pub trait LayoutHTMLImageElementHelpers {
     unsafe fn image(&self) -> Option<Url>;
 }
 
-impl LayoutHTMLImageElementHelpers for JS<HTMLImageElement> {
+impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     unsafe fn image(&self) -> Option<Url> {
         (*self.unsafe_get()).image.borrow_for_layout().clone()
     }
 }
 
 impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
-    make_getter!(Alt)
+    make_getter!(Alt);
 
-    make_setter!(SetAlt, "alt")
+    make_setter!(SetAlt, "alt");
 
-    make_url_getter!(Src)
+    make_url_getter!(Src);
 
-    make_setter!(SetSrc, "src")
+    make_setter!(SetSrc, "src");
 
-    make_getter!(UseMap)
+    make_getter!(UseMap);
 
-    make_setter!(SetUseMap, "usemap")
+    make_setter!(SetUseMap, "usemap");
 
-    make_bool_getter!(IsMap)
+    make_bool_getter!(IsMap);
 
     fn SetIsMap(self, is_map: bool) {
         let element: JSRef<Element> = ElementCast::from_ref(self);
@@ -150,33 +150,33 @@ impl<'a> HTMLImageElementMethods for JSRef<'a, HTMLImageElement> {
         elem.set_uint_attribute(&atom!("height"), height)
     }
 
-    make_getter!(Name)
+    make_getter!(Name);
 
-    make_setter!(SetName, "name")
+    make_setter!(SetName, "name");
 
-    make_getter!(Align)
+    make_getter!(Align);
 
-    make_setter!(SetAlign, "align")
+    make_setter!(SetAlign, "align");
 
-    make_uint_getter!(Hspace)
+    make_uint_getter!(Hspace);
 
-    make_uint_setter!(SetHspace, "hspace")
+    make_uint_setter!(SetHspace, "hspace");
 
-    make_uint_getter!(Vspace)
+    make_uint_getter!(Vspace);
 
-    make_uint_setter!(SetVspace, "vspace")
+    make_uint_setter!(SetVspace, "vspace");
 
-    make_getter!(LongDesc)
+    make_getter!(LongDesc);
 
-    make_setter!(SetLongDesc, "longdesc")
+    make_setter!(SetLongDesc, "longdesc");
 
-    make_getter!(Border)
+    make_getter!(Border);
 
-    make_setter!(SetBorder, "border")
+    make_setter!(SetBorder, "border");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLImageElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

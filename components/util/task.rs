@@ -3,38 +3,49 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::borrow::ToOwned;
-use std::task;
-use std::comm::Sender;
-use std::task::TaskBuilder;
 use task_state;
+use std::thread;
+use std::sync::mpsc::Sender;
+use std::thread::Builder;
 
-pub fn spawn_named(name: String, f: proc():Send) {
-    let builder = task::TaskBuilder::new().named(name);
-    builder.spawn(proc() {
-        f();
+pub fn spawn_named<F>(name: String, f: F)
+    where F: FnOnce() + Send
+{
+    let builder = thread::Builder::new().name(name);
+    builder.spawn(move || {
+        f()
     });
 }
 
 /// Arrange to send a particular message to a channel if the task fails.
-pub fn spawn_named_with_send_on_failure<T: Send>(name: &'static str,
-                                                 state: task_state::TaskState,
-                                                 f: proc(): Send,
-                                                 msg: T,
-                                                 dest: Sender<T>) {
-    let future_result = TaskBuilder::new().named(name).try_future(proc() {
+pub fn spawn_named_with_send_on_failure<F, T>(name: &'static str,
+                                              state: task_state::TaskState,
+                                              f: F,
+                                              msg: T,
+                                              dest: Sender<T>)
+    where F: FnOnce() + Send,
+          T: Send
+{
+    let future_handle = thread::Builder::new().name(name.to_owned()).scoped(move || {
         task_state::initialize(state);
-        f();
+        f()
     });
 
-    let watched_name = name.to_owned();
-    let watcher_name = format!("{}Watcher", watched_name);
-    TaskBuilder::new().named(watcher_name).spawn(proc() {
-        match future_result.into_inner() {
+    let watcher_name = format!("{}Watcher", name);
+    Builder::new().name(watcher_name).spawn(move || {
+        match future_handle.join() {
             Ok(()) => (),
             Err(..) => {
                 debug!("{} failed, notifying constellation", name);
                 dest.send(msg);
             }
         }
+    });
+}
+
+#[test]
+fn spawn_named_test() {
+    spawn_named("Test".to_owned(), move || {
+        debug!("I can run!");
     });
 }

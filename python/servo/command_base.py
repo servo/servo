@@ -54,9 +54,6 @@ class CommandBase(object):
         if not hasattr(self.context, "bootstrapped"):
             self.context.bootstrapped = False
 
-        if not hasattr(self.context, "sharedir"):
-            self.context.sharedir = path.join(path.expanduser("~/"), ".servo")
-
         config_path = path.join(context.topdir, ".servobuild")
         if path.exists(config_path):
             self.config = toml.loads(open(config_path).read())
@@ -65,6 +62,11 @@ class CommandBase(object):
 
         # Handle missing/default items
         self.config.setdefault("tools", {})
+        self.config["tools"].setdefault("cache-dir",
+                                        path.join(context.topdir, ".servo"))
+        # Allow "~" in cache-dir
+        context.sharedir = path.expanduser(self.config["tools"]["cache-dir"])
+
         self.config["tools"].setdefault("system-rust", False)
         self.config["tools"].setdefault("system-cargo", False)
         self.config["tools"].setdefault("rust-root", "")

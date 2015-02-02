@@ -13,7 +13,7 @@ use render_handler::CefRenderHandlerExtensions;
 use types::{cef_cursor_handle_t, cef_rect_t};
 use wrappers::Utf16Encoder;
 
-use compositing::compositor_task::{mod, CompositorProxy, CompositorReceiver};
+use compositing::compositor_task::{self, CompositorProxy, CompositorReceiver};
 use compositing::windowing::{WindowEvent, WindowMethods};
 use geom::scale_factor::ScaleFactor;
 use geom::size::TypedSize2D;
@@ -24,16 +24,18 @@ use libc::{c_char, c_void};
 use servo_msg::constellation_msg::{Key, KeyModifiers};
 use servo_msg::compositor_msg::{ReadyState, PaintState};
 use servo_msg::constellation_msg::LoadData;
-use servo_util::cursor::Cursor;
-use servo_util::geometry::ScreenPx;
+use util::cursor::Cursor;
+use util::geometry::ScreenPx;
 use std::cell::RefCell;
+use std::ffi::CString;
 use std::rc::Rc;
+use std::sync::mpsc::{Sender, channel};
 
 #[cfg(target_os="macos")]
 use std::ptr;
 
 /// The type of an off-screen window.
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Window {
     cef_browser: RefCell<Option<CefBrowser>>,
 }
@@ -48,7 +50,7 @@ fn load_gl() {
 
     gl::load_with(|s| {
         unsafe {
-            let c_str = s.to_c_str();
+            let c_str = CString::from_slice(s.as_bytes());
             dlsym(RTLD_DEFAULT, c_str.as_ptr()) as *const c_void
         }
     });
@@ -62,7 +64,7 @@ fn load_gl() {
 
     gl::load_with(|s| {
         unsafe {
-            let c_str = s.to_c_str();
+            let c_str = CString::from_slice(s.as_bytes());
             glXGetProcAddress(c_str.as_ptr()) as *const c_void
         }
     });
@@ -126,7 +128,7 @@ impl Window {
 }
 
 impl WindowMethods for Window {
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel,uint> {
+    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel,u32> {
         let browser = self.cef_browser.borrow();
         match *browser {
             None => TypedSize2D(400, 300),
@@ -136,7 +138,7 @@ impl WindowMethods for Window {
                        .get_client()
                        .get_render_handler()
                        .get_backing_rect((*browser).clone(), &mut rect);
-                TypedSize2D(rect.width as uint, rect.height as uint)
+                TypedSize2D(rect.width as u32, rect.height as u32)
             }
         }
     }
@@ -274,8 +276,8 @@ impl WindowMethods for Window {
         let frame = frame.downcast();
         let mut title_visitor = frame.title_visitor.borrow_mut();
         match &mut *title_visitor {
-            &None => {}
-            &Some(ref mut visitor) => {
+            &mut None => {}
+            &mut Some(ref mut visitor) => {
                 match string {
                     None => visitor.visit(&[]),
                     Some(string) => {
