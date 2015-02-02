@@ -39,7 +39,7 @@ pub extern "C" fn cef_string_map_append(sm: *mut cef_string_map_t, key: *const c
     unsafe {
         if sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
-        slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
+        slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
             let s = String::from_str(result);
             let csv = cef_string_userfree_utf16_alloc();
             cef_string_utf16_set((*value).str as *const u16, (*value).length, csv, 1);
@@ -54,7 +54,7 @@ pub extern "C" fn cef_string_map_find(sm: *mut cef_string_map_t, key: *const cef
     unsafe {
         if sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
-        slice_to_str((*key).str as *const u8, (*key).length as uint, |result| {
+        slice_to_str((*key).str as *const u8, (*key).length as usize, |result| {
             match (*v).get(&String::from_str(result)) {
                 Some(s) => {
                     cef_string_utf16_set((**s).str as *const u16, (**s).length, value, 1);
@@ -71,10 +71,10 @@ pub extern "C" fn cef_string_map_key(sm: *mut cef_string_map_t, index: c_int, va
     unsafe {
         if index < 0 || sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
-        if index as uint > (*v).len() - 1 { return 0; }
+        if index as usize > (*v).len() - 1 { return 0; }
 
         for (i, k) in (*v).keys().enumerate() {
-            if i == index as uint {
+            if i == index as usize {
                 cef_string_utf16_set(k.as_bytes().as_ptr() as *const u16,
                                      k.len() as u64,
                                      value,
@@ -91,10 +91,10 @@ pub extern "C" fn cef_string_map_value(sm: *mut cef_string_map_t, index: c_int, 
     unsafe {
         if index < 0 || sm.is_null() { return 0; }
         let v = string_map_to_treemap(sm);
-        if index as uint > (*v).len() - 1 { return 0; }
+        if index as usize > (*v).len() - 1 { return 0; }
 
         for (i, val) in (*v).values().enumerate() {
-            if i == index as uint {
+            if i == index as usize {
                 cef_string_utf16_set((**val).str as *const u16, (**val).length, value, 1);
                 return 1;
             }

@@ -197,7 +197,7 @@ impl<'a> CefWrap<*const cef_string_t> for &'a [u16] {
         }
     }
     unsafe fn to_rust(cef_string: *const cef_string_t) -> &'a [u16] {
-        let (ptr, len): (*mut c_ushort, uint) = ((*cef_string).str, (*cef_string).length as uint);
+        let (ptr, len): (*mut c_ushort, usize) = ((*cef_string).str, (*cef_string).length as usize);
         mem::transmute((ptr, len))
     }
 }

@@ -110,7 +110,7 @@ full_cef_class_impl! {
             let event: &cef_mouse_event = event;
             let mouse_button_type: cef_mouse_button_type_t = mouse_button_type;
             let mouse_up: c_int = mouse_up;
-            let button_type = mouse_button_type as uint;
+            let button_type = mouse_button_type as usize;
             let point = TypedPoint2D((*event).x as f32, (*event).y as f32);
             if mouse_up != 0 {
                 this.downcast().send_window_event(WindowEvent::MouseWindowEventClass(
