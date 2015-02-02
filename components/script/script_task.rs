@@ -67,7 +67,7 @@ use util::task::spawn_named_with_send_on_failure;
 use util::task_state;
 
 use geom::point::Point2D;
-use hyper::header::{Header, HeaderFormat};
+use hyper::header::{Header, Headers, HeaderFormat};
 use hyper::header::shared::util as header_util;
 use js::jsapi::{JS_SetWrapObjectCallbacks, JS_SetGCZeal, JS_DEFAULT_ZEAL_FREQ, JS_GC};
 use js::jsapi::{JSContext, JSRuntime, JSObject};
@@ -795,7 +795,8 @@ impl ScriptTask {
             self.resource_task.send(ControlMsg::Load(NetLoadData {
                 url: url,
                 method: load_data.method,
-                headers: load_data.headers,
+                headers: Headers::new(),
+                preserved_headers: load_data.headers,
                 data: load_data.data,
                 cors: None,
                 consumer: input_chan,

@@ -40,7 +40,10 @@ pub enum ControlMsg {
 pub struct LoadData {
     pub url: Url,
     pub method: Method,
+    /// Headers that will apply to the initial request only
     pub headers: Headers,
+    /// Headers that will apply to the initial request and any redirects
+    pub preserved_headers: Headers,
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
     pub consumer: Sender<LoadResponse>,
@@ -52,6 +55,7 @@ impl LoadData {
             url: url,
             method: Method::Get,
             headers: Headers::new(),
+            preserved_headers: Headers::new(),
             data: None,
             cors: None,
             consumer: consumer,
