@@ -787,42 +787,9 @@ impl ScriptTask {
 
         let is_javascript = url.scheme.as_slice() == "javascript";
 
-        let cx = self.js_context.borrow();
-        let cx = cx.as_ref().unwrap();
-        // Create the window and document objects.
-        let window = Window::new(cx.ptr,
-                                 page.clone(),
-                                 self.chan.clone(),
-                                 self.control_chan.clone(),
-                                 self.compositor.borrow_mut().dup(),
-                                 self.image_cache_task.clone()).root();
-        let doc_url = if is_javascript {
-            let doc_url = last_url.unwrap_or_else(|| {
-                Url::parse("about:blank").unwrap()
-            });
-            *page.mut_url() = Some((doc_url.clone(), true));
-            doc_url
-        } else {
-            url.clone()
-        };
-        let document = Document::new(window.r(), Some(doc_url.clone()),
-                                     IsHTMLDocument::HTMLDocument, None,
-                                     DocumentSource::FromParser).root();
-
-        window.r().init_browser_context(document.r());
-
         self.compositor.borrow_mut().set_ready_state(pipeline_id, Loading);
 
-        {
-            // Create the root frame.
-            let mut frame = page.mut_frame();
-            *frame = Some(Frame {
-                document: JS::from_rooted(document.r()),
-                window: JS::from_rooted(window.r()),
-            });
-        }
-
-        let (parser_input, final_url) = if !is_javascript {
+        let (mut parser_input, final_url, last_modified) = if !is_javascript {
             // Wait for the LoadResponse so that the parser knows the final URL.
             let (input_chan, input_port) = channel();
             self.resource_task.send(ControlMsg::Load(NetLoadData {
@@ -836,28 +803,61 @@ impl ScriptTask {
 
             let load_response = input_port.recv().unwrap();
 
-            load_response.metadata.headers.as_ref().map(|headers| {
-                headers.get().map(|&LastModified(ref tm)| {
-                    document.r().set_last_modified(dom_last_modified(tm));
-                });
+            let last_modified = load_response.metadata.headers.as_ref().and_then(|headers| {
+                headers.get().map(|&LastModified(ref tm)| tm.clone())
             });
 
             let final_url = load_response.metadata.final_url.clone();
 
-            {
-                // Store the final URL before we start parsing, so that DOM routines
-                // (e.g. HTMLImageElement::update_image) can resolve relative URLs
-                // correctly.
-                *page.mut_url() = Some((final_url.clone(), true));
-            }
-
-            (HTMLInput::InputUrl(load_response), final_url)
+            (HTMLInput::InputUrl(load_response), final_url, last_modified)
         } else {
+            let doc_url = last_url.unwrap_or_else(|| {
+                Url::parse("about:blank").unwrap()
+            });
+            (HTMLInput::InputString("".to_owned()), doc_url, None)
+        };
+
+        // Store the final URL before we start parsing, so that DOM routines
+        // (e.g. HTMLImageElement::update_image) can resolve relative URLs
+        // correctly.
+        {
+            *page.mut_url() = Some((final_url.clone(), true));
+        }
+
+        let cx = self.js_context.borrow();
+        let cx = cx.as_ref().unwrap();
+        // Create the window and document objects.
+        let window = Window::new(cx.ptr,
+                                 page.clone(),
+                                 self.chan.clone(),
+                                 self.control_chan.clone(),
+                                 self.compositor.borrow_mut().dup(),
+                                 self.image_cache_task.clone()).root();
+
+        let document = Document::new(window.r(), Some(final_url.clone()),
+                                     IsHTMLDocument::HTMLDocument, None,
+                                     DocumentSource::FromParser).root();
+        if let Some(tm) = last_modified {
+            document.set_last_modified(dom_last_modified(&tm));
+        }
+        window.r().init_browser_context(document.r());
+
+
+        {
+            // Create the root frame.
+            let mut frame = page.mut_frame();
+            *frame = Some(Frame {
+                document: JS::from_rooted(document.r()),
+                window: JS::from_rooted(window.r()),
+            });
+        }
+
+        if is_javascript {
             let evalstr = load_data.url.non_relative_scheme_data().unwrap();
             let jsval = window.r().evaluate_js_on_global_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
                                                           StringificationBehavior::Empty);
-            (HTMLInput::InputString(strval.unwrap_or("".to_owned())), doc_url)
+            parser_input = HTMLInput::InputString(strval.unwrap_or("".to_owned()));
         };
 
         parse_html(document.r(), parser_input, &final_url);

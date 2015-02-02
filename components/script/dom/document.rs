@@ -210,8 +210,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
     }
 
     fn url(self) -> Url {
-        let window = self.window().root();
-        window.page().get_url()
+        self.url.clone()
     }
 
     fn quirks_mode(self) -> QuirksMode {
