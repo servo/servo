@@ -59,7 +59,7 @@ pub enum KeyState {
     Repeated,
 }
 
-//N.B. Straight up copied from glfw-rs
+//N.B. Based on the glutin key enum
 #[derive(Show, PartialEq, Eq, Copy, Clone)]
 pub enum Key {
     Space,

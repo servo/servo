@@ -5,7 +5,7 @@
 //! Off-screen windows.
 //!
 //! This is used for off-screen rendering mode only; on-screen windows (the default embedding mode)
-//! are managed by a platform toolkit (GLFW or Glutin).
+//! are managed by a platform toolkit (Glutin).
 
 use eutil::Downcast;
 use interfaces::CefBrowser;

@@ -30,8 +30,7 @@ path = "../../tests/contenttest.rs"
 harness = false
 
 [features]
-default = ["glutin_app", "window"]
-glfw = ["glfw_app"]
+default = ["window"]
 window = ["glutin_app/window"]
 headless = ["glutin_app/headless"]
 
@@ -59,13 +58,8 @@ path = "../gfx"
 [dependencies.devtools]
 path = "../devtools"
 
-[dependencies.glfw_app]
-path = "../../ports/glfw"
-optional = true
-
 [dependencies.glutin_app]
 path = "../../ports/glutin"
-optional = true
 
 [dependencies.android_glue]
 path = "../../support/android-rs-glue/glue"
