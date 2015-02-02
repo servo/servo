@@ -50,6 +50,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   void setRequestHeader(ByteString name, ByteString value);
   [SetterThrows]
            attribute unsigned long timeout;
+  [SetterThrows]
            attribute boolean withCredentials;
   readonly attribute XMLHttpRequestUpload upload;
   [Throws]
