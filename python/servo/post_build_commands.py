@@ -78,7 +78,9 @@ class MachCommands(CommandBase):
         help="Command-line arguments to be passed through to cargo doc")
     def doc(self, params):
         self.ensure_bootstrapped()
-
+        if not path.exists(path.join(
+               self.config["tools"]["rust-root"], "doc")):
+            Registrar.dispatch("bootstrap-rust-docs", context=self.context)
         rust_docs = path.join(self.config["tools"]["rust-root"], "doc")
         docs = path.join(
             self.context.topdir, "components", "servo", "target", "doc")

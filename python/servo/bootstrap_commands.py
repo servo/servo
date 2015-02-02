@@ -81,7 +81,7 @@ class MachCommands(CommandBase):
             self.context.sharedir, "rust", *self.rust_snapshot_path().split("/"))
         if not force and path.exists(path.join(rust_dir, "bin", "rustc")):
             print("Snapshot Rust compiler already downloaded.", end=" ")
-            print("Use |bootstrap_rust --force| to download again.")
+            print("Use |bootstrap-rust --force| to download again.")
             return
 
         if path.isdir(rust_dir):
@@ -99,6 +99,39 @@ class MachCommands(CommandBase):
                              path.basename(tgz_file).replace(".tar.gz", ""))
         extract(tgz_file, rust_dir, movedir=snap_dir)
         print("Snapshot Rust ready.")
+
+    @Command('bootstrap-rust-docs',
+             description='Download the Rust documentation',
+             category='bootstrap')
+    @CommandArgument('--force', '-f',
+                     action='store_true',
+                     help='Force download even if docs already exist')
+    def bootstrap_rustc_docs(self, force=False):
+        self.ensure_bootstrapped()
+        hash_dir = path.join(self.context.sharedir, "rust",
+                             self.rust_snapshot_path().split("/")[0])
+        docs_dir = path.join(hash_dir, self.rust_snapshot_path().split("/")[1], "doc")
+        if not force and path.exists(docs_dir):
+            print("Snapshot Rust docs already downloaded.", end=" ")
+            print("Use |bootstrap-rust-docs --force| to download again.")
+            return
+
+        if path.isdir(docs_dir):
+            shutil.rmtree(docs_dir)
+        docs_name = self.rust_snapshot_path().replace("rustc-", "rust-docs-")
+        snapshot_url = ("https://servo-rust.s3.amazonaws.com/%s.tar.gz"
+                        % docs_name)
+        tgz_file = path.join(hash_dir, 'doc.tar.gz')
+
+        download("Rust docs", snapshot_url, tgz_file)
+
+        print("Extracting Rust docs...")
+        temp_dir = path.join(hash_dir, "temp_docs")
+        shutil.rmtree(temp_dir)
+        extract(tgz_file, temp_dir)
+        shutil.move(path.join(temp_dir, docs_name.split("/")[1], "share", "doc", "rust", "html"), docs_dir)
+        shutil.rmtree(temp_dir)
+        print("Rust docs ready.")
 
     @Command('bootstrap-cargo',
              description='Download the Cargo build tool',
