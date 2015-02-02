@@ -74,7 +74,7 @@ class MachCommands(CommandBase):
 
         if is_headless_build():
             opts += ["--no-default-features"]
-            features += ["glutin_app", "headless"]
+            features += ["headless"]
 
         if android:
             features += ["android_glue"]
@@ -144,7 +144,7 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         args = ["cargo", "test", "--no-run"]
         if is_headless_build():
-            args += ["--no-default-features", "--features", "glutin_app headless"]
+            args += ["--no-default-features", "--features", "headless"]
         return subprocess.call(
             args,
             env=self.build_env(), cwd=self.servo_crate())
