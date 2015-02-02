@@ -3,12 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::collections::hash_map::{Occupied, Vacant};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 use geom::size::Size2D;
 use layers::platform::surface::NativePaintingGraphicsContext;
 use layers::layers::LayerBuffer;
-use std::hash::Hash;
-use std::hash::sip::SipState;
+use std::hash::{Hash, Hasher, Writer};
 use std::mem;
 
 /// This is a struct used to store buffers when they are not in use.
@@ -27,11 +26,11 @@ pub struct BufferMap {
 }
 
 /// A key with which to store buffers. It is based on the size of the buffer.
-#[deriving(Eq, Copy)]
-struct BufferKey([uint, ..2]);
+#[derive(Eq, Copy)]
+struct BufferKey([uint; 2]);
 
-impl Hash for BufferKey {
-    fn hash(&self, state: &mut SipState) {
+impl<H: Hasher+Writer> Hash<H> for BufferKey {
+    fn hash(&self, state: &mut H) {
         let BufferKey(ref bytes) = *self;
         bytes.as_slice().hash(state);
     }
@@ -91,7 +90,7 @@ impl BufferMap {
                 entry.into_mut().buffers.push(new_buffer);
             }
             Vacant(entry) => {
-                entry.set(BufferValue {
+                entry.insert(BufferValue {
                     buffers: vec!(new_buffer),
                     last_action: *counter,
                 });

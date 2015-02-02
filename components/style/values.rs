@@ -3,23 +3,24 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #![allow(non_camel_case_types)]
-#![macro_escape]
+
+pub use cssparser::RGBA;
 
 
 macro_rules! define_css_keyword_enum {
     ($name: ident: $( $css: expr => $variant: ident ),+,) => {
-        define_css_keyword_enum!($name: $( $css => $variant ),+)
+        define_css_keyword_enum!($name: $( $css => $variant ),+);
     };
     ($name: ident: $( $css: expr => $variant: ident ),+) => {
         #[allow(non_camel_case_types)]
-        #[deriving(Clone, Eq, PartialEq, FromPrimitive, Copy)]
+        #[derive(Clone, Eq, PartialEq, FromPrimitive, Copy)]
         pub enum $name {
             $( $variant ),+
         }
 
         impl $name {
             pub fn parse(input: &mut ::cssparser::Parser) -> Result<$name, ()> {
-                match_ignore_ascii_case! { try!(input.expect_ident()):
+                match_ignore_ascii_case! { try!(input.expect_ident()),
                     $( $css => Ok($name::$variant) ),+
                     _ => Err(())
                 }
@@ -54,14 +55,14 @@ pub mod specified {
     use std::fmt;
     use std::fmt::{Formatter, Show};
     use url::Url;
-    use cssparser::{mod, Token, Parser, ToCss, CssStringWriter};
+    use cssparser::{self, Token, Parser, ToCss, CssStringWriter};
     use parser::ParserContext;
-    use text_writer::{mod, TextWriter};
-    use servo_util::geometry::Au;
+    use text_writer::{self, TextWriter};
+    use util::geometry::Au;
     use super::CSSFloat;
     use super::computed;
 
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct CSSColor {
         pub parsed: cssparser::Color,
         pub authored: Option<String>,
@@ -94,7 +95,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct CSSRGBA {
         pub parsed: cssparser::RGBA,
         pub authored: Option<String>,
@@ -112,7 +113,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct CSSImage(pub Option<Image>);
 
     impl fmt::Show for CSSImage {
@@ -128,7 +129,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum Length {
         Au(Au),  // application units
         Em(CSSFloat),
@@ -184,7 +185,7 @@ pub mod specified {
             Length::parse_internal(input, /* negative_ok = */ false)
         }
         pub fn parse_dimension(value: CSSFloat, unit: &str) -> Result<Length, ()> {
-            match_ignore_ascii_case! { unit:
+            match_ignore_ascii_case! { unit,
                 "px" => Ok(Length::from_px(value)),
                 "in" => Ok(Length::Au(Au((value * AU_PER_IN) as i32))),
                 "cm" => Ok(Length::Au(Au((value * AU_PER_CM) as i32))),
@@ -204,7 +205,7 @@ pub mod specified {
     }
 
 
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentage {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -251,7 +252,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentageOrAuto {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -302,7 +303,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum LengthOrPercentageOrNone {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -355,7 +356,7 @@ pub mod specified {
     }
 
     // http://dev.w3.org/csswg/css2/colors.html#propdef-background-position
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum PositionComponent {
         Length(Length),
         Percentage(CSSFloat),  // [0 .. 100%] maps to [0.0 .. 1.0]
@@ -379,7 +380,7 @@ pub mod specified {
                     Ok(PositionComponent::Length(Length::Au(Au(0))))
                 }
                 Token::Ident(value) => {
-                    match_ignore_ascii_case! { value:
+                    match_ignore_ascii_case! { value,
                         "center" => Ok(PositionComponent::Center),
                         "left" => Ok(PositionComponent::Left),
                         "right" => Ok(PositionComponent::Right),
@@ -405,7 +406,7 @@ pub mod specified {
         }
     }
 
-    #[deriving(Clone, PartialEq, PartialOrd, Copy)]
+    #[derive(Clone, PartialEq, PartialOrd, Copy)]
     pub struct Angle(pub CSSFloat);
 
     impl fmt::Show for Angle {
@@ -435,7 +436,7 @@ pub mod specified {
         pub fn parse(input: &mut Parser) -> Result<Angle, ()> {
             match try!(input.next()) {
                 Token::Dimension(value, unit) => {
-                    match_ignore_ascii_case! { unit:
+                    match_ignore_ascii_case! { unit,
                         "deg" => Ok(Angle(value.value * RAD_PER_DEG)),
                         "grad" => Ok(Angle(value.value * RAD_PER_GRAD)),
                         "turn" => Ok(Angle(value.value * RAD_PER_TURN)),
@@ -450,7 +451,7 @@ pub mod specified {
     }
 
     /// Specified values for an image according to CSS-IMAGES.
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub enum Image {
         Url(Url),
         LinearGradient(LinearGradient),
@@ -481,7 +482,7 @@ pub mod specified {
                     Ok(Image::Url(context.parse_url(url.as_slice())))
                 }
                 Token::Function(name) => {
-                    match_ignore_ascii_case! { name:
+                    match_ignore_ascii_case! { name,
                         "linear-gradient" => {
                             Ok(Image::LinearGradient(try!(
                                 input.parse_nested_block(LinearGradient::parse_function))))
@@ -505,7 +506,7 @@ pub mod specified {
     }
 
     /// Specified values for a CSS linear gradient.
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct LinearGradient {
         /// The angle or corner of the gradient.
         pub angle_or_corner: AngleOrCorner,
@@ -532,7 +533,7 @@ pub mod specified {
     }
 
     /// Specified values for an angle or a corner in a linear gradient.
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub enum AngleOrCorner {
         Angle(Angle),
         Corner(HorizontalDirection, VerticalDirection),
@@ -558,7 +559,7 @@ pub mod specified {
     }
 
     /// Specified values for one color stop in a linear gradient.
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct ColorStop {
         /// The color of this stop.
         pub color: CSSColor,
@@ -583,8 +584,8 @@ pub mod specified {
         }
     }
 
-    define_css_keyword_enum!(HorizontalDirection: "left" => Left, "right" => Right)
-    define_css_keyword_enum!(VerticalDirection: "top" => Top, "bottom" => Bottom)
+    define_css_keyword_enum!(HorizontalDirection: "left" => Left, "right" => Right);
+    define_css_keyword_enum!(VerticalDirection: "top" => Top, "bottom" => Bottom);
 
     fn parse_one_color_stop(input: &mut Parser) -> Result<ColorStop, ()> {
         Ok(ColorStop {
@@ -644,7 +645,7 @@ pub mod specified {
 
     pub fn parse_border_width(input: &mut Parser) -> Result<Length, ()> {
         input.try(Length::parse_non_negative).or_else(|()| {
-            match_ignore_ascii_case! { try!(input.expect_ident()):
+            match_ignore_ascii_case! { try!(input.expect_ident()),
                 "thin" => Ok(Length::from_px(1.)),
                 "medium" => Ok(Length::from_px(3.)),
                 "thick" => Ok(Length::from_px(5.))
@@ -676,7 +677,7 @@ pub mod computed {
     use properties::longhands;
     use std::fmt;
     use url::Url;
-    use servo_util::geometry::Au;
+    use util::geometry::Au;
 
     #[allow(missing_copy_implementations)]  // It’s kinda big
     pub struct Context {
@@ -742,7 +743,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone, Copy)]
+    #[derive(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentage {
         Length(Au),
         Percentage(CSSFloat),
@@ -750,7 +751,7 @@ pub mod computed {
     impl fmt::Show for LengthOrPercentage {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
-                &LengthOrPercentage::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentage::Length(length) => write!(f, "{:?}", length),
                 &LengthOrPercentage::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
             }
         }
@@ -767,7 +768,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone, Copy)]
+    #[derive(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentageOrAuto {
         Length(Au),
         Percentage(CSSFloat),
@@ -776,7 +777,7 @@ pub mod computed {
     impl fmt::Show for LengthOrPercentageOrAuto {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
-                &LengthOrPercentageOrAuto::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentageOrAuto::Length(length) => write!(f, "{:?}", length),
                 &LengthOrPercentageOrAuto::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrAuto::Auto => write!(f, "auto"),
             }
@@ -795,7 +796,7 @@ pub mod computed {
         }
     }
 
-    #[deriving(PartialEq, Clone, Copy)]
+    #[derive(PartialEq, Clone, Copy)]
     pub enum LengthOrPercentageOrNone {
         Length(Au),
         Percentage(CSSFloat),
@@ -804,7 +805,7 @@ pub mod computed {
     impl fmt::Show for LengthOrPercentageOrNone {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
-                &LengthOrPercentageOrNone::Length(length) => write!(f, "{}", length),
+                &LengthOrPercentageOrNone::Length(length) => write!(f, "{:?}", length),
                 &LengthOrPercentageOrNone::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
                 &LengthOrPercentageOrNone::None => write!(f, "none"),
             }
@@ -824,7 +825,7 @@ pub mod computed {
     }
 
     /// Computed values for an image according to CSS-IMAGES.
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub enum Image {
         Url(Url),
         LinearGradient(LinearGradient),
@@ -834,13 +835,13 @@ pub mod computed {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
                 &Image::Url(ref url) => write!(f, "url(\"{}\")", url),
-                &Image::LinearGradient(ref grad) => write!(f, "linear-gradient({})", grad),
+                &Image::LinearGradient(ref grad) => write!(f, "linear-gradient({:?})", grad),
             }
         }
     }
 
     /// Computed values for a CSS linear gradient.
-    #[deriving(Clone, PartialEq)]
+    #[derive(Clone, PartialEq)]
     pub struct LinearGradient {
         /// The angle or corner of the gradient.
         pub angle_or_corner: AngleOrCorner,
@@ -851,16 +852,16 @@ pub mod computed {
 
     impl fmt::Show for LinearGradient {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            let _ = write!(f, "{}", self.angle_or_corner);
+            let _ = write!(f, "{:?}", self.angle_or_corner);
             for stop in self.stops.iter() {
-                let _ = write!(f, ", {}", stop);
+                let _ = write!(f, ", {:?}", stop);
             }
             Ok(())
         }
     }
 
     /// Computed values for one color stop in a linear gradient.
-    #[deriving(Clone, PartialEq, Copy)]
+    #[derive(Clone, PartialEq, Copy)]
     pub struct ColorStop {
         /// The color of this stop.
         pub color: CSSColor,
@@ -872,9 +873,9 @@ pub mod computed {
 
     impl fmt::Show for ColorStop {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            let _ = write!(f, "{}", self.color);
+            let _ = write!(f, "{:?}", self.color);
             self.position.map(|pos| {
-                let _ = write!(f, " {}", pos);
+                let _ = write!(f, " {:?}", pos);
             });
             Ok(())
         }

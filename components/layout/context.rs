@@ -19,7 +19,7 @@ use std::cell::Cell;
 use std::mem;
 use std::ptr;
 use std::sync::{Arc, Mutex};
-use style::Stylist;
+use style::selector_matching::Stylist;
 use url::Url;
 
 struct LocalLayoutContext {
@@ -28,7 +28,7 @@ struct LocalLayoutContext {
     style_sharing_candidate_cache: StyleSharingCandidateCache,
 }
 
-thread_local!(static LOCAL_CONTEXT_KEY: Cell<*mut LocalLayoutContext> = Cell::new(ptr::null_mut()))
+thread_local!(static LOCAL_CONTEXT_KEY: Cell<*mut LocalLayoutContext> = Cell::new(ptr::null_mut()));
 
 fn create_or_get_local_context(shared_layout_context: &SharedLayoutContext) -> *mut LocalLayoutContext {
     LOCAL_CONTEXT_KEY.with(|ref r| {
@@ -80,6 +80,9 @@ pub struct SharedLayoutContext {
     pub generation: uint,
 }
 
+pub struct SharedLayoutContextWrapper(pub *const SharedLayoutContext);
+unsafe impl Send for SharedLayoutContextWrapper {}
+
 pub struct LayoutContext<'a> {
     pub shared: &'a SharedLayoutContext,
     cached_local_layout_context: *mut LocalLayoutContext,
@@ -97,7 +100,7 @@ impl<'a> LayoutContext<'a> {
     }
 
     #[inline(always)]
-    pub fn font_context<'a>(&'a self) -> &'a mut FontContext {
+    pub fn font_context<'b>(&'b self) -> &'b mut FontContext {
         unsafe {
             let cached_context = &mut *self.cached_local_layout_context;
             &mut cached_context.font_context
@@ -105,7 +108,7 @@ impl<'a> LayoutContext<'a> {
     }
 
     #[inline(always)]
-    pub fn applicable_declarations_cache<'a>(&'a self) -> &'a mut ApplicableDeclarationsCache {
+    pub fn applicable_declarations_cache<'b>(&'b self) -> &'b mut ApplicableDeclarationsCache {
         unsafe {
             let cached_context = &mut *self.cached_local_layout_context;
             &mut cached_context.applicable_declarations_cache
@@ -113,7 +116,7 @@ impl<'a> LayoutContext<'a> {
     }
 
     #[inline(always)]
-    pub fn style_sharing_candidate_cache<'a>(&'a self) -> &'a mut StyleSharingCandidateCache {
+    pub fn style_sharing_candidate_cache<'b>(&'b self) -> &'b mut StyleSharingCandidateCache {
         unsafe {
             let cached_context = &mut *self.cached_local_layout_context;
             &mut cached_context.style_sharing_candidate_cache

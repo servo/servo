@@ -7,9 +7,9 @@ use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::js::{JS, JSRef, Temporary, Root};
 use dom::bindings::js::{OptionalRootable, OptionalRootedRootable, ResultRootable};
 use dom::bindings::js::{OptionalRootedReference, OptionalOptionalRootedRootable};
-use dom::bindings::proxyhandler::{getPropertyDescriptor, FillPropertyDescriptor};
+use dom::bindings::proxyhandler::{get_property_descriptor, fill_property_descriptor};
 use dom::bindings::utils::{Reflectable, WindowProxyHandler};
-use dom::bindings::utils::{GetArrayIndexFromId};
+use dom::bindings::utils::get_array_index_from_id;
 use dom::document::{Document, DocumentHelpers};
 use dom::window::Window;
 use dom::window::WindowHelpers;
@@ -26,7 +26,7 @@ use js::{JSRESOLVE_QUALIFIED, JSRESOLVE_ASSIGNING};
 
 use std::ptr;
 
-#[allow(raw_pointer_deriving)]
+#[allow(raw_pointer_derive)]
 #[jstraceable]
 #[privatize]
 pub struct BrowserContext {
@@ -100,7 +100,7 @@ impl SessionHistoryEntry {
 }
 
 unsafe fn GetSubframeWindow(cx: *mut JSContext, proxy: *mut JSObject, id: jsid) -> Option<Temporary<Window>> {
-    let index = GetArrayIndexFromId(cx, id);
+    let index = get_array_index_from_id(cx, id);
     if let Some(index) = index {
         let target = GetProxyPrivate(proxy).to_object();
         let win: Root<Window> = unwrap_jsmanaged(target).unwrap().root();
@@ -116,7 +116,7 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObje
     if let Some(window) = window {
         let window = window.root();
         (*desc).value = window.to_jsval(cx);
-        FillPropertyDescriptor(&mut *desc, proxy, true);
+        fill_property_descriptor(&mut *desc, proxy, true);
         return true;
     }
 
@@ -139,7 +139,7 @@ unsafe extern fn getOwnPropertyDescriptor(cx: *mut JSContext, proxy: *mut JSObje
 
 
 unsafe extern fn defineProperty(cx: *mut JSContext, proxy: *mut JSObject, id: jsid, desc: *mut JSPropertyDescriptor) -> bool {
-    if GetArrayIndexFromId(cx, id).is_some() {
+    if get_array_index_from_id(cx, id).is_some() {
         // Spec says to Reject whether this is a supported index or not,
         // since we have no indexed setter or indexed creator.  That means
         // throwing in strict mode (FIXME: Bug 828137), doing nothing in
@@ -182,7 +182,7 @@ unsafe extern fn get(cx: *mut JSContext, proxy: *mut JSObject, receiver: *mut JS
 }
 
 unsafe extern fn set(cx: *mut JSContext, proxy: *mut JSObject, _receiver: *mut JSObject, id: jsid, _strict: bool, vp: *mut JSVal) -> bool {
-    if GetArrayIndexFromId(cx, id).is_some() {
+    if get_array_index_from_id(cx, id).is_some() {
         // Reject (which means throw if and only if strict) the set.
         // FIXME: Throw
         return true;
@@ -194,17 +194,21 @@ unsafe extern fn set(cx: *mut JSContext, proxy: *mut JSObject, _receiver: *mut J
 }
 
 static PROXY_HANDLER: ProxyTraps = ProxyTraps {
-    getPropertyDescriptor: Some(getPropertyDescriptor),
-    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor),
-    defineProperty: Some(defineProperty),
+    getPropertyDescriptor: Some(get_property_descriptor
+                                as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, bool, *mut JSPropertyDescriptor) -> bool),
+    getOwnPropertyDescriptor: Some(getOwnPropertyDescriptor
+                                   as unsafe extern "C" fn(*mut JSContext, *mut JSObject,
+                                                           jsid, bool, *mut JSPropertyDescriptor)
+                                                           -> bool),
+    defineProperty: Some(defineProperty as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut JSPropertyDescriptor) -> bool),
     getOwnPropertyNames: None,
     delete_: None,
     enumerate: None,
 
     has: None,
-    hasOwn: Some(hasOwn),
-    get: Some(get),
-    set: Some(set),
+    hasOwn: Some(hasOwn as unsafe extern "C" fn(*mut JSContext, *mut JSObject, jsid, *mut bool) -> bool),
+    get: Some(get as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut JSObject, jsid, *mut JSVal) -> bool),
+    set: Some(set as unsafe extern "C" fn(*mut JSContext, *mut JSObject, *mut JSObject, jsid, bool, *mut JSVal) -> bool),
     keys: None,
     iterate: None,
 

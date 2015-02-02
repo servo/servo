@@ -10,6 +10,7 @@ use serialize::base64::FromBase64;
 use hyper::mime::Mime;
 use url::{percent_decode, SchemeData};
 
+use std::sync::mpsc::Sender;
 
 pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     // NB: we don't spawn a new task.
@@ -59,7 +60,7 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
 
     // Parse the content type using rust-http.
     // FIXME: this can go into an infinite loop! (rust-http #25)
-    let content_type: Option<Mime> = from_str(ct_str);
+    let content_type: Option<Mime> = ct_str.parse();
     metadata.set_content_type(content_type.as_ref());
 
     let progress_chan = start_sending(senders, metadata);
@@ -89,19 +90,19 @@ fn assert_parse(url:          &'static str,
                 content_type: Option<(String, String)>,
                 charset:      Option<String>,
                 data:         Option<Vec<u8>>) {
-    use std::comm;
+    use std::sync::mpsc::channel;
     use url::Url;
     use sniffer_task;
 
-    let (start_chan, start_port) = comm::channel();
+    let (start_chan, start_port) = channel();
     let sniffer_task = sniffer_task::new_sniffer_task();
     load(LoadData::new(Url::parse(url).unwrap(), start_chan), sniffer_task);
 
-    let response = start_port.recv();
+    let response = start_port.recv().unwrap();
     assert_eq!(&response.metadata.content_type, &content_type);
     assert_eq!(&response.metadata.charset,      &charset);
 
-    let progress = response.progress_port.recv();
+    let progress = response.progress_port.recv().unwrap();
 
     match data {
         None => {
@@ -109,7 +110,7 @@ fn assert_parse(url:          &'static str,
         }
         Some(dat) => {
             assert_eq!(progress, Payload(dat));
-            assert_eq!(response.progress_port.recv(), Done(Ok(())));
+            assert_eq!(response.progress_port.recv().unwrap(), Done(Ok(())));
         }
     }
 }

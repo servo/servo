@@ -116,10 +116,12 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString wordBreak;
   [TreatNullAs=EmptyString] attribute DOMString wordSpacing;
   [TreatNullAs=EmptyString] attribute DOMString wordWrap;
+  [TreatNullAs=EmptyString] attribute DOMString textOverflow;
 
   [TreatNullAs=EmptyString] attribute DOMString textAlign;
   [TreatNullAs=EmptyString] attribute DOMString textDecoration;
   [TreatNullAs=EmptyString] attribute DOMString textIndent;
+  [TreatNullAs=EmptyString] attribute DOMString textJustify;
   [TreatNullAs=EmptyString] attribute DOMString textOrientation;
   [TreatNullAs=EmptyString] attribute DOMString textRendering;
   [TreatNullAs=EmptyString] attribute DOMString textTransform;
@@ -127,6 +129,7 @@ partial interface CSSStyleDeclaration {
   [TreatNullAs=EmptyString] attribute DOMString font;
   [TreatNullAs=EmptyString] attribute DOMString fontFamily;
   [TreatNullAs=EmptyString] attribute DOMString fontSize;
+  [TreatNullAs=EmptyString] attribute DOMString fontStretch;
   [TreatNullAs=EmptyString] attribute DOMString fontStyle;
   [TreatNullAs=EmptyString] attribute DOMString fontVariant;
   [TreatNullAs=EmptyString] attribute DOMString fontWeight;

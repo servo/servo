@@ -26,12 +26,13 @@ use servo_msg::constellation_msg::{ConstellationChan, WindowSizeData};
 use servo_msg::constellation_msg::{PipelineId, SubpageId};
 use servo_net::resource_task::ResourceTask;
 use servo_net::storage_task::StorageTask;
-use servo_util::geometry::{Au, MAX_RECT};
-use servo_util::geometry;
-use servo_util::str::DOMString;
-use servo_util::smallvec::SmallVec;
+use util::geometry::{Au, MAX_RECT};
+use util::geometry;
+use util::str::DOMString;
+use util::smallvec::SmallVec;
 use std::cell::{Cell, Ref, RefMut};
-use std::comm::{channel, Receiver, Empty, Disconnected};
+use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::TryRecvError::{Empty, Disconnected};
 use std::mem::replace;
 use std::num::Float;
 use std::rc::Rc;
@@ -136,14 +137,14 @@ impl Page {
            constellation_chan: ConstellationChan,
            js_context: Rc<Cx>) -> Page {
         let js_info = JSPageInfo {
-            dom_static: GlobalStaticData(),
+            dom_static: GlobalStaticData::new(),
             js_context: js_context,
         };
         let layout_rpc: Box<LayoutRPC> = {
             let (rpc_send, rpc_recv) = channel();
             let LayoutChan(ref lchan) = layout_chan;
             lchan.send(Msg::GetRPC(rpc_send));
-            rpc_recv.recv()
+            rpc_recv.recv().unwrap()
         };
         Page {
             id: id,
@@ -201,7 +202,7 @@ impl Page {
                 .position(|page_tree| page_tree.id == id)
         };
         match remove_idx {
-            Some(idx) => Some(self.children.borrow_mut().remove(idx).unwrap()),
+            Some(idx) => Some(self.children.borrow_mut().remove(idx)),
             None => {
                 self.children
                     .borrow_mut()
@@ -256,7 +257,9 @@ impl Page {
     }
 }
 
-impl Iterator<Rc<Page>> for PageIterator {
+impl Iterator for PageIterator {
+    type Item = Rc<Page>;
+
     fn next(&mut self) -> Option<Rc<Page>> {
         match self.stack.pop() {
             Some(next) => {
@@ -273,6 +276,10 @@ impl Iterator<Rc<Page>> for PageIterator {
 impl Page {
     pub fn mut_js_info<'a>(&'a self) -> RefMut<'a, Option<JSPageInfo>> {
         self.js_info.borrow_mut()
+    }
+
+    pub unsafe fn unsafe_mut_js_info<'a>(&'a self) -> &'a mut Option<JSPageInfo> {
+        self.js_info.borrow_for_script_deallocation()
     }
 
     pub fn js_info<'a>(&'a self) -> Ref<'a, Option<JSPageInfo>> {
@@ -303,7 +310,7 @@ impl Page {
     }
 
     pub fn get_url(&self) -> Url {
-        self.url().as_ref().unwrap().ref0().clone()
+        self.url().as_ref().unwrap().0.clone()
     }
 
     // FIXME(cgaebel): join_layout is racey. What if the compositor triggers a
@@ -358,7 +365,7 @@ impl Page {
             Some(root) => root,
         };
 
-        debug!("script: performing reflow for goal {}", goal);
+        debug!("script: performing reflow for goal {:?}", goal);
 
         let root: JSRef<Node> = NodeCast::from_ref(root.r());
         if !root.get_has_dirty_descendants() {
@@ -366,7 +373,7 @@ impl Page {
             return
         }
 
-        debug!("script: performing reflow for goal {}", goal);
+        debug!("script: performing reflow for goal {:?}", goal);
 
         // Layout will let us know when it's done.
         let (join_chan, join_port) = channel();

@@ -19,7 +19,7 @@ use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
-use servo_util::str::{DOMString, StaticStringVec};
+use util::str::{DOMString, StaticStringVec};
 use string_cache::Atom;
 
 #[dom_struct]
@@ -71,14 +71,14 @@ impl<'a> HTMLFieldSetElementMethods for JSRef<'a, HTMLFieldSetElement> {
     }
 
     // http://www.whatwg.org/html/#dom-fieldset-disabled
-    make_bool_getter!(Disabled)
+    make_bool_getter!(Disabled);
 
     // http://www.whatwg.org/html/#dom-fieldset-disabled
-    make_bool_setter!(SetDisabled, "disabled")
+    make_bool_setter!(SetDisabled, "disabled");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLFieldSetElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

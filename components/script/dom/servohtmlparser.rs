@@ -15,7 +15,7 @@ use dom::node::TrustedNodeAddress;
 use dom::document::{Document, DocumentHelpers};
 use parse::Parser;
 
-use servo_util::task_state;
+use util::task_state;
 
 use std::default::Default;
 use url::Url;

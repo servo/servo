@@ -6,6 +6,6 @@ use interfaces::cef_process_message_t;
 use types::cef_string_t;
 
 cef_stub_static_method_impls! {
-    fn cef_process_message_create(name: *const cef_string_t) -> *mut cef_process_message_t;
+    fn cef_process_message_create(name: *const cef_string_t) -> *mut cef_process_message_t
 }
 

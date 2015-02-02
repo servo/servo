@@ -15,7 +15,7 @@ use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeHelpers, NodeTypeId};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLTitleElement {
@@ -65,7 +65,7 @@ impl<'a> HTMLTitleElementMethods for JSRef<'a, HTMLTitleElement> {
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLTitleElement> {
-    fn super_type<'a>(&'a self) -> Option<&'a VirtualMethods> {
+    fn super_type<'b>(&'b self) -> Option<&'b VirtualMethods> {
         let htmlelement: &JSRef<HTMLElement> = HTMLElementCast::from_borrowed_ref(self);
         Some(htmlelement as &VirtualMethods)
     }

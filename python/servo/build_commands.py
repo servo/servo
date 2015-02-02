@@ -76,6 +76,9 @@ class MachCommands(CommandBase):
             opts += ["--no-default-features"]
             features += ["glutin_app", "headless"]
 
+        if android:
+            features += ["android_glue"]
+
         if features:
             opts += ["--features", "%s" % ' '.join(features)]
 

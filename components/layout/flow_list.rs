@@ -15,11 +15,11 @@ pub struct FlowList {
 }
 
 pub struct FlowListIterator<'a> {
-    it: dlist::Items<'a, FlowRef>,
+    it: dlist::Iter<'a, FlowRef>,
 }
 
 pub struct MutFlowListIterator<'a> {
-    it: dlist::MutItems<'a, FlowRef>,
+    it: dlist::IterMut<'a, FlowRef>,
 }
 
 impl FlowList {
@@ -105,7 +105,8 @@ impl FlowList {
     }
 }
 
-impl<'a> Iterator<&'a (Flow + 'a)> for FlowListIterator<'a> {
+impl<'a> Iterator for FlowListIterator<'a> {
+    type Item = &'a (Flow + 'a);
     #[inline]
     fn next(&mut self) -> Option<&'a (Flow + 'a)> {
         self.it.next().map(|x| &**x)
@@ -117,7 +118,8 @@ impl<'a> Iterator<&'a (Flow + 'a)> for FlowListIterator<'a> {
     }
 }
 
-impl<'a> Iterator<&'a mut (Flow + 'a)> for MutFlowListIterator<'a> {
+impl<'a> Iterator for MutFlowListIterator<'a> {
+    type Item = &'a mut (Flow + 'a);
     #[inline]
     fn next(&mut self) -> Option<&'a mut (Flow + 'a)> {
         self.it.next().map(|x| &mut **x)

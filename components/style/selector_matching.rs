@@ -3,16 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::ascii::AsciiExt;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 
 use url::Url;
 
-use servo_util::bloom::BloomFilter;
-use servo_util::resource_files::read_resource_file;
-use servo_util::smallvec::VecLike;
-use servo_util::sort;
+use util::bloom::BloomFilter;
+use util::resource_files::read_resource_file;
+use util::smallvec::VecLike;
+use util::sort;
 use string_cache::Atom;
 
 use legacy::PresentationalHintSynthesis;
@@ -20,8 +21,7 @@ use media_queries::Device;
 use node::{TElement, TElementAttributes, TNode};
 use properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use selectors::{CaseSensitivity, Combinator, CompoundSelector, LocalName};
-use selectors::{PseudoElement, SelectorList, SimpleSelector};
-use selectors::{get_selector_list_selectors};
+use selectors::{PseudoElement, SimpleSelector, Selector};
 use stylesheets::{Stylesheet, iter_stylesheet_media_rules, iter_stylesheet_style_rules, Origin};
 
 
@@ -183,14 +183,14 @@ impl SelectorMap {
 
         match SelectorMap::get_id_name(&rule) {
             Some(id_name) => {
-                self.id_hash.find_push(id_name, rule);
+                find_push(&mut self.id_hash, id_name, rule);
                 return;
             }
             None => {}
         }
         match SelectorMap::get_class_name(&rule) {
             Some(class_name) => {
-                self.class_hash.find_push(class_name, rule);
+                find_push(&mut self.class_hash, class_name, rule);
                 return;
             }
             None => {}
@@ -198,8 +198,8 @@ impl SelectorMap {
 
         match SelectorMap::get_local_name(&rule) {
             Some(LocalName { name, lower_name }) => {
-                self.local_name_hash.find_push(name, rule.clone());
-                self.lower_local_name_hash.find_push(lower_name, rule);
+                find_push(&mut self.local_name_hash, name, rule.clone());
+                find_push(&mut self.lower_local_name_hash, lower_name, rule);
                 return;
             }
             None => {}
@@ -294,7 +294,7 @@ impl Stylist {
         for &filename in ["user-agent.css", "servo.css", "presentational-hints.css"].iter() {
             let ua_stylesheet = Stylesheet::from_bytes(
                 read_resource_file(&[filename]).unwrap().as_slice(),
-                Url::parse(format!("chrome:///{}", filename).as_slice()).unwrap(),
+                Url::parse(format!("chrome:///{:?}", filename).as_slice()).unwrap(),
                 None,
                 None,
                 Origin::UserAgent);
@@ -512,7 +512,7 @@ impl PerPseudoElementSelectorMap {
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 struct Rule {
     // This is an Arc because Rule will essentially be cloned for every node
     // that it matches. Selector contains an owned vector (through
@@ -523,7 +523,7 @@ struct Rule {
 
 /// A property declaration together with its precedence among rules of equal specificity so that
 /// we can sort them.
-#[deriving(Clone, Show)]
+#[derive(Clone, Show)]
 pub struct DeclarationBlock {
     pub declarations: Arc<Vec<PropertyDeclaration>>,
     source_order: uint,
@@ -548,14 +548,15 @@ impl DeclarationBlock {
     }
 }
 
-pub fn matches<'a,E,N>(selector_list: &SelectorList,
+pub fn matches<'a,E,N>(selector_list: &Vec<Selector>,
                        element: &N,
                        parent_bf: &Option<Box<BloomFilter>>)
                        -> bool
                        where E: TElement<'a>, N: TNode<'a,E> {
-    get_selector_list_selectors(selector_list).iter().any(|selector|
+    selector_list.iter().any(|selector| {
         selector.pseudo_element.is_none() &&
-        matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false))
+        matches_compound_selector(&*selector.compound_selectors, element, parent_bf, &mut false)
+    })
 }
 
 /// Determines whether the given element matches the given single or compound selector.
@@ -618,7 +619,7 @@ fn matches_compound_selector<'a,E,N>(selector: &CompoundSelector,
 /// However since the selector "c1" raises
 /// NotMatchedAndRestartFromClosestDescendant. So the selector
 /// "b1 + c1 > b2 ~ " doesn't match and restart matching from "d1".
-#[deriving(PartialEq, Eq, Copy)]
+#[derive(PartialEq, Eq, Copy)]
 enum SelectorMatchingResult {
     Matched,
     NotMatchedAndRestartFromClosestLaterSibling,
@@ -758,7 +759,6 @@ fn matches_compound_selector_internal<'a,E,N>(selector: &CompoundSelector,
 }
 
 bitflags! {
-    #[deriving(Copy)]
     flags CommonStyleAffectingAttributes: u8 {
         const HIDDEN_ATTRIBUTE = 0x01,
         const NO_WRAP_ATTRIBUTE = 0x02,
@@ -773,7 +773,7 @@ pub struct CommonStyleAffectingAttributeInfo {
     pub mode: CommonStyleAffectingAttributeMode,
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 pub enum CommonStyleAffectingAttributeMode {
     IsPresent(CommonStyleAffectingAttributes),
     IsEqual(&'static str, CommonStyleAffectingAttributes),
@@ -781,7 +781,7 @@ pub enum CommonStyleAffectingAttributeMode {
 
 // NB: This must match the order in `layout::css::matching::CommonStyleAffectingAttributes`.
 #[inline]
-pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo, ..5] {
+pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo; 5] {
     [
         CommonStyleAffectingAttributeInfo {
             atom: atom!("hidden"),
@@ -809,7 +809,7 @@ pub fn common_style_affecting_attributes() -> [CommonStyleAffectingAttributeInfo
 /// Attributes that, if present, disable style sharing. All legacy HTML attributes must be in
 /// either this list or `common_style_affecting_attributes`. See the comment in
 /// `synthesize_presentational_hints_for_legacy_attributes`.
-pub fn rare_style_affecting_attributes() -> [Atom, ..3] {
+pub fn rare_style_affecting_attributes() -> [Atom; 3] {
     [ atom!("bgcolor"), atom!("border"), atom!("colspan") ]
 }
 
@@ -1141,22 +1141,15 @@ fn matches_last_child<'a,E,N>(element: &N) -> bool where E: TElement<'a>, N: TNo
     }
 }
 
-
-trait FindPush<K, V> {
-    fn find_push(&mut self, key: K, value: V);
-}
-
-impl<K: Eq + Hash, V> FindPush<K, V> for HashMap<K, Vec<V>> {
-    fn find_push(&mut self, key: K, value: V) {
-        match self.get_mut(&key) {
-            Some(vec) => {
-                vec.push(value);
-                return
-            }
-            None => {}
+fn find_push(map: &mut HashMap<Atom, Vec<Rule>>, key: Atom, value: Rule) {
+    match map.get_mut(&key) {
+        Some(vec) => {
+            vec.push(value);
+            return
         }
-        self.insert(key, vec![value]);
+        None => {}
     }
+    map.insert(key, vec![value]);
 }
 
 #[cfg(test)]
@@ -1173,16 +1166,12 @@ mod tests {
     /// Helper method to get some Rules from selector strings.
     /// Each sublist of the result contains the Rules for one StyleRule.
     fn get_mock_rules(css_selectors: &[&str]) -> Vec<Vec<Rule>> {
-        use namespaces::NamespaceMap;
         use selectors::parse_selector_list;
         use stylesheets::Origin;
 
         css_selectors.iter().enumerate().map(|(i, selectors)| {
-            let context = ParserContext {
-                stylesheet_origin: Origin::Author,
-                namespaces: NamespaceMap::new(),
-                base_url: &Url::parse("about:blank").unwrap(),
-            };
+            let url = Url::parse("about:blank").unwrap();
+            let context = ParserContext::new(Origin::Author, &url);
             parse_selector_list(&context, &mut Parser::new(*selectors))
             .unwrap().into_iter().map(|s| {
                 Rule {
@@ -1223,7 +1212,7 @@ mod tests {
     #[test]
     fn test_get_local_name(){
         let rules_list = get_mock_rules(&["img.foo", "#top", "IMG", "ImG"]);
-        let check = |i, names: Option<(&str, &str)>| {
+        let check = |&:i: uint, names: Option<(&str, &str)>| {
             assert!(SelectorMap::get_local_name(&rules_list[i][0])
                     == names.map(|(name, lower_name)| LocalName {
                             name: Atom::from_slice(name),

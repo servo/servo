@@ -2,20 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(globs, macro_rules, phase, thread_local)]
+#![feature(macro_rules, phase, thread_local)]
 
 #![deny(unused_imports)]
 #![deny(unused_variables)]
 
-#[phase(plugin, link)]
+#[macro_use]
 extern crate log;
 
 extern crate compositing;
 extern crate devtools;
 extern crate "net" as servo_net;
 extern crate "msg" as servo_msg;
-#[phase(plugin, link)]
-extern crate "util" as servo_util;
+#[macro_use]
+extern crate util;
 extern crate script;
 extern crate layout;
 extern crate gfx;
@@ -44,13 +44,13 @@ use servo_net::resource_task::new_resource_task;
 #[cfg(not(test))]
 use gfx::font_cache_task::FontCacheTask;
 #[cfg(not(test))]
-use servo_util::time::TimeProfiler;
+use util::time::TimeProfiler;
 #[cfg(not(test))]
-use servo_util::memory::MemoryProfiler;
+use util::memory::MemoryProfiler;
 #[cfg(not(test))]
-use servo_util::opts;
+use util::opts;
 #[cfg(not(test))]
-use servo_util::taskpool::TaskPool;
+use util::taskpool::TaskPool;
 
 #[cfg(not(test))]
 use std::os;
@@ -66,7 +66,7 @@ pub struct Browser<Window> {
 impl<Window> Browser<Window> where Window: WindowMethods + 'static {
     #[cfg(not(test))]
     pub fn new(window: Option<Rc<Window>>) -> Browser<Window> {
-        ::servo_util::opts::set_experimental_enabled(opts::get().enable_experimental);
+        ::util::opts::set_experimental_enabled(opts::get().enable_experimental);
         let opts = opts::get();
         RegisterBindings::RegisterProxyHandlers();
 

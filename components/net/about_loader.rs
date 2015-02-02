@@ -8,10 +8,11 @@ use file_loader;
 
 use url::Url;
 use hyper::http::RawStatus;
-use servo_util::resource_files::resources_dir_path;
+use util::resource_files::resources_dir_path;
 
 use std::borrow::ToOwned;
 use std::io::fs::PathExtensions;
+use std::sync::mpsc::Sender;
 
 pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
     let senders = ResponseSenders {

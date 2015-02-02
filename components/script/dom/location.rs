@@ -11,7 +11,7 @@ use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use page::Page;
 
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 use std::rc::Rc;
 

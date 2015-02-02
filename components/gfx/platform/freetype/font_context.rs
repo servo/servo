@@ -37,12 +37,12 @@ extern fn ft_realloc(_mem: FT_Memory, _cur_size: c_long, new_size: c_long, block
     }
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct FreeTypeLibraryHandle {
     pub ctx: FT_Library,
 }
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct FontContextHandle {
     pub ctx: Rc<FreeTypeLibraryHandle>,
 }

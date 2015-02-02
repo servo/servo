@@ -20,14 +20,15 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
+use servo_util::logical_geometry::LogicalRect;
 use std::cmp::max;
 use std::fmt;
-use style::ComputedValues;
-use style::computed_values::LengthOrPercentageOrAuto;
+use style::properties::ComputedValues;
+use style::values::computed::LengthOrPercentageOrAuto;
 use std::sync::Arc;
 
 /// A single row of a table.
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 pub struct TableRowFlow {
     pub block_flow: BlockFlow,
 
@@ -39,7 +40,7 @@ pub struct TableRowFlow {
 }
 
 /// Information about the column inline size and span for each cell.
-#[deriving(Encodable, Copy)]
+#[derive(RustcEncodable, Copy)]
 pub struct CellIntrinsicInlineSize {
     /// Inline sizes that this cell contributes to the column.
     pub column_size: ColumnIntrinsicInlineSize,
@@ -320,6 +321,10 @@ impl Flow for TableRowFlow {
         self.block_flow.compute_overflow()
     }
 
+    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
+        self.block_flow.generated_containing_block_rect()
+    }
+
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>) {
@@ -329,6 +334,6 @@ impl Flow for TableRowFlow {
 
 impl fmt::Show for TableRowFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TableRowFlow: {}", self.block_flow.fragment)
+        write!(f, "TableRowFlow: {:?}", self.block_flow.fragment)
     }
 }

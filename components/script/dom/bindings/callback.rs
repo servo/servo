@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![deny(missing_docs)]
-
 //! Base classes to work with IDL callbacks.
 
 use dom::bindings::global::global_object_for_js_object;
@@ -14,10 +12,11 @@ use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::with_compartment;
 
+use std::ffi::CString;
 use std::ptr;
 
 /// The exception handling used for a call.
-#[deriving(Copy, PartialEq)]
+#[derive(Copy, PartialEq)]
 pub enum ExceptionHandling {
     /// Report any exception and don't throw it to the caller code.
     Report,
@@ -26,7 +25,7 @@ pub enum ExceptionHandling {
 }
 
 /// A common base class for representing IDL callback function types.
-#[deriving(Copy, Clone,PartialEq)]
+#[derive(Copy, Clone,PartialEq)]
 #[jstraceable]
 pub struct CallbackFunction {
     object: CallbackObject
@@ -44,7 +43,7 @@ impl CallbackFunction {
 }
 
 /// A common base class for representing IDL callback interface types.
-#[deriving(Copy, Clone,PartialEq)]
+#[derive(Copy, Clone,PartialEq)]
 #[jstraceable]
 pub struct CallbackInterface {
     object: CallbackObject
@@ -52,8 +51,8 @@ pub struct CallbackInterface {
 
 /// A common base class for representing IDL callback function and
 /// callback interface types.
-#[allow(raw_pointer_deriving)]
-#[deriving(Copy, Clone,PartialEq)]
+#[allow(raw_pointer_derive)]
+#[derive(Copy, Clone,PartialEq)]
 #[jstraceable]
 struct CallbackObject {
     /// The underlying `JSObject`.
@@ -96,10 +95,11 @@ impl CallbackInterface {
     /// Returns the property with the given `name`, if it is a callable object,
     /// or `Err(())` otherwise. If it returns `Err(())`, a JSAPI exception is
     /// pending.
-    pub fn GetCallableProperty(&self, cx: *mut JSContext, name: &str) -> Result<JSVal, ()> {
+    pub fn get_callable_property(&self, cx: *mut JSContext, name: &str)
+                                 -> Result<JSVal, ()> {
         let mut callable = UndefinedValue();
         unsafe {
-            let name = name.to_c_str();
+            let name = CString::from_slice(name.as_bytes());
             if JS_GetProperty(cx, self.callback(), name.as_ptr(), &mut callable) == 0 {
                 return Err(());
             }
@@ -116,8 +116,8 @@ impl CallbackInterface {
 }
 
 /// Wraps the reflector for `p` into the compartment of `cx`.
-pub fn WrapCallThisObject<T: Reflectable>(cx: *mut JSContext,
-                                          p: JSRef<T>) -> *mut JSObject {
+pub fn wrap_call_this_object<T: Reflectable>(cx: *mut JSContext,
+                                             p: JSRef<T>) -> *mut JSObject {
     let mut obj = p.reflector().get_jsobject();
     assert!(!obj.is_null());
 
@@ -154,7 +154,7 @@ impl CallSetup {
     }
 
     /// Returns the `JSContext` used for the call.
-    pub fn GetContext(&self) -> *mut JSContext {
+    pub fn get_context(&self) -> *mut JSContext {
         self.cx
     }
 }

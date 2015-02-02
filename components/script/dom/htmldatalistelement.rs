@@ -14,7 +14,7 @@ use dom::htmlcollection::{HTMLCollection, CollectionFilter};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
 use dom::node::{Node, NodeTypeId, window_from_node};
-use servo_util::str::DOMString;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLDataListElement {

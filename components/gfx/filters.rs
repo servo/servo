@@ -9,7 +9,7 @@ use azure::azure_hl::{ColorMatrixAttribute, ColorMatrixInput, CompositeInput, Dr
 use azure::azure_hl::{FilterNode, FilterType, LinearTransferAttribute, LinearTransferInput};
 use azure::azure_hl::{Matrix5x4, TableTransferAttribute, TableTransferInput};
 
-use std::num::FloatMath;
+use std::num::Float;
 use style::computed_values::filter;
 
 /// Creates a filter pipeline from a set of CSS filters. Returns the destination end of the filter

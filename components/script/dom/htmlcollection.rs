@@ -12,8 +12,8 @@ use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::element::{Element, AttributeHandlers, ElementHelpers};
 use dom::node::{Node, NodeHelpers, TreeIterator};
 use dom::window::Window;
-use servo_util::namespace;
-use servo_util::str::{DOMString, split_html_space_chars};
+use util::namespace;
+use util::str::{DOMString, split_html_space_chars};
 
 use std::ascii::AsciiExt;
 use std::iter::{FilterMap, Skip};
@@ -96,7 +96,7 @@ impl HTMLCollection {
         }
         let filter = TagNameFilter {
             tag: Atom::from_slice(tag.as_slice()),
-            ascii_lower_tag: Atom::from_slice(tag.as_slice().to_ascii_lower().as_slice()),
+            ascii_lower_tag: Atom::from_slice(tag.as_slice().to_ascii_lowercase().as_slice()),
         };
         HTMLCollection::create(window, root, box filter)
     }
@@ -165,12 +165,13 @@ impl HTMLCollection {
     }
 
     fn traverse<'a>(root: JSRef<'a, Node>)
-                    -> FilterMap<'a, JSRef<'a, Node>,
+                    -> FilterMap<JSRef<'a, Node>,
                                  JSRef<'a, Element>,
-                                 Skip<TreeIterator<'a>>> {
+                                 Skip<TreeIterator<'a>>,
+                                 fn(JSRef<Node>) -> Option<JSRef<Element>>> {
         root.traverse_preorder()
             .skip(1)
-            .filter_map(ElementCast::to_ref)
+            .filter_map(ElementCast::to_ref as fn(JSRef<Node>) -> Option<JSRef<Element>>)
     }
 }
 

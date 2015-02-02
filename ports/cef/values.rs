@@ -7,8 +7,8 @@ use interfaces::{cef_binary_value_t, cef_dictionary_value_t, cef_list_value_t};
 use libc;
 
 cef_stub_static_method_impls! {
-    fn cef_binary_value_create(_data: *const (), _size: libc::size_t) -> *mut cef_binary_value_t;
-    fn cef_dictionary_value_create() -> *mut cef_dictionary_value_t;
-    fn cef_list_value_create() -> *mut cef_list_value_t;
+    fn cef_binary_value_create(_data: *const (), _size: libc::size_t) -> *mut cef_binary_value_t
+    fn cef_dictionary_value_create() -> *mut cef_dictionary_value_t
+    fn cef_list_value_create() -> *mut cef_list_value_t
 }
 

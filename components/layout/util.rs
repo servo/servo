@@ -10,14 +10,13 @@ use wrapper::{LayoutNode, TLayoutNode, ThreadSafeLayoutNode};
 use gfx::display_list::OpaqueNode;
 use gfx;
 use libc::uintptr_t;
-use script::dom::bindings::js::JS;
-use script::dom::bindings::utils::Reflectable;
+use script::dom::bindings::js::LayoutJS;
 use script::dom::node::{Node, SharedLayoutData};
 use script::layout_interface::{LayoutChan, TrustedNodeAddress};
 use script_traits::UntrustedNodeAddress;
 use std::mem;
 use std::cell::{Ref, RefMut};
-use style::ComputedValues;
+use style::properties::ComputedValues;
 use style;
 use std::sync::Arc;
 
@@ -64,7 +63,6 @@ impl PrivateLayoutData {
 }
 
 bitflags! {
-    #[deriving(Copy)]
     flags LayoutDataFlags: u8 {
         #[doc="Whether a flow has been newly constructed."]
         const HAS_NEWLY_CONSTRUCTED_FLOW = 0x01
@@ -75,6 +73,14 @@ pub struct LayoutDataWrapper {
     pub chan: Option<LayoutChan>,
     pub shared_data: SharedLayoutData,
     pub data: Box<PrivateLayoutData>,
+}
+
+#[allow(dead_code)]
+fn static_assertion(x: Option<LayoutDataWrapper>) {
+    unsafe {
+        let _: Option<::script::dom::node::LayoutData> =
+            ::std::intrinsics::transmute(x);
+    }
 }
 
 /// A trait that allows access to the layout data of a DOM node.
@@ -119,7 +125,7 @@ pub trait OpaqueNodeMethods {
     fn from_script_node(node: TrustedNodeAddress) -> Self;
 
     /// Converts a DOM node to an `OpaqueNode'.
-    fn from_jsmanaged(node: &JS<Node>) -> Self;
+    fn from_jsmanaged(node: &LayoutJS<Node>) -> Self;
 
     /// Converts this node to an `UntrustedNodeAddress`. An `UntrustedNodeAddress` is just the type
     /// of node that script expects to receive in a hit test.
@@ -136,20 +142,20 @@ impl OpaqueNodeMethods for OpaqueNode {
     fn from_thread_safe_layout_node(node: &ThreadSafeLayoutNode) -> OpaqueNode {
         unsafe {
             let abstract_node = node.get_jsmanaged();
-            let ptr: uintptr_t = abstract_node.reflector().get_jsobject() as uintptr_t;
+            let ptr: uintptr_t = abstract_node.get_jsobject() as uintptr_t;
             OpaqueNode(ptr)
         }
     }
 
     fn from_script_node(node: TrustedNodeAddress) -> OpaqueNode {
         unsafe {
-            OpaqueNodeMethods::from_jsmanaged(&JS::from_trusted_node_address(node))
+            OpaqueNodeMethods::from_jsmanaged(&LayoutJS::from_trusted_node_address(node))
         }
     }
 
-    fn from_jsmanaged(node: &JS<Node>) -> OpaqueNode {
+    fn from_jsmanaged(node: &LayoutJS<Node>) -> OpaqueNode {
         unsafe {
-            let ptr: uintptr_t = mem::transmute(node.reflector().get_jsobject());
+            let ptr: uintptr_t = node.get_jsobject() as uintptr_t;
             OpaqueNode(ptr)
         }
     }
@@ -169,7 +175,7 @@ pub trait ToGfxColor {
     fn to_gfx_color(&self) -> gfx::color::Color;
 }
 
-impl ToGfxColor for style::computed_values::RGBA {
+impl ToGfxColor for style::values::RGBA {
     fn to_gfx_color(&self) -> gfx::color::Color {
         gfx::color::rgba(self.red, self.green, self.blue, self.alpha)
     }

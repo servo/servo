@@ -17,12 +17,14 @@ use wrapper::ThreadSafeLayoutNode;
 
 use geom::{Point2D, Rect};
 use servo_util::geometry::Au;
+use servo_util::logical_geometry::LogicalRect;
 use std::fmt;
-use style::{UnsignedIntegerAttribute, ComputedValues};
+use style::properties::ComputedValues;
+use style::legacy::UnsignedIntegerAttribute;
 use std::sync::Arc;
 
 /// A table formatting context.
-#[deriving(Encodable)]
+#[derive(RustcEncodable)]
 pub struct TableCellFlow {
     /// Data common to all block flows.
     pub block_flow: BlockFlow,
@@ -167,6 +169,10 @@ impl Flow for TableCellFlow {
         self.block_flow.compute_overflow()
     }
 
+    fn generated_containing_block_rect(&self) -> LogicalRect<Au> {
+        self.block_flow.generated_containing_block_rect()
+    }
+
     fn iterate_through_fragment_border_boxes(&self,
                                              iterator: &mut FragmentBorderBoxIterator,
                                              stacking_context_position: &Point2D<Au>) {
@@ -176,6 +182,6 @@ impl Flow for TableCellFlow {
 
 impl fmt::Show for TableCellFlow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TableCellFlow: {}", self.block_flow)
+        write!(f, "TableCellFlow: {:?}", self.block_flow)
     }
 }
