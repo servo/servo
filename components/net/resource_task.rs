@@ -228,11 +228,11 @@ impl ResourceManager {
               ControlMsg::Load(load_data) => {
                 self.load(load_data)
               }
-              ControlMsg::SetCookiesForUrl(request, cookies, source) => {
-                let header = Header::parse_header([cookies.into_bytes()].as_slice());
+              ControlMsg::SetCookiesForUrl(request, cookie_list, source) => {
+                let header = Header::parse_header([cookie_list.into_bytes()].as_slice());
                 if let Some(SetCookie(cookies)) = header {
-                  for cookie in cookies.into_iter() {
-                    if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
+                  for bare_cookie in cookies.into_iter() {
+                    if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
                       self.cookie_storage.push(cookie, source);
                     }
                   }

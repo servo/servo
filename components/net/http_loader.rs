@@ -120,9 +120,9 @@ reason: \"certificate verify failed\" }]";
 
         let (tx, rx) = channel();
         cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP));
-        if let Some(cookies) = rx.recv().unwrap() {
+        if let Some(cookie_list) = rx.recv().unwrap() {
             let mut v = Vec::new();
-            v.push(cookies.into_bytes());
+            v.push(cookie_list.into_bytes());
             load_data.headers.set_raw("Cookie".to_owned(), v);
         }
 
