@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A simple application that uses GLFW to open a window for Servo to display in.
+//! A simple application that uses glutin to open a window for Servo to display in.
 
 #![feature(box_syntax, int_uint)]
 #![deny(unused_imports, unused_variables)]

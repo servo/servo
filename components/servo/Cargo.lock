@@ -6,7 +6,6 @@ dependencies = [
  "compositing 0.0.1",
  "devtools 0.0.1",
  "gfx 0.0.1",
- "glfw_app 0.0.1",
  "glutin_app 0.0.1",
  "layout 0.0.1",
  "msg 0.0.1",
@@ -330,36 +329,6 @@ source = "git+https://github.com/servo/gleam#375779e0e8e1eaa8ff1a732c81fa91808a7
 dependencies = [
  "gl_common 0.0.3 (git+https://github.com/bjz/gl-rs.git)",
  "gl_generator 0.0.12 (git+https://github.com/bjz/gl-rs.git)",
-]
-
-[[package]]
-name = "glfw"
-version = "0.0.1"
-source = "git+https://github.com/servo/glfw-rs?branch=servo#907db700166b48e71d7d59b1eb9964b874c7ca42"
-dependencies = [
- "glfw-sys 3.0.4 (git+https://github.com/servo/glfw?branch=cargo-3.0.4)",
- "log 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "semver 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "glfw-sys"
-version = "3.0.4"
-source = "git+https://github.com/servo/glfw?branch=cargo-3.0.4#765dace7e4125b87c764f5ac0e7a80eae5c550b2"
-
-[[package]]
-name = "glfw_app"
-version = "0.0.1"
-dependencies = [
- "cgl 0.0.1 (git+https://github.com/servo/rust-cgl)",
- "compositing 0.0.1",
- "geom 0.1.0 (git+https://github.com/servo/rust-geom)",
- "gleam 0.0.1 (git+https://github.com/servo/gleam)",
- "glfw 0.0.1 (git+https://github.com/servo/glfw-rs?branch=servo)",
- "layers 0.1.0 (git+https://github.com/servo/rust-layers)",
- "msg 0.0.1",
- "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
 ]
 
 [[package]]
@@ -710,11 +679,6 @@ dependencies = [
  "url 0.2.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
-
-[[package]]
-name = "semver"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "skia-sys"
