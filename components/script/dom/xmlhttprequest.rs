@@ -489,8 +489,21 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
     fn WithCredentials(self) -> bool {
         self.with_credentials.get()
     }
-    fn SetWithCredentials(self, with_credentials: bool) {
-        self.with_credentials.set(with_credentials);
+    // Spec for SetWithCredentials: https://xhr.spec.whatwg.org/#dom-xmlhttprequest-withcredentials
+    fn SetWithCredentials(self, with_credentials: bool) -> ErrorResult {
+        match self.ready_state.get() {
+            XMLHttpRequestState::HeadersReceived |
+            XMLHttpRequestState::Loading |
+            XMLHttpRequestState::XHRDone => Err(InvalidState),
+            _ if self.send_flag.get() => Err(InvalidState),
+            _ => match self.global.root() {
+                GlobalRoot::Window(_) if self.sync.get() => Err(InvalidAccess),
+                _ => {
+                    self.with_credentials.set(with_credentials);
+                    Ok(())
+                },
+            },
+        }
     }
     fn Upload(self) -> Temporary<XMLHttpRequestUpload> {
         Temporary::new(self.upload)

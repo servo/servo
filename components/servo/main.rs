@@ -13,10 +13,8 @@ extern crate servo;
 extern crate time;
 extern crate util;
 
-#[cfg(all(feature = "glutin_app",not(test)))]
+#[cfg(not(test))]
 extern crate "glutin_app" as app;
-#[cfg(all(feature = "glfw",not(test)))]
-extern crate "glfw_app" as app;
 
 #[cfg(not(test))]
 extern crate compositing;

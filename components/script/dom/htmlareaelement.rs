@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMet
 use dom::bindings::codegen::InheritTypes::{HTMLAreaElementDerived, HTMLElementCast};
 use dom::bindings::codegen::InheritTypes::ElementCast;
 use dom::bindings::js::{MutNullableJS, JSRef, Temporary};
-use dom::bindings::utils::{Reflectable, Reflector};
+use dom::bindings::utils::Reflectable;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::ElementTypeId;
@@ -21,9 +21,7 @@ use std::default::Default;
 use string_cache::Atom;
 use util::str::DOMString;
 
-#[jstraceable]
-#[must_root]
-#[privatize]
+#[dom_struct]
 pub struct HTMLAreaElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableJS<DOMTokenList>,
@@ -61,12 +59,6 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLAreaElement> {
             &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
-    }
-}
-
-impl Reflectable for HTMLAreaElement {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.htmlelement.reflector()
     }
 }
 

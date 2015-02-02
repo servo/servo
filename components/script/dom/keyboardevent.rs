@@ -9,7 +9,7 @@ use dom::bindings::codegen::InheritTypes::{EventCast, UIEventCast, KeyboardEvent
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JSRef, Temporary, RootedReference};
-use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::event::{Event, EventTypeId};
 use dom::uievent::UIEvent;
 use dom::window::Window;
@@ -19,8 +19,7 @@ use util::str::DOMString;
 use std::borrow::ToOwned;
 use std::cell::{RefCell, Cell};
 
-#[jstraceable]
-#[must_root]
+#[dom_struct]
 pub struct KeyboardEvent {
     uievent: UIEvent,
     key: RefCell<DOMString>,
@@ -630,11 +629,5 @@ impl<'a> KeyboardEventMethods for JSRef<'a, KeyboardEvent> {
 
     fn Which(self) -> u32 {
         self.char_code.get().unwrap_or(self.KeyCode())
-    }
-}
-
-impl Reflectable for KeyboardEvent {
-    fn reflector<'a>(&'a self) -> &'a Reflector {
-        self.uievent.reflector()
     }
 }
