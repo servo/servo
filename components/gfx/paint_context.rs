@@ -13,6 +13,7 @@ use azure::azure_hl::{GaussianBlurAttribute, StrokeOptions, SurfaceFormat};
 use azure::scaled_font::ScaledFont;
 use azure::{AZ_CAP_BUTT, AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use azure::{struct__AzGlyphBuffer, struct__AzPoint, AzDrawTargetFillGlyphs};
+use color;
 use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
 use display_list::{BOX_SHADOW_INFLATION_FACTOR, BorderRadii, ClippingRegion, TextDisplayItem};
 use filters;
@@ -153,7 +154,7 @@ impl<'a> PaintContext<'a> {
     }
 
     pub fn clear(&self) {
-        let pattern = ColorPattern::new(Color::new(0.0, 0.0, 0.0, 0.0));
+        let pattern = ColorPattern::new(color::black());
         let rect = Rect(Point2D(self.page_rect.origin.x as AzFloat,
                                 self.page_rect.origin.y as AzFloat),
                         Size2D(self.screen_rect.size.width as AzFloat,
@@ -728,9 +729,9 @@ impl<'a> PaintContext<'a> {
         };
 
         let mut lighter_color;
-        let mut darker_color;
-
-        if color.r != 0.0 || color.g != 0.0 || color.b != 0.0 {
+        let mut darker_color = color::black();;
+        // TODO(Savago): Use equality operators when we sync with rust-azure.
+        if color.r != darker_color.r || color.g != darker_color.g || color.b != darker_color.b {
             darker_color = self.scale_color(color, if is_groove { 1.0/3.0 } else { 2.0/3.0 });
             lighter_color = color;
         } else {
@@ -773,8 +774,9 @@ impl<'a> PaintContext<'a> {
         let original_bounds = self.get_scaled_bounds(bounds, border, 0.0);
 
         // You can't scale black color (i.e. 'scaled = 0 * scale', equals black).
-        let mut scaled_color;
-        if color.r != 0.0 || color.g != 0.0 || color.b != 0.0 {
+        let mut scaled_color = color::black();
+        // TODO(Savago): Use equality operators when we sync with rust-azure.
+        if color.r != scaled_color.r || color.g != scaled_color.g || color.b != scaled_color.b {
             scaled_color = match direction {
                 Direction::Top | Direction::Left => {
                     self.scale_color(color, if is_inset { 2.0/3.0 } else { 1.0     })

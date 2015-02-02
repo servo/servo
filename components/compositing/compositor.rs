@@ -11,13 +11,13 @@ use scrolling::ScrollingTimerProxy;
 use windowing;
 use windowing::{MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
-use azure::azure_hl;
 use std::cmp;
 use std::mem;
 use geom::point::{Point2D, TypedPoint2D};
 use geom::rect::{Rect, TypedRect};
 use geom::size::TypedSize2D;
 use geom::scale_factor::ScaleFactor;
+use gfx::color;
 use gfx::paint_task::Msg as PaintMsg;
 use gfx::paint_task::PaintRequest;
 use layers::geometry::{DevicePixel, LayerPixel};
@@ -508,7 +508,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             epoch: Epoch(0),
             id: LayerId::null(),
             rect: Rect::zero(),
-            background_color: azure_hl::Color::new(0., 0., 0., 0.),
+            background_color: color::black(),
             scroll_policy: ScrollPolicy::Scrollable,
         };
 
