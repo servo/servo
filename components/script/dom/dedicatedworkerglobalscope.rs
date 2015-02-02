@@ -47,7 +47,7 @@ pub struct SendableWorkerScriptChan {
 
 impl ScriptChan for SendableWorkerScriptChan {
     fn send(&self, msg: ScriptMsg) {
-        self.sender.send((self.worker.clone(), msg));
+        self.sender.send((self.worker.clone(), msg)).unwrap();
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {

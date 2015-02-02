@@ -124,11 +124,11 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                 };
 
                 let ConstellationChan(ref chan) = constellation_chan;
-                chan.send(ConstellationMsg::InitLoadUrl(url));
+                chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
             }
 
             // Send the constallation Chan as the result
-            result_chan.send(constellation_chan);
+            result_chan.send(constellation_chan).unwrap();
         });
 
         let constellation_chan = result_port.recv().unwrap();

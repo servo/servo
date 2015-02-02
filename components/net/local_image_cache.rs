@@ -94,13 +94,13 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
             match state.last_response {
                 ImageResponseMsg::ImageReady(ref image) => {
                     let (chan, port) = channel();
-                    chan.send(ImageResponseMsg::ImageReady(image.clone()));
+                    chan.send(ImageResponseMsg::ImageReady(image.clone())).unwrap();
                     return port;
                 }
                 ImageResponseMsg::ImageNotReady => {
                     if last_round == round_number {
                         let (chan, port) = channel();
-                        chan.send(ImageResponseMsg::ImageNotReady);
+                        chan.send(ImageResponseMsg::ImageNotReady).unwrap();
                         return port;
                     } else {
                         // We haven't requested the image from the
@@ -109,7 +109,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
                 }
                 ImageResponseMsg::ImageFailed => {
                     let (chan, port) = channel();
-                    chan.send(ImageResponseMsg::ImageFailed);
+                    chan.send(ImageResponseMsg::ImageFailed).unwrap();
                     return port;
                 }
             }
@@ -149,7 +149,7 @@ impl<NodeAddress: Send> LocalImageCache<NodeAddress> {
         self.get_state(url).last_response = response_copy;
 
         let (chan, port) = channel();
-        chan.send(response);
+        chan.send(response).unwrap();
         return port;
     }
 

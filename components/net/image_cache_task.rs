@@ -166,7 +166,7 @@ impl ImageCache {
                 Msg::Prefetch(url) => self.prefetch(url),
                 Msg::StorePrefetchedImageData(url, data) => {
                     store_prefetched_chan.map(|chan| {
-                        chan.send(());
+                        chan.send(()).unwrap();
                     });
                     store_prefetched_chan = None;
 
@@ -175,7 +175,7 @@ impl ImageCache {
                 Msg::Decode(url) => self.decode(url),
                 Msg::StoreImage(url, image) => {
                     store_chan.map(|chan| {
-                        chan.send(());
+                        chan.send(()).unwrap();
                     });
                     store_chan = None;
 
@@ -211,7 +211,7 @@ impl ImageCache {
                 }
 
                 if can_exit {
-                    response.send(());
+                    response.send(()).unwrap();
                     break;
                 } else {
                     self.need_exit = Some(response);
@@ -245,7 +245,7 @@ impl ImageCache {
                     debug!("image_cache_task: started fetch for {}", url.serialize());
 
                     let image = load_image_data(url.clone(), resource_task.clone());
-                    to_cache.send(Msg::StorePrefetchedImageData(url.clone(), image));
+                    to_cache.send(Msg::StorePrefetchedImageData(url.clone(), image)).unwrap();
                     debug!("image_cache_task: ended fetch for {}", url.serialize());
                 });
 
@@ -309,7 +309,7 @@ impl ImageCache {
                     debug!("image_cache_task: started image decode for {}", url.serialize());
                     let image = load_from_memory(data.as_slice());
                     let image = image.map(|image| Arc::new(box image));
-                    to_cache.send(Msg::StoreImage(url.clone(), image));
+                    to_cache.send(Msg::StoreImage(url.clone(), image)).unwrap();
                     debug!("image_cache_task: ended image decode for {}", url.serialize());
                 });
 
@@ -354,7 +354,7 @@ impl ImageCache {
             Some(waiters) => {
                 let items = waiters.lock().unwrap();
                 for response in items.iter() {
-                    response.send(f());
+                    response.send(f()).unwrap();
                 }
             }
             None => ()
@@ -391,11 +391,11 @@ impl ImageCache {
             }
 
             ImageState::Decoded(image) => {
-                response.send(ImageResponseMsg::ImageReady(image));
+                response.send(ImageResponseMsg::ImageReady(image)).unwrap();
             }
 
             ImageState::Failed => {
-                response.send(ImageResponseMsg::ImageFailed);
+                response.send(ImageResponseMsg::ImageFailed).unwrap();
             }
         }
     }
@@ -417,7 +417,7 @@ impl ImageCacheTaskClient for ImageCacheTask {
 
 impl ImageCacheTask {
     pub fn send(&self, msg: Msg) {
-        self.chan.send(msg);
+        self.chan.send(msg).unwrap();
     }
 
     #[cfg(test)]
@@ -437,7 +437,7 @@ impl ImageCacheTask {
 
 fn load_image_data(url: Url, resource_task: ResourceTask) -> Result<Vec<u8>, ()> {
     let (response_chan, response_port) = channel();
-    resource_task.send(resource_task::ControlMsg::Load(LoadData::new(url, response_chan)));
+    resource_task.send(resource_task::ControlMsg::Load(LoadData::new(url, response_chan))).unwrap();
 
     let mut image_data = vec!();
 
@@ -466,7 +466,7 @@ pub fn spawn_listener<F, A>(f: F) -> Sender<A>
 
     spawn_named("ImageCacheTask (listener)".to_owned(), move || {
         let (chan, port) = channel();
-        setup_chan.send(chan);
+        setup_chan.send(chan).unwrap();
         f(port);
     });
     setup_port.recv().unwrap()

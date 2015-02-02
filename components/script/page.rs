@@ -139,7 +139,7 @@ impl Page {
         let layout_rpc: Box<LayoutRPC> = {
             let (rpc_send, rpc_recv) = channel();
             let LayoutChan(ref lchan) = layout_chan;
-            lchan.send(Msg::GetRPC(rpc_send));
+            lchan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
         Page {
@@ -323,7 +323,7 @@ impl Page {
                     match join_port.try_recv() {
                         Err(Empty) => {
                             info!("script: waiting on layout");
-                            join_port.recv();
+                            join_port.recv().unwrap();
                         }
                         Ok(_) => {}
                         Err(Disconnected) => {
@@ -398,7 +398,7 @@ impl Page {
         };
 
         let LayoutChan(ref chan) = self.layout_chan;
-        chan.send(Msg::Reflow(reflow));
+        chan.send(Msg::Reflow(reflow)).unwrap();
 
         debug!("script: layout forked");
 
