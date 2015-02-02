@@ -664,7 +664,7 @@ impl LayoutTask {
 
             // FIXME(pcwalton): This is really ugly and can't handle overflow: scroll. Refactor
             // it with extreme prejudice.
-            let mut color = color::rgba(1.0, 1.0, 1.0, 1.0);
+            let mut color = color::white();
             for child in node.traverse_preorder() {
                 if child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHtmlElement))) ||
                         child.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement))) {
@@ -676,9 +676,12 @@ impl LayoutTask {
                                                                          .background_color)
                                          .to_gfx_color()
                     };
-                    // FIXME: Add equality operators for azure color type.
-                    if element_bg_color.r != 0.0 || element_bg_color.g != 0.0 ||
-                       element_bg_color.b != 0.0 || element_bg_color.a != 0.0 {
+
+                    let black = color::black();
+                    // TODO: Use equality operators when we sync with rust-azure.
+                    if element_bg_color.r != black.r || element_bg_color.g != black.g ||
+                       element_bg_color.b != black.b || element_bg_color.a != black.a {
+
                         color = element_bg_color;
                         break;
                     }
