@@ -11,11 +11,11 @@ macro_rules! make_getter(
             #[allow(unused_imports)]
             use std::ascii::AsciiExt;
             let element: JSRef<Element> = ElementCast::from_ref(self);
-            element.get_string_attribute(&Atom::from_slice($htmlname.to_ascii_lowercase().as_slice()))
+            element.get_string_attribute(&Atom::from_slice($htmlname))
         }
     );
     ($attr:ident) => {
-        make_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
+        make_getter!($attr, to_lower!(stringify!($attr)));
     }
 );
 
@@ -33,7 +33,7 @@ macro_rules! make_bool_getter(
         }
     );
     ($attr:ident) => {
-        make_bool_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
+        make_bool_getter!($attr, to_lower!(stringify!($attr)));
     }
 );
 
@@ -51,7 +51,7 @@ macro_rules! make_uint_getter(
         }
     );
     ($attr:ident) => {
-        make_uint_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
+        make_uint_getter!($attr, to_lower!(stringify!($attr)));
     }
 );
 
@@ -70,7 +70,7 @@ macro_rules! make_url_getter(
     );
     ($attr:ident) => {
         // FIXME(pcwalton): Do this at compile time, not runtime.
-        make_url_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
+        make_url_getter!($attr, to_lower!(stringify!($attr)));
     }
 );
 
@@ -94,7 +94,7 @@ macro_rules! make_url_or_base_getter(
         }
     );
     ($attr:ident) => {
-        make_url_or_base_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice());
+        make_url_or_base_getter!($attr, to_lower!(stringify!($attr)));
     }
 );
 
@@ -118,7 +118,7 @@ macro_rules! make_enumerated_getter(
         }
     );
     ($attr:ident, $default:expr, $(($choices: pat))|+) => {
-        make_enumerated_getter!($attr, stringify!($attr).to_ascii_lowercase().as_slice(), $default, $(($choices))|+);
+        make_enumerated_getter!($attr, to_lower!(stringify!($attr)).as_slice(), $default, $(($choices))|+);
     }
 );
 
