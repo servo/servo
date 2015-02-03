@@ -53,6 +53,7 @@ impl HTMLButtonElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLButtonElement {
         HTMLButtonElement {
             htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document),
+            //TODO: implement button_type in after_set_attr
             button_type: Cell::new(ButtonType::ButtonSubmit)
         }
     }

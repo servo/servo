@@ -394,6 +394,7 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
     fn get_indeterminate_state(self) -> bool {
         self.indeterminate.get()
     }
+
     // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
     fn mutable(self) -> bool {
         // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-fe-mutable
@@ -401,6 +402,8 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
         let node: JSRef<Node> = NodeCast::from_ref(self);
         !(node.get_disabled_state() || self.ReadOnly())
     }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-form-reset-control
     fn reset(self) {
         match self.input_type.get() {
             InputType::InputRadio | InputType::InputCheckbox => {
