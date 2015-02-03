@@ -2,30 +2,45 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::activation::Activatable;
 use dom::attr::Attr;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
-use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, NodeCast};
+use dom::bindings::codegen::InheritTypes::{ElementCast, HTMLElementCast, HTMLButtonElementCast, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLButtonElementDerived, HTMLFieldSetElementDerived};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::document::Document;
-use dom::element::{AttributeHandlers, Element};
+use dom::element::{AttributeHandlers, Element, ElementTypeId};
+use dom::element::ActivationElementHelpers;
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
-use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, window_from_node};
+use dom::htmlformelement::{FormSubmitter, FormControl, HTMLFormElementHelpers};
+use dom::htmlformelement::{SubmittedFrom};
+use dom::node::{DisabledStateHelpers, Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 
 use std::ascii::OwnedAsciiExt;
 use std::borrow::ToOwned;
 use util::str::DOMString;
+use std::cell::Cell;
 use string_cache::Atom;
+
+#[jstraceable]
+#[derive(PartialEq, Copy)]
+#[allow(dead_code)]
+enum ButtonType {
+    ButtonSubmit,
+    ButtonReset,
+    ButtonButton,
+    ButtonMenu
+}
 
 #[dom_struct]
 pub struct HTMLButtonElement {
-    htmlelement: HTMLElement
+    htmlelement: HTMLElement,
+    button_type: Cell<ButtonType>
 }
 
 impl HTMLButtonElementDerived for EventTarget {
@@ -37,7 +52,9 @@ impl HTMLButtonElementDerived for EventTarget {
 impl HTMLButtonElement {
     fn new_inherited(localName: DOMString, prefix: Option<DOMString>, document: JSRef<Document>) -> HTMLButtonElement {
         HTMLButtonElement {
-            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document)
+            htmlelement: HTMLElement::new_inherited(HTMLElementTypeId::HTMLButtonElement, localName, prefix, document),
+            //TODO: implement button_type in after_set_attr
+            button_type: Cell::new(ButtonType::ButtonSubmit)
         }
     }
 
@@ -73,6 +90,23 @@ impl<'a> HTMLButtonElementMethods for JSRef<'a, HTMLButtonElement> {
 
     // https://html.spec.whatwg.org/multipage/forms.html#dom-button-type
     make_setter!(SetType, "type");
+
+    // https://html.spec.whatwg.org/multipage/forms.html#htmlbuttonelement
+    make_url_or_base_getter!(FormAction);
+
+    make_setter!(SetFormAction, "formaction");
+
+    make_enumerated_getter!(FormEnctype, "application/x-www-form-urlencoded", ("text/plain") | ("multipart/form-data"));
+
+    make_setter!(SetFormEnctype, "formenctype");
+
+    make_enumerated_getter!(FormMethod, "get", ("post") | ("dialog"));
+
+    make_setter!(SetFormMethod, "formmethod");
+
+    make_getter!(FormTarget);
+
+    make_setter!(SetFormTarget, "formtarget");
 }
 
 impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
@@ -135,6 +169,71 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLButtonElement> {
             node.check_ancestors_disabled_state_for_form_control();
         } else {
             node.check_disabled_attribute();
+        }
+    }
+}
+
+impl<'a> FormControl<'a> for JSRef<'a, HTMLButtonElement> {
+    fn to_element(self) -> JSRef<'a, Element> {
+        ElementCast::from_ref(self)
+    }
+}
+
+impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
+    fn as_element(&self) -> Temporary<Element> {
+        Temporary::from_rooted(ElementCast::from_ref(*self))
+    }
+
+    fn is_instance_activatable(&self) -> bool {
+        //https://html.spec.whatwg.org/multipage/forms.html#the-button-element
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        !(node.get_disabled_state())
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
+    // https://html.spec.whatwg.org/multipage/forms.html#the-button-element:activation-behavior
+    fn pre_click_activation(&self) {
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-canceled-activation-steps
+    fn canceled_activation(&self) {
+    }
+
+    // https://html.spec.whatwg.org/multipage/interaction.html#run-post-click-activation-steps
+    fn activation_behavior(&self) {
+        let ty = self.button_type.get();
+        match ty {
+            //https://html.spec.whatwg.org/multipage/forms.html#attr-button-type-submit-state
+            ButtonType::ButtonSubmit => {
+                self.form_owner().map(|o| {
+                    o.root().r().submit(SubmittedFrom::NotFromFormSubmitMethod,
+                                        FormSubmitter::ButtonElement(self.clone()))
+                });
+            }
+            _ => ()
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#implicit-submission
+    #[allow(unsafe_blocks)]
+    fn implicit_submission(&self, ctrlKey: bool, shiftKey: bool, altKey: bool, metaKey: bool) {
+        let doc = document_from_node(*self).root();
+        let node: JSRef<Node> = NodeCast::from_ref(doc.r());
+        let owner = self.form_owner();
+        let elem: JSRef<Element> = ElementCast::from_ref(*self);
+        if owner.is_none() || elem.click_in_progress() {
+            return;
+        }
+        // This is safe because we are stopping after finding the first element
+        // and only then performing actions which may modify the DOM tree
+        unsafe {
+            node.query_selector_iter("button[type=submit]".to_owned()).unwrap()
+                .filter_map(|t| {
+                    let h: Option<JSRef<HTMLButtonElement>> = HTMLButtonElementCast::to_ref(t);
+                    h
+                })
+                .find(|r| r.form_owner() == owner)
+                .map(|&:s| s.synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
         }
     }
 }

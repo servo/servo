@@ -8,11 +8,11 @@ interface HTMLButtonElement : HTMLElement {
   //         attribute boolean autofocus;
            attribute boolean disabled;
   //readonly attribute HTMLFormElement? form;
-  //         attribute DOMString formAction;
-  //         attribute DOMString formEnctype;
-  //         attribute DOMString formMethod;
+             attribute DOMString formAction;
+             attribute DOMString formEnctype;
+             attribute DOMString formMethod;
   //         attribute boolean formNoValidate;
-  //         attribute DOMString formTarget;
+             attribute DOMString formTarget;
   //         attribute DOMString name;
            attribute DOMString type;
   //         attribute DOMString value;

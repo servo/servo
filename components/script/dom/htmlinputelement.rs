@@ -303,6 +303,8 @@ pub trait HTMLInputElementHelpers {
     fn update_checked_state(self, checked: bool, dirty: bool);
     fn get_size(&self) -> u32;
     fn get_indeterminate_state(self) -> bool;
+    fn mutable(self) -> bool;
+    fn reset(self);
 }
 
 #[allow(unsafe_blocks)]
@@ -391,6 +393,29 @@ impl<'a> HTMLInputElementHelpers for JSRef<'a, HTMLInputElement> {
 
     fn get_indeterminate_state(self) -> bool {
         self.indeterminate.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
+    fn mutable(self) -> bool {
+        // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-fe-mutable
+        // https://html.spec.whatwg.org/multipage/forms.html#the-readonly-attribute:concept-fe-mutable
+        let node: JSRef<Node> = NodeCast::from_ref(self);
+        !(node.get_disabled_state() || self.ReadOnly())
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-form-reset-control
+    fn reset(self) {
+        match self.input_type.get() {
+            InputType::InputRadio | InputType::InputCheckbox => {
+                self.update_checked_state(self.DefaultChecked(), false);
+                self.checked_changed.set(false);
+            },
+            InputType::InputImage => (),
+            _ => ()
+        }
+
+        self.SetValue(self.DefaultValue());
+        self.value_changed.set(false);
     }
 }
 
@@ -583,31 +608,7 @@ impl<'a> FormControl<'a> for JSRef<'a, HTMLInputElement> {
     fn to_element(self) -> JSRef<'a, Element> {
         ElementCast::from_ref(self)
     }
-
-    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
-    fn mutable(self) -> bool {
-        // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-fe-mutable
-        // https://html.spec.whatwg.org/multipage/forms.html#the-readonly-attribute:concept-fe-mutable
-        let node: JSRef<Node> = NodeCast::from_ref(self);
-        !(node.get_disabled_state() || self.ReadOnly())
-    }
-
-    // https://html.spec.whatwg.org/multipage/forms.html#the-input-element:concept-form-reset-control
-    fn reset(self) {
-        match self.input_type.get() {
-            InputType::InputRadio | InputType::InputCheckbox => {
-                self.update_checked_state(self.DefaultChecked(), false);
-                self.checked_changed.set(false);
-            },
-            InputType::InputImage => (),
-            _ => ()
-        }
-
-        self.SetValue(self.DefaultValue());
-        self.value_changed.set(false);
-    }
 }
-
 
 impl<'a> Activatable for JSRef<'a, HTMLInputElement> {
     fn as_element(&self) -> Temporary<Element> {

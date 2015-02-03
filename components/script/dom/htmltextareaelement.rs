@@ -187,6 +187,24 @@ impl<'a> HTMLTextAreaElementMethods for JSRef<'a, HTMLTextAreaElement> {
     }
 }
 
+pub trait HTMLTextAreaElementHelpers {
+    fn mutable(self) -> bool;
+    fn reset(self);
+}
+
+impl<'a> HTMLTextAreaElementHelpers for JSRef<'a, HTMLTextAreaElement> {
+    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
+    fn mutable(self) -> bool {
+        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-fe-mutable
+        !(self.Disabled() || self.ReadOnly())
+    }
+    fn reset(self) {
+        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-form-reset-control
+        self.SetValue(self.DefaultValue());
+        self.value_changed.set(false);
+    }
+}
+
 trait PrivateHTMLTextAreaElementHelpers {
     fn force_relayout(self);
 }
@@ -334,17 +352,5 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLTextAreaElement> {
 impl<'a> FormControl<'a> for JSRef<'a, HTMLTextAreaElement> {
     fn to_element(self) -> JSRef<'a, Element> {
         ElementCast::from_ref(self)
-    }
-
-    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
-    fn mutable(self) -> bool {
-        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-fe-mutable
-        !(self.Disabled() || self.ReadOnly())
-    }
-
-    fn reset(self) {
-        // https://html.spec.whatwg.org/multipage/forms.html#the-textarea-element:concept-form-reset-control
-        self.SetValue(self.DefaultValue());
-        self.value_changed.set(false);
     }
 }
