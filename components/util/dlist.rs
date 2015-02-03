@@ -9,7 +9,7 @@ use std::mem;
 use std::ptr;
 
 struct RawDList<T> {
-    length: uint,
+    length: usize,
     head: *mut RawNode<T>,
     tail: *mut RawNode<T>,
 }

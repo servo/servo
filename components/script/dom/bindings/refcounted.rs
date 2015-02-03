@@ -50,7 +50,7 @@ pub struct Trusted<T> {
     /// A pointer to the Rust DOM object of type T, but void to allow
     /// sending `Trusted<T>` between tasks, regardless of T's sendability.
     ptr: *const libc::c_void,
-    refcount: Arc<Mutex<uint>>,
+    refcount: Arc<Mutex<usize>>,
     script_chan: Box<ScriptChan + Send>,
     owner_thread: *const libc::c_void,
 }
@@ -123,7 +123,7 @@ impl<T: Reflectable> Drop for Trusted<T> {
 /// from being garbage collected due to outstanding references.
 pub struct LiveDOMReferences {
     // keyed on pointer to Rust DOM object
-    table: RefCell<HashMap<*const libc::c_void, Arc<Mutex<uint>>>>
+    table: RefCell<HashMap<*const libc::c_void, Arc<Mutex<usize>>>>
 }
 
 impl LiveDOMReferences {
@@ -136,7 +136,7 @@ impl LiveDOMReferences {
         });
     }
 
-    fn addref<T: Reflectable>(&self, cx: *mut JSContext, ptr: *const T) -> Arc<Mutex<uint>> {
+    fn addref<T: Reflectable>(&self, cx: *mut JSContext, ptr: *const T) -> Arc<Mutex<usize>> {
         let mut table = self.table.borrow_mut();
         match table.entry(ptr as *const libc::c_void) {
             Occupied(mut entry) => {

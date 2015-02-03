@@ -1013,7 +1013,7 @@ pub mod longhands {
                     &SpecifiedValue::Bolder => write!(f, "bolder"),
                     &SpecifiedValue::Lighter => write!(f, "lighter"),
                     % for weight in range(100, 901, 100):
-                        &SpecifiedValue::Weight${weight} => write!(f, "{}", ${weight}i),
+                        &SpecifiedValue::Weight${weight} => write!(f, "{}", ${weight}is),
                     % endfor
                 }
             }
@@ -1055,7 +1055,7 @@ pub mod longhands {
                 fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                     match self {
                         % for weight in range(100, 901, 100):
-                            &T::Weight${weight} => write!(f, "{}", ${weight}i),
+                            &T::Weight${weight} => write!(f, "{}", ${weight}is),
                         % endfor
                     }
                 }
@@ -1114,7 +1114,7 @@ pub mod longhands {
             use util::geometry::Au;
             pub type T = Au;
         }
-        const MEDIUM_PX: int = 16;
+        const MEDIUM_PX: isize = 16;
         #[inline] pub fn get_initial_value() -> computed_value::T {
             Au::from_px(MEDIUM_PX)
         }
@@ -2280,11 +2280,11 @@ pub mod shorthands {
 // TODO(SimonSapin): Convert this to a syntax extension rather than a Mako template.
 // Maybe submit for inclusion in libstd?
 mod property_bit_field {
-    use std::uint;
+    use std::usize;
     use std::mem;
 
     pub struct PropertyBitField {
-        storage: [uint; (${len(LONGHANDS)} - 1 + uint::BITS) / uint::BITS]
+        storage: [usize; (${len(LONGHANDS)} - 1 + usize::BITS) / usize::BITS]
     }
 
     impl PropertyBitField {
@@ -2294,12 +2294,12 @@ mod property_bit_field {
         }
 
         #[inline]
-        fn get(&self, bit: uint) -> bool {
-            (self.storage[bit / uint::BITS] & (1 << (bit % uint::BITS))) != 0
+        fn get(&self, bit: usize) -> bool {
+            (self.storage[bit / usize::BITS] & (1 << (bit % usize::BITS))) != 0
         }
         #[inline]
-        fn set(&mut self, bit: uint) {
-            self.storage[bit / uint::BITS] |= 1 << (bit % uint::BITS)
+        fn set(&mut self, bit: usize) {
+            self.storage[bit / usize::BITS] |= 1 << (bit % usize::BITS)
         }
         % for i, property in enumerate(LONGHANDS):
             % if property.derived_from is None:

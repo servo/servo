@@ -341,7 +341,7 @@ extern fn dequeueBuffer(base: *mut ANativeWindow, buf: *mut *mut ANativeWindowBu
     unsafe {
         let window: &mut GonkNativeWindow = transmute(base);
         for idx in range(0, window.bufs.len()) {
-            if idx == window.last_idx as uint {
+            if idx == window.last_idx as usize {
                 continue;
             }
             match window.bufs[idx] {
@@ -691,7 +691,7 @@ impl Window {
              egl::EGL_ALPHA_SIZE, 0,
              egl::EGL_NONE, 0];
 
-        let mut config: EGLConfig = unsafe { transmute(0i) };
+        let mut config: EGLConfig = unsafe { transmute(0is) };
         let mut num_config: EGLint = 0;
 
         let ret2 = unsafe {
@@ -769,8 +769,8 @@ impl Drop for Window {
 
 impl WindowMethods for Window {
     /// Returns the size of the window in hardware pixels.
-    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, uint> {
-        TypedSize2D(self.width as uint, self.height as uint)
+    fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, usize> {
+        TypedSize2D(self.width as usize, self.height as usize)
     }
 
     /// Returns the size of the window in density-independent "px" units.

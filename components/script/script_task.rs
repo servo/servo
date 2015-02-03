@@ -676,7 +676,7 @@ impl ScriptTask {
     }
 
     /// Handles a notification that reflow completed.
-    fn handle_reflow_complete_msg(&self, pipeline_id: PipelineId, reflow_id: uint) {
+    fn handle_reflow_complete_msg(&self, pipeline_id: PipelineId, reflow_id: usize) {
         debug!("Script: Reflow {:?} complete for {:?}", reflow_id, pipeline_id);
         let page = self.page.borrow_mut();
         let page = page.find(pipeline_id).expect(
@@ -1136,7 +1136,7 @@ impl ScriptTask {
         }
     }
 
-    fn handle_click_event(&self, pipeline_id: PipelineId, _button: uint, point: Point2D<f32>) {
+    fn handle_click_event(&self, pipeline_id: PipelineId, _button: usize, point: Point2D<f32>) {
         debug!("ClickEvent: clicked at {:?}", point);
         let page = get_page(&*self.page.borrow(), pipeline_id);
         match page.hit_test(&point) {

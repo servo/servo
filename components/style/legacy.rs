@@ -157,7 +157,7 @@ impl PresentationalHintSynthesis for Stylist {
                             Some("text") | Some("password") => {
                                 specified::Length::ServoCharacterWidth(value)
                             }
-                            _ => specified::Length::Au(Au::from_px(value as int)),
+                            _ => specified::Length::Au(Au::from_px(value as isize)),
                         };
                         matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                                 PropertyDeclaration::Width(SpecifiedValue(
@@ -235,7 +235,7 @@ impl PresentationalHintSynthesis for Stylist {
         match element.get_unsigned_integer_attribute(UnsignedIntegerAttribute::Border) {
             None => {}
             Some(length) => {
-                let width_value = specified::Length::Au(Au::from_px(length as int));
+                let width_value = specified::Length::Au(Au::from_px(length as isize));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(
                         PropertyDeclaration::BorderTopWidth(SpecifiedValue(width_value))));
                 matching_rules_list.vec_push(DeclarationBlock::from_declaration(

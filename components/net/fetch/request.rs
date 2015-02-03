@@ -84,7 +84,7 @@ pub struct Request {
     pub credentials_mode: CredentialsMode,
     pub use_url_credentials: bool,
     pub manual_redirect: bool,
-    pub redirect_count: uint,
+    pub redirect_count: usize,
     pub response_tainting: ResponseTainting,
     pub cache: Option<Box<CORSCache+'static>>
 }

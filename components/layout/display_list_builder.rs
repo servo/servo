@@ -346,8 +346,8 @@ impl FragmentDisplayListBuilding for Fragment {
         };
         debug!("(building display list) building background image");
 
-        let image_width = Au::from_px(image.width as int);
-        let image_height = Au::from_px(image.height as int);
+        let image_width = Au::from_px(image.width as isize);
+        let image_height = Au::from_px(image.height as isize);
         let mut bounds = *absolute_bounds;
 
         // Clip.
@@ -410,8 +410,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                 Cursor::DefaultCursor),
                                        clip),
             image: image.clone(),
-            stretch_size: Size2D(Au::from_px(image.width as int),
-                                 Au::from_px(image.height as int)),
+            stretch_size: Size2D(Au::from_px(image.width as isize),
+                                 Au::from_px(image.height as isize)),
         }), level);
     }
 
@@ -905,9 +905,9 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 let width = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_inline_size.map_or(0, |w| to_px(w) as uint);
+                    .computed_inline_size.map_or(0, |w| to_px(w) as usize);
                 let height = canvas_fragment_info.replaced_image_fragment_info
-                    .computed_block_size.map_or(0, |h| to_px(h) as uint);
+                    .computed_block_size.map_or(0, |h| to_px(h) as usize);
 
                 let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
@@ -1313,8 +1313,8 @@ impl ListItemFlowDisplayListBuilding for ListItemFlow {
 struct StopRun {
     start_offset: f32,
     end_offset: f32,
-    start_index: uint,
-    stop_count: uint,
+    start_index: usize,
+    stop_count: usize,
 }
 
 fn fmin(a: f32, b: f32) -> f32 {

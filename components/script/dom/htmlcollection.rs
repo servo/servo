@@ -194,13 +194,13 @@ impl<'a> HTMLCollectionMethods for JSRef<'a, HTMLCollection> {
         match self.collection {
             CollectionTypeId::Static(ref elems) => elems
                 .as_slice()
-                .get(index as uint)
+                .get(index as usize)
                 .map(|elem| Temporary::new(elem.clone())),
             CollectionTypeId::Live(ref root, ref filter) => {
                 let root = root.root();
                 HTMLCollection::traverse(root.r())
                     .filter(|element| filter.filter(*element, root.r()))
-                    .nth(index as uint)
+                    .nth(index as usize)
                     .clone()
                     .map(Temporary::from_rooted)
             }

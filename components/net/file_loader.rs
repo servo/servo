@@ -11,7 +11,7 @@ use std::io::File;
 use std::sync::mpsc::Sender;
 use util::task::spawn_named;
 
-static READ_SIZE: uint = 8192;
+static READ_SIZE: usize = 8192;
 
 fn read_all(reader: &mut io::Stream, progress_chan: &Sender<ProgressMsg>)
         -> Result<(), String> {

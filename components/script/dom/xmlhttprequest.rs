@@ -95,7 +95,7 @@ impl Runnable for XHRProgressHandler {
 
 #[derive(PartialEq, Clone, Copy)]
 #[jstraceable]
-pub struct GenerationId(uint);
+pub struct GenerationId(usize);
 
 #[derive(Clone)]
 pub enum XHRProgress {
@@ -149,7 +149,7 @@ pub struct XMLHttpRequest {
     request_method: DOMRefCell<Method>,
     request_url: DOMRefCell<Option<Url>>,
     request_headers: DOMRefCell<Headers>,
-    request_body_len: Cell<uint>,
+    request_body_len: Cell<usize>,
     sync: Cell<bool>,
     upload_complete: Cell<bool>,
     upload_events: Cell<bool>,

@@ -60,10 +60,10 @@ impl<'a> NodeListMethods for JSRef<'a, NodeList> {
     fn Item(self, index: u32) -> Option<Temporary<Node>> {
         match self.list_type {
             _ if index >= self.Length() => None,
-            NodeListType::Simple(ref elems) => Some(Temporary::new(elems[index as uint].clone())),
+            NodeListType::Simple(ref elems) => Some(Temporary::new(elems[index as usize].clone())),
             NodeListType::Children(ref node) => {
                 let node = node.root();
-                node.r().children().nth(index as uint)
+                node.r().children().nth(index as usize)
                                    .map(|child| Temporary::from_rooted(child))
             }
         }

@@ -73,7 +73,7 @@ pub struct FloatedBlockInfo {
     pub float_ceiling: Au,
 
     /// Index into the fragment list for inline floats
-    pub index: Option<uint>,
+    pub index: Option<usize>,
 
     /// Left or right?
     pub float_kind: FloatKind,
@@ -1838,11 +1838,11 @@ impl Flow for BlockFlow {
         self.fragment.border_box - self.fragment.style().logical_border_width()
     }
 
-    fn layer_id(&self, fragment_index: uint) -> LayerId {
+    fn layer_id(&self, fragment_index: usize) -> LayerId {
         // FIXME(#2010, pcwalton): This is a hack and is totally bogus in the presence of pseudo-
         // elements. But until we have incremental reflow we can't do better--we recreate the flow
         // for every DOM node so otherwise we nuke layers on every reflow.
-        LayerId(self.fragment.node.id() as uint, fragment_index)
+        LayerId(self.fragment.node.id() as usize, fragment_index)
     }
 
     fn is_absolute_containing_block(&self) -> bool {
@@ -2607,7 +2607,7 @@ impl ISizeAndMarginsComputer for FloatReplaced {
 
 fn propagate_column_inline_sizes_to_child(
         kid: &mut Flow,
-        child_index: uint,
+        child_index: usize,
         content_inline_size: Au,
         column_computed_inline_sizes: &[ColumnComputedInlineSize],
         inline_start_margin_edge: &mut Au) {

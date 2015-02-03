@@ -100,7 +100,7 @@ impl FlowList {
 
     /// O(1)
     #[inline]
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         self.flows.len()
     }
 }
@@ -113,7 +113,7 @@ impl<'a> Iterator for FlowListIterator<'a> {
     }
 
     #[inline]
-    fn size_hint(&self) -> (uint, Option<uint>) {
+    fn size_hint(&self) -> (usize, Option<usize>) {
         self.it.size_hint()
     }
 }
@@ -126,7 +126,7 @@ impl<'a> Iterator for MutFlowListIterator<'a> {
     }
 
     #[inline]
-    fn size_hint(&self) -> (uint, Option<uint>) {
+    fn size_hint(&self) -> (usize, Option<usize>) {
         self.it.size_hint()
     }
 }

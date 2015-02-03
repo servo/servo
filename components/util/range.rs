@@ -15,13 +15,13 @@ pub trait RangeIndex: Int + fmt::Show {
     fn get(self) -> Self::Index;
 }
 
-impl RangeIndex for int {
-    type Index = int;
+impl RangeIndex for isize {
+    type Index = isize;
     #[inline]
-    fn new(x: int) -> int { x }
+    fn new(x: isize) -> isize { x }
 
     #[inline]
-    fn get(self) -> int { self }
+    fn get(self) -> isize { self }
 }
 
 /// Implements a range index type with operator overloads
@@ -34,8 +34,8 @@ macro_rules! int_range_index {
 
         impl $Self {
             #[inline]
-            pub fn to_uint(self) -> uint {
-                self.get() as uint
+            pub fn to_uint(self) -> usize {
+                self.get() as usize
             }
         }
 
@@ -57,11 +57,11 @@ macro_rules! int_range_index {
             fn one() -> $Self { $Self(1) }
             fn min_value() -> $Self { $Self(::std::num::Int::min_value()) }
             fn max_value() -> $Self { $Self(::std::num::Int::max_value()) }
-            fn count_ones(self) -> uint { self.get().count_ones() }
-            fn leading_zeros(self) -> uint { self.get().leading_zeros() }
-            fn trailing_zeros(self) -> uint { self.get().trailing_zeros() }
-            fn rotate_left(self, n: uint) -> $Self { $Self(self.get().rotate_left(n)) }
-            fn rotate_right(self, n: uint) -> $Self { $Self(self.get().rotate_right(n)) }
+            fn count_ones(self) -> usize { self.get().count_ones() }
+            fn leading_zeros(self) -> usize { self.get().leading_zeros() }
+            fn trailing_zeros(self) -> usize { self.get().trailing_zeros() }
+            fn rotate_left(self, n: usize) -> $Self { $Self(self.get().rotate_left(n)) }
+            fn rotate_right(self, n: usize) -> $Self { $Self(self.get().rotate_right(n)) }
             fn swap_bytes(self) -> $Self { $Self(self.get().swap_bytes()) }
             fn checked_add(self, other: $Self) -> Option<$Self> {
                 self.get().checked_add(other.get()).map($Self)
@@ -171,16 +171,16 @@ macro_rules! int_range_index {
             }
         }
 
-        impl Shl<uint> for $Self {
+        impl Shl<usize> for $Self {
             type Output = $Self;
-            fn shl(self, n: uint) -> $Self {
+            fn shl(self, n: usize) -> $Self {
                 $Self(self.get() << n)
             }
         }
 
-        impl Shr<uint> for $Self {
+        impl Shr<usize> for $Self {
             type Output = $Self;
-            fn shr(self, n: uint) -> $Self {
+            fn shr(self, n: usize) -> $Self {
                 $Self(self.get() >> n)
             }
         }
@@ -218,7 +218,7 @@ impl<T: Int, I: RangeIndex<Index=T>> Iterator for EachIndex<T, I> {
     }
 
     #[inline]
-    fn size_hint(&self) -> (uint, Option<uint>) {
+    fn size_hint(&self) -> (usize, Option<usize>) {
         self.it.size_hint()
     }
 }
@@ -370,7 +370,7 @@ impl<T: Int, I: RangeIndex<Index=T>> Range<I> {
     #[inline]
     pub fn is_valid_for_string(&self, s: &str) -> bool {
         let s_len = s.len();
-        match num::cast::<uint, T>(s_len) {
+        match num::cast::<usize, T>(s_len) {
             Some(len) => {
                 let len = RangeIndex::new(len);
                 self.begin() < len

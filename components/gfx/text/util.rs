@@ -111,20 +111,20 @@ pub fn transform_text(text: &str,
     }
 }
 
-pub fn float_to_fixed(before: int, f: f64) -> i32 {
-    ((1i32 << before as uint) as f64 * f) as i32
+pub fn float_to_fixed(before: isize, f: f64) -> i32 {
+    ((1i32 << before as usize) as f64 * f) as i32
 }
 
-pub fn fixed_to_float(before: int, f: i32) -> f64 {
-    f as f64 * 1.0f64 / ((1i32 << before as uint) as f64)
+pub fn fixed_to_float(before: isize, f: i32) -> f64 {
+    f as f64 * 1.0f64 / ((1i32 << before as usize) as f64)
 }
 
-pub fn fixed_to_rounded_int(before: int, f: i32) -> int {
-    let half = 1i32 << (before-1) as uint;
+pub fn fixed_to_rounded_int(before: isize, f: i32) -> isize {
+    let half = 1i32 << (before-1) as usize;
     if f > 0i32 {
-        ((half + f) >> before as uint) as int
+        ((half + f) >> before as usize) as isize
     } else {
-       -((half - f) >> before as uint) as int
+       -((half - f) >> before as usize) as isize
     }
 }
 

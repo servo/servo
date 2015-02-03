@@ -39,7 +39,7 @@ pub trait IDLInterface {
     fn get_prototype_id(_: Option<Self>) -> PrototypeList::ID;
     /// Returns the prototype depth, i.e., the number of interfaces this
     /// interface inherits from.
-    fn get_prototype_depth(_: Option<Self>) -> uint;
+    fn get_prototype_depth(_: Option<Self>) -> usize;
 }
 
 /// A trait to convert Rust types to `JSVal`s.
@@ -283,7 +283,7 @@ pub fn jsstring_to_str(cx: *mut JSContext, s: *mut JSString) -> DOMString {
     unsafe {
         let mut length = 0;
         let chars = JS_GetStringCharsAndLength(cx, s, &mut length);
-        let char_vec = slice::from_raw_buf(&chars, length as uint);
+        let char_vec = slice::from_raw_buf(&chars, length as usize);
         String::from_utf16(char_vec).unwrap()
     }
 }
@@ -342,7 +342,7 @@ impl FromJSValConvertible for ByteString {
 
             let mut length = 0;
             let chars = JS_GetStringCharsAndLength(cx, string, &mut length);
-            let char_vec = slice::from_raw_buf(&chars, length as uint);
+            let char_vec = slice::from_raw_buf(&chars, length as usize);
 
             if char_vec.iter().any(|&c| c > 0xFF) {
                 // XXX Throw
@@ -387,8 +387,8 @@ pub fn is_dom_proxy(obj: *mut JSObject) -> bool {
 /// stored for non-proxy bindings.
 // We use slot 0 for holding the raw object.  This is safe for both
 // globals and non-globals.
-pub const DOM_OBJECT_SLOT: uint = 0;
-const DOM_PROXY_OBJECT_SLOT: uint = js::JSSLOT_PROXY_PRIVATE as uint;
+pub const DOM_OBJECT_SLOT: usize = 0;
+const DOM_PROXY_OBJECT_SLOT: usize = js::JSSLOT_PROXY_PRIVATE as usize;
 
 /// Returns the index of the slot wherein a pointer to the reflected DOM object
 /// is stored.

@@ -20,9 +20,9 @@ use std::rc::Rc;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
-    Click(uint, TypedPoint2D<DevicePixel, f32>),
-    MouseDown(uint, TypedPoint2D<DevicePixel, f32>),
-    MouseUp(uint, TypedPoint2D<DevicePixel, f32>),
+    Click(usize, TypedPoint2D<DevicePixel, f32>),
+    MouseDown(usize, TypedPoint2D<DevicePixel, f32>),
+    MouseUp(usize, TypedPoint2D<DevicePixel, f32>),
 }
 
 #[derive(Clone)]

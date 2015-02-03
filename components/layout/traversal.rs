@@ -26,7 +26,7 @@ use std::mem;
 
 /// Every time we do another layout, the old bloom filters are invalid. This is
 /// detected by ticking a generation number every layout.
-type Generation = uint;
+type Generation = usize;
 
 /// A pair of the bloom filter used for css selector matching, and the node to
 /// which it applies. This is used to efficiently do `Descendant` selector
@@ -105,7 +105,7 @@ fn insert_ancestors_into_bloom_filter(bf: &mut Box<BloomFilter>,
                                       mut n: LayoutNode,
                                       layout_context: &LayoutContext) {
     debug!("[{}] Inserting ancestors.", tid());
-    let mut ancestors = 0u;
+    let mut ancestors = 0us;
     loop {
         ancestors += 1;
 

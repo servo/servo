@@ -33,7 +33,7 @@ fn static_assertion(node: UnsafeLayoutNode) {
 }
 
 /// Vtable + pointer representation of a Flow trait object.
-pub type UnsafeFlow = (uint, uint);
+pub type UnsafeFlow = (usize, usize);
 
 fn null_unsafe_flow() -> UnsafeFlow {
     (0, 0)
@@ -108,7 +108,7 @@ pub trait ParallelPreorderDomTraversal : PreorderDomTraversal {
         {
             let mut layout_data_ref = node.mutate_layout_data();
             let layout_data = layout_data_ref.as_mut().expect("no layout data");
-            layout_data.data.parallel.children_count.store(child_count as int, Ordering::Relaxed);
+            layout_data.data.parallel.children_count.store(child_count as isize, Ordering::Relaxed);
         }
 
         // Possibly enqueue the children.
@@ -231,7 +231,7 @@ trait ParallelPostorderFlowTraversal : PostorderFlowTraversal {
                 let base = flow::mut_base(&mut **flow);
 
                 // Reset the count of children for the next layout traversal.
-                base.parallel.children_count.store(base.children.len() as int, Ordering::Relaxed);
+                base.parallel.children_count.store(base.children.len() as isize, Ordering::Relaxed);
 
                 // Possibly enqueue the parent.
                 let unsafe_parent = base.parallel.parent;

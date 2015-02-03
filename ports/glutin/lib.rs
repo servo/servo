@@ -4,7 +4,7 @@
 
 //! A simple application that uses glutin to open a window for Servo to display in.
 
-#![feature(box_syntax, int_uint)]
+#![feature(box_syntax)]
 #![deny(unused_imports, unused_variables)]
 #![allow(unstable)]
 
