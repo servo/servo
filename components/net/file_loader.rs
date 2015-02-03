@@ -47,15 +47,15 @@ pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
                 match File::open_mode(&Path::new(file_path), io::Open, io::Read) {
                     Ok(ref mut reader) => {
                         let res = read_all(reader as &mut io::Stream, &progress_chan);
-                        progress_chan.send(Done(res));
+                        progress_chan.send(Done(res)).unwrap();
                     }
                     Err(e) => {
-                        progress_chan.send(Done(Err(e.desc.to_string())));
+                        progress_chan.send(Done(Err(e.desc.to_string()))).unwrap();
                     }
                 }
             }
             Err(_) => {
-                progress_chan.send(Done(Err(url.to_string())));
+                progress_chan.send(Done(Err(url.to_string()))).unwrap();
             }
         }
     });

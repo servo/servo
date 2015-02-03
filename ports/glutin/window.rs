@@ -675,7 +675,7 @@ unsafe impl Send for GlutinCompositorProxy {}
 impl CompositorProxy for GlutinCompositorProxy {
     fn send(&mut self, msg: compositor_task::Msg) {
         // Send a message and kick the OS event loop awake.
-        self.sender.send(msg);
+        self.sender.send(msg).unwrap();
         match self.window_proxy {
             Some(ref window_proxy) => window_proxy.wakeup_event_loop(),
             None => {}

@@ -144,7 +144,7 @@ pub struct NonWorkerScriptChan(pub Sender<ScriptMsg>);
 impl ScriptChan for NonWorkerScriptChan {
     fn send(&self, msg: ScriptMsg) {
         let NonWorkerScriptChan(ref chan) = *self;
-        chan.send(msg);
+        chan.send(msg).unwrap();
     }
 
     fn clone(&self) -> Box<ScriptChan+Send> {
@@ -695,7 +695,7 @@ impl ScriptTask {
     /// TODO(tkuehn): is it ever possible to navigate only on a subframe?
     fn handle_navigate_msg(&self, direction: NavigationDirection) {
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::Navigate(direction));
+        chan.send(ConstellationMsg::Navigate(direction)).unwrap();
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
@@ -832,7 +832,7 @@ impl ScriptTask {
                 data: load_data.data,
                 cors: None,
                 consumer: input_chan,
-            }));
+            })).unwrap();
 
             let load_response = input_port.recv().unwrap();
 
@@ -899,7 +899,7 @@ impl ScriptTask {
         *page.fragment_name.borrow_mut() = final_url.fragment.clone();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::LoadComplete);
+        chan.send(ConstellationMsg::LoadComplete).unwrap();
 
         // Notify devtools that a new script global exists.
         match self.devtools_chan {
@@ -910,7 +910,7 @@ impl ScriptTask {
                     url: final_url
                 };
                 chan.send(NewGlobal(pipeline_id, self.devtools_sender.clone(),
-                                    page_info));
+                                    page_info)).unwrap();
             }
         }
     }
@@ -1070,7 +1070,7 @@ impl ScriptTask {
     /// for the given pipeline.
     fn trigger_load(&self, pipeline_id: PipelineId, load_data: LoadData) {
         let ConstellationChan(ref const_chan) = self.constellation_chan;
-        const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data));
+        const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data)).unwrap();
     }
 
     /// The entry point for content to notify that a fragment url has been requested
@@ -1284,8 +1284,8 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime, exit_type: Pipelin
         // processed this message.
         let (response_chan, response_port) = channel();
         let LayoutChan(ref chan) = page.layout_chan;
-        chan.send(layout_interface::Msg::PrepareToExit(response_chan));
-        response_port.recv();
+        chan.send(layout_interface::Msg::PrepareToExit(response_chan)).unwrap();
+        response_port.recv().unwrap();
     }
 
     // Remove our references to the DOM objects in this page tree.
@@ -1307,7 +1307,7 @@ fn shut_down_layout(page_tree: &Rc<Page>, rt: *mut JSRuntime, exit_type: Pipelin
     // Destroy the layout task. If there were node leaks, layout will now crash safely.
     for page in page_tree.iter() {
         let LayoutChan(ref chan) = page.layout_chan;
-        chan.send(layout_interface::Msg::ExitNow(exit_type));
+        chan.send(layout_interface::Msg::ExitNow(exit_type)).unwrap();
     }
 }
 
