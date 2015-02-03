@@ -185,13 +185,9 @@ impl<'a> Activatable for JSRef<'a, HTMLButtonElement> {
     }
 
     fn is_instance_activatable(&self) -> bool {
-        match self.button_type.get() {
-            //https://html.spec.whatwg.org/multipage/forms.html#the-button-element
-            _ => {
-                let node: JSRef<Node> = NodeCast::from_ref(*self);
-                !(node.get_disabled_state())
-            }
-        }
+        //https://html.spec.whatwg.org/multipage/forms.html#the-button-element
+        let node: JSRef<Node> = NodeCast::from_ref(*self);
+        !(node.get_disabled_state())
     }
 
     // https://html.spec.whatwg.org/multipage/interaction.html#run-pre-click-activation-steps
