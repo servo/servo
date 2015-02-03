@@ -57,7 +57,7 @@ impl<'a> StyleElementHelpers for JSRef<'a, HTMLStyleElement> {
         let data = node.GetTextContent().expect("Element.textContent must be a string");
         let sheet = Stylesheet::from_str(data.as_slice(), url, Origin::Author);
         let LayoutChan(ref layout_chan) = win.page().layout_chan;
-        layout_chan.send(Msg::AddStylesheet(sheet));
+        layout_chan.send(Msg::AddStylesheet(sheet)).unwrap();
     }
 }
 

@@ -204,7 +204,7 @@ impl LayoutTaskFactory for LayoutTask {
                         time_profiler_chan);
                 layout.start();
             }
-            shutdown_chan.send(());
+            shutdown_chan.send(()).unwrap();
         }, ConstellationMsg::Failure(failure_msg), con_chan);
     }
 }
@@ -400,7 +400,7 @@ impl LayoutTask {
             Msg::SetQuirksMode => self.handle_set_quirks_mode(possibly_locked_rw_data),
             Msg::GetRPC(response_chan) => {
                 response_chan.send(box LayoutRPCImpl(self.rw_data.clone()) as
-                                   Box<LayoutRPC + Send>);
+                                   Box<LayoutRPC + Send>).unwrap();
             },
             Msg::Reflow(data) => {
                 profile(TimeProfilerCategory::LayoutPerform,
@@ -434,7 +434,7 @@ impl LayoutTask {
     fn prepare_to_exit<'a>(&'a self,
                            response_chan: Sender<()>,
                            possibly_locked_rw_data: &mut Option<MutexGuard<'a, LayoutTaskData>>) {
-        response_chan.send(());
+        response_chan.send(()).unwrap();
         loop {
             match self.port.recv().unwrap() {
                 Msg::ReapLayoutData(dead_layout_data) => {
@@ -878,9 +878,9 @@ impl LayoutTask {
         //
         // FIXME(pcwalton): This should probably be *one* channel, but we can't fix this without
         // either select or a filtered recv() that only looks for messages of a given type.
-        data.script_join_chan.send(());
+        data.script_join_chan.send(()).unwrap();
         let ScriptControlChan(ref chan) = data.script_chan;
-        chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id));
+        chan.send(ConstellationControlMsg::ReflowComplete(self.id, data.id)).unwrap();
     }
 
     unsafe fn dirty_all_nodes(node: &mut LayoutNode) {
@@ -1009,7 +1009,7 @@ impl LayoutRPC for LayoutRPCImpl {
                 Cursor::DefaultCursor
             };
             let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-            constellation_chan.send(ConstellationMsg::SetCursor(cursor));
+            constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
         }
 
         if mouse_over_list.is_empty() {

@@ -912,7 +912,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 let (sender, receiver) = channel::<Vec<u8>>();
                 let canvas_data = match canvas_fragment_info.renderer {
                     Some(ref renderer) =>  {
-                        renderer.lock().unwrap().send(SendPixelContents(sender));
+                        renderer.lock().unwrap().send(SendPixelContents(sender)).unwrap();
                         receiver.recv().unwrap()
                     },
                     None => repeat(0xFFu8).take(width * height * 4).collect(),
@@ -955,7 +955,7 @@ impl FragmentDisplayListBuilding for Fragment {
         let ConstellationChan(ref chan) = layout_context.shared.constellation_chan;
         chan.send(ConstellationMsg::FrameRect(iframe_fragment.pipeline_id,
                                               iframe_fragment.subpage_id,
-                                              iframe_rect));
+                                              iframe_rect)).unwrap();
     }
 
     fn clipping_region_for_children(&self,

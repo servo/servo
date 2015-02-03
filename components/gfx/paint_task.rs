@@ -186,7 +186,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
             }
 
             debug!("paint_task: shutdown_chan send");
-            shutdown_chan.send(());
+            shutdown_chan.send(()).unwrap();
         }, ConstellationMsg::Failure(failure_msg), c);
     }
 
@@ -203,7 +203,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::PainterReady(self.id));
+                        c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
                         continue;
                     }
 
@@ -214,7 +214,7 @@ impl<C> PaintTask<C> where C: PaintListener + Send {
                     if !self.paint_permission {
                         debug!("PaintTask: paint ready msg");
                         let ConstellationChan(ref mut c) = self.constellation_chan;
-                        c.send(ConstellationMsg::PainterReady(self.id));
+                        c.send(ConstellationMsg::PainterReady(self.id)).unwrap();
                         self.compositor.paint_msg_discarded();
                         continue;
                     }

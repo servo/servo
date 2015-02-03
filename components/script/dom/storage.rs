@@ -54,21 +54,21 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn Length(self) -> u32 {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::Length(sender, self.get_url()));
+        self.get_storage_task().send(StorageTaskMsg::Length(sender, self.get_url())).unwrap();
         receiver.recv().unwrap()
     }
 
     fn Key(self, index: u32) -> Option<DOMString> {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::Key(sender, self.get_url(), index));
+        self.get_storage_task().send(StorageTaskMsg::Key(sender, self.get_url(), index)).unwrap();
         receiver.recv().unwrap()
     }
 
     fn GetItem(self, name: DOMString) -> Option<DOMString> {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::GetItem(sender, self.get_url(), name));
+        self.get_storage_task().send(StorageTaskMsg::GetItem(sender, self.get_url(), name)).unwrap();
         receiver.recv().unwrap()
     }
 
@@ -81,7 +81,7 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn SetItem(self, name: DOMString, value: DOMString) {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::SetItem(sender, self.get_url(), name, value));
+        self.get_storage_task().send(StorageTaskMsg::SetItem(sender, self.get_url(), name, value)).unwrap();
         if receiver.recv().unwrap() {
             //TODO send notification
         }
@@ -98,7 +98,7 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn RemoveItem(self, name: DOMString) {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::RemoveItem(sender, self.get_url(), name));
+        self.get_storage_task().send(StorageTaskMsg::RemoveItem(sender, self.get_url(), name)).unwrap();
         if receiver.recv().unwrap() {
             //TODO send notification
         }
@@ -111,7 +111,7 @@ impl<'a> StorageMethods for JSRef<'a, Storage> {
     fn Clear(self) {
         let (sender, receiver) = channel();
 
-        self.get_storage_task().send(StorageTaskMsg::Clear(sender, self.get_url()));
+        self.get_storage_task().send(StorageTaskMsg::Clear(sender, self.get_url())).unwrap();
         if receiver.recv().unwrap() {
             //TODO send notification
         }

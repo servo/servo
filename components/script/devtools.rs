@@ -45,7 +45,7 @@ pub fn handle_evaluate_js(page: &Rc<Page>, pipeline: PipelineId, eval: String, r
         //FIXME: jsvals don't have an is_int32/is_number yet
         assert!(rval.is_object());
         panic!("object values unimplemented")
-    });
+    }).unwrap();
 }
 
 pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: Sender<NodeInfo>) {
@@ -54,7 +54,7 @@ pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: Sender
     let document = frame.as_ref().unwrap().document.root();
 
     let node: JSRef<Node> = NodeCast::from_ref(document.r());
-    reply.send(node.summarize());
+    reply.send(node.summarize()).unwrap();
 }
 
 pub fn handle_get_document_element(page: &Rc<Page>, pipeline: PipelineId, reply: Sender<NodeInfo>) {
@@ -64,7 +64,7 @@ pub fn handle_get_document_element(page: &Rc<Page>, pipeline: PipelineId, reply:
     let document_element = document.r().GetDocumentElement().root().unwrap();
 
     let node: JSRef<Node> = NodeCast::from_ref(document_element.r());
-    reply.send(node.summarize());
+    reply.send(node.summarize()).unwrap();
 }
 
 fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Temporary<Node> {
@@ -85,14 +85,14 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
 pub fn handle_get_children(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<Vec<NodeInfo>>) {
     let parent = find_node_by_unique_id(&*page, pipeline, node_id).root();
     let children = parent.r().children().map(|child| child.summarize()).collect();
-    reply.send(children);
+    reply.send(children).unwrap();
 }
 
 pub fn handle_get_layout(page: &Rc<Page>, pipeline: PipelineId, node_id: String, reply: Sender<(f32, f32)>) {
     let node = find_node_by_unique_id(&*page, pipeline, node_id).root();
     let elem: JSRef<Element> = ElementCast::to_ref(node.r()).expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect().root();
-    reply.send((rect.r().Width(), rect.r().Height()));
+    reply.send((rect.r().Width(), rect.r().Height())).unwrap();
 }
 
 pub fn handle_modify_attribute(page: &Rc<Page>, pipeline: PipelineId, node_id: String, modifications: Vec<Modification>) {

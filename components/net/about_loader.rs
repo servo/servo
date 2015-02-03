@@ -28,7 +28,7 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>
                 headers: None,
                 status: Some(RawStatus(200, "OK".to_owned()))
             });
-            chan.send(Done(Ok(())));
+            chan.send(Done(Ok(()))).unwrap();
             return
         }
         "crash" => panic!("Loading the about:crash URL."),
@@ -40,7 +40,7 @@ pub fn factory(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>
         }
         _ => {
             start_sending(senders, Metadata::default(load_data.url))
-                .send(Done(Err("Unknown about: URL.".to_string())));
+                .send(Done(Err("Unknown about: URL.".to_string()))).unwrap();
             return
         }
     };

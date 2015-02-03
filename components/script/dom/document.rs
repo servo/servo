@@ -223,7 +223,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                 let window = self.window.root();
                 let window = window.r();
                 let LayoutChan(ref layout_chan) = window.page().layout_chan;
-                layout_chan.send(Msg::SetQuirksMode);
+                layout_chan.send(Msg::SetQuirksMode).unwrap();
             }
             NoQuirks | LimitedQuirks => {}
         }
