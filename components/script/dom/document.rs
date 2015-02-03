@@ -209,6 +209,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
         self.is_html_document
     }
 
+    // http://dom.spec.whatwg.org/#dom-document-url
     fn url(self) -> Url {
         self.url.clone()
     }
