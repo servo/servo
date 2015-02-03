@@ -11,8 +11,8 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::js::{JS, JSRef, Temporary};
 use dom::bindings::utils::{Reflectable, Reflector, reflect_dom_object};
-use dom::node::TrustedNodeAddress;
 use dom::document::{Document, DocumentHelpers};
+use dom::node::Node;
 use parse::Parser;
 
 use util::task_state;
@@ -31,7 +31,7 @@ pub struct Sink {
     pub document: JS<Document>,
 }
 
-pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<TrustedNodeAddress, Sink>>;
+pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
 
 // NB: JSTraceable is *not* auto-derived.
 // You must edit the impl below if you add fields!
@@ -92,8 +92,9 @@ struct Tracer {
     trc: *mut JSTracer,
 }
 
-impl tree_builder::Tracer<TrustedNodeAddress> for Tracer {
-    fn trace_handle(&self, node: TrustedNodeAddress) {
+impl tree_builder::Tracer<JS<Node>> for Tracer {
+    #[allow(unrooted_must_root)]
+    fn trace_handle(&self, node: JS<Node>) {
         node.trace(self.trc);
     }
 }
@@ -106,7 +107,7 @@ impl JSTraceable for ServoHTMLParser {
         let tracer = Tracer {
             trc: trc,
         };
-        let tracer = &tracer as &tree_builder::Tracer<TrustedNodeAddress>;
+        let tracer = &tracer as &tree_builder::Tracer<JS<Node>>;
 
         unsafe {
             // Assertion: If the parser is mutably borrowed, we're in the
