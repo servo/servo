@@ -5270,17 +5270,6 @@ pub trait ${castTraitName} : Sized {
 
     #[inline(always)]
     #[allow(unrooted_must_root)]
-    fn to_js<T: ${toBound}+Reflectable>(base: &JS<T>) -> Option<JS<Self>> {
-        unsafe {
-            match (*base.unsafe_get()).${checkFn}() {
-                true => Some(base.transmute_copy()),
-                false => None
-            }
-        }
-    }
-
-    #[inline(always)]
-    #[allow(unrooted_must_root)]
     fn to_layout_js<T: ${toBound}+Reflectable>(base: &LayoutJS<T>) -> Option<LayoutJS<Self>> {
         unsafe {
             match (*base.unsafe_get()).${checkFn}() {
