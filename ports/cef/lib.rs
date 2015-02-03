@@ -24,6 +24,7 @@ extern crate js;
 extern crate layers;
 extern crate png;
 extern crate script;
+extern crate unicode;
 
 extern crate "net" as servo_net;
 extern crate "msg" as servo_msg;
