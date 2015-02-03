@@ -24,6 +24,7 @@ use std::sync::mpsc::{Receiver, channel};
 pub struct Pipeline {
     pub id: PipelineId,
     pub subpage_id: Option<SubpageId>,
+    pub parent_id: Option<PipelineId>,
     pub script_chan: ScriptControlChan,
     pub layout_chan: LayoutControlChan,
     pub paint_chan: PaintChan,
@@ -49,6 +50,7 @@ impl Pipeline {
     /// If script_pipeline is not None, then subpage_id must also be not None.
     pub fn create<LTF,STF>(id: PipelineId,
                            subpage_id: Option<SubpageId>,
+                           parent_id: Option<PipelineId>,
                            constellation_chan: ConstellationChan,
                            compositor_proxy: Box<CompositorProxy+'static+Send>,
                            devtools_chan: Option<DevtoolsControlChan>,
@@ -130,6 +132,7 @@ impl Pipeline {
 
         Pipeline::new(id,
                       subpage_id,
+                      parent_id,
                       script_chan,
                       LayoutControlChan(pipeline_chan),
                       paint_chan,
@@ -140,6 +143,7 @@ impl Pipeline {
 
     pub fn new(id: PipelineId,
                subpage_id: Option<SubpageId>,
+               parent_id: Option<PipelineId>,
                script_chan: ScriptControlChan,
                layout_chan: LayoutControlChan,
                paint_chan: PaintChan,
@@ -150,6 +154,7 @@ impl Pipeline {
         Pipeline {
             id: id,
             subpage_id: subpage_id,
+            parent_id: parent_id,
             script_chan: script_chan,
             layout_chan: layout_chan,
             paint_chan: paint_chan,
@@ -162,7 +167,7 @@ impl Pipeline {
 
     pub fn load(&self) {
         let ScriptControlChan(ref chan) = self.script_chan;
-        chan.send(ConstellationControlMsg::Load(self.id, self.load_data.clone())).unwrap();
+        chan.send(ConstellationControlMsg::Load(self.id, self.parent_id, self.load_data.clone())).unwrap();
     }
 
     pub fn grant_paint_permission(&self) {
