@@ -9,7 +9,7 @@
 
 #[macro_use]
 extern crate log;
-#[plugin]
+#[plugin] #[no_link]
 extern crate "plugins" as servo_plugins;
 
 extern crate servo;
