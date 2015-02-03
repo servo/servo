@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(unsafe_blocks)]
+#![allow(unsafe_blocks, unrooted_must_root)]
 
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -14,7 +14,7 @@ use dom::documenttype::DocumentType;
 use dom::element::{Element, AttributeHandlers, ElementHelpers, ElementCreator};
 use dom::htmlscriptelement::HTMLScriptElement;
 use dom::htmlscriptelement::HTMLScriptElementHelpers;
-use dom::node::{Node, NodeHelpers, TrustedNodeAddress};
+use dom::node::{Node, NodeHelpers};
 use dom::servohtmlparser;
 use dom::servohtmlparser::ServoHTMLParser;
 use dom::text::Text;
@@ -39,13 +39,13 @@ pub enum HTMLInput {
 }
 
 trait SinkHelpers {
-    fn get_or_create(&self, child: NodeOrText<TrustedNodeAddress>) -> Temporary<Node>;
+    fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Temporary<Node>;
 }
 
 impl SinkHelpers for servohtmlparser::Sink {
-    fn get_or_create(&self, child: NodeOrText<TrustedNodeAddress>) -> Temporary<Node> {
+    fn get_or_create(&self, child: NodeOrText<JS<Node>>) -> Temporary<Node> {
         match child {
-            AppendNode(n) => Temporary::new(unsafe { JS::from_trusted_node_address(n) }),
+            AppendNode(n) => Temporary::new(n),
             AppendText(t) => {
                 let doc = self.document.root();
                 let text = Text::new(t, doc.r());
@@ -55,19 +55,19 @@ impl SinkHelpers for servohtmlparser::Sink {
     }
 }
 
-impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
-    fn get_document(&mut self) -> TrustedNodeAddress {
+impl<'a> TreeSink<JS<Node>> for servohtmlparser::Sink {
+    fn get_document(&mut self) -> JS<Node> {
         let doc = self.document.root();
         let node: JSRef<Node> = NodeCast::from_ref(doc.r());
-        node.to_trusted_node_address()
+        JS::from_rooted(node)
     }
 
-    fn same_node(&self, x: TrustedNodeAddress, y: TrustedNodeAddress) -> bool {
+    fn same_node(&self, x: JS<Node>, y: JS<Node>) -> bool {
         x == y
     }
 
-    fn elem_name(&self, target: TrustedNodeAddress) -> QualName {
-        let node: Root<Node> = unsafe { JS::from_trusted_node_address(target).root() };
+    fn elem_name(&self, target: JS<Node>) -> QualName {
+        let node: Root<Node> = target.root();
         let elem: JSRef<Element> = ElementCast::to_ref(node.r())
             .expect("tried to get name of non-Element in HTML parsing");
         QualName {
@@ -77,7 +77,7 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
     }
 
     fn create_element(&mut self, name: QualName, attrs: Vec<Attribute>)
-            -> TrustedNodeAddress {
+            -> JS<Node> {
         let doc = self.document.root();
         let elem = Element::create(name, None, doc.r(),
                                    ElementCreator::ParserCreated).root();
@@ -87,21 +87,21 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
         }
 
         let node: JSRef<Node> = NodeCast::from_ref(elem.r());
-        node.to_trusted_node_address()
+        JS::from_rooted(node)
     }
 
-    fn create_comment(&mut self, text: String) -> TrustedNodeAddress {
+    fn create_comment(&mut self, text: String) -> JS<Node> {
         let doc = self.document.root();
         let comment = Comment::new(text, doc.r());
         let node: Root<Node> = NodeCast::from_temporary(comment).root();
-        node.r().to_trusted_node_address()
+        JS::from_rooted(node.r())
     }
 
     fn append_before_sibling(&mut self,
-            sibling: TrustedNodeAddress,
-            new_node: NodeOrText<TrustedNodeAddress>) -> Result<(), NodeOrText<TrustedNodeAddress>> {
+            sibling: JS<Node>,
+            new_node: NodeOrText<JS<Node>>) -> Result<(), NodeOrText<JS<Node>>> {
         // If there is no parent, return the node to the parser.
-        let sibling: Root<Node> = unsafe { JS::from_trusted_node_address(sibling).root() };
+        let sibling: Root<Node> = sibling.root();
         let parent = match sibling.r().parent_node() {
             Some(p) => p.root(),
             None => return Err(new_node),
@@ -121,8 +121,8 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
         doc.r().set_quirks_mode(mode);
     }
 
-    fn append(&mut self, parent: TrustedNodeAddress, child: NodeOrText<TrustedNodeAddress>) {
-        let parent: Root<Node> = unsafe { JS::from_trusted_node_address(parent).root() };
+    fn append(&mut self, parent: JS<Node>, child: NodeOrText<JS<Node>>) {
+        let parent: Root<Node> = parent.root();
         let child = self.get_or_create(child).root();
 
         // FIXME(#3701): Use a simpler algorithm and merge adjacent text nodes
@@ -138,8 +138,8 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
         assert!(doc_node.AppendChild(node.r()).is_ok());
     }
 
-    fn add_attrs_if_missing(&mut self, target: TrustedNodeAddress, attrs: Vec<Attribute>) {
-        let node: Root<Node> = unsafe { JS::from_trusted_node_address(target).root() };
+    fn add_attrs_if_missing(&mut self, target: JS<Node>, attrs: Vec<Attribute>) {
+        let node: Root<Node> = target.root();
         let elem: JSRef<Element> = ElementCast::to_ref(node.r())
             .expect("tried to set attrs on non-Element in HTML parsing");
         for attr in attrs.into_iter() {
@@ -147,18 +147,18 @@ impl<'a> TreeSink<TrustedNodeAddress> for servohtmlparser::Sink {
         }
     }
 
-    fn remove_from_parent(&mut self, _target: TrustedNodeAddress) {
+    fn remove_from_parent(&mut self, _target: JS<Node>) {
         error!("remove_from_parent not implemented!");
     }
 
-    fn mark_script_already_started(&mut self, node: TrustedNodeAddress) {
-        let node: Root<Node> = unsafe { JS::from_trusted_node_address(node).root() };
+    fn mark_script_already_started(&mut self, node: JS<Node>) {
+        let node: Root<Node> = node.root();
         let script: Option<JSRef<HTMLScriptElement>> = HTMLScriptElementCast::to_ref(node.r());
         script.map(|script| script.mark_already_started());
     }
 
-    fn complete_script(&mut self, node: TrustedNodeAddress) {
-        let node: Root<Node> = unsafe { JS::from_trusted_node_address(node).root() };
+    fn complete_script(&mut self, node: JS<Node>) {
+        let node: Root<Node> = node.root();
         let script: Option<JSRef<HTMLScriptElement>> = HTMLScriptElementCast::to_ref(node.r());
         script.map(|script| script.prepare());
     }
