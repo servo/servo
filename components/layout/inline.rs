@@ -1117,10 +1117,10 @@ impl Flow for InlineFlow {
 
         debug!("InlineFlow::assign_inline_sizes: floats in: {:?}", self.base.floats);
 
-        self.base.position.size.inline = self.base.block_container_inline_size;
+        let inline_size = self.base.block_container_inline_size;
+        self.base.position.size.inline = inline_size;
 
         {
-            let inline_size = self.base.position.size.inline;
             let this = &mut *self;
             for fragment in this.fragments.fragments.iter_mut() {
                 fragment.compute_border_and_padding(inline_size);
@@ -1130,11 +1130,14 @@ impl Flow for InlineFlow {
             }
         }
 
-        // If there are any inline-block kids, propagate explicit block sizes down to them.
+        // If there are any inline-block kids, propagate explicit block and inline
+        // sizes down to them.
         let block_container_explicit_block_size = self.base.block_container_explicit_block_size;
         for kid in self.base.child_iter() {
-            flow::mut_base(kid).block_container_explicit_block_size =
-                block_container_explicit_block_size;
+            let kid_base = flow::mut_base(kid);
+
+            kid_base.block_container_inline_size = inline_size;
+            kid_base.block_container_explicit_block_size = block_container_explicit_block_size;
         }
     }
 

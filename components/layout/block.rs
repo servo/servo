@@ -2153,7 +2153,7 @@ pub trait ISizeAndMarginsComputer {
     /// available_inline-size
     /// where available_inline-size = CB inline-size - (horizontal border + padding)
     fn solve_block_inline_size_constraints(&self,
-                                           _: &mut BlockFlow,
+                                           block: &mut BlockFlow,
                                            input: &ISizeConstraintInput)
                                            -> ISizeConstraintSolution {
         let (computed_inline_size, inline_start_margin, inline_end_margin, available_inline_size) =
@@ -2180,7 +2180,7 @@ pub trait ISizeAndMarginsComputer {
 
         // Invariant: inline-start_margin + inline-size + inline-end_margin ==
         // available_inline-size
-        let (inline_start_margin, inline_size, inline_end_margin) =
+        let (inline_start_margin, mut inline_size, inline_end_margin) =
             match (inline_start_margin, computed_inline_size, inline_end_margin) {
                 // If all have a computed value other than 'auto', the system is
                 // over-constrained so we discard the end margin.
@@ -2213,6 +2213,13 @@ pub trait ISizeAndMarginsComputer {
                     (margin, inline_size, margin)
                 }
             };
+
+        // If inline-size is set to 'auto', and this is an inline block, use the
+        // shrink to fit algorithm (see CSS 2.1 § 10.3.9)
+        if computed_inline_size == MaybeAuto::Auto && block.is_inline_block() {
+            inline_size = block.get_shrink_to_fit_inline_size(inline_size);
+        }
+
         ISizeConstraintSolution::new(inline_size, inline_start_margin, inline_end_margin)
     }
 }
