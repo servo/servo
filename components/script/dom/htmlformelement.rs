@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
+use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use dom::bindings::codegen::InheritTypes::{EventTargetCast, HTMLFormElementDerived, NodeCast};
 use dom::bindings::codegen::InheritTypes::{HTMLInputElementCast, HTMLTextAreaElementCast, HTMLFormElementCast};
 use dom::bindings::global::GlobalRef;
@@ -18,8 +19,9 @@ use dom::event::{Event, EventHelpers, EventBubbles, EventCancelable};
 use dom::eventtarget::{EventTarget, EventTargetTypeId};
 use dom::element::ElementTypeId;
 use dom::htmlelement::{HTMLElement, HTMLElementTypeId};
-use dom::htmlinputelement::HTMLInputElement;
-use dom::htmltextareaelement::HTMLTextAreaElement;
+use dom::htmlinputelement::{HTMLInputElement, HTMLInputElementHelpers};
+use dom::htmlbuttonelement::{HTMLButtonElement};
+use dom::htmltextareaelement::{HTMLTextAreaElement, HTMLTextAreaElementHelpers};
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use hyper::method::Method;
 use servo_msg::constellation_msg::LoadData;
@@ -416,8 +418,9 @@ pub enum FormMethod {
 #[derive(Copy)]
 pub enum FormSubmitter<'a> {
     FormElement(JSRef<'a, HTMLFormElement>),
-    InputElement(JSRef<'a, HTMLInputElement>)
-    // TODO: Submit buttons, image submit, etc etc
+    InputElement(JSRef<'a, HTMLInputElement>),
+    ButtonElement(JSRef<'a, HTMLButtonElement>)
+    // TODO: image submit, etc etc
 }
 
 impl<'a> FormSubmitter<'a> {
@@ -429,6 +432,11 @@ impl<'a> FormSubmitter<'a> {
                 input_element.get_form_attribute(&Atom::from_slice("formaction"),
                                                  |i| i.FormAction(),
                                                  |f| f.Action())
+            },
+            FormSubmitter::ButtonElement(button_element) => {
+                button_element.get_form_attribute(&Atom::from_slice("formaction"),
+                                                  |i| i.FormAction(),
+                                                  |f| f.Action())
             }
         }
     }
@@ -441,6 +449,11 @@ impl<'a> FormSubmitter<'a> {
                 input_element.get_form_attribute(&Atom::from_slice("formenctype"),
                                                  |i| i.FormEnctype(),
                                                  |f| f.Enctype())
+            },
+            FormSubmitter::ButtonElement(button_element) => {
+                button_element.get_form_attribute(&Atom::from_slice("formenctype"),
+                                                  |i| i.FormAction(),
+                                                  |f| f.Action())
             }
         };
         match attr.as_slice() {
@@ -460,6 +473,11 @@ impl<'a> FormSubmitter<'a> {
                 input_element.get_form_attribute(&Atom::from_slice("formmethod"),
                                                  |i| i.FormMethod(),
                                                  |f| f.Method())
+            },
+            FormSubmitter::ButtonElement(button_element) => {
+                button_element.get_form_attribute(&Atom::from_slice("formmethod"),
+                                                  |i| i.FormAction(),
+                                                  |f| f.Action())
             }
         };
         match attr.as_slice() {
@@ -477,6 +495,11 @@ impl<'a> FormSubmitter<'a> {
                 input_element.get_form_attribute(&Atom::from_slice("formtarget"),
                                                  |i| i.FormTarget(),
                                                  |f| f.Target())
+            },
+            FormSubmitter::ButtonElement(button_element) => {
+                button_element.get_form_attribute(&Atom::from_slice("formtarget"),
+                                                  |i| i.FormAction(),
+                                                  |f| f.Action())
             }
         }
     }
@@ -523,7 +546,4 @@ pub trait FormControl<'a> : Copy + Sized {
     }
 
     fn to_element(self) -> JSRef<'a, Element>;
-    // https://html.spec.whatwg.org/multipage/forms.html#concept-fe-mutable
-    fn mutable(self) -> bool;
-    fn reset(self);
 }
