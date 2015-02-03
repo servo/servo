@@ -10,6 +10,8 @@ import SocketServer
 import mozdebug
 from shutil import copytree, rmtree, ignore_patterns, copy2
 
+from mach.registrar import Registrar
+
 from mach.decorators import (
     CommandArgument,
     CommandProvider,
