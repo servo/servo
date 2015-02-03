@@ -127,7 +127,8 @@ class MachCommands(CommandBase):
 
         print("Extracting Rust docs...")
         temp_dir = path.join(hash_dir, "temp_docs")
-        shutil.rmtree(temp_dir)
+        if path.isdir(temp_dir):
+            shutil.rmtree(temp_dir)
         extract(tgz_file, temp_dir)
         shutil.move(path.join(temp_dir, docs_name.split("/")[1], "share", "doc", "rust", "html"), docs_dir)
         shutil.rmtree(temp_dir)
