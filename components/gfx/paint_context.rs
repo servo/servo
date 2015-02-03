@@ -729,7 +729,8 @@ impl<'a> PaintContext<'a> {
         };
 
         let mut lighter_color;
-        let mut darker_color = color::black();;
+        let mut darker_color = color::black();
+        darker_color.a = 1.0;
         if color != darker_color {
             darker_color = self.scale_color(color, if is_groove { 1.0/3.0 } else { 2.0/3.0 });
             lighter_color = color;
@@ -774,6 +775,7 @@ impl<'a> PaintContext<'a> {
 
         // You can't scale black color (i.e. 'scaled = 0 * scale', equals black).
         let mut scaled_color = color::black();
+        scaled_color.a = 1.0;
         if color != scaled_color {
             scaled_color = match direction {
                 Direction::Top | Direction::Left => {
