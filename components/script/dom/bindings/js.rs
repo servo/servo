@@ -187,17 +187,6 @@ impl <T> Clone for LayoutJS<T> {
     }
 }
 
-impl JS<Node> {
-    /// Create a new JS-owned value wrapped from an address known to be a `Node` pointer.
-    pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> JS<Node> {
-        let TrustedNodeAddress(addr) = inner;
-        assert!(!addr.is_null());
-        JS {
-            ptr: NonZero::new(addr as *const Node)
-        }
-    }
-}
-
 impl LayoutJS<Node> {
     /// Create a new JS-owned value wrapped from an address known to be a `Node` pointer.
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> LayoutJS<Node> {
