@@ -33,14 +33,16 @@ pub struct BrowserContext {
     history: Vec<SessionHistoryEntry>,
     active_index: uint,
     window_proxy: *mut JSObject,
+    parent: Option<JS<Window>>,
 }
 
 impl BrowserContext {
-    pub fn new(document: JSRef<Document>) -> BrowserContext {
+    pub fn new(document: JSRef<Document>, parent: Option<JSRef<Window>>) -> BrowserContext {
         let mut context = BrowserContext {
             history: vec!(SessionHistoryEntry::new(document)),
             active_index: 0,
             window_proxy: ptr::null_mut(),
+            parent: parent.map(|p| JS::from_rooted(p)),
         };
         context.create_window_proxy();
         context
@@ -58,6 +60,12 @@ impl BrowserContext {
     pub fn window_proxy(&self) -> *mut JSObject {
         assert!(!self.window_proxy.is_null());
         self.window_proxy
+    }
+
+    pub fn parent(&self) -> Option<Temporary<Window>> {
+        self.parent.map(|p| {
+            p.root().browser_context().as_ref().unwrap().active_window()
+        })
     }
 
     #[allow(unsafe_blocks)]

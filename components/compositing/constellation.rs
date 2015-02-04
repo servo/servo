@@ -393,11 +393,13 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn new_pipeline(&mut self,
                     id: PipelineId,
                     subpage_id: Option<SubpageId>,
+                    parent_id: Option<PipelineId>,
                     script_pipeline: Option<Rc<Pipeline>>,
                     load_data: LoadData)
                     -> Rc<Pipeline> {
         let pipe = Pipeline::create::<LTF, STF>(id,
                                                 subpage_id,
+                                                parent_id,
                                                 self.chan.clone(),
                                                 self.compositor_proxy.clone_compositor_proxy(),
                                                 self.devtools_chan.clone(),
@@ -570,7 +572,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let new_id = self.get_next_pipeline_id();
         let new_frame_id = self.get_next_frame_id();
-        let pipeline = self.new_pipeline(new_id, subpage_id, None,
+        let pipeline = self.new_pipeline(new_id, subpage_id, None, None,
                                          LoadData::new(Url::parse("about:failure").unwrap()));
 
         self.browse(Some(pipeline_id),
@@ -597,7 +599,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     fn handle_init_load(&mut self, url: Url) {
         let next_pipeline_id = self.get_next_pipeline_id();
         let next_frame_id = self.get_next_frame_id();
-        let pipeline = self.new_pipeline(next_pipeline_id, None, None, LoadData::new(url));
+        let pipeline = self.new_pipeline(next_pipeline_id, None, None, None, LoadData::new(url));
         self.browse(None,
                     Rc::new(FrameTree::new(next_frame_id, pipeline.clone(), None)),
                     NavigationType::Load);
@@ -783,6 +785,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
         let pipeline = self.new_pipeline(
             new_frame_pipeline_id,
             Some(new_subpage_id),
+            Some(containing_page_pipeline_id),
             script_pipeline,
             LoadData::new(url)
         );
@@ -827,9 +830,10 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
 
         let parent = source_frame.parent.clone();
         let subpage_id = source_frame.pipeline.borrow().subpage_id;
+        let parent_id = source_frame.pipeline.borrow().parent_id;
         let next_pipeline_id = self.get_next_pipeline_id();
         let next_frame_id = self.get_next_frame_id();
-        let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, None, load_data);
+        let pipeline = self.new_pipeline(next_pipeline_id, subpage_id, parent_id, None, load_data);
         self.browse(Some(source_id),
                     Rc::new(FrameTree::new(next_frame_id,
                                            pipeline.clone(),
