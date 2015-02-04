@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cookie_storage::CookieSource;
 use resource_task::{Metadata, TargetedLoadResponse, LoadData, start_sending_opt, ResponseSenders};
+use resource_task::ControlMsg;
 use resource_task::ProgressMsg::{Payload, Done};
 
 use log;
@@ -13,19 +15,23 @@ use hyper::header::common::{ContentLength, ContentType, Host, Location};
 use hyper::HttpError;
 use hyper::method::Method;
 use hyper::net::HttpConnector;
-use hyper::status::StatusClass;
+use hyper::status::{StatusCode, StatusClass};
 use std::error::Error;
 use openssl::ssl::{SslContext, SslVerifyMode};
 use std::io::{IoError, IoErrorKind, Reader};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Sender, channel};
+use std::thunk::Invoke;
 use util::task::spawn_named;
 use util::resource_files::resources_dir_path;
 use url::{Url, UrlParser};
 
 use std::borrow::ToOwned;
 
-pub fn factory(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
-    spawn_named("http_loader".to_owned(), move || load(load_data, start_chan))
+pub fn factory(cookies_chan: Sender<ControlMsg>)
+               -> Box<Invoke<(LoadData, Sender<TargetedLoadResponse>)> + Send> {
+    box move |:(load_data, start_chan)| {
+        spawn_named("http_loader".to_owned(), move || load(load_data, start_chan, cookies_chan))
+    }
 }
 
 fn send_error(url: Url, err: String, senders: ResponseSenders) {
@@ -38,7 +44,7 @@ fn send_error(url: Url, err: String, senders: ResponseSenders) {
     };
 }
 
-fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
+fn load(mut load_data: LoadData, start_chan: Sender<TargetedLoadResponse>, cookies_chan: Sender<ControlMsg>) {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -60,13 +66,6 @@ fn load(load_data: LoadData, start_chan: Sender<TargetedLoadResponse>) {
             send_error(url, "too many redirects".to_string(), senders);
             return;
         }
-
-        if redirected_to.contains(&url) {
-            send_error(url, "redirect loop".to_string(), senders);
-            return;
-        }
-
-        redirected_to.insert(url.clone());
 
         match url.scheme.as_slice() {
             "http" | "https" => {}
@@ -111,15 +110,45 @@ reason: \"certificate verify failed\" }]";
 
         // Preserve the `host` header set automatically by Request.
         let host = req.headers().get::<Host>().unwrap().clone();
-        *req.headers_mut() = load_data.headers.clone();
+
+        // Avoid automatically preserving request headers when redirects occur.
+        // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
+        // https://bugzilla.mozilla.org/show_bug.cgi?id=216828 .
+        // Only preserve ones which have been explicitly marked as such.
+        if iters == 1 {
+            let mut combined_headers = load_data.headers.clone();
+            combined_headers.extend(load_data.preserved_headers.iter());
+            *req.headers_mut() = combined_headers;
+        } else {
+            *req.headers_mut() = load_data.preserved_headers.clone();
+        }
+
         req.headers_mut().set(host);
+
+        let (tx, rx) = channel();
+        cookies_chan.send(ControlMsg::GetCookiesForUrl(url.clone(), tx, CookieSource::HTTP));
+        if let Some(cookie_list) = rx.recv().unwrap() {
+            let mut v = Vec::new();
+            v.push(cookie_list.into_bytes());
+            req.headers_mut().set_raw("Cookie".to_owned(), v);
+        }
+
         // FIXME(seanmonstar): use AcceptEncoding from Hyper once available
         //if !req.headers.has::<AcceptEncoding>() {
             // We currently don't support HTTP Compression (FIXME #2587)
             req.headers_mut().set_raw("Accept-Encoding".to_owned(), vec![b"identity".to_vec()]);
         //}
+        if log_enabled!(log::INFO) {
+            info!("{}", load_data.method);
+            for header in req.headers().iter() {
+                info!(" - {}", header);
+            }
+            info!("{:?}", load_data.data);
+        }
+
+        // Avoid automatically sending request body if a redirect has occurred.
         let writer = match load_data.data {
-            Some(ref data) => {
+            Some(ref data) if iters == 1 => {
                 req.headers_mut().set(ContentLength(data.len() as u64));
                 let mut writer = match req.start() {
                     Ok(w) => w,
@@ -137,7 +166,7 @@ reason: \"certificate verify failed\" }]";
                 };
                 writer
             },
-            None => {
+            _ => {
                 match load_data.method {
                     Method::Get | Method::Head => (),
                     _ => req.headers_mut().set(ContentLength(0))
@@ -167,6 +196,16 @@ reason: \"certificate verify failed\" }]";
             }
         }
 
+        if let Some(cookies) = response.headers.get_raw("set-cookie") {
+            for cookie in cookies.iter() {
+                if let Ok(cookies) = String::from_utf8(cookie.clone()) {
+                    cookies_chan.send(ControlMsg::SetCookiesForUrl(url.clone(),
+                                                                   cookies,
+                                                                   CookieSource::HTTP));
+                }
+            }
+        }
+
         if response.status.class() == StatusClass::Redirection {
             match response.headers.get::<Location>() {
                 Some(&Location(ref new_url)) => {
@@ -193,6 +232,21 @@ reason: \"certificate verify failed\" }]";
                     };
                     info!("redirecting to {}", new_url);
                     url = new_url;
+
+                    // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
+                    // historically UAs have rewritten POST->GET on 301 and 302 responses.
+                    if load_data.method == Method::Post &&
+                        (response.status == StatusCode::MovedPermanently ||
+                         response.status == StatusCode::Found) {
+                        load_data.method = Method::Get;
+                    }
+
+                    if redirected_to.contains(&url) {
+                        send_error(url, "redirect loop".to_string(), senders);
+                        return;
+                    }
+
+                    redirected_to.insert(url.clone());
                     continue;
                 }
                 None => ()

@@ -22,7 +22,7 @@ git = "https://github.com/servo/rust-geom"
 
 [dependencies.hyper]
 git = "https://github.com/servo/hyper"
-branch = "servo"
+branch = "old_servo_new_cookies"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"

@@ -568,7 +568,8 @@ mod tests {
                             Url::parse("file:///fake").unwrap()));
                         on_load.invoke(chan);
                     }
-                    resource_task::ControlMsg::Exit => break
+                    resource_task::ControlMsg::Exit => break,
+                    _ => {}
                 }
             }
         })
@@ -730,6 +731,7 @@ mod tests {
                         resource_task_exited_chan.send(());
                         break
                     }
+                    _ => {}
                 }
             }
         });
@@ -762,7 +764,6 @@ mod tests {
         let (image_bin_sent_chan, image_bin_sent) = channel();
 
         let (resource_task_exited_chan, resource_task_exited) = channel();
-
         let mock_resource_task = spawn_listener(move |port: Receiver<resource_task::ControlMsg>| {
             loop {
                 match port.recv().unwrap() {
@@ -782,6 +783,7 @@ mod tests {
                         resource_task_exited_chan.send(());
                         break
                     }
+                    _ => {}
                 }
             }
         });

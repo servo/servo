@@ -561,41 +561,35 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         let mut load_data = LoadData::new(self.request_url.borrow().clone().unwrap(), start_chan);
         load_data.data = extracted;
 
-        // Default headers
-        {
-            #[inline]
-            fn join_raw(a: &str, b: &str) -> Vec<u8> {
-                let len = a.len() + b.len();
-                let mut vec = Vec::with_capacity(len);
-                vec.push_all(a.as_bytes());
-                vec.push_all(b.as_bytes());
-                vec
-            }
-            let ref mut request_headers = self.request_headers.borrow_mut();
-            if !request_headers.has::<ContentType>() {
-                // XHR spec differs from http, and says UTF-8 should be in capitals,
-                // instead of "utf-8", which is what Hyper defaults to.
-                let params = ";charset=UTF-8";
-                let n = "content-type";
-                match data {
-                    Some(eString(_)) =>
-                        request_headers.set_raw(n.to_owned(), vec![join_raw("text/plain", params)]),
-                    Some(eURLSearchParams(_)) =>
-                        request_headers.set_raw(
-                            n.to_owned(), vec![join_raw("application/x-www-form-urlencoded", params)]),
-                    None => ()
-                }
-            }
+        #[inline]
+        fn join_raw(a: &str, b: &str) -> Vec<u8> {
+            let len = a.len() + b.len();
+            let mut vec = Vec::with_capacity(len);
+            vec.push_all(a.as_bytes());
+            vec.push_all(b.as_bytes());
+            vec
+        }
 
+        // XHR spec differs from http, and says UTF-8 should be in capitals,
+        // instead of "utf-8", which is what Hyper defaults to.
+        let params = ";charset=UTF-8";
+        let n = "content-type";
+        match data {
+            Some(eString(_)) =>
+                load_data.headers.set_raw(n.to_owned(), vec![join_raw("text/plain", params)]),
+            Some(eURLSearchParams(_)) =>
+                load_data.headers.set_raw(
+                    n.to_owned(), vec![join_raw("application/x-www-form-urlencoded", params)]),
+            None => ()
+        }
 
-            if !request_headers.has::<Accept>() {
-                let mime = Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![]);
-                request_headers.set(
-                    Accept(vec![QualityItem::new(mime, 1.0)]));
-            }
-        } // drops the borrow_mut
+        load_data.preserved_headers = (*self.request_headers.borrow()).clone();
 
-        load_data.headers = (*self.request_headers.borrow()).clone();
+        if !load_data.preserved_headers.has::<Accept>() {
+            let mime = Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![]);
+            load_data.preserved_headers.set(Accept(vec![QualityItem::new(mime, 1.0)]));
+        }
+
         load_data.method = (*self.request_method.borrow()).clone();
         let (terminate_sender, terminate_receiver) = channel();
         *self.terminate_sender.borrow_mut() = Some(terminate_sender);
@@ -607,8 +601,10 @@ impl<'a> XMLHttpRequestMethods for JSRef<'a, XMLHttpRequest> {
         } else {
             RequestMode::CORS
         };
+        let mut combined_headers = load_data.headers.clone();
+        combined_headers.extend(load_data.preserved_headers.iter());
         let cors_request = CORSRequest::maybe_new(referer_url.clone(), load_data.url.clone(), mode,
-                                                  load_data.method.clone(), load_data.headers.clone());
+                                                  load_data.method.clone(), combined_headers);
         match cors_request {
             Ok(None) => {
                 let mut buf = String::new();

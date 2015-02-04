@@ -777,7 +777,7 @@ impl<'a> AttributeHandlers for JSRef<'a, Element> {
         let base = doc.r().url();
         // https://html.spec.whatwg.org/multipage/infrastructure.html#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
-        match UrlParser::new().base_url(base).parse(url.as_slice()) {
+        match UrlParser::new().base_url(&base).parse(url.as_slice()) {
             Ok(parsed) => parsed.serialize(),
             Err(_) => "".to_owned()
         }
@@ -1174,7 +1174,7 @@ impl<'a> VirtualMethods for JSRef<'a, Element> {
                 // Modifying the `style` attribute might change style.
                 let node: JSRef<Node> = NodeCast::from_ref(*self);
                 let doc = document_from_node(*self).root();
-                let base_url = doc.r().url().clone();
+                let base_url = doc.r().url();
                 let value = attr.value();
                 let style = Some(parse_style_attribute(value.as_slice(), &base_url));
                 *self.style_attribute.borrow_mut() = style;
