@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_state::DefaultState;
 use rand::Rng;
-use std::hash::{Hash, SipHasher};
+use std::hash::{Hash, Hasher, SipHasher};
 use std::iter::repeat;
 use std::rand;
 use std::slice::Iter;
@@ -152,7 +152,7 @@ impl<K:Clone+Eq+Hash<SipHasher>,V:Clone> SimpleHashCache<K,V> {
     fn bucket_for_key<Q:Hash<SipHasher>>(&self, key: &Q) -> uint {
         let mut hasher = SipHasher::new_with_keys(self.k0, self.k1);
         key.hash(&mut hasher);
-        self.to_bucket(hasher.result() as uint)
+        self.to_bucket(hasher.finish() as uint)
     }
 
     pub fn insert(&mut self, key: K, value: V) {
