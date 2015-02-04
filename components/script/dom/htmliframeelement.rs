@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::Attr;
+use dom::attr::AttrValue;
 use dom::attr::AttrHelpers;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
@@ -26,6 +27,7 @@ use servo_msg::constellation_msg::{PipelineId, SubpageId, ConstellationChan};
 use servo_msg::constellation_msg::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use servo_msg::constellation_msg::Msg as ConstellationMsg;
 use util::str::DOMString;
+use string_cache::Atom;
 
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -234,6 +236,13 @@ impl<'a> VirtualMethods for JSRef<'a, HTMLIFrameElement> {
                 }
             },
             _ => ()
+        }
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
 
