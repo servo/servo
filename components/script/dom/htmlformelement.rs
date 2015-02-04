@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -165,9 +164,8 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                                "submit".to_owned(),
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
-        event.r().set_trusted(true);
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.DispatchEvent(event.r()).ok();
+        event.r().fire(target);
         if event.r().DefaultPrevented() {
             return;
         }
@@ -353,7 +351,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
                                EventBubbles::Bubbles,
                                EventCancelable::Cancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        target.DispatchEvent(event.r()).ok();
+        event.r().fire(target);
         if event.r().DefaultPrevented() {
             return;
         }

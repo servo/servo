@@ -11,7 +11,7 @@ use dom::bindings::error::{Fallible, report_pending_exception};
 use dom::bindings::error::Error::InvalidState;
 use dom::bindings::js::JSRef;
 use dom::bindings::utils::{Reflectable, Reflector};
-use dom::event::Event;
+use dom::event::{Event, EventHelpers};
 use dom::eventdispatcher::dispatch_event;
 use dom::node::NodeTypeId;
 use dom::workerglobalscope::WorkerGlobalScopeTypeId;
@@ -303,6 +303,7 @@ impl<'a> EventTargetMethods for JSRef<'a, EventTarget> {
         if event.dispatching() || !event.initialized() {
             return Err(InvalidState);
         }
+        event.set_trusted(false);
         Ok(self.dispatch_event(event))
     }
 }
