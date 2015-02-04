@@ -8,7 +8,7 @@
 //! code that works in workers as well as window scopes.
 
 use dom::bindings::conversions::FromJSValConvertible;
-use dom::bindings::js::{JS, JSRef, Root};
+use dom::bindings::js::{JS, JSRef, Root, Unrooted};
 use dom::bindings::utils::{Reflectable, Reflector};
 use dom::workerglobalscope::{WorkerGlobalScope, WorkerGlobalScopeHelpers};
 use dom::window;
@@ -51,6 +51,15 @@ pub enum GlobalField {
     Window(JS<window::Window>),
     /// A field for a `WorkerGlobalScope` object.
     Worker(JS<WorkerGlobalScope>),
+}
+
+/// An unrooted reference to a global object.
+#[must_root]
+pub enum GlobalUnrooted {
+    /// An unrooted reference to a `Window` object.
+    Window(Unrooted<window::Window>),
+    /// An unrooted reference to a `WorkerGlobalScope` object.
+    Worker(Unrooted<WorkerGlobalScope>),
 }
 
 impl<'a> GlobalRef<'a> {
@@ -136,20 +145,30 @@ impl GlobalField {
     }
 }
 
+impl GlobalUnrooted {
+    /// Create a stack-bounded root for this reference.
+    pub fn root(&self) -> GlobalRoot {
+        match *self {
+            GlobalUnrooted::Window(ref window) => GlobalRoot::Window(window.root()),
+            GlobalUnrooted::Worker(ref worker) => GlobalRoot::Worker(worker.root()),
+        }
+    }
+}
+
 /// Returns the global object of the realm that the given JS object was created in.
 #[allow(unrooted_must_root)]
-pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalField {
+pub fn global_object_for_js_object(obj: *mut JSObject) -> GlobalUnrooted {
     unsafe {
         let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
         match FromJSValConvertible::from_jsval(ptr::null_mut(), ObjectOrNullValue(global), ()) {
-            Ok(window) => return GlobalField::Window(window),
+            Ok(window) => return GlobalUnrooted::Window(window),
             Err(_) => (),
         }
 
         match FromJSValConvertible::from_jsval(ptr::null_mut(), ObjectOrNullValue(global), ()) {
-            Ok(worker) => return GlobalField::Worker(worker),
+            Ok(worker) => return GlobalUnrooted::Worker(worker),
             Err(_) => (),
         }
 

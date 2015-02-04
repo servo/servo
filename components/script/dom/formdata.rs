@@ -10,7 +10,7 @@ use dom::bindings::codegen::UnionTypes::FileOrString;
 use dom::bindings::codegen::UnionTypes::FileOrString::{eFile, eString};
 use dom::bindings::error::{Fallible};
 use dom::bindings::global::{GlobalRef, GlobalField};
-use dom::bindings::js::{JS, JSRef, Temporary};
+use dom::bindings::js::{JS, JSRef, Temporary, Unrooted};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::blob::Blob;
 use dom::file::File;
@@ -82,12 +82,15 @@ impl<'a> FormDataMethods for JSRef<'a, FormData> {
         self.data.borrow_mut().remove(&name);
     }
 
+    #[allow(unsafe_blocks)]
     fn Get(self, name: DOMString) -> Option<FileOrString> {
         if self.data.borrow().contains_key(&name) {
             match (*self.data.borrow())[name][0].clone() {
                 FormDatum::StringData(ref s) => Some(eString(s.clone())),
                 FormDatum::FileData(ref f) => {
-                    Some(eFile(f.clone()))
+                    Some(eFile(unsafe {
+                        Unrooted::from_raw(f.unsafe_get())
+                    }))
                 }
             }
         } else {

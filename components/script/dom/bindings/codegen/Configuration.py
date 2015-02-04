@@ -157,7 +157,7 @@ class Descriptor(DescriptorProvider):
             self.returnType = "Temporary<%s>" % ifaceName
             self.argumentType = "JSRef<%s>" % ifaceName
             self.memberType = "Root<%s>" % ifaceName
-            self.nativeType = "JS<%s>" % ifaceName
+            self.nativeType = "Unrooted<%s>" % ifaceName
 
         self.concreteType = ifaceName
         self.register = desc.get('register', True)

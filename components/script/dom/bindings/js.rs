@@ -61,6 +61,46 @@ use std::marker::ContravariantLifetime;
 use std::mem;
 use std::ops::Deref;
 
+/// An unrooted, JS-owned value. Must not be held across a GC.
+#[must_root]
+pub struct Unrooted<T> {
+    ptr: NonZero<*const T>
+}
+
+impl<T: Reflectable> Unrooted<T> {
+    /// Create a new JS-owned value wrapped from a raw Rust pointer.
+    pub unsafe fn from_raw(raw: *const T) -> Unrooted<T> {
+        assert!(!raw.is_null());
+        Unrooted {
+            ptr: NonZero::new(raw)
+        }
+    }
+
+    /// Get the `Reflector` for this pointer.
+    pub fn reflector<'a>(&'a self) -> &'a Reflector {
+        unsafe {
+            (**self.ptr).reflector()
+        }
+    }
+
+    /// Returns an unsafe pointer to the interior of this object.
+    pub unsafe fn unsafe_get(&self) -> *const T {
+        *self.ptr
+    }
+
+    /// Create a stack-bounded root for this value.
+    pub fn root(self) -> Root<T> {
+        STACK_ROOTS.with(|ref collection| {
+            let RootCollectionPtr(collection) = collection.get().unwrap();
+            unsafe {
+                Root::new(&*collection, self.ptr)
+            }
+        })
+    }
+}
+
+impl<T> Copy for Unrooted<T> {}
+
 /// A type that represents a JS-owned value that is rooted for the lifetime of this value.
 /// Importantly, it requires explicit rooting in order to interact with the inner value.
 /// Can be assigned into JS-owned member fields (i.e. `JS<T>` types) safely via the
@@ -96,6 +136,15 @@ impl<T: Reflectable> Temporary<T> {
         }
     }
 
+    /// Create a new `Temporary` value from an unrooted value.
+    #[allow(unrooted_must_root)]
+    pub fn from_unrooted(unrooted: Unrooted<T>) -> Temporary<T> {
+        Temporary {
+            inner: JS { ptr: unrooted.ptr },
+            _js_ptr: unrooted.reflector().get_jsobject(),
+        }
+    }
+
     /// Create a new `Temporary` value from a rooted value.
     pub fn from_rooted<'a>(root: JSRef<'a, T>) -> Temporary<T> {
         Temporary::new(JS::from_rooted(root))
@@ -106,7 +155,7 @@ impl<T: Reflectable> Temporary<T> {
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe {
-                Root::new(&*collection, &self.inner)
+                Root::new(&*collection, self.inner.ptr)
             }
         })
     }
@@ -198,21 +247,12 @@ impl LayoutJS<Node> {
 }
 
 impl<T: Reflectable> JS<T> {
-    /// Create a new JS-owned value wrapped from a raw Rust pointer.
-    pub unsafe fn from_raw(raw: *const T) -> JS<T> {
-        assert!(!raw.is_null());
-        JS {
-            ptr: NonZero::new(raw)
-        }
-    }
-
-
     /// Root this JS-owned value to prevent its collection as garbage.
     pub fn root(&self) -> Root<T> {
         STACK_ROOTS.with(|ref collection| {
             let RootCollectionPtr(collection) = collection.get().unwrap();
             unsafe {
-                Root::new(&*collection, self)
+                Root::new(&*collection, self.ptr)
             }
         })
     }
@@ -484,6 +524,12 @@ impl<T: Reflectable> OptionalRootedRootable<T> for Option<JS<T>> {
     }
 }
 
+impl<T: Reflectable> OptionalRootedRootable<T> for Option<Unrooted<T>> {
+    fn root(&self) -> Option<Root<T>> {
+        self.as_ref().map(|inner| inner.root())
+    }
+}
+
 /// Root a rootable `Option<Option>` type (used for `Option<Option<JS<T>>>`)
 pub trait OptionalOptionalRootedRootable<T> {
     /// Root the inner value, if it exists.
@@ -491,6 +537,12 @@ pub trait OptionalOptionalRootedRootable<T> {
 }
 
 impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<JS<T>>> {
+    fn root(&self) -> Option<Option<Root<T>>> {
+        self.as_ref().map(|inner| inner.root())
+    }
+}
+
+impl<T: Reflectable> OptionalOptionalRootedRootable<T> for Option<Option<Unrooted<T>>> {
     fn root(&self) -> Option<Option<Root<T>>> {
         self.as_ref().map(|inner| inner.root())
     }
@@ -593,11 +645,12 @@ impl<T: Reflectable> Root<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
     /// It cannot not outlive its associated `RootCollection`, and it contains a `JSRef`
     /// which cannot outlive this new `Root`.
-    fn new(roots: &'static RootCollection, unrooted: &JS<T>) -> Root<T> {
+    fn new(roots: &'static RootCollection, unrooted: NonZero<*const T>)
+           -> Root<T> {
         let root = Root {
             root_list: roots,
-            ptr: unrooted.ptr,
-            js_ptr: unrooted.reflector().get_jsobject(),
+            ptr: unrooted,
+            js_ptr: unsafe { (**unrooted).reflector().get_jsobject() },
         };
         roots.root(&root);
         root
