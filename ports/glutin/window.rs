@@ -89,7 +89,7 @@ impl Window {
 
         glutin_window.set_window_resize_callback(Some(Window::nested_window_resize as fn(u32, u32)));
 
-        Window::load_gl_functions(&glutin_window);
+        gl::load_with(|s| glutin_window.get_proc_address(s));
 
         let window = Window {
             window: glutin_window,
@@ -132,15 +132,6 @@ impl Window {
     #[cfg(target_os="android")]
     fn gl_version() -> (u32, u32) {
         (2, 0)
-    }
-
-    #[cfg(not(target_os="android"))]
-    fn load_gl_functions(window: &glutin::Window) {
-        gl::load_with(|s| window.get_proc_address(s));
-    }
-
-    #[cfg(target_os="android")]
-    fn load_gl_functions(_: &glutin::Window) {
     }
 
     fn handle_window_event(&self, event: glutin::Event) -> bool {
