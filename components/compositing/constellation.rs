@@ -885,11 +885,17 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
     }
 
     fn handle_key_msg(&self, key: Key, state: KeyState, mods: KeyModifiers) {
-        self.current_frame().as_ref().map(|frame| {
-            let ScriptControlChan(ref chan) = frame.pipeline.borrow().script_chan;
-            chan.send(ConstellationControlMsg::SendEvent(
-                frame.pipeline.borrow().id, CompositorEvent::KeyEvent(key, state, mods))).unwrap();
-        });
+        match *self.current_frame() {
+            Some(ref frame) => {
+                let ScriptControlChan(ref chan) = frame.pipeline.borrow().script_chan;
+                chan.send(ConstellationControlMsg::SendEvent(
+                    frame.pipeline.borrow().id,
+                    CompositorEvent::KeyEvent(key, state, mods))).unwrap();
+            },
+            None => self.compositor_proxy.clone_compositor_proxy()
+                        .send(CompositorMsg::KeyEvent(key, state, mods))
+        }
+
     }
 
     fn handle_get_pipeline_title_msg(&mut self, pipeline_id: PipelineId) {

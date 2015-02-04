@@ -358,8 +358,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 }
             }
 
-            (Msg::KeyEvent(key, modified), ShutdownState::NotShuttingDown) => {
-                self.window.handle_key(key, modified);
+            (Msg::KeyEvent(key, state, modified), ShutdownState::NotShuttingDown) => {
+                if state == KeyState::Pressed {
+                    self.window.handle_key(key, modified);
+                }
             }
 
             (Msg::SetCursor(cursor), ShutdownState::NotShuttingDown) => {
