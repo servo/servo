@@ -810,12 +810,12 @@ impl ScriptTask {
 
             let final_url = load_response.metadata.final_url.clone();
 
-            (HTMLInput::InputUrl(load_response), final_url, last_modified)
+            (Some(HTMLInput::InputUrl(load_response)), final_url, last_modified)
         } else {
             let doc_url = last_url.unwrap_or_else(|| {
                 Url::parse("about:blank").unwrap()
             });
-            (HTMLInput::InputString("".to_owned()), doc_url, None)
+            (None, doc_url, None)
         };
 
         // Store the final URL before we start parsing, so that DOM routines
@@ -858,10 +858,10 @@ impl ScriptTask {
             let jsval = window.r().evaluate_js_on_global_with_result(evalstr);
             let strval = FromJSValConvertible::from_jsval(self.get_cx(), jsval,
                                                           StringificationBehavior::Empty);
-            parser_input = HTMLInput::InputString(strval.unwrap_or("".to_owned()));
+            parser_input = Some(HTMLInput::InputString(strval.unwrap_or("".to_owned())));
         };
 
-        parse_html(document.r(), parser_input, &final_url);
+        parse_html(document.r(), parser_input.unwrap(), &final_url);
 
         document.r().set_ready_state(DocumentReadyState::Interactive);
         self.compositor.borrow_mut().set_ready_state(pipeline_id, PerformingLayout);
