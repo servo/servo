@@ -1574,7 +1574,7 @@ impl Node {
                     false => IsHTMLDocument::NonHTMLDocument,
                 };
                 let window = document.window().root();
-                let document = Document::new(window.r(), Some(document.url().clone()),
+                let document = Document::new(window.r(), Some(document.url()),
                                              is_html_doc, None,
                                              DocumentSource::NotFromParser);
                 NodeCast::from_temporary(document)

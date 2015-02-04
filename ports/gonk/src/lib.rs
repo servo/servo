@@ -163,4 +163,3 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         self.compositor.shutdown();
     }
 }
-

@@ -15,7 +15,11 @@ git = "https://github.com/servo/rust-geom"
 
 [dependencies.hyper]
 git = "https://github.com/servo/hyper"
-branch = "servo"
+branch = "old_servo_new_cookies"
+
+[dependencies.cookie]
+git = "https://github.com/servo/cookie-rs"
+branch = "lenientparse_backport"
 
 [dependencies.png]
 git = "https://github.com/servo/rust-png"

@@ -23,6 +23,8 @@ use dom::htmlbuttonelement::{HTMLButtonElement};
 use dom::htmltextareaelement::{HTMLTextAreaElement, HTMLTextAreaElementHelpers};
 use dom::node::{Node, NodeHelpers, NodeTypeId, document_from_node, window_from_node};
 use hyper::method::Method;
+use hyper::header::common::ContentType;
+use hyper::mime;
 use servo_msg::constellation_msg::LoadData;
 use util::str::DOMString;
 use script_task::{ScriptChan, ScriptMsg};
@@ -178,7 +180,7 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         }
         // TODO: Resolve the url relative to the submitter element
         // Step 10-15
-        let action_components = UrlParser::new().base_url(base).parse(action.as_slice()).unwrap_or(base.clone());
+        let action_components = UrlParser::new().base_url(&base).parse(action.as_slice()).unwrap_or(base);
         let _action = action_components.serialize();
         let scheme = action_components.scheme.clone();
         let enctype = submitter.enctype();
@@ -186,12 +188,17 @@ impl<'a> HTMLFormElementHelpers for JSRef<'a, HTMLFormElement> {
         let _target = submitter.target();
         // TODO: Handle browsing contexts, partially loaded documents (step 16-17)
 
+        let mut load_data = LoadData::new(action_components);
+
         let parsed_data = match enctype {
-            FormEncType::UrlEncoded => serialize(form_data.iter().map(|d| (d.name.as_slice(), d.value.as_slice()))),
+            FormEncType::UrlEncoded => {
+                let mime: mime::Mime = "application/x-www-form-urlencoded".parse().unwrap();
+                load_data.headers.set(ContentType(mime));
+                serialize(form_data.iter().map(|d| (d.name.as_slice(), d.value.as_slice())))
+            }
             _ => "".to_owned() // TODO: Add serializers for the other encoding types
         };
 
-        let mut load_data = LoadData::new(action_components);
         // Step 18
         match (scheme.as_slice(), method) {
             (_, FormMethod::FormDialog) => return, // Unimplemented

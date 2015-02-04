@@ -11,6 +11,7 @@
 #![allow(missing_copy_implementations)]
 #![allow(unstable)]
 
+extern crate "cookie" as cookie_rs;
 extern crate collections;
 extern crate geom;
 extern crate hyper;
@@ -38,8 +39,11 @@ pub mod about_loader;
 pub mod file_loader;
 pub mod http_loader;
 pub mod data_loader;
+pub mod cookie;
+pub mod cookie_storage;
 pub mod image_cache_task;
 pub mod local_image_cache;
+pub mod pub_domains;
 pub mod resource_task;
 pub mod storage_task;
 mod sniffer_task;
