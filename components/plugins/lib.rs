@@ -40,12 +40,15 @@ pub mod reflector;
 pub mod lints;
 /// Utilities for writing plugins
 pub mod utils;
+pub mod casing;
 
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {
     reg.register_syntax_extension(intern("dom_struct"), Modifier(box jstraceable::expand_dom_struct));
     reg.register_syntax_extension(intern("jstraceable"), Decorator(box jstraceable::expand_jstraceable));
     reg.register_syntax_extension(intern("_generate_reflector"), Decorator(box reflector::expand_reflector));
+    reg.register_macro("to_lower", casing::expand_lower);
+    reg.register_macro("to_upper", casing::expand_upper);
     reg.register_lint_pass(box lints::transmute_type::TransmutePass as LintPassObject);
     reg.register_lint_pass(box lints::unrooted_must_root::UnrootedPass as LintPassObject);
     reg.register_lint_pass(box lints::privatize::PrivatizePass as LintPassObject);
