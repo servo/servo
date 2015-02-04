@@ -677,7 +677,7 @@ impl LayoutTask {
                                          .to_gfx_color()
                     };
 
-                    let black = color::black();
+                    let black = color::transparent_black();
                     // TODO: Use equality operators when we sync with rust-azure.
                     if element_bg_color.r != black.r || element_bg_color.g != black.g ||
                        element_bg_color.b != black.b || element_bg_color.a != black.a {
