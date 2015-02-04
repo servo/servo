@@ -272,9 +272,9 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
         self.Window()
     }
 
+    // https://html.spec.whatwg.org/multipage/browsers.html#dom-parent
     fn Parent(self) -> Temporary<Window> {
-        //TODO - Once we support iframes correctly this needs to return the parent frame
-        self.Window()
+        self.browser_context().as_ref().unwrap().parent().unwrap_or(self.Window())
     }
 
     fn Performance(self) -> Temporary<Performance> {
@@ -314,7 +314,7 @@ impl<'a> WindowMethods for JSRef<'a, Window> {
 
 pub trait WindowHelpers {
     fn flush_layout(self, goal: ReflowGoal, query: ReflowQueryType);
-    fn init_browser_context(self, doc: JSRef<Document>);
+    fn init_browser_context(self, doc: JSRef<Document>, parent: Option<JSRef<Window>>);
     fn load_url(self, href: DOMString);
     fn handle_fire_timer(self, timer_id: TimerId);
     fn IndexedGetter(self, _index: u32, _found: &mut bool) -> Option<Temporary<Window>>;
@@ -357,8 +357,8 @@ impl<'a> WindowHelpers for JSRef<'a, Window> {
         self.page().flush_layout(goal, query);
     }
 
-    fn init_browser_context(self, doc: JSRef<Document>) {
-        *self.browser_context.borrow_mut() = Some(BrowserContext::new(doc));
+    fn init_browser_context(self, doc: JSRef<Document>, parent: Option<JSRef<Window>>) {
+        *self.browser_context.borrow_mut() = Some(BrowserContext::new(doc, parent));
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.

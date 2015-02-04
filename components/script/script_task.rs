@@ -581,8 +581,8 @@ impl ScriptTask {
         match msg {
             ConstellationControlMsg::AttachLayout(_) =>
                 panic!("should have handled AttachLayout already"),
-            ConstellationControlMsg::Load(id, load_data) =>
-                self.load(id, load_data),
+            ConstellationControlMsg::Load(id, parent_id, load_data) =>
+                self.load(id, parent_id, load_data),
             ConstellationControlMsg::SendEvent(id, event) =>
                 self.handle_event(id, event),
             ConstellationControlMsg::ReflowComplete(id, reflow_id) =>
@@ -757,12 +757,26 @@ impl ScriptTask {
 
     /// The entry point to document loading. Defines bindings, sets up the window and document
     /// objects, parses HTML and CSS, and kicks off initial layout.
-    fn load(&self, pipeline_id: PipelineId, load_data: LoadData) {
+    fn load(&self, pipeline_id: PipelineId, parent_id: Option<PipelineId>, load_data: LoadData) {
         let url = load_data.url.clone();
         debug!("ScriptTask: loading {:?} on page {:?}", url, pipeline_id);
 
-        let page = self.page.borrow_mut();
-        let page = page.find(pipeline_id).expect("ScriptTask: received a load
+        let borrowed_page = self.page.borrow_mut();
+
+        let parent_window = parent_id.and_then(|pid| {
+          // In the case a parent id exists but the matching page
+          // cannot be found, this means the page exists in a different
+          // script task (due to origin) so it shouldn't be returned.
+          // TODO: window.parent will continue to return self in that
+          // case, which is wrong. We should be returning an object that
+          // denies access to most properties (per
+          // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
+          borrowed_page.find(pid).and_then(|page| {
+            Some(*page.frame.borrow().as_ref().unwrap().window.root())
+          })
+        });
+
+        let page = borrowed_page.find(pipeline_id).expect("ScriptTask: received a load
             message for a layout channel that is not associated with this script task. This
             is a bug.");
 
@@ -841,7 +855,7 @@ impl ScriptTask {
         if let Some(tm) = last_modified {
             document.set_last_modified(dom_last_modified(&tm));
         }
-        window.r().init_browser_context(document.r());
+        window.r().init_browser_context(document.r(), parent_window);
 
 
         {
