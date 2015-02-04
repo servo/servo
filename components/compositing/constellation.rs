@@ -893,7 +893,7 @@ impl<LTF: LayoutTaskFactory, STF: ScriptTaskFactory> Constellation<LTF, STF> {
                     CompositorEvent::KeyEvent(key, state, mods))).unwrap();
             },
             None => self.compositor_proxy.clone_compositor_proxy()
-                        .send(CompositorMsg::KeyEvent(key, mods))
+                        .send(CompositorMsg::KeyEvent(key, state, mods))
         }
 
     }

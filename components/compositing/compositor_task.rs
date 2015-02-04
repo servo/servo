@@ -91,9 +91,7 @@ impl ScriptListener for Box<CompositorProxy+'static+Send> {
     }
 
     fn send_key_event(&mut self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        if state == KeyState::Pressed {
-            self.send(Msg::KeyEvent(key, modifiers));
-        }
+        self.send(Msg::KeyEvent(key, state, modifiers));
     }
 }
 
@@ -218,7 +216,7 @@ pub enum Msg {
     /// composite should happen. (See the `scrolling` module.)
     ScrollTimeout(u64),
     /// Sends an unconsumed key event back to the compositor.
-    KeyEvent(Key, KeyModifiers),
+    KeyEvent(Key, KeyState, KeyModifiers),
     /// Changes the cursor.
     SetCursor(Cursor),
     /// Informs the compositor that the paint task for the given pipeline has exited.
