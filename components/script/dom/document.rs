@@ -7,7 +7,6 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -35,7 +34,7 @@ use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator, AttributeHandlers, get_attribute_parts};
 use dom::element::ElementTypeId;
-use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetTypeId, EventTargetHelpers};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlcollection::{HTMLCollection, CollectionFilter};
@@ -344,7 +343,7 @@ impl<'a> DocumentHelpers<'a> for JSRef<'a, Document> {
                                EventBubbles::DoesNotBubble,
                                EventCancelable::NotCancelable).root();
         let target: JSRef<EventTarget> = EventTargetCast::from_ref(self);
-        let _ = target.DispatchEvent(event.r());
+        let _ = event.r().fire(target);
     }
 
     /// Return the element that currently has focus.
