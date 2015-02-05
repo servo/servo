@@ -145,6 +145,7 @@ version = "0.0.1"
 dependencies = [
  "devtools_traits 0.0.1",
  "msg 0.0.1",
+ "time 0.1.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 

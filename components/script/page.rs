@@ -11,6 +11,7 @@ use dom::document::{Document, DocumentHelpers};
 use dom::element::Element;
 use dom::node::{Node, NodeHelpers};
 use dom::window::Window;
+use devtools_traits::DevtoolsControlChan;
 use layout_interface::{
     ContentBoxResponse, ContentBoxesResponse,
     HitTestResponse, LayoutChan, LayoutRPC, MouseOverResponse, Msg, Reflow,
@@ -100,6 +101,9 @@ pub struct Page {
     /// A flag to indicate whether the developer tools have requested live updates of
     /// page changes.
     pub devtools_wants_updates: Cell<bool>,
+
+    /// For providing instructions to an optional devtools server.
+    pub devtools_chan: Option<DevtoolsControlChan>,
 }
 
 pub struct PageIterator {
@@ -130,12 +134,13 @@ impl IterablePage for Rc<Page> {
 
 impl Page {
     pub fn new(id: PipelineId, subpage_id: Option<SubpageId>,
-           layout_chan: LayoutChan,
-           window_size: WindowSizeData,
-           resource_task: ResourceTask,
-           storage_task: StorageTask,
-           constellation_chan: ConstellationChan,
-           js_context: Rc<Cx>) -> Page {
+               layout_chan: LayoutChan,
+               window_size: WindowSizeData,
+               resource_task: ResourceTask,
+               storage_task: StorageTask,
+               constellation_chan: ConstellationChan,
+               js_context: Rc<Cx>,
+               devtools_chan: Option<DevtoolsControlChan>) -> Page {
         let js_info = JSPageInfo {
             dom_static: GlobalStaticData::new(),
             js_context: js_context,
@@ -166,6 +171,7 @@ impl Page {
             children: DOMRefCell::new(vec!()),
             page_clip_rect: Cell::new(MAX_RECT),
             devtools_wants_updates: Cell::new(false),
+            devtools_chan: devtools_chan,
         }
     }
 

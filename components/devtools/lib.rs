@@ -25,6 +25,7 @@ extern crate devtools_traits;
 extern crate "serialize" as rustc_serialize;
 extern crate serialize;
 extern crate "msg" as servo_msg;
+extern crate time;
 extern crate util;
 
 use actor::{Actor, ActorRegistry};
@@ -34,7 +35,8 @@ use actors::root::RootActor;
 use actors::tab::TabActor;
 use protocol::JsonPacketStream;
 
-use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg, DevtoolsPageInfo};
+use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg};
+use devtools_traits::{DevtoolsPageInfo, SendConsoleMessage, ConsoleMessage};
 use servo_msg::constellation_msg::PipelineId;
 use util::task::spawn_named;
 
@@ -46,6 +48,7 @@ use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::io::{TcpListener, TcpStream};
 use std::io::{Acceptor, Listener, TimedOut};
 use std::sync::{Arc, Mutex};
+use time::precise_time_ns;
 
 mod actor;
 /// Corresponds to http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/
@@ -56,6 +59,20 @@ mod actors {
     pub mod tab;
 }
 mod protocol;
+
+#[derive(RustcEncodable)]
+struct ConsoleAPICall {
+    from: String,
+    __type__: String,
+    message: ConsoleMsg,
+}
+
+#[derive(RustcEncodable)]
+struct ConsoleMsg {
+    logLevel: u32,
+    timestamp: u64,
+    message: String,
+}
 
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
@@ -169,6 +186,41 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         actors.register(box inspector);
     }
 
+    fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
+                              id: PipelineId,
+                              console_message: ConsoleMessage,
+                              actor_pipelines: &HashMap<PipelineId, String>) {
+        let console_actor_name = find_console_actor(actors.clone(), id, actor_pipelines);
+        let actors = actors.lock().unwrap();
+        let console_actor = actors.find::<ConsoleActor>(console_actor_name.as_slice());
+        match console_message {
+            ConsoleMessage::LogMessage(message) => {
+                let msg = ConsoleAPICall {
+                    from: console_actor.name.clone(),
+                    __type__: "consoleAPICall".to_string(),
+                    message: ConsoleMsg {
+                        logLevel: 0,
+                        timestamp: precise_time_ns(),
+                        message: message,
+                    },
+                };
+                for stream in console_actor.streams.borrow_mut().iter_mut() {
+                    stream.write_json_packet(&msg);
+                }
+            }
+        }
+    }
+
+    fn find_console_actor(actors: Arc<Mutex<ActorRegistry>>,
+                          id: PipelineId,
+                          actor_pipelines: &HashMap<PipelineId, String>) -> String {
+        let actors = actors.lock().unwrap();
+        let ref tab_actor_name = (*actor_pipelines)[id];
+        let tab_actor = actors.find::<TabActor>(tab_actor_name.as_slice());
+        let console_actor_name = tab_actor.console.clone();
+        return console_actor_name;
+    }
+
     //TODO: figure out some system that allows us to watch for new connections,
     //      shut down existing ones at arbitrary times, and also watch for messages
     //      from multiple script tasks simultaneously. Polling for new connections
@@ -180,7 +232,12 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
             Err(ref e) if e.kind == TimedOut => {
                 match receiver.try_recv() {
                     Ok(ServerExitMsg) | Err(Disconnected) => break,
-                    Ok(NewGlobal(id, sender, pageinfo)) => handle_new_global(actors.clone(), id, sender, &mut actor_pipelines, pageinfo),
+                    Ok(NewGlobal(id, sender, pageinfo)) =>
+                        handle_new_global(actors.clone(), id,sender, &mut actor_pipelines,
+                                          pageinfo),
+                    Ok(SendConsoleMessage(id, console_message)) =>
+                        handle_console_message(actors.clone(), id, console_message,
+                                               &actor_pipelines),
                     Err(Empty) => acceptor.set_timeout(Some(POLL_TIMEOUT)),
                 }
             }
