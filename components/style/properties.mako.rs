@@ -2449,11 +2449,11 @@ pub enum DeclaredValue<T> {
 }
 
 impl<T: Show> DeclaredValue<T> {
-    pub fn specified_value(&self) -> Option<String> {
+    pub fn specified_value(&self) -> String {
         match self {
-            &DeclaredValue::SpecifiedValue(ref inner) => Some(format!("{:?}", inner)),
-            &DeclaredValue::Initial => None,
-            &DeclaredValue::Inherit => Some("inherit".to_owned()),
+            &DeclaredValue::SpecifiedValue(ref inner) => format!("{:?}", inner),
+            &DeclaredValue::Initial => "initial".to_owned(),
+            &DeclaredValue::Inherit => "inherit".to_owned(),
         }
     }
 }
@@ -2491,8 +2491,7 @@ impl PropertyDeclaration {
             % for property in LONGHANDS:
                 % if property.derived_from is None:
                     &PropertyDeclaration::${property.camel_case}(ref value) =>
-                        value.specified_value()
-                             .unwrap_or_else(|| format!("{:?}", longhands::${property.ident}::get_initial_value())),
+                        value.specified_value(),
                 % endif
             % endfor
             decl => panic!("unsupported property declaration: {:?}", decl.name()),
