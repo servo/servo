@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
-use dom::bindings::codegen::InheritTypes::EventTargetCast;
+use dom::bindings::codegen::InheritTypes::{EventCast, EventTargetCast};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::error::Error::Syntax;
 use dom::bindings::global::{GlobalRef, GlobalField};
@@ -15,6 +15,8 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{Reflectable, reflect_dom_object};
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use dom::errorevent::ErrorEvent;
+use dom::event::{Event, EventBubbles, EventCancelable, EventHelpers};
 use dom::eventtarget::{EventTarget, EventTargetHelpers, EventTargetTypeId};
 use dom::messageevent::MessageEvent;
 use script_task::{ScriptChan, ScriptMsg, Runnable};
@@ -22,9 +24,10 @@ use script_task::{ScriptChan, ScriptMsg, Runnable};
 use util::str::DOMString;
 
 use js::jsapi::JSContext;
-use js::jsval::JSVal;
+use js::jsval::{JSVal, UndefinedValue};
 use url::UrlParser;
 
+use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::sync::mpsc::{channel, Sender};
 
@@ -87,6 +90,19 @@ impl Worker {
 
         let message = data.read(global.r());
         MessageEvent::dispatch_jsval(target, global.r(), message);
+    }
+
+    pub fn handle_error_message(address: TrustedWorkerAddress, message: DOMString,
+                                filename: DOMString, lineno: u32, colno: u32) {
+        let worker = address.to_temporary().root();
+        let global = worker.r().global.root();
+        let error = UndefinedValue();
+        let target: JSRef<EventTarget> = EventTargetCast::from_ref(worker.r());
+        let errorevent = ErrorEvent::new(global.r(), "error".to_owned(),
+                                         EventBubbles::Bubbles, EventCancelable::Cancelable,
+                                         message, filename, lineno, colno, error).root();
+        let event: JSRef<Event> = EventCast::from_ref(errorevent.r());
+        event.fire(target);
     }
 }
 
