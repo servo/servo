@@ -30,6 +30,8 @@ def read_file(filename, if_exists=False):
 
 @CommandProvider
 class MachCommands(CommandBase):
+    SERVO_BINARY_PATH = path.join("components", "servo", "target", "servo")
+
     @Command('run',
              description='Run Servo',
              category='post-build')
@@ -47,7 +49,7 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        args = [path.join("components", "servo", "target", "servo")]
+        args = [self.SERVO_BINARY_PATH]
 
         # Borrowed and modified from:
         # http://hg.mozilla.org/mozilla-central/file/c9cfa9b91dea/python/mozbuild/mozbuild/mach_commands.py#l883
@@ -71,6 +73,26 @@ class MachCommands(CommandBase):
             args = args + params
 
         subprocess.check_call(args, env=env)
+
+    @Command('rr-record',
+             description='Run Servo whilst recording execution with rr',
+             category='post-build')
+    @CommandArgument(
+        'params', nargs='...',
+        help="Command-line arguments to be passed through to Servo")
+    def rr_record(self, params):
+        env = self.build_env()
+        env["RUST_BACKTRACE"] = "1"
+
+        servo_cmd = [self.SERVO_BINARY_PATH] + params
+        rr_cmd = ['rr', '--fatal-errors', 'record']
+        subprocess.check_call(rr_cmd + servo_cmd)
+
+    @Command('rr-replay',
+             description='Replay the most recent execution of Servo that was recorded with rr',
+             category='post-build')
+    def rr_replay(self):
+        subprocess.check_call(['rr', '--fatal-errors', 'replay'])
 
     @Command('doc',
              description='Generate documentation',
