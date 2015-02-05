@@ -7,14 +7,16 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
+use std::intrinsics::TypeId;
 use std::io::TcpStream;
-use std::mem::replace;
+use std::mem::{replace, transmute};
+use std::raw::TraitObject;
 use serialize::json;
 
 /// A common trait for all devtools actors that encompasses an immutable name
 /// and the ability to process messages that are directed to particular actors.
 /// TODO: ensure the name is immutable
-pub trait Actor : Any {
+pub trait Actor: Any {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &String,
@@ -23,10 +25,59 @@ pub trait Actor : Any {
     fn name(&self) -> String;
 }
 
+impl Actor {
+    /// Returns true if the boxed type is the same as `T`
+    #[inline]
+    pub fn is<T: 'static>(&self) -> bool {
+        // Get TypeId of the type this function is instantiated with
+        let t = TypeId::of::<T>();
+
+        // Get TypeId of the type in the trait object
+        let boxed = self.get_type_id();
+
+        // Compare both TypeIds on equality
+        t == boxed
+    }
+
+    /// Returns some reference to the boxed value if it is of type `T`, or
+    /// `None` if it isn't.
+    #[inline]
+    pub fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        if self.is::<T>() {
+            unsafe {
+                // Get the raw representation of the trait object
+                let to: TraitObject = transmute(self);
+
+                // Extract the data pointer
+                Some(transmute(to.data))
+            }
+        } else {
+            None
+        }
+    }
+
+    /// Returns some mutable reference to the boxed value if it is of type `T`, or
+    /// `None` if it isn't.
+    #[inline]
+    pub fn downcast_mut<T: 'static>(&mut self) -> Option<&mut T> {
+        if self.is::<T>() {
+            unsafe {
+                // Get the raw representation of the trait object
+                let to: TraitObject = transmute(self);
+
+                // Extract the data pointer
+                Some(transmute(to.data))
+            }
+        } else {
+            None
+        }
+    }
+}
+
 /// A list of known, owned actors.
 pub struct ActorRegistry {
-    actors: HashMap<String, Box<Actor+Send+Sized>>,
-    new_actors: RefCell<Vec<Box<Actor+Send+Sized>>>,
+    actors: HashMap<String, Box<Actor+Send>>,
+    new_actors: RefCell<Vec<Box<Actor+Send>>>,
     script_actors: RefCell<HashMap<String, String>>,
     next: Cell<u32>,
 }
@@ -77,24 +128,24 @@ impl ActorRegistry {
     }
 
     /// Add an actor to the registry of known actors that can receive messages.
-    pub fn register(&mut self, actor: Box<Actor+Send+Sized>) {
+    pub fn register(&mut self, actor: Box<Actor+Send>) {
         self.actors.insert(actor.name().to_string(), actor);
     }
 
-    pub fn register_later(&self, actor: Box<Actor+Send+Sized>) {
+    pub fn register_later(&self, actor: Box<Actor+Send>) {
         let mut actors = self.new_actors.borrow_mut();
         actors.push(actor);
     }
 
     /// Find an actor by registered name
     pub fn find<'a, T: 'static>(&'a self, name: &str) -> &'a T {
-        let actor: &Any = self.actors.get(&name.to_string()).unwrap();
+        let actor = self.actors.get(&name.to_string()).unwrap();
         actor.downcast_ref::<T>().unwrap()
     }
 
     /// Find an actor by registered name
     pub fn find_mut<'a, T: 'static>(&'a mut self, name: &str) -> &'a mut T {
-        let actor: &mut Any = self.actors.get_mut(&name.to_string()).unwrap();
+        let actor = self.actors.get_mut(&name.to_string()).unwrap();
         actor.downcast_mut::<T>().unwrap()
     }
 
