@@ -4,31 +4,35 @@
 
 use dom::bindings::codegen::Bindings::ConsoleBinding;
 use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
-use dom::bindings::global::GlobalRef;
+use dom::bindings::global::{GlobalRef, GlobalField};
 use dom::bindings::js::{JSRef, Temporary};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
-use util::str::DOMString;
+use devtools_traits::{SendConsoleMessage, ConsoleMessage};
+use servo_util::str::DOMString;
 
 #[dom_struct]
 pub struct Console {
-    reflector_: Reflector
+    reflector_: Reflector,
+    global: GlobalField,
 }
 
 impl Console {
-    fn new_inherited() -> Console {
+    fn new_inherited(global: GlobalRef) -> Console {
         Console {
-            reflector_: Reflector::new()
+            reflector_: Reflector::new(),
+            global: GlobalField::from_rooted(&global),
         }
     }
 
     pub fn new(global: GlobalRef) -> Temporary<Console> {
-        reflect_dom_object(box Console::new_inherited(), global, ConsoleBinding::Wrap)
+        reflect_dom_object(box Console::new_inherited(global), global, ConsoleBinding::Wrap)
     }
 }
 
 impl<'a> ConsoleMethods for JSRef<'a, Console> {
     fn Log(self, message: DOMString) {
         println!("{}", message);
+        propagate_console_msg(&self, ConsoleMessage::LogMessage(message));
     }
 
     fn Debug(self, message: DOMString) {
@@ -58,3 +62,16 @@ impl<'a> ConsoleMethods for JSRef<'a, Console> {
     }
 }
 
+fn propagate_console_msg(console: &JSRef<Console>, console_message: ConsoleMessage) {
+    let global = console.global.root();
+    match global.r() {
+        GlobalRef::Window(window_ref) => {
+            let pipelineId = window_ref.page().id;
+            console.global.root().r().as_window().page().devtools_chan.as_ref().map(|chan| {
+                chan.send(SendConsoleMessage(pipelineId, console_message.clone()));
+            });
+        },
+
+        GlobalRef::Worker(_) => println!("Not a windowref"),
+    }
+}

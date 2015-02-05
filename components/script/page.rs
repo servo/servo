@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::DevtoolsControlChan;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::InheritTypes::NodeCast;
@@ -96,6 +97,9 @@ pub struct Page {
     /// An enlarged rectangle around the page contents visible in the viewport, used
     /// to prevent creating display list items for content that is far away from the viewport.
     pub page_clip_rect: Cell<Rect<Au>>,
+
+    /// For providing instructions to an optional devtools server.
+    pub devtools_chan: Option<DevtoolsControlChan>,
 }
 
 pub struct PageIterator {
@@ -131,7 +135,8 @@ impl Page {
            resource_task: ResourceTask,
            storage_task: StorageTask,
            constellation_chan: ConstellationChan,
-           js_context: Rc<Cx>) -> Page {
+           js_context: Rc<Cx>,
+           devtools_chan: Option<DevtoolsControlChan>) -> Page {
         let js_info = JSPageInfo {
             dom_static: GlobalStaticData::new(),
             js_context: js_context,
@@ -161,6 +166,7 @@ impl Page {
             constellation_chan: constellation_chan,
             children: DOMRefCell::new(vec!()),
             page_clip_rect: Cell::new(MAX_RECT),
+            devtools_chan: devtools_chan,
         }
     }
 

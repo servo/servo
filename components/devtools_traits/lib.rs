@@ -45,6 +45,7 @@ pub struct DevtoolsPageInfo {
 /// according to changes in the browser.
 pub enum DevtoolsControlMsg {
     NewGlobal(PipelineId, Sender<DevtoolScriptControlMsg>, DevtoolsPageInfo),
+    SendConsoleMessage(PipelineId, ConsoleMessage),
     ServerExitMsg
 }
 
@@ -122,3 +123,11 @@ impl Decodable for Modification {
         )
     }
 }
+
+//TODO: Include options for Warn, Debug, Info, Error messages from Console
+#[deriving(Clone)]
+pub enum ConsoleMessage {
+    LogMessage(String),
+    //WarnMessage(String),
+}
+

@@ -37,8 +37,8 @@ use layout_interface::{ScriptLayoutChan, LayoutChan, ReflowGoal, ReflowQueryType
 use layout_interface;
 use page::{Page, IterablePage, Frame};
 use timers::TimerId;
-use devtools;
 
+use devtools;
 use devtools_traits::{DevtoolsControlChan, DevtoolsControlPort, NewGlobal, GetRootNode, DevtoolsPageInfo};
 use devtools_traits::{DevtoolScriptControlMsg, EvaluateJS, GetDocumentElement};
 use devtools_traits::{GetChildren, GetLayout, ModifyAttribute};
@@ -379,7 +379,8 @@ impl ScriptTask {
                              resource_task.clone(),
                              storage_task,
                              constellation_chan.clone(),
-                             js_context.clone());
+                             js_context.clone(),
+                             devtools_chan.clone());
 
         let (devtools_sender, devtools_receiver) = channel();
         ScriptTask {
@@ -660,7 +661,8 @@ impl ScriptTask {
                       parent_page.resource_task.clone(),
                       parent_page.storage_task.clone(),
                       self.constellation_chan.clone(),
-                      self.js_context.borrow().as_ref().unwrap().clone())
+                      self.js_context.borrow().as_ref().unwrap().clone(),
+                      self.devtools_chan.clone())
         };
         parent_page.children.borrow_mut().push(Rc::new(new_page));
     }

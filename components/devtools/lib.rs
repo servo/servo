@@ -35,9 +35,11 @@ use actors::tab::TabActor;
 use protocol::JsonPacketStream;
 
 use devtools_traits::{ServerExitMsg, DevtoolsControlMsg, NewGlobal, DevtoolScriptControlMsg, DevtoolsPageInfo};
+use devtools_traits::{SendConsoleMessage, ConsoleMessage};
 use servo_msg::constellation_msg::PipelineId;
 use util::task::spawn_named;
 
+use time::precise_time_ns;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -56,6 +58,20 @@ mod actors {
     pub mod tab;
 }
 mod protocol;
+
+#[deriving(Encodable)]
+struct ConsoleAPICall {
+    from: String,
+    __type__: String,
+    message: ConsoleMsg,
+}
+
+#[deriving(Encodable)]
+struct ConsoleMsg {
+    logLevel: u32,
+    timestamp: u64,
+    message: String,
+}
 
 /// Spin up a devtools server that listens for connections on the specified port.
 pub fn start_server(port: u16) -> Sender<DevtoolsControlMsg> {
@@ -169,6 +185,41 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
         actors.register(box inspector);
     }
 
+    fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
+                              id: PipelineId,
+                              console_message: ConsoleMessage,
+                              actor_pipelines: &HashMap<PipelineId, String>) {
+        let console_actor_name = find_console_actor(actors.clone(), id, actor_pipelines);
+        let mut actors = actors.lock();
+        let console_actor = actors.find::<ConsoleActor>(console_actor_name.as_slice());
+        match console_message {
+            ConsoleMessage::LogMessage(message) => {
+                let msg = ConsoleAPICall {
+                    from: console_actor.name.clone(),
+                    __type__: "consoleAPICall".to_string(),
+                    message: ConsoleMsg {
+                        logLevel: 0,
+                        timestamp: precise_time_ns(),
+                        message: message,
+                    },
+                };
+                for stream in console_actor.streams.borrow_mut().iter_mut() {
+                    stream.write_json_packet(&msg);
+                }
+            }
+        }
+    }
+
+    fn find_console_actor(actors: Arc<Mutex<ActorRegistry>>,
+                          id: PipelineId,
+                          actor_pipelines: &HashMap<PipelineId, String>) -> String {
+        let mut actors = actors.lock();
+        let ref tab_actor_name = (*actor_pipelines)[id];
+        let tab_actor = actors.find::<TabActor>(tab_actor_name.as_slice());
+        let console_actor_name = tab_actor.console.clone();
+        return console_actor_name;
+    }
+
     //TODO: figure out some system that allows us to watch for new connections,
     //      shut down existing ones at arbitrary times, and also watch for messages
     //      from multiple script tasks simultaneously. Polling for new connections
@@ -181,6 +232,7 @@ fn run_server(receiver: Receiver<DevtoolsControlMsg>, port: u16) {
                 match receiver.try_recv() {
                     Ok(ServerExitMsg) | Err(Disconnected) => break,
                     Ok(NewGlobal(id, sender, pageinfo)) => handle_new_global(actors.clone(), id, sender, &mut actor_pipelines, pageinfo),
+                    Ok(SendConsoleMessage(id, console_message)) => handle_console_message(actors.clone(), id, console_message, &actor_pipelines),
                     Err(Empty) => acceptor.set_timeout(Some(POLL_TIMEOUT)),
                 }
             }
