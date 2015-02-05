@@ -1790,6 +1790,8 @@ pub mod longhands {
                             _ => Err(())
                         }
                     })));
+                } else if filters.is_empty() {
+                    return Err(())
                 } else {
                     return Ok(SpecifiedValue::new(filters))
                 }
